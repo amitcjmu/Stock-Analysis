@@ -1,9 +1,9 @@
 /**
  * Compliance Settings Configuration Types
- * 
+ *
  * Compliance and governance configuration including data protection,
  * retention policies, privacy settings, and regulatory frameworks.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

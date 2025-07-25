@@ -1,6 +1,6 @@
 /**
  * Error Handling Hook Types
- * 
+ *
  * Hook interfaces for error boundary management and async error handling.
  */
 

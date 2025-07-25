@@ -4,10 +4,10 @@ Generated: 2025-07-15 14:30:00 UTC
 ## 🚨 CRITICAL ERRORS DETECTED
 
 ### 1. UUID JSON Serialization Error
-**Severity**: CRITICAL  
-**Component**: Flow Execution Engine  
-**Impact**: Prevents all discovery flow creation  
-**Occurrences**: Multiple (retries 3 times before failing)  
+**Severity**: CRITICAL
+**Component**: Flow Execution Engine
+**Impact**: Prevents all discovery flow creation
+**Occurrences**: Multiple (retries 3 times before failing)
 
 #### Error Details:
 ```
@@ -49,14 +49,14 @@ persistence_data = convert_uuids_to_str(persistence_data)
 ```
 
 ### 2. Multi-Tenant Context Missing
-**Severity**: HIGH  
-**Component**: API Middleware  
-**Impact**: Blocks API access for clients without proper headers  
-**Occurrences**: Multiple  
+**Severity**: HIGH
+**Component**: API Middleware
+**Impact**: Blocks API access for clients without proper headers
+**Occurrences**: Multiple
 
 #### Error Details:
 ```
-403: Client account context is required for multi-tenant security. 
+403: Client account context is required for multi-tenant security.
 Please provide X-Client-Account-Id header.
 ```
 
@@ -70,10 +70,10 @@ API calls are missing required multi-tenant headers:
 - X-Engagement-Id
 
 ### 3. User Context Active Flows Warning
-**Severity**: MEDIUM  
-**Component**: User Service  
-**Impact**: Unable to retrieve active flows for users  
-**Occurrences**: Regular  
+**Severity**: MEDIUM
+**Component**: User Service
+**Impact**: Unable to retrieve active flows for users
+**Occurrences**: Regular
 
 #### Error Details:
 ```
@@ -84,9 +84,9 @@ WARNING - Failed to get active flows for user 33333333-3333-3333-3333-3333333333
 The user context service is trying to access 'engagement_id' but the key is missing from the context object.
 
 ### 4. Audit Logger Failure
-**Severity**: MEDIUM  
-**Component**: Flow Audit Logger  
-**Impact**: Audit events not being logged  
+**Severity**: MEDIUM
+**Component**: Flow Audit Logger
+**Impact**: Audit events not being logged
 
 #### Error Details:
 ```

@@ -1,6 +1,6 @@
 /**
  * Next Actions Tab Component
- * 
+ *
  * Displays next actions for the user.
  */
 

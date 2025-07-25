@@ -47,7 +47,7 @@ const BusinessPriorities = [
 ];
 
 const Industries = [
-  'Technology', 'Healthcare', 'Finance', 'Manufacturing', 'Retail', 
+  'Technology', 'Healthcare', 'Finance', 'Manufacturing', 'Retail',
   'Education', 'Government', 'Energy', 'Transportation', 'Other'
 ];
 
@@ -76,18 +76,18 @@ const CreateClient: React.FC = () => {
     onError: (error: Error & { response?: { data?: { detail?: string | object } }; message?: string }) => {
       console.error('Create client error:', error);
       let errorMessage = "Failed to create client. Please try again.";
-      
+
       // Safely extract error message
       if (error?.response?.data?.detail) {
-        errorMessage = typeof error.response.data.detail === 'string' 
-          ? error.response.data.detail 
+        errorMessage = typeof error.response.data.detail === 'string'
+          ? error.response.data.detail
           : JSON.stringify(error.response.data.detail);
       } else if (error?.message) {
-        errorMessage = typeof error.message === 'string' 
-          ? error.message 
+        errorMessage = typeof error.message === 'string'
+          ? error.message
           : JSON.stringify(error.message);
       }
-      
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -116,7 +116,7 @@ const CreateClient: React.FC = () => {
   const handleFormChange = (field: keyof CreateClientData, value: CreateClientData[keyof CreateClientData]) => {
     // Debug logging
     console.log(`handleFormChange: field=${field}, value=`, value, `type=${typeof value}`);
-    
+
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -198,7 +198,7 @@ const CreateClient: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="industry">Industry *</Label>
                     <Select value={formData.industry} onValueChange={(value) => handleFormChange('industry', value)}>
@@ -423,14 +423,14 @@ const CreateClient: React.FC = () => {
                     <span className="text-sm">{formData.headquarters_location || 'Location'}</span>
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div className="space-y-2">
                   <h4 className="font-medium">Industry</h4>
                   <p className="text-sm text-muted-foreground">{formData.industry || 'Not selected'}</p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <h4 className="font-medium">Company Size</h4>
                   <p className="text-sm text-muted-foreground">{formData.company_size || 'Not selected'}</p>
@@ -439,7 +439,7 @@ const CreateClient: React.FC = () => {
                 <div className="space-y-2">
                   <h4 className="font-medium">Cloud Providers</h4>
                   <p className="text-sm text-muted-foreground">
-                    {formData.target_cloud_providers.length > 0 
+                    {formData.target_cloud_providers.length > 0
                       ? `${formData.target_cloud_providers.length} selected`
                       : 'None selected'
                     }
@@ -483,4 +483,4 @@ const CreateClient: React.FC = () => {
   );
 };
 
-export default CreateClient; 
+export default CreateClient;

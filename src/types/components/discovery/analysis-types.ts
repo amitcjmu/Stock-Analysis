@@ -1,6 +1,6 @@
 /**
  * Analysis Component Types
- * 
+ *
  * Types for crew analysis panels, training progress, and analysis-related functionality.
  */
 

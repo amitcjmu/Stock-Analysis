@@ -46,7 +46,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
     const diffMs = now.getTime() - date.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
-    
+
     if (diffHours > 24) {
       return date.toLocaleDateString();
     } else if (diffHours > 0) {
@@ -94,7 +94,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
               <div className="flex-shrink-0 mt-0.5">
                 {getAlertIcon(alert.type)}
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
                   <h4 className="text-sm font-medium text-gray-900 truncate">
@@ -109,17 +109,17 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
                     </span>
                   </div>
                 </div>
-                
+
                 <p className="text-sm text-gray-600 mb-2">
                   {alert.message}
                 </p>
-                
+
                 {alert.flow_id && (
                   <div className="text-xs text-gray-500">
                     Flow: {alert.flow_id.slice(0, 8)}...
                   </div>
                 )}
-                
+
                 {alert.action_required && (
                   <Badge variant="outline" className="mt-2 bg-orange-50 text-orange-700 border-orange-200">
                     Action Required

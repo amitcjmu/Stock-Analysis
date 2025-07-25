@@ -1,6 +1,6 @@
 /**
  * Component Props Examples
- * 
+ *
  * Examples demonstrating proper TypeScript interfaces for React component props.
  * These patterns should be followed across the discovery component types.
  */
@@ -163,40 +163,40 @@ export type DataTableComponent = <TData = Record<string, unknown>>(props: DataTa
 export interface ComponentPropsPatterns {
   // Always extend BaseDiscoveryProps for consistency
   BasePattern: BaseDiscoveryProps;
-  
+
   // Use proper React event types
   EventHandlers: {
     onClick: (event: MouseEvent<HTMLElement>) => void;
     onChange: (value: string, event: ChangeEvent<HTMLInputElement>) => void;
     onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   };
-  
+
   // Make components generic when appropriate
   GenericComponent: <T>(props: { items: T[]; onSelect: (item: T) => void }) => ReactNode;
-  
+
   // Use proper import type syntax
   ImportPattern: 'import type { FC, ReactNode } from "react";';
-  
+
   // Provide comprehensive prop interfaces
   ComprehensiveProps: {
     // Required props
     data: unknown[];
-    
+
     // Optional props with defaults
     loading?: boolean;
     disabled?: boolean;
-    
+
     // Event handlers with proper signatures
     onAction?: (id: string, event: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
-    
+
     // Render props
     renderItem?: (item: unknown, index: number) => ReactNode;
-    
+
     // Style props
     className?: string;
     size?: 'sm' | 'md' | 'lg';
     variant?: 'primary' | 'secondary';
-    
+
     // Accessibility props
     'aria-label'?: string;
     'data-testid'?: string;

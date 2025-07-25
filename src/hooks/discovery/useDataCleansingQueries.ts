@@ -14,7 +14,7 @@ const queryKeys = {
 // Custom hook to fetch the latest import data
 export const useLatestImport = () => {
   const { isAuthenticated } = useAuth();
-  
+
   return useQuery({
     queryKey: queryKeys.latestImport,
     queryFn: dataCleansingService.fetchLatestImport,
@@ -27,7 +27,7 @@ export const useLatestImport = () => {
 // Custom hook to fetch paginated assets
 export const useAssets = (page = 1, pageSize = 1000) => {
   const { isAuthenticated } = useAuth();
-  
+
   return useQuery({
     queryKey: queryKeys.assets(page, pageSize),
     queryFn: () => dataCleansingService.fetchAssets(page, pageSize),
@@ -41,7 +41,7 @@ export const useAssets = (page = 1, pageSize = 1000) => {
 export const useAgentAnalysis = (data: unknown[] | null) => {
   const queryClient = useQueryClient();
   const dataHash = data ? JSON.stringify(data) : '';
-  
+
   return useMutation({
     mutationFn: () => dataCleansingService.performAgentAnalysis(data || []),
     onSuccess: (result) => {
@@ -55,7 +55,7 @@ export const useAgentAnalysis = (data: unknown[] | null) => {
 // Custom hook to apply a fix
 export const useApplyFix = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ issueId, fixData }: { issueId: string; fixData: unknown }) =>
       dataCleansingService.applyFix(issueId, fixData),
@@ -77,6 +77,6 @@ export const useCachedAgentAnalysis = (data: unknown[] | null) => {
     enabled: !!data && data.length > 0,
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
-  
+
   return { analysis, isLoading };
 };

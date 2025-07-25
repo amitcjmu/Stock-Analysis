@@ -12,23 +12,23 @@ interface UseChartDataProps {
   selectedMetrics: string[];
 }
 
-export const useChartData = ({ 
-  analyticsData, 
-  agentNames, 
-  selectedMetrics 
+export const useChartData = ({
+  analyticsData,
+  agentNames,
+  selectedMetrics
 }: UseChartDataProps) => {
   const chartData = useMemo(() => {
     if (!analyticsData?.timeSeriesData) return [];
-    
+
     // Limit data points to prevent performance issues
     const maxDataPoints = 100;
-    const data = analyticsData.timeSeriesData.length > maxDataPoints 
-      ? analyticsData.timeSeriesData.slice(-maxDataPoints) 
+    const data = analyticsData.timeSeriesData.length > maxDataPoints
+      ? analyticsData.timeSeriesData.slice(-maxDataPoints)
       : analyticsData.timeSeriesData;
-    
+
     return data.map(item => {
       const transformed: Record<string, string | number> = { timestamp: item.timestamp };
-      
+
       agentNames.forEach(agent => {
         selectedMetrics.forEach(metric => {
           const key = `${agent}_${metric}`;
@@ -37,7 +37,7 @@ export const useChartData = ({
           }
         });
       });
-      
+
       return transformed;
     });
   }, [analyticsData?.timeSeriesData, agentNames, selectedMetrics]);

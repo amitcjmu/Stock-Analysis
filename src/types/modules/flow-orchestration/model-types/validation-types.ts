@@ -1,6 +1,6 @@
 /**
  * Validation Types
- * 
+ *
  * Type definitions for validation errors, warnings, and health issues.
  */
 

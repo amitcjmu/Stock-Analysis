@@ -1,6 +1,6 @@
 /**
  * Choice Component Types
- * 
+ *
  * Types for checkbox, radio, switch, and other choice-based form components.
  */
 

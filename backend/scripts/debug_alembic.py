@@ -38,7 +38,7 @@ with engine.connect() as conn:
     result = conn.execute(
         text(
             """
-        SELECT COUNT(*) FROM information_schema.tables 
+        SELECT COUNT(*) FROM information_schema.tables
         WHERE table_schema = 'migration' AND table_type = 'BASE TABLE'
     """
         )

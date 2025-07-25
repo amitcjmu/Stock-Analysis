@@ -1,6 +1,6 @@
 /**
  * Metadata Types
- * 
+ *
  * Common metadata structures used across API types.
  */
 

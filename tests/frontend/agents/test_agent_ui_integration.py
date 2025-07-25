@@ -19,7 +19,7 @@ from selenium.webdriver.chrome.options import Options
 
 class TestAgentUIIntegration:
     """Test suite for Agent-UI integration functionality."""
-    
+
     @pytest.fixture(autouse=True)
     def setup_method(self):
         """Set up test environment before each test."""
@@ -30,7 +30,7 @@ class TestAgentUIIntegration:
         chrome_options.add_argument("--disable-dev-shm-usage")
         self.driver = webdriver.Chrome(options=chrome_options)
         self.wait = WebDriverWait(self.driver, 10)
-        
+
         # Test data
         self.test_asset_data = [
             {
@@ -47,7 +47,7 @@ class TestAgentUIIntegration:
                 "criticality": "High"
             },
             {
-                "id": "test_asset_2", 
+                "id": "test_asset_2",
                 "name": "TestDB001",
                 "hostname": "testdb001.company.com",
                 "asset_type": "DATABASE",
@@ -60,23 +60,23 @@ class TestAgentUIIntegration:
                 "criticality": "Critical"
             }
         ]
-        
+
         self.test_questions = []
         self.test_classifications = []
         self.learning_events = []
-        
+
         yield
-        
+
         # Cleanup
         if hasattr(self, 'driver'):
             self.driver.quit()
-    
+
     # === AGENT CLARIFICATION GENERATION TESTS ===
-    
+
     @pytest.mark.asyncio
     async def test_agent_generates_clarifications_for_unknown_assets(self):
         """Test that agents generate appropriate clarifications for unknown/unclear assets."""
-        
+
         # Mock agent analysis response with clarifications
         mock_agent_response = {
             "success": True,
@@ -104,13 +104,13 @@ class TestAgentUIIntegration:
                 }
             ]
         }
-        
+
         with patch('app.services.agent_ui_bridge.agent_ui_bridge.analyze_with_agents') as mock_analyze:
             mock_analyze.return_value = mock_agent_response
-            
+
             # Simulate agent analysis
             from app.services.agent_ui_bridge import agent_ui_bridge
-            
+
             analysis_request = {
                 "data_source": {
                     "assets": self.test_asset_data,
@@ -119,109 +119,109 @@ class TestAgentUIIntegration:
                 "analysis_type": "comprehensive_discovery",
                 "page_context": "discovery-import"
             }
-            
+
             result = await agent_ui_bridge.analyze_with_agents(analysis_request)
-            
+
             # Verify clarifications were generated
             assert result["success"] == True
             assert "clarifications" in result
             assert len(result["clarifications"]) > 0
-            
+
             clarification = result["clarifications"][0]
             assert clarification["question_type"] == "asset_classification"
             assert clarification["page"] == "discovery-import"
             assert "asset_id" in clarification["context"]
-            
+
             print("✅ Agent clarification generation test passed")
-    
+
     @pytest.mark.asyncio
     async def test_cross_page_context_preservation(self):
         """Test that agent context is preserved when navigating between pages."""
-        
+
         from app.services.agent_ui_bridge import agent_ui_bridge
-        
+
         # Set context on first page
         test_context = {
             "discovered_applications": ["Finance App", "HR System"],
             "field_mappings": {"hostname": "server_name", "os_name": "operating_system"},
             "user_preferences": {"bulk_operations": True, "auto_classify": False}
         }
-        
+
         agent_ui_bridge.set_cross_page_context("discovery_session", test_context, "data-import")
-        
+
         # Simulate navigation to different page
         time.sleep(0.1)  # Brief delay to simulate navigation
-        
-        # Retrieve context on second page  
+
+        # Retrieve context on second page
         retrieved_context = agent_ui_bridge.get_cross_page_context("discovery_session")
-        
+
         # Verify context preservation
         assert retrieved_context is not None
         assert retrieved_context["discovered_applications"] == test_context["discovered_applications"]
         assert retrieved_context["field_mappings"] == test_context["field_mappings"]
         assert retrieved_context["user_preferences"] == test_context["user_preferences"]
-        
+
         # Test context metadata
         metadata = agent_ui_bridge.get_context_metadata("discovery_session")
         assert metadata is not None
         assert metadata["page_source"] == "data-import"
         assert "timestamp" in metadata
-        
+
         print("✅ Cross-page context preservation test passed")
-    
+
     @pytest.mark.asyncio
     async def test_user_response_processing_and_learning(self):
         """Test that user responses to agent questions are processed and learned from."""
-        
+
         from app.services.agent_ui_bridge import agent_ui_bridge
-        
+
         # Add a test question
         question_id = agent_ui_bridge.add_agent_question(
             agent_id="test_agent",
             agent_name="Test Agent",
             question_type="asset_classification",
-            page="discovery-import", 
+            page="discovery-import",
             title="Test Classification Question",
             question="How should this asset be classified?",
             context={"asset_id": "test_asset_1"},
             options=["Server", "Database", "Application"],
             priority="medium"
         )
-        
+
         # Simulate user response
         user_response = "Database"
         response_result = agent_ui_bridge.answer_agent_question(question_id, user_response)
-        
+
         # Verify response processing
         assert response_result["success"] == True
         assert response_result["learning_stored"] == True
         assert response_result["question"]["user_response"] == user_response
         assert response_result["question"]["is_resolved"] == True
-        
+
         # Verify learning experience was stored
         recent_experiences = agent_ui_bridge.get_recent_learning_experiences(limit=1)
         assert len(recent_experiences) > 0
-        
+
         latest_experience = recent_experiences[0]
         assert latest_experience["question_type"] == "asset_classification"
         assert latest_experience["agent_id"] == "test_agent"
         assert latest_experience["user_response"] == user_response
-        
+
         print("✅ User response processing and learning test passed")
-    
-    @pytest.mark.asyncio 
+
+    @pytest.mark.asyncio
     async def test_data_classification_accuracy(self):
         """Test that agent data classification is accurate and confidence-scored."""
-        
+
         from app.services.agent_ui_bridge import agent_ui_bridge
-        
+
         # Test data classification
         test_item = {
             "id": "test_item_1",
             "type": "asset_record",
             "content": self.test_asset_data[0]
         }
-        
+
         agent_ui_bridge.classify_data_item(
             item_id=test_item["id"],
             data_type=test_item["type"],
@@ -237,25 +237,25 @@ class TestAgentUIIntegration:
             issues=[],
             recommendations=["Consider adding dependency information"]
         )
-        
+
         # Verify classification storage
         classifications = agent_ui_bridge.get_classified_data_for_page("discovery-import")
         assert len(classifications) > 0
-        
+
         classification = next((c for c in classifications if c["item_id"] == test_item["id"]), None)
         assert classification is not None
         assert classification["classification"] == "good_data"
         assert classification["confidence"] == "high"
         assert classification["agent_analysis"]["quality_score"] == 0.85
-        
+
         print("✅ Data classification accuracy test passed")
-    
+
     @pytest.mark.asyncio
     async def test_agent_learning_effectiveness(self):
         """Test that agents learn effectively from user feedback and corrections."""
-        
+
         from app.services.agent_ui_bridge import agent_ui_bridge
-        
+
         # Simulate learning from multiple user interactions
         learning_scenarios = [
             {
@@ -267,15 +267,15 @@ class TestAgentUIIntegration:
             },
             {
                 "original_classification": "good_data",
-                "user_correction": "needs_clarification", 
+                "user_correction": "needs_clarification",
                 "asset_type": "DATABASE",
                 "confidence_before": 0.8,
                 "expected_improvement": True
             }
         ]
-        
+
         learning_improvements = []
-        
+
         for scenario in learning_scenarios:
             # Store learning experience
             learning_context = {
@@ -289,38 +289,38 @@ class TestAgentUIIntegration:
                 "asset_context": {"asset_type": scenario["asset_type"]},
                 "learning_applied": True
             }
-            
+
             agent_ui_bridge._store_learning_experience(learning_context)
             learning_improvements.append(scenario["expected_improvement"])
-        
+
         # Verify learning experiences were stored
         experiences = agent_ui_bridge.get_recent_learning_experiences(limit=10)
         classification_experiences = [exp for exp in experiences if exp.get("question_type") == "data_classification"]
-        
+
         assert len(classification_experiences) >= len(learning_scenarios)
-        
+
         # Verify learning patterns
         for exp in classification_experiences[-len(learning_scenarios):]:
             assert "user_correction" in exp
             assert "original_analysis" in exp
             assert exp.get("learning_applied") == True
-        
+
         print("✅ Agent learning effectiveness test passed")
-    
+
     @pytest.mark.asyncio
     async def test_real_time_agent_updates(self):
         """Test that agent updates are reflected in real-time across the UI."""
-        
+
         from app.services.agent_ui_bridge import agent_ui_bridge
-        
+
         # Simulate real-time agent analysis update
         initial_insights = agent_ui_bridge.get_insights_for_page("discovery-import")
         initial_count = len(initial_insights)
-        
+
         # Add new insight
         agent_ui_bridge.add_agent_insight(
             agent_id="real_time_test_agent",
-            agent_name="Real-time Test Agent", 
+            agent_name="Real-time Test Agent",
             insight_type="data_quality",
             page="discovery-import",
             title="Real-time Quality Insight",
@@ -334,28 +334,28 @@ class TestAgentUIIntegration:
             confidence="high",
             priority="medium"
         )
-        
+
         # Verify update was reflected
         updated_insights = agent_ui_bridge.get_insights_for_page("discovery-import")
         assert len(updated_insights) == initial_count + 1
-        
+
         # Find the new insight
-        new_insight = next((insight for insight in updated_insights 
+        new_insight = next((insight for insight in updated_insights
                           if insight["title"] == "Real-time Quality Insight"), None)
         assert new_insight is not None
         assert new_insight["agent_name"] == "Real-time Test Agent"
         assert new_insight["confidence"] == "high"
-        
+
         print("✅ Real-time agent updates test passed")
-    
+
     @pytest.mark.asyncio
     async def test_multi_agent_collaboration(self):
         """Test that multiple agents can collaborate on complex analysis tasks."""
-        
+
         from app.services.agent_ui_bridge import agent_ui_bridge
-        
+
         # Simulate collaboration between Data Source Intelligence and Application Intelligence agents
-        
+
         # Agent 1: Data Source Intelligence identifies potential applications
         agent_ui_bridge.set_cross_page_context(
             "discovered_patterns",
@@ -366,15 +366,15 @@ class TestAgentUIIntegration:
             },
             "data-import"
         )
-        
+
         # Agent 2: Application Intelligence builds on the analysis
         discovered_patterns = agent_ui_bridge.get_cross_page_context("discovered_patterns")
-        
+
         # Verify collaboration context was shared
         assert discovered_patterns is not None
         assert "application_indicators" in discovered_patterns
         assert discovered_patterns["confidence"] == 0.7
-        
+
         # Agent 2 adds enhanced analysis
         enhanced_analysis = {
             **discovered_patterns,
@@ -390,28 +390,28 @@ class TestAgentUIIntegration:
             },
             "enhanced_by": "application_intelligence_agent"
         }
-        
+
         agent_ui_bridge.set_cross_page_context(
             "application_portfolio",
             enhanced_analysis,
             "application-discovery"
         )
-        
+
         # Verify collaboration produced enhanced results
         portfolio = agent_ui_bridge.get_cross_page_context("application_portfolio")
         assert portfolio is not None
         assert "application_groups" in portfolio
         assert portfolio["enhanced_by"] == "application_intelligence_agent"
         assert len(portfolio["application_groups"]) == 2
-        
+
         print("✅ Multi-agent collaboration test passed")
-    
+
     @pytest.mark.asyncio
     async def test_agent_question_prioritization(self):
         """Test that agent questions are properly prioritized and ordered."""
-        
+
         from app.services.agent_ui_bridge import agent_ui_bridge
-        
+
         # Add questions with different priorities
         questions_data = [
             ("low", "Low Priority Question", "This is a low priority question"),
@@ -419,7 +419,7 @@ class TestAgentUIIntegration:
             ("medium", "Medium Priority Question", "This is a medium priority question"),
             ("high", "Another High Priority", "Another high priority question")
         ]
-        
+
         question_ids = []
         for priority, title, question in questions_data:
             qid = agent_ui_bridge.add_agent_question(
@@ -433,35 +433,35 @@ class TestAgentUIIntegration:
                 priority=priority
             )
             question_ids.append(qid)
-        
+
         # Get questions for page
         page_questions = agent_ui_bridge.get_questions_for_page("discovery-import")
-        
+
         # Verify prioritization (high -> medium -> low)
         assert len(page_questions) >= 4
-        
+
         # Check that high priority questions come first
         priorities = [q["priority"] for q in page_questions[:4]]
         high_count = priorities.count("high")
         medium_count = priorities.count("medium")
         low_count = priorities.count("low")
-        
+
         assert high_count == 2  # Two high priority questions
         assert medium_count == 1  # One medium priority question
         assert low_count == 1  # One low priority question
-        
+
         # High priority questions should be at the top
         assert page_questions[0]["priority"] == "high"
         assert page_questions[1]["priority"] == "high"
-        
+
         print("✅ Agent question prioritization test passed")
-    
+
     @pytest.mark.asyncio
     async def test_cross_page_learning_persistence(self):
         """Test that learning persists across page navigation and browser sessions."""
-        
+
         from app.services.agent_ui_bridge import agent_ui_bridge
-        
+
         # Store learning from data import page
         learning_data_import = {
             "question_type": "field_mapping",
@@ -471,54 +471,54 @@ class TestAgentUIIntegration:
             "pattern_learned": "standard_field_mapping",
             "confidence_improvement": 0.15
         }
-        
+
         agent_ui_bridge._store_learning_experience(learning_data_import)
-        
+
         # Store learning from attribute mapping page
         learning_attr_mapping = {
             "question_type": "attribute_classification",
-            "agent_id": "classification_agent", 
+            "agent_id": "classification_agent",
             "page": "attribute-mapping",
             "user_response": {"department": "business_unit", "criticality": "business_criticality"},
             "pattern_learned": "organizational_attribute_mapping",
             "confidence_improvement": 0.12
         }
-        
+
         agent_ui_bridge._store_learning_experience(learning_attr_mapping)
-        
+
         # Verify learning persistence across pages
         all_experiences = agent_ui_bridge.get_recent_learning_experiences(limit=50)
-        
+
         field_mapping_experiences = [exp for exp in all_experiences if exp.get("question_type") == "field_mapping"]
         attr_classification_experiences = [exp for exp in all_experiences if exp.get("question_type") == "attribute_classification"]
-        
+
         assert len(field_mapping_experiences) > 0
         assert len(attr_classification_experiences) > 0
-        
+
         # Verify specific learning data persisted
         latest_field_exp = field_mapping_experiences[0]
         assert latest_field_exp["pattern_learned"] == "standard_field_mapping"
         assert latest_field_exp["page"] == "data-import"
-        
+
         latest_attr_exp = attr_classification_experiences[0]
         assert latest_attr_exp["pattern_learned"] == "organizational_attribute_mapping"
         assert latest_attr_exp["page"] == "attribute-mapping"
-        
+
         print("✅ Cross-page learning persistence test passed")
-    
+
     # === TEST HELPER METHODS ===
-    
+
     def _simulate_page_navigation(self, from_page: str, to_page: str):
         """Simulate navigation between discovery pages."""
         # This would typically involve actual browser navigation in full e2e tests
         time.sleep(0.1)  # Simulate navigation delay
-        
+
     def _wait_for_element(self, selector: str, timeout: int = 10):
         """Wait for UI element to be present."""
         return WebDriverWait(self.driver, timeout).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, selector))
         )
-    
+
     def _get_agent_clarification_panel_data(self):
         """Extract data from agent clarification panel."""
         # This would extract actual UI data in full e2e tests
@@ -540,4 +540,4 @@ def event_loop():
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v", "-s"]) 
+    pytest.main([__file__, "-v", "-s"])

@@ -1,7 +1,7 @@
 /**
  * Flow Type Definitions for Master Flow Orchestrator
  * MFO-080: Update TypeScript type definitions
- * 
+ *
  * Unified type definitions for all flow types and operations
  */
 
@@ -12,7 +12,7 @@ export type FlowMetadata = Record<string, string | number | boolean>;
 export type FlowState = Record<string, FlowValue | FlowValue[] | FlowData>;
 
 // Core Flow Types
-export type FlowType = 
+export type FlowType =
   | 'discovery'
   | 'assessment'
   | 'planning'
@@ -47,7 +47,7 @@ export interface FlowConfiguration {
   timeout_minutes?: number;
   notification_channels?: string[];
   agent_collaboration?: boolean;
-  
+
   // Flow-specific configurations
   discovery?: DiscoveryFlowConfig;
   assessment?: AssessmentFlowConfig;
@@ -147,30 +147,30 @@ export interface FlowStatus {
   updated_at: string;
   started_at?: string;
   completed_at?: string;
-  
+
   // Progress information
   current_phase?: string;
   progress_percentage: number;
   phases: PhaseInfo[];
-  
+
   // Configuration and metadata
   configuration: FlowConfiguration;
   metadata: FlowMetadata;
-  
+
   // Multi-tenant information
   client_account_id: number;
   engagement_id: number;
   user_id: string;
-  
+
   // Performance and monitoring
   performance: FlowPerformance;
   errors: FlowError[];
   warnings: FlowWarning[];
-  
+
   // Agent and crew information
   agent_collaboration_log?: AgentCollaboration[];
   crew_status?: Record<string, string | number | boolean>;
-  
+
   // State information
   state_version?: number;
   checkpoint_id?: string;
@@ -460,7 +460,7 @@ export type FlowTypeConfig = {
   };
 };
 
-export type FlowActionType = 
+export type FlowActionType =
   | 'create'
   | 'execute'
   | 'pause'
@@ -470,7 +470,7 @@ export type FlowActionType =
   | 'rollback'
   | 'restart';
 
-export type FlowPermission = 
+export type FlowPermission =
   | 'flows.create'
   | 'flows.read'
   | 'flows.update'

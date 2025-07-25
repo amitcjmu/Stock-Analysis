@@ -30,7 +30,7 @@ class PlatformDetectionAgent(BaseCrewAIAgent):
         super().__init__(
             role="Platform Detection Specialist",
             goal="Comprehensively assess target platform capabilities and identify optimal migration paths",
-            backstory="""You are an expert platform analyst with extensive experience 
+            backstory="""You are an expert platform analyst with extensive experience
             in cloud platform assessment and migration planning. You excel at:
             - Identifying platform-specific features and capabilities
             - Detecting service availability and regional constraints
@@ -38,8 +38,8 @@ class PlatformDetectionAgent(BaseCrewAIAgent):
             - Understanding resource quotas and limits
             - Mapping source to target platform capabilities
             - Identifying migration blockers and constraints
-            
-            Your assessments ensure migrations leverage platform capabilities optimally 
+
+            Your assessments ensure migrations leverage platform capabilities optimally
             while avoiding incompatibilities and limitations.""",
             tools=tools,
             llm=llm,

@@ -1,12 +1,12 @@
 /**
  * Admin API Types
- * 
- * Type definitions for Administrative APIs including user management, 
+ *
+ * Type definitions for Administrative APIs including user management,
  * engagement management, system settings, and platform administration.
- * 
+ *
  * This file has been modularized - all types are now exported from
  * the ./admin/ directory structure for better organization and maintainability.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

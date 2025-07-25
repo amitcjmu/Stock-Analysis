@@ -1,6 +1,6 @@
 /**
  * Real-time API Types
- * 
+ *
  * Types for WebSocket connections, subscriptions, and real-time messaging.
  */
 

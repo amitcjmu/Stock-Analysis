@@ -55,8 +55,8 @@ export const ActionCard: React.FC<ActionCardProps> = ({
                   {action.icon && <action.icon className="w-4 h-4 mr-2" />}
                   <span className="flex-1">{action.label}</span>
                   {action.badge && (
-                    <Badge 
-                      variant={action.badge.variant || 'secondary'} 
+                    <Badge
+                      variant={action.badge.variant || 'secondary'}
                       className="ml-2"
                     >
                       {action.badge.text}
@@ -68,8 +68,8 @@ export const ActionCard: React.FC<ActionCardProps> = ({
                   {action.icon && <action.icon className="w-4 h-4 mr-2" />}
                   <span className="flex-1">{action.label}</span>
                   {action.badge && (
-                    <Badge 
-                      variant={action.badge.variant || 'secondary'} 
+                    <Badge
+                      variant={action.badge.variant || 'secondary'}
                       className="ml-2"
                     >
                       {action.badge.text}

@@ -83,7 +83,7 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
     // Business Fields
     'business_owner', 'business_unit', 'department', 'cost_center', 'technical_owner',
     // Migration Fields
-    'criticality', 'business_criticality', 'migration_priority', 'migration_complexity', 
+    'criticality', 'business_criticality', 'migration_priority', 'migration_complexity',
     'migration_wave', 'six_r_strategy', 'migration_status',
     // Application Fields
     'application_name', 'technology_stack',
@@ -96,11 +96,11 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
   // Filter field mappings to only include critical attributes
   const criticalFieldMappings = useMemo(() => {
     const safeFieldMappings = Array.isArray(fieldMappings) ? fieldMappings : [];
-    
+
     return safeFieldMappings.filter(mapping => {
       const targetField = mapping.targetAttribute?.toLowerCase();
       const sourceField = mapping.sourceField?.toLowerCase();
-      
+
       // Include if target field is critical, or if source field name suggests it might be critical
       return targetField && criticalFieldNames.has(targetField) ||
              sourceField && criticalFieldNames.has(sourceField);
@@ -110,7 +110,7 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
   // Filter available fields to only include critical ones
   const criticalAvailableFields = useMemo(() => {
     const safeAvailableFields = Array.isArray(availableFields) ? availableFields : [];
-    
+
     return safeAvailableFields.filter(field => {
       const fieldName = field.name?.toLowerCase();
       return fieldName && criticalFieldNames.has(fieldName);
@@ -191,9 +191,9 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
           <div>
             <h4 className="font-medium text-blue-900">Why These Fields Are Critical</h4>
             <p className="text-sm text-blue-700 mt-1">
-              Critical attributes include identity fields (hostname, IP address), system specifications 
-              (CPU, memory, OS), business context (owner, environment, criticality), and migration planning 
-              fields (6R strategy, wave, priority). These fields are essential for accurate migration 
+              Critical attributes include identity fields (hostname, IP address), system specifications
+              (CPU, memory, OS), business context (owner, environment, criticality), and migration planning
+              fields (6R strategy, wave, priority). These fields are essential for accurate migration
               planning and cloud sizing.
             </p>
           </div>

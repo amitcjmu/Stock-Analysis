@@ -218,9 +218,7 @@ class LoadTestRunner:
                     timeout=aiohttp.ClientTimeout(total=10),
                 ) as response:
                     if response.status != 200:
-                        logger.error(
-                            f"❌ System health check failed: {response.status}"
-                        )
+                        logger.error(f"❌ System health check failed: {response.status}")
                         return False
 
             # Check Master Flow Orchestrator availability

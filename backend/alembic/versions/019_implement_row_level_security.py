@@ -67,7 +67,9 @@ def upgrade() -> None:
     # 2. Grant necessary permissions to application_role
     # Split into separate statements for asyncpg compatibility
     op.execute("GRANT USAGE ON SCHEMA migration TO application_role")
-    op.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA migration TO application_role")
+    op.execute(
+        "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA migration TO application_role"
+    )
     op.execute("GRANT USAGE ON ALL SEQUENCES IN SCHEMA migration TO application_role")
 
     # 3. Enable RLS on all multi-tenant tables
@@ -194,9 +196,11 @@ def upgrade() -> None:
         $$ LANGUAGE plpgsql SECURITY DEFINER
         """
     )
-    
+
     # Grant execute permission to application_role
-    op.execute("GRANT EXECUTE ON FUNCTION migration.set_tenant_context(uuid) TO application_role")
+    op.execute(
+        "GRANT EXECUTE ON FUNCTION migration.set_tenant_context(uuid) TO application_role"
+    )
 
     # 8. Create function to get current tenant context
     op.execute(
@@ -212,9 +216,11 @@ def upgrade() -> None:
         $$ LANGUAGE plpgsql SECURITY DEFINER
         """
     )
-    
+
     # Grant execute permission to application_role
-    op.execute("GRANT EXECUTE ON FUNCTION migration.get_current_tenant() TO application_role")
+    op.execute(
+        "GRANT EXECUTE ON FUNCTION migration.get_current_tenant() TO application_role"
+    )
 
     print("✅ Row-Level Security implementation completed successfully")
 

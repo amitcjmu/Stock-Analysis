@@ -6,13 +6,13 @@ import { Progress } from '../ui/progress';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
-import { 
-  CheckCircle, 
-  Clock, 
-  AlertCircle, 
-  Loader2, 
-  Play, 
-  Pause, 
+import {
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  Loader2,
+  Play,
+  Pause,
   RotateCcw,
   Zap,
   Brain,
@@ -101,12 +101,12 @@ const formatDuration = (seconds: number): string => {
 const formatTimeRemaining = (endTime: Date): string => {
   const now = new Date();
   const diff = endTime.getTime() - now.getTime();
-  
+
   if (diff <= 0) return 'Completing...';
-  
+
   const minutes = Math.ceil(diff / (1000 * 60));
   if (minutes < 60) return `${minutes}m remaining`;
-  
+
   const hours = Math.ceil(minutes / 60);
   return `${hours}h remaining`;
 };
@@ -156,15 +156,15 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
   const renderStepItem = (step: AnalysisStep, index: number) => {
     const isExpanded = expandedSteps.has(step.id);
     const stepIcon = stepIcons[step.id as keyof typeof stepIcons] || <Clock className="h-4 w-4" />;
-    
+
     return (
       <div key={step.id} className="relative">
         {/* Connection line */}
         {index < progress.steps.length - 1 && (
           <div className="absolute left-6 top-12 w-0.5 h-8 bg-gray-200"></div>
         )}
-        
-        <div 
+
+        <div
           className={`
             flex items-start space-x-4 p-4 rounded-lg border transition-all cursor-pointer
             ${getStatusColor(step.status)}
@@ -179,7 +179,7 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
               stepIcon
             )}
           </div>
-          
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
               <div>
@@ -193,7 +193,7 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
                 </Badge>
               </div>
             </div>
-            
+
             {step.status === 'in_progress' && (
               <div className="mt-2">
                 <Progress value={step.progress} className="h-2" />
@@ -205,19 +205,19 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
                 </div>
               </div>
             )}
-            
+
             {step.status === 'completed' && step.actualDuration && (
               <div className="mt-1 text-xs text-gray-500">
                 Completed in {formatDuration(step.actualDuration)}
               </div>
             )}
-            
+
             {step.status === 'failed' && step.error && (
               <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
                 Error: {step.error}
               </div>
             )}
-            
+
             {isExpanded && step.details && step.details.length > 0 && (
               <div className="mt-3 space-y-1">
                 <Separator />
@@ -287,7 +287,7 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-6">
         {/* Overall Progress */}
         <div className="space-y-3">
@@ -352,7 +352,7 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
               <div>
                 <span className="text-gray-600">Duration:</span>
                 <div className="font-medium">
-                  {progress.startTime && progress.endTime && 
+                  {progress.startTime && progress.endTime &&
                     formatDuration((progress.endTime.getTime() - progress.startTime.getTime()) / 1000)
                   }
                 </div>
@@ -383,4 +383,4 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
   );
 };
 
-export default AnalysisProgress; 
+export default AnalysisProgress;

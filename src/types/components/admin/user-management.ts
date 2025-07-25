@@ -1,6 +1,6 @@
 /**
  * Admin User Management Component Types
- * 
+ *
  * Type definitions for user management components including user lists,
  * user details, user approval workflows, and user statistics.
  */

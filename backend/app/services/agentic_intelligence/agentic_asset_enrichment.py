@@ -104,14 +104,18 @@ class AgenticAssetEnrichment:
         try:
             if enable_parallel:
                 # Run all three agents in parallel for performance
-                business_analysis, risk_analysis, modernization_analysis = (
-                    await self._run_agents_parallel(asset_data)
-                )
+                (
+                    business_analysis,
+                    risk_analysis,
+                    modernization_analysis,
+                ) = await self._run_agents_parallel(asset_data)
             else:
                 # Run agents sequentially (safer but slower)
-                business_analysis, risk_analysis, modernization_analysis = (
-                    await self._run_agents_sequential(asset_data)
-                )
+                (
+                    business_analysis,
+                    risk_analysis,
+                    modernization_analysis,
+                ) = await self._run_agents_sequential(asset_data)
 
             # Consolidate all agent insights
             enriched_asset = self._consolidate_agent_insights(
@@ -389,10 +393,10 @@ class AgenticAssetEnrichment:
         )
 
         # Generate comprehensive summary
-        enriched_asset["agentic_intelligence_summary"] = (
-            self._generate_intelligence_summary(
-                business_analysis, risk_analysis, modernization_analysis
-            )
+        enriched_asset[
+            "agentic_intelligence_summary"
+        ] = self._generate_intelligence_summary(
+            business_analysis, risk_analysis, modernization_analysis
         )
 
         return enriched_asset

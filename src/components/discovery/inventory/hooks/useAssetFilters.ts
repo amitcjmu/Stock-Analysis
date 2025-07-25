@@ -22,15 +22,15 @@ export const useAssetFilters = (assets: AssetInventory[]) => {
 
   const filteredAssets = useMemo(() => {
     return assets.filter(asset => {
-      const matchesSearch = !filters.searchTerm || 
-        Object.values(asset).some(value => 
+      const matchesSearch = !filters.searchTerm ||
+        Object.values(asset).some(value =>
           String(value).toLowerCase().includes(filters.searchTerm.toLowerCase())
         );
-      
+
       const matchesType = filters.selectedAssetType === 'all' || (() => {
         const assetType = asset.asset_type?.toLowerCase();
         const filterType = filters.selectedAssetType.toLowerCase();
-        
+
         if (filterType === 'server') {
           return assetType?.includes('server') || assetType === 'server';
         } else if (filterType === 'application') {
@@ -38,10 +38,10 @@ export const useAssetFilters = (assets: AssetInventory[]) => {
         } else if (filterType === 'database') {
           return assetType?.includes('database') || assetType === 'database';
         } else if (filterType === 'device') {
-          return assetType?.includes('device') || 
-                 assetType?.includes('network') || 
-                 assetType?.includes('storage') || 
-                 assetType?.includes('security') || 
+          return assetType?.includes('device') ||
+                 assetType?.includes('network') ||
+                 assetType?.includes('storage') ||
+                 assetType?.includes('security') ||
                  assetType?.includes('infrastructure') ||
                  assetType === 'load_balancer' ||
                  assetType === 'firewall' ||
@@ -50,10 +50,10 @@ export const useAssetFilters = (assets: AssetInventory[]) => {
         }
         return asset.asset_type === filters.selectedAssetType;
       })();
-      
-      const matchesEnvironment = filters.selectedEnvironment === 'all' || 
+
+      const matchesEnvironment = filters.selectedEnvironment === 'all' ||
         asset.environment === filters.selectedEnvironment;
-      
+
       return matchesSearch && matchesType && matchesEnvironment;
     });
   }, [assets, filters]);

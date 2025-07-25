@@ -38,8 +38,8 @@ const TrendsTab: React.FC<TrendsTabProps> = ({
                 size="sm"
                 onClick={() => onMetricToggle(metric.key)}
               >
-                <div 
-                  className="w-3 h-3 rounded-full mr-2" 
+                <div
+                  className="w-3 h-3 rounded-full mr-2"
                   style={{ backgroundColor: metric.color }}
                 />
                 {metric.label}

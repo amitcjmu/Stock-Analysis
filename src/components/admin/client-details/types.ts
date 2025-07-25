@@ -96,22 +96,22 @@ export interface ClientFormData {
 }
 
 export const INDUSTRIES = [
-  'Technology', 
-  'Healthcare', 
-  'Finance', 
-  'Manufacturing', 
-  'Retail', 
-  'Education', 
-  'Government', 
-  'Energy', 
-  'Transportation', 
+  'Technology',
+  'Healthcare',
+  'Finance',
+  'Manufacturing',
+  'Retail',
+  'Education',
+  'Government',
+  'Energy',
+  'Transportation',
   'Other'
 ];
 
 export const COMPANY_SIZES = [
-  'Small (1-100)', 
-  'Medium (101-1000)', 
-  'Large (1001-5000)', 
+  'Small (1-100)',
+  'Medium (101-1000)',
+  'Large (1001-5000)',
   'Enterprise (5000+)'
 ];
 
@@ -138,4 +138,4 @@ export const PRIORITY_MAP: Record<string, string> = {
   'innovation': 'Innovation',
   'scalability': 'Scalability',
   'reliability': 'Reliability'
-}; 
+};

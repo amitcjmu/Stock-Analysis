@@ -4,11 +4,11 @@
  */
 
 import React from 'react';
-import { 
-  Building2, 
-  Calendar, 
-  Clock, 
-  TrendingUp 
+import {
+  Building2,
+  Calendar,
+  Clock,
+  TrendingUp
 } from 'lucide-react';
 import { StatCard } from '@/components/admin/shared/components/StatCard';
 
@@ -42,9 +42,9 @@ export interface DashboardStatsProps {
   className?: string;
 }
 
-export const DashboardStats: React.FC<DashboardStatsProps> = ({ 
-  stats, 
-  className = '' 
+export const DashboardStats: React.FC<DashboardStatsProps> = ({
+  stats,
+  className = ''
 }) => {
   return (
     <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${className}`}>

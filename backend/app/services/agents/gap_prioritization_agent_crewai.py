@@ -34,28 +34,28 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
         super().__init__(
             role="Data Gap Prioritization Strategist",
             goal="Prioritize missing critical attributes by business impact to optimize migration data collection efforts",
-            backstory="""You are a strategic analyst specializing in migration data gap prioritization. 
+            backstory="""You are a strategic analyst specializing in migration data gap prioritization.
             Your expertise includes:
-            
+
             - Understanding business impact of incomplete migration data
             - Calculating ROI for data collection efforts
             - Prioritizing gaps based on 6R strategy requirements
             - Balancing effort vs. value in gap resolution
             - Creating actionable collection roadmaps
-            
+
             You excel at:
             - Identifying which gaps block critical migration decisions
             - Assessing collection difficulty and resource requirements
             - Recommending optimal collection sequences
             - Estimating time and effort for gap closure
             - Aligning priorities with business objectives
-            
+
             Your prioritization framework considers:
             - Business criticality (blocks decisions, impacts timeline, affects budget)
             - Technical necessity (required for strategy selection, impacts architecture)
             - Collection feasibility (effort required, data availability, automation potential)
             - Strategic value (improves confidence, reduces risk, enables optimization)
-            
+
             Your recommendations directly influence collection strategies and project timelines.""",
             tools=tools,
             llm=llm,
@@ -155,14 +155,14 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
                 prioritization_result["priority_distribution"][priority_key] += 1
 
             # Generate collection strategy
-            prioritization_result["collection_strategy"] = (
-                self._generate_collection_strategy(scored_gaps, context)
-            )
+            prioritization_result[
+                "collection_strategy"
+            ] = self._generate_collection_strategy(scored_gaps, context)
 
             # Calculate resource requirements
-            prioritization_result["resource_requirements"] = (
-                self._calculate_resource_requirements(scored_gaps)
-            )
+            prioritization_result[
+                "resource_requirements"
+            ] = self._calculate_resource_requirements(scored_gaps)
 
             return prioritization_result
 

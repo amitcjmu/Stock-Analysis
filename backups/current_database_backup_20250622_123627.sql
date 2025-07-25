@@ -4807,4 +4807,3 @@ ALTER TABLE ONLY public.workflow_progress
 --
 -- PostgreSQL database dump complete
 --
-

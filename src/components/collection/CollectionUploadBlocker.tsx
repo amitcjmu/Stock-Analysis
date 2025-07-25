@@ -38,7 +38,7 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
 
   const getPhaseDisplayName = (phase: string) => {
     if (!phase) return 'Unknown';
-    
+
     const names = {
       'initialization': 'Initialization',
       'platform_detection': 'Platform Detection',
@@ -54,34 +54,34 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
 
   const getStatusColor = (status: string) => {
     if (!status) return 'bg-gray-100 text-gray-800 border-gray-200';
-    
+
     switch (status.toLowerCase()) {
-      case 'running': 
-      case 'active': 
+      case 'running':
+      case 'active':
       case 'initialized':
         return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'paused': 
+      case 'paused':
       case 'manual_collection':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'failed': 
+      case 'failed':
       case 'error':
         return 'bg-red-100 text-red-800 border-red-200';
       case 'gap_analysis':
       case 'questionnaire_generation':
         return 'bg-purple-100 text-purple-800 border-purple-200';
-      default: 
+      default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   const formatTimeAgo = (timestamp: string) => {
     if (!timestamp) return 'Unknown';
-    
+
     try {
       const now = new Date();
       const time = new Date(timestamp);
       const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
-      
+
       if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
       if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
       return `${Math.floor(diffInMinutes / 1440)}d ago`;
@@ -92,7 +92,7 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
 
   const safeSubstring = (str: string | undefined | null, start: number, length?: number): string => {
     if (!str || typeof str !== 'string' || str.length === 0) return 'Unknown';
-    
+
     try {
       if (length) {
         return str.substring(start, start + length) + '...';
@@ -105,30 +105,30 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
 
   const getHighestPriorityFlow = () => {
     if (!incompleteFlows || incompleteFlows.length === 0) return null;
-    
+
     // Filter out invalid flows first
-    const validFlows = incompleteFlows.filter(flow => 
-      flow && 
-      (flow.flow_id || flow.id) && 
-      typeof (flow.flow_id || flow.id) === 'string' && 
+    const validFlows = incompleteFlows.filter(flow =>
+      flow &&
+      (flow.flow_id || flow.id) &&
+      typeof (flow.flow_id || flow.id) === 'string' &&
       (flow.flow_id || flow.id).length > 0
     );
-    
+
     if (validFlows.length === 0) return null;
-    
+
     // Prioritize failed flows, then running/active, then others
-    const priorityOrder = { 
-      'failed': 3, 
+    const priorityOrder = {
+      'failed': 3,
       'error': 3,
-      'running': 2, 
-      'active': 2, 
+      'running': 2,
+      'active': 2,
       'initialized': 2,
       'manual_collection': 2,
       'gap_analysis': 2,
       'questionnaire_generation': 2,
-      'paused': 1 
+      'paused': 1
     };
-    
+
     return validFlows.sort((a, b) => {
       const aPriority = priorityOrder[a.status as keyof typeof priorityOrder] || 0;
       const bPriority = priorityOrder[b.status as keyof typeof priorityOrder] || 0;
@@ -176,11 +176,11 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
         <AlertDescription className="text-red-800">
           <div className="flex items-center justify-between">
             <div>
-              <strong>Collection Blocked:</strong> {incompleteFlows.length} incomplete collection flow{incompleteFlows.length > 1 ? 's' : ''} found. 
+              <strong>Collection Blocked:</strong> {incompleteFlows.length} incomplete collection flow{incompleteFlows.length > 1 ? 's' : ''} found.
               Complete or delete existing flows before starting new collection processes.
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={onManageFlows}
               className="ml-4"
@@ -205,7 +205,7 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
               </Badge>
             </div>
           </CardHeader>
-          
+
           <CardContent>
             <div className="space-y-4">
               <div>
@@ -254,7 +254,7 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
                       Continue Flow
                     </Button>
                   )}
-                  
+
                   {(primaryFlow.flow_id || primaryFlow.id) && (
                     <Button
                       variant="outline"
@@ -266,7 +266,7 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
                     </Button>
                   )}
                 </div>
-                
+
                 {(primaryFlow.flow_id || primaryFlow.id) && canDeleteCollectionFlow(user) && (
                   <Button
                     variant="destructive"
@@ -296,7 +296,7 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
         <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-gray-600 mb-2">Collection Form Disabled</h3>
         <p className="text-gray-500 mb-4">
-          Complete or delete existing collection flows to enable new adaptive form collection. 
+          Complete or delete existing collection flows to enable new adaptive form collection.
           This ensures proper data integrity and prevents workflow conflicts.
         </p>
         <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
@@ -320,7 +320,7 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
             ))}
           </div>
           <div className="mt-2 text-xs text-blue-600">
-            <strong>Collection Flow Management:</strong> Flows with status other than "completed", "failed", or "cancelled" 
+            <strong>Collection Flow Management:</strong> Flows with status other than "completed", "failed", or "cancelled"
             are considered active and will block new collection processes.
           </div>
           {onRefresh && (

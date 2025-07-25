@@ -1,6 +1,6 @@
 /**
  * API Functions
- * 
+ *
  * API interactions for agent planning dashboard.
  */
 
@@ -12,7 +12,7 @@ import { generateDemoPlan } from './demo-data';
 export const fetchAgentPlan = async (pageContext: string): Promise<AgentPlan> => {
   try {
     console.log('🤖 Fetching agent plan for context:', pageContext);
-    
+
     // Get current agent plan for the page context
     const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS}/plan`, {
       method: 'POST',
@@ -22,9 +22,9 @@ export const fetchAgentPlan = async (pageContext: string): Promise<AgentPlan> =>
         include_human_feedback_opportunities: true
       })
     });
-    
+
     console.log('🤖 Agent plan response:', response);
-    
+
     if (response.agent_plan) {
       return response.agent_plan;
     } else {
@@ -34,24 +34,24 @@ export const fetchAgentPlan = async (pageContext: string): Promise<AgentPlan> =>
     }
   } catch (err) {
     console.error('Failed to fetch agent plan:', err);
-    
+
     // Always provide demo plan for development - don't show error state
     const demoPlan = generateDemoPlan(pageContext);
-    
+
     // Only throw error if it's not a 404 (which just means the endpoint isn't implemented yet)
     if (err.message && !err.message.includes('404')) {
       console.warn('Agent planning service partially available - using demo workflow');
     } else {
       console.log('🎭 Agent planning endpoint not available, using demo plan');
     }
-    
+
     return demoPlan;
   }
 };
 
 export const submitTaskApproval = async (
-  taskId: string, 
-  approved: boolean, 
+  taskId: string,
+  approved: boolean,
   pageContext: string
 ): Promise<void> => {
   try {
@@ -71,8 +71,8 @@ export const submitTaskApproval = async (
 };
 
 export const submitHumanInput = async (
-  taskId: string, 
-  input: TaskInput, 
+  taskId: string,
+  input: TaskInput,
   pageContext: string
 ): Promise<void> => {
   try {

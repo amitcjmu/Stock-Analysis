@@ -1,6 +1,6 @@
 /**
  * Feedback Form Component Types
- * 
+ *
  * Type definitions for feedback forms and user feedback components.
  */
 

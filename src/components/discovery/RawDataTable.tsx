@@ -10,8 +10,8 @@ interface RawDataTableProps {
   showLegend?: boolean;
 }
 
-const RawDataTable: React.FC<RawDataTableProps> = ({ 
-  data, 
+const RawDataTable: React.FC<RawDataTableProps> = ({
+  data,
   title = "Imported Data View",
   getFieldHighlight = () => "",
   pageSize = 5,
@@ -22,24 +22,24 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
   // Get all unique column names from the data
   const getAllColumns = () => {
     if (data.length === 0) return [];
-    
+
     const allColumns = new Set<string>();
     data.forEach(row => {
       Object.keys(row).forEach(key => allColumns.add(key));
     });
-    
+
     // Sort columns to have important ones first
     const columnOrder = ['id', 'name', 'hostname', 'ipAddress', 'ip_address', 'type', 'asset_type', 'environment', 'department'];
     const sortedColumns = Array.from(allColumns).sort((a, b) => {
       const aIndex = columnOrder.indexOf(a);
       const bIndex = columnOrder.indexOf(b);
-      
+
       if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
       if (aIndex !== -1) return -1;
       if (bIndex !== -1) return 1;
       return a.localeCompare(b);
     });
-    
+
     return sortedColumns;
   };
 
@@ -121,7 +121,7 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
             Complete view of imported data. Scroll horizontally to see all columns.
           </p>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -142,10 +142,10 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
                       // Get highlighting for this specific cell
                       const highlightClass = getFieldHighlight ? getFieldHighlight(column, assetId) : '';
                       const cellValue = getCellValue(row, column);
-                      
+
                       return (
-                        <td 
-                          key={column} 
+                        <td
+                          key={column}
                           className={`px-4 py-4 whitespace-nowrap text-sm text-gray-900 ${highlightClass} ${
                             cellValue === '<empty>' ? 'text-gray-400 italic' : ''
                           }`}
@@ -160,7 +160,7 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
             </tbody>
           </table>
         </div>
-        
+
         {/* Pagination */}
         <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
           <div className="flex-1 flex justify-between sm:hidden">
@@ -213,7 +213,7 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
                   } else {
                     page = currentPage - 2 + i;
                   }
-                  
+
                   return (
                     <button
                       key={page}
@@ -244,4 +244,4 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
   );
 };
 
-export default RawDataTable; 
+export default RawDataTable;

@@ -113,7 +113,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
     const updatedCrews = DISCOVERY_FLOW_CREWS.map(crew => {
       const crewStatus = flowState?.crew_status?.[crew.id];
       const isCompleted = flowState?.phase_completion?.[crew.id] === true;
-      
+
       // Determine status from flow state or backend logs pattern
       let status: 'pending' | 'running' | 'completed' | 'failed' = 'pending';
       let progress = 0;
@@ -132,7 +132,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
         const crewOrder = ['field_mapping', 'data_cleansing', 'inventory_building', 'app_server_dependencies', 'app_app_dependencies', 'technical_debt'];
         const currentPhaseIndex = crewOrder.indexOf(flowState?.current_phase || 'field_mapping');
         const thisCrewIndex = crewOrder.indexOf(crew.id);
-        
+
         if (thisCrewIndex < currentPhaseIndex || flowState?.overall_status === 'completed') {
           status = 'completed';
           progress = 100;
@@ -145,8 +145,8 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
       // Update agent statuses based on crew status
       const updatedAgents = crew.agents.map(agent => ({
         ...agent,
-        status: status === 'completed' ? 'completed' : 
-               status === 'running' ? 'active' : 
+        status: status === 'completed' ? 'completed' :
+               status === 'running' ? 'active' :
                status === 'failed' ? 'error' : 'idle'
       }));
 
@@ -214,7 +214,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
         <CardDescription>
           Real-time monitoring of the 6-phase CrewAI Discovery Flow execution
         </CardDescription>
-        
+
         {/* Overall Progress */}
         <div className="mt-4">
           <div className="flex justify-between text-sm mb-2">
@@ -228,7 +228,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -271,7 +271,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
 
           <div className="space-y-4">
             {crews.map((crew, idx) => (
-              <Card key={idx} className={`mb-6 ${crew.status === 'completed' ? 'border-green-200 bg-green-50' : 
+              <Card key={idx} className={`mb-6 ${crew.status === 'completed' ? 'border-green-200 bg-green-50' :
                                                    crew.status === 'running' ? 'border-blue-200 bg-blue-50' : ''}`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -284,7 +284,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
                     </div>
                     {getStatusBadge(crew.status)}
                   </div>
-                  
+
                   <div className="mt-3">
                     <div className="flex justify-between text-sm mb-1">
                       <span>Progress</span>
@@ -293,14 +293,14 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
                     <Progress value={crew.progress} className="h-2" />
                   </div>
                 </CardHeader>
-                
+
                 <CardContent>
                   <div className="mb-4">
                     <div className="text-sm font-medium text-gray-700 mb-2 flex items-center">
                       <Users className="h-4 w-4 text-blue-500 mr-1" />
                       Agents ({crew.agents.length})
                     </div>
-                    
+
                     <div className="space-y-2">
                       {crew.agents.map((agent, agentIdx) => (
                         <div key={agentIdx} className={`p-3 rounded border ${
@@ -318,7 +318,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
                       ))}
                     </div>
                   </div>
-                  
+
                   {/* Show completion message for completed crews */}
                   {crew.status === 'completed' && (
                     <div className="mt-3 p-2 bg-green-100 border border-green-200 rounded text-sm text-green-800">
@@ -329,7 +329,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
               </Card>
             ))}
           </div>
-          
+
           {/* Navigation hint when flow is completed */}
           {flowState?.overall_status === 'completed' || completedCrews >= 3 && (
             <Card className="border-green-200 bg-green-50">
@@ -355,4 +355,4 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
   );
 };
 
-export default EnhancedAgentOrchestrationPanel; 
+export default EnhancedAgentOrchestrationPanel;

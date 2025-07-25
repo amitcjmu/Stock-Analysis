@@ -774,9 +774,9 @@ class BulkDataService:
                         i
                     ]
                 else:
-                    example[f"field_{attr}"] = (
-                        f'Example {attr.replace("_", " ")} value for application {i+1}'
-                    )
+                    example[
+                        f"field_{attr}"
+                    ] = f'Example {attr.replace("_", " ")} value for application {i+1}'
 
             examples.append(example)
 

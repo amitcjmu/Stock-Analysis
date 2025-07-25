@@ -170,7 +170,7 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
         result = await db.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 column_name,
                 data_type,
                 is_nullable,
@@ -178,8 +178,8 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
                 character_maximum_length,
                 numeric_precision,
                 numeric_scale
-            FROM information_schema.columns 
-            WHERE table_name = 'assets' 
+            FROM information_schema.columns
+            WHERE table_name = 'assets'
             AND table_schema = 'migration'
             ORDER BY ordinal_position
         """

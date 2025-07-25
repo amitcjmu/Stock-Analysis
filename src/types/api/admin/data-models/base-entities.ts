@@ -1,9 +1,9 @@
 /**
  * Base Entity Types and Core Interfaces
- * 
+ *
  * Foundational entity types and base interfaces used across
  * all admin data models. Provides common structure and audit capabilities.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

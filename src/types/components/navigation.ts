@@ -1,7 +1,7 @@
 /**
  * Navigation Component Types
- * 
- * Type definitions for navigation components including sidebar, breadcrumbs, 
+ *
+ * Type definitions for navigation components including sidebar, breadcrumbs,
  * tabs, and navigation-related interfaces.
  */
 

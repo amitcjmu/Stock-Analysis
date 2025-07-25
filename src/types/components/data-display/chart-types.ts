@@ -1,6 +1,6 @@
 /**
  * Chart Component Types
- * 
+ *
  * Type definitions for chart components including data points, legends,
  * tooltips, scales, and chart configuration options.
  */

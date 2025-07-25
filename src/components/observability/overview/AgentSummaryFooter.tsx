@@ -40,7 +40,7 @@ export const AgentSummaryFooter: React.FC<AgentSummaryFooterProps> = ({
             Showing {displayedCount} of {filteredCount} agents
             {maxAgents && filteredCount > maxAgents && ` (${maxAgents} max)`}
           </span>
-          
+
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-1">
               <TrendingUp className="h-4 w-4 text-green-500" />
@@ -48,7 +48,7 @@ export const AgentSummaryFooter: React.FC<AgentSummaryFooterProps> = ({
                 {uptimePercentage}% uptime
               </span>
             </div>
-            
+
             {lastUpdated && (
               <div className="text-xs text-gray-500">
                 Last updated: {lastUpdated.toLocaleTimeString()}

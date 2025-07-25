@@ -1,6 +1,6 @@
 /**
  * Progress and Status Component Types
- * 
+ *
  * Type definitions for progress indicators and status components.
  */
 

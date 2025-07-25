@@ -18,10 +18,10 @@ export const ExportAndSharingControls: React.FC<ExportAndSharingControlsProps> =
     try {
       // In real implementation, call export API
       console.log(`Exporting assessment data as ${format}`, assessmentData);
-      
+
       // Simulate export delay
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // In real implementation, trigger download
       alert(`Assessment exported as ${format.toUpperCase()}`);
     } catch (error) {

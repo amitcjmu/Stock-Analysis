@@ -1,6 +1,6 @@
 /**
  * Sidebar Context and Hook
- * 
+ *
  * Context provider and hook for managing sidebar state.
  */
 

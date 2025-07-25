@@ -40,7 +40,7 @@ export class FieldMappingErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({ error, errorInfo });
     console.error('Field mapping error:', error, errorInfo);
-    
+
     // Log to monitoring service if available
     if (typeof window !== 'undefined' && window.analytics) {
       window.analytics.track('Field Mapping Error', {
@@ -67,7 +67,7 @@ export class FieldMappingErrorBoundary extends Component<Props, State> {
             <AlertTriangle className="h-6 w-6 text-red-600" />
             <h2 className="text-lg font-semibold text-red-900">Field Mapping Error</h2>
           </div>
-          
+
           <div className="mb-4">
             <p className="text-gray-700 mb-2">
               Something went wrong with the field mapping functionality. This is usually temporary.
@@ -88,7 +88,7 @@ export class FieldMappingErrorBoundary extends Component<Props, State> {
               </details>
             )}
           </div>
-          
+
           <div className="flex space-x-3">
             <button
               onClick={this.handleRetry}

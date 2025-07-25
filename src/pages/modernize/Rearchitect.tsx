@@ -129,7 +129,7 @@ const Rearchitect = () => {
                                 {project.status}
                               </span>
                             </div>
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                               <div className="flex items-center space-x-4">
                                 <div className="bg-red-100 text-red-800 px-3 py-2 rounded-lg flex-1 text-center">
@@ -142,7 +142,7 @@ const Rearchitect = () => {
                                   <div className="font-semibold">{project.targetArch}</div>
                                 </div>
                               </div>
-                              
+
                               <div>
                                 <div className="flex justify-between text-sm text-gray-600 mb-1">
                                   <span>Progress</span>

@@ -26,7 +26,7 @@ else
 fi
 echo ""
 
-# 2. Frontend Unit Tests  
+# 2. Frontend Unit Tests
 echo -e "${BLUE}2. Running Frontend Unit Tests...${NC}"
 echo "---------------------------------"
 # Check if test script exists
@@ -77,7 +77,7 @@ if [ $? -ne 0 ]; then
     echo -e "${RED}❌ Browser page load tests failed${NC}"
     echo "Console errors or API failures detected!"
     FAILURES=$((FAILURES + 1))
-    
+
     # Show screenshot if exists
     if [ -f "test-results/data-import-errors.png" ]; then
         echo "Error screenshot saved at: test-results/data-import-errors.png"

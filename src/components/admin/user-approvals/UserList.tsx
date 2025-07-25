@@ -75,7 +75,7 @@ export const UserList: React.FC<UserListProps> = ({
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">{user.role_description}</Badge>
                         <Badge className={getAccessLevelColor(user.requested_access_level)}>
@@ -100,7 +100,7 @@ export const UserList: React.FC<UserListProps> = ({
                         <Eye className="w-4 h-4 mr-1" />
                         Details
                       </Button>
-                      
+
                       <Button
                         variant="outline"
                         size="sm"
@@ -110,7 +110,7 @@ export const UserList: React.FC<UserListProps> = ({
                         <XCircle className="w-4 h-4 mr-1" />
                         Reject
                       </Button>
-                      
+
                       <Button
                         size="sm"
                         onClick={() => onApprove(user)}
@@ -176,7 +176,7 @@ export const UserList: React.FC<UserListProps> = ({
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">{user.role_name}</Badge>
                       <Badge className={getAccessLevelColor(user.access_level)}>
@@ -196,8 +196,8 @@ export const UserList: React.FC<UserListProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => onEditAccess(user)}
                     >
@@ -205,9 +205,9 @@ export const UserList: React.FC<UserListProps> = ({
                       Edit Access
                     </Button>
                     {user.is_active ? (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => onDeactivateUser(user)}
                         disabled={actionLoading === user.user_id}
                       >
@@ -215,8 +215,8 @@ export const UserList: React.FC<UserListProps> = ({
                         {actionLoading === user.user_id ? 'Deactivating...' : 'Deactivate'}
                       </Button>
                     ) : (
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => onActivateUser(user)}
                         disabled={actionLoading === user.user_id}
@@ -234,4 +234,4 @@ export const UserList: React.FC<UserListProps> = ({
       </CardContent>
     </Card>
   );
-}; 
+};

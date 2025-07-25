@@ -1,5 +1,5 @@
 /**
- * ItemDetailsDialog Component  
+ * ItemDetailsDialog Component
  * Dialog for viewing detailed information about deletion requests
  */
 
@@ -31,7 +31,7 @@ export const ItemDetailsDialog: React.FC<ItemDetailsDialogProps> = ({
             Complete information about this deletion request
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {/* Item Information */}
           <div className="grid grid-cols-2 gap-4">
@@ -59,7 +59,7 @@ export const ItemDetailsDialog: React.FC<ItemDetailsDialogProps> = ({
               </p>
             </div>
           </div>
-          
+
           {/* Context */}
           {(item.client_account_name || item.engagement_name) && (
             <div>
@@ -74,7 +74,7 @@ export const ItemDetailsDialog: React.FC<ItemDetailsDialogProps> = ({
               </div>
             </div>
           )}
-          
+
           {/* Deletion Reason */}
           {item.delete_reason && (
             <div>
@@ -85,7 +85,7 @@ export const ItemDetailsDialog: React.FC<ItemDetailsDialogProps> = ({
             </div>
           )}
         </div>
-        
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Close

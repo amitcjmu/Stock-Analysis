@@ -22,7 +22,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const Dependencies: React.FC = () => {
   const { client, engagement } = useAuth();
-  
+
   // Use the new auto-detection hook for consistent flow detection
   const {
     urlFlowId,
@@ -45,7 +45,7 @@ const Dependencies: React.FC = () => {
     canContinueToNextPhase
   } = useDependencyLogic(effectiveFlowId);
 
-  // Use navigation hook - following the established pattern  
+  // Use navigation hook - following the established pattern
   const { handleContinueToNextPhase } = useDependencyNavigation(null, dependencyData);
 
   // Debug info for flow detection
@@ -116,7 +116,7 @@ const Dependencies: React.FC = () => {
           <div className="mb-6">
             <ContextBreadcrumbs />
           </div>
-          
+
           {/* Header - Following the established pattern */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
@@ -154,7 +154,7 @@ const Dependencies: React.FC = () => {
                 <DependencyMappingPanel data={dependencyData} activeView={activeView} onCreateDependency={() => {}} />
               </div>
               <DependencyGraph data={dependencyData} activeView={activeView} onUpdateDependency={() => {}} />
-              
+
               {/* Navigation Button - Following the established pattern */}
               {canContinueToNextPhase() && (
                 <div className="flex justify-end">
@@ -168,29 +168,29 @@ const Dependencies: React.FC = () => {
                 </div>
               )}
             </div>
-            
+
             <div className="xl:col-span-1 space-y-6">
-              <AgentUIMonitor 
-                pageContext="dependencies" 
+              <AgentUIMonitor
+                pageContext="dependencies"
                 className="h-fit"
               />
-              <DataClassificationDisplay 
-                pageContext="dependency-analysis" 
-                refreshTrigger={0} 
+              <DataClassificationDisplay
+                pageContext="dependency-analysis"
+                refreshTrigger={0}
                 onClassificationUpdate={(itemId, newClassification) => {
                   console.log('Dependency classification updated:', itemId, newClassification);
                   analyzeDependencies();
-                }} 
+                }}
               />
-              <AgentInsightPanel 
-                pageContext="dependency-analysis" 
-                refreshTrigger={0} 
+              <AgentInsightPanel
+                pageContext="dependency-analysis"
+                refreshTrigger={0}
                 onInsightAction={(insightId, action) => {
                   console.log('Dependency insight action:', insightId, action);
                   if (action === 'apply_insight') {
                     analyzeDependencies();
                   }
-                }} 
+                }}
               />
             </div>
           </div>

@@ -26,32 +26,32 @@ export interface IncompleteFlowV2 {
 // Hook to detect incomplete flows
 export const useIncompleteFlowDetectionV2 = () => {
   const { client, engagement } = useAuth();
-  
+
   return useQuery({
     queryKey: ['incomplete-flows', client?.id, engagement?.id],
     queryFn: async () => {
       try {
         console.log('🔍 [DEBUG] Fetching incomplete flows for:', { client: client?.id, engagement: engagement?.id });
-        
+
         // Require proper UUIDs from auth context
         if (!client?.id || !engagement?.id) {
           console.warn('❌ [DEBUG] Missing client or engagement context for flow operations');
           return { flows: [] };
         }
-        
+
         const clientAccountId = client.id;
         const engagementId = engagement.id;
-        
+
         // Try the active flows endpoint first
         console.log('🔍 [DEBUG] Calling getActiveFlows with:', { clientAccountId, engagementId, flowType: 'discovery' });
         const response = await masterFlowService.getActiveFlows(clientAccountId, engagementId, 'discovery');
         console.log('✅ [DEBUG] Active flows response:', response);
         const allFlows = Array.isArray(response) ? response : (response.flows || []);
         console.log('📋 [DEBUG] All flows found:', allFlows.length);
-        
+
         // Filter for incomplete flows (not completed or failed)
-        const incompleteFlows = allFlows.filter((flow: unknown) => 
-          flow.status !== 'completed' && 
+        const incompleteFlows = allFlows.filter((flow: unknown) =>
+          flow.status !== 'completed' &&
           flow.status !== 'failed' &&
           flow.status !== 'error'
         ).map((flow: unknown, index: number) => {
@@ -62,9 +62,9 @@ export const useIncompleteFlowDetectionV2 = () => {
             const timestamp = Date.now().toString().slice(-12).padStart(12, '0');
             return `${indexPadded}-def0-def0-def0-${timestamp}`;
           };
-          
+
           const fallbackId = generateDemoFallbackUuid(index);
-          
+
           return ({
             flowId: flow.master_flow_id || flow.flowId || flow.flow_id || fallbackId,
             flow_id: flow.master_flow_id || flow.flowId || flow.flow_id || fallbackId, // Add flow_id for component compatibility
@@ -99,7 +99,7 @@ export const useIncompleteFlowDetectionV2 = () => {
           },
         });
         });
-        
+
         console.log('📋 [DEBUG] Transformed incomplete flows:', incompleteFlows);
         console.log('📋 [DEBUG] Final result:', { flows: incompleteFlows });
         return {
@@ -122,17 +122,17 @@ export const useFlowResumptionV2 = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { client, engagement } = useAuth();
-  
+
   return useMutation({
     mutationFn: async (flowId: string) => {
       console.log('🔄 [DEBUG] Flow resumption called with:', { flowId, client: client?.id, engagement: engagement?.id });
-      
+
       // Require proper UUIDs from auth context
       if (!client?.id || !engagement?.id) {
         console.error('❌ [DEBUG] Missing client or engagement context for flow resumption');
         throw new Error('Missing client or engagement context for flow resumption');
       }
-      
+
       try {
         // Use masterFlowService for resuming flows
         const result = await masterFlowService.resumeFlow(flowId, client.id, engagement.id);
@@ -145,15 +145,15 @@ export const useFlowResumptionV2 = () => {
     },
     onSuccess: (data, flowId) => {
       console.log('🎉 [DEBUG] Flow resumption mutation success:', { data, flowId });
-      
+
       queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
       queryClient.invalidateQueries({ queryKey: ['discovery-flows'] });
-      
+
       toast({
         title: "Flow Resumed",
         description: "The discovery flow has been resumed successfully.",
       });
-      
+
       // Navigate to the appropriate page based on the flow's current phase
       if (data.current_phase) {
         const route = getDiscoveryPhaseRoute(data.current_phase, flowId);
@@ -182,23 +182,23 @@ export const useFlowDeletionV2 = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { client, engagement } = useAuth();
-  
+
   console.warn('⚠️ useFlowDeletionV2 is deprecated. Use useFlowDeletion for centralized user-approval deletion system.');
-  
+
   return useMutation({
     mutationFn: async (flowId: string) => {
       // Require proper UUIDs from auth context
       if (!client?.id || !engagement?.id) {
         throw new Error('Missing client or engagement context for flow deletion');
       }
-      
+
       // Show warning that direct deletion is deprecated
       toast({
         title: "⚠️ Deprecated Deletion Method",
         description: "This deletion method is deprecated. Please use the new user-approval flow deletion system.",
         variant: "destructive",
       });
-      
+
       throw new Error('Direct flow deletion is deprecated. Use the new user-approval deletion system.');
     },
     onSuccess: () => {
@@ -222,9 +222,9 @@ export const useBulkFlowOperationsV2 = () => {
   const { toast } = useToast();
   const { client, engagement } = useAuth();
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   console.warn('⚠️ useBulkFlowOperationsV2 is deprecated. Use useFlowDeletion for centralized user-approval deletion system.');
-  
+
   const bulkDelete = useMutation({
     mutationFn: async (params: { flow_ids: string[] } | string[]) => {
       // Show warning that direct deletion is deprecated
@@ -233,7 +233,7 @@ export const useBulkFlowOperationsV2 = () => {
         description: "This bulk deletion method is deprecated. Please use the new user-approval flow deletion system.",
         variant: "destructive",
       });
-      
+
       throw new Error('Direct bulk flow deletion is deprecated. Use the new user-approval deletion system.');
     },
     onSuccess: () => {
@@ -248,7 +248,7 @@ export const useBulkFlowOperationsV2 = () => {
       });
     }
   });
-  
+
   return {
     bulkDelete: {
       mutate: bulkDelete.mutate,

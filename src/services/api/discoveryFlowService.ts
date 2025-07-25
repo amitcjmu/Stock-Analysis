@@ -1,9 +1,9 @@
 /**
  * Discovery Flow Service
- * 
+ *
  * Service for operational discovery flow status and management.
  * This service queries child flow status (discovery_flows table) for operational decisions.
- * 
+ *
  * As per ADR-012: Flow Status Management Separation, this service should be used for:
  * - All operational decisions (field mapping, data cleansing, agent decisions)
  * - Phase-specific state management
@@ -144,12 +144,12 @@ export interface DiscoveryFlowService {
    * This returns the child flow status for operational decisions
    */
   getOperationalStatus(flowId: string, clientAccountId: string, engagementId: string): Promise<DiscoveryFlowStatusResponse>;
-  
+
   /**
    * Execute discovery flow phase
    */
   executePhase(flowId: string, phase: string, data: Record<string, unknown>, clientAccountId: string, engagementId: string): Promise<PhaseExecutionResponse>;
-  
+
   /**
    * Submit agent clarification answers
    */
@@ -157,10 +157,10 @@ export interface DiscoveryFlowService {
 }
 
 class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
-  
+
   async getOperationalStatus(flowId: string, clientAccountId: string, engagementId: string): Promise<DiscoveryFlowStatusResponse> {
     console.log(`🔍 [DiscoveryFlowService] Getting operational status for flow: ${flowId}`);
-    
+
     const response = await apiClient.get<DiscoveryFlowStatusResponse>(
       `/discovery/flows/${flowId}/status`,
       {
@@ -170,14 +170,14 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
         }
       }
     );
-    
+
     console.log(`✅ [DiscoveryFlowService] Retrieved operational status:`, response);
     return response;
   }
-  
+
   async executePhase(flowId: string, phase: string, data: Record<string, unknown>, clientAccountId: string, engagementId: string): Promise<PhaseExecutionResponse> {
     console.log(`🚀 [DiscoveryFlowService] Executing phase ${phase} for flow: ${flowId}`);
-    
+
     // FIXED: Use discovery flow execution endpoint that only requires client/engagement context
     // instead of the master flow endpoint that requires user authentication
     const response = await apiClient.post<PhaseExecutionResponse>(
@@ -195,14 +195,14 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
         }
       }
     );
-    
+
     console.log(`✅ [DiscoveryFlowService] Phase execution result:`, response);
     return response;
   }
-  
+
   async submitClarificationAnswers(flowId: string, answers: ClarificationAnswers, clientAccountId: string, engagementId: string): Promise<ClarificationSubmissionResponse> {
     console.log(`📝 [DiscoveryFlowService] Submitting clarification answers for flow: ${flowId}`);
-    
+
     const response = await apiClient.post<ClarificationSubmissionResponse>(
       `/discovery/flows/${flowId}/clarifications/submit`,
       {
@@ -217,7 +217,7 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
         }
       }
     );
-    
+
     console.log(`✅ [DiscoveryFlowService] Clarification submission result:`, response);
     return response;
   }

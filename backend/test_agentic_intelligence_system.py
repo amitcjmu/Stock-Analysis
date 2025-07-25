@@ -55,7 +55,7 @@ async def test_agentic_intelligence_system():
             await session.execute(
                 text(
                     """
-                INSERT INTO engagements (id, client_account_id, name, slug, status) 
+                INSERT INTO engagements (id, client_account_id, name, slug, status)
                 VALUES (:engagement_id, :client_id, :name, :slug, :status)
             """
                 ),

@@ -27,22 +27,22 @@ const TargetFieldSelector: React.FC<TargetFieldSelectorProps> = ({
     if (!Array.isArray(availableFields) || availableFields.length === 0) {
       return [];
     }
-    
+
     let filtered = availableFields;
-    
+
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(field => field.category === selectedCategory);
     }
-    
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(field => 
+      filtered = filtered.filter(field =>
         field.name.toLowerCase().includes(term) ||
         field.description.toLowerCase().includes(term) ||
         field.category.toLowerCase().includes(term)
       );
     }
-    
+
     return filtered.sort((a, b) => {
       // Sort by required first, then by name
       if (a.required && !b.required) return -1;
@@ -86,7 +86,7 @@ const TargetFieldSelector: React.FC<TargetFieldSelectorProps> = ({
           <ChevronDown className="h-4 w-4 text-gray-400" />
         )}
       </button>
-      
+
       {isOpen && (mapping.status === 'pending' || mapping.status === 'suggested' || !mapping.status) && (
         <div className="absolute z-10 mt-1 w-80 bg-white border border-gray-300 rounded-lg shadow-lg max-h-96 overflow-hidden">
           {loadingFields ? (
@@ -114,7 +114,7 @@ const TargetFieldSelector: React.FC<TargetFieldSelectorProps> = ({
                   ))}
                 </select>
               </div>
-              
+
               {/* Fields list */}
               <div className="max-h-64 overflow-y-auto">
                 {getFilteredFields().length === 0 ? (

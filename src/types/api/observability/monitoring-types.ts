@@ -1,6 +1,6 @@
 /**
  * Monitoring Configuration Types
- * 
+ *
  * Type definitions for setting up monitoring configurations, deployments,
  * and managing monitoring infrastructure across different environments.
  */

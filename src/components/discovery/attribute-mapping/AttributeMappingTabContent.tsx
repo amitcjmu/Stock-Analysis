@@ -105,4 +105,4 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
   return <>{renderTabContent()}</>;
 };
 
-export default AttributeMappingTabContent; 
+export default AttributeMappingTabContent;

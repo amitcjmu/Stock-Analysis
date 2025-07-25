@@ -540,7 +540,7 @@ class Phase4TestRunner:
         <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
         <p>Overall Status: <strong>{overall_status.upper()}</strong></p>
     </div>
-    
+
     <div class="summary">
         <h2>Test Summary</h2>
         <div class="metric">Total Test Suites: <strong>{summary.get('total_test_suites', 0)}</strong></div>

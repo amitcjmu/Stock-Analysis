@@ -30,7 +30,7 @@ import { Download, FileText, CheckCircle, Activity } from 'lucide-react'
 const DataCleansing: React.FC = () => {
   const { user, client, engagement } = useAuth();
   const [pendingQuestions, setPendingQuestions] = useState(0);
-  
+
   // Use the auto-detection hook for consistent flow detection
   const {
     urlFlowId,
@@ -40,7 +40,7 @@ const DataCleansing: React.FC = () => {
     isFlowListLoading,
     hasEffectiveFlow
   } = useDiscoveryFlowAutoDetection();
-  
+
   // Unified Discovery flow hook with auto-detected flow ID
   const {
     flowState: flow,
@@ -52,11 +52,11 @@ const DataCleansing: React.FC = () => {
     isPhaseComplete,
     getPhaseData
   } = useUnifiedDiscoveryFlow(effectiveFlowId);
-  
+
   // Extract flow details from unified flow state
   const progressPercentage = flow?.progress_percentage || 0;
   const currentPhase = flow?.current_phase || '';
-  const completedPhases = flow?.phase_completion ? 
+  const completedPhases = flow?.phase_completion ?
     Object.entries(flow.phase_completion)
       .filter(([_, completed]) => completed)
       .map(([phase, _]) => phase) : [];
@@ -73,26 +73,26 @@ const DataCleansing: React.FC = () => {
   const flowDataCleansing = flow?.data_cleansing_results || flow?.data_cleansing || flow?.results?.data_cleansing || {};
   const qualityIssues = flowDataCleansing?.quality_issues || [];
   const agentRecommendations = flowDataCleansing?.recommendations || [];
-  
+
   // ADR-012: Extract data from discovery flow response (child flow)
   // The data should be in the flow.raw_data and flow.field_mappings from the response mapper
   // Backend FIXED: Response mapper now properly fetches import data
-  const totalRecords = 
-    flow?.raw_data?.length || 
-    flowDataCleansing?.metadata?.original_records || 
+  const totalRecords =
+    flow?.raw_data?.length ||
+    flowDataCleansing?.metadata?.original_records ||
     flow?.import_metadata?.record_count ||
     latestImportData?.data?.length || // Fallback to separate API call if needed
     (flow?.field_mappings && Object.keys(flow.field_mappings).length > 0 ? 100 : 0) || // Fallback estimate if we have mappings
     0;
-    
+
   const cleanedRecords = flowDataCleansing?.metadata?.cleaned_records || totalRecords;
   const fieldsAnalyzed = Object.keys(flow?.field_mappings || {}).length;
-  const dataCompleteness = flowDataCleansing?.data_quality_metrics?.overall_improvement?.completeness_improvement || 
+  const dataCompleteness = flowDataCleansing?.data_quality_metrics?.overall_improvement?.completeness_improvement ||
                           (totalRecords > 0 ? Math.round((cleanedRecords / totalRecords) * 100) : 0);
-  
+
   const cleansingProgress = {
     total_records: totalRecords,
-    quality_score: flowDataCleansing?.data_quality_metrics?.overall_improvement?.quality_score || 
+    quality_score: flowDataCleansing?.data_quality_metrics?.overall_improvement?.quality_score ||
                    (totalRecords > 0 ? 85 : 0), // Default to 85% if we have data
     completion_percentage: dataCompleteness,
     cleaned_records: cleanedRecords,
@@ -135,7 +135,7 @@ const DataCleansing: React.FC = () => {
 
     try {
       console.log('🚀 Triggering data cleansing analysis for flow:', effectiveFlowId);
-      
+
       // Call the new trigger analysis endpoint
       const response = await apiCall(`/api/v1/data-cleansing/flows/${effectiveFlowId}/data-cleansing/trigger`, {
         method: 'POST',
@@ -144,12 +144,12 @@ const DataCleansing: React.FC = () => {
           include_agent_analysis: true
         })
       });
-      
+
       console.log('✅ Data cleansing analysis triggered successfully:', response);
-      
+
       // Refresh the flow data to get updated results
       await refresh();
-      
+
     } catch (error) {
       console.error('❌ Failed to trigger data cleansing analysis:', error);
       // Still refresh to get any available data
@@ -170,7 +170,7 @@ const DataCleansing: React.FC = () => {
         console.log('📌 Marking data cleansing phase as complete...');
         await executeFlowPhase('data_cleansing', { complete: true });
       }
-      
+
       // Navigate to asset inventory with flow ID
       if (effectiveFlowId) {
         window.location.href = `/discovery/inventory/${effectiveFlowId}`;
@@ -191,7 +191,7 @@ const DataCleansing: React.FC = () => {
   // Determine state conditions - use real data cleansing analysis
   const hasError = !!(error || latestImportError);
   const errorMessage = error?.message || latestImportError?.message;
-  
+
   // Check if we have data available for cleansing - this includes imported data from previous phases
   // Be more robust in checking for data existence
   const hasRawData = !!(flow?.raw_data?.length > 0 || latestImportData?.data?.length > 0);
@@ -201,23 +201,23 @@ const DataCleansing: React.FC = () => {
   );
   const hasFlowWithDataImport = !!(flow?.data_import_id || flow?.import_metadata);
   const hasImportedData = hasRawData || hasFieldMappings || hasFlowWithDataImport;
-  
+
   const hasCleansingResults = !!(
-    qualityIssues.length > 0 || 
-    agentRecommendations.length > 0 || 
+    qualityIssues.length > 0 ||
+    agentRecommendations.length > 0 ||
     cleansingProgress.total_records > 0 ||
     flow?.progress_percentage > 0
   );
-  
+
   // If we have a flow and it's past data_import phase, we should have data
   const isPostDataImport = !!(flow && (
     flow.current_phase !== 'data_import' ||
     flow.phase_completion?.data_import ||
     flow.progress_percentage > 0
   ));
-  
+
   const hasData = hasImportedData || hasCleansingResults || isPostDataImport;
-  
+
   const isAnalyzing = isUpdating;
   const isLoadingData = isLoading || isLatestImportLoading || isFlowListLoading;
 
@@ -225,13 +225,13 @@ const DataCleansing: React.FC = () => {
   useEffect(() => {
     const checkPendingQuestions = async () => {
       if (!client?.id || !engagement?.id) return;
-      
+
       try {
         const response = await apiCall(
           `/api/v1/agents/discovery/agent-questions?page=data-cleansing`,
           { method: 'GET' }
         );
-        
+
         // Handle both array and object response formats
         let questions = [];
         if (Array.isArray(response)) {
@@ -239,7 +239,7 @@ const DataCleansing: React.FC = () => {
         } else if (response?.questions) {
           questions = response.questions;
         }
-        
+
         const unansweredQuestions = questions.filter(q => !q.is_resolved) || [];
         setPendingQuestions(unansweredQuestions.length);
       } catch (error) {
@@ -248,7 +248,7 @@ const DataCleansing: React.FC = () => {
         setPendingQuestions(0);
       }
     };
-    
+
     // Only check once on mount - no polling since endpoint returns empty array
     checkPendingQuestions();
   }, [client, engagement]);
@@ -284,7 +284,7 @@ const DataCleansing: React.FC = () => {
 
   console.log('🔍 DataCleansing data availability check:', {
     hasRawData,
-    hasFieldMappings, 
+    hasFieldMappings,
     hasFlowWithDataImport,
     hasImportedData,
     hasCleansingResults,
@@ -326,7 +326,7 @@ const DataCleansing: React.FC = () => {
               <ContextBreadcrumbs />
             </div>
 
-            <DataCleansingHeader 
+            <DataCleansingHeader
               totalRecords={cleansingProgress.total_records}
               qualityScore={cleansingProgress.quality_score}
               completionPercentage={cleansingProgress.completion_percentage}
@@ -338,7 +338,7 @@ const DataCleansing: React.FC = () => {
               onTriggerAnalysis={handleTriggerDataCleansingCrew}
             />
 
-            <DataCleansingProgressDashboard 
+            <DataCleansingProgressDashboard
               progress={{
                 ...cleansingProgress,
                 crew_completion_status: {}
@@ -348,7 +348,7 @@ const DataCleansing: React.FC = () => {
 
             {/* Agent Clarifications - Primary Focus */}
             <div className="mb-6">
-              <AgentClarificationPanel 
+              <AgentClarificationPanel
                 pageContext="data-cleansing"
                 refreshTrigger={0}
                 onQuestionAnswered={(questionId, response) => {
@@ -362,7 +362,7 @@ const DataCleansing: React.FC = () => {
               <div className="xl:col-span-3 space-y-6">
                 {/* Only show Quality Issues if there are actual issues */}
                 {(qualityIssues.length > 0 || isLoadingData) && (
-                  <QualityIssuesPanel 
+                  <QualityIssuesPanel
                     qualityIssues={qualityIssues}
                     onResolveIssue={(issueId) => {
                       console.log('Resolving issue:', issueId);
@@ -374,7 +374,7 @@ const DataCleansing: React.FC = () => {
 
                 {/* Only show Recommendations if there are actual recommendations */}
                 {(agentRecommendations.length > 0 || isLoadingData) && (
-                  <CleansingRecommendationsPanel 
+                  <CleansingRecommendationsPanel
                     recommendations={agentRecommendations}
                     onApplyRecommendation={(recommendationId) => {
                       console.log('Applying recommendation:', recommendationId);
@@ -415,7 +415,7 @@ const DataCleansing: React.FC = () => {
                       {cleansingProgress.issues_found > 0 && (
                         <div className="mt-4 pt-4 border-t">
                           <p className="text-sm text-gray-600">
-                            Found {cleansingProgress.issues_found} quality issue{cleansingProgress.issues_found > 1 ? 's' : ''}, 
+                            Found {cleansingProgress.issues_found} quality issue{cleansingProgress.issues_found > 1 ? 's' : ''},
                             resolved {cleansingProgress.issues_resolved}
                           </p>
                         </div>
@@ -446,7 +446,7 @@ const DataCleansing: React.FC = () => {
                           </>
                         ) : (
                           <>
-                            <span className="font-medium text-green-600">All questions answered</span> - 
+                            <span className="font-medium text-green-600">All questions answered</span> -
                             {canContinueToInventory ? ' You can now proceed to the inventory phase.' : ' Analysis is being finalized.'}
                           </>
                         )}
@@ -546,7 +546,7 @@ const DataCleansing: React.FC = () => {
                   </Card>
                 )}
 
-                <DataCleansingNavigationButtons 
+                <DataCleansingNavigationButtons
                   canContinue={canContinueToInventory}
                   onBackToAttributeMapping={handleBackToAttributeMapping}
                   onContinueToInventory={handleContinueToInventory}
@@ -555,7 +555,7 @@ const DataCleansing: React.FC = () => {
 
               <div className="xl:col-span-1 space-y-6">
                 {/* Agent Insights */}
-                <AgentInsightsSection 
+                <AgentInsightsSection
                   pageContext="data-cleansing"
                   refreshTrigger={0}
                   onInsightAction={(insightId, action) => {
@@ -579,4 +579,4 @@ const DataCleansing: React.FC = () => {
   );
 };
 
-export default DataCleansing; 
+export default DataCleansing;

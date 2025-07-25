@@ -33,7 +33,7 @@ export const BusinessContextCard: React.FC<BusinessContextCardProps> = ({ client
               } else if (client.business_objectives && typeof client.business_objectives === 'object' && client.business_objectives.primary_goals) {
                 objectives = client.business_objectives.primary_goals;
               }
-              
+
               return objectives && objectives.length > 0 ? (
                 objectives.map((objective, index) => (
                   <Badge key={index} variant="secondary">

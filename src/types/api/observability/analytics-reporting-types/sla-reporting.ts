@@ -1,6 +1,6 @@
 /**
  * SLA Reporting Types
- * 
+ *
  * Type definitions for SLA monitoring, breach analysis, compliance tracking,
  * and generating SLA reports and forecasts.
  */

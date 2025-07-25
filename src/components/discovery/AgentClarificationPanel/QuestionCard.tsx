@@ -1,16 +1,16 @@
 /**
  * Question Card Component
- * 
+ *
  * Individual question card with response interface and context display.
  */
 
 import React from 'react'
 import { useState } from 'react'
-import { 
-  Send, 
-  Loader2, 
-  ChevronDown, 
-  ChevronUp, 
+import {
+  Send,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
   AlertCircle,
   Server
 } from 'lucide-react';
@@ -60,7 +60,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
               {question.priority} priority
             </span>
           </div>
-          
+
           <h4 className="font-medium text-gray-900 mb-2">{question.title}</h4>
           <p className="text-gray-700 mb-3">{question.question}</p>
 
@@ -75,7 +75,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                 {question.context.components.map((componentName: string) => {
                   const asset = assetDetails[componentName];
                   if (!asset) return null;
-                  
+
                   return (
                     <AssetCard
                       key={componentName}

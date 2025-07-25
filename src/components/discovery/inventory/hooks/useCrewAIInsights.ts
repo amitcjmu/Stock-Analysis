@@ -39,31 +39,31 @@ export const useCrewAIInsights = (): UseCrewAIInsightsResult => {
     try {
       // Look for insights from different CrewAI agents/crews
       const insights = flowData.agent_insights as CrewAIInsight[];
-      
+
       // Extract infrastructure insights from Server Classification Expert
-      const infraInsights = insights.filter(i => 
-        i.agent?.includes('Server') || 
+      const infraInsights = insights.filter(i =>
+        i.agent?.includes('Server') ||
         i.agent?.includes('Infrastructure') ||
         i.category === 'infrastructure'
       );
 
       // Extract application insights from Application Discovery Expert
-      const appInsights = insights.filter(i => 
-        i.agent?.includes('Application') || 
+      const appInsights = insights.filter(i =>
+        i.agent?.includes('Application') ||
         i.agent?.includes('App') ||
         i.category === 'application'
       );
 
       // Extract device/network insights from Device Classification Expert
-      const deviceInsights = insights.filter(i => 
-        i.agent?.includes('Device') || 
+      const deviceInsights = insights.filter(i =>
+        i.agent?.includes('Device') ||
         i.agent?.includes('Network') ||
         i.category === 'device'
       );
 
       // Extract consolidated insights from final task
-      const consolidatedInsights = insights.filter(i => 
-        i.agent?.includes('Inventory Manager') || 
+      const consolidatedInsights = insights.filter(i =>
+        i.agent?.includes('Inventory Manager') ||
         i.category === 'consolidated' ||
         i.phase === 'inventory'
       );
@@ -98,7 +98,7 @@ export const useCrewAIInsights = (): UseCrewAIInsightsResult => {
       };
 
       let sixr_recommendations = {} as Record<string, number>;
-      
+
       let technology_analysis = {
         stack_diversity: 'mixed',
         modernization_score: 0,
@@ -126,7 +126,7 @@ export const useCrewAIInsights = (): UseCrewAIInsightsResult => {
           infrastructure_patterns.cloud_readiness_score = parsed.hosting_patterns.cloud_readiness_score || 75;
           infrastructure_patterns.standardization_assessment = parsed.hosting_patterns.standardization_assessment || 'medium';
         }
-        
+
         if (parsed?.migration_readiness) {
           migration_readiness = { ...migration_readiness, ...parsed.migration_readiness };
         }
@@ -143,7 +143,7 @@ export const useCrewAIInsights = (): UseCrewAIInsightsResult => {
         if (parsed?.technology_analysis) {
           technology_analysis = { ...technology_analysis, ...parsed.technology_analysis };
         }
-        
+
         if (parsed?.migration_strategy?.['6r_recommendations']) {
           sixr_recommendations = { ...sixr_recommendations, ...parsed.migration_strategy['6r_recommendations'] };
         }

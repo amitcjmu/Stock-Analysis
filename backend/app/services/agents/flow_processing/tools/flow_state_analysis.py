@@ -18,9 +18,7 @@ class FlowStateAnalysisTool(BaseTool):
     """Tool for analyzing current flow state across all flow types using API calls"""
 
     name: str = "flow_state_analyzer"
-    description: str = (
-        "Analyzes the current state of any flow type (Discovery, Assess, Plan, Execute, etc.) to determine progress and completion status using API validation endpoints"
-    )
+    description: str = "Analyzes the current state of any flow type (Discovery, Assess, Plan, Execute, etc.) to determine progress and completion status using API validation endpoints"
 
     # API-based tool - no database access needed
     base_url: str = (

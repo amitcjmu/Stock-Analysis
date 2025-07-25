@@ -1,9 +1,9 @@
 /**
  * Role and Permission Management API Types
- * 
+ *
  * Type definitions for role-based access control (RBAC) including role creation,
  * permission assignment, role inheritance, and access control management.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 
@@ -210,80 +210,80 @@ export interface ScopeLimitation {
 }
 
 // Role and Permission Enums and Types
-export type RoleCategory = 
-  | 'system' 
-  | 'administrative' 
-  | 'operational' 
-  | 'analytical' 
-  | 'readonly' 
+export type RoleCategory =
+  | 'system'
+  | 'administrative'
+  | 'operational'
+  | 'analytical'
+  | 'readonly'
   | 'custom';
 
-export type RoleLevel = 
-  | 'global' 
-  | 'organization' 
-  | 'account' 
-  | 'engagement' 
+export type RoleLevel =
+  | 'global'
+  | 'organization'
+  | 'account'
+  | 'engagement'
   | 'resource';
 
-export type RoleScopeType = 
-  | 'global' 
-  | 'client_account' 
-  | 'engagement' 
+export type RoleScopeType =
+  | 'global'
+  | 'client_account'
+  | 'engagement'
   | 'resource_specific';
 
-export type RoleAssignmentStatus = 
-  | 'active' 
-  | 'inactive' 
-  | 'suspended' 
-  | 'expired' 
+export type RoleAssignmentStatus =
+  | 'active'
+  | 'inactive'
+  | 'suspended'
+  | 'expired'
   | 'pending';
 
-export type RoleConditionType = 
-  | 'time_based' 
-  | 'location_based' 
-  | 'ip_restriction' 
-  | 'mfa_required' 
+export type RoleConditionType =
+  | 'time_based'
+  | 'location_based'
+  | 'ip_restriction'
+  | 'mfa_required'
   | 'approval_required';
 
-export type ConditionOperator = 
-  | 'equals' 
-  | 'not_equals' 
-  | 'contains' 
-  | 'not_contains' 
-  | 'greater_than' 
-  | 'less_than' 
-  | 'in' 
+export type ConditionOperator =
+  | 'equals'
+  | 'not_equals'
+  | 'contains'
+  | 'not_contains'
+  | 'greater_than'
+  | 'less_than'
+  | 'in'
   | 'not_in';
 
-export type PermissionAction = 
-  | 'create' 
-  | 'read' 
-  | 'update' 
-  | 'delete' 
-  | 'execute' 
-  | 'manage' 
-  | 'view' 
-  | 'edit' 
-  | 'approve' 
+export type PermissionAction =
+  | 'create'
+  | 'read'
+  | 'update'
+  | 'delete'
+  | 'execute'
+  | 'manage'
+  | 'view'
+  | 'edit'
+  | 'approve'
   | 'reject';
 
-export type PermissionScope = 
-  | 'global' 
-  | 'tenant' 
-  | 'account' 
-  | 'engagement' 
-  | 'resource' 
+export type PermissionScope =
+  | 'global'
+  | 'tenant'
+  | 'account'
+  | 'engagement'
+  | 'resource'
   | 'own';
 
-export type PermissionCategory = 
-  | 'user_management' 
-  | 'account_management' 
-  | 'engagement_management' 
-  | 'system_administration' 
-  | 'data_access' 
-  | 'analytics' 
-  | 'security' 
-  | 'billing' 
+export type PermissionCategory =
+  | 'user_management'
+  | 'account_management'
+  | 'engagement_management'
+  | 'system_administration'
+  | 'data_access'
+  | 'analytics'
+  | 'security'
+  | 'billing'
   | 'support';
 
 // Permission Resource Constants

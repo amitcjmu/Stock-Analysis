@@ -19,8 +19,8 @@ async def get_assets_by_type_raw(session: AsyncSession, asset_type: str) -> list
     """Get all assets of a specific type using raw SQL."""
     sql = """
     SELECT id, name, asset_type, dependencies, custom_attributes
-    FROM assets 
-    WHERE client_account_id = :client_account_id AND asset_type = :asset_type 
+    FROM assets
+    WHERE client_account_id = :client_account_id AND asset_type = :asset_type
     ORDER BY name
     """
     result = await session.execute(
@@ -59,7 +59,7 @@ async def update_asset_dependencies_json(
 ):
     """Update asset's dependencies JSON field using raw SQL."""
     sql = """
-    UPDATE assets 
+    UPDATE assets
     SET dependencies = :dependencies
     WHERE id = :asset_id
     """
@@ -381,7 +381,7 @@ async def create_dependencies_raw_sql():
         # Get network devices (load balancers and network devices)
         network_sql = """
         SELECT id, name, asset_type, dependencies, custom_attributes
-        FROM assets 
+        FROM assets
         WHERE client_account_id = :client_account_id AND asset_type IN ('load_balancer', 'network')
         ORDER BY name
         """

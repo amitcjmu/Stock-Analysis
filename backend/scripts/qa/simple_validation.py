@@ -58,7 +58,7 @@ async def run_simple_validation() -> Dict[str, Any]:
         result = await session.execute(
             text(
                 """
-            SELECT COUNT(*) FROM migration.client_accounts 
+            SELECT COUNT(*) FROM migration.client_accounts
             WHERE name IS NOT NULL AND name != ''
         """
             )
@@ -69,7 +69,7 @@ async def run_simple_validation() -> Dict[str, Any]:
         result = await session.execute(
             text(
                 """
-            SELECT COUNT(*) FROM migration.users 
+            SELECT COUNT(*) FROM migration.users
             WHERE email IS NOT NULL AND email != ''
         """
             )
@@ -80,7 +80,7 @@ async def run_simple_validation() -> Dict[str, Any]:
         result = await session.execute(
             text(
                 """
-            SELECT COUNT(*) FROM migration.assets 
+            SELECT COUNT(*) FROM migration.assets
             WHERE name IS NOT NULL AND name != ''
         """
             )
@@ -97,9 +97,9 @@ async def run_simple_validation() -> Dict[str, Any]:
         result = await session.execute(
             text(
                 """
-            SELECT asset_type, COUNT(*) 
-            FROM migration.assets 
-            GROUP BY asset_type 
+            SELECT asset_type, COUNT(*)
+            FROM migration.assets
+            GROUP BY asset_type
             ORDER BY COUNT(*) DESC
         """
             )
@@ -115,9 +115,9 @@ async def run_simple_validation() -> Dict[str, Any]:
         result = await session.execute(
             text(
                 """
-            SELECT role_name, COUNT(*) 
-            FROM migration.user_roles 
-            GROUP BY role_name 
+            SELECT role_name, COUNT(*)
+            FROM migration.user_roles
+            GROUP BY role_name
             ORDER BY COUNT(*) DESC
         """
             )
@@ -133,9 +133,9 @@ async def run_simple_validation() -> Dict[str, Any]:
         result = await session.execute(
             text(
                 """
-            SELECT current_phase, COUNT(*) 
-            FROM migration.discovery_flows 
-            GROUP BY current_phase 
+            SELECT current_phase, COUNT(*)
+            FROM migration.discovery_flows
+            GROUP BY current_phase
             ORDER BY COUNT(*) DESC
         """
             )

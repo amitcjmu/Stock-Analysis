@@ -56,11 +56,11 @@ const AgentLearningInsights: React.FC = () => {
   const fetchLearningData = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const headers = getAuthHeaders();
       console.log('🧠 Fetching agent learning data with headers:', headers);
-      
+
       const response = await apiCall(
         API_CONFIG.ENDPOINTS.AGENT_LEARNING.LEARNING_STATISTICS,
         {
@@ -68,12 +68,12 @@ const AgentLearningInsights: React.FC = () => {
           headers
         }
       );
-      
+
       console.log('🧠 Agent learning response:', response);
       setLearningData(response);
     } catch (err) {
       console.error('Error fetching learning data:', err);
-      
+
       // Provide fallback demo data for development
       const fallbackData = {
         learning_statistics: {
@@ -92,7 +92,7 @@ const AgentLearningInsights: React.FC = () => {
           learning_active: false // Set to false to indicate API issues
         }
       };
-      
+
       setLearningData(fallbackData);
       setError('Agent learning service unavailable - showing demo data');
     } finally {
@@ -102,9 +102,9 @@ const AgentLearningInsights: React.FC = () => {
 
   const testFieldMapping = async () => {
     if (!testField.trim()) return;
-    
+
     console.log('🧪 Testing field mapping for:', testField);
-    
+
     try {
       const headers = getAuthHeaders();
       const response = await apiCall(
@@ -114,17 +114,17 @@ const AgentLearningInsights: React.FC = () => {
           headers
         }
       );
-      
+
       console.log('🧪 Field mapping suggestion response:', response);
       setFieldSuggestion(response);
     } catch (err) {
       console.error('Error testing field mapping:', err);
-      
+
       // Provide demo suggestion for testing UI
       const demoSuggestion = {
         field_name: testField,
         suggestion: {
-          suggested_mapping: testField.includes('name') ? 'asset_name' : 
+          suggested_mapping: testField.includes('name') ? 'asset_name' :
                            testField.includes('ip') ? 'ip_address' :
                            testField.includes('type') ? 'asset_type' : 'custom_field',
           confidence: 0.75,
@@ -134,14 +134,14 @@ const AgentLearningInsights: React.FC = () => {
         learning_available: true,
         context: 'demo_context'
       };
-      
+
       setFieldSuggestion(demoSuggestion);
     }
   };
 
   const learnFieldMapping = async () => {
     console.log('🎓 Learning field mapping...');
-    
+
     try {
       const headers = getAuthHeaders();
       const learningData = {
@@ -155,9 +155,9 @@ const AgentLearningInsights: React.FC = () => {
           test_learning: true
         }
       };
-      
+
       console.log('🎓 Sending learning data:', learningData);
-      
+
       const response = await apiCall(
         API_CONFIG.ENDPOINTS.AGENT_LEARNING.FIELD_MAPPING_LEARN,
         {
@@ -166,24 +166,24 @@ const AgentLearningInsights: React.FC = () => {
           body: JSON.stringify(learningData)
         }
       );
-      
+
       console.log('🎓 Learning response:', response);
-      
+
       // Show success feedback
       alert('✅ Field mapping learned successfully! The system will now remember this pattern.');
-      
+
       // Refresh data after learning
       await fetchLearningData();
     } catch (err) {
       console.error('Error learning field mapping:', err);
-      
+
       // Show demo learning feedback
       alert('🎭 Demo mode: Learning simulation completed. In production, this would teach the AI agent the field mapping pattern.');
-      
+
       // Simulate learning by updating the demo data
       setLearningData(prev => {
         if (!prev) return prev;
-        
+
         return {
           ...prev,
           learning_statistics: {
@@ -271,7 +271,7 @@ const AgentLearningInsights: React.FC = () => {
             <TabsTrigger value="patterns">Patterns</TabsTrigger>
             <TabsTrigger value="test">Test Learning</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="overview" className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
@@ -338,37 +338,37 @@ const AgentLearningInsights: React.FC = () => {
                 <Database className="h-4 w-4" />
                 Pattern Distribution
               </h4>
-              
+
               <div className="space-y-3">
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span>Field Mapping Patterns</span>
                     <span>{learning_statistics.field_mapping_patterns}</span>
                   </div>
-                  <Progress 
-                    value={(learning_statistics.field_mapping_patterns / Math.max(learning_statistics.total_patterns, 1)) * 100} 
+                  <Progress
+                    value={(learning_statistics.field_mapping_patterns / Math.max(learning_statistics.total_patterns, 1)) * 100}
                     className="h-2"
                   />
                 </div>
-                
+
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span>Data Source Patterns</span>
                     <span>{learning_statistics.data_source_patterns}</span>
                   </div>
-                  <Progress 
-                    value={(learning_statistics.data_source_patterns / Math.max(learning_statistics.total_patterns, 1)) * 100} 
+                  <Progress
+                    value={(learning_statistics.data_source_patterns / Math.max(learning_statistics.total_patterns, 1)) * 100}
                     className="h-2"
                   />
                 </div>
-                
+
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span>Quality Assessment Patterns</span>
                     <span>{learning_statistics.quality_assessment_patterns}</span>
                   </div>
-                  <Progress 
-                    value={(learning_statistics.quality_assessment_patterns / Math.max(learning_statistics.total_patterns, 1)) * 100} 
+                  <Progress
+                    value={(learning_statistics.quality_assessment_patterns / Math.max(learning_statistics.total_patterns, 1)) * 100}
                     className="h-2"
                   />
                 </div>
@@ -441,4 +441,4 @@ const AgentLearningInsights: React.FC = () => {
   );
 };
 
-export default AgentLearningInsights; 
+export default AgentLearningInsights;

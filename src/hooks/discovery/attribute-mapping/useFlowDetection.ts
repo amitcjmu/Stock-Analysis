@@ -38,7 +38,7 @@ export const useFlowDetection = (): FlowDetectionResult => {
   // Emergency fallback: try to extract flow ID from tenant-scoped context only
   const emergencyFlowId = useMemo(() => {
     if (effectiveFlowId) return effectiveFlowId;
-    
+
     // Check if there's a flow ID in the current path (still tenant-scoped by backend)
     const currentPath = pathname;
     const flowIdMatch = currentPath.match(/([a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12})/i);
@@ -46,7 +46,7 @@ export const useFlowDetection = (): FlowDetectionResult => {
       console.log('🆘 Emergency flow ID from path (will be tenant-validated):', flowIdMatch[0]);
       return flowIdMatch[0];
     }
-    
+
     // Check localStorage for recent flow context (still tenant-scoped by backend)
     if (typeof window !== 'undefined') {
       const storedFlowId = localStorage.getItem('lastActiveFlowId');
@@ -55,13 +55,13 @@ export const useFlowDetection = (): FlowDetectionResult => {
         return storedFlowId;
       }
     }
-    
+
     // SECURITY: No hardcoded flow IDs - let the system gracefully handle no flow
     // All flow access must go through proper tenant-scoped APIs
     console.log('🔒 No emergency flow ID available - relying on tenant-scoped flow detection only');
     return null;
   }, [effectiveFlowId, pathname]);
-  
+
   // Enhanced debugging for flow detection
   useEffect(() => {
     console.log('🎯 Flow Detection Debug:', {
@@ -74,7 +74,7 @@ export const useFlowDetection = (): FlowDetectionResult => {
       flowListError: flowListError?.message,
       pathname
     });
-    
+
     if (flowList && flowList.length > 0) {
       console.log('📋 Available flows for attribute mapping:', flowList.map(f => ({
         flow_id: f.id,
@@ -89,7 +89,7 @@ export const useFlowDetection = (): FlowDetectionResult => {
 
   // Use unified discovery flow with effective flow ID or emergency fallback
   const finalFlowId = effectiveFlowId || emergencyFlowId;
-  
+
   console.log('🎯 Final Flow ID Resolution:', {
     effectiveFlowId,
     emergencyFlowId,

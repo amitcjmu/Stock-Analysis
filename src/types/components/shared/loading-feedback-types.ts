@@ -1,6 +1,6 @@
 /**
  * Loading and Feedback Component Types
- * 
+ *
  * Loading indicators, progress bars, and skeleton component interfaces.
  */
 

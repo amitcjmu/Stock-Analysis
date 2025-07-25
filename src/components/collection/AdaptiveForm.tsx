@@ -1,9 +1,9 @@
 /**
  * Adaptive Form Component
- * 
+ *
  * Dynamic form generation and rendering based on gap analysis and application context.
  * Supports conditional fields, progressive disclosure, and bulk mode toggle.
- * 
+ *
  * Agent Team B3 - Task B3.1 Frontend Implementation
  */
 
@@ -57,24 +57,24 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
   // Calculate form progress and metrics
   const formMetrics = useMemo(() => {
     const totalFields = formData.totalFields;
-    const filledFields = Object.keys(formValues).filter(key => 
+    const filledFields = Object.keys(formValues).filter(key =>
       formValues[key] !== undefined && formValues[key] !== null && formValues[key] !== ''
     ).length;
-    
+
     const completionPercentage = totalFields > 0 ? (filledFields / totalFields) * 100 : 0;
-    
+
     // Calculate section progress
     const sectionProgress = formData.sections.map(section => {
       const sectionFields = section.fields.map(f => f.id);
-      const sectionFilledFields = sectionFields.filter(fieldId => 
+      const sectionFilledFields = sectionFields.filter(fieldId =>
         formValues[fieldId] !== undefined && formValues[fieldId] !== null && formValues[fieldId] !== ''
       ).length;
       const sectionCompletion = section.fields.length > 0 ? (sectionFilledFields / section.fields.length) * 100 : 0;
-      
+
       return {
         sectionId: section.id,
         completion: sectionCompletion,
-        validationStatus: validation?.fieldResults ? 
+        validationStatus: validation?.fieldResults ?
           section.fields.every(f => validation.fieldResults[f.id]?.isValid !== false) ? 'valid' : 'invalid'
           : 'pending' as const
       };
@@ -108,7 +108,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
     if (!hasInteracted) {
       setHasInteracted(true);
     }
-    
+
     setFormValues(prev => ({
       ...prev,
       [fieldId]: value
@@ -132,7 +132,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
   // Handle form submission
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validation?.isValid) {
       // Focus first invalid field
       const firstError = Object.values(validation?.fieldResults || {}).find(
@@ -160,10 +160,10 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
   const getVisibleFields = useCallback((section: FormSection) => {
     return section.fields.filter(field => {
       if (!field.conditionalDisplay) return true;
-      
+
       const dependentValue = formValues[field.conditionalDisplay.dependentField];
       const { condition, values } = field.conditionalDisplay;
-      
+
       switch (condition) {
         case 'equals':
           return values.includes(String(dependentValue));
@@ -200,7 +200,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
       }
       return;
     }
-    
+
     const validateForm = () => {
       const fieldResults: Record<string, FieldValidationResult> = {};
       let totalValid = 0;
@@ -209,13 +209,13 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
 
       formData.sections.forEach(section => {
         const visibleFields = getVisibleFields(section);
-        
+
         visibleFields.forEach(field => {
           totalFields++;
           const value = formValues[field.id];
           const isRequired = field.validation?.required || false;
           const hasValue = value !== undefined && value !== null && value !== '';
-          
+
           let isValid = true;
           const errors: ValidationError[] = [];
           const warnings: ValidationError[] = [];
@@ -333,7 +333,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
     };
 
     const newValidation = validateForm();
-    
+
     // Trigger validation change callback
     if (onValidationChange) {
       onValidationChange(newValidation);
@@ -360,7 +360,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
             <Label htmlFor="bulk-mode">Bulk Mode</Label>
           </div>
         </div>
-        
+
         <BulkDataGrid
           applications={[]} // Would be populated from props
           fields={formData.sections.flatMap(s => s.fields)}
@@ -386,7 +386,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
                 Required fields are marked with an asterisk (*).
               </CardDescription>
             </div>
-            
+
             {onBulkToggle && (
               <div className="flex items-center space-x-2">
                 <Label htmlFor="form-mode">Individual</Label>
@@ -399,7 +399,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
               </div>
             )}
           </div>
-          
+
           {/* Form Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
             <div className="flex items-center gap-2">
@@ -408,17 +408,17 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
                 {Math.round(formMetrics.completionPercentage)}%
               </span>
             </div>
-            
+
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
               ~{formData.estimatedCompletionTime}min
             </div>
-            
+
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Users className="h-4 w-4" />
               {formMetrics.filledFields}/{formMetrics.totalFields} fields
             </div>
-            
+
             <Badge variant="outline" className="w-fit">
               Impact: +{Math.round(formData.confidenceImpactScore * 100)}% confidence
             </Badge>
@@ -445,7 +445,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
             sp => sp.sectionId === section.id
           );
           const visibleFields = getVisibleFields(section);
-          
+
           return (
             <SectionCard
               key={section.id}
@@ -488,10 +488,10 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
                   </span>
                 )}
               </div>
-              
+
               <div className="flex gap-2">
-                <Button 
-                  type="button" 
+                <Button
+                  type="button"
                   variant="outline"
                   onClick={() => {
                     // Save as draft functionality
@@ -500,9 +500,9 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
                 >
                   Save Draft
                 </Button>
-                
-                <Button 
-                  type="submit" 
+
+                <Button
+                  type="submit"
                   disabled={!validation?.isValid || isSubmitting}
                   className="min-w-[120px]"
                 >

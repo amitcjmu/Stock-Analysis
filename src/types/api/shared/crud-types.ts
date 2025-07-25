@@ -1,6 +1,6 @@
 /**
  * CRUD API Types
- * 
+ *
  * Standard CRUD operation request/response patterns.
  */
 

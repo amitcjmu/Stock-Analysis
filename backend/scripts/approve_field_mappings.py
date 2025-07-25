@@ -57,7 +57,7 @@ async def get_discovery_flow(db: AsyncSession, flow_id: str) -> tuple:
     state_query = text(
         """
         SELECT flow_persistence_data
-        FROM crewai_flow_state_extensions 
+        FROM crewai_flow_state_extensions
         WHERE flow_id = :flow_id
     """
     )

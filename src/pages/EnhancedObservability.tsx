@@ -31,7 +31,7 @@ const EnhancedObservability = () => {
     },
     {
       name: 'Task Duration',
-      value: '5.2s', 
+      value: '5.2s',
       trend: 'down',
       change: '-12%',
       status: 'good'
@@ -61,7 +61,7 @@ const EnhancedObservability = () => {
     },
     {
       component: 'Assessment Engine',
-      status: 'healthy', 
+      status: 'healthy',
       uptime: '99.8%',
       lastCheck: '1 min ago'
     },
@@ -89,7 +89,7 @@ const EnhancedObservability = () => {
     {
       time: '14:28',
       event: 'High memory usage detected in Wave Scheduler',
-      type: 'warning', 
+      type: 'warning',
       details: 'Memory usage: 85%'
     },
     {
@@ -316,7 +316,7 @@ const EnhancedObservability = () => {
                   compactView={false}
                   onAgentSelect={handleAgentSelect}
                 />
-                
+
                 {selectedAgent && (
                   <Card>
                     <CardHeader>

@@ -1,6 +1,6 @@
 /**
  * Modular Architecture Test Utilities
- * 
+ *
  * Comprehensive utilities for testing modular components, lazy loading,
  * and module boundaries in the modularized platform architecture.
  */
@@ -40,11 +40,11 @@ export class LazyComponentMocker {
   private importPromises = new Map<string, Promise<{ default: React.ComponentType }>>();
 
   createMockComponent(
-    testId: string, 
+    testId: string,
     content: string = 'Mock Component',
     props: Record<string, unknown> = {}
   ): React.ComponentType {
-    return React.forwardRef<HTMLDivElement, Record<string, unknown>>((componentProps, ref) => 
+    return React.forwardRef<HTMLDivElement, Record<string, unknown>>((componentProps, ref) =>
       React.createElement('div', {
         'data-testid': testId,
         ref,
@@ -58,7 +58,7 @@ export class LazyComponentMocker {
     config: LazyComponentTestConfig
   ): () => Promise<{ default: React.ComponentType }> {
     const { componentName, mockImplementation, shouldFail, loadDelay = 0 } = config;
-    
+
     if (this.importPromises.has(componentName)) {
       return () => this.importPromises.get(componentName)!;
     }
@@ -68,7 +68,7 @@ export class LazyComponentMocker {
         if (shouldFail) {
           reject(new Error(`Failed to load ${componentName}`));
         } else {
-          const component = mockImplementation || 
+          const component = mockImplementation ||
             this.createMockComponent(`${componentName.toLowerCase()}-component`);
           this.mocks.set(componentName, component);
           resolve({ default: component });
@@ -114,7 +114,7 @@ export class ModuleBoundaryTester {
     unexpectedDependencies: string[];
   }> {
     const { moduleName, dependencies, exports } = config;
-    
+
     // Mock all dependencies
     await Promise.all(dependencies.map(async dep => {
       if (config.mockDependencies?.[dep]) {
@@ -126,11 +126,11 @@ export class ModuleBoundaryTester {
 
     try {
       const module = await import(moduleName);
-      
+
       // Check exports
       const actualExports = Object.keys(module);
       const unexpectedExports = actualExports.filter(exp => !exports.includes(exp));
-      
+
       return {
         isIsolated: unexpectedExports.length === 0,
         circularDependencies: [], // Would need dependency graph analysis
@@ -295,7 +295,7 @@ export class ErrorBoundaryTester {
   static suppressConsoleError(callback: () => void): void {
     const originalError = console.error;
     console.error = vi.fn();
-    
+
     try {
       callback();
     } finally {
@@ -353,7 +353,7 @@ export const modularAssertions = {
   toLoadLazily: (component: Element, timeout: number = 5000) => {
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
-      
+
       const checkLoaded = () => {
         if (component.getAttribute('data-lazy-loaded') === 'true') {
           resolve(true);
@@ -363,7 +363,7 @@ export const modularAssertions = {
           setTimeout(checkLoaded, 100);
         }
       };
-      
+
       checkLoaded();
     });
   },
@@ -373,7 +373,7 @@ export const modularAssertions = {
       const module = await import(modulePath);
       const actualExports = Object.keys(module);
       const hasAllExports = expectedExports.every(exp => actualExports.includes(exp));
-      
+
       return {
         pass: hasAllExports,
         message: () => hasAllExports

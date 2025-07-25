@@ -40,28 +40,28 @@ export const ReadinessScoreCard = ({
               {readinessPercentage}%
             </div>
             <div className="text-sm text-gray-600">Overall Readiness</div>
-            <Badge 
+            <Badge
               variant={getReadinessBadgeVariant(overall_readiness.readiness_state)}
               className="mt-1"
             >
               {overall_readiness.readiness_state.replace('_', ' ')}
             </Badge>
           </div>
-          
+
           <div className="text-center">
             <div className="text-2xl font-bold text-blue-600">
               {handoff_metadata.applications_ready_for_assessment}
             </div>
             <div className="text-sm text-gray-600">Apps Ready</div>
           </div>
-          
+
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-600">
               {outstanding_questions.length}
             </div>
             <div className="text-sm text-gray-600">Outstanding Questions</div>
           </div>
-          
+
           <div className="text-center">
             <div className={`text-2xl font-bold ${getReadinessColor(overall_readiness.confidence_level)}`}>
               {Math.round(overall_readiness.confidence_level * 100)}%
@@ -69,7 +69,7 @@ export const ReadinessScoreCard = ({
             <div className="text-sm text-gray-600">Confidence Level</div>
           </div>
         </div>
-        
+
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-gray-600">
             <span>Readiness Progress</span>

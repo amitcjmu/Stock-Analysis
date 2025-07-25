@@ -16,4 +16,4 @@ export const SessionComparison: React.FC<SessionComparisonProps> = (props) => {
   return <SessionComparisonMain {...props} />;
 };
 
-export default SessionComparison; 
+export default SessionComparison;

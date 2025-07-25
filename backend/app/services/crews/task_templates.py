@@ -26,10 +26,10 @@ class TaskTemplates:
         return Task(
             description=f"""
             {description}
-            
+
             Data to analyze:
             {json.dumps(data, indent=2)}
-            
+
             Provide comprehensive analysis including:
             - Key findings and patterns identified
             - Data quality assessment
@@ -54,13 +54,13 @@ class TaskTemplates:
         return Task(
             description=f"""
             Validate the following items against specified rules:
-            
+
             Items to Validate:
             {json.dumps(items_to_validate, indent=2)}
-            
+
             Validation Rules:
             {json.dumps(validation_rules, indent=2)}
-            
+
             For each item:
             1. Check against all applicable validation rules
             2. Identify any violations or issues
@@ -68,7 +68,7 @@ class TaskTemplates:
             4. Provide detailed error messages for failures
             5. Suggest corrections for issues found
             6. Calculate overall validation score
-            
+
             Output comprehensive validation report with pass/fail status and detailed findings.
             """,
             agent=agent,
@@ -88,10 +88,10 @@ class TaskTemplates:
         return Task(
             description=f"""
             Transform data from {source_format} to {target_format}:
-            
+
             Transformation Rules:
             {json.dumps(transformation_rules, indent=2)}
-            
+
             Transformation Steps:
             1. Parse and validate source format
             2. Apply transformation rules systematically
@@ -101,7 +101,7 @@ class TaskTemplates:
             6. Format according to target specification
             7. Ensure no critical data loss
             8. Generate transformation report
-            
+
             Ensure data integrity and completeness throughout the transformation process.
             """,
             agent=agent,
@@ -120,13 +120,13 @@ class TaskTemplates:
         return Task(
             description=f"""
             Classify items according to the provided schema:
-            
+
             Items to Classify:
             {json.dumps(items_to_classify, indent=2)}
-            
+
             Classification Schema:
             {json.dumps(classification_schema, indent=2)}
-            
+
             Classification Process:
             1. Analyze each item's characteristics
             2. Apply classification rules systematically
@@ -135,7 +135,7 @@ class TaskTemplates:
             5. Handle edge cases and ambiguous items
             6. Provide reasoning for classifications
             7. Flag items requiring manual review
-            
+
             Output classification results with confidence scores and reasoning.
             """,
             agent=agent,
@@ -155,16 +155,16 @@ class TaskTemplates:
         return Task(
             description=f"""
             Match source items to target items based on specified criteria:
-            
+
             Source Items:
             {json.dumps(source_items, indent=2)}
-            
+
             Target Items:
             {json.dumps(target_items, indent=2)}
-            
+
             Matching Criteria:
             {json.dumps(matching_criteria, indent=2)}
-            
+
             Matching Process:
             1. Compare source and target items
             2. Apply matching criteria and algorithms
@@ -174,7 +174,7 @@ class TaskTemplates:
             6. Identify unmatched items
             7. Provide confidence scores for matches
             8. Flag ambiguous matches for review
-            
+
             Output matching results with confidence scores and reasoning.
             """,
             agent=agent,
@@ -193,13 +193,13 @@ class TaskTemplates:
         return Task(
             description=f"""
             Assess data quality using specified metrics:
-            
+
             Data to Assess:
             {json.dumps(data_to_assess, indent=2)}
-            
+
             Quality Metrics:
             {json.dumps(quality_metrics, indent=2)}
-            
+
             Assessment Areas:
             1. Completeness - Missing values and fields
             2. Accuracy - Data correctness and validity
@@ -208,7 +208,7 @@ class TaskTemplates:
             5. Uniqueness - Duplicate detection
             6. Validity - Format and constraint compliance
             7. Integrity - Referential integrity checks
-            
+
             Provide detailed quality report with scores and improvement recommendations.
             """,
             agent=agent,
@@ -227,13 +227,13 @@ class TaskTemplates:
         return Task(
             description=f"""
             Extract specific information from source data:
-            
+
             Source Data:
             {json.dumps(source_data, indent=2)}
-            
+
             Extraction Rules:
             {json.dumps(extraction_rules, indent=2)}
-            
+
             Extraction Process:
             1. Parse source data structure
             2. Apply extraction patterns and rules
@@ -242,7 +242,7 @@ class TaskTemplates:
             5. Validate extracted information
             6. Handle missing or malformed data
             7. Organize results by category
-            
+
             Output extracted data in structured format with metadata.
             """,
             agent=agent,
@@ -261,13 +261,13 @@ class TaskTemplates:
         return Task(
             description=f"""
             Create comprehensive summary of the provided data:
-            
+
             Data to Summarize:
             {json.dumps(data_to_summarize, indent=2)}
-            
+
             Summarization Criteria:
             {json.dumps(summarization_criteria, indent=2)}
-            
+
             Summary Components:
             1. Executive summary of key findings
             2. Statistical overview and metrics
@@ -276,7 +276,7 @@ class TaskTemplates:
             5. Key insights and implications
             6. Recommendations for action
             7. Areas requiring further investigation
-            
+
             Provide concise yet comprehensive summary with actionable insights.
             """,
             agent=agent,

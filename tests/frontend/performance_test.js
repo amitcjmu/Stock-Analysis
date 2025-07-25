@@ -1,6 +1,6 @@
 /**
  * Performance Test - Verify Polling Optimization
- * 
+ *
  * This test verifies that the polling frequency optimizations
  * have been applied correctly to prevent page slowdowns.
  */
@@ -13,7 +13,7 @@ describe('Performance Optimizations', () => {
       refetchInterval: polling ? 30 * 1000 : false, // Poll every 30 seconds only if explicitly enabled
       refetchOnWindowFocus: false, // Disable focus refetching
     `;
-    
+
     // This would be replaced with actual file content checking in a real test
     expect(agentMonitorCode).toContain('60 * 1000'); // 1 minute stale time
     expect(agentMonitorCode).toContain('30 * 1000'); // 30 second intervals
@@ -25,7 +25,7 @@ describe('Performance Optimizations', () => {
     const orchestrationCode = `
       const interval = setInterval(fetchEnhancedData, 30000); // Update every 30 seconds
     `;
-    
+
     expect(orchestrationCode).toContain('30000'); // 30 second intervals
   });
 
@@ -36,7 +36,7 @@ describe('Performance Optimizations', () => {
       staleTime: 30000, // Data is considered fresh for 30 seconds
       refetchOnWindowFocus: false, // Disable focus refetching
     `;
-    
+
     expect(scanQueriesCode).toContain('refetchInterval: false');
     expect(scanQueriesCode).toContain('staleTime: 30000');
     expect(scanQueriesCode).toContain('refetchOnWindowFocus: false');
@@ -57,4 +57,4 @@ const trackPollingOptimizations = () => {
   console.log('📊 Expected performance improvement: 80-90% reduction in API calls');
 };
 
-export { trackPollingOptimizations }; 
+export { trackPollingOptimizations };

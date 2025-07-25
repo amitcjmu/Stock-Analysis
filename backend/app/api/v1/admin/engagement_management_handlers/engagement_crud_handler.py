@@ -346,7 +346,6 @@ class EngagementCRUDHandler:
     ) -> Dict[str, Any]:
         """Update engagement."""
         try:
-
             query = select(Engagement).where(
                 Engagement.id == engagement_id,
                 Engagement.is_active is True,  # Only allow updating active engagements
@@ -484,9 +483,9 @@ class EngagementCRUDHandler:
                 await db.execute(
                     text(
                         """
-                    DELETE FROM raw_import_records 
+                    DELETE FROM raw_import_records
                     WHERE data_import_id IN (
-                        SELECT id FROM data_imports 
+                        SELECT id FROM data_imports
                         WHERE engagement_id = :engagement_id
                     )
                 """
@@ -497,9 +496,9 @@ class EngagementCRUDHandler:
                 await db.execute(
                     text(
                         """
-                    DELETE FROM import_field_mappings 
+                    DELETE FROM import_field_mappings
                     WHERE data_import_id IN (
-                        SELECT id FROM data_imports 
+                        SELECT id FROM data_imports
                         WHERE engagement_id = :engagement_id
                     )
                 """
@@ -511,7 +510,7 @@ class EngagementCRUDHandler:
                 await db.execute(
                     text(
                         """
-                    DELETE FROM data_imports 
+                    DELETE FROM data_imports
                     WHERE engagement_id = :engagement_id
                 """
                     ),
@@ -542,7 +541,7 @@ class EngagementCRUDHandler:
                         await db.execute(
                             text(
                                 f"""
-                            DELETE FROM {table} 
+                            DELETE FROM {table}
                             WHERE engagement_id = :engagement_id
                         """
                             ),
@@ -556,8 +555,8 @@ class EngagementCRUDHandler:
                 await db.execute(
                     text(
                         """
-                    UPDATE users 
-                    SET default_engagement_id = NULL 
+                    UPDATE users
+                    SET default_engagement_id = NULL
                     WHERE default_engagement_id = :engagement_id
                 """
                     ),
@@ -567,8 +566,8 @@ class EngagementCRUDHandler:
                 await db.execute(
                     text(
                         """
-                    UPDATE user_roles 
-                    SET scope_engagement_id = NULL 
+                    UPDATE user_roles
+                    SET scope_engagement_id = NULL
                     WHERE scope_engagement_id = :engagement_id
                 """
                     ),

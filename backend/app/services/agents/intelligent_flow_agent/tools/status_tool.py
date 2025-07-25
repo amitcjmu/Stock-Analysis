@@ -35,9 +35,7 @@ class FlowStatusTool(BaseTool):
     """Tool for getting comprehensive flow status and phase information"""
 
     name: str = "flow_status_analyzer"
-    description: str = (
-        "Gets detailed flow status including current phase, progress, and data validation results. Pass the actual flow_id UUID and context_data as a JSON string."
-    )
+    description: str = "Gets detailed flow status including current phase, progress, and data validation results. Pass the actual flow_id UUID and context_data as a JSON string."
 
     def _run(self, flow_id: str, context_data: str) -> str:
         """Get comprehensive flow status with detailed analysis"""
@@ -70,9 +68,9 @@ class FlowStatusTool(BaseTool):
                 status_result.get("status") == "not_found"
                 or status_result.get("current_phase") == "not_found"
             ):
-                status_result["user_guidance"] = (
-                    "Flow not found. User needs to start a new discovery flow by uploading data."
-                )
+                status_result[
+                    "user_guidance"
+                ] = "Flow not found. User needs to start a new discovery flow by uploading data."
 
             return json.dumps(status_result)
 

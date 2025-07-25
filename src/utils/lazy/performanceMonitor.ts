@@ -184,7 +184,7 @@ class PerformanceMonitor {
     this.bundleMetrics.forEach((size, chunk) => {
       chunkSizes[chunk] = size;
       totalBundleSize += size;
-      
+
       if (chunk.includes('main') || chunk.includes('vendor')) {
         initialBundleSize += size;
       }
@@ -323,8 +323,8 @@ class PerformanceMonitor {
         }
       });
 
-      this.performanceObserver.observe({ 
-        entryTypes: ['navigation', 'measure'] 
+      this.performanceObserver.observe({
+        entryTypes: ['navigation', 'measure']
       });
     }
   }
@@ -345,8 +345,8 @@ class PerformanceMonitor {
         }
       });
 
-      this.resourceObserver.observe({ 
-        entryTypes: ['resource'] 
+      this.resourceObserver.observe({
+        entryTypes: ['resource']
       });
     }
   }
@@ -358,16 +358,16 @@ class PerformanceMonitor {
     if ('memory' in performance) {
       setInterval(() => {
         const memory = (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
-        
+
         // Calculate percentages
         const usedPercentOfTotal = (memory.usedJSHeapSize / memory.totalJSHeapSize) * 100;
         const usedPercentOfLimit = (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
-        
+
         // Only warn if BOTH conditions are true:
-        // 1. Using >98% of current heap AND 
+        // 1. Using >98% of current heap AND
         // 2. Using >50% of the browser's memory limit (indicating actual pressure)
         const shouldWarn = usedPercentOfTotal > 98 && usedPercentOfLimit > 50;
-        
+
         if (shouldWarn) {
           console.warn('High memory usage detected:', {
             used: Math.round(memory.usedJSHeapSize / 1024 / 1024) + 'MB',
@@ -399,7 +399,7 @@ class PerformanceMonitor {
     if ('memory' in performance) {
       const memory = (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
       const memoryUsagePercent = (memory.usedJSHeapSize / memory.totalJSHeapSize) * 100;
-      
+
       if (memoryUsagePercent > 85) {
         console.warn('High memory usage detected during lazy loading:', `${memoryUsagePercent.toFixed(1)}%`);
       }

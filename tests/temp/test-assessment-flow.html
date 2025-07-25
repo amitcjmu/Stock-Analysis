@@ -66,7 +66,7 @@
     <div class="container">
         <h1>Assessment Flow Browser Test</h1>
         <p>This page tests the Assessment Flow feature on port 8081</p>
-        
+
         <div>
             <h2>Test Steps:</h2>
             <button onclick="testFrontend()">1. Test Frontend (Port 8081)</button>
@@ -74,7 +74,7 @@
             <button onclick="testAssessmentAPI()">3. Test Assessment API</button>
             <button onclick="openApplication()">4. Open Application</button>
         </div>
-        
+
         <div id="status"></div>
         <div id="results"></div>
     </div>
@@ -82,18 +82,18 @@
     <script>
         const CLIENT_ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
         const ENGAGEMENT_ID = '00000000-0000-0000-0000-000000000001';
-        
+
         function updateStatus(message, type = 'info') {
             const statusEl = document.getElementById('status');
             statusEl.className = `status ${type}`;
             statusEl.textContent = message;
         }
-        
+
         function displayResults(data) {
             const resultsEl = document.getElementById('results');
             resultsEl.textContent = JSON.stringify(data, null, 2);
         }
-        
+
         async function testFrontend() {
             updateStatus('Testing frontend on port 8081...');
             try {
@@ -115,7 +115,7 @@
                 displayResults({ error: error.message });
             }
         }
-        
+
         async function testBackendHealth() {
             updateStatus('Testing backend health...');
             try {
@@ -132,7 +132,7 @@
                 displayResults({ error: error.message });
             }
         }
-        
+
         async function testAssessmentAPI() {
             updateStatus('Testing Assessment Flow API...');
             try {
@@ -149,15 +149,15 @@
                         architecture_captured: false
                     })
                 });
-                
+
                 const data = await testResponse.json();
-                
+
                 if (testResponse.ok) {
                     updateStatus('✅ Assessment Flow API is working!', 'success');
                     displayResults(data);
                 } else if (testResponse.status === 404) {
                     updateStatus('⚠️ Assessment Flow API endpoint not found - checking alternative paths...', 'info');
-                    
+
                     // Try alternative endpoint
                     const altResponse = await fetch('http://localhost:8000/api/v3/assessment-flow/flows', {
                         method: 'POST',
@@ -171,14 +171,14 @@
                             architecture_captured: false
                         })
                     });
-                    
+
                     if (altResponse.ok) {
                         const altData = await altResponse.json();
                         updateStatus('✅ Found Assessment Flow API at v3 endpoint', 'success');
                         displayResults(altData);
                     } else {
                         updateStatus('❌ Assessment Flow API not available at expected endpoints', 'error');
-                        displayResults({ 
+                        displayResults({
                             v1Status: testResponse.status,
                             v3Status: altResponse.status,
                             error: 'API endpoints not found'
@@ -193,13 +193,13 @@
                 displayResults({ error: error.message });
             }
         }
-        
+
         function openApplication() {
             updateStatus('Opening application in new tab...', 'info');
             window.open('http://localhost:8081', '_blank');
             displayResults({ action: 'Opened application at http://localhost:8081' });
         }
-        
+
         // Auto-run tests on page load
         window.onload = async () => {
             await testFrontend();

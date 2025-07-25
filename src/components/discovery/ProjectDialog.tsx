@@ -42,7 +42,7 @@ const ProjectDialog: React.FC<ProjectDialogProps> = ({
             Project Information
           </h2>
         </div>
-        
+
         <div className="p-6">
           <div className="space-y-4">
             <div>
@@ -58,7 +58,7 @@ const ProjectDialog: React.FC<ProjectDialogProps> = ({
                 disabled={isProcessing}
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description
@@ -72,7 +72,7 @@ const ProjectDialog: React.FC<ProjectDialogProps> = ({
                 disabled={isProcessing}
               />
             </div>
-            
+
             <div className="flex items-center">
               <input
                 type="checkbox"
@@ -88,7 +88,7 @@ const ProjectDialog: React.FC<ProjectDialogProps> = ({
             </div>
           </div>
         </div>
-        
+
         <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
           <button
             onClick={onCancel}
@@ -110,4 +110,4 @@ const ProjectDialog: React.FC<ProjectDialogProps> = ({
   );
 };
 
-export default ProjectDialog; 
+export default ProjectDialog;

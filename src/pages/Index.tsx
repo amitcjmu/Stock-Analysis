@@ -101,8 +101,8 @@ const Index = () => {
                           <Icon className="h-6 w-6" />
                         </div>
                         <span className={`px-2 py-1 text-xs rounded-full ${
-                          phase.status === 'Active' 
-                            ? 'bg-green-100 text-green-800' 
+                          phase.status === 'Active'
+                            ? 'bg-green-100 text-green-800'
                             : phase.status === 'In Progress'
                               ? 'bg-blue-100 text-blue-800'
                               : 'bg-gray-100 text-gray-600'

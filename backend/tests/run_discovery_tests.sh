@@ -44,19 +44,19 @@ check_container() {
 # Function to run tests
 run_tests() {
     local cmd="pytest $TEST_PATH"
-    
+
     if [ "$VERBOSE" = true ]; then
         cmd="$cmd -v"
     fi
-    
+
     if [ ! -z "$MARKERS" ]; then
         cmd="$cmd -m \"$MARKERS\""
     fi
-    
+
     if [ "$COVERAGE" = true ]; then
         cmd="$cmd --cov=app --cov-report=html --cov-report=term"
     fi
-    
+
     print_status "Running: $cmd"
     docker exec -it $CONTAINER_NAME bash -c "$cmd"
 }

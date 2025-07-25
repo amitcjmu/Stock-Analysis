@@ -49,14 +49,14 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
     queryKey: ['assessment-applications'],
     queryFn: async () => {
       const headers = getAuthHeaders();
-      
+
       try {
         // Try to get applications from asset inventory
-        const response = await apiCall('assets/list/paginated', { 
+        const response = await apiCall('assets/list/paginated', {
           headers,
           method: 'GET'
         });
-        
+
         if (response?.assets) {
           // Filter for applications and format them
           return response.assets
@@ -103,7 +103,7 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
 
         // Return empty array if no applications found
         return [];
-        
+
       } catch (error) {
         console.error('Failed to fetch applications:', error);
         throw new Error('Failed to load applications from inventory');
@@ -114,15 +114,15 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
 
   // Filter applications based on search and criticality
   const filteredApplications = applications.filter(app => {
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = !searchTerm ||
       app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (app.metadata?.technical_stack?.some(tech => 
+      (app.metadata?.technical_stack?.some(tech =>
         tech.toLowerCase().includes(searchTerm.toLowerCase())
       ));
-    
-    const matchesCriticality = !criticalityFilter || 
+
+    const matchesCriticality = !criticalityFilter ||
       app.metadata?.business_criticality === criticalityFilter;
-    
+
     return matchesSearch && matchesCriticality;
   });
 
@@ -130,8 +130,8 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
   const readyApplications = filteredApplications.filter(app => app.ready_for_assessment);
 
   const handleSelectApp = (appId: string) => {
-    setSelectedApps(prev => 
-      prev.includes(appId) 
+    setSelectedApps(prev =>
+      prev.includes(appId)
         ? prev.filter(id => id !== appId)
         : [...prev, appId]
     );
@@ -147,10 +147,10 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
 
   const handleInitialize = async () => {
     if (selectedApps.length === 0) return;
-    
+
     setInitializing(true);
     setError(null);
-    
+
     try {
       const response = await fetch('http://localhost:8000/api/v1/assessment-flow/initialize', {
         method: 'POST',
@@ -172,14 +172,14 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
 
       const result = await response.json();
       console.log('Assessment flow initialized:', result);
-      
+
       // Navigate to the initialized flow
       if (result.flow_id) {
         navigate(`/assessment/${result.flow_id}/architecture`);
       } else {
         setError('Flow initialized but no flow ID returned');
       }
-      
+
     } catch (err) {
       console.error('Failed to initialize assessment flow:', err);
       setError(err instanceof Error ? err.message : 'Failed to initialize assessment flow');
@@ -293,13 +293,13 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
                     <div className="text-center py-8">
                       <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600 mb-4">
-                        {applications.length === 0 
+                        {applications.length === 0
                           ? "No applications found in your inventory."
                           : "No applications are ready for assessment."
                         }
                       </p>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         onClick={() => navigate('/discovery/inventory')}
                       >
                         Go to Inventory
@@ -313,8 +313,8 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
                           size="sm"
                           onClick={handleSelectAll}
                         >
-                          {selectedApps.length === readyApplications.length 
-                            ? 'Deselect All' 
+                          {selectedApps.length === readyApplications.length
+                            ? 'Deselect All'
                             : 'Select All'}
                         </Button>
                         <span className="text-sm text-gray-600">
@@ -335,15 +335,15 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
                             <div className="flex-1">
                               <div className="flex items-center space-x-2">
                                 <div className="font-medium">{app.name}</div>
-                                <Badge 
-                                  variant="outline" 
+                                <Badge
+                                  variant="outline"
                                   className={getCriticalityColor(app.metadata?.business_criticality || 'Medium')}
                                 >
                                   {app.metadata?.business_criticality || 'Medium'}
                                 </Badge>
                               </div>
                               <div className="text-sm text-gray-600">
-                                {app.metadata?.technical_stack?.join(', ') || 'Unknown stack'} • 
+                                {app.metadata?.technical_stack?.join(', ') || 'Unknown stack'} •
                                 {app.metadata?.environment || 'Unknown environment'}
                               </div>
                             </div>
@@ -382,7 +382,7 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
 
             <div className="xl:col-span-1 space-y-6">
               {/* Agent Communication Panel */}
-              <AgentClarificationPanel 
+              <AgentClarificationPanel
                 pageContext="assessment-initialization"
                 refreshTrigger={0}
                 onQuestionAnswered={(questionId, response) => {
@@ -391,7 +391,7 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
               />
 
               {/* Agent Insights */}
-              <AgentInsightsSection 
+              <AgentInsightsSection
                 pageContext="assessment-initialization"
                 refreshTrigger={0}
                 onInsightAction={(insightId, action) => {

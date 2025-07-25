@@ -61,7 +61,7 @@ export const COLLECTION_PERMISSIONS = {
  */
 export function hasPermission(user: User | null, permission: keyof typeof COLLECTION_PERMISSIONS): boolean {
   if (!user || !user.role) return false;
-  
+
   const allowedRoles = COLLECTION_PERMISSIONS[permission];
   return allowedRoles.includes(user.role);
 }
@@ -99,7 +99,7 @@ export function canViewCollectionFlow(user: User | null): boolean {
  */
 export function getRoleName(role: string | undefined): string {
   if (!role) return 'Unknown';
-  
+
   const roleNames: Record<string, string> = {
     platform_admin: 'Platform Admin',
     client_admin: 'Client Admin',
@@ -109,6 +109,6 @@ export function getRoleName(role: string | undefined): string {
     user: 'User',
     admin: 'Admin'
   };
-  
+
   return roleNames[role.toLowerCase()] || role;
 }

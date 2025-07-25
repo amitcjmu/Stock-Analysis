@@ -34,7 +34,7 @@ print_error() {
 # Check if main application is running
 check_main_app() {
     print_status "Checking main application status..."
-    
+
     if docker-compose ps | grep -q "migration_backend.*Up"; then
         print_success "Main application backend is running"
     else
@@ -42,7 +42,7 @@ check_main_app() {
         print_status "Please start the main application first: docker-compose up -d"
         exit 1
     fi
-    
+
     if docker-compose ps | grep -q "migration_frontend.*Up"; then
         print_success "Main application frontend is running"
     else
@@ -53,7 +53,7 @@ check_main_app() {
 # Test backend API endpoints
 test_backend_apis() {
     print_status "Testing backend API endpoints..."
-    
+
     # Test health endpoint
     if curl -s http://localhost:8000/health > /dev/null; then
         print_success "Backend health endpoint is accessible"
@@ -61,14 +61,14 @@ test_backend_apis() {
         print_error "Backend health endpoint is not accessible"
         return 1
     fi
-    
+
     # Test monitoring endpoints
     if curl -s http://localhost:8000/api/v1/monitoring/status > /dev/null; then
         print_success "Agent monitoring endpoint is accessible"
     else
         print_warning "Agent monitoring endpoint is not accessible"
     fi
-    
+
     # Test CrewAI Flow monitoring
     if curl -s http://localhost:8000/api/v1/monitoring/crewai-flows > /dev/null; then
         print_success "CrewAI Flow monitoring endpoint is accessible"
@@ -80,10 +80,10 @@ test_backend_apis() {
 # Create observability configuration files
 create_config_files() {
     print_status "Creating observability configuration files..."
-    
+
     # Create directories
     mkdir -p observability/grafana/{dashboards,datasources}
-    
+
     # Create OpenTelemetry collector config
     cat > observability/otel-collector-config.yaml << 'EOF'
 receivers:
@@ -106,10 +106,10 @@ exporters:
     endpoint: jaeger:14250
     tls:
       insecure: true
-  
+
   prometheus:
     endpoint: "0.0.0.0:8889"
-    
+
   logging:
     loglevel: debug
 
@@ -119,26 +119,26 @@ service:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters: [jaeger, logging]
-    
+
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters: [prometheus, logging]
 EOF
-    
+
     print_success "OpenTelemetry collector configuration created"
 }
 
 # Start observability stack
 start_observability() {
     print_status "Starting observability stack..."
-    
+
     # Start the observability services
     docker-compose -f docker-compose.observability.yml up -d
-    
+
     print_status "Waiting for services to start..."
     sleep 10
-    
+
     # Check if services are running
     if docker-compose -f docker-compose.observability.yml ps | grep -q "Up"; then
         print_success "Observability services are starting up"
@@ -151,18 +151,18 @@ start_observability() {
 # Test observability endpoints
 test_observability() {
     print_status "Testing observability endpoints..."
-    
+
     # Wait for services to be fully ready
     print_status "Waiting for services to be ready..."
     sleep 30
-    
+
     # Test Jaeger UI
     if curl -s http://localhost:16686 > /dev/null; then
         print_success "Jaeger UI is accessible at http://localhost:16686"
     else
         print_warning "Jaeger UI is not yet accessible"
     fi
-    
+
     # Test OpenTelemetry collector
     if curl -s http://localhost:8888/metrics > /dev/null; then
         print_success "OpenTelemetry collector metrics are accessible"
@@ -196,16 +196,16 @@ show_access_info() {
 main() {
     echo "🚀 CrewAI Agent Observability Setup"
     echo "===================================="
-    
+
     check_main_app
     test_backend_apis
     create_config_files
     start_observability
     test_observability
     show_access_info
-    
+
     print_success "Setup complete! You can now monitor CrewAI agents and flows."
 }
 
 # Run main function
-main "$@" 
+main "$@"

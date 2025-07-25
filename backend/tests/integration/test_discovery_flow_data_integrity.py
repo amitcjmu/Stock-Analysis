@@ -1278,8 +1278,8 @@ class TestDiscoveryFlowDataIntegrity:
                 for table, column in required_indexes:
                     index_query = text(
                         f"""
-                        SELECT COUNT(*) 
-                        FROM pg_indexes 
+                        SELECT COUNT(*)
+                        FROM pg_indexes
                         WHERE tablename = '{table}'
                         AND indexdef LIKE '%{column}%'
                     """
@@ -1295,7 +1295,7 @@ class TestDiscoveryFlowDataIntegrity:
                 # Test 2: Check for foreign key constraints
                 constraint_query = text(
                     """
-                    SELECT 
+                    SELECT
                         tc.table_name,
                         tc.constraint_name,
                         kcu.column_name,
@@ -1350,7 +1350,7 @@ class TestDiscoveryFlowDataIntegrity:
                 # Test 3: Check for proper cascade settings
                 cascade_query = text(
                     """
-                    SELECT 
+                    SELECT
                         tc.table_name,
                         kcu.column_name,
                         rc.delete_rule,
@@ -1393,36 +1393,36 @@ class TestDiscoveryFlowDataIntegrity:
                 # Test 4: Check for data consistency
                 consistency_query = text(
                     """
-                    SELECT 
+                    SELECT
                         'orphaned_discovery_flows' as issue_type,
                         COUNT(*) as count
                     FROM discovery_flows df
                     LEFT JOIN crewai_flow_state_extensions mf ON df.master_flow_id = mf.flow_id
                     WHERE mf.flow_id IS NULL
                     AND df.master_flow_id IS NOT NULL
-                    
+
                     UNION ALL
-                    
-                    SELECT 
+
+                    SELECT
                         'orphaned_data_imports' as issue_type,
                         COUNT(*) as count
                     FROM data_imports di
                     LEFT JOIN crewai_flow_state_extensions mf ON di.master_flow_id = mf.flow_id
                     WHERE mf.flow_id IS NULL
                     AND di.master_flow_id IS NOT NULL
-                    
+
                     UNION ALL
-                    
-                    SELECT 
+
+                    SELECT
                         'orphaned_raw_records' as issue_type,
                         COUNT(*) as count
                     FROM raw_import_records rir
                     LEFT JOIN data_imports di ON rir.data_import_id = di.id
                     WHERE di.id IS NULL
-                    
+
                     UNION ALL
-                    
-                    SELECT 
+
+                    SELECT
                         'orphaned_assets' as issue_type,
                         COUNT(*) as count
                     FROM assets a
@@ -1465,7 +1465,7 @@ class TestDiscoveryFlowDataIntegrity:
 
                 orphan_check_query = text(
                     """
-                    SELECT 
+                    SELECT
                         COUNT(CASE WHEN df.master_flow_id IS NOT NULL AND mf.flow_id IS NULL THEN 1 END) as orphaned_discovery_flows,
                         COUNT(CASE WHEN di.master_flow_id IS NOT NULL AND mf2.flow_id IS NULL THEN 1 END) as orphaned_data_imports,
                         COUNT(CASE WHEN rir.data_import_id IS NOT NULL AND di2.id IS NULL THEN 1 END) as orphaned_raw_records,
@@ -1497,7 +1497,7 @@ class TestDiscoveryFlowDataIntegrity:
 
                 integrity_summary_query = text(
                     """
-                    SELECT 
+                    SELECT
                         COUNT(DISTINCT mf.flow_id) as total_master_flows,
                         COUNT(DISTINCT df.flow_id) as total_discovery_flows,
                         COUNT(DISTINCT di.id) as total_data_imports,
@@ -1531,7 +1531,7 @@ class TestDiscoveryFlowDataIntegrity:
 
                 performance_metrics_query = text(
                     """
-                    SELECT 
+                    SELECT
                         mf.flow_type,
                         COUNT(*) as flow_count,
                         AVG(EXTRACT(EPOCH FROM (mf.updated_at - mf.created_at))) as avg_duration_seconds,

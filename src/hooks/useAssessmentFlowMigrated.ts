@@ -1,7 +1,7 @@
 /**
  * Migrated Assessment Flow Hook
  * MFO-085: Update Assessment components to use unified flow system
- * 
+ *
  * Migration wrapper that adapts existing assessment components to use
  * the new Master Flow Orchestrator system
  */
@@ -104,7 +104,7 @@ export function useAssessmentFlow(): UseAssessmentFlowReturn {
     if (!state.flow) return null;
 
     const flow = state.flow;
-    
+
     return {
       flow_id: flow.flow_id,
       status: flow.status,
@@ -238,7 +238,7 @@ export function useAssessmentFlow(): UseAssessmentFlowReturn {
           acc[decision.strategy] = (acc[decision.strategy] || 0) + 1;
           return acc;
         }, {}),
-        average_complexity: Object.values(flowState.complexity_scores || {}).reduce((sum: number, score: ComplexityScore) => 
+        average_complexity: Object.values(flowState.complexity_scores || {}).reduce((sum: number, score: ComplexityScore) =>
           sum + (score.overall || 0), 0) / Object.keys(flowState.complexity_scores || {}).length || 0
       }
     };

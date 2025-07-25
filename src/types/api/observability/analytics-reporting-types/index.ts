@@ -1,6 +1,6 @@
 /**
  * Analytics and Reporting Types - Modular Index
- * 
+ *
  * Centralized exports for all analytics and reporting type definitions.
  * This modular structure provides focused modules for each domain:
  * - Shared Types: common types used across modules

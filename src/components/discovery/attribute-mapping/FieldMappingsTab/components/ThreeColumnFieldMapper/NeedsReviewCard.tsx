@@ -1,6 +1,6 @@
 /**
  * Needs Review Card Component
- * 
+ *
  * Card component for mappings that need manual review and configuration.
  */
 
@@ -19,21 +19,21 @@ interface NeedsReviewCardProps extends CardProps {
   onApprove: (mappingId: string) => void;
 }
 
-const NeedsReviewCard: React.FC<NeedsReviewCardProps> = ({ 
-  mapping, 
-  availableFields, 
-  onMappingChange, 
-  onApprove 
+const NeedsReviewCard: React.FC<NeedsReviewCardProps> = ({
+  mapping,
+  availableFields,
+  onMappingChange,
+  onApprove
 }) => {
   const [selectedTarget, setSelectedTarget] = useState(mapping.targetAttribute || '');
-  
+
   const handleConfirmMapping = () => {
     if (onMappingChange && selectedTarget !== mapping.targetAttribute) {
       onMappingChange(mapping.id, selectedTarget);
     }
     onApprove(mapping.id);
   };
-  
+
   const handleFieldChange = useCallback((newValue: string) => {
     setSelectedTarget(newValue);
   }, []);
@@ -47,7 +47,7 @@ const NeedsReviewCard: React.FC<NeedsReviewCardProps> = ({
             {formatFieldValue(mapping.sourceField)}
           </div>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Map to Asset Table Field:</label>
           <div className="flex gap-2">

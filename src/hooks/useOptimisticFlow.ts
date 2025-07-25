@@ -1,7 +1,7 @@
 /**
  * Optimistic Flow Hook
  * MFO-082: Implement optimistic updates for better UX
- * 
+ *
  * Enhanced flow management with optimistic updates and rollback capabilities
  */
 
@@ -97,7 +97,7 @@ export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}) {
 
   // Optimistic phase execution
   const executePhaseOptimistic = useCallback(async (
-    flowId: string, 
+    flowId: string,
     request: ExecutePhaseRequest
   ): Promise<{ success: boolean; message?: string; data?: Record<string, unknown> }> => {
     if (!enableOptimistic || !state.flow || state.flow.flow_id !== flowId) {
@@ -120,8 +120,8 @@ export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}) {
       ...state.flow,
       status: 'running' as FlowStatusType,
       current_phase: request.phase_name,
-      phases: state.flow.phases.map(p => 
-        p.name === request.phase_name 
+      phases: state.flow.phases.map(p =>
+        p.name === request.phase_name
           ? { ...p, ...optimisticPhase }
           : p
       )
@@ -129,7 +129,7 @@ export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}) {
 
     // Temporarily update state
     // Note: This is a simplified example. In a real app, you'd update the state directly
-    
+
     const rollback = () => {
       // Restore original state
       if (originalPhase && state.flow) {
@@ -138,7 +138,7 @@ export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}) {
           ...state.flow,
           status: originalStatus,
           current_phase: originalPhase.name,
-          phases: state.flow.phases.map(p => 
+          phases: state.flow.phases.map(p =>
             p.name === request.phase_name ? originalPhase : p
           )
         };
@@ -171,7 +171,7 @@ export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}) {
     }
 
     const originalStatus = state.flow.status;
-    
+
     // Apply optimistic update
     const updatedFlow: FlowStatus = {
       ...state.flow,
@@ -210,7 +210,7 @@ export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}) {
     }
 
     const originalStatus = state.flow.status;
-    
+
     // Apply optimistic update
     const updatedFlow: FlowStatus = {
       ...state.flow,

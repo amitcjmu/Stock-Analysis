@@ -95,7 +95,7 @@ const CollectionIndex: React.FC = () => {
    */
   const startCollectionWorkflow = async (workflowId: string, workflowPath: string) => {
     console.log(`🚀 Frontend: Starting collection workflow: ${workflowId}`);
-    
+
     // Check if user has permission to create collection flows
     if (!canCreateCollectionFlow(user)) {
       toast({
@@ -105,58 +105,58 @@ const CollectionIndex: React.FC = () => {
       });
       return;
     }
-    
+
     setIsCreatingFlow(workflowId);
-    
+
     try {
       console.log(`🚀 Starting collection workflow: ${workflowId}`);
-      
+
       // Determine automation tier and collection config based on workflow type
       let automationTier = 'tier_2'; // Default to mixed environment
       const collectionConfig: unknown = {
         workflow_type: workflowId,
         initiated_from: 'collection_overview'
       };
-      
+
       switch (workflowId) {
         case 'adaptive-forms':
           automationTier = 'tier_2'; // Mixed: manual forms with some automation
           collectionConfig.collection_method = 'adaptive_forms';
           collectionConfig.form_type = 'dynamic';
           break;
-          
+
         case 'bulk-upload':
           automationTier = 'tier_3'; // Restricted: mostly manual with file processing
           collectionConfig.collection_method = 'bulk_upload';
           collectionConfig.upload_type = 'spreadsheet';
           break;
-          
+
         case 'data-integration':
           automationTier = 'tier_1'; // Modern: mostly automated integration
           collectionConfig.collection_method = 'integration';
           collectionConfig.integration_type = 'multi_source';
           break;
-          
+
         case 'progress-monitoring':
           // For monitoring, just navigate without creating a flow
           navigate(workflowPath);
           return;
       }
-      
+
       // Create the collection flow - this triggers CrewAI agents
       console.log('🤖 Creating collection flow with CrewAI orchestration...');
       console.log('📋 Flow data:', { automation_tier: automationTier, collection_config: collectionConfig });
-      
+
       const flowResponse = await collectionFlowApi.createFlow({
         automation_tier: automationTier,
         collection_config: collectionConfig
       });
-      
+
       console.log('✅ Flow response:', flowResponse);
-      
+
       console.log(`✅ Collection flow created: ${flowResponse.id}`);
       console.log(`📊 Master flow started, CrewAI agents are initializing...`);
-      
+
       // Update the auth context with the new collection flow
       setCurrentFlow({
         id: flowResponse.id,
@@ -165,31 +165,31 @@ const CollectionIndex: React.FC = () => {
         status: flowResponse.status || 'active',
         engagement_id: flowResponse.engagement_id
       });
-      
+
       toast({
         title: 'Collection Workflow Started',
         description: `CrewAI agents are initializing the ${workflowId} workflow. You will be redirected shortly.`
       });
-      
+
       // Give the flow a moment to initialize before navigating
       setTimeout(() => {
         // Navigate to the workflow page with the flow ID
         navigate(`${workflowPath}?flowId=${flowResponse.id}`);
       }, 1500);
-      
+
     } catch (error: unknown) {
       console.error(`❌ Failed to start collection workflow ${workflowId}:`, error);
-      
-      const errorMessage = error?.response?.data?.detail || 
-                          error?.message || 
+
+      const errorMessage = error?.response?.data?.detail ||
+                          error?.message ||
                           'Failed to start collection workflow';
-      
+
       toast({
         title: 'Workflow Start Failed',
         description: errorMessage,
         variant: 'destructive'
       });
-      
+
       // Check if there's an active flow that's blocking
       if (errorMessage.includes('active collection flow already exists')) {
         toast({
@@ -197,7 +197,7 @@ const CollectionIndex: React.FC = () => {
           description: 'Please complete or cancel the existing flow before starting a new one.',
           variant: 'destructive'
         });
-        
+
         // Navigate to progress monitoring to see active flows
         setTimeout(() => {
           navigate('/collection/progress');
@@ -257,7 +257,7 @@ const CollectionIndex: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
@@ -327,7 +327,7 @@ const CollectionIndex: React.FC = () => {
                   <Clock className="h-3 w-3" />
                   <span>{workflow.estimatedTime}</span>
                 </div>
-                <Button 
+                <Button
                   onClick={() => startCollectionWorkflow(workflow.id, workflow.path)}
                   variant="outline"
                   size="sm"
@@ -361,8 +361,8 @@ const CollectionIndex: React.FC = () => {
               <p className="text-sm text-muted-foreground mb-2">
                 Start with Adaptive Data Collection for detailed, application-specific insights
               </p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => startCollectionWorkflow('adaptive-forms', '/collection/adaptive-forms')}
                 disabled={isCreatingFlow === 'adaptive-forms' || !canCreateCollectionFlow(user)}
@@ -383,8 +383,8 @@ const CollectionIndex: React.FC = () => {
               <p className="text-sm text-muted-foreground mb-2">
                 Begin with Bulk Data Upload to efficiently process large application inventories
               </p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => startCollectionWorkflow('bulk-upload', '/collection/bulk-upload')}
                 disabled={isCreatingFlow === 'bulk-upload' || !canCreateCollectionFlow(user)}

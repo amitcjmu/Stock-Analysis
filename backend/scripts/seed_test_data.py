@@ -142,7 +142,7 @@ class TestDataSeeder:
             await session.execute(
                 text(
                     """
-                    INSERT INTO users (id, email, full_name, is_active, is_superuser, 
+                    INSERT INTO users (id, email, full_name, is_active, is_superuser,
                                      default_client_account_id, hashed_password)
                     VALUES (:id, :email, :name, :active, :super, :client_id, :password)
                     ON CONFLICT (email) DO NOTHING

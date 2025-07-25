@@ -24,12 +24,12 @@ import { chromium } from 'playwright';
     const loginButton = await page.$('button:has-text("Login")').catch(() => null);
     if (loginButton) {
       console.log('3. Login required - logging in...');
-      
+
       // Try to find email field
       const emailField = await page.$('input[type="email"], input[name="email"], input[id="email"]').catch(() => null);
       if (emailField) {
         await emailField.fill('chocka@gmail.com');
-        
+
         const passwordField = await page.$('input[type="password"], input[name="password"], input[id="password"]').catch(() => null);
         if (passwordField) {
           await passwordField.fill('Password123!');
@@ -40,14 +40,14 @@ import { chromium } from 'playwright';
     }
 
     console.log('4. Looking for assessment flow navigation...');
-    
+
     // Look for assessment-related links or buttons
     const assessmentLinks = await page.$$eval('a, button', elements => {
       return elements
         .filter(el => el.textContent.toLowerCase().includes('assess'))
         .map(el => ({ text: el.textContent.trim(), href: el.href || '', type: el.tagName }));
     });
-    
+
     console.log('Found assessment-related elements:', assessmentLinks);
 
     // Try to navigate to assessment flow
@@ -63,13 +63,13 @@ import { chromium } from 'playwright';
     // Look for any error messages
     const errors = await page.$$eval('*', elements => {
       return elements
-        .filter(el => el.textContent.toLowerCase().includes('error') || 
+        .filter(el => el.textContent.toLowerCase().includes('error') ||
                      el.textContent.toLowerCase().includes('not found') ||
                      el.textContent.toLowerCase().includes('404'))
         .map(el => el.textContent.trim())
         .slice(0, 5); // Limit to first 5 errors
     });
-    
+
     if (errors.length > 0) {
       console.log('Found errors on page:', errors);
     }

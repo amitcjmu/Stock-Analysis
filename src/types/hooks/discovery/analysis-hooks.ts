@@ -1,6 +1,6 @@
 /**
  * Discovery Analysis Hook Types
- * 
+ *
  * Type definitions for data analysis hooks including analysis types,
  * findings, comparisons, and training configurations.
  */

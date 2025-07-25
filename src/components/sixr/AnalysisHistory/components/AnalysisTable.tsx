@@ -24,7 +24,7 @@ export const AnalysisTable: React.FC<AnalysisTableProps> = ({
   onDelete
 }) => {
   const allAnalysisIds = analyses.map(a => a.id);
-  const allSelected = allAnalysisIds.length > 0 && 
+  const allSelected = allAnalysisIds.length > 0 &&
     allAnalysisIds.every(id => selectedAnalyses.includes(id));
 
   return (

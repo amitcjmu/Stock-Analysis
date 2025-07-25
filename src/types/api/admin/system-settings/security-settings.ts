@@ -1,9 +1,9 @@
 /**
  * Security Settings Configuration Types
- * 
+ *
  * Security-related configuration including authentication, authorization,
  * encryption, session management, and security monitoring.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

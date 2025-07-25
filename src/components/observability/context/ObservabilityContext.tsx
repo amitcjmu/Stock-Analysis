@@ -18,7 +18,7 @@ interface ObservabilityContextValue {
   error: string | null;
   lastUpdated: Date | null;
   refresh: () => Promise<void>;
-  
+
   // Filters
   filters: {
     searchQuery?: string;
@@ -30,20 +30,20 @@ interface ObservabilityContextValue {
   updateFilters: (filters: Partial<ObservabilityContextValue['filters']>) => void;
   clearFilters: () => void;
   statusDistribution: Record<string, number>;
-  
+
   // Selected agents
   selectedAgents: string[];
   selectAgent: (agentId: string) => void;
   deselectAgent: (agentId: string) => void;
   toggleAgentSelection: (agentId: string) => void;
   clearSelection: () => void;
-  
+
   // View preferences
   viewMode: 'grid' | 'list';
   setViewMode: (mode: 'grid' | 'list') => void;
   compactView: boolean;
   setCompactView: (compact: boolean) => void;
-  
+
   // Period selection
   period: number;
   setPeriod: (days: number) => void;
@@ -95,7 +95,7 @@ export const ObservabilityProvider: React.FC<ObservabilityProviderProps> = ({
 
   // Selection management
   const selectAgent = useCallback((agentId: string) => {
-    setSelectedAgents(prev => 
+    setSelectedAgents(prev =>
       prev.includes(agentId) ? prev : [...prev, agentId]
     );
   }, []);
@@ -105,8 +105,8 @@ export const ObservabilityProvider: React.FC<ObservabilityProviderProps> = ({
   }, []);
 
   const toggleAgentSelection = useCallback((agentId: string) => {
-    setSelectedAgents(prev => 
-      prev.includes(agentId) 
+    setSelectedAgents(prev =>
+      prev.includes(agentId)
         ? prev.filter(id => id !== agentId)
         : [...prev, agentId]
     );
@@ -123,27 +123,27 @@ export const ObservabilityProvider: React.FC<ObservabilityProviderProps> = ({
     error,
     lastUpdated,
     refresh,
-    
+
     // Filters
     filters,
     filteredAgents,
     updateFilters,
     clearFilters,
     statusDistribution,
-    
+
     // Selected agents
     selectedAgents,
     selectAgent,
     deselectAgent,
     toggleAgentSelection,
     clearSelection,
-    
+
     // View preferences
     viewMode,
     setViewMode,
     compactView,
     setCompactView,
-    
+
     // Period selection
     period,
     setPeriod

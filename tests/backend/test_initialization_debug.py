@@ -56,7 +56,7 @@ def step8_agents_init():
     from app.services.agents import AgentManager
     from app.services.deepinfra_llm import create_deepinfra_llm
     from app.core.config import settings
-    
+
     llm = create_deepinfra_llm(
         api_token=settings.DEEPINFRA_API_KEY,
         model_id=settings.DEEPINFRA_MODEL
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     print("=" * 70)
     print("CrewAI Service Initialization Debug Test")
     print("=" * 70)
-    
+
     steps = [
         ("Basic imports", step1_basic_imports),
         ("Config import", step2_config_import),
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         ("CrewAI service initialization", step10_crewai_service_init),
         ("Global CrewAI service import", step11_crewai_global_import),
     ]
-    
+
     for i, (step_name, step_func) in enumerate(steps, 1):
         success, result = test_step(f"Step {i}: {step_name}", step_func)
         if not success:
@@ -107,4 +107,4 @@ if __name__ == "__main__":
         print(f"   Result: {result}")
         print()
     else:
-        print("🎉 All initialization steps completed successfully!") 
+        print("🎉 All initialization steps completed successfully!")

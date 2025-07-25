@@ -24,7 +24,7 @@ import { chromium } from 'playwright';
 
   try {
     console.log('=== INTERACTIVE ASSESSMENT FLOW TEST ===');
-    
+
     console.log('1. Navigating to login page...');
     await page.goto('http://localhost:8081/login', { timeout: 30000 });
     await page.waitForTimeout(2000);
@@ -40,7 +40,7 @@ import { chromium } from 'playwright';
     await page.waitForTimeout(5000); // Give more time for demo component to load
 
     console.log('4. Analyzing page content...');
-    
+
     // Check for demo mode indicator
     const hasDemoIndicator = await page.locator('text=Demo Mode').count() > 0;
     console.log('Demo mode indicator found:', hasDemoIndicator);
@@ -49,7 +49,7 @@ import { chromium } from 'playwright';
     const allInputs = await page.$$('input');
     console.log(`Found ${allInputs.length} input elements total`);
 
-    // Look for checkboxes specifically  
+    // Look for checkboxes specifically
     const checkboxes = await page.$$('input[type="checkbox"]');
     console.log(`Found ${checkboxes.length} checkboxes`);
 
@@ -73,31 +73,31 @@ import { chromium } from 'playwright';
       console.log('5. Clicking Select All button...');
       await selectAllButton.click();
       await page.waitForTimeout(1000);
-      
+
       // Check if checkboxes are now checked
       const checkedBoxes = await page.$$('input[type="checkbox"]:checked');
       console.log(`After Select All: ${checkedBoxes.length} checkboxes are checked`);
-      
+
       // Look for Initialize button
       const initializeButton = await page.$('button:has-text("Start Assessment")');
       if (initializeButton) {
         console.log('6. Clicking Initialize button...');
         await initializeButton.click();
         await page.waitForTimeout(3000);
-        
+
         // Check current URL after initialization
         const currentUrl = page.url();
         console.log('7. URL after initialization:', currentUrl);
-        
+
         if (currentUrl.includes('/assessment/') && currentUrl.length > 'http://localhost:8081/assessment'.length) {
           console.log('8. ✅ Assessment flow initialized successfully! Redirected to flow page.');
-          
+
           // Look for architecture phase content
           const pageContent = await page.textContent('body');
-          const hasArchitectureContent = pageContent.includes('Architecture') || 
+          const hasArchitectureContent = pageContent.includes('Architecture') ||
                                        pageContent.includes('Standards') ||
                                        pageContent.includes('Minimums');
-          
+
           if (hasArchitectureContent) {
             console.log('9. ✅ Architecture phase content detected!');
           } else {
@@ -105,7 +105,7 @@ import { chromium } from 'playwright';
           }
         } else {
           console.log('8. ⚠️ Assessment initialization may have failed or is still processing');
-          
+
           // Check for error messages
           const errorElements = await page.$$('*');
           const errors = [];
@@ -115,7 +115,7 @@ import { chromium } from 'playwright';
               errors.push(text.trim());
             }
           }
-          
+
           if (errors.length > 0) {
             console.log('Errors found:', errors.slice(0, 3));
           }

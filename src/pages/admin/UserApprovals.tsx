@@ -5,4 +5,4 @@ const UserApprovals: React.FC = () => {
   return <UserApprovalsMain />;
 };
 
-export default UserApprovals; 
+export default UserApprovals;

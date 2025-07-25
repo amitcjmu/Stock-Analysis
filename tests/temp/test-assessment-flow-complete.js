@@ -14,7 +14,7 @@ import { chromium } from 'playwright';
 
   try {
     console.log('=== ASSESSMENT FLOW COMPLETE TEST ===');
-    
+
     console.log('1. Navigating to login page...');
     await page.goto('http://localhost:8081/login', { timeout: 30000 });
     await page.waitForTimeout(2000);
@@ -39,7 +39,7 @@ import { chromium } from 'playwright';
 
     if (appCheckboxes.length > 0) {
       console.log('5. Selecting applications for assessment...');
-      
+
       // Select first few applications
       for (let i = 0; i < Math.min(2, appCheckboxes.length); i++) {
         await appCheckboxes[i].check();
@@ -57,14 +57,14 @@ import { chromium } from 'playwright';
 
         if (currentUrl.includes('/assessment/') && currentUrl !== 'http://localhost:8081/assessment') {
           console.log('8. ✅ Assessment flow initialized! Redirected to flow page.');
-          
+
           // Look for progress indicators or phase indicators
           const progressText = await page.textContent('body');
-          const hasProgress = progressText.includes('Architecture') || 
+          const hasProgress = progressText.includes('Architecture') ||
                             progressText.includes('Tech Debt') ||
                             progressText.includes('6R') ||
                             progressText.includes('Progress');
-          
+
           if (hasProgress) {
             console.log('9. ✅ Assessment flow phase content detected!');
           } else {
@@ -90,11 +90,11 @@ import { chromium } from 'playwright';
       }
     } else {
       console.log('5. ⚠️ No application checkboxes found - may need data or different initialization flow');
-      
+
       // Look for other initialization options
       const formInputs = await page.$$('input, select, textarea');
       console.log(`Found ${formInputs.length} form inputs on the page`);
-      
+
       if (formInputs.length > 0) {
         console.log('6. Form inputs detected - assessment flow may have different initialization pattern');
       }

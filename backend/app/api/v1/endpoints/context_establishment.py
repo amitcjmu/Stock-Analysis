@@ -98,7 +98,7 @@ async def get_context_clients(
         # Check if user is platform admin
         role_query = select(UserRole).where(
             and_(
-                UserRole.user_id == str(current_user.id),
+                UserRole.user_id == current_user.id,
                 UserRole.role_type == "platform_admin",
                 UserRole.is_active == True,
             )
@@ -289,7 +289,7 @@ async def get_context_engagements(
         # Check if user is platform admin
         role_query = select(UserRole).where(
             and_(
-                UserRole.user_id == str(current_user.id),
+                UserRole.user_id == current_user.id,
                 UserRole.role_type == "platform_admin",
                 UserRole.is_active == True,
             )

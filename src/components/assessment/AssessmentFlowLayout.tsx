@@ -40,7 +40,7 @@ const PHASE_CONFIG: PhaseConfig[] = [
     estimatedTime: '15-30 min'
   },
   {
-    id: 'tech_debt_analysis', 
+    id: 'tech_debt_analysis',
     title: 'Technical Debt Analysis',
     description: 'Identify and analyze technical debt across applications',
     route: 'tech-debt',
@@ -73,13 +73,13 @@ const PHASE_CONFIG: PhaseConfig[] = [
   }
 ];
 
-export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({ 
-  children, 
-  flowId 
+export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
+  children,
+  flowId
 }) => {
   const navigate = useNavigate();
   const { state, navigateToPhase } = useAssessmentFlow(flowId);
-  
+
   const getPhaseStatus = (phaseId: AssessmentPhase) => {
     if (state.error) return 'error';
     if (state.currentPhase === phaseId) {
@@ -89,7 +89,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
     const phaseOrder = ['architecture_minimums', 'tech_debt_analysis', 'component_sixr_strategies', 'app_on_page_generation', 'finalization'];
     const currentIndex = phaseOrder.indexOf(state.currentPhase);
     const phaseIndex = phaseOrder.indexOf(phaseId);
-    
+
     if (phaseIndex < currentIndex) return 'completed';
     if (phaseIndex === currentIndex) return 'active';
     return 'disabled';
@@ -108,7 +108,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
     if (status === 'completed') return <CheckCircle2 className="h-4 w-4" />;
     if (status === 'processing') return <Loader2 className="h-4 w-4 animate-spin" />;
     if (status === 'error') return <AlertCircle className="h-4 w-4" />;
-    
+
     const phase = PHASE_CONFIG.find(p => p.id === phaseId);
     const IconComponent = phase?.icon || Circle;
     return <IconComponent className="h-4 w-4" />;
@@ -116,7 +116,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
 
   const handlePhaseNavigation = async (phase: AssessmentPhase, route: string) => {
     if (!canNavigateToPhase(phase)) return;
-    
+
     try {
       await navigateToPhase(phase);
       await navigate(`/assessment/${flowId}/${route}`);
@@ -124,7 +124,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
       console.error('Navigation failed:', error);
     }
   };
-  
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <div className="hidden lg:block w-64 border-r bg-white">
@@ -149,8 +149,8 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                     {state.selectedApplicationIds?.length || 0} applications • {state.currentPhase?.replace('_', ' ') || 'Unknown phase'}
                   </p>
                 </div>
-                
-                <Badge 
+
+                <Badge
                   variant={
                     state.status === 'completed' ? 'default' :
                     state.status === 'error' ? 'destructive' :
@@ -160,7 +160,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                   {state.status?.replace('_', ' ').toUpperCase() || 'UNKNOWN'}
                 </Badge>
               </div>
-              
+
               {/* Overall Progress */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
@@ -173,14 +173,14 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                 </div>
                 <Progress value={state.progress || 0} className="h-2" />
               </div>
-              
+
               {/* Phase Navigation */}
               <div className="mt-4 flex flex-wrap gap-2">
                 {PHASE_CONFIG.map((phase) => {
                   const status = getPhaseStatus(phase.id);
                   const isCurrentPhase = state.currentPhase === phase.id;
                   const canNavigate = canNavigateToPhase(phase.id);
-                  
+
                   return (
                     <Button
                       key={phase.id}
@@ -213,7 +213,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                   </div>
                 </div>
               )}
-              
+
               {state.status === 'paused_for_user_input' && (
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-center space-x-2">
@@ -231,7 +231,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
 
             <div className="xl:col-span-1 space-y-6">
               {/* Agent Communication Panel */}
-              <AgentClarificationPanel 
+              <AgentClarificationPanel
                 pageContext={`assessment-${state.currentPhase || 'unknown'}`}
                 refreshTrigger={0}
                 onQuestionAnswered={(questionId, response) => {
@@ -240,7 +240,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
               />
 
               {/* Agent Insights */}
-              <AgentInsightsSection 
+              <AgentInsightsSection
                 pageContext={`assessment-${state.currentPhase || 'unknown'}`}
                 refreshTrigger={0}
                 onInsightAction={(insightId, action) => {
@@ -250,7 +250,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
 
               {/* Agent Planning Dashboard */}
               <AgentPlanningDashboard pageContext={`assessment-${state.currentPhase || 'unknown'}`} />
-              
+
               {/* Real-time Agent Updates */}
               {state.agentUpdates?.length > 0 && state.status === 'processing' && (
                 <div className="bg-white border border-gray-200 rounded-lg p-4">
@@ -260,7 +260,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                       AI Agents Working...
                     </span>
                   </div>
-                  
+
                   <div className="space-y-2">
                     {state.agentUpdates.slice(-3).map((update, index) => (
                       <p key={index} className="text-xs text-gray-600 p-2 bg-gray-50 rounded">
@@ -270,12 +270,12 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                   </div>
                 </div>
               )}
-              
+
               {/* Continue to Planning */}
               {state.status === 'completed' && (
                 <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <Button 
-                    className="w-full" 
+                  <Button
+                    className="w-full"
                     onClick={() => navigate(`/planning`)}
                   >
                     Continue to Planning

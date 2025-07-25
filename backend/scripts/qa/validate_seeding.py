@@ -262,9 +262,7 @@ class DatabaseValidator:
                 f"Found {len(duplicates)} duplicate email addresses",
             )
         else:
-            self._add_result(
-                "users_email_unique", True, "✅ All user emails are unique"
-            )
+            self._add_result("users_email_unique", True, "✅ All user emails are unique")
 
         # Required fields check
         result = await session.execute(
@@ -286,9 +284,7 @@ class DatabaseValidator:
                 f"Found {len(incomplete_users)} users with missing required fields",
             )
         else:
-            self._add_result(
-                "users_complete", True, "✅ All users have required fields"
-            )
+            self._add_result("users_complete", True, "✅ All users have required fields")
 
     async def _validate_user_roles(self, session: AsyncSession):
         """Validate user role assignments."""

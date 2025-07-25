@@ -27,12 +27,12 @@ export const useSixRStatistics = ({
       return acc;
     }, {} as Record<string, number>);
 
-    const avgConfidence = allDecisions.length > 0 
-      ? allDecisions.reduce((sum, d) => sum + d.confidence_score, 0) / allDecisions.length 
+    const avgConfidence = allDecisions.length > 0
+      ? allDecisions.reduce((sum, d) => sum + d.confidence_score, 0) / allDecisions.length
       : 0;
 
     const needsReview = allDecisions.filter(d => d.confidence_score < 0.8).length;
-    const hasIssues = allDecisions.filter(d => 
+    const hasIssues = allDecisions.filter(d =>
       d.component_treatments?.some(ct => !ct.compatibility_validated)
     ).length;
 

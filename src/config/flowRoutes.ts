@@ -16,123 +16,123 @@ export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string)
     'initialization': () => '/discovery/cmdb-import',
     'data_import_validation': () => '/discovery/cmdb-import',
     'data_import': () => '/discovery/cmdb-import',
-    
+
     // Field mapping phases
     'field_mapping': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
     'attribute_mapping': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
-    
+
     // Data cleansing phase
     'data_cleansing': (flowId: string) => `/discovery/data-cleansing/${flowId}`,
-    
+
     // Asset inventory phases
     'asset_inventory': (flowId: string) => `/discovery/inventory/${flowId}`,
     'inventory': (flowId: string) => `/discovery/inventory/${flowId}`,
-    
+
     // Dependency analysis phases
     'dependency_analysis': (flowId: string) => `/discovery/dependencies/${flowId}`,
     'dependencies': (flowId: string) => `/discovery/dependencies/${flowId}`,
-    
+
     // Tech debt assessment phases
     'tech_debt_assessment': (flowId: string) => `/discovery/tech-debt/${flowId}`,
     'tech_debt_analysis': (flowId: string) => `/discovery/tech-debt/${flowId}`,
     'tech_debt': (flowId: string) => `/discovery/tech-debt/${flowId}`,
     'technical_debt': (flowId: string) => `/discovery/tech-debt/${flowId}`,
-    
+
     // Completed flow
     'completed': (flowId: string) => `/discovery/tech-debt/${flowId}`,
-    
+
     // Status-based routing
     'waiting_for_user_approval': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
     'paused': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
     'pending_approval': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
-    
+
     // Error states - go back to import
     'failed': () => '/discovery/cmdb-import',
     'error': () => '/discovery/cmdb-import',
     'not_found': () => '/discovery/cmdb-import',
-    
+
     // Unknown/undefined states - default to cmdb-import
     'unknown': () => '/discovery/cmdb-import',
     'undefined': () => '/discovery/cmdb-import',
     'current': () => '/discovery/cmdb-import',
   },
-  
+
   assessment: {
     'migration_readiness': (flowId: string) => `/assess/migration-readiness/${flowId}`,
     'business_impact': (flowId: string) => `/assess/business-impact/${flowId}`,
     'technical_assessment': (flowId: string) => `/assess/technical-assessment/${flowId}`,
     'completed': (flowId: string) => `/assess/summary/${flowId}`,
-    
+
     // Error states
     'failed': () => '/assess',
     'error': () => '/assess',
     'unknown': () => '/assess',
   },
-  
+
   plan: {
     'wave_planning': (flowId: string) => `/plan/wave-planning/${flowId}`,
     'runbook_creation': (flowId: string) => `/plan/runbook-creation/${flowId}`,
     'resource_allocation': (flowId: string) => `/plan/resource-allocation/${flowId}`,
     'completed': (flowId: string) => `/plan/summary/${flowId}`,
-    
+
     // Error states
     'failed': () => '/plan',
     'error': () => '/plan',
     'unknown': () => '/plan',
   },
-  
+
   execute: {
     'pre_migration': (flowId: string) => `/execute/pre-migration/${flowId}`,
     'migration_execution': (flowId: string) => `/execute/migration-execution/${flowId}`,
     'post_migration': (flowId: string) => `/execute/post-migration/${flowId}`,
     'completed': (flowId: string) => `/execute/summary/${flowId}`,
-    
+
     // Error states
     'failed': () => '/execute',
     'error': () => '/execute',
     'unknown': () => '/execute',
   },
-  
+
   modernize: {
     'modernization_assessment': (flowId: string) => `/modernize/assessment/${flowId}`,
     'architecture_design': (flowId: string) => `/modernize/architecture-design/${flowId}`,
     'implementation_planning': (flowId: string) => `/modernize/implementation-planning/${flowId}`,
     'completed': (flowId: string) => `/modernize/summary/${flowId}`,
-    
+
     // Error states
     'failed': () => '/modernize',
     'error': () => '/modernize',
     'unknown': () => '/modernize',
   },
-  
+
   finops: {
     'cost_analysis': (flowId: string) => `/finops/cost-analysis/${flowId}`,
     'budget_planning': (flowId: string) => `/finops/budget-planning/${flowId}`,
     'completed': (flowId: string) => `/finops/summary/${flowId}`,
-    
+
     // Error states
     'failed': () => '/finops',
     'error': () => '/finops',
     'unknown': () => '/finops',
   },
-  
+
   observability: {
     'monitoring_setup': (flowId: string) => `/observability/monitoring-setup/${flowId}`,
     'performance_optimization': (flowId: string) => `/observability/performance-optimization/${flowId}`,
     'completed': (flowId: string) => `/observability/summary/${flowId}`,
-    
+
     // Error states
     'failed': () => '/observability',
     'error': () => '/observability',
     'unknown': () => '/observability',
   },
-  
+
   decommission: {
     'decommission_planning': (flowId: string) => `/decommission/planning/${flowId}`,
     'data_migration': (flowId: string) => `/decommission/data-migration/${flowId}`,
     'system_shutdown': (flowId: string) => `/decommission/system-shutdown/${flowId}`,
     'completed': (flowId: string) => `/decommission/summary/${flowId}`,
-    
+
     // Error states
     'failed': () => '/decommission',
     'error': () => '/decommission',
@@ -167,18 +167,18 @@ export function getFlowPhaseRoute(flowType: FlowType, phase: string, flowId: str
     console.warn(`Unknown flow type: ${flowType}, defaulting to home`);
     return '/';
   }
-  
+
   const routeFunction = flowRoutes[phase];
   if (routeFunction) {
     return routeFunction(flowId);
   }
-  
+
   // Default to flow type's error route
   const errorRoute = flowRoutes['unknown'] || flowRoutes['error'];
   if (errorRoute) {
     return errorRoute(flowId);
   }
-  
+
   console.warn(`Unknown phase: ${phase} for flow type: ${flowType}`);
   return `/${flowType}`;
 }
@@ -220,7 +220,7 @@ export function phaseRequiresFlowId(flowType: FlowType, phase: string): boolean 
     observability: ['failed', 'error', 'unknown'],
     decommission: ['failed', 'error', 'unknown']
   };
-  
+
   return !(noFlowIdPhases[flowType] || []).includes(phase);
 }
 
@@ -233,12 +233,12 @@ export function phaseRequiresFlowId(flowType: FlowType, phase: string): boolean 
 export function getNextPhase(flowType: FlowType, currentPhase: string): string {
   const sequence = PHASE_SEQUENCES[flowType];
   if (!sequence) return 'completed';
-  
+
   const currentIndex = sequence.indexOf(currentPhase);
   if (currentIndex === -1 || currentIndex === sequence.length - 1) {
     return 'completed';
   }
-  
+
   return sequence[currentIndex + 1];
 }
 
@@ -269,22 +269,22 @@ export async function getFlowInfo(flowId: string): Promise<{ flowType: FlowType;
     // Use masterFlowService for unified flow API access
     const { masterFlowService } = await import('../services/api/masterFlowService');
     const { AuthService } = await import('../contexts/AuthContext/services/authService');
-    
+
     // Get auth context for multi-tenant headers
     const authService = AuthService.getInstance();
     const context = authService.getAuthState();
-    
+
     if (!context?.clientAccount?.id) {
       console.error('No client account context available for flow info');
       return null;
     }
-    
+
     const flowStatus = await masterFlowService.getFlowStatus(
       flowId,
       context.clientAccount.id.toString(),
       context.engagement?.id?.toString()
     );
-    
+
     return {
       flowType: flowStatus.flowType as FlowType,
       currentPhase: flowStatus.currentPhase || 'unknown'

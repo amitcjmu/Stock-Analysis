@@ -32,7 +32,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
   const navigate = useNavigate();
   const { client, engagement, user } = useAuth();
   const { toast } = useToast();
-  
+
   // Dashboard state and actions
   const {
     activeFlows,
@@ -81,14 +81,14 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
       });
     }
   );
-  
+
   const incompleteFlows = incompleteFlowsData?.flows || [];
   const hasIncompleteFlows = incompleteFlows.length > 0;
 
   // Handle view details navigation with agentic intelligence
   const handleViewDetails = (flowId: string, phase: string) => {
     console.log(`🤖 AGENTIC NAVIGATION: Analyzing flow ${flowId} in phase "${phase}"`);
-    
+
     // If phase is 'current', we need to find the actual phase from the flow data
     let actualPhase = phase;
     if (phase === 'current') {
@@ -98,14 +98,14 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
         console.log(`🤖 Resolved 'current' phase to actual phase: ${actualPhase}`);
       }
     }
-    
+
     // Handle completed flows specially
     if (actualPhase === "completed") {
       console.log(`🤖 Flow marked as completed, routing to inventory`);
       navigate(`/discovery/inventory/${flowId}`);
       return;
     }
-    
+
     // Use centralized routing configuration
     const route = getDiscoveryPhaseRoute(actualPhase, flowId);
     console.log(`🤖 AGENTIC DECISION: phase="${actualPhase}" -> route="${route}"`);
@@ -122,7 +122,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
       });
       return;
     }
-    
+
     console.log('🗑️ Discovery Dashboard: Initiating flow deletion with user approval');
     await deletionActions.requestDeletion(
       [flowId],
@@ -143,7 +143,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
       });
       return;
     }
-    
+
     console.log(`🗑️ Discovery Dashboard: Initiating batch deletion of ${flowIds.length} flows`);
     await deletionActions.requestDeletion(
       flowIds,
@@ -184,7 +184,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
       <div className="hidden lg:block w-64 border-r bg-white">
         <Sidebar />
       </div>
-      
+
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
@@ -192,7 +192,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
           <div className="mb-6">
             <ContextBreadcrumbs />
           </div>
-          
+
           {/* Dashboard Header */}
           <DashboardHeader
             filters={filters}
@@ -305,7 +305,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
               />
             </DialogContent>
           </Dialog>
-          
+
           {/* Flow Deletion Modal */}
           <FlowDeletionModal
             open={deletionState.isModalOpen}

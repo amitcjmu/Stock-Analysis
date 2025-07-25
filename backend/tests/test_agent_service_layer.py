@@ -187,7 +187,6 @@ def test_get_import_data(service_layer):
     ) as mock_repo, patch(
         "app.services.agents.agent_service_layer.AsyncSessionLocal"
     ) as mock_session:
-
         # Mock flow with data_import_id
         mock_flow = Mock()
         mock_flow.data_import_id = "test-import-id"
@@ -316,7 +315,6 @@ def test_get_tech_debt_analysis(service_layer):
     ) as mock_repo, patch(
         "app.services.agents.agent_service_layer.AsyncSessionLocal"
     ) as mock_session:
-
         # Mock flow with tech debt data
         mock_flow = Mock()
         mock_flow.tech_debt_completed = True

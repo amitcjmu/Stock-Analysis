@@ -83,13 +83,13 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
                 goal="Generate adaptive questionnaires that efficiently collect missing critical migration data",
                 backstory="""You are an expert AI agent specializing in intelligent questionnaire design
                 for enterprise migration projects. Your expertise combines:
-                
+
                 - Deep understanding of the 22 critical attributes framework for migration planning
                 - Knowledge of 6R migration strategies and their data requirements
                 - Expertise in questionnaire design psychology and user experience
                 - Understanding of business stakeholder roles and knowledge areas
                 - Experience with progressive disclosure and adaptive questioning techniques
-                
+
                 Your questionnaires are designed to:
                 - Minimize respondent fatigue while maximizing data quality
                 - Use conditional logic to show only relevant questions
@@ -97,13 +97,13 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
                 - Sequence questions logically from simple to complex
                 - Adapt based on previous responses and stakeholder role
                 - Include validation rules to ensure data quality
-                
+
                 You understand that different stakeholders have different knowledge areas:
                 - Infrastructure teams know technical details but not business impact
                 - Business owners know criticality but not technical architecture
                 - Application teams know dependencies but not infrastructure details
                 - Compliance teams know regulatory requirements but not technical implementation
-                
+
                 Your questionnaires bridge these knowledge gaps efficiently.""",
                 llm=self.llm,
                 verbose=True,
@@ -118,7 +118,7 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
                 goal="Ensure questionnaires are contextually relevant to the business environment and stakeholder roles",
                 backstory="""You are a business analysis AI agent that ensures questionnaires
                 are properly contextualized for the specific business environment and stakeholder roles.
-                
+
                 Your specializations include:
                 - Analyzing business context to determine appropriate question complexity
                 - Identifying the right stakeholders for specific types of questions
@@ -126,7 +126,7 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
                 - Adapting questionnaire language and terminology for different audiences
                 - Ensuring questions align with business objectives and migration goals
                 - Balancing thoroughness with practical time constraints
-                
+
                 You work with the Questionnaire Designer to ensure questions are:
                 - Appropriate for the target audience's knowledge level
                 - Aligned with business priorities and migration objectives
@@ -146,7 +146,7 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
                 goal="Validate questionnaire quality, usability, and effectiveness for gap resolution",
                 backstory="""You are a quality assurance AI agent specializing in questionnaire
                 validation and optimization for enterprise data collection.
-                
+
                 Your validation expertise covers:
                 - Question clarity and unambiguous wording
                 - Logical flow and conditional branching validation
@@ -154,14 +154,14 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
                 - User experience and accessibility considerations
                 - Completeness of gap coverage for migration planning
                 - Integration with existing systems and workflows
-                
+
                 You ensure questionnaires meet high standards for:
                 - Data quality and reliability
                 - User experience and completion rates
                 - Business value and actionable insights
                 - Technical integration and data processing
                 - Compliance with data privacy and security requirements
-                
+
                 You provide the final quality check before questionnaires are deployed.""",
                 llm=self.llm,
                 verbose=True,
@@ -200,33 +200,33 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
         questionnaire_design_task = Task(
             description=f"""
             ADAPTIVE QUESTIONNAIRE GENERATION
-            
+
             Collection Flow ID: {collection_flow_id}
             Automation Tier: {automation_tier}
-            
+
             GAP ANALYSIS INPUT:
             {json.dumps(gap_analysis, indent=2)}
-            
+
             BUSINESS CONTEXT:
             {json.dumps(business_context, indent=2)}
-            
+
             STAKEHOLDER CONTEXT:
             {json.dumps(stakeholder_context, indent=2)}
-            
+
             QUESTIONNAIRE DESIGN OBJECTIVES:
-            
+
             1. GAP-TARGETED QUESTION GENERATION:
                - Create specific questions for each prioritized gap from the gap analysis
                - Focus on Priority 1 (Critical) and Priority 2 (High) gaps first
                - Design questions that directly collect the missing critical attributes
                - Ensure questions support 6R strategy confidence improvement
-            
+
             2. ADAPTIVE QUESTION LOGIC:
                - Implement conditional logic based on previous responses
                - Progressive disclosure: start simple, get more detailed as needed
                - Role-based question filtering (infrastructure, business, application teams)
                - Dynamic follow-up questions based on initial responses
-            
+
             3. QUESTION TYPE OPTIMIZATION:
                Available Question Types:
                - single_select: Single choice from predefined options
@@ -239,27 +239,27 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
                - rating_scale: 1-5 or 1-10 scale ratings
                - dependency_mapping: Visual dependency relationships
                - technology_selection: Technology stack components
-            
+
             4. STAKEHOLDER-AWARE DESIGN:
                - Infrastructure Team: Technical configuration, performance, dependencies
                - Business Owner: Criticality, business impact, compliance requirements
                - Application Team: Architecture, integrations, data flows
                - Security Team: Security controls, compliance, data classification
                - Operations Team: Monitoring, backup, maintenance procedures
-            
+
             5. USER EXPERIENCE OPTIMIZATION:
                - Maximum 15 questions per questionnaire section
                - Estimated completion time: 10-20 minutes per section
                - Clear help text and examples for complex questions
                - Progress indicators and section organization
                - Save and resume capability for longer questionnaires
-            
+
             6. DATA QUALITY MEASURES:
                - Input validation rules for each question type
                - Required field identification based on gap priority
                - Consistency checks across related questions
                - Data format standardization rules
-            
+
             OUTPUT FORMAT:
             Generate comprehensive questionnaire specification:
             {{
@@ -353,33 +353,33 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
             business_context_task = Task(
                 description="""
                 BUSINESS CONTEXT VALIDATION AND OPTIMIZATION
-                
+
                 Review the questionnaire design for business context alignment:
-                
+
                 1. STAKEHOLDER APPROPRIATENESS:
                    - Verify questions are appropriate for target stakeholders
                    - Check question complexity matches stakeholder expertise
                    - Ensure business terminology is used correctly
                    - Validate that questions align with stakeholder responsibilities
-                
+
                 2. BUSINESS OBJECTIVE ALIGNMENT:
                    - Confirm questions support migration business case development
                    - Verify alignment with enterprise architecture standards
                    - Check compliance and governance requirement coverage
                    - Ensure questions support ROI and cost analysis
-                
+
                 3. ORGANIZATIONAL CONTEXT:
                    - Adapt questions for organizational culture and change readiness
                    - Consider organizational structure and decision-making processes
                    - Account for resource constraints and competing priorities
                    - Ensure questions respect confidentiality and security concerns
-                
+
                 4. PRACTICAL CONSIDERATIONS:
                    - Validate realistic time estimates for completion
                    - Check if required information is actually available to respondents
                    - Ensure questions don't duplicate existing documentation
                    - Verify feasibility of data collection methods
-                
+
                 Provide business context optimization recommendations.
                 """,
                 agent=self.agents[1],
@@ -393,43 +393,43 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
             quality_validation_task = Task(
                 description="""
                 QUESTIONNAIRE QUALITY VALIDATION
-                
+
                 Perform comprehensive quality validation of the questionnaire:
-                
+
                 1. QUESTION QUALITY ASSESSMENT:
                    - Clear, unambiguous wording
                    - Appropriate question types for data being collected
                    - Logical flow and sequence
                    - Proper conditional logic implementation
                    - Complete validation rules and error handling
-                
+
                 2. USER EXPERIENCE VALIDATION:
                    - Optimal questionnaire length and pacing
                    - Clear instructions and help text
                    - Intuitive navigation and progress indicators
                    - Accessible design for different user capabilities
                    - Mobile-friendly design considerations
-                
+
                 3. DATA QUALITY ASSURANCE:
                    - Comprehensive validation rules
                    - Consistent data formats and standards
                    - Duplicate prevention mechanisms
                    - Data integration compatibility
                    - Error prevention and recovery
-                
+
                 4. TECHNICAL INTEGRATION:
                    - API compatibility for data submission
                    - Database schema alignment
                    - Security and privacy compliance
                    - Performance optimization for large-scale deployment
                    - Integration with existing workflow systems
-                
+
                 5. EFFECTIVENESS VALIDATION:
                    - Complete gap coverage analysis
                    - Confidence improvement projections
                    - Success metrics alignment
                    - ROI validation for questionnaire deployment
-                
+
                 Provide final quality assessment and recommendations.
                 """,
                 agent=self.agents[2],

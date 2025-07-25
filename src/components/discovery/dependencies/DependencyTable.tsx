@@ -58,7 +58,7 @@ export const DependencyTable: React.FC<DependencyTableProps> = ({
                   {type === 'app-server' ? 'Application' : 'Source App'}
                 </th>
                 <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
-                  
+
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {type === 'app-server' ? 'Server' : 'Target App'}
@@ -121,4 +121,4 @@ export const DependencyTable: React.FC<DependencyTableProps> = ({
       )}
     </div>
   );
-}; 
+};

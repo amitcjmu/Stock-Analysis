@@ -2,12 +2,12 @@
 
 /**
  * Automated Progress Tracker for ESLint Compliance AI Swarm
- * 
+ *
  * This script automatically tracks ESLint error reduction progress across
  * agent domains and updates the progress tracker markdown file.
- * 
+ *
  * Usage: node progress-tracker.js [--update-markdown]
- * 
+ *
  * @version 1.0
  * @date 2025-01-21
  */
@@ -25,14 +25,14 @@ const CONFIG = {
   projectRoot: path.resolve(__dirname, '../../../..'),
   trackerPath: path.resolve(__dirname, '../tracking/PROGRESS-TRACKER.md'),
   eslintCommand: 'npx eslint . --ext ts,tsx --format json',
-  
+
   // Agent file mappings
   agentDomains: {
     'Agent A': {
       name: 'Forward Declarations',
       patterns: [
         'src/types/api/planning/timeline/core-types.ts',
-        'src/types/api/planning/strategy/core-types.ts', 
+        'src/types/api/planning/strategy/core-types.ts',
         'src/types/api/finops/flow-management.ts'
       ],
       targetErrors: 111,
@@ -109,12 +109,12 @@ function runESLint() {
   try {
     console.log('🔍 Running ESLint analysis...');
     process.chdir(CONFIG.projectRoot);
-    
-    const eslintOutput = execSync(CONFIG.eslintCommand, { 
+
+    const eslintOutput = execSync(CONFIG.eslintCommand, {
       encoding: 'utf8',
       stdio: ['pipe', 'pipe', 'pipe']
     });
-    
+
     return JSON.parse(eslintOutput);
   } catch (error) {
     // ESLint exits with non-zero when errors found, but still produces JSON
@@ -162,7 +162,7 @@ function analyzeResults(eslintResults) {
   eslintResults.forEach(fileResult => {
     const { filePath, messages } = fileResult;
     const relativePath = path.relative(CONFIG.projectRoot, filePath);
-    
+
     analysis.errorsByFile[relativePath] = {
       totalErrors: messages.length,
       anyTypeErrors: 0,
@@ -172,15 +172,15 @@ function analyzeResults(eslintResults) {
 
     messages.forEach(message => {
       analysis.totalErrors++;
-      
+
       if (message.ruleId === '@typescript-eslint/no-explicit-any') {
         analysis.anyTypeErrors++;
         analysis.errorsByFile[relativePath].anyTypeErrors++;
-        
+
         // Track error patterns
         const pattern = `${message.ruleId}:${message.line}`;
         analysis.errorPatterns[pattern] = (analysis.errorPatterns[pattern] || 0) + 1;
-        
+
         // Assign to appropriate agent
         Object.entries(CONFIG.agentDomains).forEach(([agentId, domain]) => {
           const matchesPattern = domain.patterns.some(pattern => {
@@ -214,7 +214,7 @@ function analyzeResults(eslintResults) {
   Object.entries(analysis.agentProgress).forEach(([agentId, progress]) => {
     progress.errorReduction = Math.max(0, progress.targetErrors - progress.currentErrors);
     progress.progressPercent = Math.round((progress.errorReduction / progress.targetErrors) * 100);
-    
+
     if (progress.currentErrors === 0) {
       progress.status = 'Complete';
     } else if (progress.errorReduction > 0) {
@@ -265,14 +265,14 @@ function updateProgressTracker(analysis) {
   try {
     let trackerContent = fs.readFileSync(CONFIG.trackerPath, 'utf8');
     const timestamp = new Date().toISOString().split('T')[0];
-    
+
     // Update overall progress summary
     const overallProgress = Math.round(((2173 - analysis.anyTypeErrors) / 2173) * 100);
     trackerContent = trackerContent.replace(
       /- \*\*Total Errors Addressed\*\*: \d+\/2,173 \(\d+%\)/,
       `- **Total Errors Addressed**: ${2173 - analysis.anyTypeErrors}/2,173 (${overallProgress}%)`
     );
-    
+
     trackerContent = trackerContent.replace(
       /- \*\*Estimated Remaining\*\*: \d+/,
       `- **Estimated Remaining**: ${analysis.anyTypeErrors}`
@@ -293,7 +293,7 @@ function updateProgressTracker(analysis) {
         `(\\| \\*\\*${agentId}\\*\\* \\| .+ \\| \\d+ \\| )([⭕⏳✅] .+ \\| )\\d+/\\d+`,
         'g'
       );
-      
+
       trackerContent = trackerContent.replace(
         agentRowPattern,
         `$1${statusIcon} ${progress.status} | ${progressText}`
@@ -310,7 +310,7 @@ function updateProgressTracker(analysis) {
     fs.writeFileSync(CONFIG.trackerPath, trackerContent);
     console.log('✅ Progress tracker updated successfully');
     return true;
-    
+
   } catch (error) {
     console.error('❌ Failed to update progress tracker:', error.message);
     return false;
@@ -330,15 +330,15 @@ function displayReport(analysis) {
   console.log(`Any-Type Errors: ${analysis.anyTypeErrors}`);
   console.log(`Other Errors: ${analysis.otherErrors}`);
   console.log(`Overall Progress: ${Math.round(((2173 - analysis.anyTypeErrors) / 2173) * 100)}%`);
-  
+
   console.log('\n🤖 Agent Progress:');
   Object.entries(analysis.agentProgress).forEach(([agentId, progress]) => {
     const status = {
       'Complete': '✅',
-      'In Progress': '⏳', 
+      'In Progress': '⏳',
       'Pending': '⭕'
     }[progress.status] || '⭕';
-    
+
     console.log(`${status} ${agentId}: ${progress.errorReduction}/${progress.targetErrors} (${progress.progressPercent}%)`);
   });
 
@@ -371,35 +371,35 @@ function saveAnalysisData(analysis) {
  */
 function main() {
   const updateMarkdown = process.argv.includes('--update-markdown');
-  
+
   console.log('🚀 Starting ESLint Progress Analysis...');
-  
+
   // Run ESLint analysis
   const eslintResults = runESLint();
   if (!eslintResults) {
     process.exit(1);
   }
-  
+
   // Analyze results
   const analysis = analyzeResults(eslintResults);
   if (!analysis) {
     console.error('❌ Failed to analyze ESLint results');
     process.exit(1);
   }
-  
+
   // Display report
   displayReport(analysis);
-  
+
   // Save analysis data
   saveAnalysisData(analysis);
-  
+
   // Update markdown if requested
   if (updateMarkdown) {
     updateProgressTracker(analysis);
   } else {
     console.log('ℹ️  Use --update-markdown flag to update the progress tracker file');
   }
-  
+
   console.log('✅ Analysis complete!');
 }
 

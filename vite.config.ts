@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => ({
           // CRITICAL - Core vendor chunks
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-query': ['@tanstack/react-query'],
-          
+
           // HIGH PRIORITY - UI components
           'vendor-ui': [
             '@radix-ui/react-accordion',
@@ -49,7 +49,7 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-dropdown-menu',
             '@radix-ui/react-tabs'
           ],
-          
+
           // NORMAL PRIORITY - Feature chunks
           'discovery': ['./src/pages/Discovery.tsx'],
           'assessment': ['./src/pages/Assess.tsx'],
@@ -58,7 +58,7 @@ export default defineConfig(({ mode }) => ({
           'modernization': ['./src/pages/Modernize.tsx'],
           'finops': ['./src/pages/FinOps.tsx'],
           'decommission': ['./src/pages/Decommission.tsx'],
-          
+
           // LOW PRIORITY - utilities
           'utils': [],
           'icons': ['lucide-react'],
@@ -67,6 +67,8 @@ export default defineConfig(({ mode }) => ({
         chunkFileNames: (chunkInfo) => {
           const name = chunkInfo.name;
           // Use descriptive names for better cache management
+          // Avoid double vendor prefix by checking if name already starts with vendor
+          if (name?.startsWith('vendor-')) return `assets/${name}-[hash].js`;
           if (name?.includes('vendor')) return 'assets/vendor-[name]-[hash].js';
           if (name?.includes('admin')) return 'assets/admin-[name]-[hash].js';
           return 'assets/[name]-[hash].js';

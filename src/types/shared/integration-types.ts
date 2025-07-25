@@ -1,6 +1,6 @@
 /**
  * Shared Integration Type Definitions
- * 
+ *
  * Standardized types for external API integrations, adapters, and connectors
  * to replace any types in integration layer code
  */

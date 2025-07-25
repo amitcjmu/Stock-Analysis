@@ -70,7 +70,7 @@ interface ActivityFilters {
 
 const ActivityEventIcon: React.FC<{ type: ActivityEvent['type']; severity: ActivityEvent['severity'] }> = ({ type, severity }) => {
   const iconClasses = "w-4 h-4";
-  
+
   switch (type) {
     case 'task_started':
       return <Play className={`${iconClasses} text-blue-500`} />;
@@ -97,7 +97,7 @@ const ActivityEventRow: React.FC<{
   onClick?: (event: ActivityEvent) => void;
 }> = ({ event, compact = false, onClick }) => {
   const timeAgo = formatDistanceToNow(new Date(event.timestamp), { addSuffix: true });
-  
+
   const severityColors = {
     info: 'border-l-blue-400 bg-blue-50',
     success: 'border-l-green-400 bg-green-50',
@@ -112,7 +112,7 @@ const ActivityEventRow: React.FC<{
   };
 
   return (
-    <div 
+    <div
       className={`
         border-l-4 p-3 mb-2 rounded-r-md transition-all duration-200 hover:shadow-sm
         ${severityColors[event.severity]}
@@ -125,7 +125,7 @@ const ActivityEventRow: React.FC<{
         <div className="flex-shrink-0 mt-1">
           <ActivityEventIcon type={event.type} severity={event.severity} />
         </div>
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -142,11 +142,11 @@ const ActivityEventRow: React.FC<{
               {timeAgo}
             </span>
           </div>
-          
+
           <p className={`text-gray-600 mt-1 ${compact ? 'text-xs' : 'text-sm'}`}>
             {event.description}
           </p>
-          
+
           {event.metadata && !compact && (
             <div className="flex flex-wrap gap-2 mt-2">
               {event.metadata.duration && (
@@ -209,7 +209,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
   // Load activity feed data
   useEffect(() => {
     loadActivityData();
-    
+
     if (isPlaying && realTime) {
       intervalRef.current = setInterval(loadActivityData, refreshInterval);
     }
@@ -224,7 +224,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
   const loadActivityData = async () => {
     try {
       setError(null);
-      
+
       // Get activity feed data from API
       const response = await agentObservabilityService.getAgentActivityFeed(
         filters.agent || undefined,
@@ -303,29 +303,29 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
   // Filter events based on current filters
   const filteredEvents = useMemo(() => {
     return events.filter(event => {
-      if (filters.search && !event.title.toLowerCase().includes(filters.search.toLowerCase()) && 
+      if (filters.search && !event.title.toLowerCase().includes(filters.search.toLowerCase()) &&
           !event.description.toLowerCase().includes(filters.search.toLowerCase())) {
         return false;
       }
-      
+
       if (filters.agent && event.agentName !== filters.agent) {
         return false;
       }
-      
+
       if (filters.type && event.type !== filters.type) {
         return false;
       }
-      
+
       if (filters.severity && event.severity !== filters.severity) {
         return false;
       }
-      
+
       // Time range filtering
       if (filters.timeRange) {
         const now = new Date();
         const eventTime = new Date(event.timestamp);
         const diffMs = now.getTime() - eventTime.getTime();
-        
+
         const timeRanges: Record<string, number> = {
           '15m': 15 * 60 * 1000,
           '1h': 60 * 60 * 1000,
@@ -333,12 +333,12 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
           '24h': 24 * 60 * 60 * 1000,
           '7d': 7 * 24 * 60 * 60 * 1000
         };
-        
+
         if (timeRanges[filters.timeRange] && diffMs > timeRanges[filters.timeRange]) {
           return false;
         }
       }
-      
+
       return true;
     });
   }, [events, filters]);
@@ -389,7 +389,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
               <span className="text-yellow-600">{eventCounts.warning} warnings</span>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Button
               onClick={handleTogglePlayPause}
@@ -426,7 +426,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                 className="w-full"
               />
             </div>
-            
+
             <Select value={filters.agent} onValueChange={(value) => setFilters(prev => ({ ...prev, agent: value }))}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="All agents" />
@@ -441,7 +441,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                 <SelectItem value="TechDebtAnalysisAgent">Tech Debt Analysis</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <Select value={filters.type} onValueChange={(value) => setFilters(prev => ({ ...prev, type: value }))}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="All types" />
@@ -455,7 +455,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                 <SelectItem value="system_event">System Event</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <Select value={filters.timeRange} onValueChange={(value) => setFilters(prev => ({ ...prev, timeRange: value }))}>
               <SelectTrigger className="w-32">
                 <SelectValue placeholder="Time range" />
@@ -473,7 +473,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
       </CardHeader>
 
       <CardContent className="p-0">
-        <div 
+        <div
           ref={eventContainerRef}
           className="overflow-y-auto px-6 pb-6"
           style={{ height: typeof height === 'number' ? `${height}px` : height }}

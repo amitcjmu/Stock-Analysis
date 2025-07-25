@@ -1,6 +1,6 @@
 /**
  * Collection Forms Components Index
- * 
+ *
  * Exports for form-related collection components.
  */
 

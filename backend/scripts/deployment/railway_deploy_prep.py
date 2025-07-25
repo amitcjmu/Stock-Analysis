@@ -71,7 +71,7 @@ async def prepare_for_railway_deployment():
                     orphaned_flows = await conn.execute(
                         sa.text(
                             """
-                        SELECT df.flow_id, df.client_account_id, df.engagement_id, 
+                        SELECT df.flow_id, df.client_account_id, df.engagement_id,
                                df.user_id, df.flow_name, df.created_at
                         FROM discovery_flows df
                         LEFT JOIN crewai_flow_state_extensions cse ON df.flow_id = cse.flow_id
@@ -129,7 +129,7 @@ async def prepare_for_railway_deployment():
                 consistency_check = await conn.execute(
                     sa.text(
                         """
-                    SELECT 
+                    SELECT
                         (SELECT COUNT(*) FROM discovery_flows) as discovery_count,
                         (SELECT COUNT(*) FROM crewai_flow_state_extensions) as extensions_count,
                         (SELECT COUNT(*) FROM discovery_flows df
@@ -165,8 +165,8 @@ async def prepare_for_railway_deployment():
                     check_result = await conn.execute(
                         sa.text(
                             """
-                        SELECT COUNT(*) 
-                        FROM information_schema.columns 
+                        SELECT COUNT(*)
+                        FROM information_schema.columns
                         WHERE table_name = :table_name AND column_name = :column_name
                     """
                         ),

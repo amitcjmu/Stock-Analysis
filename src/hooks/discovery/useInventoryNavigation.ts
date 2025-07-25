@@ -71,4 +71,4 @@ export const useInventoryNavigation = (flowId?: string) => {
     validateInventoryCompletion,
     getInventoryCompletionMessage,
   };
-}; 
+};

@@ -33,7 +33,7 @@ export const CrewCard: React.FC<CrewCardProps> = ({ crew, isActive }) => {
           </div>
           <Progress value={crew.progress} className="h-2" />
         </div>
-        
+
         {crew.currentTask && (
           <div className="mb-4 p-2 bg-blue-50 rounded text-sm">
             <span className="font-medium">Current Task: </span>
@@ -78,7 +78,7 @@ export const CrewCard: React.FC<CrewCardProps> = ({ crew, isActive }) => {
             )}
           </div>
         )}
-        
+
         <div className="space-y-2">
           <h4 className="text-sm font-medium">Agents ({crew.agents.length})</h4>
           {crew.agents.map((agent, idx) => (

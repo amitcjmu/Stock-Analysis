@@ -29,13 +29,13 @@ class DataImportValidationAgent(BaseCrewAIAgent):
         super().__init__(
             role="Data Import Validation Specialist",
             goal="Ensure imported data meets quality standards and is ready for processing",
-            backstory="""You are an expert data validator with years of experience 
+            backstory="""You are an expert data validator with years of experience
             in enterprise data migration. You excel at:
             - Identifying data quality issues before they cause problems
             - Detecting patterns and anomalies in large datasets
             - Ensuring data meets schema requirements
             - Protecting sensitive information through PII detection
-            
+
             Your validation prevents downstream failures and ensures smooth migrations.""",
             tools=tools,
             llm=llm,

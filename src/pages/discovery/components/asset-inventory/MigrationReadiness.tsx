@@ -33,7 +33,7 @@ const MigrationReadiness: React.FC<MigrationReadinessProps> = ({
 }) => {
   const readinessPercentage = Math.round((readiness.ready_for_assessment / totalAssets) * 100) || 0;
   const readinessStatus = readinessPercentage >= 90 ? 'ready' : readinessPercentage >= 50 ? 'partial' : 'not-ready';
-  
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ready': return 'bg-green-100 text-green-800';
@@ -52,7 +52,7 @@ const MigrationReadiness: React.FC<MigrationReadinessProps> = ({
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'ready': 
+      case 'ready':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'partial':
         return <AlertCircle className="h-4 w-4 text-yellow-500" />;
@@ -91,10 +91,10 @@ const MigrationReadiness: React.FC<MigrationReadinessProps> = ({
           <div>
             <CardTitle className="text-lg">Migration Readiness</CardTitle>
             <CardDescription>
-              {readinessStatus === 'ready' 
-                ? 'Your assets are ready for migration' 
-                : readinessStatus === 'partial' 
-                  ? 'Some assets need attention before migration' 
+              {readinessStatus === 'ready'
+                ? 'Your assets are ready for migration'
+                : readinessStatus === 'partial'
+                  ? 'Some assets need attention before migration'
                   : 'Your assets require significant work before migration'}
             </CardDescription>
           </div>
@@ -104,7 +104,7 @@ const MigrationReadiness: React.FC<MigrationReadinessProps> = ({
           </Badge>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         <div className="space-y-4">
           {/* Readiness Progress */}
@@ -123,7 +123,7 @@ const MigrationReadiness: React.FC<MigrationReadinessProps> = ({
               {readinessCriteria.map((item) => (
                 <div key={item.label} className="flex items-center justify-between text-sm">
                   <div className="flex items-center">
-                    <div 
+                    <div
                       className="w-3 h-3 rounded-full mr-2"
                       style={{ backgroundColor: item.color }}
                     />
@@ -150,14 +150,14 @@ const MigrationReadiness: React.FC<MigrationReadinessProps> = ({
                         {Math.round((stats.ready / stats.total) * 100)}% ready
                       </span>
                     </div>
-                    <Progress 
-                      value={(stats.ready / stats.total) * 100} 
+                    <Progress
+                      value={(stats.ready / stats.total) * 100}
                       className="h-1.5"
                       indicatorClassName={
-                        (stats.ready / stats.total) > 0.9 
-                          ? 'bg-green-500' 
-                          : (stats.ready / stats.total) > 0.5 
-                            ? 'bg-yellow-500' 
+                        (stats.ready / stats.total) > 0.9
+                          ? 'bg-green-500'
+                          : (stats.ready / stats.total) > 0.5
+                            ? 'bg-yellow-500'
                             : 'bg-red-500'
                       }
                     />
@@ -171,9 +171,9 @@ const MigrationReadiness: React.FC<MigrationReadinessProps> = ({
           <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
             <h4 className="text-sm font-medium text-blue-800 mb-1">Improve Readiness</h4>
             <p className="text-xs text-blue-700 mb-2">
-              {readinessStatus === 'ready' 
+              {readinessStatus === 'ready'
                 ? 'Your assets are well-prepared for migration. Consider optimizing further for cost savings.'
-                : readinessStatus === 'partial' 
+                : readinessStatus === 'partial'
                   ? 'Address the issues with non-ready assets to improve overall migration readiness.'
                   : 'Focus on the most critical assets first to improve migration readiness.'}
             </p>

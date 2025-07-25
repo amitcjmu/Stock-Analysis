@@ -6,7 +6,7 @@ This directory contains scripts that were created for one-time debugging or fixi
 
 ### Cache Debugging Scripts
 - **check_react_query_cache.js** - Browser console script to debug a specific problematic flow ID in React Query cache
-- **clear_browser_cache.js** - Temporary browser console script to clear stale flow data from storage  
+- **clear_browser_cache.js** - Temporary browser console script to clear stale flow data from storage
 - **clear_frontend_cache.js** - Enhanced version of cache clearing script for troubleshooting
 
 These scripts were created during the session_id → flow_id migration (Remediation Phase 1) to debug flow context synchronization issues mentioned in the platform documentation.

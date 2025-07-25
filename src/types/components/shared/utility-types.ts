@@ -1,6 +1,6 @@
 /**
  * Utility Types
- * 
+ *
  * Shared utility types for styling, spacing, and component configurations.
  */
 

@@ -82,7 +82,7 @@ if ! docker-compose ps | grep -q "migration_backend.*Up"; then
     echo -e "${RED}❌ Backend container is not running.${NC}"
     echo -e "${YELLOW}Starting containers...${NC}"
     docker-compose up -d
-    
+
     # Wait for containers to be ready
     echo "Waiting for services to be ready..."
     sleep 10
@@ -128,7 +128,7 @@ if [ $EXIT_CODE -eq 0 ]; then
     echo -e "\n${GREEN}🎉 All database models are in sync!${NC}"
 elif [ $EXIT_CODE -eq 1 ]; then
     echo -e "\n${YELLOW}⚠️  Schema differences detected. See report above.${NC}"
-    
+
     if [ "$FIX_MODE" = true ]; then
         echo -e "${BLUE}🔧 Migration suggestions generated.${NC}"
         echo -e "${YELLOW}Next steps:${NC}"

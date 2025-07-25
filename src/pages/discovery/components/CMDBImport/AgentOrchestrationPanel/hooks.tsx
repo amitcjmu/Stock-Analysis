@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { 
-  MapPin, 
-  Database, 
-  Search, 
-  Activity, 
-  Zap, 
-  Target 
+import {
+  MapPin,
+  Database,
+  Search,
+  Activity,
+  Zap,
+  Target
 } from 'lucide-react';
 import type { CollaborationData, PlanningData } from './types'
 import type { CrewProgress } from './types'
@@ -108,7 +108,7 @@ export const useAgentOrchestrationState = () => /* TODO: Add proper return type 
     },
     {
       name: 'Inventory Building Crew',
-      status: 'pending', 
+      status: 'pending',
       progress: 0,
       manager: 'Inventory Manager',
       agents: [

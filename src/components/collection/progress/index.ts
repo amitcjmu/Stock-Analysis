@@ -1,6 +1,6 @@
 /**
  * Collection Progress Components Index
- * 
+ *
  * Exports for progress monitoring components.
  */
 

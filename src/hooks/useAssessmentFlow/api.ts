@@ -1,6 +1,6 @@
 /**
  * Assessment Flow API Client
- * 
+ *
  * API client functions for interacting with the assessment flow backend.
  */
 
@@ -26,21 +26,21 @@ export const assessmentFlowAPI = {
       },
       body: JSON.stringify(data),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to initialize assessment flow: ${response.statusText}`);
     }
-    
+
     return response.json();
   },
 
   async getStatus(flowId: string) {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/status`);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to get flow status: ${response.statusText}`);
     }
-    
+
     return response.json();
   },
 
@@ -52,11 +52,11 @@ export const assessmentFlowAPI = {
       },
       body: JSON.stringify(data),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to resume flow: ${response.statusText}`);
     }
-    
+
     return response.json();
   },
 
@@ -68,17 +68,17 @@ export const assessmentFlowAPI = {
       },
       body: JSON.stringify({ phase }),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to navigate to phase: ${response.statusText}`);
     }
-    
+
     return response.json();
   },
 
-  async updateArchitectureStandards(flowId: string, data: { 
-    engagement_standards: ArchitectureStandard[]; 
-    application_overrides: Record<string, ArchitectureStandard> 
+  async updateArchitectureStandards(flowId: string, data: {
+    engagement_standards: ArchitectureStandard[];
+    application_overrides: Record<string, ArchitectureStandard>
   }) {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/architecture-standards`, {
       method: 'PUT',
@@ -87,11 +87,11 @@ export const assessmentFlowAPI = {
       },
       body: JSON.stringify(data),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to update architecture standards: ${response.statusText}`);
     }
-    
+
     return response.json();
   },
 
@@ -103,11 +103,11 @@ export const assessmentFlowAPI = {
       },
       body: JSON.stringify({ components }),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to update application components: ${response.statusText}`);
     }
-    
+
     return response.json();
   },
 
@@ -119,51 +119,51 @@ export const assessmentFlowAPI = {
       },
       body: JSON.stringify(decision),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to update 6R decision: ${response.statusText}`);
     }
-    
+
     return response.json();
   },
 
   async getArchitectureStandards(flowId: string) {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/architecture-standards`);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to get architecture standards: ${response.statusText}`);
     }
-    
+
     return response.json();
   },
 
   async getTechDebtAnalysis(flowId: string) {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/tech-debt-analysis`);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to get tech debt analysis: ${response.statusText}`);
     }
-    
+
     return response.json();
   },
 
   async getApplicationComponents(flowId: string) {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/application-components`);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to get application components: ${response.statusText}`);
     }
-    
+
     return response.json();
   },
 
   async getSixRDecisions(flowId: string) {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/sixr-decisions`);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to get 6R decisions: ${response.statusText}`);
     }
-    
+
     return response.json();
   },
 
@@ -174,11 +174,11 @@ export const assessmentFlowAPI = {
         'Content-Type': 'application/json',
       },
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to finalize assessment: ${response.statusText}`);
     }
-    
+
     return response.json();
   },
 };

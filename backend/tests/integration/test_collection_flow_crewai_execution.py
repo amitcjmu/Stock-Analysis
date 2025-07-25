@@ -50,7 +50,7 @@ async def test_platform_detection_agent_execution():
         - Infrastructure: 50 servers in VMware vSphere
         - Cloud presence: Some workloads in AWS
         - Databases: Oracle and PostgreSQL
-        
+
         Provide a list of detected platforms with confidence levels.""",
         agent=agent,
         expected_output="List of detected platforms with confidence scores",
@@ -102,7 +102,7 @@ async def test_gap_prioritization_agent_execution():
         2. Unknown database sizes (affects capacity planning)
         3. Missing security compliance data (blocks approval)
         4. Incomplete network topology (impacts connectivity)
-        
+
         Rank these gaps by priority and explain your reasoning.""",
         agent=agent,
         expected_output="Prioritized list of gaps with justification",

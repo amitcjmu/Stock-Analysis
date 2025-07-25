@@ -1,9 +1,9 @@
 /**
  * Account and Subscription Management Types
- * 
+ *
  * Account tiers, subscription management, billing information,
  * and payment processing types for admin account management.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 
@@ -86,16 +86,16 @@ export interface PaymentMethodDetails {
   expiryMonth?: number;
   expiryYear?: number;
   fingerprint?: string;
-  
+
   // Bank Account Details
   bankName?: string;
   accountType?: string;
   routingNumber?: string;
-  
+
   // Digital Wallet Details
   walletType?: string;
   walletEmail?: string;
-  
+
   // Common Details
   billingAddress?: Address;
   metadata?: Record<string, string | number | boolean | null>;

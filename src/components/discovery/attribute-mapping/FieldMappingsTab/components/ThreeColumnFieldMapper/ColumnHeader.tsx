@@ -1,6 +1,6 @@
 /**
  * Column Header Component
- * 
+ *
  * Reusable header component for the three-column layout.
  */
 

@@ -6,24 +6,24 @@ import { Link } from 'react-router-dom';
 
 const FinOps = () => {
   const finOpsAreas = [
-    { 
-      name: 'Cloud Provider Comparison', 
-      path: '/finops/cloud-comparison', 
-      icon: Cloud, 
+    {
+      name: 'Cloud Provider Comparison',
+      path: '/finops/cloud-comparison',
+      icon: Cloud,
       description: 'AI-powered cost analysis across AWS, Azure, and GCP',
       metrics: 'AWS Recommended | 94% Compatibility Score'
     },
-    { 
-      name: 'Operational Savings Analysis', 
-      path: '/finops/savings-analysis', 
-      icon: TrendingUp, 
+    {
+      name: 'Operational Savings Analysis',
+      path: '/finops/savings-analysis',
+      icon: TrendingUp,
       description: 'Track ROI and cost savings across migration waves',
       metrics: '$328K YTD Savings | 278% Average ROI'
     },
-    { 
-      name: 'Cost Analysis Dashboard', 
-      path: '/finops/cost-analysis', 
-      icon: Calculator, 
+    {
+      name: 'Cost Analysis Dashboard',
+      path: '/finops/cost-analysis',
+      icon: Calculator,
       description: 'Compare current vs planned vs actual costs by application',
       metrics: '1.2% Over Budget | 8 Applications Tracked'
     }
@@ -40,7 +40,7 @@ const FinOps = () => {
       savings: 15
     },
     {
-      wave: 'W2', 
+      wave: 'W2',
       computeCost: 15000,
       licensingCost: 3000,
       totalCost: 18000,

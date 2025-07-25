@@ -118,11 +118,11 @@ class DataQualityAgent:
             role="Data Quality Analyst",
             goal="Assess data quality issues"
         )
-    
+
     def analyze_field(self, field_name: str, data_sample: list):
         # Perform analysis
         issues = self._analyze_data_quality(data_sample)
-        
+
         # Broadcast decision
         agent_ui_bridge.broadcast_agent_decision(
             flow_id=self.flow_id,
@@ -146,12 +146,12 @@ const eventSource = new EventSource(`/api/v1/flows/${flowId}/events`);
 
 eventSource.addEventListener('flow_update', (event) => {
   const data = JSON.parse(event.data);
-  
+
   // Check for agent decisions
   if (data.agent_decision) {
     displayAgentDecision(data.agent_decision);
   }
-  
+
   // Display insights
   data.agent_insights.forEach(insight => {
     if (insight.type === 'decision') {

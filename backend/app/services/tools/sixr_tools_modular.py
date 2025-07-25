@@ -131,9 +131,7 @@ try:
         """Tool for analyzing CMDB data to extract 6R-relevant insights."""
 
         name: str = "cmdb_analysis_tool"
-        description: str = (
-            "Analyze CMDB application data to extract insights for 6R migration strategy analysis"
-        )
+        description: str = "Analyze CMDB application data to extract insights for 6R migration strategy analysis"
         args_schema: type[BaseModel] = CMDBAnalysisInput
 
         def _run(
@@ -217,9 +215,7 @@ try:
         """Tool for validating 6R recommendations against business constraints."""
 
         name: str = "recommendation_validation_tool"
-        description: str = (
-            "Validate 6R migration recommendations against business constraints and requirements"
-        )
+        description: str = "Validate 6R migration recommendations against business constraints and requirements"
         args_schema: type[BaseModel] = ValidationInput
 
         def _run(

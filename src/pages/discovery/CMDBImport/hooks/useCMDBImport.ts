@@ -5,8 +5,8 @@ import { useUnifiedDiscoveryFlow } from '@/hooks/useUnifiedDiscoveryFlow';
 import { useFileUpload } from './useFileUpload';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  useIncompleteFlowDetectionV2, 
+import {
+  useIncompleteFlowDetectionV2,
   useFlowResumptionV2
 } from '@/hooks/discovery/useFlowOperations';
 import { useFlowDeletion } from '@/hooks/useFlowDeletion';
@@ -51,7 +51,7 @@ export const useCMDBImport = () => {
     isInitializing,
     pollingStatus,
   } = useUnifiedDiscoveryFlow(activeFlowId);
-  
+
   // Flow Management hooks
   const { data: incompleteFlowsData, isLoading: checkingFlows, refetch: refetchIncompleteFlows } = useIncompleteFlowDetectionV2();
   const flowResumption = useFlowResumptionV2();
@@ -70,19 +70,19 @@ export const useCMDBImport = () => {
       });
     }
   );
-  
+
   const incompleteFlows = incompleteFlowsData?.flows || [];
   const hasIncompleteFlows = incompleteFlows.length > 0;
-  
+
   // Effect to set active flow ID once upload is done
   useEffect(() => {
     if (uploadedFiles.length > 0 && uploadedFiles[0].flow_id) {
       const newFlowId = uploadedFiles[0].flow_id;
       if (activeFlowId !== newFlowId) {
-        console.log('🔄 Setting active flow ID:', { 
-          previous: activeFlowId, 
+        console.log('🔄 Setting active flow ID:', {
+          previous: activeFlowId,
           new: newFlowId,
-          file: uploadedFiles[0].name 
+          file: uploadedFiles[0].name
         });
         setActiveFlowId(newFlowId);
       }
@@ -100,7 +100,7 @@ export const useCMDBImport = () => {
         });
         return;
     }
-    
+
     if (!uploadedFile.flow_id) {
         toast({
             title: 'Flow not ready',
@@ -137,7 +137,7 @@ export const useCMDBImport = () => {
       });
       return;
     }
-    
+
     await deletionActions.requestDeletion(
       [flowId],
       client.id,
@@ -156,7 +156,7 @@ export const useCMDBImport = () => {
       });
       return;
     }
-    
+
     await deletionActions.requestDeletion(
       flowIds,
       client.id,
@@ -175,8 +175,8 @@ export const useCMDBImport = () => {
   // Poll for flow status updates
   useEffect(() => {
     const pollFlowStatus = async () => {
-      const processingFiles = uploadedFiles.filter(f => 
-        f.flow_id && 
+      const processingFiles = uploadedFiles.filter(f =>
+        f.flow_id &&
         (f.status === 'processing' || f.flow_status === 'running' || f.flow_status === 'active')
       );
 
@@ -185,7 +185,7 @@ export const useCMDBImport = () => {
           const response = await apiCall(`/api/v1/flows/${file.flow_id}/status`, {
             headers: getAuthHeaders()
           });
-          
+
           if (response.status === 'completed') {
             setUploadedFiles(prev => prev.map(f => {
               if (f.id === file.id) {
@@ -243,8 +243,8 @@ export const useCMDBImport = () => {
       }
     };
 
-    if (uploadedFiles.some(f => 
-      f.flow_id && 
+    if (uploadedFiles.some(f =>
+      f.flow_id &&
       (f.status === 'processing' || f.flow_status === 'running' || f.flow_status === 'active') &&
       f.flow_status !== 'waiting_for_approval' &&
       f.status !== 'waiting_approval'
@@ -288,7 +288,7 @@ export const useCMDBImport = () => {
     // Navigate to attribute mapping phase (next step after data import)
     const route = getDiscoveryPhaseRoute('attribute_mapping', uploadedFile.flow_id);
     console.log('🔗 Navigation: Navigating to route:', route);
-    
+
     navigate(route);
     toast({
       title: "Navigating to Attribute Mapping",
@@ -307,7 +307,7 @@ export const useCMDBImport = () => {
     handleDragOver: onDragOver,
     handleDragLeave: onDragLeave,
     handleDrop: onDrop,
-    
+
     // Flow management
     showFlowManager,
     setShowFlowManager,
@@ -319,11 +319,11 @@ export const useCMDBImport = () => {
     handleDeleteFlow,
     handleBatchDeleteFlows,
     handleViewFlowDetails,
-    
+
     // Loading states
     isStartingFlow: isInitializing,
     isDeletingFlows: deletionState.isDeleting,
-    
+
     // Actions
     startFlow: handleStartFlow,
     startDiscoveryFlow,
@@ -335,7 +335,7 @@ export const useCMDBImport = () => {
     flowStateError,
     refreshFlow,
     pollingStatus,
-    
+
     // Deletion state and actions for modal
     deletionState,
     deletionActions,

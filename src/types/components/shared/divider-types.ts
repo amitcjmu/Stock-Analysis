@@ -1,6 +1,6 @@
 /**
  * Divider Component Types
- * 
+ *
  * Divider and separator component interfaces.
  */
 

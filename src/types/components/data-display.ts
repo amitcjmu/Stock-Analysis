@@ -1,8 +1,8 @@
 /**
  * Data Display Component Types
- * 
+ *
  * Re-exports all data display component types from modular files for backward compatibility.
- * 
+ *
  * This file has been modularized into focused type definition files:
  * - chart-types.ts: Basic chart types including data points, legends, tooltips, and scales
  * - chart-config-types.ts: Chart configuration types including datasets, options, and interactions

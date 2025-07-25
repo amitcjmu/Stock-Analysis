@@ -116,7 +116,9 @@ class NetworkTopologyTool(BaseTool):
             complexity_level = (
                 "high"
                 if complexity_score >= 6
-                else "medium" if complexity_score >= 3 else "low"
+                else "medium"
+                if complexity_score >= 3
+                else "low"
             )
 
             return {
@@ -195,9 +197,9 @@ class DependencyAnalysisCrew:
         return Agent(
             role="Network Architecture Specialist",
             goal="Analyze network topology and architecture patterns to identify connectivity dependencies and migration requirements",
-            backstory="""You are a network architecture specialist with extensive experience in 
-            enterprise network design and migration planning. You understand complex network 
-            topologies, connectivity patterns, and the dependencies between network components. 
+            backstory="""You are a network architecture specialist with extensive experience in
+            enterprise network design and migration planning. You understand complex network
+            topologies, connectivity patterns, and the dependencies between network components.
             Your expertise helps identify critical network paths and potential migration challenges.""",
             tools=[self.network_topology_tool],
             verbose=True,
@@ -343,7 +345,9 @@ class DependencyAnalysisCrew:
             "analysis_quality": (
                 "high"
                 if avg_confidence > 0.8
-                else "medium" if avg_confidence > 0.6 else "low"
+                else "medium"
+                if avg_confidence > 0.6
+                else "low"
             ),
             "recommendations": [
                 f"Average analysis confidence of {avg_confidence:.1%} indicates good dependency mapping",

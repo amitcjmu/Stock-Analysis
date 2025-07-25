@@ -52,6 +52,30 @@ def create_table_if_not_exists(table_name, *columns, **kwargs):
         print(f"Table {table_name} already exists, skipping creation")
 
 
+def constraint_exists(constraint_name, table_name):
+    """Check if a constraint exists"""
+    bind = op.get_bind()
+    try:
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT 1 FROM information_schema.table_constraints
+                    WHERE table_schema = 'migration'
+                    AND constraint_schema = 'migration'
+                    AND table_name = :table_name
+                    AND constraint_name = :constraint_name
+                )
+            """
+            ).bindparams(table_name=table_name, constraint_name=constraint_name)
+        ).scalar()
+        return result
+    except Exception as e:
+        print(f"Error checking if constraint {constraint_name} exists: {e}")
+        # If we get an error, assume constraint exists
+        return True
+
+
 def upgrade() -> None:
     """Add security constraints and data protection measures"""
 
@@ -103,12 +127,13 @@ def upgrade() -> None:
     )
 
     # Add constraint for encryption algorithm
-    op.create_check_constraint(
-        "ck_encryption_algorithm",
-        "platform_credentials",
-        "encryption_algorithm IN ('AES-256-GCM', 'AES-256-CBC', 'RSA-4096', 'ChaCha20-Poly1305')",
-        schema="migration",
-    )
+    if not constraint_exists("ck_encryption_algorithm", "platform_credentials"):
+        op.create_check_constraint(
+            "ck_encryption_algorithm",
+            "platform_credentials",
+            "encryption_algorithm IN ('AES-256-GCM', 'AES-256-CBC', 'RSA-4096', 'ChaCha20-Poly1305')",
+            schema="migration",
+        )
 
     # 2. Add data sanitization function for security logs
     op.execute(

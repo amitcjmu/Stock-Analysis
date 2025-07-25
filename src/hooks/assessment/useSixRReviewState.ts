@@ -77,7 +77,7 @@ export const useSixRReviewState = ({
     bulkEditMode,
     selectedComponents,
     currentAppDecision,
-    
+
     // Actions
     setSelectedApp: handleAppSelect,
     setEditingComponent,

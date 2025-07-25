@@ -1,6 +1,6 @@
 /**
  * Bulk Actions Component
- * 
+ *
  * Component for bulk approve and bulk reject operations.
  */
 
@@ -31,8 +31,8 @@ const BulkActions: React.FC<BulkActionsProps> = ({
     onBulkReject(mappingIds);
   };
 
-  const isDisabled = !client?.id || !engagement?.id || 
-                    buckets.autoMapped.some(m => processingMappings.has(m.id)) || 
+  const isDisabled = !client?.id || !engagement?.id ||
+                    buckets.autoMapped.some(m => processingMappings.has(m.id)) ||
                     (Date.now() - lastBulkOperationTime < 5000);
 
   const getButtonText = (action: 'approve' | 'reject') => {

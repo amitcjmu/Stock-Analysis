@@ -2,11 +2,11 @@ import { useDialog as useDialogContext } from '@/contexts/DialogContext';
 
 /**
  * Hook for displaying standardized dialogs throughout the application
- * 
+ *
  * @example
  * ```tsx
  * const dialog = useDialog();
- * 
+ *
  * // Confirmation dialog
  * const confirmed = await dialog.confirm({
  *   title: 'Delete Item',
@@ -15,14 +15,14 @@ import { useDialog as useDialogContext } from '@/contexts/DialogContext';
  *   cancelText: 'Cancel',
  *   variant: 'destructive'
  * });
- * 
+ *
  * // Alert dialog
  * await dialog.alert({
  *   title: 'Success',
  *   description: 'Your changes have been saved.',
  *   icon: 'success'
  * });
- * 
+ *
  * // Prompt dialog
  * const name = await dialog.prompt({
  *   title: 'Enter Name',
@@ -30,7 +30,7 @@ import { useDialog as useDialogContext } from '@/contexts/DialogContext';
  *   placeholder: 'Item name...',
  *   validation: (value) => value.length < 3 ? 'Name must be at least 3 characters' : null
  * });
- * 
+ *
  * // Loading dialog
  * const loader = dialog.loading({
  *   title: 'Processing',

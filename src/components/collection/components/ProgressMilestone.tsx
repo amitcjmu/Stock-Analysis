@@ -1,6 +1,6 @@
 /**
  * Progress Milestone Component
- * 
+ *
  * Individual milestone display with achievement status
  * Agent Team B3 - Progress milestone component
  */
@@ -41,7 +41,7 @@ export const ProgressMilestone: React.FC<ProgressMilestoneProps> = ({
           <Circle className="h-5 w-5 text-gray-400" />
         )}
       </div>
-      
+
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <h4 className={cn(
@@ -50,13 +50,13 @@ export const ProgressMilestone: React.FC<ProgressMilestoneProps> = ({
           )}>
             {milestone.title}
           </h4>
-          
+
           {milestone.required && (
             <Badge variant="outline" className="text-xs">
               Required
             </Badge>
           )}
-          
+
           {milestone.weight > 0.1 && (
             <Badge variant="secondary" className="text-xs">
               <Trophy className="h-3 w-3 mr-1" />
@@ -64,21 +64,21 @@ export const ProgressMilestone: React.FC<ProgressMilestoneProps> = ({
             </Badge>
           )}
         </div>
-        
+
         <p className={cn(
           'text-xs',
           milestone.achieved ? 'text-green-700' : 'text-gray-600'
         )}>
           {milestone.description}
         </p>
-        
+
         {milestone.achieved && milestone.achievedAt && (
           <div className="flex items-center gap-1 mt-1 text-xs text-green-600">
             <CheckCircle className="h-3 w-3" />
             Completed {new Date(milestone.achievedAt).toLocaleDateString()}
           </div>
         )}
-        
+
         {!milestone.achieved && milestone.targetDate && (
           <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />

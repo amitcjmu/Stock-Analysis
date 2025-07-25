@@ -1,9 +1,9 @@
 /**
  * Maintenance Settings Configuration Types
- * 
+ *
  * System maintenance configuration including maintenance windows,
  * automation, backup settings, and update procedures.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

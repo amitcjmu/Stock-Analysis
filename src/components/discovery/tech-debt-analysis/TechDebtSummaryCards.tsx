@@ -52,7 +52,7 @@ export const TechDebtSummaryCards: React.FC<TechDebtSummaryCardsProps> = ({
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {cards.map((card) => (
-        <Card 
+        <Card
           key={card.title}
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => onFilterChange(card.filter.type, card.filter.value)}
@@ -68,8 +68,8 @@ export const TechDebtSummaryCards: React.FC<TechDebtSummaryCardsProps> = ({
           <CardContent>
             <div className="text-2xl font-bold">{card.value}</div>
             <p className="text-xs text-muted-foreground">
-              {card.title === 'Total Items' 
-                ? 'across all components' 
+              {card.title === 'Total Items'
+                ? 'across all components'
                 : `${Math.round((card.value / summary.totalItems) * 100)}% of total`}
             </p>
           </CardContent>

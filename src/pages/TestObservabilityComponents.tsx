@@ -127,7 +127,7 @@ const TestObservabilityComponents = () => {
   const simulateLoading = () => {
     setShowLoading(true);
     setLoadingStage(0);
-    
+
     const interval = setInterval(() => {
       setLoadingStage(prev => {
         if (prev >= loadingStages.length - 1) {
@@ -184,7 +184,7 @@ const TestObservabilityComponents = () => {
                             <AgentStatusIndicator status="offline" variant="dot" showLabel />
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium">Badge Variant:</span>
                           <div className="flex items-center space-x-2">
@@ -194,7 +194,7 @@ const TestObservabilityComponents = () => {
                             <AgentStatusIndicator status="offline" variant="badge" />
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium">Icon Variant:</span>
                           <div className="flex items-center space-x-3">
@@ -236,7 +236,7 @@ const TestObservabilityComponents = () => {
                             onClick={handleAgentSelect}
                           />
                         </div>
-                        
+
                         <div>
                           <h4 className="text-sm font-medium mb-2">Detailed Card:</h4>
                           <AgentPerformanceCard
@@ -347,7 +347,7 @@ const TestObservabilityComponents = () => {
                           <h4 className="text-sm font-medium mb-2">Loading Spinner:</h4>
                           <LoadingSpinner text="Loading agents..." size="md" />
                         </div>
-                        
+
                         <div>
                           <Button onClick={simulateLoading} className="w-full">
                             Test Progressive Loader
@@ -372,14 +372,14 @@ const TestObservabilityComponents = () => {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-4">
-                        <Button 
-                          onClick={simulateError} 
+                        <Button
+                          onClick={simulateError}
                           variant="destructive"
                           className="w-full"
                         >
                           Simulate Error
                         </Button>
-                        
+
                         {showError && (
                           <div className="space-y-4">
                             <EmptyState
@@ -447,7 +447,7 @@ const TestObservabilityComponents = () => {
                       <p className="text-sm text-gray-600">
                         Resize your browser window to test responsive behavior:
                       </p>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {mockAgents.map((agent) => (
                           <AgentPerformanceCardCompact

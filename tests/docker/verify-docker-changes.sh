@@ -26,21 +26,21 @@ docker-compose exec -T backend python -c "
 try:
     from app.services.tools.field_mapping_tool import field_mapping_tool
     from app.services.field_mapper import field_mapper
-    
+
     # Test basic functionality
     result = field_mapping_tool.learn_field_mapping('TEST_FIELD', 'Test Field', 'verification')
     print(f'✅ Field mapping tool working: {result[\"success\"]}')
-    
+
     # Test field mapper
     mappings = field_mapper.get_field_mappings()
     print(f'✅ Field mapper working: {len(mappings)} base mappings available')
-    
+
     # Test learned mappings persistence
     stats = field_mapper.get_mapping_statistics()
     print(f'✅ Mapping statistics: {stats[\"base_field_types\"]} base types, {stats[\"learned_field_types\"]} learned types')
-    
+
     print('🎉 All field mapping functionality is working in Docker!')
-    
+
 except Exception as e:
     print(f'❌ Field mapping test failed: {e}')
     exit(1)
@@ -80,4 +80,4 @@ echo "✅ Agent monitoring working"
 echo "✅ Frontend accessible"
 echo ""
 echo "🚀 All systems operational! Your code changes are active in Docker."
-echo "🌐 Access the application at: http://localhost:8081" 
+echo "🌐 Access the application at: http://localhost:8081"

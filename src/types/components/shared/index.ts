@@ -1,6 +1,6 @@
 /**
  * Shared Component Types Index
- * 
+ *
  * Centralized exports for all shared component types.
  */
 

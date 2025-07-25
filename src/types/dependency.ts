@@ -72,4 +72,4 @@ export interface DependencyUpdateResponse {
     type: 'app-server' | 'app-app';
     status: 'pending' | 'confirmed';
   };
-} 
+}

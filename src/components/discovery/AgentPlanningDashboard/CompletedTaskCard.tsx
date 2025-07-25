@@ -1,6 +1,6 @@
 /**
  * Completed Task Card Component
- * 
+ *
  * Specialized card for displaying completed tasks.
  */
 

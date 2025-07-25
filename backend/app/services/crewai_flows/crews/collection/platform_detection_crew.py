@@ -47,14 +47,14 @@ def create_platform_detection_crew(
             - Container platforms (Kubernetes, OpenShift, Docker Swarm)
             - Database platforms (Oracle, SQL Server, PostgreSQL, MySQL)
             - Middleware and application servers
-            
+
             You excel at:
             1. Detecting platform types from infrastructure metadata
             2. Identifying platform-specific features and capabilities
             3. Determining appropriate collection adapters for each platform
             4. Assessing platform readiness for migration
             5. Identifying potential compatibility issues
-            
+
             Your analysis ensures comprehensive platform coverage for migration planning.""",
             llm=llm,
             memory=shared_memory,
@@ -67,12 +67,12 @@ def create_platform_detection_crew(
             goal="Determine the optimal automation tier for each detected platform based on API availability, credentials, and complexity",
             backstory="""You are an automation assessment expert who determines the best collection approach.
             You understand the four automation tiers:
-            
+
             Tier 1 (Full Automation): APIs available, credentials valid, minimal complexity
             Tier 2 (Semi-Automated): Some APIs available, partial credentials, moderate complexity
             Tier 3 (Guided Collection): Limited APIs, complex authentication, high complexity
             Tier 4 (Manual Process): No APIs, missing credentials, extreme complexity
-            
+
             You assess each platform's automation potential and recommend the appropriate tier.""",
             llm=llm,
             memory=shared_memory,
@@ -146,9 +146,9 @@ def create_platform_detection_crew(
             description=f"""Assess automation tier for each detected platform:
 
             Automation Preferences: {automation_preferences}
-            
+
             For each detected platform, determine:
-            
+
             1. API AVAILABILITY ASSESSMENT:
                - Check if platform APIs are accessible
                - Verify API rate limits and quotas

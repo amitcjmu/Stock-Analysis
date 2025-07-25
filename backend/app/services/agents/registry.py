@@ -83,7 +83,6 @@ class AgentRegistry:
                             and hasattr(obj, "agent_metadata")
                             and not inspect.isabstract(obj)
                         ):
-
                             try:
                                 metadata = obj.agent_metadata()
                                 self.register_agent(metadata)

@@ -14,9 +14,9 @@ async def check_raw_data():
 
         # Query raw import records
         query = """
-            SELECT raw_data 
-            FROM raw_import_records 
-            WHERE client_account_id = '73dee5f1-6a01-43e3-b1b8-dbe6c66f2990' 
+            SELECT raw_data
+            FROM raw_import_records
+            WHERE client_account_id = '73dee5f1-6a01-43e3-b1b8-dbe6c66f2990'
             ORDER BY id LIMIT 3
         """
         rows = await conn.fetch(query)

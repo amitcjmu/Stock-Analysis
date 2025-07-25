@@ -19,15 +19,15 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
   const queryClient = useQueryClient();
   const lastStatusRef = useRef<string | null>(null);
   const [showWorkflowControls, setShowWorkflowControls] = useState(false);
-  
+
   // Use the authenticated discovery status hook for secure status updates
-  const { 
-    data: statusData, 
-    isLoading: isStatusLoading, 
+  const {
+    data: statusData,
+    isLoading: isStatusLoading,
     error: statusError,
-    refetch: refetchStatus 
+    refetch: refetchStatus
   } = useAuthenticatedDiscoveryStatus(file.flowId);
-  
+
   // Log any status errors for debugging
   useEffect(() => {
     if (statusError) {
@@ -40,13 +40,13 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
     const currentStatus = statusData?.status;
     if (currentStatus && currentStatus !== lastStatusRef.current) {
       lastStatusRef.current = currentStatus;
-      
+
       // Handle workflow status messages that indicate existing workflows
-      if (statusData?.message?.includes("already running") || 
+      if (statusData?.message?.includes("already running") ||
           statusData?.message?.includes("Workflow already")) {
         setShowWorkflowControls(true);
       }
-      
+
       // Only invalidate queries when we reach terminal states
       if (currentStatus === 'completed' || currentStatus === 'failed') {
         // Invalidate relevant queries to refresh UI data
@@ -94,7 +94,7 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
         return {
           icon: <CheckCircle className="h-4 w-4 text-green-500" />,
           text: 'Analysis completed successfully',
-          color: 'text-green-600', 
+          color: 'text-green-600',
           bgColor: 'bg-green-50'
         };
       case 'failed':
@@ -160,10 +160,10 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
               )}
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={() => refetchStatus()}
               disabled={isStatusLoading}
@@ -181,8 +181,8 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
                 A workflow is already running for this session. What would you like to do?
               </p>
               <div className="flex space-x-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={handleCancelWorkflow}
                   className="flex items-center space-x-1"
@@ -190,8 +190,8 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
                   <StopCircle className="h-4 w-4" />
                   <span>Cancel & Restart</span>
                 </Button>
-                <Button 
-                  variant="default" 
+                <Button
+                  variant="default"
                   size="sm"
                   onClick={() => setShowWorkflowControls(false)}
                   className="flex items-center space-x-1"
@@ -207,8 +207,8 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
 
       {/* CrewAI Agent Feedback Panel */}
       {statusData?.status && ['running', 'in_progress', 'processing', 'completed'].includes(statusData.status) && (
-        <AgentFeedbackPanel 
-          flowId={file.flowId || 'unknown'} 
+        <AgentFeedbackPanel
+          flowId={file.flowId || 'unknown'}
           statusData={statusData}
         />
       )}
@@ -217,8 +217,8 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
       <div className="flex justify-between items-center pt-4 border-t">
         <div className="flex space-x-2">
           {statusData?.status === 'failed' && onRetry && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={handleRetryWorkflow}
               className="flex items-center space-x-1"
@@ -228,12 +228,12 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
             </Button>
           )}
         </div>
-        
+
         <div className="flex space-x-2">
           {statusData?.status === 'completed' && (
             <>
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 size="sm"
                 onClick={() => onNavigate('/discovery/attribute-mapping')}
                 className="flex items-center space-x-1"
@@ -241,8 +241,8 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
                 <span>Continue to Attribute Mapping</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => onNavigate('/discovery/inventory')}
                 className="flex items-center space-x-1"

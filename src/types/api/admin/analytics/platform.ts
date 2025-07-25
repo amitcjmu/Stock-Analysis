@@ -1,8 +1,8 @@
 /**
  * Platform Analytics Types
- * 
+ *
  * Core platform analytics data structures and metrics.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

@@ -333,9 +333,12 @@ async def create_migration_planning():
         print(f"    ✅ Created {len(waves)} migration waves")
 
         # Assign 6R strategies and waves to assets
-        assets, strategy_counts, wave_assignments, readiness_counts = (
-            await assign_6r_strategies_and_waves(session)
-        )
+        (
+            assets,
+            strategy_counts,
+            wave_assignments,
+            readiness_counts,
+        ) = await assign_6r_strategies_and_waves(session)
         print(f"    ✅ Updated {len(assets)} assets with migration planning")
 
         # Update wave statistics

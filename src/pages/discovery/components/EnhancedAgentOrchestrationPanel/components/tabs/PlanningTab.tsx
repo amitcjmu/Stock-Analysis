@@ -94,7 +94,7 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({ planningData }) => {
               <Progress value={planningData.optimization_score} className="h-3" />
             </div>
             <div className="text-sm text-gray-600">
-              The planning system has made {planningData.adaptive_adjustments} adaptive 
+              The planning system has made {planningData.adaptive_adjustments} adaptive
               adjustments to optimize the migration strategy.
             </div>
           </div>

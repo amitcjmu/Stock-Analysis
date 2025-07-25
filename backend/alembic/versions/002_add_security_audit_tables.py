@@ -24,8 +24,8 @@ def table_exists(table_name):
         sa.text(
             """
             SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_schema = 'migration' 
+                SELECT FROM information_schema.tables
+                WHERE table_schema = 'migration'
                 AND table_name = :table_name
             )
             """
@@ -50,9 +50,9 @@ def index_exists(index_name, table_name):
         sa.text(
             """
             SELECT EXISTS (
-                SELECT FROM pg_indexes 
-                WHERE schemaname = 'migration' 
-                AND tablename = :table_name 
+                SELECT FROM pg_indexes
+                WHERE schemaname = 'migration'
+                AND tablename = :table_name
                 AND indexname = :index_name
             )
             """

@@ -105,7 +105,7 @@ const SixRReviewPage: React.FC<SixRReviewPageProps> = ({ flowId }) => {
         {selectedApp && currentAppDecision && (
           <>
             {/* Application Decision Summary */}
-            <SixRAppDecisionSummary 
+            <SixRAppDecisionSummary
               selectedApp={selectedApp}
               decision={currentAppDecision}
             />

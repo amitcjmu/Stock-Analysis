@@ -55,7 +55,7 @@ export interface DashboardData {
  */
 export const useDashboardData = () => {
   const { user, client, engagement, getAuthHeaders } = useAuth();
-  
+
   return useQuery({
     queryKey: ['dashboard-data', user?.id, client?.id, engagement?.id],
     queryFn: async (): Promise<DashboardData> => {
@@ -66,7 +66,7 @@ export const useDashboardData = () => {
           method: 'GET',
           headers: getAuthHeaders({ user, client, engagement })
         }),
-        
+
         // Get latest import data
         apiCall('/api/v1/data-import/latest-import', {
           method: 'GET',

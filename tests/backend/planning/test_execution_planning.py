@@ -32,7 +32,7 @@ except ImportError:
 @pytest.mark.skipif(not PLANNING_COMPONENTS_AVAILABLE, reason="Planning components not available")
 class TestPlanGeneration:
     """Test suite for execution plan generation"""
-    
+
     @pytest.fixture
     def mock_planning_coordinator(self):
         """Mock planning coordinator for testing"""
@@ -42,7 +42,7 @@ class TestPlanGeneration:
         coordinator.optimize_execution_order = AsyncMock()
         coordinator.validate_plan = AsyncMock()
         return coordinator
-    
+
     @pytest.fixture
     def sample_data_scenarios(self):
         """Sample data scenarios with different complexity levels"""
@@ -69,7 +69,7 @@ class TestPlanGeneration:
                 "dependency_complexity": "high"
             }
         }
-    
+
     @pytest.fixture
     def expected_plan_structure(self):
         """Expected structure for discovery execution plans"""
@@ -85,12 +85,12 @@ class TestPlanGeneration:
             "monitoring_config": dict,
             "fallback_strategies": dict
         }
-    
+
     @pytest.mark.asyncio
     async def test_basic_plan_generation(self, mock_planning_coordinator, sample_data_scenarios, expected_plan_structure):
         """Test basic execution plan generation"""
         simple_scenario = sample_data_scenarios["simple_scenario"]
-        
+
         # Mock plan generation result
         generated_plan = {
             "plan_id": "plan_simple_001",
@@ -111,7 +111,7 @@ class TestPlanGeneration:
                 },
                 {
                     "name": "data_cleansing",
-                    "crew": "DataCleansingCrew", 
+                    "crew": "DataCleansingCrew",
                     "estimated_duration_minutes": 3,
                     "dependencies": ["field_mapping"],
                     "success_criteria": ["data_quality_score > 0.85"]
@@ -139,23 +139,23 @@ class TestPlanGeneration:
                 "individual_phase_thresholds": {"field_mapping": 0.8, "data_cleansing": 0.85, "inventory_building": 0.9}
             }
         }
-        
+
         mock_planning_coordinator.create_discovery_plan.return_value = generated_plan
-        
+
         # Generate plan
         plan = await mock_planning_coordinator.create_discovery_plan(simple_scenario)
-        
+
         # Verify plan structure
         for key, expected_type in expected_plan_structure.items():
             assert key in plan
             if expected_type != str:  # Skip type checking for str (too generic)
                 assert isinstance(plan[key], expected_type)
-        
+
         # Verify plan content
         assert plan["execution_strategy"] == "sequential"
         assert len(plan["phases"]) == 3
         assert plan["data_complexity_analysis"]["complexity_score"] < 0.5  # Simple scenario
-    
+
     @pytest.mark.asyncio
     async def test_adaptive_plan_generation_based_on_complexity(self, mock_planning_coordinator, sample_data_scenarios):
         """Test adaptive plan generation based on data complexity"""
@@ -164,19 +164,19 @@ class TestPlanGeneration:
             ("moderate", sample_data_scenarios["moderate_scenario"]),
             ("complex", sample_data_scenarios["complex_scenario"])
         ]
-        
+
         # Mock complexity analysis and plan adaptation
         complexity_responses = {
             "simple": {"complexity_score": 0.3, "strategy": "sequential"},
             "moderate": {"complexity_score": 0.6, "strategy": "parallel_where_possible"},
             "complex": {"complexity_score": 0.9, "strategy": "adaptive_hybrid"}
         }
-        
+
         for scenario_name, scenario_data in scenarios:
             mock_planning_coordinator.analyze_data_complexity.return_value = complexity_responses[scenario_name]
-            
+
             complexity_analysis = await mock_planning_coordinator.analyze_data_complexity(scenario_data)
-            
+
             # Verify adaptive strategy selection
             if scenario_name == "simple":
                 assert complexity_analysis["strategy"] == "sequential"
@@ -184,7 +184,7 @@ class TestPlanGeneration:
                 assert complexity_analysis["strategy"] == "parallel_where_possible"
             elif scenario_name == "complex":
                 assert complexity_analysis["strategy"] == "adaptive_hybrid"
-    
+
     @pytest.mark.asyncio
     async def test_plan_validation_and_optimization(self, mock_planning_coordinator):
         """Test plan validation and optimization"""
@@ -198,7 +198,7 @@ class TestPlanGeneration:
             "total_estimated_time_minutes": 33,
             "resource_allocation": {"memory_requirement_mb": 256}
         }
-        
+
         # Mock validation results
         validation_results = {
             "validation_passed": True,
@@ -216,17 +216,17 @@ class TestPlanGeneration:
                 "optimization_applied": ["parallel_dependency_execution"]
             }
         }
-        
+
         mock_planning_coordinator.validate_plan.return_value = validation_results
-        
+
         # Validate plan
         validation = await mock_planning_coordinator.validate_plan(initial_plan)
-        
+
         # Verify validation and optimization
         assert validation["validation_passed"] is True
         assert len(validation["optimization_opportunities"]) > 0
         assert validation["optimized_plan"]["total_estimated_time_minutes"] < initial_plan["total_estimated_time_minutes"]
-    
+
     def test_success_criteria_definition(self):
         """Test success criteria definition for different phases"""
         success_criteria_templates = {
@@ -246,7 +246,7 @@ class TestPlanGeneration:
                 "failure_conditions": ["classification_incomplete", "domain_gaps_identified"]
             }
         }
-        
+
         # Verify success criteria completeness
         for phase, criteria in success_criteria_templates.items():
             assert len(criteria["primary_criteria"]) >= 2
@@ -257,7 +257,7 @@ class TestPlanGeneration:
 @pytest.mark.skipif(not PLANNING_COMPONENTS_AVAILABLE, reason="Planning components not available")
 class TestPlanMonitoringAndAdjustment:
     """Test suite for plan monitoring and real-time adjustment"""
-    
+
     @pytest.fixture
     def mock_plan_monitor(self):
         """Mock plan monitoring system"""
@@ -268,7 +268,7 @@ class TestPlanMonitoringAndAdjustment:
         monitor.recommend_adjustments = AsyncMock()
         monitor.apply_plan_adjustment = AsyncMock()
         return monitor
-    
+
     @pytest.fixture
     def execution_status_data(self):
         """Sample execution status data during plan execution"""
@@ -290,21 +290,21 @@ class TestPlanMonitoringAndAdjustment:
                 "error_rate": 0.02
             }
         }
-    
+
     @pytest.mark.asyncio
     async def test_real_time_plan_monitoring(self, mock_plan_monitor, execution_status_data):
         """Test real-time monitoring of plan execution"""
         mock_plan_monitor.get_execution_status.return_value = execution_status_data
-        
+
         # Monitor plan execution
         status = await mock_plan_monitor.get_execution_status("plan_001")
-        
+
         # Verify monitoring
         assert status["current_phase"] == "data_cleansing"
         assert status["phase_progress"] > 0.5  # More than halfway through current phase
         assert len(status["phases_completed"]) == 1
         assert status["success_criteria_status"]["field_mapping"]["status"] == "met"
-    
+
     @pytest.mark.asyncio
     async def test_plan_deviation_detection(self, mock_plan_monitor):
         """Test detection of plan deviations and performance issues"""
@@ -332,18 +332,18 @@ class TestPlanMonitoringAndAdjustment:
                 }
             }
         ]
-        
+
         mock_plan_monitor.detect_plan_deviations.return_value = detected_deviations
-        
+
         # Detect deviations
         deviations = await mock_plan_monitor.detect_plan_deviations("plan_001")
-        
+
         # Verify deviation detection
         assert len(deviations) == 2
         assert deviations[0]["deviation_type"] == "performance_degradation"
         assert deviations[0]["severity"] == "medium"
         assert deviations[1]["deviation_type"] == "resource_utilization_high"
-    
+
     @pytest.mark.asyncio
     async def test_dynamic_plan_adjustment(self, mock_plan_monitor):
         """Test dynamic plan adjustment based on execution performance"""
@@ -369,17 +369,17 @@ class TestPlanMonitoringAndAdjustment:
                 }
             }
         ]
-        
+
         mock_plan_monitor.recommend_adjustments.return_value = adjustment_recommendations
-        
+
         # Get adjustment recommendations
         recommendations = await mock_plan_monitor.recommend_adjustments("plan_001")
-        
+
         # Verify recommendations
         assert len(recommendations) == 2
         assert recommendations[0]["adjustment_type"] == "increase_crew_resources"
         assert recommendations[1]["adjustment_type"] == "modify_execution_strategy"
-        
+
         # Mock applying adjustments
         adjustment_results = {
             "adjustments_applied": 2,
@@ -393,16 +393,16 @@ class TestPlanMonitoringAndAdjustment:
                 "execution_strategy": "adaptive_parallel"
             }
         }
-        
+
         mock_plan_monitor.apply_plan_adjustment.return_value = adjustment_results
-        
+
         # Apply adjustments
         results = await mock_plan_monitor.apply_plan_adjustment("plan_001", recommendations)
-        
+
         # Verify adjustment application
         assert results["adjustments_applied"] == 2
         assert results["estimated_improvement"]["time_savings_minutes"] > 0
-    
+
     @pytest.mark.asyncio
     async def test_success_criteria_monitoring(self, mock_plan_monitor):
         """Test monitoring of success criteria throughout execution"""
@@ -432,12 +432,12 @@ class TestPlanMonitoringAndAdjustment:
             "overall_phase_health": "on_track",
             "intervention_needed": False
         }
-        
+
         mock_plan_monitor.get_execution_status.return_value = criteria_tracking
-        
+
         # Monitor success criteria
         status = await mock_plan_monitor.get_execution_status("plan_001", include_criteria=True)
-        
+
         # Verify criteria monitoring
         assert "criteria_status" in status
         assert status["criteria_status"]["asset_classification_complete"]["status"] == "in_progress"
@@ -448,7 +448,7 @@ class TestPlanMonitoringAndAdjustment:
 @pytest.mark.skipif(not PLANNING_COMPONENTS_AVAILABLE, reason="Planning components not available")
 class TestCrossCrewPlanningCoordination:
     """Test suite for cross-crew planning coordination"""
-    
+
     @pytest.fixture
     def mock_crew_coordinator(self):
         """Mock crew coordination system"""
@@ -458,7 +458,7 @@ class TestCrossCrewPlanningCoordination:
         coordinator.optimize_crew_sequence = AsyncMock()
         coordinator.handle_crew_conflicts = AsyncMock()
         return coordinator
-    
+
     @pytest.fixture
     def crew_dependency_graph(self):
         """Sample crew dependency graph"""
@@ -498,7 +498,7 @@ class TestCrossCrewPlanningCoordination:
                 }
             }
         }
-    
+
     @pytest.mark.asyncio
     async def test_crew_dependency_management(self, mock_crew_coordinator, crew_dependency_graph):
         """Test management of crew dependencies"""
@@ -506,7 +506,7 @@ class TestCrossCrewPlanningCoordination:
             "dependency_graph_valid": True,
             "execution_order": [
                 "field_mapping_crew",
-                "data_cleansing_crew", 
+                "data_cleansing_crew",
                 "inventory_building_crew",
                 ["app_server_dependency_crew", "app_app_dependency_crew"],  # Parallel
                 "technical_debt_crew"
@@ -518,20 +518,20 @@ class TestCrossCrewPlanningCoordination:
                 }
             ],
             "critical_path": [
-                "field_mapping_crew", "data_cleansing_crew", "inventory_building_crew", 
+                "field_mapping_crew", "data_cleansing_crew", "inventory_building_crew",
                 "app_server_dependency_crew", "technical_debt_crew"
             ]
         }
-        
+
         # Manage crew dependencies
         dependency_management = await mock_crew_coordinator.manage_crew_dependencies(crew_dependency_graph)
-        
+
         # Verify dependency management
         assert dependency_management["dependency_graph_valid"] is True
         assert len(dependency_management["execution_order"]) == 5
         assert len(dependency_management["parallel_opportunities"]) > 0
         assert len(dependency_management["critical_path"]) == 5
-    
+
     @pytest.mark.asyncio
     async def test_parallel_crew_execution_coordination(self, mock_crew_coordinator):
         """Test coordination of parallel crew execution"""
@@ -556,17 +556,17 @@ class TestCrossCrewPlanningCoordination:
                 "coordination_strategy": "cooperative"
             }
         }
-        
+
         mock_crew_coordinator.coordinate_crew_execution.return_value = parallel_coordination
-        
+
         # Coordinate parallel execution
         coordination = await mock_crew_coordinator.coordinate_crew_execution("parallel", ["app_server_dependency_crew", "app_app_dependency_crew"])
-        
+
         # Verify parallel coordination
         assert len(coordination["parallel_crews"]) == 2
         assert "shared_resources" in coordination
         assert len(coordination["synchronization_points"]) > 0
-    
+
     @pytest.mark.asyncio
     async def test_crew_execution_optimization(self, mock_crew_coordinator, crew_dependency_graph):
         """Test optimization of crew execution sequence"""
@@ -591,17 +591,17 @@ class TestCrossCrewPlanningCoordination:
             "total_time_savings_minutes": 15,
             "efficiency_improvement": 0.22
         }
-        
+
         mock_crew_coordinator.optimize_crew_sequence.return_value = optimization_results
-        
+
         # Optimize crew sequence
         optimization = await mock_crew_coordinator.optimize_crew_sequence(crew_dependency_graph)
-        
+
         # Verify optimization
         assert len(optimization["optimizations_applied"]) == 2
         assert optimization["total_time_savings_minutes"] > 0
         assert optimization["efficiency_improvement"] > 0.2
-    
+
     @pytest.mark.asyncio
     async def test_crew_conflict_resolution(self, mock_crew_coordinator):
         """Test resolution of crew conflicts and resource contention"""
@@ -622,7 +622,7 @@ class TestCrossCrewPlanningCoordination:
                 "resolution_strategy": "iterative_refinement"
             }
         ]
-        
+
         # Mock conflict resolution
         resolution_results = {
             "conflicts_resolved": 2,
@@ -633,12 +633,12 @@ class TestCrossCrewPlanningCoordination:
             "performance_impact": "minimal",
             "stability_improvement": "significant"
         }
-        
+
         mock_crew_coordinator.handle_crew_conflicts.return_value = resolution_results
-        
+
         # Handle crew conflicts
         resolution = await mock_crew_coordinator.handle_crew_conflicts(crew_conflicts)
-        
+
         # Verify conflict resolution
         assert resolution["conflicts_resolved"] == 2
         assert len(resolution["resolution_strategies_applied"]) == 2
@@ -648,7 +648,7 @@ class TestCrossCrewPlanningCoordination:
 @pytest.mark.skipif(not PLANNING_COMPONENTS_AVAILABLE, reason="Planning components not available")
 class TestResourceAllocationOptimization:
     """Test suite for resource allocation optimization"""
-    
+
     @pytest.fixture
     def mock_resource_optimizer(self):
         """Mock resource optimization system"""
@@ -658,7 +658,7 @@ class TestResourceAllocationOptimization:
         optimizer.monitor_utilization = AsyncMock()
         optimizer.recommend_scaling = AsyncMock()
         return optimizer
-    
+
     @pytest.fixture
     def resource_scenarios(self):
         """Different resource requirement scenarios"""
@@ -684,12 +684,12 @@ class TestResourceAllocationOptimization:
                 }
             }
         }
-    
+
     @pytest.mark.asyncio
     async def test_resource_requirement_analysis(self, mock_resource_optimizer, resource_scenarios):
         """Test analysis of resource requirements based on workload"""
         light_workload = resource_scenarios["light_workload"]
-        
+
         # Mock resource analysis
         analysis_result = {
             "workload_classification": "light",
@@ -708,17 +708,17 @@ class TestResourceAllocationOptimization:
                 "cpu_scheduling_optimization"
             ]
         }
-        
+
         mock_resource_optimizer.analyze_resource_requirements.return_value = analysis_result
-        
+
         # Analyze requirements
         analysis = await mock_resource_optimizer.analyze_resource_requirements(light_workload)
-        
+
         # Verify analysis
         assert analysis["workload_classification"] == "light"
         assert analysis["resource_requirements"]["memory_mb"] == 128
         assert len(analysis["optimization_opportunities"]) > 0
-    
+
     @pytest.mark.asyncio
     async def test_dynamic_resource_allocation(self, mock_resource_optimizer):
         """Test dynamic resource allocation during execution"""
@@ -740,16 +740,16 @@ class TestResourceAllocationOptimization:
                 "time_savings_minutes": 8
             }
         }
-        
+
         mock_resource_optimizer.optimize_allocation.return_value = allocation_adjustment
-        
+
         # Optimize allocation
         optimization = await mock_resource_optimizer.optimize_allocation("inventory_building_crew")
-        
+
         # Verify dynamic allocation
         assert optimization["recommended_allocation"]["memory_mb"] > optimization["current_allocation"]["memory_mb"]
         assert optimization["expected_improvement"]["performance_gain"] > 0.2
-    
+
     @pytest.mark.asyncio
     async def test_resource_utilization_monitoring(self, mock_resource_optimizer):
         """Test monitoring of resource utilization during execution"""
@@ -784,12 +784,12 @@ class TestResourceAllocationOptimization:
                 }
             ]
         }
-        
+
         mock_resource_optimizer.monitor_utilization.return_value = utilization_metrics
-        
+
         # Monitor utilization
         metrics = await mock_resource_optimizer.monitor_utilization()
-        
+
         # Verify monitoring
         assert "crew_utilization" in metrics
         assert "overall_utilization" in metrics
@@ -807,4 +807,4 @@ def event_loop():
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v", "--tb=short"]) 
+    pytest.main([__file__, "-v", "--tb=short"])

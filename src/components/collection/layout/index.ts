@@ -1,6 +1,6 @@
 /**
  * Collection Layout Components Index
- * 
+ *
  * Exports for shared layout components used across collection pages.
  */
 

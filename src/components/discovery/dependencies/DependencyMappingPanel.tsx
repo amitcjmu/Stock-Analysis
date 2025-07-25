@@ -158,4 +158,4 @@ const DependencyMappingPanel: React.FC<DependencyMappingPanelProps> = ({
   );
 };
 
-export default DependencyMappingPanel; 
+export default DependencyMappingPanel;

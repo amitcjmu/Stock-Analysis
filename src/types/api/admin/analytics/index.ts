@@ -1,10 +1,10 @@
 /**
  * Analytics Types Index
- * 
+ *
  * Central export point for all analytics and reporting type definitions.
  * This module provides all types needed for platform analytics,
  * reporting, insights, and performance monitoring.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

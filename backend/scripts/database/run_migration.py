@@ -54,7 +54,6 @@ async def run_migration():
         # Test feedback table specifically
         print("\n🧪 Testing feedback table...")
         async with AsyncSessionLocal() as session:
-
             # Check if feedback table exists and is accessible
             result = await session.execute(text("SELECT COUNT(*) FROM feedback"))
             count = result.scalar()

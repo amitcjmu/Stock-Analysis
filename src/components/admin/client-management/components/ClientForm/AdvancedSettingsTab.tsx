@@ -17,10 +17,10 @@ export const AdvancedSettingsTab: React.FC<AdvancedSettingsTabProps> = ({ formDa
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="confidence_threshold">Field Mapping Confidence</Label>
-            <Select 
-              value={formData.agent_preferences?.confidence_thresholds?.field_mapping?.toString() || '0.8'} 
-              onValueChange={(value) => onFormChange('agent_preferences', { 
-                ...formData.agent_preferences, 
+            <Select
+              value={formData.agent_preferences?.confidence_thresholds?.field_mapping?.toString() || '0.8'}
+              onValueChange={(value) => onFormChange('agent_preferences', {
+                ...formData.agent_preferences,
                 confidence_thresholds: {
                   ...formData.agent_preferences?.confidence_thresholds,
                   field_mapping: parseFloat(value)
@@ -40,10 +40,10 @@ export const AdvancedSettingsTab: React.FC<AdvancedSettingsTabProps> = ({ formDa
 
           <div>
             <Label htmlFor="dependency_confidence">Dependency Detection Confidence</Label>
-            <Select 
-              value={formData.agent_preferences?.confidence_thresholds?.dependency_detection?.toString() || '0.75'} 
-              onValueChange={(value) => onFormChange('agent_preferences', { 
-                ...formData.agent_preferences, 
+            <Select
+              value={formData.agent_preferences?.confidence_thresholds?.dependency_detection?.toString() || '0.75'}
+              onValueChange={(value) => onFormChange('agent_preferences', {
+                ...formData.agent_preferences,
                 confidence_thresholds: {
                   ...formData.agent_preferences?.confidence_thresholds,
                   dependency_detection: parseFloat(value)
@@ -63,10 +63,10 @@ export const AdvancedSettingsTab: React.FC<AdvancedSettingsTabProps> = ({ formDa
 
           <div>
             <Label htmlFor="risk_confidence">Risk Assessment Confidence</Label>
-            <Select 
-              value={formData.agent_preferences?.confidence_thresholds?.risk_assessment?.toString() || '0.85'} 
-              onValueChange={(value) => onFormChange('agent_preferences', { 
-                ...formData.agent_preferences, 
+            <Select
+              value={formData.agent_preferences?.confidence_thresholds?.risk_assessment?.toString() || '0.85'}
+              onValueChange={(value) => onFormChange('agent_preferences', {
+                ...formData.agent_preferences,
                 confidence_thresholds: {
                   ...formData.agent_preferences?.confidence_thresholds,
                   risk_assessment: parseFloat(value)
@@ -86,11 +86,11 @@ export const AdvancedSettingsTab: React.FC<AdvancedSettingsTabProps> = ({ formDa
 
           <div>
             <Label htmlFor="escalation_mode">Escalation Mode</Label>
-            <Select 
-              value={formData.agent_preferences?.escalation_mode || 'balanced'} 
-              onValueChange={(value) => onFormChange('agent_preferences', { 
-                ...formData.agent_preferences, 
-                escalation_mode: value 
+            <Select
+              value={formData.agent_preferences?.escalation_mode || 'balanced'}
+              onValueChange={(value) => onFormChange('agent_preferences', {
+                ...formData.agent_preferences,
+                escalation_mode: value
               })}
             >
               <SelectTrigger>
@@ -161,11 +161,11 @@ export const AdvancedSettingsTab: React.FC<AdvancedSettingsTabProps> = ({ formDa
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="retention_period">Retention Period (days)</Label>
-            <Select 
-              value={formData.platform_settings?.data_retention_days?.toString() || '90'} 
-              onValueChange={(value) => onFormChange('platform_settings', { 
-                ...formData.platform_settings, 
-                data_retention_days: parseInt(value) 
+            <Select
+              value={formData.platform_settings?.data_retention_days?.toString() || '90'}
+              onValueChange={(value) => onFormChange('platform_settings', {
+                ...formData.platform_settings,
+                data_retention_days: parseInt(value)
               })}
             >
               <SelectTrigger>
@@ -183,11 +183,11 @@ export const AdvancedSettingsTab: React.FC<AdvancedSettingsTabProps> = ({ formDa
 
           <div>
             <Label htmlFor="backup_frequency">Backup Frequency</Label>
-            <Select 
-              value={formData.platform_settings?.backup_frequency || 'daily'} 
-              onValueChange={(value) => onFormChange('platform_settings', { 
-                ...formData.platform_settings, 
-                backup_frequency: value 
+            <Select
+              value={formData.platform_settings?.backup_frequency || 'daily'}
+              onValueChange={(value) => onFormChange('platform_settings', {
+                ...formData.platform_settings,
+                backup_frequency: value
               })}
             >
               <SelectTrigger>

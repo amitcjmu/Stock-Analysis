@@ -56,19 +56,19 @@ export const UploadArea: React.FC<UploadAreaProps> = ({ area, onDrop, isSelected
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       onDrop(Array.from(e.dataTransfer.files), area.id);
     }
   };
 
   return (
-    <div 
+    <div
       className={`relative border-2 border-dashed rounded-lg p-6 transition-colors cursor-pointer ${
-        isSelected 
-          ? 'border-blue-500 bg-blue-50' 
-          : isDragging 
-            ? 'border-blue-400 bg-blue-50' 
+        isSelected
+          ? 'border-blue-500 bg-blue-50'
+          : isDragging
+            ? 'border-blue-400 bg-blue-50'
             : 'border-gray-300 hover:border-blue-500'
       }`}
       onClick={handleZoneClick}
@@ -82,11 +82,11 @@ export const UploadArea: React.FC<UploadAreaProps> = ({ area, onDrop, isSelected
         </div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">{area.title}</h3>
         <p className="text-sm text-gray-600 mb-4">{area.description}</p>
-        
+
         <div className="text-xs text-gray-500 mb-2">
           <strong>Accepted formats:</strong> {area.acceptedTypes.join(', ')}
         </div>
-        
+
         <div className="text-xs text-gray-500 mb-4">
           <strong>Examples:</strong> {area.examples.join(', ')}
         </div>
@@ -96,7 +96,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({ area, onDrop, isSelected
           {isDragging ? 'Drop files here' : 'Click to upload files'}
         </div>
       </div>
-      
+
       <input
         ref={fileInputRef}
         type="file"

@@ -2,7 +2,7 @@
 -- Run these queries to understand the current state of collection flows
 
 -- 1. Show all collection flows with their statuses
-SELECT 
+SELECT
     id,
     engagement_id,
     status,
@@ -18,7 +18,7 @@ FROM collection_flow
 ORDER BY created_at DESC;
 
 -- 2. Show only ACTIVE flows (non-terminal states)
-SELECT 
+SELECT
     id,
     engagement_id,
     status,
@@ -31,7 +31,7 @@ WHERE status NOT IN ('completed', 'failed', 'cancelled')
 ORDER BY created_at DESC;
 
 -- 3. Count flows by status
-SELECT 
+SELECT
     status,
     COUNT(*) as count
 FROM collection_flow
@@ -39,7 +39,7 @@ GROUP BY status
 ORDER BY status;
 
 -- 4. Show active flows grouped by engagement
-SELECT 
+SELECT
     engagement_id,
     COUNT(*) as active_flow_count,
     STRING_AGG(id::text || ' (' || status || ')', ', ') as flow_details
@@ -48,7 +48,7 @@ WHERE status NOT IN ('completed', 'failed', 'cancelled')
 GROUP BY engagement_id;
 
 -- 5. Find stuck flows (active but not updated in 24 hours)
-SELECT 
+SELECT
     id,
     engagement_id,
     status,
@@ -62,15 +62,15 @@ WHERE status NOT IN ('completed', 'failed', 'cancelled')
 ORDER BY updated_at;
 
 -- 6. Cancel all stuck flows (COMMENTED OUT FOR SAFETY - uncomment to run)
--- UPDATE collection_flow 
--- SET status = 'cancelled', 
+-- UPDATE collection_flow
+-- SET status = 'cancelled',
 --     completed_at = NOW(),
 --     updated_at = NOW()
 -- WHERE status NOT IN ('completed', 'failed', 'cancelled')
 --     AND updated_at < NOW() - INTERVAL '24 hours';
 
 -- 7. Show the test engagement ID we're using (bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb)
-SELECT 
+SELECT
     id,
     engagement_id,
     status,

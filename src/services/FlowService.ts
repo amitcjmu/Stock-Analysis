@@ -1,13 +1,13 @@
 /**
  * LEGACY - MARKED FOR ARCHIVAL
- * 
+ *
  * Flow Service for Master Flow Orchestrator
  * MFO-079: Create FlowService API client
- * 
+ *
  * ⚠️ DEPRECATED: This service is superseded by masterFlowService.ts
  * All functionality should use masterFlowService and its extensions instead.
  * This file is marked for archival to avoid confusion.
- * 
+ *
  * Use: /services/api/masterFlowService.ts and masterFlowService.extensions.ts
  */
 
@@ -69,7 +69,7 @@ export class FlowService {
   async getFlows(options: FlowListOptions = {}): Promise<FlowStatus[]> {
     try {
       const queryParams = new URLSearchParams();
-      
+
       if (options.flow_type) queryParams.append('flow_type', options.flow_type);
       if (options.status) queryParams.append('status', options.status);
       if (options.limit) queryParams.append('limit', options.limit.toString());
@@ -88,10 +88,10 @@ export class FlowService {
    */
   async getFlowStatus(flowId: string, includeDetails: boolean = true): Promise<FlowStatus> {
     try {
-      const url = includeDetails 
+      const url = includeDetails
         ? `/flows/${flowId}?include_details=true`
         : `/flows/${flowId}`;
-      
+
       const response = await this.apiClient.get<FlowStatus>(url);
       return response;
     } catch (error) {
@@ -293,7 +293,7 @@ export class FlowService {
    */
   private handleError(error: ApiError | Error, message: string): Error {
     console.error(`FlowService Error: ${message}`, error);
-    
+
     if (error.response) {
       // API returned an error response
       const apiError = error.response.data?.detail || error.response.statusText || 'Unknown API error';

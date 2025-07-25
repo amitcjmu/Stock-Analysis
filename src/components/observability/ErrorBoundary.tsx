@@ -137,7 +137,7 @@ export class ObservabilityErrorBoundary extends Component<Props, State> {
                   {this.state.retryCount >= 3 ? 'Max retries reached' : 'Try Again'}
                 </span>
               </Button>
-              
+
               <Button
                 variant="outline"
                 onClick={() => window.location.reload()}

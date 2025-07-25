@@ -53,8 +53,8 @@ async def fix_railway_schema():
         # Check client_accounts columns
         client_cols = await conn.fetch(
             """
-            SELECT column_name FROM information_schema.columns 
-            WHERE table_name = 'client_accounts' 
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'client_accounts'
             ORDER BY column_name
         """
         )
@@ -64,8 +64,8 @@ async def fix_railway_schema():
         # Check engagements columns
         engagement_cols = await conn.fetch(
             """
-            SELECT column_name FROM information_schema.columns 
-            WHERE table_name = 'engagements' 
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'engagements'
             ORDER BY column_name
         """
         )
@@ -146,8 +146,8 @@ async def fix_railway_schema():
                 # Set subscription_tier default
                 await conn.execute(
                     """
-                    UPDATE client_accounts 
-                    SET subscription_tier = 'standard' 
+                    UPDATE client_accounts
+                    SET subscription_tier = 'standard'
                     WHERE subscription_tier IS NULL
                 """
                 )
@@ -203,8 +203,8 @@ async def fix_railway_schema():
                 try:
                     await conn.execute(
                         f"""
-                        UPDATE client_accounts 
-                        SET {col} = $1::json 
+                        UPDATE client_accounts
+                        SET {col} = $1::json
                         WHERE {col} IS NULL
                     """,
                         json.dumps(default_val),
@@ -240,8 +240,8 @@ async def fix_railway_schema():
                 try:
                     await conn.execute(
                         f"""
-                        UPDATE engagements 
-                        SET {col} = $1::json 
+                        UPDATE engagements
+                        SET {col} = $1::json
                         WHERE {col} IS NULL
                     """,
                         json.dumps(default_val),
@@ -257,8 +257,8 @@ async def fix_railway_schema():
         try:
             await conn.fetch(
                 """
-                SELECT id, name, headquarters_location, settings 
-                FROM client_accounts 
+                SELECT id, name, headquarters_location, settings
+                FROM client_accounts
                 LIMIT 1
             """
             )
@@ -270,8 +270,8 @@ async def fix_railway_schema():
         try:
             await conn.fetch(
                 """
-                SELECT id, name, migration_scope 
-                FROM engagements 
+                SELECT id, name, migration_scope
+                FROM engagements
                 LIMIT 1
             """
             )

@@ -182,7 +182,7 @@ const getCategoryColor = (category: Template['category']) => {
 
 export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onTemplateSelect }) => {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
-  
+
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplate(templateId);
     const template = ARCHITECTURE_TEMPLATES.find(t => t.id === templateId);
@@ -190,7 +190,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onTemplateSe
       onTemplateSelect(template);
     }
   };
-  
+
   return (
     <div className="space-y-4">
       <RadioGroup value={selectedTemplate} onValueChange={handleTemplateSelect}>
@@ -198,15 +198,15 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onTemplateSe
           {ARCHITECTURE_TEMPLATES.map((template) => {
             const Icon = template.icon;
             const isSelected = selectedTemplate === template.id;
-            
+
             return (
               <div key={template.id} className="relative">
-                <RadioGroupItem 
-                  value={template.id} 
+                <RadioGroupItem
+                  value={template.id}
                   id={template.id}
                   className="sr-only"
                 />
-                <Label 
+                <Label
                   htmlFor={template.id}
                   className="cursor-pointer"
                 >
@@ -237,7 +237,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onTemplateSe
                       <CardDescription className="text-sm mb-3">
                         {template.description}
                       </CardDescription>
-                      
+
                       <div className="space-y-2">
                         <p className="text-xs font-medium text-gray-700">
                           Key Requirements ({template.standards.length}):
@@ -269,11 +269,11 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onTemplateSe
           })}
         </div>
       </RadioGroup>
-      
+
       {/* Custom Template Option */}
       <div className="pt-4 border-t border-gray-200">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={() => handleTemplateSelect('custom')}
           className="w-full"
         >

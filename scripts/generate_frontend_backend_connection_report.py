@@ -7,7 +7,7 @@ from collections import defaultdict
 # that parses the FastAPI app, but this is a good starting point.
 BACKEND_ROUTES = {
     'admin/session_comparison.py': [
-        "/health", "/engagement/{engagement_id}/sessions", "/compare", 
+        "/health", "/engagement/{engagement_id}/sessions", "/compare",
         "/history", "/comparisons/{comparison_id}/details"
     ],
     'admin/llm_usage.py': [
@@ -97,7 +97,7 @@ def analyze_frontend_connections(frontend_path, output_csv_file):
             'endpoint': endpoint,
             'frontend_connections': data['count']
         })
-    
+
     # Sort by module, then by endpoint
     report_data.sort(key=lambda x: (x['module'], x['endpoint']))
 
@@ -112,4 +112,4 @@ def analyze_frontend_connections(frontend_path, output_csv_file):
         print(f"Error: Could not write to file {output_csv_file}")
 
 if __name__ == "__main__":
-    analyze_frontend_connections('src', 'frontend_backend_connections.csv') 
+    analyze_frontend_connections('src', 'frontend_backend_connections.csv')

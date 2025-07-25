@@ -1,13 +1,13 @@
 import React from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
+import {
   Alert,
   AlertDescription,
 } from '@/components/ui/alert';
@@ -76,7 +76,7 @@ const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
   const metadata = flowStatus.metadata || statusData.metadata || {};
   const recordCount = cmdbData.file_data?.length || 0;
   const filename = metadata.filename || 'Unknown file';
-  
+
   console.log('📊 AgentFeedbackPanel received data:', {
     workflowStatus,
     currentPhase,
@@ -147,7 +147,7 @@ const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
               <p className="text-sm font-medium text-gray-700">Current Phase:</p>
               <p className="text-lg">{currentPhase?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown'}</p>
             </div>
-            
+
             {/* Data Summary */}
             {recordCount > 0 && (
               <div className="grid grid-cols-3 gap-4 p-3 bg-gray-50 rounded-lg">
@@ -167,14 +167,14 @@ const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
                 </div>
               </div>
             )}
-            
+
             {statusData.message && (
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription>{statusData.message}</AlertDescription>
               </Alert>
             )}
-            
+
             {/* Progress message for initialization phase */}
             {workflowStatus === 'running' && currentPhase === 'initialization' && !statusData.message && (
               <Alert className="border-blue-200 bg-blue-50">
@@ -210,7 +210,7 @@ const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
                   <p className="text-sm text-gray-600">Records Found</p>
                 </div>
               )}
-              
+
               {statusData.processing_summary.data_source && (
                 <div className="text-center">
                   <p className="text-sm font-bold text-green-600 truncate">
@@ -219,14 +219,14 @@ const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
                   <p className="text-sm text-gray-600">Data Source</p>
                 </div>
               )}
-              
+
               <div className="text-center">
                 <p className="text-lg font-bold text-purple-600">
                   {statusData.processing_summary.workflow_phase?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown'}
                 </p>
                 <p className="text-sm text-gray-600">Current Phase</p>
               </div>
-              
+
               <div className="text-center">
                 <p className="text-lg font-bold text-orange-600">
                   {statusData.processing_summary.agent_status?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown'}
@@ -357,4 +357,4 @@ const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
   );
 };
 
-export default AgentFeedbackPanel; 
+export default AgentFeedbackPanel;

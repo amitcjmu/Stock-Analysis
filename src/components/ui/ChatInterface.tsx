@@ -22,7 +22,7 @@ interface ChatInterfaceProps {
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose, currentPage = 'Asset Inventory', breadcrumbPath }) => {
   const [activeTab, setActiveTab] = useState<'chat' | 'feedback'>('chat');
-  
+
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -32,7 +32,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose, currentP
 
 • Asset inventory analysis and migration planning
 • Application dependency mapping
-• 6R migration strategy recommendations  
+• 6R migration strategy recommendations
 • Cloud cost estimation and optimization
 • Technical questions about your infrastructure
 
@@ -42,7 +42,7 @@ How can I assist you with your migration today?`,
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Feedback state
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState('');
@@ -169,7 +169,7 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
           timestamp: new Date().toISOString()
         })
       });
-      
+
       setFeedbackSubmitted(true);
       setTimeout(() => {
         setFeedbackSubmitted(false);
@@ -222,14 +222,14 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
               <X className="h-6 w-6" />
             </button>
           </div>
-          
+
           {/* Tab Navigation */}
           <div className="flex border-b">
             <button
               onClick={() => setActiveTab('chat')}
               className={`flex-1 py-3 px-4 text-sm font-medium ${
-                activeTab === 'chat' 
-                  ? 'border-b-2 border-blue-500 text-blue-600' 
+                activeTab === 'chat'
+                  ? 'border-b-2 border-blue-500 text-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -238,8 +238,8 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
             <button
               onClick={() => setActiveTab('feedback')}
               className={`flex-1 py-3 px-4 text-sm font-medium ${
-                activeTab === 'feedback' 
-                  ? 'border-b-2 border-blue-500 text-blue-600' 
+                activeTab === 'feedback'
+                  ? 'border-b-2 border-blue-500 text-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -349,7 +349,7 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
                     <p className="text-sm text-gray-600 mb-4">
                       Page: {currentPage} • Breadcrumb: {breadcrumbPath || window.location.pathname}
                     </p>
-                    
+
                     {/* Rating */}
                     <div className="flex items-center space-x-2 mb-6">
                       {Array.from({ length: 5 }, (_, i) => (
@@ -399,4 +399,4 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
   );
 };
 
-export default ChatInterface; 
+export default ChatInterface;

@@ -1,6 +1,6 @@
 /**
  * Custom hook for managing adaptive form flows
- * 
+ *
  * Extracted from AdaptiveForms.tsx to provide reusable flow management logic
  * for collection workflows with CrewAI integration.
  */
@@ -21,10 +21,10 @@ import type { convertQuestionnairesToFormData } from '@/utils/collection/formDat
 import { validateFormDataStructure } from '@/utils/collection/formDataTransformation'
 
 // Import types
-import type { 
-  AdaptiveFormData, 
-  CollectionFormData, 
-  FormValidationResult 
+import type {
+  AdaptiveFormData,
+  CollectionFormData,
+  FormValidationResult
 } from '@/components/collection/types';
 import type {
   FieldValues
@@ -90,17 +90,17 @@ export const useAdaptiveFormFlow = (
   options: UseAdaptiveFormFlowOptions = {}
 ): AdaptiveFormFlowState & AdaptiveFormFlowActions => {
   const { applicationId, flowId: optionsFlowId, autoInitialize = true } = options;
-  
+
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { setCurrentFlow, user } = useAuth();
-  
+
   // Get application and flow IDs from URL params or options
   const flowIdFromUrl = searchParams.get('flowId') || optionsFlowId;
-  
+
   // Collection flow management
   const { continueFlow, deleteFlow } = useCollectionFlowManagement();
-  
+
   // Flow state
   const [state, setState] = useState<AdaptiveFormFlowState>({
     formData: null,
@@ -112,21 +112,21 @@ export const useAdaptiveFormFlow = (
     isSaving: false,
     error: null
   });
-  
+
   // No longer need hasInitialized - using state.formData and state.isLoading instead
-  
+
   // Check for incomplete flows
-  const { 
-    data: incompleteFlows = [], 
-    isLoading: checkingFlows 
+  const {
+    data: incompleteFlows = [],
+    isLoading: checkingFlows
   } = useIncompleteCollectionFlows();
-  
+
   // Filter out the current flow from the blocking check
-  const blockingFlows = incompleteFlows.filter(flow => 
-    flow.id !== flowIdFromUrl && flow.flow_id !== flowIdFromUrl && 
+  const blockingFlows = incompleteFlows.filter(flow =>
+    flow.id !== flowIdFromUrl && flow.flow_id !== flowIdFromUrl &&
     flow.id !== state.flowId && flow.flow_id !== state.flowId
   );
-  
+
   const hasBlockingFlows = blockingFlows.length > 0;
 
   /**
@@ -144,19 +144,19 @@ export const useAdaptiveFormFlow = (
       console.log('⚠️ Flow initialization already in progress, skipping...');
       return;
     }
-    
+
     setState(prev => ({ ...prev, isLoading: true, error: null }));
-    
+
     try {
       let flowResponse;
-      
+
       // Check if we have a flow ID from the URL (created from overview page)
       if (flowIdFromUrl) {
         console.log(`📋 Using existing collection flow: ${flowIdFromUrl}`);
         flowResponse = await collectionFlowApi.getFlowDetails(flowIdFromUrl);
-        
+
         setState(prev => ({ ...prev, flowId: flowResponse.id }));
-        
+
         // Update the auth context with the existing collection flow
         setCurrentFlow({
           id: flowResponse.id,
@@ -165,17 +165,17 @@ export const useAdaptiveFormFlow = (
           status: flowResponse.status || 'active',
           engagement_id: flowResponse.engagement_id
         });
-        
+
         // Check if this flow already has questionnaires
         let hasExistingData = false;
         try {
           const existingQuestionnaires = await collectionFlowApi.getFlowQuestionnaires(flowResponse.id);
           if (existingQuestionnaires.length > 0) {
             console.log(`✅ Found ${existingQuestionnaires.length} existing questionnaires for flow`);
-            
+
             // Convert existing questionnaires to form data
             const adaptiveFormData = convertQuestionnairesToFormData(existingQuestionnaires[0], applicationId);
-            
+
             if (validateFormDataStructure(adaptiveFormData)) {
               setState(prev => ({
                 ...prev,
@@ -183,12 +183,12 @@ export const useAdaptiveFormFlow = (
                 questionnaires: existingQuestionnaires,
                 isLoading: false
               }));
-              
+
               toast({
                 title: 'Form Loaded',
                 description: 'Loaded existing questionnaire for this flow'
               });
-              
+
               return; // Skip waiting for agents
             }
           }
@@ -214,7 +214,7 @@ export const useAdaptiveFormFlow = (
             if (!canCreateCollectionFlow(user)) {
               throw new Error('You do not have permission to create collection flows. Only analysts and above can create flows.');
             }
-            
+
             // Create a new collection flow - this triggers CrewAI agents
             const flowData = {
               automation_tier: 'tier_2',
@@ -239,7 +239,7 @@ export const useAdaptiveFormFlow = (
       }
 
       console.log(`🎯 Collection flow ${flowResponse.id} ready`);
-      
+
       // Update the auth context with the collection flow
       setCurrentFlow({
         id: flowResponse.id,
@@ -248,17 +248,17 @@ export const useAdaptiveFormFlow = (
         status: flowResponse.status || 'active',
         engagement_id: flowResponse.engagement_id
       });
-      
+
       console.log(`🎯 Collection flow ${flowResponse.id} ready, waiting for CrewAI agents to generate questionnaires...`);
-      
+
       // Only wait for agents if there's existing data to analyze
       console.log('🔍 Checking for existing questionnaires from previous sessions...');
-      
+
       // Check flow status first to see if agents are working or failed
       let flowStatus;
       try {
         flowStatus = await collectionFlowApi.getFlowStatus();
-        
+
         // If we get a status, it means there's already an active flow
         if (flowStatus.flow_id && flowStatus.flow_id !== flowResponse.id) {
           console.warn('⚠️ Another active flow exists:', flowStatus.flow_id);
@@ -266,7 +266,7 @@ export const useAdaptiveFormFlow = (
           flowResponse = await collectionFlowApi.getFlowDetails(flowStatus.flow_id);
           setState(prev => ({ ...prev, flowId: flowResponse.id }));
         }
-        
+
         // If flow shows error, use fallback immediately
         if (flowStatus.status === 'error' || flowStatus.status === 'failed') {
           console.warn('⚠️ CrewAI agents failed, using fallback questionnaire');
@@ -280,7 +280,7 @@ export const useAdaptiveFormFlow = (
           console.error('❌ Failed to check flow status:', statusError);
         }
       }
-      
+
       // Wait for CrewAI agents to complete gap analysis and generate questionnaires
       let attempts = 0;
       const maxAttempts = 15; // 15 seconds timeout (reduced from 30)
@@ -288,11 +288,11 @@ export const useAdaptiveFormFlow = (
 
       while (attempts < maxAttempts && agentQuestionnaires.length === 0) {
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-        
+
         try {
           agentQuestionnaires = await collectionFlowApi.getFlowQuestionnaires(flowResponse.id);
           console.log(`🔍 Attempt ${attempts + 1}: Found ${agentQuestionnaires.length} agent-generated questionnaires`);
-          
+
           // Also check flow status periodically
           if (attempts % 5 === 0) {
             flowStatus = await collectionFlowApi.getFlowStatus();
@@ -304,7 +304,7 @@ export const useAdaptiveFormFlow = (
         } catch (error) {
           console.log(`⏳ Waiting for CrewAI agents to generate questionnaires... (${attempts + 1}/${maxAttempts})`);
         }
-        
+
         attempts++;
       }
 
@@ -314,12 +314,12 @@ export const useAdaptiveFormFlow = (
 
       // Convert CrewAI-generated questionnaires to AdaptiveFormData format
       const adaptiveFormData = convertQuestionnairesToFormData(agentQuestionnaires[0], applicationId);
-      
+
       // Validate the converted form data
       if (!validateFormDataStructure(adaptiveFormData)) {
         throw new Error('Generated form data structure is invalid');
       }
-      
+
       setState(prev => ({
         ...prev,
         formData: adaptiveFormData,
@@ -327,7 +327,7 @@ export const useAdaptiveFormFlow = (
       }));
 
       console.log('✅ Successfully loaded agent-generated adaptive form');
-      
+
       toast({
         title: 'Adaptive Form Ready',
         description: `CrewAI agents generated ${agentQuestionnaires.length} questionnaire(s) based on gap analysis.`
@@ -335,18 +335,18 @@ export const useAdaptiveFormFlow = (
 
     } catch (error: unknown) {
       console.error('❌ Failed to initialize adaptive collection:', error);
-      
+
       setState(prev => ({ ...prev, error, isLoading: false }));
-      
+
       toast({
         title: 'Collection Flow Error',
         description: error.message || 'Failed to initialize collection flow.',
         variant: 'destructive'
       });
-      
+
       // Ensure loading state is cleared
       setState(prev => ({ ...prev, isLoading: false }));
-      
+
       // No fallback - let the error be shown to the user
       throw error;
     } finally {
@@ -382,11 +382,11 @@ export const useAdaptiveFormFlow = (
     if (!state.formData) return;
 
     setState(prev => ({ ...prev, isSaving: true }));
-    
+
     try {
       // Simulate API call to save progress
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       toast({
         title: 'Progress Saved',
         description: 'Your form progress has been saved successfully.'
@@ -426,7 +426,7 @@ export const useAdaptiveFormFlow = (
     }
 
     setState(prev => ({ ...prev, isLoading: true }));
-    
+
     try {
       // Submit responses to the CrewAI-generated questionnaire
       const questionnaireId = state.questionnaires[0].id;
@@ -443,34 +443,34 @@ export const useAdaptiveFormFlow = (
       };
 
       console.log(`🚀 Submitting adaptive form responses to CrewAI questionnaire ${questionnaireId}`);
-      
+
       await collectionFlowApi.submitQuestionnaireResponse(
         state.flowId,
         questionnaireId,
         submissionData
       );
-      
+
       toast({
         title: 'Adaptive Form Submitted Successfully',
         description: 'CrewAI agents are processing your responses and will continue the collection flow.'
       });
 
       console.log('✅ Form submitted successfully, CrewAI agents will continue processing');
-      
+
     } catch (error: unknown) {
       console.error('❌ Adaptive form submission failed:', error);
-      
-      const errorMessage = error?.response?.data?.detail || 
-                          error?.response?.data?.message || 
-                          error?.message || 
+
+      const errorMessage = error?.response?.data?.detail ||
+                          error?.response?.data?.message ||
+                          error?.message ||
                           'Failed to submit adaptive form responses.';
-      
+
       toast({
         title: 'Adaptive Form Submission Failed',
         description: `Error: ${errorMessage}`,
         variant: 'destructive'
       });
-      
+
     } finally {
       setState(prev => ({ ...prev, isLoading: false }));
     }
@@ -509,7 +509,7 @@ export const useAdaptiveFormFlow = (
       });
       initializeFlow();
     }
-    
+
     // Cleanup: Clear the flow context when leaving the page
     return () => {
       setCurrentFlow(null);
@@ -519,7 +519,7 @@ export const useAdaptiveFormFlow = (
   return {
     // State
     ...state,
-    
+
     // Actions
     initializeFlow,
     handleFieldChange,

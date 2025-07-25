@@ -85,15 +85,15 @@ class CriticalAttributeAssessorAgent(BaseCrewAIAgent):
         super().__init__(
             role="Critical Attribute Assessment Specialist",
             goal="Evaluate collected data against the 22 critical attributes framework to identify gaps and assess migration readiness",
-            backstory="""You are an expert in migration data assessment with deep knowledge 
+            backstory="""You are an expert in migration data assessment with deep knowledge
             of the 22 critical attributes framework. Your expertise includes:
-            
+
             - Understanding which attributes are essential for each 6R migration strategy
             - Mapping raw data fields to standardized critical attributes
             - Calculating attribute coverage and data quality scores
             - Identifying gaps that impact migration decision confidence
             - Assessing business impact of missing attributes
-            
+
             You know that different migration strategies require different attributes:
             - Rehost needs infrastructure details (OS, dependencies, performance)
             - Replatform requires technology stack and architecture information
@@ -101,7 +101,7 @@ class CriticalAttributeAssessorAgent(BaseCrewAIAgent):
             - Repurchase needs business function and cost analysis
             - Retire requires business value and dependency assessment
             - Retain needs operational metrics and cost justification
-            
+
             Your assessments directly impact migration strategy recommendations and project success.""",
             tools=tools,
             llm=llm,

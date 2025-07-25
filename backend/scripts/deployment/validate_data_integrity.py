@@ -202,7 +202,7 @@ class DataIntegrityValidator:
 
             constraint_query = text(
                 """
-                SELECT 
+                SELECT
                     tc.table_name,
                     kcu.column_name,
                     ccu.table_name AS foreign_table_name,
@@ -288,7 +288,7 @@ class DataIntegrityValidator:
                 FROM discovery_flows df
                 LEFT JOIN crewai_flow_state_extensions mf ON df.master_flow_id = mf.flow_id
                 {scope_where}
-                {' AND ' if scope_where else 'WHERE '}mf.flow_id IS NULL 
+                {' AND ' if scope_where else 'WHERE '}mf.flow_id IS NULL
                 AND df.master_flow_id IS NOT NULL
             """
             )
@@ -304,7 +304,7 @@ class DataIntegrityValidator:
                 FROM data_imports di
                 LEFT JOIN crewai_flow_state_extensions mf ON di.master_flow_id = mf.flow_id
                 {scope_where}
-                {' AND ' if scope_where else 'WHERE '}mf.flow_id IS NULL 
+                {' AND ' if scope_where else 'WHERE '}mf.flow_id IS NULL
                 AND di.master_flow_id IS NOT NULL
             """
             )
@@ -335,7 +335,7 @@ class DataIntegrityValidator:
                 FROM assets a
                 LEFT JOIN discovery_flows df ON a.discovery_flow_id = df.flow_id
                 {scope_where}
-                {' AND ' if scope_where else 'WHERE '}df.flow_id IS NULL 
+                {' AND ' if scope_where else 'WHERE '}df.flow_id IS NULL
                 AND a.discovery_flow_id IS NOT NULL
             """
             )
@@ -383,7 +383,7 @@ class DataIntegrityValidator:
             # Check cascade rules for critical relationships
             cascade_query = text(
                 """
-                SELECT 
+                SELECT
                     tc.table_name,
                     kcu.column_name,
                     ccu.table_name AS foreign_table_name,
@@ -593,7 +593,7 @@ class DataIntegrityValidator:
             # Check for discovery flows without corresponding master flows
             consistency_query = text(
                 f"""
-                SELECT 
+                SELECT
                     COUNT(CASE WHEN df.master_flow_id IS NOT NULL AND mf.flow_id IS NULL THEN 1 END) as orphaned_discovery_flows,
                     COUNT(CASE WHEN di.master_flow_id IS NOT NULL AND mf2.flow_id IS NULL THEN 1 END) as orphaned_data_imports,
                     COUNT(CASE WHEN df.data_import_id IS NOT NULL AND di2.id IS NULL THEN 1 END) as discovery_flows_missing_imports,
@@ -678,7 +678,7 @@ class DataIntegrityValidator:
 
             master_flow_query = text(
                 f"""
-                SELECT COUNT(*) FROM crewai_flow_state_extensions 
+                SELECT COUNT(*) FROM crewai_flow_state_extensions
                 {scope_where}
             """
             )
@@ -732,7 +732,7 @@ class DataIntegrityValidator:
 
             asset_aggregation_query = text(
                 f"""
-                SELECT 
+                SELECT
                     COUNT(*) as total_assets,
                     AVG(migration_readiness_score) as avg_readiness_score,
                     COUNT(CASE WHEN migration_readiness_score >= 0.8 THEN 1 END) as high_readiness_count
@@ -800,34 +800,34 @@ class DataIntegrityValidator:
             # Test 1: Verify all records have proper tenant IDs
             tenant_id_query = text(
                 """
-                SELECT 
+                SELECT
                     'crewai_flow_state_extensions' as table_name,
                     COUNT(*) as total_records,
                     COUNT(CASE WHEN client_account_id IS NULL THEN 1 END) as missing_client_id,
                     COUNT(CASE WHEN engagement_id IS NULL THEN 1 END) as missing_engagement_id
                 FROM crewai_flow_state_extensions
-                
+
                 UNION ALL
-                
-                SELECT 
+
+                SELECT
                     'discovery_flows' as table_name,
                     COUNT(*) as total_records,
                     COUNT(CASE WHEN client_account_id IS NULL THEN 1 END) as missing_client_id,
                     COUNT(CASE WHEN engagement_id IS NULL THEN 1 END) as missing_engagement_id
                 FROM discovery_flows
-                
+
                 UNION ALL
-                
-                SELECT 
+
+                SELECT
                     'data_imports' as table_name,
                     COUNT(*) as total_records,
                     COUNT(CASE WHEN client_account_id IS NULL THEN 1 END) as missing_client_id,
                     COUNT(CASE WHEN engagement_id IS NULL THEN 1 END) as missing_engagement_id
                 FROM data_imports
-                
+
                 UNION ALL
-                
-                SELECT 
+
+                SELECT
                     'assets' as table_name,
                     COUNT(*) as total_records,
                     COUNT(CASE WHEN client_account_id IS NULL THEN 1 END) as missing_client_id,
@@ -875,7 +875,7 @@ class DataIntegrityValidator:
             if self.client_account_id:
                 cross_tenant_query = text(
                     """
-                    SELECT 
+                    SELECT
                         COUNT(CASE WHEN df.client_account_id != di.client_account_id THEN 1 END) as discovery_import_mismatch,
                         COUNT(CASE WHEN a.client_account_id != df.client_account_id THEN 1 END) as asset_discovery_mismatch,
                         COUNT(CASE WHEN rir.client_account_id != di.client_account_id THEN 1 END) as raw_import_mismatch
@@ -946,34 +946,34 @@ class DataIntegrityValidator:
         """Generate SQL queries for ongoing monitoring"""
         return {
             "orphaned_records_check": """
-                SELECT 
+                SELECT
                     'discovery_flows' as table_name,
                     COUNT(*) as orphaned_count
                 FROM discovery_flows df
                 LEFT JOIN crewai_flow_state_extensions mf ON df.master_flow_id = mf.flow_id
                 WHERE mf.flow_id IS NULL AND df.master_flow_id IS NOT NULL
-                
+
                 UNION ALL
-                
-                SELECT 
+
+                SELECT
                     'data_imports' as table_name,
                     COUNT(*) as orphaned_count
                 FROM data_imports di
                 LEFT JOIN crewai_flow_state_extensions mf ON di.master_flow_id = mf.flow_id
                 WHERE mf.flow_id IS NULL AND di.master_flow_id IS NOT NULL
-                
+
                 UNION ALL
-                
-                SELECT 
+
+                SELECT
                     'raw_import_records' as table_name,
                     COUNT(*) as orphaned_count
                 FROM raw_import_records rir
                 LEFT JOIN data_imports di ON rir.data_import_id = di.id
                 WHERE di.id IS NULL
-                
+
                 UNION ALL
-                
-                SELECT 
+
+                SELECT
                     'assets' as table_name,
                     COUNT(*) as orphaned_count
                 FROM assets a
@@ -981,7 +981,7 @@ class DataIntegrityValidator:
                 WHERE df.flow_id IS NULL AND a.discovery_flow_id IS NOT NULL;
             """,
             "data_integrity_summary": """
-                SELECT 
+                SELECT
                     COUNT(DISTINCT mf.flow_id) as total_master_flows,
                     COUNT(DISTINCT df.flow_id) as total_discovery_flows,
                     COUNT(DISTINCT di.id) as total_data_imports,
@@ -997,7 +997,7 @@ class DataIntegrityValidator:
                 FULL OUTER JOIN assets a ON a.master_flow_id = mf.flow_id;
             """,
             "performance_metrics": """
-                SELECT 
+                SELECT
                     mf.flow_type,
                     COUNT(*) as flow_count,
                     AVG(EXTRACT(EPOCH FROM (mf.updated_at - mf.created_at))) as avg_duration_seconds,
@@ -1009,40 +1009,40 @@ class DataIntegrityValidator:
                 GROUP BY mf.flow_type;
             """,
             "tenant_isolation_check": """
-                SELECT 
+                SELECT
                     table_name,
                     total_records,
                     missing_client_id,
                     missing_engagement_id
                 FROM (
-                    SELECT 
+                    SELECT
                         'crewai_flow_state_extensions' as table_name,
                         COUNT(*) as total_records,
                         COUNT(CASE WHEN client_account_id IS NULL THEN 1 END) as missing_client_id,
                         COUNT(CASE WHEN engagement_id IS NULL THEN 1 END) as missing_engagement_id
                     FROM crewai_flow_state_extensions
-                    
+
                     UNION ALL
-                    
-                    SELECT 
+
+                    SELECT
                         'discovery_flows' as table_name,
                         COUNT(*) as total_records,
                         COUNT(CASE WHEN client_account_id IS NULL THEN 1 END) as missing_client_id,
                         COUNT(CASE WHEN engagement_id IS NULL THEN 1 END) as missing_engagement_id
                     FROM discovery_flows
-                    
+
                     UNION ALL
-                    
-                    SELECT 
+
+                    SELECT
                         'data_imports' as table_name,
                         COUNT(*) as total_records,
                         COUNT(CASE WHEN client_account_id IS NULL THEN 1 END) as missing_client_id,
                         COUNT(CASE WHEN engagement_id IS NULL THEN 1 END) as missing_engagement_id
                     FROM data_imports
-                    
+
                     UNION ALL
-                    
-                    SELECT 
+
+                    SELECT
                         'assets' as table_name,
                         COUNT(*) as total_records,
                         COUNT(CASE WHEN client_account_id IS NULL THEN 1 END) as missing_client_id,

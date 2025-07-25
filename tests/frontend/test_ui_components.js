@@ -18,10 +18,10 @@ const mockDOM = {
         innerHTML: '',
         textContent: ''
     }),
-    
+
     querySelector: (selector) => mockDOM.createElement('div'),
     querySelectorAll: (selector) => [mockDOM.createElement('div')],
-    
+
     // Mock window object
     window: {
         innerWidth: 1024,
@@ -38,55 +38,55 @@ const TestUtils = {
     testResponsiveBreakpoints() {
         console.log('🖥️  Testing Responsive Breakpoints');
         console.log('-'.repeat(40));
-        
+
         const breakpoints = {
             mobile: 640,
             tablet: 768,
             desktop: 1024,
             large: 1280
         };
-        
+
         const testSizes = [320, 640, 768, 1024, 1280, 1920];
-        
+
         testSizes.forEach(width => {
             let category = 'mobile';
             if (width >= breakpoints.large) category = 'large';
             else if (width >= breakpoints.desktop) category = 'desktop';
             else if (width >= breakpoints.tablet) category = 'tablet';
-            
+
             console.log(`   ✅ ${width}px → ${category} layout`);
         });
-        
+
         return true;
     },
-    
+
     /**
      * Test grid responsiveness
      */
     testGridResponsiveness() {
         console.log('\n📱 Testing Grid Responsiveness');
         console.log('-'.repeat(40));
-        
+
         const gridConfigs = {
             mobile: 'grid-cols-1',
             tablet: 'sm:grid-cols-2',
             desktop: 'lg:grid-cols-4'
         };
-        
+
         Object.entries(gridConfigs).forEach(([device, classes]) => {
             console.log(`   ✅ ${device}: ${classes}`);
         });
-        
+
         return true;
     },
-    
+
     /**
      * Test button responsiveness
      */
     testButtonResponsiveness() {
         console.log('\n🔘 Testing Button Responsiveness');
         console.log('-'.repeat(40));
-        
+
         const buttonTests = [
             {
                 name: 'Mobile Stack',
@@ -104,22 +104,22 @@ const TestUtils = {
                 description: 'Padding adjusts for touch targets'
             }
         ];
-        
+
         buttonTests.forEach(test => {
             console.log(`   ✅ ${test.name}: ${test.classes}`);
             console.log(`      ${test.description}`);
         });
-        
+
         return true;
     },
-    
+
     /**
      * Test table responsiveness
      */
     testTableResponsiveness() {
         console.log('\n📊 Testing Table Responsiveness');
         console.log('-'.repeat(40));
-        
+
         const tableFeatures = [
             'Horizontal scroll on mobile',
             'Responsive padding (px-3 sm:px-6)',
@@ -127,21 +127,21 @@ const TestUtils = {
             'Conditional text display',
             'Mobile-friendly headers'
         ];
-        
+
         tableFeatures.forEach(feature => {
             console.log(`   ✅ ${feature}`);
         });
-        
+
         return true;
     },
-    
+
     /**
      * Test component accessibility
      */
     testAccessibility() {
         console.log('\n♿ Testing Accessibility Features');
         console.log('-'.repeat(40));
-        
+
         const a11yFeatures = [
             'Keyboard navigation support',
             'Screen reader compatibility',
@@ -149,21 +149,21 @@ const TestUtils = {
             'Focus indicators',
             'ARIA labels and roles'
         ];
-        
+
         a11yFeatures.forEach(feature => {
             console.log(`   ✅ ${feature}`);
         });
-        
+
         return true;
     },
-    
+
     /**
      * Test loading states
      */
     testLoadingStates() {
         console.log('\n⏳ Testing Loading States');
         console.log('-'.repeat(40));
-        
+
         const loadingStates = [
             'File upload progress',
             'Analysis in progress',
@@ -171,21 +171,21 @@ const TestUtils = {
             'Skeleton loaders',
             'Spinner animations'
         ];
-        
+
         loadingStates.forEach(state => {
             console.log(`   ✅ ${state}`);
         });
-        
+
         return true;
     },
-    
+
     /**
      * Test error handling
      */
     testErrorHandling() {
         console.log('\n❌ Testing Error Handling');
         console.log('-'.repeat(40));
-        
+
         const errorScenarios = [
             'File upload failures',
             'Network connectivity issues',
@@ -193,21 +193,21 @@ const TestUtils = {
             'Server errors',
             'Validation errors'
         ];
-        
+
         errorScenarios.forEach(scenario => {
             console.log(`   ✅ ${scenario} handling`);
         });
-        
+
         return true;
     },
-    
+
     /**
      * Test form validation
      */
     testFormValidation() {
         console.log('\n📝 Testing Form Validation');
         console.log('-'.repeat(40));
-        
+
         const validationTests = [
             'Required field validation',
             'File type validation',
@@ -215,21 +215,21 @@ const TestUtils = {
             'Real-time feedback',
             'Error message display'
         ];
-        
+
         validationTests.forEach(test => {
             console.log(`   ✅ ${test}`);
         });
-        
+
         return true;
     },
-    
+
     /**
      * Test navigation and routing
      */
     testNavigation() {
         console.log('\n🧭 Testing Navigation');
         console.log('-'.repeat(40));
-        
+
         const navFeatures = [
             'Responsive sidebar',
             'Mobile menu toggle',
@@ -237,21 +237,21 @@ const TestUtils = {
             'Breadcrumb navigation',
             'Route transitions'
         ];
-        
+
         navFeatures.forEach(feature => {
             console.log(`   ✅ ${feature}`);
         });
-        
+
         return true;
     },
-    
+
     /**
      * Test data visualization
      */
     testDataVisualization() {
         console.log('\n📈 Testing Data Visualization');
         console.log('-'.repeat(40));
-        
+
         const vizFeatures = [
             'Responsive charts',
             'Interactive elements',
@@ -259,11 +259,11 @@ const TestUtils = {
             'Legend positioning',
             'Mobile-friendly controls'
         ];
-        
+
         vizFeatures.forEach(feature => {
             console.log(`   ✅ ${feature}`);
         });
-        
+
         return true;
     }
 };
@@ -278,15 +278,15 @@ class FrontendTestRunner {
             total: 0
         };
     }
-    
+
     addTest(name, testFunction) {
         this.tests.push({ name, testFunction });
     }
-    
+
     async runAllTests() {
         console.log('🎨 Starting Frontend UI Component Tests');
         console.log('='.repeat(60));
-        
+
         for (const test of this.tests) {
             try {
                 const result = await test.testFunction();
@@ -303,18 +303,18 @@ class FrontendTestRunner {
             }
             this.results.total++;
         }
-        
+
         this.printSummary();
         return this.results.failed === 0;
     }
-    
+
     printSummary() {
         console.log('\n' + '='.repeat(60));
         console.log('🏁 Frontend Test Summary');
         console.log(`   ✅ Passed: ${this.results.passed}`);
         console.log(`   ❌ Failed: ${this.results.failed}`);
         console.log(`   📊 Success Rate: ${(this.results.passed/this.results.total*100).toFixed(1)}%`);
-        
+
         if (this.results.failed === 0) {
             console.log('\n🎉 All frontend tests passed! UI is responsive and functional.');
         } else {
@@ -327,10 +327,10 @@ class FrontendTestRunner {
 if (typeof module !== 'undefined' && module.exports) {
     // Export for use in other modules
     module.exports = { TestUtils, FrontendTestRunner };
-    
+
     async function runTests() {
         const runner = new FrontendTestRunner();
-        
+
         // Add all tests
         runner.addTest('Responsive Breakpoints', TestUtils.testResponsiveBreakpoints);
         runner.addTest('Grid Responsiveness', TestUtils.testGridResponsiveness);
@@ -342,11 +342,11 @@ if (typeof module !== 'undefined' && module.exports) {
         runner.addTest('Form Validation', TestUtils.testFormValidation);
         runner.addTest('Navigation', TestUtils.testNavigation);
         runner.addTest('Data Visualization', TestUtils.testDataVisualization);
-        
+
         const success = await runner.runAllTests();
         process.exit(success ? 0 : 1);
     }
-    
+
     // Run tests if this file is executed directly
     if (require.main === module) {
         runTests();
@@ -356,4 +356,4 @@ if (typeof module !== 'undefined' && module.exports) {
 // Browser environment
 if (typeof window !== 'undefined') {
     window.FrontendTests = { TestUtils, FrontendTestRunner };
-} 
+}

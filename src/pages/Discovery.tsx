@@ -5,7 +5,7 @@ import { Database, Network, Activity, Download, Filter } from 'lucide-react';
 
 const Discovery = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
-  
+
   const discoveredAssets = [
     { id: 'AS001', name: 'CRM Database', type: 'Database', environment: 'Production', status: 'Active', dependencies: 3, risk: 'Medium' },
     { id: 'AS002', name: 'Web Frontend', type: 'Application', environment: 'Production', status: 'Active', dependencies: 5, risk: 'Low' },
@@ -117,8 +117,8 @@ const Discovery = () => {
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-gray-900">Discovered Assets</h3>
                   <div className="flex items-center space-x-3">
-                    <select 
-                      value={selectedFilter} 
+                    <select
+                      value={selectedFilter}
                       onChange={(e) => setSelectedFilter(e.target.value)}
                       className="border border-gray-300 rounded-md px-3 py-2 text-sm"
                     >

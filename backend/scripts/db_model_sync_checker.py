@@ -151,9 +151,9 @@ class DatabaseModelChecker:
         async with self.async_engine.connect() as conn:
             # Get all tables
             tables_query = """
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'migration' 
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'migration'
                 AND table_type = 'BASE TABLE'
             """
             from sqlalchemy import text
@@ -177,7 +177,7 @@ class DatabaseModelChecker:
 
         # Get columns
         columns_query = """
-            SELECT 
+            SELECT
                 column_name,
                 data_type,
                 is_nullable,
@@ -185,7 +185,7 @@ class DatabaseModelChecker:
                 character_maximum_length,
                 numeric_precision,
                 numeric_scale
-            FROM information_schema.columns 
+            FROM information_schema.columns
             WHERE table_name = :table_name AND table_schema = 'migration'
             ORDER BY ordinal_position
         """
@@ -207,9 +207,9 @@ class DatabaseModelChecker:
         pk_query = """
             SELECT column_name
             FROM information_schema.key_column_usage kcu
-            JOIN information_schema.table_constraints tc 
+            JOIN information_schema.table_constraints tc
                 ON kcu.constraint_name = tc.constraint_name
-            WHERE tc.table_name = :table_name 
+            WHERE tc.table_name = :table_name
             AND tc.constraint_type = 'PRIMARY KEY'
             AND tc.table_schema = 'migration'
         """
@@ -219,12 +219,12 @@ class DatabaseModelChecker:
 
         # Get constraints
         constraints_query = """
-            SELECT 
+            SELECT
                 tc.constraint_name,
                 tc.constraint_type,
                 array_agg(kcu.column_name ORDER BY kcu.ordinal_position) as columns
             FROM information_schema.table_constraints tc
-            LEFT JOIN information_schema.key_column_usage kcu 
+            LEFT JOIN information_schema.key_column_usage kcu
                 ON tc.constraint_name = kcu.constraint_name
             WHERE tc.table_name = :table_name AND tc.table_schema = 'migration'
             GROUP BY tc.constraint_name, tc.constraint_type
@@ -238,7 +238,7 @@ class DatabaseModelChecker:
 
         # Get indexes
         indexes_query = """
-            SELECT 
+            SELECT
                 i.indexname,
                 i.indexdef,
                 array_agg(a.attname ORDER BY a.attnum) as columns
@@ -260,18 +260,18 @@ class DatabaseModelChecker:
 
         # Get foreign keys
         fk_query = """
-            SELECT 
+            SELECT
                 tc.constraint_name,
                 kcu.column_name,
                 ccu.table_name AS referenced_table,
                 ccu.column_name AS referenced_column
             FROM information_schema.table_constraints tc
-            JOIN information_schema.key_column_usage kcu 
+            JOIN information_schema.key_column_usage kcu
                 ON tc.constraint_name = kcu.constraint_name
-            JOIN information_schema.constraint_column_usage ccu 
+            JOIN information_schema.constraint_column_usage ccu
                 ON ccu.constraint_name = tc.constraint_name
-            WHERE tc.constraint_type = 'FOREIGN KEY' 
-            AND tc.table_name = :table_name 
+            WHERE tc.constraint_type = 'FOREIGN KEY'
+            AND tc.table_name = :table_name
             AND tc.table_schema = 'migration'
         """
         result = await conn.execute(text(fk_query), {"table_name": table_name})
@@ -556,7 +556,7 @@ class DatabaseModelChecker:
 \"\"\"Database schema synchronization
 
 Revision ID: sync_{datetime.now().strftime('%Y%m%d_%H%M%S')}
-Revises: 
+Revises:
 Create Date: {datetime.now().isoformat()}
 
 \"\"\"

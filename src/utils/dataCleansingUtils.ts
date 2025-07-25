@@ -5,19 +5,19 @@ import type { AgentRecommendation } from '../components/discovery/data-cleansing
  * Fixed field highlighting function that properly matches assets and fields
  */
 export const getFieldHighlight = (
-  fieldName: string, 
-  assetId: string, 
-  rawData: Array<Record<string, unknown>>, 
-  qualityIssues: QualityIssue[], 
+  fieldName: string,
+  assetId: string,
+  rawData: Array<Record<string, unknown>>,
+  qualityIssues: QualityIssue[],
   agentRecommendations: AgentRecommendation[],
   selectedIssue: string | null,
   selectedRecommendation: string | null
 ): string => {
   let highlightClass = '';
-  
+
   // Debug logging for troubleshooting
   const isDebugMode = typeof import.meta !== 'undefined' && import.meta.env?.DEV;
-  
+
   // Highlight based on selected issue
   if (selectedIssue) {
     const issue = qualityIssues.find(i => i.id === selectedIssue);
@@ -32,11 +32,11 @@ export const getFieldHighlight = (
           issueAssetName: issue.asset_name
         });
       }
-      
+
       // Convert field names for comparison - handle both uppercase and lowercase variations
       const normalizedIssueField = normalizeFieldName(issue.field_name);
       const normalizedTableField = normalizeFieldName(fieldName);
-      
+
       if (isDebugMode) {
         console.log('🔍 Field name comparison:', {
           issueFieldName: issue.field_name,
@@ -47,18 +47,18 @@ export const getFieldHighlight = (
           normalizedMatch: normalizedIssueField === normalizedTableField
         });
       }
-      
+
       // Try exact match first, then normalized match
       const fieldsMatch = issue.field_name === fieldName || normalizedIssueField === normalizedTableField;
-      
+
       if (fieldsMatch) {
         // Find the asset in rawData by matching various identifier formats
         const currentAsset = findAssetByIdentifier(rawData, issue.asset_name || issue.asset_id);
-        
+
         if (currentAsset) {
           // Get the asset identifier that matches what the table is using
           const tableAssetId = getAssetTableIdentifier(currentAsset);
-          
+
           if (isDebugMode) {
             console.log('🎯 Asset matching:', {
               foundAsset: !!currentAsset,
@@ -67,7 +67,7 @@ export const getFieldHighlight = (
               matches: tableAssetId === assetId
             });
           }
-          
+
           // Check if this row matches the issue's asset
           if (tableAssetId === assetId) {
             highlightClass = 'bg-red-100 border border-red-300 ring-2 ring-red-200';
@@ -96,16 +96,16 @@ export const getFieldHighlight = (
       }
     }
   }
-  
+
   // Highlight based on selected recommendation (override issue highlighting)
   if (selectedRecommendation && !highlightClass) {
     const recommendation = agentRecommendations.find(r => r.id === selectedRecommendation);
     if (recommendation && recommendation.change_details?.fields_affected) {
       const normalizedTableField = normalizeFieldName(fieldName);
-      const hasMatchingField = recommendation.change_details.fields_affected.some(field => 
+      const hasMatchingField = recommendation.change_details.fields_affected.some(field =>
         normalizeFieldName(field) === normalizedTableField
       );
-      
+
       if (hasMatchingField) {
         highlightClass = 'bg-blue-100 border border-blue-300 ring-2 ring-blue-200';
         if (isDebugMode) {
@@ -114,7 +114,7 @@ export const getFieldHighlight = (
       }
     }
   }
-  
+
   return highlightClass;
 };
 
@@ -123,12 +123,12 @@ export const getFieldHighlight = (
  */
 const normalizeFieldName = (fieldName: string): string => {
   if (!fieldName) return '';
-  
+
   // Convert to lowercase and remove spaces, underscores, parentheses, and other special chars for comparison
   const normalized = fieldName.toLowerCase()
     .replace(/[\s_\-()]/g, '')  // Remove spaces, underscores, dashes, parentheses
     .replace(/[^a-z0-9]/g, '');   // Remove any remaining special characters
-  
+
   // Handle common field name variations - return a standardized version
   const fieldMappings: { [key: string]: string } = {
     'hostname': 'hostname',
@@ -153,7 +153,7 @@ const normalizeFieldName = (fieldName: string): string => {
     'relatedcmdbrecords': 'relatedcmdbrecords',
     'related': 'relatedcmdbrecords'
   };
-  
+
   return fieldMappings[normalized] || normalized;
 };
 
@@ -162,7 +162,7 @@ const normalizeFieldName = (fieldName: string): string => {
  */
 const findAssetByIdentifier = (rawData: Array<Record<string, unknown>>, identifier: string): Record<string, unknown> | null => {
   if (!identifier || !rawData || rawData.length === 0) return null;
-  
+
   return rawData.find(asset => {
     // Use the EXACT same logic as table's getAssetIdentifier: row.id || row.ID || row.asset_name || row.hostname || row.name || row.NAME || 'unknown'
     const tableAssetId = asset.id || asset.ID || asset.asset_name || asset.hostname || asset.name || asset.NAME || 'unknown';
@@ -183,16 +183,16 @@ const getAssetTableIdentifier = (asset: Record<string, unknown>): string => {
  */
 export const doesAssetMatch = (asset: Record<string, unknown>, targetIdentifier: string): boolean => {
   if (!asset || !targetIdentifier) return false;
-  
+
   const identifiers = [
     asset.id,
-    asset.ID, 
+    asset.ID,
     asset.asset_name,
     asset.hostname,
     asset.name,
     asset.NAME,
     asset.HOSTNAME
   ].filter(Boolean);
-  
+
   return identifiers.some(id => String(id) === String(targetIdentifier));
-}; 
+};

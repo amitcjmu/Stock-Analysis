@@ -95,11 +95,11 @@ services:
     environment:
       # Deployment mode
       - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-development}
-      
+
       # Development profile
       - MOCK_KMS_ENDPOINT=${MOCK_KMS_ENDPOINT:-http://mock-kms:8080}
       - MOCK_TELEMETRY_ENDPOINT=${MOCK_TELEMETRY_ENDPOINT:-http://mock-telemetry:8080}
-      
+
       # SaaS profile
       - KMS_ENDPOINT=${KMS_ENDPOINT:-}
       - KMS_API_KEY=${KMS_API_KEY:-}
@@ -110,11 +110,11 @@ services:
       - SSO_CLIENT_SECRET=${SSO_CLIENT_SECRET:-}
       - SSO_AUTHORIZE_URL=${SSO_AUTHORIZE_URL:-}
       - SSO_TOKEN_URL=${SSO_TOKEN_URL:-}
-      
+
       # On-premises profile
       - VAULT_ADDR=${VAULT_ADDR:-http://vault:8200}
       - VAULT_TOKEN=${VAULT_TOKEN:-dev-token}
-      
+
       # Feature flags
       - ENABLE_CLOUD_KMS=${ENABLE_CLOUD_KMS:-false}
       - ENABLE_SSO=${ENABLE_SSO:-false}

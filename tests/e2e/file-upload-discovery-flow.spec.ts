@@ -6,23 +6,23 @@ import path from 'path';
  * Tests the complete workflow from login -> file upload -> Discovery flow creation -> validation
  */
 test.describe('File Upload and Discovery Flow Initiation', () => {
-  
+
   test.beforeEach(async ({ page }) => {
     // Set longer timeout for complex operations
     test.setTimeout(90000);
-    
+
     // Navigate to login page
     await page.goto('http://localhost:8081/login');
-    
+
     // Login as platform admin (has access to all clients/engagements)
     await page.fill('input[name="email"]', 'chocka@gmail.com');
     await page.fill('input[name="password"]', 'Password123!');
     await page.click('button[type="submit"]');
-    
+
     // Wait for successful login and dashboard navigation
     await page.waitForURL('**/dashboard', { timeout: 15000 });
     console.log('✅ Successfully logged in as platform admin');
-    
+
     // Verify we're on the dashboard
     await expect(page.locator('h1, h2').filter({ hasText: /Dashboard|Welcome/ })).toBeVisible({ timeout: 10000 });
   });
@@ -35,18 +35,18 @@ test.describe('File Upload and Discovery Flow Initiation', () => {
     );
     await discoveryLink.click();
     await page.waitForTimeout(2000);
-    
+
     // Handle different discovery page states
     const currentUrl = page.url();
     if (currentUrl.includes('/discovery') && !currentUrl.includes('cmdb-import')) {
       // We might be on overview page, need to navigate to data import
       console.log('📋 On Discovery overview, checking for data import navigation...');
-      
+
       // Look for data import/CMDB import links
-      const dataImportLink = page.locator('a, button').filter({ 
-        hasText: /Data Import|CMDB Import|Upload Data|Start Import/i 
+      const dataImportLink = page.locator('a, button').filter({
+        hasText: /Data Import|CMDB Import|Upload Data|Start Import/i
       }).first();
-      
+
       if (await dataImportLink.isVisible()) {
         await dataImportLink.click();
         await page.waitForTimeout(2000);
@@ -55,7 +55,7 @@ test.describe('File Upload and Discovery Flow Initiation', () => {
         await page.goto('http://localhost:8081/discovery/cmdb-import');
       }
     }
-    
+
     // Verify we're on the data import page
     await page.waitForURL('**/discovery/cmdb-import', { timeout: 10000 });
     console.log('✅ Successfully navigated to CMDB Import page');
@@ -63,10 +63,10 @@ test.describe('File Upload and Discovery Flow Initiation', () => {
     // Step 2: Verify upload interface is ready
     console.log('📁 Step 2: Verifying upload interface...');
     await expect(page.locator('text=/Upload.*Data|Data Import|CMDB Import/i')).toBeVisible({ timeout: 10000 });
-    
+
     // Step 3: Upload test file
     console.log('⬆️ Step 3: Uploading test CSV file...');
-    
+
     // Create a more comprehensive test CSV
     const testCsvContent = `hostname,application_name,ip_address,operating_system,cpu_cores,memory_gb,storage_gb,environment,criticality,six_r_strategy
 server001.prod,Customer Portal,192.168.1.10,Ubuntu 20.04,4,16,500,Production,High,Rehost
@@ -87,16 +87,16 @@ test001.staging,Test Environment,192.168.3.10,Ubuntu 20.04,2,8,200,Staging,Low,R
     ];
 
     let uploadSuccessful = false;
-    
+
     for (const uploadArea of uploadAreas) {
       try {
         if (await uploadArea.first().isVisible({ timeout: 3000 })) {
           console.log('📤 Found upload area, attempting file upload...');
-          
+
           // Try clicking to trigger file chooser
           const fileChooserPromise = page.waitForEvent('filechooser', { timeout: 5000 });
           await uploadArea.first().click();
-          
+
           try {
             const fileChooser = await fileChooserPromise;
             await fileChooser.setFiles({
@@ -137,7 +137,7 @@ test001.staging,Test Environment,192.168.3.10,Ubuntu 20.04,2,8,200,Staging,Low,R
 
     // Step 4: Wait for upload processing and Discovery flow creation
     console.log('⏳ Step 4: Waiting for file processing and flow creation...');
-    
+
     // Look for processing indicators
     const processingIndicators = [
       page.locator('text=/Processing|Analyzing|Uploading|Creating flow/i'),
@@ -147,7 +147,7 @@ test001.staging,Test Environment,192.168.3.10,Ubuntu 20.04,2,8,200,Staging,Low,R
 
     // Wait for processing to start
     await page.waitForTimeout(2000);
-    
+
     // Wait for processing completion (look for success messages or flow ID)
     const successIndicators = [
       page.locator('text=/Upload.*complete|Processing.*complete|Flow.*created|Flow ID/i'),
@@ -162,7 +162,7 @@ test001.staging,Test Environment,192.168.3.10,Ubuntu 20.04,2,8,200,Staging,Low,R
         if (await indicator.first().isVisible({ timeout: 1000 })) {
           console.log('✅ Processing completed successfully');
           processingComplete = true;
-          
+
           // Try to extract flow ID if visible
           const flowIdElement = page.locator('text=/flow-\\d{8}-\\d{6}/');
           if (await flowIdElement.isVisible()) {
@@ -182,18 +182,18 @@ test001.staging,Test Environment,192.168.3.10,Ubuntu 20.04,2,8,200,Staging,Low,R
 
     // Step 5: Verify Discovery flow was initiated
     console.log('🔍 Step 5: Verifying Discovery flow initiation...');
-    
+
     // Check if we're automatically redirected to attribute mapping or if we need to navigate
     await page.waitForTimeout(3000);
-    
+
     const currentPageUrl = page.url();
     if (!currentPageUrl.includes('attribute-mapping')) {
       // Navigate to attribute mapping to verify the flow
       console.log('📋 Navigating to Attribute Mapping to verify flow...');
-      const attributeMappingLink = page.locator('a, button').filter({ 
-        hasText: /Attribute Mapping|Field Mapping|Mapping/i 
+      const attributeMappingLink = page.locator('a, button').filter({
+        hasText: /Attribute Mapping|Field Mapping|Mapping/i
       }).first();
-      
+
       if (await attributeMappingLink.isVisible()) {
         await attributeMappingLink.click();
         await page.waitForURL('**/discovery/attribute-mapping', { timeout: 10000 });
@@ -208,7 +208,7 @@ test001.staging,Test Environment,192.168.3.10,Ubuntu 20.04,2,8,200,Staging,Low,R
 
     // Step 6: Verify flow data is available
     console.log('✅ Step 6: Verifying Discovery flow data availability...');
-    
+
     // Check for flow data indicators
     const flowDataIndicators = [
       page.locator('text=/Field Mapping|Critical Attributes|Source Fields/i'),
@@ -232,12 +232,12 @@ test001.staging,Test Environment,192.168.3.10,Ubuntu 20.04,2,8,200,Staging,Low,R
 
     if (hasNoDataMessage && !flowDataFound) {
       console.log('⚠️ No flow data detected. Checking for flow selection options...');
-      
+
       // Look for flow selector dropdown
       const flowSelector = page.locator('select').filter({ hasText: /flow|Flow/i }).or(
         page.locator('[data-testid="flow-selector"]')
       );
-      
+
       if (await flowSelector.first().isVisible()) {
         console.log('🔽 Flow selector found, selecting available flow...');
         const options = await flowSelector.first().locator('option').all();
@@ -245,7 +245,7 @@ test001.staging,Test Environment,192.168.3.10,Ubuntu 20.04,2,8,200,Staging,Low,R
           // Select first non-default option
           await flowSelector.first().selectOption({ index: 1 });
           await page.waitForTimeout(2000);
-          
+
           // Re-check for flow data
           for (const indicator of flowDataIndicators) {
             if (await indicator.first().isVisible({ timeout: 3000 })) {
@@ -260,7 +260,7 @@ test001.staging,Test Environment,192.168.3.10,Ubuntu 20.04,2,8,200,Staging,Low,R
 
     // Step 7: Verify CrewAI Discovery Flow execution
     console.log('🤖 Step 7: Verifying CrewAI Discovery Flow execution...');
-    
+
     // Look for agent activity indicators
     const agentIndicators = [
       page.locator('text=/Agent.*analysis|CrewAI|Discovery.*agent|Processing.*flow/i'),
@@ -311,13 +311,13 @@ test001.staging,Test Environment,192.168.3.10,Ubuntu 20.04,2,8,200,Staging,Low,R
 
     // Assert critical functionality
     expect(flowDataFound || processingComplete).toBeTruthy();
-    
+
     if (!flowDataFound) {
       console.log('⚠️ WARNING: Flow data not immediately available. This may indicate:');
       console.log('   - Flow is still processing in background');
       console.log('   - Context switching issues between upload and mapping views');
       console.log('   - Need to refresh page or wait for async processing');
-      
+
       // Take debug screenshot
       await page.screenshot({ path: 'flow-data-missing-debug.png', fullPage: true });
     }
@@ -326,7 +326,7 @@ test001.staging,Test Environment,192.168.3.10,Ubuntu 20.04,2,8,200,Staging,Low,R
   test('Verify Discovery flow with asset inventory', async ({ page }) => {
     // Quick test to verify uploaded data reaches asset inventory
     console.log('📦 Testing asset inventory after Discovery flow...');
-    
+
     // Upload a simple test file first
     await page.goto('http://localhost:8081/discovery/cmdb-import');
     await page.waitForTimeout(2000);
@@ -340,7 +340,7 @@ test-server-02,Test App 2,Development`;
     if (await uploadArea.isVisible()) {
       const fileChooserPromise = page.waitForEvent('filechooser', { timeout: 5000 });
       await uploadArea.click();
-      
+
       try {
         const fileChooser = await fileChooserPromise;
         await fileChooser.setFiles({
@@ -348,20 +348,20 @@ test-server-02,Test App 2,Development`;
           mimeType: 'text/csv',
           buffer: Buffer.from(simpleTestData)
         });
-        
+
         // Wait for processing
         await page.waitForTimeout(5000);
-        
+
         // Navigate to Discovery overview to check asset inventory
         await page.goto('http://localhost:8081/discovery');
         await page.waitForTimeout(3000);
-        
+
         // Look for asset count indicators
         const assetCountIndicators = page.locator('text=/\\d+.*asset|\\d+.*server|\\d+.*application|Assets.*discovered/i');
         if (await assetCountIndicators.first().isVisible({ timeout: 5000 })) {
           const assetCountText = await assetCountIndicators.first().textContent();
           console.log(`📦 Asset inventory updated: ${assetCountText}`);
-          
+
           // Check if count is greater than 0
           const matches = assetCountText?.match(/(\d+)/);
           if (matches && parseInt(matches[1]) > 0) {
@@ -377,27 +377,27 @@ test-server-02,Test App 2,Development`;
   test('Handle flow context and client switching', async ({ page }) => {
     // Test flow behavior with different client contexts
     console.log('🔄 Testing flow context handling...');
-    
+
     await page.goto('http://localhost:8081/discovery');
     await page.waitForTimeout(2000);
-    
+
     // Look for client context selector
     const contextSelector = page.locator('select').filter({ hasText: /client|Client/i }).or(
       page.locator('[data-testid="client-selector"]')
     );
-    
+
     if (await contextSelector.first().isVisible()) {
       console.log('🏢 Client context selector found');
-      
+
       // Get available options
       const options = await contextSelector.first().locator('option').all();
       console.log(`📋 Available clients: ${options.length - 1}`); // Minus default option
-      
+
       if (options.length > 1) {
         // Switch to a different client
         await contextSelector.first().selectOption({ index: 1 });
         await page.waitForTimeout(2000);
-        
+
         // Verify that flows are context-aware
         const flowElements = page.locator('text=/flow|Flow/i');
         const flowCount = await flowElements.count();

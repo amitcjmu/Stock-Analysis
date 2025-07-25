@@ -1,6 +1,6 @@
 /**
  * Error handling types for hooks
- * 
+ *
  * Common error types used across hooks for consistent error handling.
  */
 
@@ -29,7 +29,7 @@ export function isApiError(error: unknown): error is ApiError {
   return error instanceof Error && 'code' in error;
 }
 
-// Type guard for network errors  
+// Type guard for network errors
 export function isNetworkError(error: unknown): error is NetworkError {
   return error instanceof Error && 'response' in error;
 }

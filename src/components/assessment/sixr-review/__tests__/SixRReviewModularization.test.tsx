@@ -79,7 +79,7 @@ describe('SixR Review Modularization', () => {
   describe('SixROverallStats Component', () => {
     it('should render statistics correctly', () => {
       render(<SixROverallStats statistics={mockStatistics} />);
-      
+
       expect(screen.getByText('3/5')).toBeInTheDocument();
       expect(screen.getByText('85%')).toBeInTheDocument();
       expect(screen.getByText('1')).toBeInTheDocument();
@@ -88,7 +88,7 @@ describe('SixR Review Modularization', () => {
 
     it('should display strategy distribution', () => {
       render(<SixROverallStats statistics={mockStatistics} />);
-      
+
       expect(screen.getByText('Rehost (Lift & Shift)')).toBeInTheDocument();
       expect(screen.getByText('Replatform (Lift & Reshape)')).toBeInTheDocument();
     });
@@ -97,12 +97,12 @@ describe('SixR Review Modularization', () => {
   describe('SixRAppDecisionSummary Component', () => {
     it('should render application decision details', () => {
       render(
-        <SixRAppDecisionSummary 
-          selectedApp="test-app" 
-          decision={mockDecision} 
+        <SixRAppDecisionSummary
+          selectedApp="test-app"
+          decision={mockDecision}
         />
       );
-      
+
       expect(screen.getByText('test-app Strategy')).toBeInTheDocument();
       expect(screen.getByText('Test rationale')).toBeInTheDocument();
       expect(screen.getByText('High complexity')).toBeInTheDocument();
@@ -111,12 +111,12 @@ describe('SixR Review Modularization', () => {
 
     it('should display confidence score', () => {
       render(
-        <SixRAppDecisionSummary 
-          selectedApp="test-app" 
-          decision={mockDecision} 
+        <SixRAppDecisionSummary
+          selectedApp="test-app"
+          decision={mockDecision}
         />
       );
-      
+
       expect(screen.getByTestId('confidence-indicator')).toHaveTextContent('0.8');
     });
   });
@@ -137,28 +137,28 @@ describe('SixR Review Modularization', () => {
 
     it('should render save and submit buttons', () => {
       render(<SixRActionButtons {...mockProps} />);
-      
+
       expect(screen.getByText('Save Progress')).toBeInTheDocument();
       expect(screen.getByText('Continue to Application Review')).toBeInTheDocument();
     });
 
     it('should call onSaveDraft when save button is clicked', () => {
       render(<SixRActionButtons {...mockProps} />);
-      
+
       fireEvent.click(screen.getByText('Save Progress'));
       expect(mockProps.onSaveDraft).toHaveBeenCalledTimes(1);
     });
 
     it('should call onSubmit when submit button is clicked', () => {
       render(<SixRActionButtons {...mockProps} />);
-      
+
       fireEvent.click(screen.getByText('Continue to Application Review'));
       expect(mockProps.onSubmit).toHaveBeenCalledTimes(1);
     });
 
     it('should disable buttons when submitting', () => {
       render(<SixRActionButtons {...mockProps} isSubmitting={true} />);
-      
+
       const submitButton = screen.getByText('Processing...');
       expect(submitButton.closest('button')).toBeDisabled();
     });
@@ -167,19 +167,19 @@ describe('SixR Review Modularization', () => {
   describe('SixRStatusAlert Component', () => {
     it('should render error alert', () => {
       render(<SixRStatusAlert status="error" error="Test error message" />);
-      
+
       expect(screen.getByText('Test error message')).toBeInTheDocument();
     });
 
     it('should render processing alert', () => {
       render(<SixRStatusAlert status="processing" />);
-      
+
       expect(screen.getByText(/AI agents are analyzing/)).toBeInTheDocument();
     });
 
     it('should render nothing for idle status', () => {
       const { container } = render(<SixRStatusAlert status="idle" />);
-      
+
       expect(container.firstChild).toBeNull();
     });
   });

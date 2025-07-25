@@ -35,7 +35,7 @@ export const useAdminData = <T>(
     try {
       setLoading(true);
       setError(null);
-      
+
       // Admin calls don't need tenant context - use false as third parameter
       const response = await apiCall(endpoint, {
         method: 'GET',
@@ -50,11 +50,11 @@ export const useAdminData = <T>(
       }
     } catch (apiError) {
       console.warn(`API endpoint ${endpoint} not available, using demo data:`, apiError);
-      
+
       if (options.showDemoWarning) {
         showDemoDataWarningToast(apiError instanceof Error ? apiError.message : 'Unknown error');
       }
-      
+
       setIsUsingDemoData(true);
       return demoData;
     }
@@ -118,7 +118,7 @@ export const useAdminDashboardStats = () => {
   });
 };
 
-// Pending purge items hook  
+// Pending purge items hook
 export const usePendingPurgeItems = () => {
   const demoItems = [
     {

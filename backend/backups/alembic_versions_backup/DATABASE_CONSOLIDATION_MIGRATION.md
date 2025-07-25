@@ -174,27 +174,27 @@ After migration, verify the changes:
 
 ```sql
 -- Check that v3_ tables are gone
-SELECT table_name FROM information_schema.tables 
+SELECT table_name FROM information_schema.tables
 WHERE table_name LIKE 'v3_%';
 
 -- Check field renames
-SELECT column_name FROM information_schema.columns 
-WHERE table_name = 'data_imports' 
+SELECT column_name FROM information_schema.columns
+WHERE table_name = 'data_imports'
 AND column_name IN ('filename', 'file_size', 'mime_type');
 
 -- Check is_mock columns are gone
-SELECT table_name, column_name 
-FROM information_schema.columns 
+SELECT table_name, column_name
+FROM information_schema.columns
 WHERE column_name = 'is_mock';
 
 -- Check new columns exist
-SELECT column_name, data_type 
-FROM information_schema.columns 
-WHERE table_name = 'discovery_flows' 
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_name = 'discovery_flows'
 AND column_name IN ('flow_state', 'phase_state', 'agent_state');
 
 -- Check indexes
-SELECT indexname FROM pg_indexes 
+SELECT indexname FROM pg_indexes
 WHERE tablename IN ('data_imports', 'discovery_flows', 'assets')
 AND indexname LIKE 'idx_%';
 ```

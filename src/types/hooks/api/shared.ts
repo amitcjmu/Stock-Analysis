@@ -1,6 +1,6 @@
 /**
  * Shared Types for API Hooks
- * 
+ *
  * Common types and interfaces used across multiple API hook modules.
  */
 

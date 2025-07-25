@@ -1,6 +1,6 @@
 /**
  * Configuration Types
- * 
+ *
  * Widget configuration and interaction type definitions.
  */
 

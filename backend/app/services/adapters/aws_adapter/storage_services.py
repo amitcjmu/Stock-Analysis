@@ -90,10 +90,10 @@ class StorageServicesCollector:
                                         Bucket=bucket_name
                                     )
                                 )
-                                bucket_data["public_access_block"] = (
-                                    public_access_response.get(
-                                        "PublicAccessBlockConfiguration", {}
-                                    )
+                                bucket_data[
+                                    "public_access_block"
+                                ] = public_access_response.get(
+                                    "PublicAccessBlockConfiguration", {}
                                 )
                             except ClientError as e:
                                 if (

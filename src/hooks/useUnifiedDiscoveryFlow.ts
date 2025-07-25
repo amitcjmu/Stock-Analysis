@@ -7,12 +7,12 @@ import masterFlowServiceExtended from '../services/api/masterFlowService.extensi
 import type { FlowStatusResponse } from '../services/api/masterFlowService';
 import { discoveryFlowService } from '../services/api/discoveryFlowService';
 import type { DiscoveryFlowStatusResponse } from '../services/api/discoveryFlowService';
-import type { 
-  FlowInitializationData, 
-  PhaseExecutionData, 
-  PhaseExecutionResult, 
-  DataRecord, 
-  AssetProperties 
+import type {
+  FlowInitializationData,
+  PhaseExecutionData,
+  PhaseExecutionResult,
+  DataRecord,
+  AssetProperties
 } from '../types/hooks/flow-types';
 
 // Types for UnifiedDiscoveryFlow
@@ -171,11 +171,11 @@ interface UseUnifiedDiscoveryFlowReturn {
 const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string) => ({
   async getFlowStatus(flowId: string): Promise<UnifiedDiscoveryFlowState> {
     console.log(`🔍 [DEBUG] useUnifiedDiscoveryFlow.getFlowStatus called for flowId: ${flowId}`);
-    
+
     // ADR-012: Use discovery flow service for operational status
     // This provides child flow status for operational decisions
     const response: DiscoveryFlowStatusResponse = await discoveryFlowService.getOperationalStatus(flowId, clientAccountId, engagementId);
-    
+
     console.log(`🔍 [DEBUG] Raw API response:`, response);
     console.log(`🔍 [DEBUG] Field mappings in response:`, response.field_mappings);
     console.log(`🔍 [DEBUG] Field mappings type:`, typeof response.field_mappings);
@@ -183,7 +183,7 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
     console.log(`🔍 [DEBUG] Raw data in response:`, response.raw_data);
     console.log(`🔍 [DEBUG] Raw data length:`, Array.isArray(response.raw_data) ? response.raw_data.length : 'not array');
     console.log(`🔍 [DEBUG] Raw data type:`, typeof response.raw_data);
-    
+
     // Map discovery flow response to frontend format
     // ADR-012: This now uses child flow status for operational decisions
     const mappedResponse = {
@@ -220,10 +220,10 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
       dependency_results: response.dependencies || {},
       tech_debt_results: response.technical_debt || {}
     };
-    
+
     console.log(`🔍 [DEBUG] Mapped response field_mappings:`, mappedResponse.field_mappings);
     console.log(`🔍 [DEBUG] Full mapped response:`, mappedResponse);
-    
+
     return mappedResponse;
   },
 
@@ -259,7 +259,7 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
 
 /**
  * Unified Discovery Flow Hook
- * 
+ *
  * This is the single source of truth for all discovery flow interactions.
  * Connects frontend to the UnifiedDiscoveryFlow CrewAI execution engine.
  */
@@ -267,7 +267,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
   const { user, client, engagement, getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
   const [isExecutingPhase, setIsExecutingPhase] = useState(false);
-  
+
   // Create API instance with context
   const unifiedDiscoveryAPI = useMemo(() => {
     // Require proper client and engagement context
@@ -275,7 +275,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       console.warn('Missing client or engagement context for unified discovery flow');
       return null;
     }
-    
+
     return createUnifiedDiscoveryAPI(client.id, engagement.id);
   }, [client, engagement]);
 
@@ -285,12 +285,12 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     if (providedFlowId) {
       return providedFlowId;
     }
-    
+
     try {
       // Try to get from URL parameters
       const urlParams = new URLSearchParams(window.location.search);
       const urlFlowId = urlParams.get('flow_id') || urlParams.get('flowId');
-      
+
       if (urlFlowId) {
         localStorage.setItem('currentFlowId', urlFlowId);
         return urlFlowId;
@@ -345,24 +345,24 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       }
 
       const state = query.state.data as UnifiedDiscoveryFlowState | null;
-      
+
       // Poll when flow is active AND not waiting for approval
-      if ((state?.status === 'running' || state?.status === 'in_progress' || 
+      if ((state?.status === 'running' || state?.status === 'in_progress' ||
           state?.status === 'processing' || state?.status === 'active') &&
           state?.status !== 'waiting_for_approval' &&
           !state?.awaitingUserApproval) {
         setPollingAttempts(prev => prev + 1);
         return 90000; // Poll every 90 seconds when flow is active (increased from 60s to reduce load)
       }
-      
+
       // Stop polling for terminal states or when waiting for approval
-      if (state?.status === 'completed' || state?.status === 'failed' || 
+      if (state?.status === 'completed' || state?.status === 'failed' ||
           state?.status === 'cancelled' || state?.status === 'waiting_for_approval' ||
           state?.awaitingUserApproval) {
         setPollingEnabled(false);
         return false;
       }
-      
+
       return false; // Stop polling for other states
     },
     refetchIntervalInBackground: false, // Don't poll in background
@@ -375,19 +375,19 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       if (failureCount >= 2) {
         return false;
       }
-      
+
       // Retry 429 errors and network failures
       if (error?.status === 429 || error?.message?.includes('network') || error?.message?.includes('fetch')) {
         return true;
       }
-      
+
       return false;
     },
     retryDelay: (attemptIndex) => Math.min(2000 * Math.pow(2, attemptIndex), 8000), // 2s, 4s, 8s max
     onError: (error: Error | unknown) => {
       // Stop polling on error
       setPollingEnabled(false);
-      
+
       // Clear invalid flow ID from localStorage on 404 error
       if (error?.status === 404 || error?.message?.includes('404') || error?.message?.includes('Not Found')) {
         console.warn(`Flow ID ${flowId} not found, clearing from localStorage`);
@@ -423,7 +423,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['unifiedDiscoveryFlow'] });
-      
+
       // Store flow ID
       if (data.flow_id) {
         localStorage.setItem('currentFlowId', data.flow_id);
@@ -455,7 +455,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
   // Helper functions
   const getPhaseData = useCallback((phase: string) => {
     if (!flowState) return null;
-    
+
     switch (phase) {
       case 'field_mapping':
         return flowState.field_mappings;
@@ -478,20 +478,20 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
 
   const canProceedToPhase = useCallback((phase: string) => {
     if (!flowState) return false;
-    
+
     // Define phase order
     const phaseOrder = [
       'data_import',
-      'field_mapping', 
+      'field_mapping',
       'data_cleansing',
       'asset_inventory',
       'dependency_analysis',
       'tech_debt_analysis'
     ];
-    
+
     const currentIndex = phaseOrder.indexOf(phase);
     if (currentIndex <= 0) return true; // First phase or unknown phase
-    
+
     // Check if previous phase is complete
     const previousPhase = phaseOrder[currentIndex - 1];
     return isPhaseComplete(previousPhase);
@@ -527,4 +527,4 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       hasReachedMax: pollingAttempts >= MAX_POLLING_ATTEMPTS
     }
   };
-}; 
+};

@@ -15,7 +15,7 @@ The platform features **17 comprehensive CrewAI agents** across all migration ph
 #### **🔍 Discovery Phase Agents (4 Active)**
 1. **Data Source Intelligence Agent** - Advanced data source analysis with modular handlers
 2. **CMDB Data Analyst Agent** - Expert CMDB analysis with 15+ years experience
-3. **Application Discovery Agent** - Application portfolio intelligence and classification  
+3. **Application Discovery Agent** - Application portfolio intelligence and classification
 4. **Dependency Intelligence Agent** - Multi-source dependency mapping and migration planning
 
 #### **📊 Assessment Phase Agents (2 Active)**
@@ -85,7 +85,7 @@ Comprehensive cost tracking and optimization for all AI model usage with real-ti
 - **Feature-level Breakdown**: Cost attribution by platform feature with detailed analytics
 
 #### **Enhanced Dashboard Features**
-- **7 Live Admin Endpoints**: 
+- **7 Live Admin Endpoints**:
   - `/api/v1/admin/llm-usage/usage/report` - Comprehensive usage reports
   - `/api/v1/admin/llm-usage/usage/costs/breakdown` - Detailed cost breakdowns
   - `/api/v1/admin/llm-usage/pricing/models` - Model pricing management

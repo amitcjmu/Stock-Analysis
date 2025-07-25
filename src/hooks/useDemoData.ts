@@ -195,7 +195,7 @@ export const useDemoAssets = (filters?: AssetFilters) => {
 
     try {
       const params = new URLSearchParams();
-      
+
       if (filters?.asset_type) params.append('asset_type', filters.asset_type);
       if (filters?.environment) params.append('environment', filters.environment);
       if (filters?.criticality) params.append('criticality', filters.criticality);
@@ -206,7 +206,7 @@ export const useDemoAssets = (filters?: AssetFilters) => {
 
       const queryString = params.toString();
       const endpoint = `/assets${queryString ? `?${queryString}` : ''}`;
-      
+
       const data = await apiRequest<DemoAsset[]>(endpoint);
       setAssets(data);
     } catch (err) {
@@ -295,10 +295,10 @@ export const useDemoSixRAnalyses = (limit?: number) => {
     try {
       const params = new URLSearchParams();
       if (limit) params.append('limit', limit.toString());
-      
+
       const queryString = params.toString();
       const endpoint = `/sixr-analyses${queryString ? `?${queryString}` : ''}`;
-      
+
       const data = await apiRequest<DemoSixRAnalysis[]>(endpoint);
       setAnalyses(data);
     } catch (err) {
@@ -329,10 +329,10 @@ export const useDemoMigrationWaves = (status?: string) => {
     try {
       const params = new URLSearchParams();
       if (status) params.append('status', status);
-      
+
       const queryString = params.toString();
       const endpoint = `/migration-waves${queryString ? `?${queryString}` : ''}`;
-      
+
       const data = await apiRequest<DemoMigrationWave[]>(endpoint);
       setWaves(data);
     } catch (err) {
@@ -363,10 +363,10 @@ export const useDemoTags = (category?: string) => {
     try {
       const params = new URLSearchParams();
       if (category) params.append('category', category);
-      
+
       const queryString = params.toString();
       const endpoint = `/tags${queryString ? `?${queryString}` : ''}`;
-      
+
       const data = await apiRequest<DemoTag[]>(endpoint);
       setTags(data);
     } catch (err) {
@@ -443,7 +443,7 @@ export const useSimilaritySearch = () => {
         `/assets/${assetId}/similarity-search?${params}`,
         { method: 'POST' }
       );
-      
+
       return data;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to search similar assets');
@@ -474,7 +474,7 @@ export const useSimilaritySearch = () => {
         assets: unknown[];
         total_found: number;
       }>(`/assets/text-search?${params}`, { method: 'POST' });
-      
+
       return data;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to search assets by text');
@@ -495,7 +495,7 @@ export const useSimilaritySearch = () => {
         message: string;
         assigned_tags: unknown[];
       }>(`/assets/${assetId}/auto-tag`, { method: 'POST' });
-      
+
       return data;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to auto-tag asset');
@@ -535,4 +535,4 @@ export const useDemoDashboard = () => {
     loading,
     error,
   };
-}; 
+};

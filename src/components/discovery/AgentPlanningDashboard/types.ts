@@ -1,6 +1,6 @@
 /**
  * Agent Planning Dashboard Types
- * 
+ *
  * Type definitions for agent planning, tasks, and dashboard components.
  */
 
@@ -63,4 +63,3 @@ export interface AgentPlanningDashboardProps {
   onClose?: () => void;
   triggerElement?: React.ReactNode;
 }
-

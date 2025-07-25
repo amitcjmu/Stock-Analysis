@@ -74,22 +74,22 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast }) => {
   };
 
   return (
-    <div 
+    <div
       className={`${styles.toast} ${styles[toast.type || 'info']} ${isExiting ? styles.exiting : ''}`}
       role="alert"
     >
       <div className={styles.iconWrapper}>
         {getIcon()}
       </div>
-      
+
       <div className={styles.content}>
         <h4 className={styles.title}>{toast.title}</h4>
         {toast.message && (
           <p className={styles.message}>{toast.message}</p>
         )}
-        
+
         {toast.action && (
-          <button 
+          <button
             className={styles.action}
             onClick={toast.action.onClick}
           >
@@ -97,8 +97,8 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast }) => {
           </button>
         )}
       </div>
-      
-      <button 
+
+      <button
         className={styles.close}
         onClick={handleDismiss}
         aria-label="Dismiss"

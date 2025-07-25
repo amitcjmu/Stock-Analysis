@@ -152,4 +152,4 @@ export const useUpdateBudgetAlert = () => {
       queryClient.invalidateQueries({ queryKey: ['budgetAlerts'] });
     }
   });
-}; 
+};

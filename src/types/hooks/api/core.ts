@@ -1,6 +1,6 @@
 /**
  * Core API Hook Types
- * 
+ *
  * Base API hooks for general HTTP operations, request handling,
  * API client management, and state management.
  */

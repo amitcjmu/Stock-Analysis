@@ -92,4 +92,4 @@ export const EngagementTimeline: React.FC<EngagementTimelineProps> = ({
       </CardContent>
     </Card>
   );
-}; 
+};

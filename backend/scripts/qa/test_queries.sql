@@ -7,7 +7,7 @@
 -- =============================================================================
 
 -- Expected counts validation
-SELECT 'Client Accounts' as entity, COUNT(*) as actual_count, 3 as expected_count 
+SELECT 'Client Accounts' as entity, COUNT(*) as actual_count, 3 as expected_count
 FROM migration.client_accounts
 UNION ALL
 SELECT 'Engagements', COUNT(*), 6 FROM migration.engagements
@@ -33,7 +33,7 @@ SELECT 'Wave Plans', COUNT(*), 12 FROM migration.wave_plans;
 -- =============================================================================
 
 -- Client account details
-SELECT 
+SELECT
     id,
     company_name,
     industry,
@@ -43,7 +43,7 @@ FROM migration.client_accounts
 ORDER BY company_name;
 
 -- Industry distribution
-SELECT 
+SELECT
     industry,
     COUNT(*) as count
 FROM migration.client_accounts
@@ -55,7 +55,7 @@ ORDER BY count DESC;
 -- =============================================================================
 
 -- User role distribution
-SELECT 
+SELECT
     ur.role,
     COUNT(*) as user_count
 FROM migration.user_roles ur
@@ -63,7 +63,7 @@ GROUP BY ur.role
 ORDER BY user_count DESC;
 
 -- Users by client account
-SELECT 
+SELECT
     ca.company_name,
     COUNT(DISTINCT uaa.user_id) as user_count
 FROM migration.client_accounts ca
@@ -72,7 +72,7 @@ GROUP BY ca.id, ca.company_name
 ORDER BY user_count DESC;
 
 -- Users without roles (should be empty)
-SELECT 
+SELECT
     u.id,
     u.email,
     u.first_name,
@@ -82,7 +82,7 @@ LEFT JOIN migration.user_roles ur ON u.id = ur.user_id
 WHERE ur.user_id IS NULL;
 
 -- Duplicate emails (should be empty)
-SELECT 
+SELECT
     email,
     COUNT(*) as count
 FROM migration.users
@@ -94,7 +94,7 @@ HAVING COUNT(*) > 1;
 -- =============================================================================
 
 -- Engagements by client and status
-SELECT 
+SELECT
     ca.company_name,
     e.name as engagement_name,
     e.status,
@@ -105,7 +105,7 @@ JOIN migration.client_accounts ca ON e.client_account_id = ca.id
 ORDER BY ca.company_name, e.name;
 
 -- Engagement status distribution
-SELECT 
+SELECT
     status,
     COUNT(*) as count
 FROM migration.engagements
@@ -113,7 +113,7 @@ GROUP BY status
 ORDER BY count DESC;
 
 -- Engagements without client accounts (should be empty)
-SELECT 
+SELECT
     id,
     name,
     client_account_id
@@ -125,7 +125,7 @@ WHERE client_account_id IS NULL;
 -- =============================================================================
 
 -- Asset type distribution
-SELECT 
+SELECT
     asset_type,
     COUNT(*) as count,
     AVG(cpu_utilization_percent) as avg_cpu,
@@ -136,7 +136,7 @@ GROUP BY asset_type
 ORDER BY count DESC;
 
 -- Assets by client account
-SELECT 
+SELECT
     ca.company_name,
     COUNT(*) as asset_count,
     COUNT(DISTINCT a.asset_type) as unique_types
@@ -146,19 +146,19 @@ GROUP BY ca.id, ca.company_name
 ORDER BY asset_count DESC;
 
 -- Assets with invalid utilization (should be empty)
-SELECT 
+SELECT
     id,
     name,
     cpu_utilization_percent,
     memory_utilization_percent
 FROM migration.assets
-WHERE cpu_utilization_percent > 100 
+WHERE cpu_utilization_percent > 100
    OR memory_utilization_percent > 100
    OR cpu_utilization_percent < 0
    OR memory_utilization_percent < 0;
 
 -- High value assets for demo
-SELECT 
+SELECT
     a.name,
     a.asset_type,
     a.current_monthly_cost,
@@ -174,7 +174,7 @@ LIMIT 10;
 -- =============================================================================
 
 -- Discovery flows by phase
-SELECT 
+SELECT
     current_phase,
     COUNT(*) as count
 FROM migration.discovery_flows
@@ -182,7 +182,7 @@ GROUP BY current_phase
 ORDER BY count DESC;
 
 -- Discovery flows with progress
-SELECT 
+SELECT
     df.id,
     df.flow_id,
     df.current_phase,
@@ -197,7 +197,7 @@ ORDER BY df.progress_percentage DESC;
 -- =============================================================================
 
 -- Data imports by status
-SELECT 
+SELECT
     status,
     COUNT(*) as count
 FROM migration.data_imports
@@ -205,7 +205,7 @@ GROUP BY status
 ORDER BY count DESC;
 
 -- Data imports with record counts
-SELECT 
+SELECT
     di.id,
     di.file_name,
     di.status,
@@ -216,7 +216,7 @@ GROUP BY di.id, di.file_name, di.status
 ORDER BY raw_record_count DESC;
 
 -- Data imports without raw records (potential issue)
-SELECT 
+SELECT
     di.id,
     di.file_name,
     di.status
@@ -229,7 +229,7 @@ WHERE rir.id IS NULL;
 -- =============================================================================
 
 -- Field mappings by approval status
-SELECT 
+SELECT
     approval_status,
     COUNT(*) as count
 FROM migration.import_field_mappings
@@ -237,7 +237,7 @@ GROUP BY approval_status
 ORDER BY count DESC;
 
 -- Field mappings by data import
-SELECT 
+SELECT
     di.file_name,
     COUNT(ifm.id) as mapping_count,
     COUNT(CASE WHEN ifm.approval_status = 'approved' THEN 1 END) as approved_count
@@ -251,7 +251,7 @@ ORDER BY mapping_count DESC;
 -- =============================================================================
 
 -- Data distribution by client account
-SELECT 
+SELECT
     ca.company_name,
     (SELECT COUNT(*) FROM migration.engagements WHERE client_account_id = ca.id) as engagements,
     (SELECT COUNT(*) FROM migration.assets WHERE client_account_id = ca.id) as assets,
@@ -262,7 +262,7 @@ ORDER BY ca.company_name;
 
 -- Cross-tenant data contamination check (should be empty)
 -- Assets that don't belong to the same client as their engagement
-SELECT 
+SELECT
     a.id as asset_id,
     a.name as asset_name,
     a.client_account_id as asset_client,
@@ -276,7 +276,7 @@ WHERE a.client_account_id != e.client_account_id;
 -- =============================================================================
 
 -- Assessments by type and status
-SELECT 
+SELECT
     assessment_type,
     status,
     COUNT(*) as count
@@ -285,7 +285,7 @@ GROUP BY assessment_type, status
 ORDER BY assessment_type, count DESC;
 
 -- Migrations by phase
-SELECT 
+SELECT
     current_phase,
     COUNT(*) as count,
     AVG(progress_percentage) as avg_progress
@@ -294,7 +294,7 @@ GROUP BY current_phase
 ORDER BY count DESC;
 
 -- Wave plans by status
-SELECT 
+SELECT
     status,
     COUNT(*) as count,
     AVG(complexity_score) as avg_complexity
@@ -307,30 +307,30 @@ ORDER BY count DESC;
 -- =============================================================================
 
 -- Asset dependency statistics
-SELECT 
+SELECT
     'Total Dependencies' as metric,
     COUNT(*) as value
 FROM migration.asset_dependencies
 UNION ALL
-SELECT 
+SELECT
     'Assets with Dependencies',
     COUNT(DISTINCT asset_id)
 FROM migration.asset_dependencies
 UNION ALL
-SELECT 
+SELECT
     'Assets Being Depended On',
     COUNT(DISTINCT depends_on_asset_id)
 FROM migration.asset_dependencies;
 
 -- Circular dependencies (should be empty)
-SELECT 
+SELECT
     asset_id,
     depends_on_asset_id
 FROM migration.asset_dependencies
 WHERE asset_id = depends_on_asset_id;
 
 -- Assets with most dependencies
-SELECT 
+SELECT
     a.name,
     a.asset_type,
     COUNT(ad.depends_on_asset_id) as dependency_count
@@ -345,32 +345,32 @@ LIMIT 10;
 -- =============================================================================
 
 -- NULL or empty critical fields (should be minimal)
-SELECT 
+SELECT
     'Users with empty email' as check_name,
     COUNT(*) as issue_count
-FROM migration.users 
+FROM migration.users
 WHERE email IS NULL OR email = ''
 UNION ALL
-SELECT 
+SELECT
     'Assets with empty name',
     COUNT(*)
-FROM migration.assets 
+FROM migration.assets
 WHERE name IS NULL OR name = ''
 UNION ALL
-SELECT 
+SELECT
     'Client Accounts with empty company name',
     COUNT(*)
-FROM migration.client_accounts 
+FROM migration.client_accounts
 WHERE company_name IS NULL OR company_name = ''
 UNION ALL
-SELECT 
+SELECT
     'Engagements with empty name',
     COUNT(*)
-FROM migration.engagements 
+FROM migration.engagements
 WHERE name IS NULL OR name = '';
 
 -- Future dates where they shouldn't be (should be empty)
-SELECT 
+SELECT
     'Assets with future discovery dates' as check_name,
     COUNT(*) as issue_count
 FROM migration.assets
@@ -382,7 +382,7 @@ WHERE discovery_timestamp > NOW();
 
 -- Complex join query (test performance)
 EXPLAIN ANALYZE
-SELECT 
+SELECT
     a.name as asset_name,
     a.asset_type,
     ca.company_name,
@@ -403,7 +403,7 @@ LIMIT 50;
 -- =============================================================================
 
 -- Test data for System Admin user (sees all data)
-SELECT 
+SELECT
     'System Admin View' as scenario,
     COUNT(DISTINCT ca.id) as client_accounts,
     COUNT(DISTINCT e.id) as engagements,
@@ -413,7 +413,7 @@ LEFT JOIN migration.engagements e ON ca.id = e.client_account_id
 LEFT JOIN migration.assets a ON ca.id = a.client_account_id;
 
 -- Test data for specific client (TechCorp example)
-SELECT 
+SELECT
     'TechCorp User View' as scenario,
     COUNT(DISTINCT e.id) as engagements,
     COUNT(DISTINCT a.id) as assets,
@@ -429,21 +429,21 @@ WHERE ca.company_name = 'TechCorp Solutions';
 -- =============================================================================
 
 -- Overall data health summary
-SELECT 
+SELECT
     'TOTAL RECORDS' as category,
-    (SELECT COUNT(*) FROM migration.client_accounts) + 
-    (SELECT COUNT(*) FROM migration.engagements) + 
-    (SELECT COUNT(*) FROM migration.users) + 
-    (SELECT COUNT(*) FROM migration.assets) + 
-    (SELECT COUNT(*) FROM migration.discovery_flows) + 
-    (SELECT COUNT(*) FROM migration.data_imports) + 
-    (SELECT COUNT(*) FROM migration.import_field_mappings) + 
-    (SELECT COUNT(*) FROM migration.assessments) + 
-    (SELECT COUNT(*) FROM migration.migrations) + 
+    (SELECT COUNT(*) FROM migration.client_accounts) +
+    (SELECT COUNT(*) FROM migration.engagements) +
+    (SELECT COUNT(*) FROM migration.users) +
+    (SELECT COUNT(*) FROM migration.assets) +
+    (SELECT COUNT(*) FROM migration.discovery_flows) +
+    (SELECT COUNT(*) FROM migration.data_imports) +
+    (SELECT COUNT(*) FROM migration.import_field_mappings) +
+    (SELECT COUNT(*) FROM migration.assessments) +
+    (SELECT COUNT(*) FROM migration.migrations) +
     (SELECT COUNT(*) FROM migration.wave_plans) as count;
 
 -- Schema information
-SELECT 
+SELECT
     table_name,
     column_name,
     data_type,

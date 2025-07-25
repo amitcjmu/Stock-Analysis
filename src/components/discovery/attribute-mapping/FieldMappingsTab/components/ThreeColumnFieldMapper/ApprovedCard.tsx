@@ -1,6 +1,6 @@
 /**
  * Approved Card Component
- * 
+ *
  * Card component for displaying approved field mappings.
  */
 

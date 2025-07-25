@@ -1,6 +1,6 @@
 /**
  * Shared Utilities Types Index
- * 
+ *
  * Central export point for all shared utility types organized by functional area.
  */
 

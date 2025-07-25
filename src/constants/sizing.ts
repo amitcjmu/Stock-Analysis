@@ -35,7 +35,7 @@ export const SIZES = {
       FONT_SIZE: 18
     }
   },
-  
+
   // Input sizes
   INPUT: {
     SMALL: {
@@ -54,7 +54,7 @@ export const SIZES = {
       FONT_SIZE: 18
     }
   },
-  
+
   // Icon sizes
   ICON: {
     XS: 12,
@@ -64,7 +64,7 @@ export const SIZES = {
     XL: 32,
     XXL: 48
   },
-  
+
   // Avatar sizes
   AVATAR: {
     XS: 24,
@@ -74,7 +74,7 @@ export const SIZES = {
     XL: 64,
     XXL: 96
   },
-  
+
   // Modal sizes
   MODAL: {
     SM: 400,
@@ -83,7 +83,7 @@ export const SIZES = {
     XL: 1000,
     FULL: '90vw'
   },
-  
+
   // Drawer sizes
   DRAWER: {
     SM: 320,
@@ -107,7 +107,7 @@ export const TYPOGRAPHY = {
     XXXXL: 36,
     XXXXXL: 48
   },
-  
+
   // Line heights
   LINE_HEIGHT: {
     TIGHT: 1.25,
@@ -115,7 +115,7 @@ export const TYPOGRAPHY = {
     RELAXED: 1.75,
     LOOSE: 2
   },
-  
+
   // Font weights
   FONT_WEIGHT: {
     THIN: 100,
@@ -127,7 +127,7 @@ export const TYPOGRAPHY = {
     EXTRABOLD: 800,
     BLACK: 900
   },
-  
+
   // Letter spacing
   LETTER_SPACING: {
     TIGHT: '-0.05em',

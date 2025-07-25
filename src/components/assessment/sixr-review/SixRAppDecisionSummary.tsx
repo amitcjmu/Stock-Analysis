@@ -28,7 +28,7 @@ export const SixRAppDecisionSummary: React.FC<SixRAppDecisionSummaryProps> = ({
             <Badge className={getStrategyColor(decision.overall_strategy)}>
               {getStrategyLabel(decision.overall_strategy)}
             </Badge>
-            <ConfidenceScoreIndicator 
+            <ConfidenceScoreIndicator
               score={decision.confidence_score}
               size="large"
             />
@@ -42,7 +42,7 @@ export const SixRAppDecisionSummary: React.FC<SixRAppDecisionSummaryProps> = ({
               <h4 className="text-sm font-medium text-gray-700 mb-1">Rationale</h4>
               <p className="text-sm text-gray-600">{decision.rationale}</p>
             </div>
-            
+
             {decision.risk_factors.length > 0 && (
               <div>
                 <h4 className="text-sm font-medium text-gray-700 mb-1">Risk Factors</h4>

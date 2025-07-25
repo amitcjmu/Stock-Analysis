@@ -9,4 +9,3 @@ find . -type f \( -name "*.py" -o -name "*.js" \) \
   -exec sh -c 'wc -l "$1" | awk "\$1 > 800 {print \$2 \"|\" \$1}"' sh {} \; | \
   awk -F'|' '{printf "| %-50s | %10s |\n", $1, $2}' | \
   (echo "| Filename                                           | Lines     |"; echo "|----------------------------------------------------|-----------|"; cat)
-

@@ -1,13 +1,13 @@
 /**
  * LEGACY - MARKED FOR ARCHIVAL
- * 
+ *
  * Unified Flow Hook for Master Flow Orchestrator
  * MFO-074: Create unified flow hook for all flow types
- * 
+ *
  * ⚠️ DEPRECATED: This hook uses legacy FlowService and should be migrated
  * to use masterFlowService.ts and related hooks like useUnifiedDiscoveryFlow.
  * This file is marked for archival to avoid confusion.
- * 
+ *
  * Use: hooks that import from /services/api/masterFlowService.ts instead
  */
 
@@ -28,17 +28,17 @@ export interface FlowHookState {
   // Flow data
   flow: FlowStatus | null;
   flows: FlowStatus[];
-  
+
   // Loading states
   isLoading: boolean;
   isCreating: boolean;
   isExecuting: boolean;
   isRefreshing: boolean;
-  
+
   // Error states
   error: Error | null;
   lastError: Error | null;
-  
+
   // Status
   isPolling: boolean;
   lastUpdated: Date | null;
@@ -51,16 +51,16 @@ export interface FlowHookActions {
   pauseFlow: (flowId: string, reason?: string) => Promise<void>;
   resumeFlow: (flowId: string) => Promise<void>;
   deleteFlow: (flowId: string, reason?: string) => Promise<void>;
-  
+
   // Data operations
   refreshFlow: (flowId: string) => Promise<void>;
   refreshFlows: () => Promise<void>;
   getFlowStatus: (flowId: string) => Promise<FlowStatus>;
-  
+
   // Polling operations
   startPolling: (flowId: string) => void;
   stopPolling: () => void;
-  
+
   // State operations
   clearError: () => void;
   reset: () => void;
@@ -112,7 +112,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
   // Error handling
   const handleError = useCallback((error: Error) => {
     if (!mountedRef.current) return;
-    
+
     setState(prev => ({
       ...prev,
       error,
@@ -125,7 +125,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
 
     // Show toast notification for errors
     flowToast.error(error);
-    
+
     if (onError) {
       onError(error);
     }
@@ -134,7 +134,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
   // Success handling
   const handleSuccess = useCallback((data: FlowStatus | FlowStatus[]) => {
     if (!mountedRef.current) return;
-    
+
     setState(prev => ({
       ...prev,
       error: null,
@@ -152,7 +152,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
 
     try {
       const flowResponse = await flowService.createFlow(request);
-      
+
       if (!mountedRef.current) return flowResponse;
 
       setState(prev => ({
@@ -164,7 +164,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
 
       // Show success toast
       flowToast.created(request.flow_type, flowResponse.flow_id);
-      
+
       handleSuccess(flowResponse);
       return flowResponse;
 
@@ -180,12 +180,12 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
 
     try {
       const result = await flowService.executePhase(flowId, request);
-      
+
       if (!mountedRef.current) return result;
 
       // Update flow status after execution
       const updatedFlow = await flowService.getFlowStatus(flowId);
-      
+
       setState(prev => ({
         ...prev,
         flow: prev.flow?.flow_id === flowId ? updatedFlow : prev.flow,
@@ -195,7 +195,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
 
       // Show phase completion toast
       flowToast.phaseCompleted(request.phase_name);
-      
+
       handleSuccess(result);
       return result;
 
@@ -209,15 +209,15 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
   const pauseFlow = useCallback(async (flowId: string, reason?: string): Promise<void> => {
     try {
       await flowService.pauseFlow(flowId, reason);
-      
+
       if (!mountedRef.current) return;
 
       // Refresh flow status
       await refreshFlow(flowId);
-      
+
       // Show pause toast
       flowToast.paused(flowId);
-      
+
       handleSuccess({ action: 'pause', flowId });
 
     } catch (error) {
@@ -229,15 +229,15 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
   const resumeFlow = useCallback(async (flowId: string): Promise<void> => {
     try {
       await flowService.resumeFlow(flowId);
-      
+
       if (!mountedRef.current) return;
 
       // Refresh flow status
       await refreshFlow(flowId);
-      
+
       // Show resume toast
       flowToast.resumed(flowId);
-      
+
       handleSuccess({ action: 'resume', flowId });
 
     } catch (error) {
@@ -249,7 +249,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
   const deleteFlow = useCallback(async (flowId: string, reason?: string): Promise<void> => {
     try {
       await flowService.deleteFlow(flowId, reason);
-      
+
       if (!mountedRef.current) return;
 
       setState(prev => ({
@@ -260,7 +260,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
 
       // Show delete toast
       flowToast.deleted(flowId);
-      
+
       handleSuccess({ action: 'delete', flowId });
 
     } catch (error) {
@@ -275,7 +275,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
 
     try {
       const updatedFlow = await flowService.getFlowStatus(flowId);
-      
+
       if (!mountedRef.current) return;
 
       setState(prev => ({
@@ -296,7 +296,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
 
     try {
       const flows = await flowService.getFlows();
-      
+
       if (!mountedRef.current) return;
 
       setState(prev => ({
@@ -314,7 +314,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
   const getFlowStatus = useCallback(async (flowId: string): Promise<FlowStatus> => {
     try {
       const flow = await flowService.getFlowStatus(flowId);
-      
+
       if (!mountedRef.current) return flow;
 
       setState(prev => ({
@@ -343,7 +343,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
 
     let consecutiveErrors = 0;
     const maxConsecutiveErrors = 3;
-    
+
     pollIntervalRef.current = setInterval(async () => {
       if (!mountedRef.current) return;
 
@@ -353,13 +353,13 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
       } catch (error) {
         consecutiveErrors++;
         console.warn(`Polling error (${consecutiveErrors}/${maxConsecutiveErrors}):`, error);
-        
+
         // Stop polling after too many consecutive errors
         if (consecutiveErrors >= maxConsecutiveErrors) {
           console.error('Too many polling errors, stopping auto-refresh');
           stopPolling();
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             error: 'Auto-refresh stopped due to repeated errors. Please refresh manually.'
           }));
         }
@@ -491,7 +491,7 @@ export function useFlows(flowType?: FlowType, options?: UseFlowOptions) {
   }, [actions]);
 
   // Filter flows by type if specified
-  const filteredFlows = flowType 
+  const filteredFlows = flowType
     ? state.flows.filter(flow => flow.flow_type === flowType)
     : state.flows;
 

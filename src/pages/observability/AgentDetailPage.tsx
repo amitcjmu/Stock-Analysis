@@ -2,7 +2,7 @@
  * Agent Detail Page
  * Comprehensive individual agent view with performance analytics, task history, and detailed insights
  * Part of the Agent Observability Enhancement Phase 4B - Advanced Features
- * 
+ *
  * Modularized version with extracted components and hooks
  */
 
@@ -34,7 +34,7 @@ const AgentDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [taskHistoryPage, setTaskHistoryPage] = useState(0);
-  
+
   // Use modularized hooks
   const { agentData, loading, refreshing, error, handleRefresh } = useAgentDetail(agentName, taskHistoryPage);
   const { performanceMetrics } = useAgentMetrics(agentData);
@@ -42,7 +42,7 @@ const AgentDetailPage: React.FC = () => {
 
   const handleExportData = () => {
     if (!agentData) return;
-    
+
     const dataStr = JSON.stringify(agentData, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
@@ -97,19 +97,19 @@ const AgentDetailPage: React.FC = () => {
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-3xl font-bold text-gray-900">{agentData.agentName}</h1>
-                <AgentStatusIndicator 
-                  status={performanceMetrics?.trend === 'up' ? 'active' : 'idle'} 
-                  variant="badge" 
-                  showLabel 
+                <AgentStatusIndicator
+                  status={performanceMetrics?.trend === 'up' ? 'active' : 'idle'}
+                  variant="badge"
+                  showLabel
                 />
               </div>
               <p className="text-gray-600 mt-1">{agentData.profile.role}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button 
+            <Button
               onClick={handleRefresh}
-              variant="outline" 
+              variant="outline"
               size="sm"
               disabled={refreshing}
             >
@@ -150,7 +150,7 @@ const AgentDetailPage: React.FC = () => {
                 <CardTitle>Performance Trends</CardTitle>
               </CardHeader>
               <CardContent>
-                <AgentMetricsChart 
+                <AgentMetricsChart
                   data={{
                     data: agentData.trends.successRateHistory.map((rate, index) => ({
                       timestamp: agentData.trends.timestamps[index],
@@ -186,17 +186,17 @@ const AgentDetailPage: React.FC = () => {
             <CardContent className="p-0">
               <div className="max-h-96 overflow-y-auto">
                 {agentData.taskHistory.tasks.map((task) => (
-                  <TaskHistoryRow 
-                    key={task.taskId} 
-                    task={task} 
+                  <TaskHistoryRow
+                    key={task.taskId}
+                    task={task}
                     onViewDetails={handleViewTaskDetails}
                   />
                 ))}
               </div>
               {agentData.taskHistory.hasMore && (
                 <div className="p-4 border-t">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setTaskHistoryPage(prev => prev + 1)}
                     className="w-full"
                   >

@@ -158,38 +158,42 @@ class DataFlowValidator:
 
                 # Phase-specific validations
                 if not validation_scope or "collection" in validation_scope:
-                    collection_issues, collection_score = (
-                        await self._validate_collection_phase(
-                            session, flows_data, assets
-                        )
+                    (
+                        collection_issues,
+                        collection_score,
+                    ) = await self._validate_collection_phase(
+                        session, flows_data, assets
                     )
                     issues.extend(collection_issues)
                     phase_scores["collection"] = collection_score
 
                 if not validation_scope or "discovery" in validation_scope:
-                    discovery_issues, discovery_score = (
-                        await self._validate_discovery_phase(
-                            session, flows_data, assets
-                        )
+                    (
+                        discovery_issues,
+                        discovery_score,
+                    ) = await self._validate_discovery_phase(
+                        session, flows_data, assets
                     )
                     issues.extend(discovery_issues)
                     phase_scores["discovery"] = discovery_score
 
                 if not validation_scope or "assessment" in validation_scope:
-                    assessment_issues, assessment_score = (
-                        await self._validate_assessment_phase(
-                            session, flows_data, assets
-                        )
+                    (
+                        assessment_issues,
+                        assessment_score,
+                    ) = await self._validate_assessment_phase(
+                        session, flows_data, assets
                     )
                     issues.extend(assessment_issues)
                     phase_scores["assessment"] = assessment_score
 
                 # Cross-phase validations
                 if not validation_scope or "cross_phase" in validation_scope:
-                    cross_phase_issues, cross_phase_score = (
-                        await self._validate_cross_phase_consistency(
-                            session, flows_data, assets
-                        )
+                    (
+                        cross_phase_issues,
+                        cross_phase_score,
+                    ) = await self._validate_cross_phase_consistency(
+                        session, flows_data, assets
                     )
                     issues.extend(cross_phase_issues)
                     phase_scores["cross_phase"] = cross_phase_score

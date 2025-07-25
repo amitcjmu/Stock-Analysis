@@ -1,6 +1,6 @@
 /**
  * Loading State Component
- * 
+ *
  * Displays loading state while fetching questions.
  */
 

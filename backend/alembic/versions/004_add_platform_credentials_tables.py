@@ -68,8 +68,8 @@ def upgrade() -> None:
             sa.text(
                 """
                 SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_schema = 'migration' 
+                    SELECT FROM information_schema.tables
+                    WHERE table_schema = 'migration'
                     AND table_name = :table_name
                 )
                 """
@@ -91,9 +91,9 @@ def upgrade() -> None:
             sa.text(
                 """
                 SELECT EXISTS (
-                    SELECT FROM pg_indexes 
-                    WHERE schemaname = 'migration' 
-                    AND tablename = :table_name 
+                    SELECT FROM pg_indexes
+                    WHERE schemaname = 'migration'
+                    AND tablename = :table_name
                     AND indexname = :index_name
                 )
                 """
@@ -473,9 +473,9 @@ def upgrade() -> None:
             sa.text(
                 """
                 SELECT EXISTS (
-                    SELECT FROM information_schema.columns 
-                    WHERE table_schema = 'migration' 
-                    AND table_name = :table_name 
+                    SELECT FROM information_schema.columns
+                    WHERE table_schema = 'migration'
+                    AND table_name = :table_name
                     AND column_name = :column_name
                 )
                 """
@@ -491,9 +491,10 @@ def upgrade() -> None:
             sa.text(
                 """
                 SELECT EXISTS (
-                    SELECT FROM information_schema.table_constraints 
-                    WHERE constraint_schema = 'migration' 
-                    AND table_name = :table_name 
+                    SELECT FROM information_schema.table_constraints
+                    WHERE table_schema = 'migration'
+            AND constraint_schema = 'migration'
+                    AND table_name = :table_name
                     AND constraint_name = :constraint_name
                     AND constraint_type = 'FOREIGN KEY'
                 )

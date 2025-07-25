@@ -1,8 +1,8 @@
 /**
  * Usage Analytics Types
- * 
+ *
  * Detailed usage analytics for users, accounts, features, and resources.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

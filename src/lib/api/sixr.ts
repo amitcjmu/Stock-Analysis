@@ -19,28 +19,28 @@ export class APIError extends Error {
 const getWsBaseUrl = (): string => {
   // First, check for WebSocket-specific environment variable
   const wsUrl = import.meta.env.VITE_WS_BASE_URL || import.meta.env.VITE_WS_URL;
-  
+
   if (wsUrl) {
     return wsUrl;
   }
-  
+
   // If no WebSocket URL specified, derive from backend URL
   const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL;
-  
+
   if (backendUrl) {
     const baseUrl = backendUrl.replace(/\/api\/v1$/, '');
     // Convert HTTP(S) to WS(S)
-    const wsBaseUrl = baseUrl.replace(/^https?:/, (match) => 
+    const wsBaseUrl = baseUrl.replace(/^https?:/, (match) =>
       match === 'https:' ? 'wss:' : 'ws:'
     );
     return `${wsBaseUrl}/ws`;
   }
-  
+
   // In development mode, use localhost
   if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
     return 'ws://localhost:8000/ws';
   }
-  
+
   // For production without explicit backend URL, use same origin
   console.warn('No VITE_WS_BASE_URL environment variable found. Deriving from current location.');
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -130,13 +130,13 @@ class WebSocketManager {
     onClose?: () => void
   ): WebSocket {
     const url = `${WS_BASE_URL}${endpoint}`;
-    
+
     if (this.connections.has(endpoint)) {
       return this.connections.get(endpoint)!;
     }
-    
+
     const ws = new WebSocket(url);
-    
+
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -146,22 +146,22 @@ class WebSocketManager {
         onError?.(error as Event);
       }
     };
-    
+
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
       onError?.(error);
     };
-    
+
     ws.onopen = () => {
       console.log('WebSocket connected:', url);
       this.reconnectAttempts.set(endpoint, 0);
       onOpen?.();
     };
-    
+
     ws.onclose = () => {
       console.log('WebSocket closed:', url);
       this.connections.delete(endpoint);
-      
+
       const attempts = this.reconnectAttempts.get(endpoint) || 0;
       if (attempts < this.maxReconnectAttempts) {
         console.log(`Attempting to reconnect (${attempts + 1}/${this.maxReconnectAttempts})...`);
@@ -173,14 +173,14 @@ class WebSocketManager {
         console.error('Max reconnection attempts reached');
         this.reconnectAttempts.delete(endpoint);
       }
-      
+
       onClose?.();
     };
-    
+
     this.connections.set(endpoint, ws);
     return ws;
   }
-  
+
   disconnect(endpoint: string): void {
     const ws = this.connections.get(endpoint);
     if (ws) {
@@ -189,7 +189,7 @@ class WebSocketManager {
       this.reconnectAttempts.delete(endpoint);
     }
   }
-  
+
   send(endpoint: string, data: Record<string, unknown>): boolean {
     const ws = this.connections.get(endpoint);
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -198,7 +198,7 @@ class WebSocketManager {
     }
     return false;
   }
-  
+
   disconnectAll(): void {
     for (const [endpoint] of this.connections) {
       this.disconnect(endpoint);
@@ -209,7 +209,7 @@ class WebSocketManager {
 // Main API Client
 export class SixRApiClient {
   private ws = new WebSocketManager();
-  
+
   // Analysis Management
   async createAnalysis(request: CreateAnalysisRequest): Promise<number> {
     try {
@@ -222,14 +222,14 @@ export class SixRApiClient {
           analysis_name: request.queue_name || `Analysis ${Date.now()}`
         })
       });
-      
+
       return response.analysis_id;
     } catch (error) {
       this.handleError('Failed to create analysis', error);
       throw error;
     }
   }
-  
+
   async getAnalysis(analysisId: number): Promise<SixRAnalysisResponse> {
     try {
       const response = await apiCall<SixRAnalysisResponse>(`/sixr/${analysisId}`);
@@ -239,7 +239,7 @@ export class SixRApiClient {
       throw error;
     }
   }
-  
+
   async updateParameters(analysisId: number, parameters: SixRParameters): Promise<SixRAnalysisResponse> {
     try {
       const response = await apiCall<SixRAnalysisResponse>(`/sixr/${analysisId}/parameters`, {
@@ -249,14 +249,14 @@ export class SixRApiClient {
           trigger_reanalysis: true
         })
       });
-      
+
       return response;
     } catch (error) {
       this.handleError('Failed to update parameters', error);
       throw error;
     }
   }
-  
+
   async submitQuestions(analysisId: number, responses: QuestionResponse[], isPartial: boolean = false): Promise<SixRAnalysisResponse> {
     try {
       const response = await apiCall<SixRAnalysisResponse>(`/sixr/${analysisId}/questions`, {
@@ -266,14 +266,14 @@ export class SixRApiClient {
           is_partial: isPartial
         })
       });
-      
+
       return response;
     } catch (error) {
       this.handleError('Failed to submit questions', error);
       throw error;
     }
   }
-  
+
   async iterateAnalysis(analysisId: number, iterationNotes: string): Promise<SixRAnalysisResponse> {
     try {
       const response = await apiCall<SixRAnalysisResponse>(`/sixr/${analysisId}/iterate`, {
@@ -283,14 +283,14 @@ export class SixRApiClient {
           stakeholder_feedback: iterationNotes
         })
       });
-      
+
       return response;
     } catch (error) {
       this.handleError('Failed to iterate analysis', error);
       throw error;
     }
   }
-  
+
   async getRecommendation(analysisId: number): Promise<SixRRecommendation> {
     try {
       const response = await apiCall<SixRRecommendation>(`/sixr/${analysisId}/recommendation`);
@@ -300,7 +300,7 @@ export class SixRApiClient {
       throw error;
     }
   }
-  
+
   async getQualifyingQuestions(analysisId: number): Promise<QualifyingQuestion[]> {
     try {
       const response = await apiCall<QualifyingQuestion[]>(`/sixr/${analysisId}/questions`);
@@ -310,7 +310,7 @@ export class SixRApiClient {
       throw error;
     }
   }
-  
+
   async getAnalysisHistory(
     filters?: {
       status?: string;
@@ -322,13 +322,13 @@ export class SixRApiClient {
   ): Promise<AnalysisHistoryItem[]> {
     try {
       const queryParams = new URLSearchParams();
-      
+
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
           if (value) queryParams.append(key, value);
         });
       }
-      
+
       const endpoint = `/sixr/history${queryParams.toString() ? `?${queryParams}` : ''}`;
       const response = await apiCall<AnalysisHistoryItem[]>(endpoint);
       return response;
@@ -337,7 +337,7 @@ export class SixRApiClient {
       throw error;
     }
   }
-  
+
   async deleteAnalysis(analysisId: number): Promise<{ success: boolean; message: string }> {
     try {
       return await apiCall<{ success: boolean; message: string }>(`/sixr/${analysisId}`, {
@@ -348,7 +348,7 @@ export class SixRApiClient {
       throw error;
     }
   }
-  
+
   async archiveAnalysis(analysisId: number): Promise<{ success: boolean; message: string }> {
     try {
       return await apiCall<{ success: boolean; message: string }>(`/sixr/${analysisId}/archive`, {
@@ -359,7 +359,7 @@ export class SixRApiClient {
       throw error;
     }
   }
-  
+
   async createBulkAnalysis(request: BulkAnalysisRequest): Promise<string> {
     try {
       const response = await apiCall<{ job_id: string }>('/sixr/bulk', {
@@ -372,7 +372,7 @@ export class SixRApiClient {
       throw error;
     }
   }
-  
+
   async getBulkJobs(): Promise<BulkAnalysisJob[]> {
     try {
       return await apiCall<BulkAnalysisJob[]>('/sixr/bulk');
@@ -381,7 +381,7 @@ export class SixRApiClient {
       throw error;
     }
   }
-  
+
   async getBulkJobResults(jobId: string): Promise<BulkAnalysisResult[]> {
     try {
       return await apiCall<BulkAnalysisResult[]>(`/sixr/bulk/${jobId}/results`);
@@ -390,7 +390,7 @@ export class SixRApiClient {
       throw error;
     }
   }
-  
+
   async getBulkSummary(): Promise<BulkAnalysisSummary> {
     try {
       return await apiCall<BulkAnalysisSummary>('/sixr/bulk/summary');
@@ -399,7 +399,7 @@ export class SixRApiClient {
       throw error;
     }
   }
-  
+
   async controlBulkJob(
     jobId: string,
     action: 'start' | 'pause' | 'cancel' | 'retry'
@@ -413,7 +413,7 @@ export class SixRApiClient {
       throw error;
     }
   }
-  
+
   async deleteBulkJob(jobId: string): Promise<{ success: boolean; message: string }> {
     try {
       return await apiCall<{ success: boolean; message: string }>(`/sixr/bulk/${jobId}`, {
@@ -424,7 +424,7 @@ export class SixRApiClient {
       throw error;
     }
   }
-  
+
   async exportAnalysis(
     analysisIds: number[],
     format: 'csv' | 'pdf' | 'json'
@@ -440,18 +440,18 @@ export class SixRApiClient {
           format
         })
       });
-      
+
       if (!response.ok) {
         throw new Error(`Export failed: ${response.statusText}`);
       }
-      
+
       return await response.blob();
     } catch (error) {
       this.handleError('Failed to export analysis', error);
       throw error;
     }
   }
-  
+
   async exportBulkResults(
     jobId: string,
     format: 'csv' | 'pdf' | 'json'
@@ -464,18 +464,18 @@ export class SixRApiClient {
         },
         body: JSON.stringify({ format })
       });
-      
+
       if (!response.ok) {
         throw new Error(`Export failed: ${response.statusText}`);
       }
-      
+
       return await response.blob();
     } catch (error) {
       this.handleError('Failed to export bulk results', error);
       throw error;
     }
   }
-  
+
   // WebSocket Methods
   connectToAnalysis(
     analysisId: number,
@@ -492,7 +492,7 @@ export class SixRApiClient {
       onClose
     );
   }
-  
+
   connectToBulkJob(
     jobId: string,
     onMessage?: (data: Record<string, unknown>) => void,
@@ -508,36 +508,36 @@ export class SixRApiClient {
       onClose
     );
   }
-  
+
   disconnectWebSocket(endpoint: string): void {
     this.ws.disconnect(endpoint);
   }
-  
+
   sendWebSocketMessage(endpoint: string, data: Record<string, unknown>): boolean {
     return this.ws.send(endpoint, data);
   }
-  
+
   // Cache Management
   clearCache(): void {
     // Cache management would be handled by the apiCall function
     console.log('Cache cleared');
   }
-  
+
   invalidateCache(pattern: string): void {
     // Cache management would be handled by the apiCall function
     console.log('Cache invalidated:', pattern);
   }
-  
+
   // Cleanup
   cleanup(): void {
     this.ws.disconnectAll();
   }
-  
+
   // List all analyses
   async listAnalyses(filters?: AnalysisFilters): Promise<SixRAnalysisResponse[]> {
     try {
       const queryParams = new URLSearchParams();
-      
+
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined) {
@@ -545,7 +545,7 @@ export class SixRApiClient {
           }
         });
       }
-      
+
       const endpoint = `/sixr${queryParams.toString() ? `?${queryParams}` : ''}`;
       return await apiCall<SixRAnalysisResponse[]>(endpoint);
     } catch (error) {
@@ -553,11 +553,11 @@ export class SixRApiClient {
       throw error;
     }
   }
-  
+
   // Error handling
   private handleError(context: string, error: unknown): void {
     console.error(`${context}:`, error);
-    
+
     if (error instanceof Error) {
       console.error('Error details:', {
         message: error.message,
@@ -568,4 +568,4 @@ export class SixRApiClient {
 }
 
 // Export the API client instance
-export const sixrApi = new SixRApiClient(); 
+export const sixrApi = new SixRApiClient();

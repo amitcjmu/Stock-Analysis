@@ -460,7 +460,7 @@ class FlowHandler:
                         """
                     SELECT COUNT(*) as mapping_count,
                            COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved_count
-                    FROM import_field_mappings 
+                    FROM import_field_mappings
                     WHERE data_import_id = :data_import_id
                 """
                     ),
@@ -476,7 +476,7 @@ class FlowHandler:
                     text(
                         """
                     SELECT COUNT(*) as data_count
-                    FROM data_imports 
+                    FROM data_imports
                     WHERE id = :data_import_id AND status IN ('completed', 'processing', 'discovery_initiated')
                 """
                     ),

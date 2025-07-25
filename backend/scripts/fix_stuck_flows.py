@@ -31,7 +31,7 @@ async def fix_stuck_flows():
                     updated_at = NOW()
                 WHERE status IN ('processing', 'active')
                   AND updated_at < NOW() - INTERVAL '30 minutes'
-                RETURNING flow_id, current_phase, 
+                RETURNING flow_id, current_phase,
                   EXTRACT(EPOCH FROM (NOW() - updated_at)) as seconds_stuck
             """
                 )
@@ -84,8 +84,8 @@ async def cleanup_orphaned_data():
                     """
                 DELETE FROM data_imports
                 WHERE id NOT IN (
-                    SELECT DISTINCT data_import_id 
-                    FROM discovery_flows 
+                    SELECT DISTINCT data_import_id
+                    FROM discovery_flows
                     WHERE data_import_id IS NOT NULL
                 )
                 AND created_at < NOW() - INTERVAL '1 hour'

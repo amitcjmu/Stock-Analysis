@@ -174,7 +174,7 @@ async def get_assessment_flow_metrics():
                 result = await db.execute(
                     text(
                         """
-                    SELECT 
+                    SELECT
                         COUNT(*) as total,
                         COUNT(*) FILTER (WHERE status IN ('initialized', 'processing', 'paused_for_user_input')) as active,
                         MAX(created_at) as last_created

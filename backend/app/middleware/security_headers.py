@@ -43,9 +43,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # HTTP Strict Transport Security (HSTS)
         # Only add if using HTTPS
         if request.url.scheme == "https" or settings.ENVIRONMENT == "production":
-            response.headers["Strict-Transport-Security"] = (
-                "max-age=31536000; includeSubDomains"
-            )
+            response.headers[
+                "Strict-Transport-Security"
+            ] = "max-age=31536000; includeSubDomains"
 
         # Referrer Policy
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
@@ -55,9 +55,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Content-Security-Policy"] = csp_policy
 
         # Permissions Policy (Feature Policy)
-        response.headers["Permissions-Policy"] = (
-            "geolocation=(), microphone=(), camera=()"
-        )
+        response.headers[
+            "Permissions-Policy"
+        ] = "geolocation=(), microphone=(), camera=()"
 
         # Server identification
         response.headers["Server"] = "AI-Force-Migration-Platform"

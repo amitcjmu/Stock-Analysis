@@ -1,7 +1,7 @@
 /**
  * Toast Notification System
  * MFO-078: Add error handling with toast notifications
- * 
+ *
  * Simple toast notification system for flow operations
  */
 
@@ -88,20 +88,20 @@ export const toast: {
   dismiss: (id: string) => void;
   dismissAll: () => void;
 } = {
-  success: (title: string, message?: string, options?: Partial<ToastOptions>) => 
+  success: (title: string, message?: string, options?: Partial<ToastOptions>) =>
     toastStore.show({ ...options, title, message, type: 'success' }),
-  
-  error: (title: string, message?: string, options?: Partial<ToastOptions>) => 
+
+  error: (title: string, message?: string, options?: Partial<ToastOptions>) =>
     toastStore.show({ ...options, title, message, type: 'error' }),
-  
-  warning: (title: string, message?: string, options?: Partial<ToastOptions>) => 
+
+  warning: (title: string, message?: string, options?: Partial<ToastOptions>) =>
     toastStore.show({ ...options, title, message, type: 'warning' }),
-  
-  info: (title: string, message?: string, options?: Partial<ToastOptions>) => 
+
+  info: (title: string, message?: string, options?: Partial<ToastOptions>) =>
     toastStore.show({ ...options, title, message, type: 'info' }),
-  
+
   dismiss: (id: string) => toastStore.dismiss(id),
-  
+
   dismissAll: () => toastStore.dismissAll()
 };
 
@@ -118,24 +118,24 @@ export const flowToast: {
   validationError: (errors: string[]) => string;
   authError: () => string;
 } = {
-  created: (flowType: string, flowId: string) => 
+  created: (flowType: string, flowId: string) =>
     toast.success(`${flowType} flow created`, `Flow ID: ${flowId}`),
-  
-  executing: (phase: string) => 
+
+  executing: (phase: string) =>
     toast.info(`Executing phase`, phase),
-  
-  phaseCompleted: (phase: string) => 
+
+  phaseCompleted: (phase: string) =>
     toast.success(`Phase completed`, phase),
-  
-  paused: (flowId: string) => 
+
+  paused: (flowId: string) =>
     toast.warning('Flow paused', `Flow ${flowId} has been paused`),
-  
-  resumed: (flowId: string) => 
+
+  resumed: (flowId: string) =>
     toast.info('Flow resumed', `Flow ${flowId} has been resumed`),
-  
-  deleted: (flowId: string) => 
+
+  deleted: (flowId: string) =>
     toast.info('Flow deleted', `Flow ${flowId} has been deleted`),
-  
+
   error: (error: Error | string, phase?: string) => {
     const message = typeof error === 'string' ? error : error.message;
     const title = phase ? `Error in ${phase}` : 'Flow error';
@@ -147,14 +147,14 @@ export const flowToast: {
       }
     });
   },
-  
-  networkError: () => 
+
+  networkError: () =>
     toast.error('Network error', 'Please check your connection and try again'),
-  
-  validationError: (errors: string[]) => 
+
+  validationError: (errors: string[]) =>
     toast.error('Validation failed', errors.join(', ')),
-  
-  authError: () => 
+
+  authError: () =>
     toast.error('Authentication error', 'Please log in again', {
       action: {
         label: 'Login',

@@ -688,9 +688,7 @@ fi
                         health_url, timeout=aiohttp.ClientTimeout(total=10)
                     ) as response:
                         if response.status == 200:
-                            logger.info(
-                                f"✅ {environment} frontend health check passed"
-                            )
+                            logger.info(f"✅ {environment} frontend health check passed")
                             return True
 
                         logger.info(

@@ -1,6 +1,6 @@
 /**
  * Shared Utilities Base Types
- * 
+ *
  * Common base types and interfaces used across shared utilities.
  */
 

@@ -54,9 +54,9 @@ export const TechDebtFilters: React.FC<TechDebtFiltersProps> = ({
   onFilterChange,
   onResetFilters,
 }) => {
-  const hasActiveFilters = 
-    searchQuery || 
-    selectedComponent !== 'all' || 
+  const hasActiveFilters =
+    searchQuery ||
+    selectedComponent !== 'all' ||
     selectedRisk !== 'all' ||
     selectedStatus !== 'all';
 

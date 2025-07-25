@@ -18,14 +18,14 @@ export const tokenStorage: TokenStorage = {
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) return null;
-      
+
       // Check if token is expired before returning it (only for JWT tokens)
       try {
         // Only attempt JWT parsing if token has the right format
         if (token.includes('.') && token.split('.').length === 3) {
           const tokenData = JSON.parse(atob(token.split('.')[1]));
           const now = Math.floor(Date.now() / 1000);
-          
+
           if (tokenData.exp && tokenData.exp < now) {
             console.log('🔄 Token expired, clearing from storage');
             localStorage.removeItem('auth_token');
@@ -37,7 +37,7 @@ export const tokenStorage: TokenStorage = {
       } catch (tokenParseError) {
         // Non-JWT tokens or parsing errors - skip expiration check
       }
-      
+
       return token;
     } catch (error) {
       console.error("Failed to get token from localStorage", error);
@@ -164,6 +164,14 @@ export const getStoredSessionData = (): ExternalSessionData | null => {
     }
   }
   return null;
+};
+
+export const clearInvalidContextData = () => {
+  console.log('🧹 Clearing invalid context data from localStorage');
+  localStorage.removeItem('auth_client');
+  localStorage.removeItem('auth_engagement');
+  localStorage.removeItem('auth_client_id');
+  localStorage.removeItem('user_context_selection');
 };
 
 export const clearAllStoredData = () => {

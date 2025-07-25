@@ -19,18 +19,18 @@ const ArchitecturePage: React.FC = () => {
     updateArchitectureStandards,
     resumeFlow
   } = useAssessmentFlow(flowId);
-  
+
   const [standards, setStandards] = useState(state.engagementStandards);
   const [overrides, setOverrides] = useState(state.applicationOverrides);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
-  
+
   // Update local state when flow state changes
   useEffect(() => {
     setStandards(state.engagementStandards);
     setOverrides(state.applicationOverrides);
   }, [state.engagementStandards, state.applicationOverrides]);
-  
+
   const handleSaveDraft = async () => {
     setIsDraft(true);
     try {
@@ -41,7 +41,7 @@ const ArchitecturePage: React.FC = () => {
       setIsDraft(false);
     }
   };
-  
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
@@ -53,12 +53,12 @@ const ArchitecturePage: React.FC = () => {
       setIsSubmitting(false);
     }
   };
-  
+
   const hasChanges = () => {
     return JSON.stringify(standards) !== JSON.stringify(state.engagementStandards) ||
            JSON.stringify(overrides) !== JSON.stringify(state.applicationOverrides);
   };
-  
+
   return (
     <SidebarProvider>
       <AssessmentFlowLayout flowId={flowId}>
@@ -72,7 +72,7 @@ const ArchitecturePage: React.FC = () => {
             Define engagement-level architecture minimums and application-specific exceptions
           </p>
         </div>
-        
+
         {/* Status Alert */}
         {state.status === 'error' && (
           <div className="flex items-center space-x-2 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -80,7 +80,7 @@ const ArchitecturePage: React.FC = () => {
             <p className="text-sm text-red-600">{state.error}</p>
           </div>
         )}
-        
+
         {state.status === 'processing' && (
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-600">
@@ -88,7 +88,7 @@ const ArchitecturePage: React.FC = () => {
             </p>
           </div>
         )}
-        
+
         {/* Template Selection */}
         <Card>
           <CardHeader>
@@ -98,12 +98,12 @@ const ArchitecturePage: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <TemplateSelector 
+            <TemplateSelector
               onTemplateSelect={(template) => setStandards(template.standards)}
             />
           </CardContent>
         </Card>
-        
+
         {/* Architecture Standards Form */}
         <Card>
           <CardHeader>
@@ -119,7 +119,7 @@ const ArchitecturePage: React.FC = () => {
             />
           </CardContent>
         </Card>
-        
+
         {/* Application Overrides */}
         <Card>
           <CardHeader>
@@ -136,13 +136,13 @@ const ArchitecturePage: React.FC = () => {
             />
           </CardContent>
         </Card>
-        
+
         {/* Action Buttons */}
         <div className="flex justify-between items-center pt-6 border-t border-gray-200">
           <div className="flex items-center space-x-2">
             {hasChanges() && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={handleSaveDraft}
                 disabled={isDraft}
               >
@@ -151,8 +151,8 @@ const ArchitecturePage: React.FC = () => {
               </Button>
             )}
           </div>
-          
-          <Button 
+
+          <Button
             onClick={handleSubmit}
             disabled={isSubmitting || state.isLoading}
             size="lg"

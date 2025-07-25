@@ -1,6 +1,6 @@
 /**
  * Chart Configuration Types
- * 
+ *
  * Type definitions for chart configuration including datasets, options,
  * tooltips, legends, axes, grids, zoom, brush, and export configurations.
  */

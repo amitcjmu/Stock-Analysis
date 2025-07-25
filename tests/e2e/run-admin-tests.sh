@@ -82,7 +82,7 @@ if [ $? -eq 0 ]; then
     echo "✅ ALL ADMIN INTERFACE TESTS PASSED!"
     echo "===================================="
     echo "✅ User deactivation/activation: WORKING"
-    echo "✅ Engagement creation: WORKING"  
+    echo "✅ Engagement creation: WORKING"
     echo "✅ Client editing: WORKING"
     echo "✅ Navigation: WORKING"
     echo "✅ Error handling: WORKING"
@@ -106,7 +106,7 @@ else
     echo "🔧 To debug:"
     echo "1. Check browser developer tools in test artifacts"
     echo "2. Review backend logs: docker-compose logs backend"
-    echo "3. Review frontend logs: docker-compose logs frontend" 
+    echo "3. Review frontend logs: docker-compose logs frontend"
     echo "4. Check network requests in Playwright trace files"
     exit 1
 fi
@@ -117,4 +117,4 @@ echo "🧹 Cleaning up..."
 echo "ℹ️ Services are still running for manual verification"
 echo "ℹ️ Frontend: http://localhost:8081"
 echo "ℹ️ Backend: http://localhost:8000"
-echo "ℹ️ Run 'docker-compose down' to stop services" 
+echo "ℹ️ Run 'docker-compose down' to stop services"

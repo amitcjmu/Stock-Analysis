@@ -64,4 +64,4 @@ export const useAgentMonitor = (options: { enabled?: boolean; polling?: boolean 
     retry: 1, // Minimal retries
     retryDelay: 3000 // 3 second delay between retries
   });
-}; 
+};

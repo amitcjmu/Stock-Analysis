@@ -39,7 +39,7 @@ class CollectionOrchestratorAgent(BaseCrewAIAgent):
         super().__init__(
             role="Collection Strategy Orchestrator",
             goal="Coordinate and optimize automated data collection across all detected platforms while ensuring quality and completeness",
-            backstory="""You are a master orchestrator specializing in automated data collection 
+            backstory="""You are a master orchestrator specializing in automated data collection
             strategies for cloud migration projects. You excel at:
             - Designing optimal collection workflows based on automation tiers
             - Coordinating multiple platform adapters simultaneously
@@ -48,14 +48,14 @@ class CollectionOrchestratorAgent(BaseCrewAIAgent):
             - Ensuring data quality throughout the collection process
             - Handling errors and implementing recovery strategies
             - Adapting collection strategies based on real-time feedback
-            
-            Your orchestration ensures efficient, complete, and high-quality data collection 
+
+            Your orchestration ensures efficient, complete, and high-quality data collection
             while minimizing manual intervention. You understand the three automation tiers:
             - Tier 1: Full automation with parallel adapter execution
             - Tier 2: Semi-automated with validation checkpoints
             - Tier 3: Guided collection with manual oversight
-            
-            You optimize collection strategies to match the selected tier while maintaining 
+
+            You optimize collection strategies to match the selected tier while maintaining
             data integrity and meeting sixR requirements.""",
             tools=tools,
             llm=llm,

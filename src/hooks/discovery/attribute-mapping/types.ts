@@ -77,7 +77,7 @@ export interface AttributeMappingLogicResult {
   crewAnalysis: CrewAnalysisItem[];
   mappingProgress: MappingProgress;
   criticalAttributes: CriticalAttribute[];
-  
+
   // Flow state
   flowState: FlowState | null;
   flow: Flow | null;
@@ -85,23 +85,23 @@ export interface AttributeMappingLogicResult {
   dataImportId: string | null;
   availableDataImports: DataImport[];
   selectedDataImportId: string | null;
-  
+
   // Auto-detection info
   urlFlowId: string | null;
   autoDetectedFlowId: string | null;
   effectiveFlowId: string | null;
   hasEffectiveFlow: boolean;
   flowList: Flow[];
-  
+
   // Loading states
   isAgenticLoading: boolean;
   isFlowStateLoading: boolean;
   isAnalyzing: boolean;
-  
+
   // Error states
   agenticError: Error | null;
   flowStateError: Error | null;
-  
+
   // Action handlers
   handleTriggerFieldMappingCrew: () => Promise<void>;
   handleApproveMapping: (mappingId: string) => Promise<void>;
@@ -113,12 +113,12 @@ export interface AttributeMappingLogicResult {
   refetchCriticalAttributes: () => Promise<unknown>;
   canContinueToDataCleansing: () => boolean;
   checkMappingApprovalStatus: (dataImportId: string) => Promise<{ approved: boolean; total: number; pending: number }>;
-  
+
   // Flow status
   hasActiveFlow: boolean;
   currentPhase: string;
   flowProgress: number;
-  
+
   // Agent clarifications
   agentClarifications: AgentClarification[];
   isClarificationsLoading: boolean;

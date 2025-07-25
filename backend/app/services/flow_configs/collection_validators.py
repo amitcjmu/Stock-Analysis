@@ -483,9 +483,7 @@ async def sixr_readiness_validation(
             if automation_tier not in ["tier_3", "tier_4"]:
                 return False, f"Insufficient readiness for: {low_readiness_strategies}"
 
-        logger.info(
-            f"✅ 6R readiness validation passed with score {sixr_readiness:.2f}"
-        )
+        logger.info(f"✅ 6R readiness validation passed with score {sixr_readiness:.2f}")
         return True, None
 
     except Exception as e:

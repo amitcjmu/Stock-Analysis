@@ -22,4 +22,4 @@ const NoDataPlaceholder: React.FC<NoDataPlaceholderProps> = ({ title, descriptio
   );
 };
 
-export default NoDataPlaceholder; 
+export default NoDataPlaceholder;

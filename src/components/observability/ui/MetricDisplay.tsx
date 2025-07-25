@@ -73,19 +73,19 @@ export const MetricCard: React.FC<MetricCardProps> = ({
           <div>
             <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
             <p className={`font-bold ${
-              size === 'sm' ? 'text-lg' : 
+              size === 'sm' ? 'text-lg' :
               size === 'md' ? 'text-2xl' : 'text-3xl'
             }`}>
               {formatValue(value, format, unit)}
             </p>
           </div>
-          
+
           {trend && trendValue !== undefined && (
             <div className="flex items-center space-x-1">
               {trend === 'up' && <TrendingUp className="h-4 w-4 text-green-500" />}
               {trend === 'down' && <TrendingDown className="h-4 w-4 text-red-500" />}
               <span className={`text-sm font-medium ${
-                trend === 'up' ? 'text-green-600' : 
+                trend === 'up' ? 'text-green-600' :
                 trend === 'down' ? 'text-red-600' : 'text-gray-600'
               }`}>
                 {Math.abs(trendValue).toFixed(1)}%
@@ -117,7 +117,7 @@ export const MetricBadge: React.FC<MetricBadgeProps> = ({
 
   return (
     <Badge variant={variant as 'default' | 'secondary' | 'destructive' | 'outline'} className={`
-      ${size === 'sm' ? 'text-xs px-2 py-1' : 
+      ${size === 'sm' ? 'text-xs px-2 py-1' :
         size === 'md' ? 'text-sm px-3 py-1' : 'text-base px-4 py-2'}
     `}>
       {label}: {formattedValue}

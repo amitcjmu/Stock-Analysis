@@ -7,7 +7,7 @@ export const ROUTES = {
   ROOT: '/',
   HOME: '/home',
   DASHBOARD: '/dashboard',
-  
+
   // Auth routes
   AUTH: {
     LOGIN: '/login',
@@ -16,7 +16,7 @@ export const ROUTES = {
     FORGOT_PASSWORD: '/forgot-password',
     RESET_PASSWORD: '/reset-password'
   },
-  
+
   // Collection routes
   COLLECTION: {
     ROOT: '/collection',
@@ -27,7 +27,7 @@ export const ROUTES = {
     PROGRESS: '/collection/progress',
     FLOW_MANAGEMENT: '/collection/flow-management'
   },
-  
+
   // Discovery routes
   DISCOVERY: {
     ROOT: '/discovery',
@@ -38,7 +38,7 @@ export const ROUTES = {
     TECH_DEBT: '/discovery/tech-debt',
     READINESS: '/discovery/readiness'
   },
-  
+
   // Admin routes
   ADMIN: {
     ROOT: '/admin',
@@ -48,7 +48,7 @@ export const ROUTES = {
     SETTINGS: '/admin/settings',
     PERMISSIONS: '/admin/permissions'
   },
-  
+
   // Monitoring routes
   MONITORING: {
     ROOT: '/monitoring',
@@ -57,21 +57,21 @@ export const ROUTES = {
     METRICS: '/monitoring/metrics',
     HEALTH: '/monitoring/health'
   },
-  
+
   // Assessment routes
   ASSESSMENT: {
     ROOT: '/assessment',
     SIXR: '/assessment/sixr',
     REPORTS: '/assessment/reports'
   },
-  
+
   // Profile routes
   PROFILE: {
     ROOT: '/profile',
     SETTINGS: '/profile/settings',
     PREFERENCES: '/profile/preferences'
   },
-  
+
   // Error routes
   ERROR: {
     NOT_FOUND: '/404',

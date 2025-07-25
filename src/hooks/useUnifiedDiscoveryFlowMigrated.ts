@@ -1,7 +1,7 @@
 /**
  * Migrated Unified Discovery Flow Hook
  * MFO-084: Update Discovery components to use unified flow system
- * 
+ *
  * This is a migration wrapper that adapts the existing useUnifiedDiscoveryFlow
  * to use the new Master Flow Orchestrator hooks
  */
@@ -54,7 +54,7 @@ export function useUnifiedDiscoveryFlow(): UseUnifiedDiscoveryFlowReturn {
     if (!state.flow) return null;
 
     const flow = state.flow;
-    
+
     // Convert new flow format to legacy format
     return {
       flow_id: flow.flow_id,

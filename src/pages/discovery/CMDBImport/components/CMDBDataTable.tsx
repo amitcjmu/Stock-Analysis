@@ -38,7 +38,7 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
   const actualSetFiles = setUploadedFiles || setFiles;
   const actualOnStartFlow = onStartDiscoveryFlow || onStartFlow;
   const actualIsFlowRunning = isStartingFlow || isFlowRunning;
-  
+
   if (actualFiles.length === 0) {
     return null;
   }
@@ -48,37 +48,37 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
   const progress = flowState?.progress_percentage || 0;
   const currentPhase = flowState?.current_phase || file.current_phase;
   const StatusIcon = getStatusIcon(currentStatus);
-  
+
   // Extract agent insights from flow state
   const agentInsights = flowState?.agent_insights || [];
   const flowSummary = file.flow_summary || {};
-  
+
   // Parse agent insights for security, privacy, and quality analysis
-  const getInsightsByType = (type: string) => 
-    agentInsights.filter(insight => 
-      insight.category === type || 
+  const getInsightsByType = (type: string) =>
+    agentInsights.filter(insight =>
+      insight.category === type ||
       insight.agent_name?.toLowerCase().includes(type) ||
       insight.message?.toLowerCase().includes(type)
     );
-  
+
   const securityInsights = getInsightsByType('security');
   const privacyInsights = getInsightsByType('privacy');
   const qualityInsights = getInsightsByType('quality');
   const validationInsights = getInsightsByType('validation');
-  
+
   // Determine security and privacy status from agent insights
-  const securityStatus = securityInsights.length > 0 ? 
-    (securityInsights.some(i => i.severity === 'high' || i.confidence < 0.7) ? false : true) : 
+  const securityStatus = securityInsights.length > 0 ?
+    (securityInsights.some(i => i.severity === 'high' || i.confidence < 0.7) ? false : true) :
     undefined;
-    
-  const privacyStatus = privacyInsights.length > 0 ? 
-    (privacyInsights.some(i => i.severity === 'high' || i.confidence < 0.7) ? false : true) : 
+
+  const privacyStatus = privacyInsights.length > 0 ?
+    (privacyInsights.some(i => i.severity === 'high' || i.confidence < 0.7) ? false : true) :
     undefined;
 
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-gray-900">Upload & Validation Status</h2>
-      
+
       <Card key={file.id} className="border border-gray-200">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -121,7 +121,7 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                   <p className="text-xs text-gray-600">Records Found</p>
                 </div>
               </div>
-              
+
               {/* File Type */}
               <div className="flex items-center space-x-3">
                 <div className="bg-green-100 p-2 rounded-lg">
@@ -129,7 +129,7 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">
-                    {file.type === 'text/csv' ? 'CSV Data' : 
+                    {file.type === 'text/csv' ? 'CSV Data' :
                      file.type === 'application/json' ? 'JSON Data' :
                      file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ? 'Excel Data' :
                      'Data File'}
@@ -137,7 +137,7 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                   <p className="text-xs text-gray-600">File Type</p>
                 </div>
               </div>
-              
+
               {/* Security Status */}
               <div className="flex items-center space-x-3">
                 <div className={`p-2 rounded-lg ${
@@ -157,31 +157,31 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                   <p className="text-xs text-gray-600">Security Status</p>
                 </div>
               </div>
-              
+
               {/* Data Quality */}
               <div className="flex items-center space-x-3">
                 <div className={`p-2 rounded-lg ${
                   (flowState?.errors?.length || 0) > 0 ? 'bg-red-100' :
-                  (flowState?.warnings?.length || 0) > 0 ? 'bg-yellow-100' : 
+                  (flowState?.warnings?.length || 0) > 0 ? 'bg-yellow-100' :
                   qualityInsights.length > 0 ? 'bg-green-100' : 'bg-yellow-100'
                 }`}>
                   <CheckCircle className={`h-4 w-4 ${
                     (flowState?.errors?.length || 0) > 0 ? 'text-red-600' :
-                    (flowState?.warnings?.length || 0) > 0 ? 'text-yellow-600' : 
+                    (flowState?.warnings?.length || 0) > 0 ? 'text-yellow-600' :
                     qualityInsights.length > 0 ? 'text-green-600' : 'text-yellow-600'
                   }`} />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">
                     {(flowState?.errors?.length || 0) > 0 ? `${flowState.errors.length} Errors` :
-                     (flowState?.warnings?.length || 0) > 0 ? `${flowState.warnings.length} Warnings` : 
+                     (flowState?.warnings?.length || 0) > 0 ? `${flowState.warnings.length} Warnings` :
                      qualityInsights.length > 0 ? 'Good Quality' : 'Analyzing...'}
                   </p>
                   <p className="text-xs text-gray-600">Data Quality</p>
                 </div>
               </div>
             </div>
-            
+
             {/* Agent Insights & Concerns */}
             {(securityInsights.length > 0 || privacyInsights.length > 0 || qualityInsights.length > 0) && (
               <div className="mt-4 space-y-3">
@@ -201,7 +201,7 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                     </div>
                   </div>
                 )}
-                
+
                 {/* Privacy Insights */}
                 {privacyInsights.length > 0 && (
                   <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -218,7 +218,7 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                     </div>
                   </div>
                 )}
-                
+
                 {/* Quality Insights */}
                 {qualityInsights.length > 0 && (
                   <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
@@ -248,7 +248,7 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                 </div>
                 <Progress value={progress} className="h-2" />
               </div>
-              
+
               {/* Current Phase */}
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
                 <div className="flex items-center space-x-2">
@@ -269,8 +269,8 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0">
               <div>
                 <p className="text-sm font-medium text-gray-900">
-                  {currentStatus === 'completed' 
-                    ? 'Discovery Flow Complete' 
+                  {currentStatus === 'completed'
+                    ? 'Discovery Flow Complete'
                     : 'Ready for Discovery Flow'}
                 </p>
                 <p className="text-sm text-gray-600">
@@ -295,7 +295,7 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                     <Brain className="h-4 w-4" />
                     <span>
                       {currentStatus === 'completed'
-                        ? 'View Results' 
+                        ? 'View Results'
                         : 'Start Discovery Flow'
                       }
                     </span>

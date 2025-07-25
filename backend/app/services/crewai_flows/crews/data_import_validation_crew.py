@@ -49,8 +49,8 @@ def create_data_import_validation_crew(
             2. Check for PII and sensitive data
             3. Scan for malicious content
             4. Assess if data is suitable for asset inventory creation
-            
-            You DO NOT perform complex analysis, standardization, or transformation. 
+
+            You DO NOT perform complex analysis, standardization, or transformation.
             You provide quick, accurate validation results for user approval.""",
             llm=llm,
             memory=shared_memory,

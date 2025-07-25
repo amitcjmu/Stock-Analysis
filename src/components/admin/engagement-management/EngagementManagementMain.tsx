@@ -43,15 +43,15 @@ const EngagementManagementMain: React.FC = () => {
         if (filterPhase !== 'all') params.append('phase', filterPhase);
         params.append('page', currentPage.toString());
         params.append('limit', '10');
-        
+
         const queryString = params.toString();
         console.log('🔍 Fetching engagements with query:', queryString);
-        
+
         const result = await apiCall(`/api/v1/admin/engagements/${queryString ? '?' + queryString : ''}`);
         console.log('🔍 Engagements API result:', result);
         console.log('🔍 Engagements API result type:', typeof result);
         console.log('🔍 Engagements API result keys:', result ? Object.keys(result) : 'null');
-        
+
         // Handle different response formats
         if (result && Array.isArray(result)) {
           console.log('✅ Using direct array format, length:', result.length);
@@ -75,7 +75,7 @@ const EngagementManagementMain: React.FC = () => {
           status: error.status,
           endpoint: `/api/v1/admin/engagements/${queryString ? '?' + queryString : ''}`
         });
-        
+
         // If 404 or other error, still try to return empty array but log the issue
         return [];
       }
@@ -118,7 +118,7 @@ const EngagementManagementMain: React.FC = () => {
       console.log('🔍 Fetching clients for engagement management...');
       const result = await apiCall('/api/v1/admin/clients/?limit=100');
       console.log('🔍 Clients API result:', result);
-      
+
       // Handle different response formats
       if (result && Array.isArray(result)) {
         console.log('✅ Using direct array format for clients');
@@ -174,7 +174,7 @@ const EngagementManagementMain: React.FC = () => {
   // Handle engagement update
   const handleUpdateEngagement = async () => {
     if (!editingEngagement) return;
-    
+
     try {
       // Map frontend fields to backend field names
       const submissionData = {
@@ -194,9 +194,9 @@ const EngagementManagementMain: React.FC = () => {
         discovery_preferences: {},
         assessment_criteria: {}
       };
-      
+
       console.log('Updating engagement with data:', JSON.stringify(submissionData, null, 2));
-      
+
       const result = await apiCall(`/api/v1/admin/engagements/${editingEngagement.id}`, {
         method: 'PUT',
         headers: {
@@ -204,7 +204,7 @@ const EngagementManagementMain: React.FC = () => {
         },
         body: JSON.stringify(submissionData)
       });
-      
+
       if (result && result.message) {
         toast({
           title: "Success",
@@ -305,7 +305,7 @@ const EngagementManagementMain: React.FC = () => {
     const plannedStartDate = engagement.planned_start_date || engagement.start_date;
     const plannedEndDate = engagement.planned_end_date || engagement.end_date;
     const currentPhase = engagement.current_phase || engagement.migration_phase;
-    
+
     setFormData({
       engagement_name: engagement.engagement_name || '',
       engagement_description: engagement.engagement_description || '',
@@ -347,7 +347,7 @@ const EngagementManagementMain: React.FC = () => {
         maximumFractionDigits: 2
       }).format(amount);
     }
-    
+
     try {
       return new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -387,13 +387,13 @@ const EngagementManagementMain: React.FC = () => {
           <p>Clients: {clients.length > 0 ? clients.map(c => c.account_name).join(', ') : 'None'}</p>
         </div>
         <div className="flex gap-2 mt-2">
-          <Button 
-            onClick={() => engagementsQuery.refetch()} 
+          <Button
+            onClick={() => engagementsQuery.refetch()}
             disabled={engagementsQuery.isFetching}
           >
             {engagementsQuery.isFetching ? 'Fetching...' : 'Manual Refetch'}
           </Button>
-          <Button 
+          <Button
             onClick={() => {
               queryClient.invalidateQueries({ queryKey: ['engagements'] });
               queryClient.refetchQueries({ queryKey: ['engagements'] });
@@ -402,7 +402,7 @@ const EngagementManagementMain: React.FC = () => {
           >
             Clear Cache & Refetch
           </Button>
-          <Button 
+          <Button
             onClick={() => {
               queryClient.invalidateQueries({ queryKey: ['clients'] });
               queryClient.refetchQueries({ queryKey: ['clients'] });
@@ -462,4 +462,4 @@ const EngagementManagementMain: React.FC = () => {
   );
 };
 
-export default EngagementManagementMain; 
+export default EngagementManagementMain;

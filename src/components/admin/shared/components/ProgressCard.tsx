@@ -1,5 +1,5 @@
 /**
- * ProgressCard Component  
+ * ProgressCard Component
  * Reusable progress display card for admin dashboards
  */
 
@@ -51,8 +51,8 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
                 <span className="text-sm font-medium">{item.label}</span>
                 <div className="flex items-center gap-2">
                   {showPercentage && (
-                    <Progress 
-                      value={percentage} 
+                    <Progress
+                      value={percentage}
                       className="w-20 h-2"
                       style={{
                         // @ts-expect-error - Custom CSS properties for progress color

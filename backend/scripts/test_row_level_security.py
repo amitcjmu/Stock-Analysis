@@ -152,13 +152,13 @@ async def test_rls_isolation():
 
             # Validate table names
             allowed_tables = set(tables_to_check)
-            
+
             for table in tables_to_check:
                 # Validate table name against whitelist
                 if table not in allowed_tables:
                     print(f"   ❌ Invalid table name: {table}")
                     continue
-                    
+
                 try:
                     # Safe to use string formatting after validation
                     result = await session.execute(

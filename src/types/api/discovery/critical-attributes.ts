@@ -1,6 +1,6 @@
 /**
  * Discovery Critical Attributes API Types
- * 
+ *
  * Type definitions for critical attribute management including definition,
  * validation, business rules, and quality assessment operations.
  */

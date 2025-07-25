@@ -727,7 +727,9 @@ class DataQualityAnalyzerTool(AsyncBaseDiscoveryTool):
                 else (
                     "Good"
                     if analysis["overall_score"] >= 75
-                    else "Fair" if analysis["overall_score"] >= 60 else "Poor"
+                    else "Fair"
+                    if analysis["overall_score"] >= 60
+                    else "Poor"
                 )
             ),
             "records_analyzed": analysis["record_count"],

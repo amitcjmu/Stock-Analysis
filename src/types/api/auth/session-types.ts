@@ -1,6 +1,6 @@
 /**
  * Session Management Types
- * 
+ *
  * Session handling, monitoring, and management API types.
  */
 

@@ -1,6 +1,6 @@
 /**
  * Discovery Progress Tracking API Types
- * 
+ *
  * Type definitions for tracking mapping and flow progress including
  * timeline monitoring, projections, and bottleneck analysis.
  */

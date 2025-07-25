@@ -13,12 +13,12 @@ export const queryClient = new QueryClient({
         if (error?.status === 401 || error?.isAuthError) {
           return false;
         }
-        
+
         // Don't retry on client errors (4xx except 429)
         if (error?.status >= 400 && error?.status < 500 && error?.status !== 429) {
           return false;
         }
-        
+
         // Retry up to 3 times for other errors
         return failureCount < 3;
       },
@@ -28,4 +28,4 @@ export const queryClient = new QueryClient({
       retry: false // Don't retry mutations by default
     }
   },
-}); 
+});

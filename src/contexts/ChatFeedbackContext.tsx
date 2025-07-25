@@ -15,12 +15,12 @@ const ChatFeedbackContext = createContext<ChatFeedbackContextType | undefined>(u
 // Utility function to generate human-readable page names and breadcrumbs from routes
 const generatePageContext = (pathname: string): { pageName: string; breadcrumb: string } => {
   const segments = pathname.split('/').filter(Boolean);
-  
+
   // Route to human-readable name mapping
   const routeNameMap: Record<string, string> = {
     '': 'Dashboard',
     'discovery': 'Discovery',
-    'assess': 'Assess', 
+    'assess': 'Assess',
     'plan': 'Plan',
     'execute': 'Execute',
     'modernize': 'Modernize',
@@ -68,7 +68,7 @@ const generatePageContext = (pathname: string): { pageName: string; breadcrumb: 
   // Generate breadcrumb path
   const breadcrumbParts = segments.map(segment => routeNameMap[segment] || segment);
   const breadcrumb = breadcrumbParts.join(' > ');
-  
+
   // Current page name is the last segment
   const pageName = breadcrumbParts[breadcrumbParts.length - 1];
 
@@ -107,4 +107,4 @@ export const useChatFeedback = (): ChatFeedbackContextType => {
     throw new Error('useChatFeedback must be used within a ChatFeedbackProvider');
   }
   return context;
-}; 
+};

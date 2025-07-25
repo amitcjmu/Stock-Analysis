@@ -32,7 +32,7 @@ export const ApplicationSelector: React.FC<ApplicationSelectorProps> = ({
 }) => {
   const [currentTab, setCurrentTab] = useState('applications');
   const [queueName, setQueueName] = useState('');
-  
+
   // Use modularized hooks
   const {
     filteredApplications,
@@ -44,7 +44,7 @@ export const ApplicationSelector: React.FC<ApplicationSelectorProps> = ({
     showAdvancedFilters,
     setShowAdvancedFilters
   } = useApplicationFilters(applications);
-  
+
   const { handleSelectAll, handleSelectApplication, handleStartAnalysis } = useApplicationSelection({
     selectedApplications,
     onSelectionChange,
@@ -176,4 +176,4 @@ export const ApplicationSelector: React.FC<ApplicationSelectorProps> = ({
   );
 };
 
-export default ApplicationSelector; 
+export default ApplicationSelector;

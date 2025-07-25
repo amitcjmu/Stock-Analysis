@@ -29,15 +29,15 @@ class ProgressTrackingAgent(BaseCrewAIAgent):
         super().__init__(
             role="Collection Progress Analyst",
             goal="Monitor manual data collection progress and identify bottlenecks to ensure timely completion",
-            backstory="""You are an expert in project tracking and data collection analytics. 
+            backstory="""You are an expert in project tracking and data collection analytics.
             You excel at:
             - Monitoring real-time progress across multiple collection workflows
             - Identifying patterns that predict delays or issues
             - Analyzing user engagement to spot collection bottlenecks
             - Providing accurate completion time estimates
             - Recommending interventions to accelerate collection
-            
-            Your insights help project managers make informed decisions and keep 
+
+            Your insights help project managers make informed decisions and keep
             manual data collection on track for successful migrations.""",
             tools=tools,
             llm=llm,

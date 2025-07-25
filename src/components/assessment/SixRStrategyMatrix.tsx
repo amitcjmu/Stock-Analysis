@@ -81,7 +81,7 @@ export const SixRStrategyMatrix: React.FC<SixRStrategyMatrixProps> = ({
                 </Badge>
               </div>
             </div>
-            
+
             {decision.tech_debt_score !== undefined && (
               <div>
                 <Label className="text-sm font-medium">Tech Debt Score</Label>

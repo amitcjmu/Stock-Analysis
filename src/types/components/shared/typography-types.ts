@@ -1,6 +1,6 @@
 /**
  * Typography Component Types
- * 
+ *
  * Text and typography-related component interfaces.
  */
 

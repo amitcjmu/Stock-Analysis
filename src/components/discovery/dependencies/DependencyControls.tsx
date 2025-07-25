@@ -94,4 +94,4 @@ export const DependencyControls: React.FC<DependencyControlsProps> = ({
       </div>
     </div>
   );
-}; 
+};

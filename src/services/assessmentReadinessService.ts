@@ -160,7 +160,7 @@ export const useReadinessAssessment = (clientAccountId: string, engagementId: st
 export const useGenerateSignoffPackage = () => {
   const { clientAccountId, engagementId } = useAuth();
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: () => generateSignoffPackage(clientAccountId, engagementId),
     onSuccess: (data) => {
@@ -172,7 +172,7 @@ export const useGenerateSignoffPackage = () => {
 export const useSubmitForApproval = () => {
   const { clientAccountId, engagementId } = useAuth();
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (signoffData: StakeholderSignoffData) => submitForApproval(clientAccountId, engagementId, signoffData),
     onSuccess: () => {

@@ -1,6 +1,6 @@
 /**
  * Filter Types
- * 
+ *
  * Filter configuration, search settings, and filtering-related
  * type definitions.
  */

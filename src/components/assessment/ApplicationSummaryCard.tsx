@@ -36,16 +36,16 @@ export const ApplicationSummaryCard: React.FC<ApplicationSummaryCardProps> = ({
   compact = false
 }) => {
   const strategyInfo = SIX_R_STRATEGIES.find(s => s.value === decision.overall_strategy);
-  
+
   const techDebtStats = {
     total: techDebt.length,
     critical: techDebt.filter(t => t.severity === 'critical').length,
     high: techDebt.filter(t => t.severity === 'high').length,
-    avgScore: techDebt.length > 0 ? 
+    avgScore: techDebt.length > 0 ?
       techDebt.reduce((sum, t) => sum + (t.tech_debt_score || 0), 0) / techDebt.length : 0
   };
 
-  const compatibilityIssues = decision.component_treatments.filter(ct => 
+  const compatibilityIssues = decision.component_treatments.filter(ct =>
     ct.compatibility_issues && ct.compatibility_issues.length > 0
   ).length;
 
@@ -61,13 +61,13 @@ export const ApplicationSummaryCard: React.FC<ApplicationSummaryCardProps> = ({
               Application ID: {applicationId}
             </CardDescription>
           </div>
-          
+
           <div className="flex items-center space-x-3">
             <Badge className={cn(strategyInfo?.color, compact ? "text-xs" : "text-sm")}>
               {strategyInfo?.label || decision.overall_strategy}
             </Badge>
             {!compact && (
-              <ConfidenceScoreIndicator 
+              <ConfidenceScoreIndicator
                 score={decision.confidence_score}
                 size="small"
                 showLabel={false}
@@ -76,7 +76,7 @@ export const ApplicationSummaryCard: React.FC<ApplicationSummaryCardProps> = ({
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {/* Key Metrics */}
         <div className={cn("grid gap-4", compact ? "grid-cols-4" : "grid-cols-2 md:grid-cols-4")}>
@@ -88,9 +88,9 @@ export const ApplicationSummaryCard: React.FC<ApplicationSummaryCardProps> = ({
               Components
             </div>
           </div>
-          
+
           <div className="text-center">
-            <div className={cn("font-bold", compact ? "text-lg" : "text-xl", 
+            <div className={cn("font-bold", compact ? "text-lg" : "text-xl",
               techDebtStats.total > 0 ? "text-orange-600" : "text-green-600")}>
               {techDebtStats.total}
             </div>
@@ -98,7 +98,7 @@ export const ApplicationSummaryCard: React.FC<ApplicationSummaryCardProps> = ({
               Tech Debt Items
             </div>
           </div>
-          
+
           <div className="text-center">
             <div className={cn("font-bold", compact ? "text-lg" : "text-xl",
               compatibilityIssues > 0 ? "text-red-600" : "text-green-600")}>
@@ -108,7 +108,7 @@ export const ApplicationSummaryCard: React.FC<ApplicationSummaryCardProps> = ({
               Compatibility Issues
             </div>
           </div>
-          
+
           <div className="text-center">
             <div className={cn("font-bold", compact ? "text-lg" : "text-xl",
               decision.confidence_score >= 0.8 ? "text-green-600" : "text-orange-600")}>
@@ -213,7 +213,7 @@ export const ApplicationSummaryCard: React.FC<ApplicationSummaryCardProps> = ({
               {decision.confidence_score >= 0.8 ? 'Ready for Planning' : 'Needs Review'}
             </span>
           </div>
-          
+
           {decision.move_group_hints.length > 0 && (
             <Badge variant="outline" className={compact ? "text-xs" : ""}>
               Move Group: {decision.move_group_hints[0]}

@@ -1,8 +1,8 @@
 /**
  * Analytics Insights Types
- * 
+ *
  * Types for analytics insights, alerts, and predictive analytics.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 
@@ -11,10 +11,10 @@ import type { ConfigurationValue } from '../../../shared/config-types';
 import type { ConfidenceLevel, ImpactLevel, EffortLevel, ThresholdDefinition } from '../common'
 import type { Priority } from '../common'
 import type {
-  InsightType, 
-  AlertType, 
-  AlertSeverity, 
-  DataVisualizationType 
+  InsightType,
+  AlertType,
+  AlertSeverity,
+  DataVisualizationType
 } from './enums';
 
 // Analytics insight

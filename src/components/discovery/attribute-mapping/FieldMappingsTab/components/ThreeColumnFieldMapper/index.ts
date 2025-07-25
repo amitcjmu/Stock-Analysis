@@ -1,6 +1,6 @@
 /**
  * ThreeColumnFieldMapper - Index
- * 
+ *
  * Centralized exports for all ThreeColumnFieldMapper modules.
  */
 

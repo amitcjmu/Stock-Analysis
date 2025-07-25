@@ -58,4 +58,4 @@ export const UserStats: React.FC<UserStatsProps> = ({ pendingUsers, activeUsers 
       </Card>
     </div>
   );
-}; 
+};

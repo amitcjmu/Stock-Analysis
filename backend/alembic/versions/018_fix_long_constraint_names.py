@@ -31,7 +31,8 @@ def upgrade() -> None:
             -- Check if the old long constraint exists
             IF EXISTS (
                 SELECT 1 FROM information_schema.table_constraints
-                WHERE constraint_schema = 'migration'
+                WHERE table_schema = 'migration'
+            AND constraint_schema = 'migration'
                 AND table_name = 'crewai_flow_state_extensions'
                 AND constraint_name = 'fk_crewai_flow_state_extensions_collection_flow_id_collection_flows'
                 AND constraint_type = 'FOREIGN KEY'
@@ -46,7 +47,8 @@ def upgrade() -> None:
             -- Check if the new short constraint already exists
             IF NOT EXISTS (
                 SELECT 1 FROM information_schema.table_constraints
-                WHERE constraint_schema = 'migration'
+                WHERE table_schema = 'migration'
+            AND constraint_schema = 'migration'
                 AND table_name = 'crewai_flow_state_extensions'
                 AND constraint_name = 'fk_crewai_flow_ext_collection_flow_id'
                 AND constraint_type = 'FOREIGN KEY'
@@ -99,7 +101,8 @@ def downgrade() -> None:
             -- Remove the short constraint name if it exists
             IF EXISTS (
                 SELECT 1 FROM information_schema.table_constraints
-                WHERE constraint_schema = 'migration'
+                WHERE table_schema = 'migration'
+            AND constraint_schema = 'migration'
                 AND table_name = 'crewai_flow_state_extensions'
                 AND constraint_name = 'fk_crewai_flow_ext_collection_flow_id'
                 AND constraint_type = 'FOREIGN KEY'

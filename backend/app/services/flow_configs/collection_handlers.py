@@ -165,9 +165,9 @@ async def collection_finalization(
             master_flow.collection_quality_score = quality_report.get(
                 "overall_quality", 0.0
             )
-            master_flow.data_collection_metadata["completed_at"] = (
-                datetime.utcnow().isoformat()
-            )
+            master_flow.data_collection_metadata[
+                "completed_at"
+            ] = datetime.utcnow().isoformat()
             master_flow.data_collection_metadata["final_metrics"] = {
                 "quality_score": quality_report.get("overall_quality", 0.0),
                 "sixr_readiness": crew_results.get("sixr_readiness_score", 0.0),

@@ -56,7 +56,7 @@ const DataCleansingStateProvider: React.FC<DataCleansingStateProviderProps> = ({
             title="Discovery Flow Error"
             description={`Failed to initialize Discovery Flow: ${errorMessage}`}
             actions={
-              <button 
+              <button
                 onClick={onBackToAttributeMapping}
                 className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
@@ -81,13 +81,13 @@ const DataCleansingStateProvider: React.FC<DataCleansingStateProviderProps> = ({
             description="No data available for data cleansing analysis. Please ensure data has been imported and field mapping is complete."
             actions={
               <div className="flex flex-col sm:flex-row gap-3">
-                <button 
+                <button
                   onClick={onBackToAttributeMapping}
                   className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   <span>Go to Attribute Mapping</span>
                 </button>
-                <button 
+                <button
                   onClick={onTriggerAnalysis}
                   disabled={isAnalyzing}
                   className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
@@ -105,4 +105,4 @@ const DataCleansingStateProvider: React.FC<DataCleansingStateProviderProps> = ({
   return <>{children}</>;
 };
 
-export default DataCleansingStateProvider; 
+export default DataCleansingStateProvider;

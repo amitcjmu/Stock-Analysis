@@ -56,7 +56,7 @@ const DataCleansingProgressDashboard: React.FC<DataCleansingProgressDashboardPro
           <Database className="h-8 w-8 text-blue-600" />
         </div>
       </div>
-      
+
       {/* Quality Score */}
       <div className="bg-white p-6 rounded-lg shadow-md">
         <div className="flex items-center justify-between">
@@ -67,7 +67,7 @@ const DataCleansingProgressDashboard: React.FC<DataCleansingProgressDashboardPro
           <Activity className={`h-8 w-8 ${getQualityScoreColor(progress.quality_score)}`} />
         </div>
       </div>
-      
+
       {/* Issues Found */}
       <div className="bg-white p-6 rounded-lg shadow-md">
         <div className="flex items-center justify-between">
@@ -79,7 +79,7 @@ const DataCleansingProgressDashboard: React.FC<DataCleansingProgressDashboardPro
           <XCircle className="h-8 w-8 text-red-600" />
         </div>
       </div>
-      
+
       {/* Completion */}
       <div className="bg-white p-6 rounded-lg shadow-md">
         <div className="flex items-center justify-between">
@@ -94,4 +94,4 @@ const DataCleansingProgressDashboard: React.FC<DataCleansingProgressDashboardPro
   );
 };
 
-export default DataCleansingProgressDashboard; 
+export default DataCleansingProgressDashboard;

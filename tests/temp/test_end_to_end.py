@@ -10,7 +10,7 @@ import time
 test_data = [
     {
         "hostname": "web-server-01",
-        "type": "Server", 
+        "type": "Server",
         "os": "Linux",
         "application": "WebApp",
         "environment": "Production"
@@ -18,7 +18,7 @@ test_data = [
     {
         "hostname": "db-server-01",
         "type": "Database",
-        "os": "Linux", 
+        "os": "Linux",
         "application": "MySQL",
         "environment": "Production"
     }
@@ -57,7 +57,7 @@ try:
 except Exception as e:
     print(f"❌ Frontend connection failed: {e}")
 
-# Test 3: Try to trigger a Discovery Flow via unified API 
+# Test 3: Try to trigger a Discovery Flow via unified API
 print("3. Testing Discovery Flow creation...")
 try:
     payload = {
@@ -68,31 +68,31 @@ try:
         },
         "execution_mode": "hybrid"
     }
-    
+
     response = requests.post(
         "http://localhost:8000/api/v1/discovery/flow/initialize",
         json=payload,
         headers=headers
     )
-    
+
     print(f"Response status: {response.status_code}")
     print(f"Response: {response.text[:500]}...")
-    
+
     if response.status_code == 200:
         result = response.json()
         if "flow_id" in result:
             flow_id = result["flow_id"]
             print(f"✅ Discovery Flow created: {flow_id}")
-            
+
             # Test 4: Check flow status
             print("4. Checking flow status...")
             time.sleep(2)  # Give it time to start
-            
+
             status_response = requests.get(
                 f"http://localhost:8000/api/v1/discovery/flow/status/{flow_id}",
                 headers=headers
             )
-            
+
             if status_response.status_code == 200:
                 status = status_response.json()
                 print(f"✅ Flow status retrieved: {status.get('status', 'unknown')}")
@@ -103,7 +103,7 @@ try:
             print(f"⚠️ Flow created but no flow_id returned: {result}")
     else:
         print(f"⚠️ Discovery Flow creation returned: {response.status_code}")
-        
+
 except Exception as e:
     print(f"❌ Discovery Flow test failed: {e}")
 

@@ -1,6 +1,6 @@
 /**
  * Session Comparison Types
- * 
+ *
  * Session comparison and analysis types for comparison functionality.
  */
 
@@ -8,15 +8,15 @@ import type { ReactNode } from 'react';
 import type { BaseComponentProps } from '../../shared';
 import type { UserSession } from './session-types';
 import type {
-  SignificanceLevel, 
-  DifferenceCategory, 
-  SimilarityCategory, 
-  ImpactLevel, 
-  AssessmentLevel, 
-  RiskLevel, 
-  RecommendationType, 
-  PriorityLevel, 
-  EffortLevel 
+  SignificanceLevel,
+  DifferenceCategory,
+  SimilarityCategory,
+  ImpactLevel,
+  AssessmentLevel,
+  RiskLevel,
+  RecommendationType,
+  PriorityLevel,
+  EffortLevel
 } from './enum-types';
 import type { SessionFilter } from './filter-types'
 import type { SessionComparisonColumn, ExportFormat } from './filter-types'

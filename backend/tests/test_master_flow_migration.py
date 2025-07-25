@@ -66,7 +66,7 @@ sqlalchemy.url = {TEST_DATABASE_URL}
             result = conn.execute(
                 text(
                     """
-                SELECT sql FROM sqlite_master 
+                SELECT sql FROM sqlite_master
                 WHERE type='table' AND name='crewai_flow_state_extensions'
             """
                 )
@@ -83,7 +83,7 @@ sqlalchemy.url = {TEST_DATABASE_URL}
             result = conn.execute(
                 text(
                     """
-                SELECT sql FROM sqlite_master 
+                SELECT sql FROM sqlite_master
                 WHERE type='table' AND name='crewai_flow_state_extensions'
             """
                 )
@@ -104,7 +104,7 @@ sqlalchemy.url = {TEST_DATABASE_URL}
             result = conn.execute(
                 text(
                     """
-                SELECT sql FROM sqlite_master 
+                SELECT sql FROM sqlite_master
                 WHERE type='table' AND name='crewai_flow_state_extensions'
             """
                 )
@@ -211,7 +211,7 @@ sqlalchemy.url = {TEST_DATABASE_URL}
             result = conn.execute(
                 text(
                     """
-                SELECT name FROM sqlite_master 
+                SELECT name FROM sqlite_master
                 WHERE type='index' AND tbl_name='crewai_flow_state_extensions'
             """
                 )

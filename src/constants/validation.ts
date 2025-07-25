@@ -12,7 +12,7 @@ export const VALIDATION_RULES = {
     MAX_DESCRIPTION_LENGTH: 500,
     MAX_URL_LENGTH: 2048
   },
-  
+
   // Number validation
   NUMBER: {
     MIN_PORT: 1,
@@ -22,7 +22,7 @@ export const VALIDATION_RULES = {
     MIN_COUNT: 0,
     MAX_COUNT: Number.MAX_SAFE_INTEGER
   },
-  
+
   // File validation
   FILE: {
     MAX_SIZE: 100 * 1024 * 1024, // 100MB
@@ -33,7 +33,7 @@ export const VALIDATION_RULES = {
     ALLOWED_DOCUMENT_TYPES: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
     ALLOWED_DATA_TYPES: ['text/csv', 'application/json', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
   },
-  
+
   // Password validation
   PASSWORD: {
     MIN_LENGTH: 8,
@@ -44,13 +44,13 @@ export const VALIDATION_RULES = {
     REQUIRE_SPECIAL: true,
     SPECIAL_CHARS: '!@#$%^&*()_+-=[]{}|;:,.<>?'
   },
-  
+
   // Email validation
   EMAIL: {
     PATTERN: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
     MAX_LENGTH: 254
   },
-  
+
   // Username validation
   USERNAME: {
     MIN_LENGTH: 3,
@@ -58,14 +58,14 @@ export const VALIDATION_RULES = {
     PATTERN: /^[a-zA-Z0-9_-]+$/,
     RESERVED_WORDS: ['admin', 'root', 'system', 'user', 'test']
   },
-  
+
   // IP address validation
   IP: {
     IPV4_PATTERN: /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
     IPV6_PATTERN: /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/,
     CIDR_PATTERN: /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/(?:3[0-2]|[1-2]?[0-9])$/
   },
-  
+
   // Date validation
   DATE: {
     MIN_YEAR: 1900,
@@ -73,7 +73,7 @@ export const VALIDATION_RULES = {
     DATE_FORMAT: 'YYYY-MM-DD',
     DATETIME_FORMAT: 'YYYY-MM-DD HH:mm:ss'
   },
-  
+
   // Array validation
   ARRAY: {
     MIN_ITEMS: 0,

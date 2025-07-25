@@ -49,16 +49,16 @@ export const EngagementSummary: React.FC<EngagementSummaryProps> = ({
               </span>
             </div>
           </div>
-          
+
           <Separator />
-          
+
           <div className="space-y-2">
             <h4 className="font-medium">Client</h4>
             <p className="text-sm text-muted-foreground">
               {selectedClient ? `${selectedClient.account_name} (${selectedClient.industry})` : 'Not selected'}
             </p>
           </div>
-          
+
           <div className="space-y-2">
             <h4 className="font-medium">Project Manager</h4>
             <p className="text-sm text-muted-foreground">{formData.project_manager || 'Not assigned'}</p>
@@ -67,7 +67,7 @@ export const EngagementSummary: React.FC<EngagementSummaryProps> = ({
           <div className="space-y-2">
             <h4 className="font-medium">Cloud Provider</h4>
             <p className="text-sm text-muted-foreground">
-              {formData.target_cloud_provider 
+              {formData.target_cloud_provider
                 ? CloudProviders.find(p => p.value === formData.target_cloud_provider)?.label
                 : 'Not selected'
               }
@@ -119,4 +119,4 @@ export const EngagementSummary: React.FC<EngagementSummaryProps> = ({
       </Card>
     </div>
   );
-}; 
+};

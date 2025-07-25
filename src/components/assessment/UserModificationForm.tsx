@@ -31,7 +31,7 @@ export const UserModificationForm: React.FC<UserModificationFormProps> = ({
 
   if (type === 'component') {
     const component = editData as Partial<ApplicationComponent>;
-    
+
     return (
       <Card className="border-blue-200 bg-blue-50/30">
         <CardHeader>
@@ -83,8 +83,8 @@ export const UserModificationForm: React.FC<UserModificationFormProps> = ({
             <Input
               id="dependencies"
               value={component.dependencies?.join(', ') || ''}
-              onChange={(e) => setEditData({ 
-                ...editData, 
+              onChange={(e) => setEditData({
+                ...editData,
                 dependencies: e.target.value.split(',').map(d => d.trim()).filter(Boolean)
               })}
               placeholder="e.g., Database, External API, Message Queue"
@@ -94,7 +94,7 @@ export const UserModificationForm: React.FC<UserModificationFormProps> = ({
           <div className="space-y-2">
             <Label>Technology Stack</Label>
             <div className="text-sm text-gray-600">
-              Current: {component.technology_stack ? 
+              Current: {component.technology_stack ?
                 Object.entries(component.technology_stack).map(([key, value]) => `${key}: ${value}`).join(', ') :
                 'None specified'
               }
@@ -118,7 +118,7 @@ export const UserModificationForm: React.FC<UserModificationFormProps> = ({
 
   // Tech Debt Item Form
   const techDebt = editData as Partial<TechDebtItem>;
-  
+
   return (
     <Card className="border-orange-200 bg-orange-50/30">
       <CardHeader>

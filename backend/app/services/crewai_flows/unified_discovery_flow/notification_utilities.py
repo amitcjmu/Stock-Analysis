@@ -178,9 +178,7 @@ class NotificationUtilities:
                 flow_id=self.flow._flow_id,
             )
 
-            self.logger.info(
-                "📡 Sent approval request notification via agent-ui-bridge"
-            )
+            self.logger.info("📡 Sent approval request notification via agent-ui-bridge")
             return True
 
         except Exception as e:

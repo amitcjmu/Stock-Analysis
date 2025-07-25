@@ -29,7 +29,7 @@ export const updateUserDefaults = async (
 ): Promise<UpdateUserDefaultsResponse> => {
   try {
     console.log('🔍 updateUserDefaults - Starting with:', request);
-    
+
     const response = await apiCall('/api/v1/context/me/defaults', {
       method: 'PUT',
       headers: {
@@ -48,11 +48,11 @@ export const updateUserDefaults = async (
       request,
       endpoint: '/api/v1/context/me/defaults'
     });
-    
+
     // Don't throw the error - make this non-blocking
     // The context switching should still work via localStorage
     console.warn('⚠️ Continuing with localStorage-only context persistence');
-    
+
     // Return a fallback response
     const fallbackResponse = {
       success: false,
@@ -62,7 +62,7 @@ export const updateUserDefaults = async (
         default_engagement_id: request.engagement_id || null,
       }
     };
-    
+
     console.log('🔍 updateUserDefaults - Returning fallback response:', fallbackResponse);
     return fallbackResponse;
   }

@@ -1,6 +1,6 @@
 /**
  * Section Card Component
- * 
+ *
  * Collapsible card for form sections with progress indicators
  * Agent Team B3 - Section organization component
  */
@@ -105,12 +105,12 @@ export const SectionCard: React.FC<SectionCardProps> = ({
                   <ChevronRight className="h-4 w-4" />
                 )}
               </Button>
-              
+
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 {getStatusIcon()}
                 {section.title}
               </CardTitle>
-              
+
               {section.requiredFieldsCount > 0 && (
                 <Badge variant="outline" className="text-xs">
                   {section.requiredFieldsCount} required
@@ -127,11 +127,11 @@ export const SectionCard: React.FC<SectionCardProps> = ({
 
           <div className="flex flex-col items-end gap-2 ml-4">
             {getStatusBadge()}
-            
+
             {/* Progress indicator */}
             <div className="flex items-center gap-2 min-w-0">
-              <Progress 
-                value={completionPercentage} 
+              <Progress
+                value={completionPercentage}
                 className="w-20"
               />
               <span className="text-xs text-muted-foreground whitespace-nowrap">
@@ -149,13 +149,13 @@ export const SectionCard: React.FC<SectionCardProps> = ({
                 <Target className="h-3 w-3" />
                 {section.fields.length} fields
               </div>
-              
+
               {section.completionWeight > 0 && (
                 <div className="flex items-center gap-1">
                   <span>Weight: {Math.round(section.completionWeight * 100)}%</span>
                 </div>
               )}
-              
+
               {validationStatus === 'valid' && completionPercentage >= 100 && (
                 <Badge variant="outline" className="text-green-600 border-green-300">
                   ✓ Section Complete

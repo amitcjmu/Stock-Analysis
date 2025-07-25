@@ -3,7 +3,7 @@ import { createContext, useContext, useState } from 'react'
 import { useCallback } from 'react'
 import type { AuthContextType } from './types'
 import type { User, Client, Engagement, Flow } from './types'
-import { tokenStorage } from './storage';
+import { tokenStorage, clearInvalidContextData } from './storage';
 import { useAuthHeaders } from './hooks/useAuthHeaders';
 import { useAuthInitialization } from './hooks/useAuthInitialization';
 import { useAuthService } from './services/authService';
@@ -14,22 +14,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => tokenStorage.getUser());
-  const [client, setClient] = useState<Client | null>(() => {
-    try {
-      const stored = localStorage.getItem('auth_client');
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [engagement, setEngagement] = useState<Engagement | null>(() => {
-    try {
-      const stored = localStorage.getItem('auth_engagement');
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [client, setClient] = useState<Client | null>(null);
+  const [engagement, setEngagement] = useState<Engagement | null>(null);
   const [flow, setFlow] = useState<Flow | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isDemoMode = false;
   const isAuthenticated = !!user;
-  const isAdmin = user?.role === 'admin' || user?.role === 'platform_admin';
+  const isAdmin = user?.role === 'admin';
 
   const getAuthHeaders = useAuthHeaders(user, client, engagement, flow?.id || null);
 

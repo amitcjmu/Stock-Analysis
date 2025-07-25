@@ -188,7 +188,7 @@ class UserService:
         """Get user admin status and role"""
         role_query = (
             select(UserRole)
-            .where(and_(UserRole.user_id == str(user_id), UserRole.is_active is True))
+            .where(and_(UserRole.user_id == user_id, UserRole.is_active == True))
             .limit(1)
         )
 

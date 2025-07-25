@@ -22,7 +22,7 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
       <span className="text-sm font-medium">
         {selectedCount} analysis{selectedCount > 1 ? 'es' : ''} selected
       </span>
-      
+
       <div className="flex gap-2 ml-auto">
         {selectedCount >= 2 && (
           <Button
@@ -34,7 +34,7 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
             Compare
           </Button>
         )}
-        
+
         <Button
           variant="outline"
           size="sm"
@@ -43,7 +43,7 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
           <Archive className="h-4 w-4 mr-1" />
           Archive
         </Button>
-        
+
         <Button
           variant="outline"
           size="sm"

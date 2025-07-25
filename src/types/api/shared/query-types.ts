@@ -1,6 +1,6 @@
 /**
  * Query API Types
- * 
+ *
  * Types for filtering, sorting, searching, and data querying operations.
  */
 

@@ -89,9 +89,9 @@ interface DialogProviderProps {
 }
 
 // Separate component for Prompt Dialog to avoid hooks inside conditional
-const PromptDialogComponent: React.FC<{ 
-  dialog: DialogState; 
-  options: PromptDialogOptions; 
+const PromptDialogComponent: React.FC<{
+  dialog: DialogState;
+  options: PromptDialogOptions;
   closeDialog: (id: string) => void;
   getIcon: (icon?: DialogIcon) => JSX.Element;
 }> = ({ dialog, options, closeDialog, getIcon }) => {

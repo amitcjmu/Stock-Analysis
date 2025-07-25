@@ -143,7 +143,7 @@ class MigrationHooks:
             bind.execute(
                 text(
                     """
-                UPDATE users 
+                UPDATE users
                 SET password_hash = :password_hash,
                     is_active = true,
                     is_verified = true,
@@ -168,7 +168,7 @@ class MigrationHooks:
                     organization, role_description, requested_access_level,
                     created_at, updated_at
                 )
-                SELECT 
+                SELECT
                     id, 'active', NOW(), 'Platform Administrator',
                     'Platform', 'Platform Administrator', 'super_admin',
                     NOW(), NOW()
@@ -199,8 +199,8 @@ class MigrationHooks:
             DELETE FROM user_roles
             WHERE role_type = 'client_admin'
             AND user_id IN (
-                SELECT id FROM users 
-                WHERE email LIKE '%demo%' 
+                SELECT id FROM users
+                WHERE email LIKE '%demo%'
                 OR email LIKE '%@demo.%'
             )
             RETURNING id
@@ -296,7 +296,7 @@ class MigrationHooks:
                 existing = bind.execute(
                     text(
                         """
-                    SELECT COUNT(*) FROM engagement_architecture_standards 
+                    SELECT COUNT(*) FROM engagement_architecture_standards
                     WHERE engagement_id = :engagement_id
                 """
                     ),

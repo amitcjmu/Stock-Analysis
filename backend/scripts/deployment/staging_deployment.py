@@ -253,9 +253,7 @@ class StagingDeployment:
             )
 
             if result.returncode != 0:
-                logger.error(
-                    f"❌ Docker Compose configuration invalid: {result.stderr}"
-                )
+                logger.error(f"❌ Docker Compose configuration invalid: {result.stderr}")
                 return False
 
             logger.info("✅ Docker Compose configuration validated")
@@ -627,22 +625,22 @@ async def test_mfo():
             engagement_id=1,
             user_id="test-user"
         )
-        
+
         orchestrator = MasterFlowOrchestrator(db, context)
-        
+
         # Test flow creation
         flow_id, flow_details = await orchestrator.create_flow(
             flow_type="discovery",
             flow_name="Test Flow",
             configuration={"test": True}
         )
-        
+
         print(f"Created flow: {flow_id}")
-        
+
         # Test flow status
         status = await orchestrator.get_flow_status(flow_id)
         print(f"Flow status: {status['status']}")
-        
+
         print("Master Flow Orchestrator validation passed")
 
 asyncio.run(test_mfo())

@@ -1,2 +1,2 @@
 # This file ensures the data directory is tracked by git
-# while allowing .gitignore to exclude database contents 
+# while allowing .gitignore to exclude database contents

@@ -18,16 +18,30 @@ depends_on = None
 
 def upgrade():
     """Add updated_at column to collection_data_gaps table"""
-    # Add updated_at column to collection_data_gaps table
-    op.add_column(
-        "collection_data_gaps",
-        sa.Column(
-            "updated_at",
-            sa.TIMESTAMP(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
+    conn = op.get_bind()
+
+    # Add updated_at column to collection_data_gaps table if it doesn't exist
+    result = conn.execute(
+        sa.text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'migration'
+            AND table_name = 'collection_data_gaps'
+            AND column_name = 'updated_at'
+        """
+        )
     )
+    if not result.fetchone():
+        op.add_column(
+            "collection_data_gaps",
+            sa.Column(
+                "updated_at",
+                sa.TIMESTAMP(timezone=True),
+                server_default=sa.text("now()"),
+                nullable=False,
+            ),
+        )
 
     # Create trigger to automatically update updated_at timestamp
     op.execute(
@@ -42,14 +56,28 @@ def upgrade():
     """
     )
 
-    op.execute(
+    # Check if trigger exists before creating
+    result = conn.execute(
+        sa.text(
+            """
+            SELECT trigger_name
+            FROM information_schema.triggers
+            WHERE trigger_schema = 'migration'
+            AND event_object_schema = 'migration'
+            AND event_object_table = 'collection_data_gaps'
+            AND trigger_name = 'update_collection_data_gaps_updated_at'
         """
-        CREATE TRIGGER update_collection_data_gaps_updated_at
-        BEFORE UPDATE ON collection_data_gaps
-        FOR EACH ROW
-        EXECUTE FUNCTION update_updated_at_column();
-    """
+        )
     )
+    if not result.fetchone():
+        op.execute(
+            """
+            CREATE TRIGGER update_collection_data_gaps_updated_at
+            BEFORE UPDATE ON collection_data_gaps
+            FOR EACH ROW
+            EXECUTE FUNCTION update_updated_at_column();
+        """
+        )
 
 
 def downgrade():

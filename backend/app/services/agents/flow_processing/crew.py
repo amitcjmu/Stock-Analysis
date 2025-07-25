@@ -71,10 +71,10 @@ class UniversalFlowProcessingCrew:
         self.flow_analyst = Agent(
             role="Flow State Analyst",
             goal="Analyze the current state and progress of any migration flow type to understand what has been completed and what needs to be done next",
-            backstory="""You are an expert migration flow analyst with deep knowledge of all migration phases across Discovery, Assessment, Planning, Execution, Modernization, FinOps, Observability, and Decommission workflows. 
-            
+            backstory="""You are an expert migration flow analyst with deep knowledge of all migration phases across Discovery, Assessment, Planning, Execution, Modernization, FinOps, Observability, and Decommission workflows.
+
             You have years of experience analyzing complex migration projects and can quickly assess the current state of any flow, identify completed tasks, and determine what needs attention. You understand the nuances of different flow types and their unique requirements.
-            
+
             Your analytical skills help teams understand exactly where they are in their migration journey and what the next logical steps should be.""",
             tools=[self.flow_analyzer],
             verbose=True,
@@ -89,9 +89,9 @@ class UniversalFlowProcessingCrew:
             role="Phase Completion Validator",
             goal="Validate whether migration phases are truly complete and meet all required criteria before allowing progression to the next phase",
             backstory="""You are a meticulous quality assurance specialist for migration projects. Your role is critical - you ensure that no phase is marked complete unless it truly meets all the necessary criteria.
-            
+
             You have extensive experience with migration best practices and understand that rushing through phases or marking them complete prematurely can lead to serious issues downstream. You carefully examine evidence of completion and apply rigorous validation criteria.
-            
+
             Teams rely on your thorough validation to ensure their migration foundation is solid before moving forward. You prevent costly mistakes by catching incomplete work early.""",
             tools=[self.phase_validator, self.flow_validator],
             verbose=True,
@@ -106,9 +106,9 @@ class UniversalFlowProcessingCrew:
             role="Flow Navigation Strategist",
             goal="Make intelligent routing decisions to guide users to the exact right place in their migration flow based on current state and validation results",
             backstory="""You are a strategic navigation expert who specializes in guiding teams through complex migration workflows. You understand the intricate relationships between different phases and know exactly where to direct teams based on their current situation.
-            
+
             Your deep knowledge of user experience and workflow optimization helps you make routing decisions that minimize confusion and maximize productivity. You consider not just what needs to be done, but the most efficient and logical way to guide users there.
-            
+
             Teams trust your routing decisions because you always consider the bigger picture and ensure they're directed to the most appropriate next step in their migration journey.""",
             tools=[self.route_decider],
             verbose=True,
@@ -189,17 +189,17 @@ class UniversalFlowProcessingCrew:
 
         # Task 1: Flow State Analysis
         analysis_task = Task(
-            description=f"""Analyze the current state of flow {flow_id}. 
-            
+            description=f"""Analyze the current state of flow {flow_id}.
+
             Determine:
             1. What type of flow this is (Discovery, Assess, Plan, Execute, etc.)
             2. What phase the flow is currently in
             3. What progress has been made
             4. What data and insights are available
             5. What the current status indicates
-            
+
             Provide a comprehensive analysis of where this flow stands and what has been accomplished so far.
-            
+
             Flow ID: {flow_id}
             User Context: {user_context}
             """,
@@ -210,7 +210,7 @@ class UniversalFlowProcessingCrew:
         # Task 2: Phase Validation
         validation_task = Task(
             description=f"""Use the flow_validator tool to perform comprehensive validation on flow {flow_id}.
-            
+
             The flow validator will:
             1. Check all phases sequentially (data_import, attribute_mapping, data_cleansing, inventory, dependencies, tech_debt)
             2. Stop at the FIRST incomplete phase (fail-fast approach)
@@ -219,18 +219,18 @@ class UniversalFlowProcessingCrew:
                - USER_ACTION: What the user needs to do (upload data, configure mappings, etc.)
                - SYSTEM_ACTION: What the system needs to do internally (trigger processing, etc.)
                - ISSUE: Specific problems identified
-            
+
             Then use the phase_validator tool to get detailed validation for the identified incomplete phase.
-            
+
             Your job is to:
             - Identify exactly what failed or is incomplete
             - Determine if this requires user action or system action
             - Provide specific, actionable guidance about what needs to be done
             - Distinguish between things the user can control vs. system-level issues
-            
+
             DO NOT tell users to "ensure something is completed" - instead identify:
             - If they need to upload data → route them to data import
-            - If they need to configure mappings → route them to attribute mapping  
+            - If they need to configure mappings → route them to attribute mapping
             - If system processing failed → trigger system actions internally
             """,
             agent=self.phase_validator_agent,
@@ -241,26 +241,26 @@ class UniversalFlowProcessingCrew:
         # Task 3: Route Decision
         routing_task = Task(
             description="""Based on the flow analysis and phase validation, make an intelligent routing decision that provides ACTIONABLE USER GUIDANCE.
-            
+
             Your routing decision must:
             1. Parse the actionable guidance from validation results
             2. Distinguish between user actions and system actions
             3. Route users to pages where they can actually take action
             4. Trigger system processes when needed (not user responsibility)
             5. Provide clear, specific guidance about what the user should do
-            
+
             ROUTING LOGIC:
             - If user needs to upload data → route to /discovery/data-import
             - If user needs to configure mappings → route to /discovery/attribute-mapping
             - If system needs to process data → stay on enhanced dashboard with processing indicator
             - If phase is truly complete → advance to next phase
-            
+
             USER GUIDANCE PRINCIPLES:
             - Never tell users to "ensure completion" of something they can't control
             - Always provide specific, actionable steps
             - Route them to pages where they can actually take the required action
             - For system issues, explain that background processing is needed
-            
+
             Provide clear reasoning about why this route was chosen and what the user should expect.
             """,
             agent=self.route_strategist,

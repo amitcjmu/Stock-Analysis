@@ -268,9 +268,9 @@ class ErrorRecoveryManager(AsyncBaseDiscoveryTool, BaseCollectionTool):
             fallback_result["success"] = True
 
         elif fallback_strategy == "reduced_scope":
-            fallback_result["details"] = (
-                "Reducing collection scope to critical data only"
-            )
+            fallback_result[
+                "details"
+            ] = "Reducing collection scope to critical data only"
             fallback_result["success"] = True
             fallback_result["scope_reduction"] = "critical_only"
 
@@ -286,9 +286,9 @@ class ErrorRecoveryManager(AsyncBaseDiscoveryTool, BaseCollectionTool):
             fallback_result["manual_required"] = True
 
         else:
-            fallback_result["details"] = (
-                f"Unknown fallback strategy: {fallback_strategy}"
-            )
+            fallback_result[
+                "details"
+            ] = f"Unknown fallback strategy: {fallback_strategy}"
             fallback_result["success"] = False
 
         return fallback_result

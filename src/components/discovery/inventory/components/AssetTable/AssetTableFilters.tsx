@@ -55,30 +55,30 @@ export const AssetTableFilters: React.FC<AssetTableFiltersProps> = ({
             ))}
           </SelectContent>
         </Select>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={onToggleAdvancedFilters}
         >
           <Filter className="h-4 w-4 mr-2" />
           Filters
         </Button>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={onExport}
         >
           <Download className="h-4 w-4 mr-2" />
           Export
         </Button>
       </div>
-      
+
       {selectedCount > 0 && (
         <div className="flex items-center gap-4">
           <div className="text-sm text-blue-600">
             {selectedCount} assets selected
           </div>
           {onReclassifySelected && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={onReclassifySelected}
               disabled={isReclassifying}

@@ -6,7 +6,7 @@ import { FileText, Search, Download, CheckCircle, Clock } from 'lucide-react'
 
 const DecommissionPlanning = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
-  
+
   const planningMetrics = [
     { label: 'Systems Identified', value: '120', color: 'text-blue-600' },
     { label: 'Dependencies Mapped', value: '89', color: 'text-purple-600' },
@@ -116,7 +116,7 @@ const DecommissionPlanning = () => {
     }
   ];
 
-  const filteredSystems = selectedFilter === 'all' ? systemsForDecommission : 
+  const filteredSystems = selectedFilter === 'all' ? systemsForDecommission :
                          systemsForDecommission.filter(system => system.status.toLowerCase().includes(selectedFilter));
 
   return (

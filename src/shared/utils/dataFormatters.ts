@@ -33,7 +33,7 @@ export const formatCurrency = (value: number, currency = 'USD'): string => {
 export const formatFileSize = (bytes: number): string => {
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   if (bytes === 0) return '0 B';
-  
+
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
 };
@@ -44,7 +44,7 @@ export const formatFileSize = (bytes: number): string => {
 export const formatDuration = (seconds: number): string => {
   if (seconds < 60) return `${seconds.toFixed(1)}s`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
-  
+
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   return `${hours}h ${minutes}m`;
@@ -55,7 +55,7 @@ export const formatDuration = (seconds: number): string => {
  */
 export const formatDate = (date: string | Date, format: 'short' | 'long' | 'relative' = 'short'): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
-  
+
   switch (format) {
     case 'long':
       return dateObj.toLocaleDateString('en-US', {
@@ -87,7 +87,7 @@ export const formatRelativeTime = (date: Date): string => {
   if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
   if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
   if (diffDays < 30) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-  
+
   return formatDate(date, 'short');
 };
 
@@ -120,17 +120,17 @@ export const getStatusColor = (status: string): string => {
     'success': 'text-green-600 bg-green-100',
     'active': 'text-green-600 bg-green-100',
     'online': 'text-green-600 bg-green-100',
-    
+
     // Warning states
     'pending': 'text-yellow-600 bg-yellow-100',
     'warning': 'text-yellow-600 bg-yellow-100',
     'in_progress': 'text-blue-600 bg-blue-100',
-    
+
     // Error states
     'failed': 'text-red-600 bg-red-100',
     'error': 'text-red-600 bg-red-100',
     'offline': 'text-red-600 bg-red-100',
-    
+
     // Neutral states
     'idle': 'text-gray-600 bg-gray-100',
     'paused': 'text-gray-600 bg-gray-100',

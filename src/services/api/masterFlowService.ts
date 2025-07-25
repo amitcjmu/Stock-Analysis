@@ -8,6 +8,7 @@ import type { ApiResponse, ApiError } from '../../types/shared/api-types';
 import type { EnhancedApiError } from '../../config/api';
 import type { AuditableMetadata } from '../../types/shared/metadata-types'
 import type { BaseMetadata } from '../../types/shared/metadata-types'
+import type { ActiveFlowSummary } from '../../types/modules/flow-orchestration/model-types'
 
 const apiClient = ApiClient.getInstance();
 import type { AuthService } from '../../contexts/AuthContext/services/authService';
@@ -151,7 +152,7 @@ export const masterFlowService = {
         configuration: request.config || {},
         initial_state: {}
       };
-      
+
       const response = await apiClient.post<{
         flow_id: string;
         status: string;
@@ -172,7 +173,7 @@ export const masterFlowService = {
           ),
         }
       );
-      
+
       // Transform backend response to match frontend expectations
       return {
         flowId: response.flow_id,
@@ -219,14 +220,14 @@ export const masterFlowService = {
     clientAccountId: string,
     engagementId?: string,
     flowType?: string
-  ): Promise<MasterFlowResponse[]> {
+  ): Promise<ActiveFlowSummary[]> {
     try {
       const params = new URLSearchParams();
       if (flowType) params.append('flowType', flowType);
-      
+
       const endpoint = `/discovery/flows/active${params.toString() ? `?${params}` : ''}`;
       const headers = getMultiTenantHeaders(clientAccountId, engagementId);
-      
+
       console.log('🔍 MasterFlowService.getActiveFlows - Making API call:', {
         endpoint,
         headers,
@@ -234,16 +235,34 @@ export const masterFlowService = {
         engagementId,
         flowType
       });
-      
+
       const response = await apiClient.get<MasterFlowResponse[]>(
         endpoint,
         {
           headers,
         }
       );
-      
+
       console.log('✅ MasterFlowService.getActiveFlows - Response received:', response);
-      return response;
+
+      // Transform MasterFlowResponse[] to ActiveFlowSummary[]
+      return response.map(flow => ({
+        flowId: flow.flowId,
+        flowType: flow.flowType,
+        flowName: flow.metadata?.flow_name || flow.flowType,
+        status: flow.status,
+        progress: flow.progress,
+        currentPhase: flow.currentPhase,
+        assignedAgents: 0, // Default values as these are not in MasterFlowResponse
+        activeCrews: 0,
+        childFlows: 0,
+        priority: 'normal',
+        startTime: flow.createdAt,
+        estimatedCompletion: undefined,
+        clientAccountId: clientAccountId,
+        engagementId: engagementId || '',
+        userId: ''
+      }));
     } catch (error) {
       console.error('❌ MasterFlowService.getActiveFlows - API call failed:', error);
       handleApiError(error, 'getActiveFlows');
@@ -363,7 +382,7 @@ export const masterFlowService = {
     try {
       const params = new URLSearchParams();
       if (flowType) params.append('flowType', flowType);
-      
+
       const response = await apiClient.get<FlowMetrics>(
         `/flows/metrics${params.toString() ? `?${params}` : ''}`,
         {
@@ -378,7 +397,7 @@ export const masterFlowService = {
   },
 
   // Legacy compatibility methods for discovery flows
-  
+
   /**
    * Initialize discovery flow (legacy compatibility)
    */
@@ -412,7 +431,7 @@ export const masterFlowService = {
   async getActiveDiscoveryFlows(
     clientAccountId: string,
     engagementId?: string
-  ): Promise<MasterFlowResponse[]> {
+  ): Promise<ActiveFlowSummary[]> {
     return this.getActiveFlows(clientAccountId, engagementId, 'discovery');
   },
 };

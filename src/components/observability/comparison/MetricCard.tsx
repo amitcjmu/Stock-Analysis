@@ -40,13 +40,13 @@ export const MetricCard: React.FC<MetricCardProps> = ({ metric, agents, selected
           {values.map((item, index) => {
             const isBest = item === best;
             const isWorst = item === worst && values.length > 1;
-            
+
             return (
               <div key={item.name} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className={`w-3 h-3 rounded-full ${
-                    isBest ? 'bg-green-500' : 
-                    isWorst ? 'bg-red-500' : 
+                    isBest ? 'bg-green-500' :
+                    isWorst ? 'bg-red-500' :
                     'bg-gray-400'
                   }`} />
                   <span className="text-sm font-medium text-gray-900 truncate max-w-32">
@@ -56,8 +56,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({ metric, agents, selected
                 </div>
                 <div className="flex items-center gap-1">
                   <span className={`text-sm font-bold ${
-                    isBest ? 'text-green-600' : 
-                    isWorst ? 'text-red-600' : 
+                    isBest ? 'text-green-600' :
+                    isWorst ? 'text-red-600' :
                     'text-gray-900'
                   }`}>
                     {metric.format(item.value)}

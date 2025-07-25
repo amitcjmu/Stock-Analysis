@@ -133,13 +133,15 @@ class TestAgentMonitor:
 
             from app.services.agent_monitor import TaskStatus
 
-            agent_monitor.active_tasks[task_id].start_time = (
-                datetime.utcnow() - timedelta(seconds=35)
-            )
-            agent_monitor.active_tasks[task_id].last_activity = (
-                datetime.utcnow() - timedelta(seconds=35)
-            )
-            agent_monitor.active_tasks[task_id].status = (
+            agent_monitor.active_tasks[
+                task_id
+            ].start_time = datetime.utcnow() - timedelta(seconds=35)
+            agent_monitor.active_tasks[
+                task_id
+            ].last_activity = datetime.utcnow() - timedelta(seconds=35)
+            agent_monitor.active_tasks[
+                task_id
+            ].status = (
                 TaskStatus.RUNNING
             )  # Must be in running state to be considered hanging
 

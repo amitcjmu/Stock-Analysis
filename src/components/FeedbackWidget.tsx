@@ -96,7 +96,7 @@ const FeedbackWidget = () => {
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
-  const filteredItems = data.items.filter(item => 
+  const filteredItems = data.items.filter(item =>
     filter === 'All' || item.status === filter
   );
 

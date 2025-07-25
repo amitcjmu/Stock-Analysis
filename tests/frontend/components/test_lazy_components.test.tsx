@@ -1,6 +1,6 @@
 /**
  * Tests for Lazy Loading Components
- * 
+ *
  * Tests the modular lazy loading component infrastructure including:
  * - Dynamic component loading
  * - Error boundary behavior
@@ -41,11 +41,11 @@ const mockLazy = vi.fn();
 beforeEach(() => {
   // Mock React.lazy to return our mock components
   React.lazy = mockLazy;
-  
+
   // Setup default mock implementations
   mockLazy.mockImplementation((importFn) => {
     const componentName = importFn.toString();
-    
+
     if (componentName.includes('FileUploadArea')) {
       return React.forwardRef(() => mockFileUploadComponent());
     }
@@ -58,7 +58,7 @@ beforeEach(() => {
     if (componentName.includes('QualityDashboard')) {
       return React.forwardRef(() => mockQualityDashboardComponent());
     }
-    
+
     // Default mock component
     return React.forwardRef(() => React.createElement('div', { 'data-testid': 'mock-lazy-component' }, 'Mock Lazy Component'));
   });
@@ -73,15 +73,15 @@ describe('Lazy Component Loading', () => {
   it('should render LazyFileUploadArea with loading state then component', async () => {
     // Act
     render(<LazyFileUploadArea />);
-    
+
     // Assert - Initially shows loading
     expect(screen.getByText(/loading file upload area/i)).toBeInTheDocument();
-    
+
     // Wait for component to load
     await waitFor(() => {
       expect(screen.getByTestId('file-upload-component')).toBeInTheDocument();
     });
-    
+
     // Loading state should be gone
     expect(screen.queryByText(/loading file upload area/i)).not.toBeInTheDocument();
   });
@@ -89,10 +89,10 @@ describe('Lazy Component Loading', () => {
   it('should render LazyProjectDialog with minimal fallback', async () => {
     // Act
     render(<LazyProjectDialog />);
-    
+
     // Assert - Shows loading fallback initially
     expect(screen.getByRole('progressbar') || screen.getByText(/loading/i)).toBeInTheDocument();
-    
+
     // Wait for component to load
     await waitFor(() => {
       expect(screen.getByTestId('project-dialog-component')).toBeInTheDocument();
@@ -102,7 +102,7 @@ describe('Lazy Component Loading', () => {
   it('should render LazyNavigationTabs with correct priority', async () => {
     // Act
     render(<LazyNavigationTabs />);
-    
+
     // Assert - Component loads normally (NORMAL priority)
     await waitFor(() => {
       expect(screen.getByTestId('navigation-tabs-component')).toBeInTheDocument();
@@ -112,10 +112,10 @@ describe('Lazy Component Loading', () => {
   it('should render LazyQualityDashboard with skeleton fallback', async () => {
     // Act
     render(<LazyQualityDashboard />);
-    
+
     // Assert - Shows skeleton fallback initially
     expect(screen.getByTestId('skeleton-fallback') || screen.getByText(/loading/i)).toBeInTheDocument();
-    
+
     // Wait for component to load
     await waitFor(() => {
       expect(screen.getByTestId('quality-dashboard-component')).toBeInTheDocument();
@@ -127,11 +127,11 @@ describe('Error Boundary Behavior', () => {
   it('should catch and display error when component fails to load', async () => {
     // Arrange - Mock a failing component
     const FailingComponent = React.lazy(() => Promise.reject(new Error('Component load failed')));
-    
+
     const mockError = vi.fn();
     const originalError = console.error;
     console.error = mockError;
-    
+
     // Act
     render(
       <ErrorBoundary
@@ -148,13 +148,13 @@ describe('Error Boundary Behavior', () => {
         </React.Suspense>
       </ErrorBoundary>
     );
-    
+
     // Assert - Error boundary should catch the error
     await waitFor(() => {
       expect(screen.getByText(/error loading test component/i)).toBeInTheDocument();
       expect(screen.getByText(/retry/i)).toBeInTheDocument();
     });
-    
+
     console.error = originalError;
   });
 
@@ -210,7 +210,7 @@ describe('ConditionalLazyComponent', () => {
         <div data-testid="conditional-content">Conditional Content</div>
       </ConditionalLazyComponent>
     );
-    
+
     // Assert
     expect(screen.getByTestId('conditional-content')).toBeInTheDocument();
   });
@@ -218,14 +218,14 @@ describe('ConditionalLazyComponent', () => {
   it('should render fallback when condition is false', () => {
     // Act
     render(
-      <ConditionalLazyComponent 
+      <ConditionalLazyComponent
         condition={false}
         fallback={<div data-testid="fallback-content">Fallback Content</div>}
       >
         <div data-testid="conditional-content">Conditional Content</div>
       </ConditionalLazyComponent>
     );
-    
+
     // Assert
     expect(screen.getByTestId('fallback-content')).toBeInTheDocument();
     expect(screen.queryByTestId('conditional-content')).not.toBeInTheDocument();
@@ -238,7 +238,7 @@ describe('ConditionalLazyComponent', () => {
         <div data-testid="conditional-content">Conditional Content</div>
       </ConditionalLazyComponent>
     );
-    
+
     // Assert
     expect(container.firstChild).toBeNull();
   });
@@ -247,7 +247,7 @@ describe('ConditionalLazyComponent', () => {
 describe('ViewportLazyComponent', () => {
   // Mock IntersectionObserver
   const mockIntersectionObserver = vi.fn();
-  
+
   beforeEach(() => {
     global.IntersectionObserver = vi.fn().mockImplementation((callback) => {
       mockIntersectionObserver.mockImplementation(callback);
@@ -266,7 +266,7 @@ describe('ViewportLazyComponent', () => {
         <div data-testid="viewport-content">Viewport Content</div>
       </ViewportLazyComponent>
     );
-    
+
     // Assert
     expect(screen.getByTestId('placeholder')).toBeInTheDocument();
     expect(screen.queryByTestId('viewport-content')).not.toBeInTheDocument();
@@ -279,12 +279,12 @@ describe('ViewportLazyComponent', () => {
         <div data-testid="viewport-content">Viewport Content</div>
       </ViewportLazyComponent>
     );
-    
+
     // Simulate intersection observer triggering
     act(() => {
       mockIntersectionObserver([{ isIntersecting: true }]);
     });
-    
+
     // Assert
     await waitFor(() => {
       expect(screen.getByTestId('viewport-content')).toBeInTheDocument();
@@ -298,7 +298,7 @@ describe('ViewportLazyComponent', () => {
         <div data-testid="viewport-content">Viewport Content</div>
       </ViewportLazyComponent>
     );
-    
+
     // Assert - IntersectionObserver should be called with custom options
     expect(global.IntersectionObserver).toHaveBeenCalledWith(
       expect.any(Function),
@@ -313,7 +313,7 @@ describe('ViewportLazyComponent', () => {
         <div data-testid="viewport-content">Viewport Content</div>
       </ViewportLazyComponent>
     );
-    
+
     // Assert
     const placeholderDiv = container.querySelector('div[style*="min-height"]');
     expect(placeholderDiv).toBeInTheDocument();
@@ -335,7 +335,7 @@ describe('ProgressiveLazyComponent', () => {
         props={{}}
       />
     );
-    
+
     // Assert
     await waitFor(() => {
       expect(screen.getByTestId('base-component')).toBeInTheDocument();
@@ -353,10 +353,10 @@ describe('ProgressiveLazyComponent', () => {
         props={{}}
       />
     );
-    
+
     // Assert - Should initially show base component
     expect(screen.getByTestId('base-component')).toBeInTheDocument();
-    
+
     // Wait for enhanced component to load
     await waitFor(() => {
       expect(screen.getByTestId('enhanced-component')).toBeInTheDocument();
@@ -366,7 +366,7 @@ describe('ProgressiveLazyComponent', () => {
   it('should fallback to base component if enhanced import fails', async () => {
     // Arrange
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    
+
     // Act
     render(
       <ProgressiveLazyComponent
@@ -376,7 +376,7 @@ describe('ProgressiveLazyComponent', () => {
         props={{}}
       />
     );
-    
+
     // Assert - Should fallback to base component
     await waitFor(() => {
       expect(screen.getByTestId('base-component')).toBeInTheDocument();
@@ -384,7 +384,7 @@ describe('ProgressiveLazyComponent', () => {
         expect.stringContaining('Failed to load enhanced component')
       );
     });
-    
+
     consoleSpy.mockRestore();
   });
 });
@@ -393,7 +393,7 @@ describe('Loading Fallback Components', () => {
   it('should render LoadingFallback with message', () => {
     // Act
     render(<LoadingFallback message="Loading test component..." />);
-    
+
     // Assert
     expect(screen.getByText(/loading test component/i)).toBeInTheDocument();
   });
@@ -401,7 +401,7 @@ describe('Loading Fallback Components', () => {
   it('should render compact LoadingFallback', () => {
     // Act
     render(<LoadingFallback compact />);
-    
+
     // Assert
     const loadingElement = screen.getByRole('progressbar') || screen.getByText(/loading/i);
     expect(loadingElement).toBeInTheDocument();
@@ -411,7 +411,7 @@ describe('Loading Fallback Components', () => {
   it('should render SkeletonFallback with specified type', () => {
     // Act
     render(<SkeletonFallback type="card" />);
-    
+
     // Assert
     expect(screen.getByTestId('skeleton-fallback')).toBeInTheDocument();
     expect(screen.getByTestId('skeleton-fallback')).toHaveClass('skeleton-card');
@@ -421,7 +421,7 @@ describe('Loading Fallback Components', () => {
     // Arrange
     const error = new Error('Test error');
     const retryFn = vi.fn();
-    
+
     // Act
     render(
       <ErrorFallback
@@ -430,14 +430,14 @@ describe('Loading Fallback Components', () => {
         componentName="Test Component"
       />
     );
-    
+
     // Assert
     expect(screen.getByText(/error loading test component/i)).toBeInTheDocument();
     expect(screen.getByText(/test error/i)).toBeInTheDocument();
-    
+
     const retryButton = screen.getByText(/retry/i);
     expect(retryButton).toBeInTheDocument();
-    
+
     // Test retry functionality
     fireEvent.click(retryButton);
     expect(retryFn).toHaveBeenCalledOnce();
@@ -448,7 +448,7 @@ describe('Performance and Bundle Loading', () => {
   it('should not load component immediately if lazy', () => {
     // Act
     render(<LazyFileUploadArea />);
-    
+
     // Assert - Component should not be loaded immediately
     expect(screen.queryByTestId('file-upload-component')).not.toBeInTheDocument();
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
@@ -461,17 +461,17 @@ describe('Performance and Bundle Loading', () => {
       importSpy();
       return mockFileUploadComponent();
     }));
-    
+
     // Act - Render component multiple times
     const { rerender } = render(<LazyFileUploadArea />);
     rerender(<LazyFileUploadArea />);
     rerender(<LazyFileUploadArea />);
-    
+
     // Wait for loading
     await waitFor(() => {
       expect(screen.getByTestId('file-upload-component')).toBeInTheDocument();
     });
-    
+
     // Assert - Import should only be called once due to caching
     expect(importSpy).toHaveBeenCalledTimes(1);
   });
@@ -485,7 +485,7 @@ describe('Performance and Bundle Loading', () => {
         <LazyNavigationTabs />
       </div>
     );
-    
+
     // Assert - All components should eventually load
     await waitFor(() => {
       expect(screen.getByTestId('file-upload-component')).toBeInTheDocument();
@@ -499,7 +499,7 @@ describe('Accessibility', () => {
   it('should maintain accessibility during loading states', () => {
     // Act
     render(<LazyFileUploadArea />);
-    
+
     // Assert - Loading state should be accessible
     const loadingElement = screen.getByRole('progressbar') || screen.getByText(/loading/i);
     expect(loadingElement).toBeInTheDocument();
@@ -509,12 +509,12 @@ describe('Accessibility', () => {
   it('should maintain focus management after component loads', async () => {
     // Act
     render(<LazyFileUploadArea />);
-    
+
     // Wait for component to load
     await waitFor(() => {
       expect(screen.getByTestId('file-upload-component')).toBeInTheDocument();
     });
-    
+
     // Assert - Component should be properly accessible
     const loadedComponent = screen.getByTestId('file-upload-component');
     expect(loadedComponent).toBeInTheDocument();
@@ -524,7 +524,7 @@ describe('Accessibility', () => {
   it('should provide meaningful error messages for screen readers', async () => {
     // Arrange
     const error = new Error('Component failed to load');
-    
+
     // Act
     render(
       <ErrorFallback
@@ -533,7 +533,7 @@ describe('Accessibility', () => {
         componentName="Test Component"
       />
     );
-    
+
     // Assert
     expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(screen.getByText(/error loading test component/i)).toBeInTheDocument();

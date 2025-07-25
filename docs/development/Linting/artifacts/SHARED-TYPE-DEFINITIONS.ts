@@ -1,10 +1,10 @@
 /**
  * Shared Type Definitions for ESLint Compliance Project
- * 
+ *
  * This file contains standardized TypeScript interfaces and types to replace
  * 'any' types throughout the codebase. All AI agents should use these shared
  * definitions to ensure consistency and avoid conflicts.
- * 
+ *
  * @version 1.0
  * @date 2025-01-21
  * @author CC AI Swarm Project
@@ -61,7 +61,7 @@ export interface DomainMetadata extends AuditableMetadata {
 }
 
 // =============================================================================
-// ANALYSIS RESULT SYSTEM  
+// ANALYSIS RESULT SYSTEM
 // =============================================================================
 
 /**
@@ -160,11 +160,11 @@ export interface RiskFactor {
 /**
  * Union type for common configuration values across the platform
  */
-export type ConfigurationValue = 
-  | string 
-  | number 
-  | boolean 
-  | string[] 
+export type ConfigurationValue =
+  | string
+  | number
+  | boolean
+  | string[]
   | number[]
   | ConfigurationObject;
 
@@ -236,7 +236,7 @@ export interface ApiResponse<TData = unknown, TError = ApiError> {
 }
 
 /**
- * Standard API error structure  
+ * Standard API error structure
  */
 export interface ApiError {
   /** Error code for programmatic handling */
@@ -489,10 +489,10 @@ export type ArrayElement<T> = T extends Array<infer U> ? U : never;
 /**
  * Function type constraints
  */
-export type AsyncFunction<TArgs extends unknown[] = unknown[], TReturn = unknown> = 
+export type AsyncFunction<TArgs extends unknown[] = unknown[], TReturn = unknown> =
   (...args: TArgs) => Promise<TReturn>;
 
-export type SyncFunction<TArgs extends unknown[] = unknown[], TReturn = unknown> = 
+export type SyncFunction<TArgs extends unknown[] = unknown[], TReturn = unknown> =
   (...args: TArgs) => TReturn;
 
 /**
@@ -544,7 +544,7 @@ export type MetadataTypes = BaseMetadata | AuditableMetadata | DomainMetadata;
 export type AnalysisTypes = AnalysisResult | CostAnalysis | RiskAnalysis;
 
 /**
- * All configuration types  
+ * All configuration types
  */
 export type ConfigurationTypes = ConfigurationValue | TypedConstraint | ConfigurationCriteria;
 

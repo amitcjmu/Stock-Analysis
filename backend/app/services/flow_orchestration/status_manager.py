@@ -216,7 +216,9 @@ class FlowStatusManager:
                 page_context = (
                     "discovery"
                     if flow_type == "discovery"
-                    else "assessment" if flow_type == "assessment" else "general"
+                    else "assessment"
+                    if flow_type == "assessment"
+                    else "general"
                 )
                 logger.info(
                     f"🔍 Searching for insights with page_context: {page_context}"

@@ -8,14 +8,14 @@ echo ""
 # Function to update base image
 update_base_image() {
     echo "📦 Updating base image to latest secure version..."
-    
+
     # Get latest Python 3.11 slim image with security patches
     docker pull python:3.11-slim-bookworm
-    
+
     # Get the exact digest for reproducibility
     DIGEST=$(docker inspect python:3.11-slim-bookworm --format='{{.RepoDigests}}' | grep -o 'sha256:[a-f0-9]*' | head -1)
     echo "Latest secure image digest: $DIGEST"
-    
+
     # Update Dockerfile with specific digest
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS
@@ -29,7 +29,7 @@ update_base_image() {
 # Function to add security scanning to build process
 add_build_time_scanning() {
     echo "🔍 Adding build-time vulnerability scanning..."
-    
+
     cat > docker-compose.security.yml << 'EOF'
 version: '3.8'
 
@@ -59,7 +59,7 @@ EOF
 # Function to create security-focused requirements
 create_secure_requirements() {
     echo "📋 Creating security-patched requirements..."
-    
+
     cat > backend/requirements-security.txt << 'EOF'
 # Core dependencies with security patches
 aiofiles==24.1.0
@@ -95,7 +95,7 @@ EOF
 # Function to scan and fix specific CVEs
 fix_specific_cves() {
     echo "🔧 Addressing specific CVEs from Docker scan..."
-    
+
     # Create a requirements override file
     cat > backend/requirements-cve-fixes.txt << 'EOF'
 # CVE-2024-3651 - Update package
@@ -114,7 +114,7 @@ EOF
 # Function to create minimal production image
 create_minimal_image() {
     echo "🏗️ Creating minimal production image..."
-    
+
     cat > Dockerfile.minimal << 'EOF'
 # Multi-stage build for minimal attack surface
 FROM python:3.11-slim-bookworm as builder

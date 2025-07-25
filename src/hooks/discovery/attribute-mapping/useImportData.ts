@@ -22,9 +22,9 @@ export const useImportData = (finalFlowId: string | null): ImportDataResult => {
   const { data: latestImportData, isLoading: isLatestImportLoading } = useLatestImport(!!user?.id);
 
   // Get flow-specific import data if we have a flow ID
-  const { 
-    data: flowImportData, 
-    isLoading: isFlowImportLoading, 
+  const {
+    data: flowImportData,
+    isLoading: isFlowImportLoading,
     error: flowImportError,
     refetch: refetchFlowImportData
   } = useQuery({
@@ -43,7 +43,7 @@ export const useImportData = (finalFlowId: string | null): ImportDataResult => {
             ...getAuthHeaders()
           }
         });
-        
+
         if (flowResponse) {
           console.log('✅ Fetched flow-specific import data:', flowResponse);
           return flowResponse;
@@ -52,7 +52,7 @@ export const useImportData = (finalFlowId: string | null): ImportDataResult => {
         console.error('❌ Error fetching flow-specific import data:', error);
         // Fall through to use latest import data from unified hook
       }
-      
+
       return null; // Will fall back to latest import
     },
     enabled: !!(finalFlowId && user?.id),

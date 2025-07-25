@@ -18,9 +18,7 @@ class RouteDecisionTool(BaseTool):
     """Tool for making intelligent routing decisions"""
 
     name: str = "route_decision_maker"
-    description: str = (
-        "Makes intelligent routing decisions based on flow analysis and phase validation results"
-    )
+    description: str = "Makes intelligent routing decisions based on flow analysis and phase validation results"
 
     # Route mapping for all flow types - ClassVar to avoid Pydantic field annotation requirement
     ROUTE_MAPPING: ClassVar[Dict[str, Dict[str, str]]] = {

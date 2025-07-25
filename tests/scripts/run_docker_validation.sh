@@ -55,17 +55,17 @@ check_docker() {
 # Function to check if containers are healthy
 wait_for_containers() {
     print_status "Waiting for containers to be healthy..."
-    
+
     local max_attempts=60  # 5 minutes max
     local attempt=1
-    
+
     while [ $attempt -le $max_attempts ]; do
         print_status "Health check attempt $attempt/$max_attempts"
-        
+
         # Check backend health
         if curl -s -f "$BACKEND_URL/health" >/dev/null 2>&1; then
             print_success "Backend is healthy"
-            
+
             # Check CrewAI Flow service health
             if curl -s -f "$BACKEND_URL/api/v1/discovery/flow/health" >/dev/null 2>&1; then
                 print_success "CrewAI Flow service is healthy"
@@ -76,11 +76,11 @@ wait_for_containers() {
         else
             print_warning "Backend not ready yet..."
         fi
-        
+
         sleep 5
         ((attempt++))
     done
-    
+
     print_error "Containers failed to become healthy within timeout"
     return 1
 }
@@ -88,19 +88,19 @@ wait_for_containers() {
 # Function to start Docker containers
 start_containers() {
     print_status "Starting Docker containers..."
-    
+
     cd "$PROJECT_ROOT"
-    
+
     # Stop any existing containers
     docker-compose down --remove-orphans >/dev/null 2>&1 || true
-    
+
     # Build and start containers
     print_status "Building and starting containers..."
     docker-compose up -d --build
-    
+
     if [ $? -eq 0 ]; then
         print_success "Containers started successfully"
-        
+
         # Wait for containers to be healthy
         if wait_for_containers; then
             print_success "All containers are healthy and ready"
@@ -130,24 +130,24 @@ stop_containers() {
 # Function to run validation tests
 run_validation() {
     print_status "Running CrewAI Flow migration validation tests..."
-    
+
     # Prepare validation command
     local validation_cmd="python3 $VALIDATION_SCRIPT --url $BACKEND_URL"
-    
+
     if [ "$VERBOSE" = true ]; then
         validation_cmd="$validation_cmd --verbose"
     fi
-    
+
     if [ "$QUICK" = true ]; then
         validation_cmd="$validation_cmd --quick"
     fi
-    
+
     # Add output file
     local output_file="$PROJECT_ROOT/validation_results_$(date +%Y%m%d_%H%M%S).json"
     validation_cmd="$validation_cmd --output $output_file"
-    
+
     print_status "Running: $validation_cmd"
-    
+
     # Run validation
     if eval "$validation_cmd"; then
         print_success "All validation tests passed!"
@@ -164,10 +164,10 @@ run_validation() {
 show_logs() {
     print_status "Showing container logs..."
     cd "$PROJECT_ROOT"
-    
+
     echo -e "\n${BLUE}=== Backend Logs ===${NC}"
     docker-compose logs --tail=50 backend
-    
+
     echo -e "\n${BLUE}=== Database Logs ===${NC}"
     docker-compose logs --tail=20 db
 }
@@ -175,7 +175,7 @@ show_logs() {
 # Function to run quick health check
 quick_health_check() {
     print_status "Running quick health check..."
-    
+
     # Check backend
     if curl -s -f "$BACKEND_URL/health" >/dev/null 2>&1; then
         print_success "Backend is responding"
@@ -183,7 +183,7 @@ quick_health_check() {
         print_error "Backend is not responding"
         return 1
     fi
-    
+
     # Check CrewAI Flow service
     if curl -s -f "$BACKEND_URL/api/v1/discovery/flow/health" >/dev/null 2>&1; then
         print_success "CrewAI Flow service is responding"
@@ -191,7 +191,7 @@ quick_health_check() {
         print_error "CrewAI Flow service is not responding"
         return 1
     fi
-    
+
     return 0
 }
 
@@ -260,16 +260,16 @@ main() {
     print_status "Starting Docker Validation for CrewAI Flow Migration"
     print_status "Project root: $PROJECT_ROOT"
     print_status "Backend URL: $BACKEND_URL"
-    
+
     # Check Docker
     check_docker
-    
+
     # Check if validation script exists
     if [ ! -f "$VALIDATION_SCRIPT" ]; then
         print_error "Validation script not found: $VALIDATION_SCRIPT"
         exit 1
     fi
-    
+
     # Health-only mode
     if [ "$HEALTH_ONLY" = true ]; then
         print_status "Running health-only check..."
@@ -281,29 +281,29 @@ main() {
             exit 1
         fi
     fi
-    
+
     # Trap to ensure cleanup on exit
     if [ "$CLEANUP" = true ]; then
         trap stop_containers EXIT
     fi
-    
+
     # Start containers
     if ! start_containers; then
         print_error "Failed to start containers"
         exit 1
     fi
-    
+
     # Run validation
     local validation_result=0
     if ! run_validation; then
         validation_result=1
     fi
-    
+
     # Show logs if requested
     if [ "$SHOW_LOGS" = true ]; then
         show_logs
     fi
-    
+
     # Final status
     if [ $validation_result -eq 0 ]; then
         print_success "🎉 Docker validation completed successfully!"
@@ -312,9 +312,9 @@ main() {
         print_error "🚨 Docker validation failed"
         print_status "Check the logs and validation results for details"
     fi
-    
+
     exit $validation_result
 }
 
 # Run main function
-main "$@" 
+main "$@"

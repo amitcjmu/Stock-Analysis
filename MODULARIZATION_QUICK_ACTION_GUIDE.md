@@ -39,7 +39,7 @@ class MasterFlowOrchestrator:
 
 # AFTER (6 focused classes)
 class FlowOrchestrator:           # ~200 LOC - Main coordination
-class ExecutionCoordinator:       # ~200 LOC - Execution logic  
+class ExecutionCoordinator:       # ~200 LOC - Execution logic
 class StateCoordinator:           # ~150 LOC - State management
 class LifecycleManager:           # ~200 LOC - Lifecycle events
 class ErrorManager:               # ~150 LOC - Error handling
@@ -76,7 +76,7 @@ const ThreeColumnFieldMapper = () => {
   const mappingState = useFieldMapping();
   const validation = useMappingValidation();
   const bulkOps = useBulkOperations();
-  
+
   return (
     <FieldMapperContainer>
       <MappingColumn type="source" />
@@ -159,7 +159,7 @@ xargs wc -l | sort -nr | head -20
 # TypeScript module splitter (create custom script)
 ./scripts/split-types-module.sh src/types/api/discovery.ts
 
-# Python class extractor (create custom script)  
+# Python class extractor (create custom script)
 ./scripts/extract-python-services.sh backend/app/services/master_flow_orchestrator.py
 ```
 

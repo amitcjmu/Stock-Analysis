@@ -43,7 +43,7 @@ export const CreateEngagementMain: React.FC = () => {
       console.log('🔍 Fetching client accounts for engagement creation...');
       const result = await apiCall('/api/v1/admin/clients/');
       console.log('🔍 Client accounts API result:', result);
-      
+
       // Handle different response formats
       if (result && Array.isArray(result)) {
         console.log('✅ Using direct array format for clients');
@@ -248,14 +248,14 @@ export const CreateEngagementMain: React.FC = () => {
           <p>Clients: {clientAccounts.length > 0 ? clientAccounts.map(c => c.account_name).join(', ') : 'None'}</p>
         </div>
         <div className="flex gap-2 mt-2">
-          <Button 
-            onClick={() => clientAccountsQuery.refetch()} 
+          <Button
+            onClick={() => clientAccountsQuery.refetch()}
             disabled={clientAccountsQuery.isFetching}
             size="sm"
           >
             {clientAccountsQuery.isFetching ? 'Fetching...' : 'Manual Refetch'}
           </Button>
-          <Button 
+          <Button
             onClick={() => {
               queryClient.invalidateQueries({ queryKey: ['client-accounts'] });
               queryClient.refetchQueries({ queryKey: ['client-accounts'] });

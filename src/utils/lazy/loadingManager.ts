@@ -168,7 +168,7 @@ class LoadingManager {
     }
 
     const priority = options.priority || LoadingPriority.LOW;
-    
+
     // Use requestIdleCallback for low priority preloads
     if (priority === LoadingPriority.LOW && 'requestIdleCallback' in window) {
       requestIdleCallback(() => {
@@ -302,7 +302,7 @@ class LoadingManager {
   clearCaches(): void {
     this.componentCache.clear();
     this.loadingStates.clear();
-    
+
     // Clear storage caches
     Object.keys(sessionStorage).forEach(key => {
       if (key.startsWith('lazy_component_')) {

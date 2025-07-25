@@ -1,6 +1,6 @@
 /**
  * Collection Hooks Index
- * 
+ *
  * Centralized exports for all collection-related custom hooks.
  */
 

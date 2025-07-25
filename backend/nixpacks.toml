@@ -1,0 +1,28 @@
+# Nixpacks configuration for Railway deployment
+
+[phases.setup]
+nixPkgs = ["python311", "postgresql"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[start]
+cmd = "uvicorn main:fastapi_app --host 0.0.0.0 --port $PORT"
+
+[variables]
+PYTHONUNBUFFERED = "1"
+
+# Exclude files from the build
+[phases.build]
+onlyIncludeFiles = [
+    "**/*.py",
+    "requirements.txt",
+    "alembic.ini",
+    "alembic/**",
+    "app/**",
+    "migrations/**",
+    "scripts/**",
+    "tests/**",
+    "version.py",
+    "main.py"
+]

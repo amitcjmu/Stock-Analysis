@@ -167,7 +167,7 @@ export interface ClientFormData {
 
 export const INDUSTRIES = [
   'Technology',
-  'Healthcare', 
+  'Healthcare',
   'Finance',
   'Manufacturing',
   'Retail',
@@ -187,7 +187,7 @@ export const COMPANY_SIZES = [
 
 export const SUBSCRIPTION_TIERS = [
   'basic',
-  'pro', 
+  'pro',
   'enterprise',
   'custom'
 ] as const;

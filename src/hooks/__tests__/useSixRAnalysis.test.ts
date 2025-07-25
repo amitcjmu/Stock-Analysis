@@ -6,10 +6,10 @@ import { useSixRAnalysis } from '../useSixRAnalysis'
 import { sixrApi } from '../../lib/api/sixr';
 import type { WebSocketMessage } from '../useSixRWebSocket'
 import { useSixRWebSocket } from '../useSixRWebSocket'
-import type { 
-  SixRParameters, 
-  QualifyingQuestion, 
-  QuestionResponse, 
+import type {
+  SixRParameters,
+  QualifyingQuestion,
+  QuestionResponse,
   SixRRecommendation,
   AnalysisProgressType,
   AnalysisHistoryItem,
@@ -189,7 +189,7 @@ describe('useSixRAnalysis', () => {
     });
 
     const { result } = renderHook(() => useSixRAnalysis());
-    
+
     // Set up initial state
     act(() => {
       const [state, actions] = result.current;
@@ -216,7 +216,7 @@ describe('useSixRAnalysis', () => {
     (sixrApi.updateParameters as MockedFunction<typeof sixrApi.updateParameters>).mockRejectedValue(mockError);
 
     const { result } = renderHook(() => useSixRAnalysis());
-    
+
     // Set up initial state with analysis ID
     act(() => {
       const [state] = result.current;
@@ -244,7 +244,7 @@ describe('useSixRAnalysis', () => {
     });
 
     const { result } = renderHook(() => useSixRAnalysis());
-    
+
     // Set up initial state
     act(() => {
       const [state] = result.current;
@@ -281,7 +281,7 @@ describe('useSixRAnalysis', () => {
     };
 
     const { result } = renderHook(() => useSixRAnalysis());
-    
+
     // Set up initial state
     act(() => {
       const [state] = result.current;
@@ -332,7 +332,7 @@ describe('useSixRAnalysis', () => {
     };
 
     const { result } = renderHook(() => useSixRAnalysis());
-    
+
     // Set up initial state
     act(() => {
       const [state] = result.current;
@@ -456,7 +456,7 @@ describe('useSixRAnalysis', () => {
     });
 
     const { result } = renderHook(() => useSixRAnalysis());
-    
+
     // Set up initial bulk jobs state
     act(() => {
       const [state] = result.current;
@@ -533,7 +533,7 @@ describe('useSixRAnalysis', () => {
 
   it('resets analysis state correctly', () => {
     const { result } = renderHook(() => useSixRAnalysis());
-    
+
     // Set up some state
     act(() => {
       const [state] = result.current;
@@ -565,7 +565,7 @@ describe('useSixRAnalysis', () => {
     });
 
     const { result } = renderHook(() => useSixRAnalysis());
-    
+
     // Set up initial state
     act(() => {
       const [state] = result.current;
@@ -587,7 +587,7 @@ describe('useSixRAnalysis', () => {
 
   it('cleans up resources on unmount', () => {
     const { result, unmount } = renderHook(() => useSixRAnalysis());
-    
+
     // Set up some state
     act(() => {
       const [state] = result.current;
@@ -601,12 +601,12 @@ describe('useSixRAnalysis', () => {
   });
 
   it('handles concurrent operations correctly', async () => {
-    (sixrApi.updateParameters as MockedFunction<typeof sixrApi.updateParameters>).mockImplementation(() => 
+    (sixrApi.updateParameters as MockedFunction<typeof sixrApi.updateParameters>).mockImplementation(() =>
       new Promise(resolve => setTimeout(() => resolve({ success: true }), 100))
     );
 
     const { result } = renderHook(() => useSixRAnalysis());
-    
+
     // Set up initial state
     act(() => {
       const [state] = result.current;
@@ -650,7 +650,7 @@ describe('useSixRAnalysis', () => {
     (sixrApi.updateParameters as MockedFunction<typeof sixrApi.updateParameters>).mockRejectedValue(mockError);
 
     const { result } = renderHook(() => useSixRAnalysis({ enableOptimisticUpdates: true }));
-    
+
     // Set up initial state
     act(() => {
       const [state] = result.current;
@@ -668,4 +668,4 @@ describe('useSixRAnalysis', () => {
     expect(state.parameters.business_value).toBe(5);
     expect(state.error).toBe('Network error');
   });
-}); 
+});

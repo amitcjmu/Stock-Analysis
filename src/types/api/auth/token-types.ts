@@ -1,6 +1,6 @@
 /**
  * Token Management Types
- * 
+ *
  * API token creation, management, and validation types.
  */
 

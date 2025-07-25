@@ -1,6 +1,6 @@
 /**
  * Role and Permission Types
- * 
+ *
  * Role-based access control (RBAC) type definitions including roles,
  * permissions, conditions, and scopes.
  */

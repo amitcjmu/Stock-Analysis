@@ -24,7 +24,7 @@ export const TechDebtSummaryChart: React.FC<TechDebtSummaryChartProps> = ({
   };
 
   const totalEffort = techDebt.reduce((sum, t) => sum + (t.remediation_effort_hours || 0), 0);
-  const avgScore = techDebt.length > 0 ? 
+  const avgScore = techDebt.length > 0 ?
     techDebt.reduce((sum, t) => sum + (t.tech_debt_score || 0), 0) / techDebt.length : 0;
 
   const getSeverityColor = (severity: string) => {
@@ -82,8 +82,8 @@ export const TechDebtSummaryChart: React.FC<TechDebtSummaryChartProps> = ({
                   <span className="text-sm text-gray-600">{count} issues</span>
                 </div>
                 <div className="flex-1 mx-4">
-                  <Progress 
-                    value={techDebt.length > 0 ? (count / techDebt.length) * 100 : 0} 
+                  <Progress
+                    value={techDebt.length > 0 ? (count / techDebt.length) * 100 : 0}
                     className="h-2"
                   />
                 </div>
@@ -109,7 +109,7 @@ export const TechDebtSummaryChart: React.FC<TechDebtSummaryChartProps> = ({
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-                  
+
                   <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
                     <div>
                       <span className="font-medium">Effort:</span> {item.remediation_effort_hours || 0}h
@@ -118,7 +118,7 @@ export const TechDebtSummaryChart: React.FC<TechDebtSummaryChartProps> = ({
                       <span className="font-medium">Score:</span> {item.tech_debt_score || 0}/100
                     </div>
                   </div>
-                  
+
                   {item.impact_on_migration && (
                     <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded">
                       <p className="text-xs text-orange-700">

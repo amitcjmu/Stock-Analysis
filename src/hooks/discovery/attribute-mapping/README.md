@@ -73,7 +73,7 @@ const {
 ### Import Specialized Hooks (Advanced)
 
 ```typescript
-import { 
+import {
   useFlowDetection,
   useFieldMappings,
   useImportData,
@@ -149,7 +149,7 @@ import { useAttributeMappingActions } from '../hooks/discovery/attribute-mapping
 All hooks are fully typed with TypeScript:
 
 ```typescript
-import type { 
+import type {
   FlowDetectionResult,
   FieldMappingsResult,
   CriticalAttributesResult,
@@ -172,7 +172,7 @@ graph TD
     C --> G
     D --> G
     E --> G
-    
+
     H[useAttributeMappingComposition] --> A
     H --> B
     H --> C
@@ -187,7 +187,7 @@ graph TD
 Each hook handles its own errors and provides error states:
 
 ```typescript
-const { 
+const {
   fieldMappingsError,
   importDataError,
   criticalAttributesError,

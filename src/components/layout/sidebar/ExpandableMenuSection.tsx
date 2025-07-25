@@ -32,12 +32,12 @@ const ExpandableMenuSection: React.FC<ExpandableMenuSectionProps> = ({
           <ChevronRight className="h-4 w-4" />
         )}
       </div>
-      
+
       {isExpanded && item.submenu && (
         <ul className="ml-6 mt-2 space-y-1">
           {item.submenu.map((subItem) => {
             const isSubActive = currentPath === subItem.path;
-            
+
             return (
               <li key={subItem.name}>
                 <NavigationItem

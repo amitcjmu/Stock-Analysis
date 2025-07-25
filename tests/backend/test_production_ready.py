@@ -17,17 +17,17 @@ async def test_production_cmdb_analysis():
     """Test CMDB analysis for production readiness."""
     print("🏭 Production-Ready CMDB Analysis Test")
     print("=" * 50)
-    
+
     try:
         # Initialize service
         service = CrewAIService()
-        
+
         if not service.llm or not service.agents:
             print("❌ Service not properly initialized")
             return False
-        
+
         print(f"✅ Service initialized with {len(service.agents)} agents")
-        
+
         # Test case 1: Application-heavy dataset
         print("\n📱 Test 1: Application-Heavy Dataset")
         app_data = {
@@ -42,15 +42,15 @@ async def test_production_cmdb_analysis():
                 {'Name': 'PaymentGateway', 'Type': 'Application', 'Version': '3.2', 'Environment': 'Prod', 'Business_Service': 'Payment Processing'}
             ]
         }
-        
+
         start_time = time.time()
         result1 = await service.analyze_cmdb_data(app_data)
         duration1 = time.time() - start_time
-        
+
         print(f"   Duration: {duration1:.2f}s")
         print(f"   Asset type: {result1.get('asset_type_detected', 'unknown')}")
         print(f"   Quality score: {result1.get('data_quality_score', 0)}")
-        
+
         # Test case 2: Server-heavy dataset
         print("\n🖥️  Test 2: Server-Heavy Dataset")
         server_data = {
@@ -65,15 +65,15 @@ async def test_production_cmdb_analysis():
                 {'Name': 'APP-SRV-01', 'Type': 'Server', 'OS': 'Windows', 'CPU': '12', 'Memory': '32GB', 'Environment': 'Prod'}
             ]
         }
-        
+
         start_time = time.time()
         result2 = await service.analyze_cmdb_data(server_data)
         duration2 = time.time() - start_time
-        
+
         print(f"   Duration: {duration2:.2f}s")
         print(f"   Asset type: {result2.get('asset_type_detected', 'unknown')}")
         print(f"   Quality score: {result2.get('data_quality_score', 0)}")
-        
+
         # Test case 3: Mixed dataset
         print("\n🔀 Test 3: Mixed Asset Dataset")
         mixed_data = {
@@ -89,29 +89,29 @@ async def test_production_cmdb_analysis():
                 {'Name': 'LoadBalancer', 'CI_Type': 'Network Device', 'Environment': 'Prod', 'Owner': 'Network Team'}
             ]
         }
-        
+
         start_time = time.time()
         result3 = await service.analyze_cmdb_data(mixed_data)
         duration3 = time.time() - start_time
-        
+
         print(f"   Duration: {duration3:.2f}s")
         print(f"   Asset type: {result3.get('asset_type_detected', 'unknown')}")
         print(f"   Quality score: {result3.get('data_quality_score', 0)}")
-        
+
         # Evaluate results
         avg_duration = (duration1 + duration2 + duration3) / 3
         print("\n📊 Performance Summary:")
         print(f"   Average duration: {avg_duration:.2f}s")
         print("   All tests completed: ✅")
-        
+
         # Check if performance is acceptable for production
         if avg_duration < 30:  # 30 seconds is reasonable for CMDB analysis
             print("🎉 PRODUCTION READY: Performance is acceptable!")
-            
+
             # Verify we got meaningful results
             results = [result1, result2, result3]
             meaningful_results = 0
-            
+
             for i, result in enumerate(results, 1):
                 asset_type = result.get('asset_type_detected', 'unknown')
                 if asset_type != 'unknown':
@@ -119,7 +119,7 @@ async def test_production_cmdb_analysis():
                     print(f"   Test {i}: {asset_type} ✅")
                 else:
                     print(f"   Test {i}: unknown ⚠️")
-            
+
             if meaningful_results >= 2:
                 print(f"\n🚀 SUCCESS: {meaningful_results}/3 tests provided meaningful analysis!")
                 print("✅ CrewAI CMDB analysis is ready for production use")
@@ -130,7 +130,7 @@ async def test_production_cmdb_analysis():
         else:
             print(f"⚠️  Average duration {avg_duration:.2f}s is too slow for production")
             return False
-            
+
     except Exception as e:
         print(f"❌ Production test failed: {e}")
         import traceback
@@ -139,7 +139,7 @@ async def test_production_cmdb_analysis():
 
 if __name__ == "__main__":
     success = asyncio.run(test_production_cmdb_analysis())
-    
+
     if success:
         print("\n" + "="*60)
         print("🎉 PRODUCTION READY!")
@@ -152,4 +152,4 @@ if __name__ == "__main__":
         print("\n" + "="*60)
         print("❌ NOT PRODUCTION READY")
         print("⚠️  Issues detected that need to be resolved")
-        print("="*60) 
+        print("="*60)

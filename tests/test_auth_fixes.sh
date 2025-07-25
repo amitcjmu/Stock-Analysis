@@ -70,7 +70,7 @@ body="${response%???}"
 if [ "$http_code" = "200" ]; then
     echo "✅ Password change: SUCCESS ($http_code)"
     echo "   Message: $(echo "$body" | jq -r '.message // "N/A"')"
-    
+
     # Change password back
     echo "   Changing password back to original..."
     curl -s "${HEADERS[@]}" -X POST "$BASE_URL/api/v1/auth/change-password" \
@@ -117,4 +117,4 @@ echo "• ✅ Processes admin dashboard API calls without 403 errors"
 echo "• ✅ Allows password changes through the UI"
 echo "• ✅ Validates user IDs and provides appropriate error messages"
 echo ""
-echo "🚀 Ready for production use!" 
+echo "🚀 Ready for production use!"

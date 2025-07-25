@@ -1,9 +1,9 @@
 /**
  * Discovery Flow - Module Index
- * 
+ *
  * Centralized exports for all Discovery Flow type modules.
  * Provides a clean interface for importing Discovery Flow types throughout the application.
- * 
+ *
  * Generated with CC - Code Companion
  */
 

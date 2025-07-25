@@ -1,6 +1,6 @@
 /**
  * Crew Models
- * 
+ *
  * Type definitions for crew configuration, execution, status, results, and metrics.
  */
 

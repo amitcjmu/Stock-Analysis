@@ -25,7 +25,7 @@ export const InventoryStateProvider: React.FC<InventoryStateProviderProps> = ({
   onRetry,
   children
 }) => {
-  
+
   // Loading state - while fetching data
   if (isLoading && !error) {
     return (
@@ -84,7 +84,7 @@ export const InventoryStateProvider: React.FC<InventoryStateProviderProps> = ({
             </div>
           </AlertDescription>
         </Alert>
-        
+
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
@@ -128,7 +128,7 @@ export const InventoryStateProvider: React.FC<InventoryStateProviderProps> = ({
               <p className="text-gray-600 mb-6">
                 Your asset inventory is empty. This could be because:
               </p>
-              
+
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <div className="text-sm text-blue-800 text-left">
                   <div className="font-medium mb-2">Possible Reasons:</div>
@@ -152,12 +152,12 @@ export const InventoryStateProvider: React.FC<InventoryStateProviderProps> = ({
                   </ul>
                 </div>
               </div>
-              
+
               <Button onClick={onTriggerAnalysis} size="lg" className="mb-4">
                 <Database className="h-5 w-5 mr-2" />
                 Start Inventory Building Analysis
               </Button>
-              
+
               <p className="text-xs text-gray-500">
                 This will trigger the CrewAI Inventory Building Crew to analyze and classify your assets
               </p>
@@ -170,4 +170,4 @@ export const InventoryStateProvider: React.FC<InventoryStateProviderProps> = ({
 
   // Success state - render children
   return <>{children}</>;
-}; 
+};

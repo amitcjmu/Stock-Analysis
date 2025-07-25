@@ -196,17 +196,17 @@ pg_restore -h $DB_HOST -U $DB_USER -d $TEST_DB \
 
 if [ $? -eq 0 ]; then
     echo "✅ Backup restore test successful"
-    
+
     # Verify data integrity
     RECORD_COUNT=$(psql -h $DB_HOST -U $DB_USER -d $TEST_DB -t -c "
         SELECT COUNT(*) FROM crewai_flow_state_extensions;
     ")
-    
+
     echo "📊 Restored records: $RECORD_COUNT"
-    
+
     # Clean up test database
     dropdb -h $DB_HOST -U $DB_USER $TEST_DB
-    
+
     echo "✅ Backup verification completed successfully"
 else
     echo "❌ Backup restore test failed!"
@@ -292,11 +292,11 @@ echo "🔄 Switching traffic to green environment..."
 for PERCENTAGE in 10 25 50 75 100; do
     echo "📊 Shifting ${PERCENTAGE}% traffic to green environment..."
     ./scripts/deployment/update_traffic_split.sh --green=${PERCENTAGE}
-    
+
     # Monitor for 2 minutes
     echo "⏳ Monitoring for 2 minutes..."
     sleep 120
-    
+
     # Check error rates
     ERROR_RATE=$(./scripts/monitoring/check_error_rate.sh)
     if (( $(echo "$ERROR_RATE > 0.05" | bc -l) )); then
@@ -304,7 +304,7 @@ for PERCENTAGE in 10 25 50 75 100; do
         ./scripts/deployment/rollback_traffic.sh
         exit 1
     fi
-    
+
     echo "✅ ${PERCENTAGE}% traffic shift successful"
 done
 
@@ -817,8 +817,8 @@ Status Page: status.company.com
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: 2025-07-05  
-**Next Review**: 2025-07-20  
-**Owner**: DevOps Team  
+**Document Version**: 1.0
+**Last Updated**: 2025-07-05
+**Next Review**: 2025-07-20
+**Owner**: DevOps Team
 **Approval**: Engineering Director

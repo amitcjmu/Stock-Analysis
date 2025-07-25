@@ -1,11 +1,11 @@
-import { 
-  Loader2, 
-  Brain, 
-  Cog, 
-  CheckCircle, 
-  AlertTriangle, 
-  AlertCircle, 
-  FileCheck 
+import {
+  Loader2,
+  Brain,
+  Cog,
+  CheckCircle,
+  AlertTriangle,
+  AlertCircle,
+  FileCheck
 } from 'lucide-react';
 
 export const getStatusIcon = (status: string) => {

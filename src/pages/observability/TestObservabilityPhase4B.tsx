@@ -31,7 +31,7 @@ const TestObservabilityPhase4B: React.FC = () => {
 
   const testComponent = (componentName: string) => {
     setTestResults(prev => ({ ...prev, [componentName]: 'pending' }));
-    
+
     // Simulate test
     setTimeout(() => {
       setTestResults(prev => ({ ...prev, [componentName]: 'pass' }));
@@ -129,7 +129,7 @@ const TestObservabilityPhase4B: React.FC = () => {
                       <li>• Enhanced routing and navigation</li>
                     </ul>
                   </div>
-                  
+
                   <div>
                     <h3 className="font-medium mb-2">🔧 Integration Features</h3>
                     <ul className="space-y-1 text-sm text-gray-600">

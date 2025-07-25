@@ -2,7 +2,7 @@
 -- This resets the flow status to allow proper data retrieval
 
 -- Reset the CrewAI flow state to remove the "failed" status
-UPDATE crewai_flow_state_extensions 
+UPDATE crewai_flow_state_extensions
 SET flow_persistence_data = jsonb_set(
     COALESCE(flow_persistence_data, '{}'),
     '{status}',
@@ -11,12 +11,12 @@ SET flow_persistence_data = jsonb_set(
 WHERE flow_id = '5d4149d3-ac32-40ea-85d1-56ebea8d5e17';
 
 -- Ensure the discovery flow is marked as active
-UPDATE discovery_flows 
+UPDATE discovery_flows
 SET status = 'active'
 WHERE flow_id = '5d4149d3-ac32-40ea-85d1-56ebea8d5e17';
 
 -- Verify the fix
-SELECT 
+SELECT
     df.flow_id,
     df.status as discovery_status,
     df.data_import_id,

@@ -1,9 +1,9 @@
 /**
  * Metadata Types
- * 
+ *
  * Common metadata patterns and structures used across admin modules
  * for tracking additional information and context.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

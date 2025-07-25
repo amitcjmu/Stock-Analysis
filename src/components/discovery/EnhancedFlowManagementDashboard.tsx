@@ -103,11 +103,11 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
     try {
       const result = await validateFlowWithRecommendations(selectedFlowId);
       setValidationResult(result);
-      
+
       toast({
         title: result.overall_valid ? "Validation Successful" : "Validation Issues Found",
-        description: result.overall_valid 
-          ? "Flow state is healthy across all persistence layers" 
+        description: result.overall_valid
+          ? "Flow state is healthy across all persistence layers"
           : `Found ${result.warningCount} warnings and ${result.criticalIssues ? 'critical' : 'minor'} issues`,
         variant: result.overall_valid ? "default" : "destructive"
       });
@@ -133,11 +133,11 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
     try {
       const result = await performFlowRecovery(selectedFlowId, strategy);
       setRecoveryResult(result);
-      
+
       toast({
         title: result.recovery_successful ? "Recovery Successful" : "Recovery Failed",
-        description: result.recovery_successful 
-          ? "Flow state recovered successfully from PostgreSQL" 
+        description: result.recovery_successful
+          ? "Flow state recovered successfully from PostgreSQL"
           : "No recoverable state found for this session",
         variant: result.recovery_successful ? "default" : "destructive"
       });
@@ -154,11 +154,11 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
     try {
       const result = await performFlowCleanup(cleanupOptions);
       setCleanupResult(result);
-      
+
       toast({
         title: cleanupOptions.dryRun ? "Cleanup Preview" : "Cleanup Completed",
-        description: cleanupOptions.dryRun 
-          ? `Would clean ${result.flows_cleaned} expired flows` 
+        description: cleanupOptions.dryRun
+          ? `Would clean ${result.flows_cleaned} expired flows`
           : `Cleaned ${result.flows_cleaned} expired flows, recovered ${result.spaceRecovered}`,
         variant: "default"
       });
@@ -183,7 +183,7 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
 
     try {
       const result = await performBulkValidation(flowIds);
-      
+
       toast({
         title: "Bulk Validation Complete",
         description: `${result.summary.healthy}/${result.summary.total} flows healthy (${result.summary.healthScore}% health score)`,
@@ -263,7 +263,7 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
                   onChange={(e) => setSelectedFlowId(e.target.value)}
                   className="flex-1 px-3 py-2 border rounded-md"
                 />
-                <Button 
+                <Button
                   onClick={handleValidateFlow}
                   disabled={isValidating || !selectedFlowId}
                 >
@@ -342,7 +342,7 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex space-x-2">
-                <Button 
+                <Button
                   onClick={() => handleRecoverFlow('postgresql')}
                   disabled={isRecovering || !selectedFlowId}
                   variant="outline"
@@ -350,7 +350,7 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
                   {isRecovering ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Database className="w-4 h-4 mr-2" />}
                   PostgreSQL Recovery
                 </Button>
-                <Button 
+                <Button
                   onClick={() => handleRecoverFlow('hybrid')}
                   disabled={isRecovering || !selectedFlowId}
                   variant="outline"
@@ -421,7 +421,7 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
                 </div>
               </div>
 
-              <Button 
+              <Button
                 onClick={handleCleanupFlows}
                 disabled={isCleaning}
                 variant={cleanupOptions.dryRun ? "outline" : "destructive"}
@@ -462,7 +462,7 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
               {/* Bulk Validation */}
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Bulk Flow Validation ({flowIds.length} flows)</span>
-                <Button 
+                <Button
                   onClick={handleBulkValidation}
                   disabled={isBulkValidating || flowIds.length === 0}
                   size="sm"
@@ -482,7 +482,7 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
                     </Badge>
                   </div>
                   <Progress value={flowHealthMonitor.data.summary.healthScore} className="w-full" />
-                  
+
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
                       <p className="text-2xl font-bold text-green-600">{flowHealthMonitor.data.summary.healthy}</p>
@@ -526,4 +526,4 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
       </Tabs>
     </div>
   );
-}; 
+};

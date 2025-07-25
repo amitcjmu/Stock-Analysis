@@ -20,8 +20,8 @@ export const InfrastructurePatterns: React.FC<InfrastructurePatternsProps> = ({ 
           <span className="text-gray-600">Cloud Readiness:</span>
           <div className="flex items-center gap-2 mt-1">
             <div className="flex-1 bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-blue-500 h-2 rounded-full" 
+              <div
+                className="bg-blue-500 h-2 rounded-full"
                 style={{ width: `${patterns.cloud_readiness_score}%` }}
               />
             </div>
@@ -32,8 +32,8 @@ export const InfrastructurePatterns: React.FC<InfrastructurePatternsProps> = ({ 
           <span className="text-gray-600">Virtualization Level:</span>
           <div className="flex items-center gap-2 mt-1">
             <div className="flex-1 bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-green-500 h-2 rounded-full" 
+              <div
+                className="bg-green-500 h-2 rounded-full"
                 style={{ width: `${patterns.virtualization_level}%` }}
               />
             </div>
@@ -41,7 +41,7 @@ export const InfrastructurePatterns: React.FC<InfrastructurePatternsProps> = ({ 
           </div>
         </div>
       </div>
-      
+
       {Object.keys(patterns.os_distribution).length > 0 && (
         <div className="mt-3">
           <span className="text-gray-600 text-sm">OS Distribution:</span>

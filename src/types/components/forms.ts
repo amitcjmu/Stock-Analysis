@@ -1,8 +1,8 @@
 /**
  * Form Component Types
- * 
+ *
  * Re-exports all form component types from modular files for backward compatibility.
- * 
+ *
  * This file has been modularized into focused type definition files:
  * - base-types.ts: Common base interfaces, validation, and form utilities
  * - form-container-types.ts: Form containers, form fields, and form-level configuration

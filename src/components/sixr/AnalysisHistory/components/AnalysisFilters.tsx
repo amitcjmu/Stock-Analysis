@@ -22,10 +22,10 @@ export const AnalysisFilters: React.FC<AnalysisFiltersProps> = ({
   onFilterChange,
   onClearFilters
 }) => {
-  const hasActiveFilters = filters.searchTerm || 
-    filters.statusFilter !== 'all' || 
-    filters.strategyFilter !== 'all' || 
-    filters.departmentFilter !== 'all' || 
+  const hasActiveFilters = filters.searchTerm ||
+    filters.statusFilter !== 'all' ||
+    filters.strategyFilter !== 'all' ||
+    filters.departmentFilter !== 'all' ||
     filters.dateRange !== 'all';
 
   return (
@@ -43,8 +43,8 @@ export const AnalysisFilters: React.FC<AnalysisFiltersProps> = ({
 
       {/* Filter Row */}
       <div className="flex flex-wrap gap-3">
-        <Select 
-          value={filters.statusFilter} 
+        <Select
+          value={filters.statusFilter}
           onValueChange={(value) => onFilterChange('statusFilter', value)}
         >
           <SelectTrigger className="w-40">
@@ -59,8 +59,8 @@ export const AnalysisFilters: React.FC<AnalysisFiltersProps> = ({
           </SelectContent>
         </Select>
 
-        <Select 
-          value={filters.strategyFilter} 
+        <Select
+          value={filters.strategyFilter}
           onValueChange={(value) => onFilterChange('strategyFilter', value)}
         >
           <SelectTrigger className="w-40">
@@ -76,8 +76,8 @@ export const AnalysisFilters: React.FC<AnalysisFiltersProps> = ({
           </SelectContent>
         </Select>
 
-        <Select 
-          value={filters.departmentFilter} 
+        <Select
+          value={filters.departmentFilter}
           onValueChange={(value) => onFilterChange('departmentFilter', value)}
         >
           <SelectTrigger className="w-40">
@@ -91,8 +91,8 @@ export const AnalysisFilters: React.FC<AnalysisFiltersProps> = ({
           </SelectContent>
         </Select>
 
-        <Select 
-          value={filters.dateRange} 
+        <Select
+          value={filters.dateRange}
           onValueChange={(value) => onFilterChange('dateRange', value)}
         >
           <SelectTrigger className="w-40">

@@ -80,4 +80,4 @@ export const useResource = () => {
       return failureCount < 2;
     }
   });
-}; 
+};

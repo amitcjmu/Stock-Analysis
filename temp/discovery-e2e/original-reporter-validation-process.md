@@ -113,19 +113,19 @@ Example validation for DISC-005 (Asset Generation Pipeline):
 # Example enforcement code
 def validate_resolution(issue_id: str, agent_id: str, validation_details: str) -> bool:
     issue = get_issue(issue_id)
-    
+
     # Enforce original reporter validation
     if agent_id != issue.original_reporter_agent:
         raise ComplianceViolation.WRONG_VALIDATOR_AGENT
-    
+
     # Require validation details
     if not validation_details or len(validation_details) < 50:
         raise ComplianceViolation.INSUFFICIENT_VALIDATION_DETAILS
-    
+
     # Mark validated
     issue.original_reporter_validated = True
     issue.validation_details = validation_details
-    
+
     return True
 ```
 
@@ -244,7 +244,7 @@ This enhancement transforms the multi-agent system from a 91.7% non-compliance r
 
 ---
 
-**Implementation Date**: 2025-01-15T16:00:00Z  
-**Compliance Enhancement**: Original Reporter Validation mandatory  
-**Quality Assurance**: Closed-loop validation process  
+**Implementation Date**: 2025-01-15T16:00:00Z
+**Compliance Enhancement**: Original Reporter Validation mandatory
+**Quality Assurance**: Closed-loop validation process
 **Agent Accountability**: Original reporters validate their own reported issues

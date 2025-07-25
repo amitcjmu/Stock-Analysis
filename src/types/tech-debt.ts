@@ -11,7 +11,7 @@ export interface TechDebtSummary {
   endOfLife: number;
   deprecated: number;
   totalItems: number;
-  
+
   // Legacy field names - kept for backward compatibility
   criticalRisk?: number;
   highRisk?: number;
@@ -62,7 +62,7 @@ export interface SupportTimeline {
   updateUrl?: string;
   documentationUrl?: string;
   notes?: string;
-  
+
   // Additional properties for UI and functionality
   technology: string;
   supportEnd: string;

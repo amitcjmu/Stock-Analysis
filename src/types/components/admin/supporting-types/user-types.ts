@@ -1,6 +1,6 @@
 /**
  * User Types
- * 
+ *
  * User-related type definitions including user profiles, preferences,
  * and notification settings.
  */

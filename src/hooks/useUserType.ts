@@ -53,7 +53,7 @@ export const useUserType = () => {
     } catch (err) {
       console.error('Failed to fetch user type:', err);
       setError('Failed to determine user access level');
-      
+
       // Fallback to demo mode for safety
       setUserType({
         user_id: 'unknown',

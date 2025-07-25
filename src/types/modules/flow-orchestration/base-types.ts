@@ -1,6 +1,6 @@
 /**
  * Flow Orchestration Base Types
- * 
+ *
  * Common types and base interfaces used across the flow orchestration system.
  */
 

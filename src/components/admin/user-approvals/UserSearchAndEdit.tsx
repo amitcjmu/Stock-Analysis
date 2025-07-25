@@ -177,7 +177,7 @@ export const UserSearchAndEdit: React.FC = () => {
 
     try {
       setLoading(true);
-      
+
       // Call API to update user
       const response = await apiCall(`/auth/admin/users/${selectedUser.user_id}`, {
         method: 'PUT',
@@ -193,9 +193,9 @@ export const UserSearchAndEdit: React.FC = () => {
 
       if (response.status === 'success') {
         // Update local state
-        setUsers(prevUsers => 
-          prevUsers.map(user => 
-            user.user_id === selectedUser.user_id 
+        setUsers(prevUsers =>
+          prevUsers.map(user =>
+            user.user_id === selectedUser.user_id
               ? { ...user, ...editForm }
               : user
           )
@@ -258,7 +258,7 @@ export const UserSearchAndEdit: React.FC = () => {
   };
 
   // Filter users based on search term
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(user =>
     user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.organization.toLowerCase().includes(searchTerm.toLowerCase())
@@ -322,7 +322,7 @@ export const UserSearchAndEdit: React.FC = () => {
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="flex-grow">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-medium text-lg">{user.full_name}</span>
@@ -338,18 +338,18 @@ export const UserSearchAndEdit: React.FC = () => {
                           </Badge>
                         )}
                       </div>
-                      
+
                       <div className="text-sm text-gray-600 space-y-1">
                         <div>{user.email}</div>
                         <div>{user.organization}</div>
-                        
+
                         {user.default_client_id && (
                           <div className="flex items-center gap-1">
                             <Building2 className="h-3 w-3" />
                             <span>Default Client: {getClientName(user.default_client_id)}</span>
                           </div>
                         )}
-                        
+
                         {user.default_engagement_id && (
                           <div className="flex items-center gap-1">
                             <Briefcase className="h-3 w-3" />
@@ -417,8 +417,8 @@ export const UserSearchAndEdit: React.FC = () => {
 
             <div className="space-y-2">
               <Label htmlFor="role_name">Role</Label>
-              <Select 
-                value={editForm.role_name} 
+              <Select
+                value={editForm.role_name}
                 onValueChange={(value) => setEditForm(prev => ({ ...prev, role_name: value }))}
               >
                 <SelectTrigger>
@@ -435,8 +435,8 @@ export const UserSearchAndEdit: React.FC = () => {
 
             <div className="space-y-2">
               <Label htmlFor="default_client">Default Client</Label>
-              <Select 
-                value={editForm.default_client_id} 
+              <Select
+                value={editForm.default_client_id}
                 onValueChange={(value) => setEditForm(prev => ({ ...prev, default_client_id: value }))}
               >
                 <SelectTrigger>
@@ -455,8 +455,8 @@ export const UserSearchAndEdit: React.FC = () => {
 
             <div className="space-y-2">
               <Label htmlFor="default_engagement">Default Engagement</Label>
-              <Select 
-                value={editForm.default_engagement_id} 
+              <Select
+                value={editForm.default_engagement_id}
                 onValueChange={(value) => setEditForm(prev => ({ ...prev, default_engagement_id: value }))}
               >
                 <SelectTrigger>
@@ -475,8 +475,8 @@ export const UserSearchAndEdit: React.FC = () => {
 
             <div className="col-span-2 space-y-2">
               <Label htmlFor="is_active">Status</Label>
-              <Select 
-                value={editForm.is_active ? "active" : "inactive"} 
+              <Select
+                value={editForm.is_active ? "active" : "inactive"}
                 onValueChange={(value) => setEditForm(prev => ({ ...prev, is_active: value === "active" }))}
               >
                 <SelectTrigger>

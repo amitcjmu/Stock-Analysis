@@ -16,14 +16,14 @@ import { AgentReasoningDisplay } from './components/AgentReasoningDisplay';
 const AttributeMappingContainer: React.FC = () => {
   // Add error boundary state
   const [hasRenderError, setHasRenderError] = React.useState(false);
-  
+
   // Always call hooks in the same order - no conditional hook calls
   const {
     // Core state
     state,
     actions,
     navigation,
-    
+
     // Computed state
     isLoading,
     hasError,
@@ -33,10 +33,10 @@ const AttributeMappingContainer: React.FC = () => {
     hasSessionData,
     hasUploadedData,
     sessionInfo,
-    
+
     // Navigation actions
     handleContinueToDataCleansing,
-    
+
     // URL params
     urlFlowId
   } = useAttributeMapping();
@@ -88,7 +88,7 @@ const AttributeMappingContainer: React.FC = () => {
       hasData: hasData
     });
   }, [fieldMappings, state, agenticData, flowState, effectiveFlowId, isLoading, hasData]);
-  
+
   // Early return if there's a render error
   if (hasRenderError) {
     return (
@@ -100,7 +100,7 @@ const AttributeMappingContainer: React.FC = () => {
           <div className="text-center">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Application Error</h2>
             <p className="text-gray-600 mb-4">Something went wrong while loading the attribute mapping page.</p>
-            <button 
+            <button
               onClick={() => setHasRenderError(false)}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
@@ -144,7 +144,7 @@ const AttributeMappingContainer: React.FC = () => {
             <div className="mb-6">
               <ContextBreadcrumbs />
             </div>
-            
+
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Attribute Mapping</h1>
               <p className="text-gray-600">Map your data fields to standard migration attributes and verify data quality.</p>

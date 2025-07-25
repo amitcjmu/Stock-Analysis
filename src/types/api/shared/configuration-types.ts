@@ -1,6 +1,6 @@
 /**
  * Configuration Types
- * 
+ *
  * Common configuration structures used across API types.
  */
 

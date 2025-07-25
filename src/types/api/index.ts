@@ -1,6 +1,6 @@
 /**
  * API Type Boundaries
- * 
+ *
  * Centralized API type definitions for requests, responses, and client interfaces.
  * Provides type safety for all API interactions across the application.
  */

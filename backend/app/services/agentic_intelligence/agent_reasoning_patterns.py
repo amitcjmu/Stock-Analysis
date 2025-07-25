@@ -314,10 +314,12 @@ class AgentReasoningEngine:
         discovered_patterns.extend(new_patterns)
 
         # 5. Reason about business value score
-        business_value_score, confidence, reasoning = (
-            self._calculate_business_value_reasoning(
-                asset_data, evidence_pieces, applied_patterns
-            )
+        (
+            business_value_score,
+            confidence,
+            reasoning,
+        ) = self._calculate_business_value_reasoning(
+            asset_data, evidence_pieces, applied_patterns
         )
 
         # 6. Generate recommendations
@@ -463,10 +465,12 @@ class AgentReasoningEngine:
         discovered_patterns.extend(new_patterns)
 
         # Calculate modernization potential
-        modernization_score, confidence, reasoning = (
-            self._calculate_modernization_reasoning(
-                asset_data, evidence_pieces, applied_patterns
-            )
+        (
+            modernization_score,
+            confidence,
+            reasoning,
+        ) = self._calculate_modernization_reasoning(
+            asset_data, evidence_pieces, applied_patterns
         )
 
         recommendations = self._generate_modernization_recommendations(

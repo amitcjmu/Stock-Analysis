@@ -72,11 +72,11 @@ Each phase now includes:
 ```python
 async def execute_data_import_validation_agent(self, previous_result):
     """Execute data import validation phase with retry logic"""
-    
+
     # Define phase execution function for retry
     async def execute_phase():
         result = await self.phase_executor.execute_data_import_validation_phase(previous_result)
-        
+
         # Create checkpoint after successful execution
         if result and result != "data_validation_failed":
             await checkpoint_manager.create_phase_checkpoint(
@@ -85,9 +85,9 @@ async def execute_data_import_validation_agent(self, previous_result):
                 state=self.state,
                 phase_result=result
             )
-        
+
         return result
-    
+
     # Execute with error handling and retry logic
     result = await enhanced_error_handler.handle_phase_error(
         phase_name=PhaseNames.DATA_IMPORT_VALIDATION,
@@ -95,7 +95,7 @@ async def execute_data_import_validation_agent(self, previous_result):
         state=self.state,
         phase_func=execute_phase
     )
-    
+
     # Handle recovery result
     if isinstance(result, dict) and result.get("status") == "recovered":
         result = result.get("result")

@@ -45,7 +45,7 @@ export const EngagementBasicInfo: React.FC<EngagementBasicInfoProps> = ({
               </p>
             )}
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="client_account_id">Client Account *</Label>
             <Select value={formData.client_account_id} onValueChange={(value) => onFormChange('client_account_id', value)}>
@@ -141,4 +141,4 @@ export const EngagementBasicInfo: React.FC<EngagementBasicInfoProps> = ({
       </CardContent>
     </Card>
   );
-}; 
+};

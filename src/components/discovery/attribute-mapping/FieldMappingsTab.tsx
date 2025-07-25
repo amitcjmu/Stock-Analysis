@@ -7,4 +7,4 @@ const MainFieldMappingsTab: React.FC<FieldMappingsTabProps> = (props) => {
   return <FieldMappingsTab {...props} />;
 };
 
-export default MainFieldMappingsTab; 
+export default MainFieldMappingsTab;

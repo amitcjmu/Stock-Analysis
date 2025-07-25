@@ -1,15 +1,15 @@
 /**
  * Status Icon Component
- * 
+ *
  * Renders appropriate icon based on task status.
  */
 
 import React from 'react';
-import { 
-  CheckCircle, 
-  AlertCircle, 
-  Clock, 
-  PlayCircle 
+import {
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  PlayCircle
 } from 'lucide-react';
 
 interface StatusIconProps {

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { apiCall } from '@/config/api'; 
+import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminLoadingState, AdminErrorState } from '@/components/admin/shared/components'
 import { AdminHeader } from '@/components/admin/shared/components'
@@ -51,7 +51,7 @@ const demoStats: DashboardStatsData = {
 const AdminDashboard: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const { showDemoDataWarningToast } = useAdminToasts();
-  
+
   const fetchDashboardStats = async (): Promise<DashboardStatsData> => {
     try {
       // Get token from localStorage to verify it exists
@@ -59,35 +59,35 @@ const AdminDashboard: React.FC = () => {
       console.log('📊 Admin Dashboard - Token available:', !!token);
       console.log('📊 Admin Dashboard - User:', user);
       console.log('📊 Admin Dashboard - isAuthenticated:', isAuthenticated);
-      
+
       if (!token) {
         throw new Error('No authentication token found');
       }
-      
+
       if (!isAuthenticated) {
         throw new Error('User is not authenticated');
       }
-      
+
       console.log('📊 Admin Dashboard - Making API calls...');
-      
+
       // Test fixed apiCall function - admin calls don't need tenant context
       const [clientsData, engagementsData, usersData] = await Promise.all([
         apiCall('/admin/clients/dashboard/stats', { method: 'GET' }, false),
         apiCall('/admin/engagements/dashboard/stats', { method: 'GET' }, false),
         apiCall('/auth/admin/dashboard-stats', { method: 'GET' }, false)
       ]);
-      
+
       console.log('📊 Admin Dashboard - Raw API responses:', {
         clientsData,
-        engagementsData, 
+        engagementsData,
         usersData
       });
-      
+
       // The API responses don't wrap data in dashboard_stats, use the data directly
       const transformedClients = clientsData;
       const transformedEngagements = engagementsData;
       const transformedUsers = usersData;
-      
+
       const result = {
         clients: {
           total: transformedClients.total_clients || 0,
@@ -112,7 +112,7 @@ const AdminDashboard: React.FC = () => {
           recentRequests: transformedUsers.recent_requests || []
         }
       };
-      
+
       console.log('📊 Admin Dashboard - Transformed result:', result);
       return result;
     } catch (apiError) {
@@ -123,7 +123,7 @@ const AdminDashboard: React.FC = () => {
   };
 
   const { data, isLoading, isError, error, refetch } = useQuery<DashboardStatsData>({
-    queryKey: ['adminDashboardStats'], 
+    queryKey: ['adminDashboardStats'],
     queryFn: fetchDashboardStats,
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -148,13 +148,13 @@ const AdminDashboard: React.FC = () => {
 
   if (!stats) {
     return (
-      <AdminErrorState 
+      <AdminErrorState
         message="Failed to load dashboard data. Please try again later."
         onRetry={() => refetch()}
       />
     );
   }
-  
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
@@ -226,4 +226,4 @@ const AdminDashboard: React.FC = () => {
   );
 };
 
-export default AdminDashboard; 
+export default AdminDashboard;

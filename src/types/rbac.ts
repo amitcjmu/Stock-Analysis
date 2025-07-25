@@ -5,7 +5,7 @@
 
 export enum RoleLevel {
   PLATFORM_ADMIN = 'platform_admin',
-  CLIENT_ADMIN = 'client_admin', 
+  CLIENT_ADMIN = 'client_admin',
   ENGAGEMENT_MANAGER = 'engagement_manager',
   ANALYST = 'analyst',
   VIEWER = 'viewer',
@@ -194,4 +194,4 @@ export interface AuditLogResponse {
     total_count: number;
     total_pages: number;
   };
-} 
+}

@@ -24,11 +24,11 @@ async def check_schema():
             result = await db.execute(
                 text(
                     """
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public' 
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
                 AND table_name IN (
-                    'users', 'client_accounts', 'engagements', 
+                    'users', 'client_accounts', 'engagements',
                     'user_profiles', 'user_roles', 'discovery_flows',
                     'data_imports', 'crewai_flow_state_extensions'
                 )
@@ -63,9 +63,9 @@ async def check_schema():
             result = await db.execute(
                 text(
                     """
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_schema = 'public' 
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
                 AND table_name = 'client_accounts'
                 AND column_name IN ('id', 'name', 'slug', 'created_at')
                 ORDER BY column_name

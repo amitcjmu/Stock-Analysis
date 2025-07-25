@@ -38,11 +38,11 @@ interface FileListProps {
   onEditData: (file: FileUpload) => void;
 }
 
-const FileList: React.FC<FileListProps> = ({ 
-  files, 
-  onAnalyzeFile, 
-  onViewAnalysis, 
-  onEditData 
+const FileList: React.FC<FileListProps> = ({
+  files,
+  onAnalyzeFile,
+  onViewAnalysis,
+  onEditData
 }) => {
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -72,7 +72,7 @@ const FileList: React.FC<FileListProps> = ({
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
       <h2 className="text-xl font-semibold text-gray-900 mb-4">Uploaded Files</h2>
-      
+
       <div className="space-y-4">
         {files.map((fileUpload) => (
           <div key={fileUpload.id} className="border border-gray-200 rounded-lg p-4">
@@ -149,4 +149,4 @@ const FileList: React.FC<FileListProps> = ({
   );
 };
 
-export default FileList; 
+export default FileList;

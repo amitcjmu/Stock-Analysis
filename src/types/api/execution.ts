@@ -1,6 +1,6 @@
 /**
  * Execution API Types
- * 
+ *
  * Type definitions for Migration Execution flow API endpoints, requests, and responses.
  * Covers execution management, task orchestration, progress tracking, and monitoring.
  */
@@ -557,16 +557,16 @@ export interface ExecutionState {
   updatedAt: string;
 }
 
-export type ExecutionStatus = 
-  | 'pending' | 'initializing' | 'ready' | 'running' 
-  | 'paused' | 'resuming' | 'stopping' | 'stopped' 
-  | 'completed' | 'failed' | 'cancelled' | 'rollback_required' 
+export type ExecutionStatus =
+  | 'pending' | 'initializing' | 'ready' | 'running'
+  | 'paused' | 'resuming' | 'stopping' | 'stopped'
+  | 'completed' | 'failed' | 'cancelled' | 'rollback_required'
   | 'rolling_back' | 'rolled_back';
 
-export type TaskStatus = 
-  | 'pending' | 'ready' | 'running' | 'paused' 
-  | 'completed' | 'failed' | 'cancelled' | 'skipped' 
-  | 'waiting_for_dependencies' | 'waiting_for_approval' 
+export type TaskStatus =
+  | 'pending' | 'ready' | 'running' | 'paused'
+  | 'completed' | 'failed' | 'cancelled' | 'skipped'
+  | 'waiting_for_dependencies' | 'waiting_for_approval'
   | 'waiting_for_resources';
 
 export type IssueSeverity = 'low' | 'medium' | 'high' | 'critical' | 'blocker';

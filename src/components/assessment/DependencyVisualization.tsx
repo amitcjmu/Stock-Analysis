@@ -60,7 +60,7 @@ export const DependencyVisualization: React.FC<DependencyVisualizationProps> = (
                     <h5 className="font-medium text-gray-900">{component.component_name}</h5>
                     <Badge variant="outline">{component.component_type}</Badge>
                   </div>
-                  
+
                   {component.dependencies && component.dependencies.length > 0 ? (
                     <div className="space-y-1">
                       {component.dependencies.map((dep, index) => (

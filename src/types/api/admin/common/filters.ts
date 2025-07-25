@@ -1,9 +1,9 @@
 /**
  * Filter Types
- * 
+ *
  * Common filtering and query type definitions used across admin modules
  * for searching, filtering, and data retrieval.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 
@@ -39,13 +39,13 @@ export interface FieldCondition extends Condition {
 /**
  * Condition types
  */
-export type ConditionType = 
-  | 'user_property' 
-  | 'time_based' 
-  | 'location' 
-  | 'device' 
-  | 'behavior' 
-  | 'preference' 
+export type ConditionType =
+  | 'user_property'
+  | 'time_based'
+  | 'location'
+  | 'device'
+  | 'behavior'
+  | 'preference'
   | 'custom';
 
 /**

@@ -26,7 +26,7 @@ export const useSixRSubmission = ({
 
   const handleSaveDraft = async () => {
     if (!selectedApp || !currentAppDecision) return;
-    
+
     setIsDraft(true);
     try {
       await updateSixRDecision(selectedApp, currentAppDecision);
@@ -45,7 +45,7 @@ export const useSixRSubmission = ({
       for (const [appId, decision] of Object.entries(sixrDecisions)) {
         await updateSixRDecision(appId, decision);
       }
-      
+
       await resumeFlow({
         sixrDecisions: sixrDecisions
       } as SixRSubmissionData);

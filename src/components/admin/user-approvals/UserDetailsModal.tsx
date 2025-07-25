@@ -10,12 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import type { UserDetailsModalProps } from './types';
 
-export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ 
-  user, 
-  isOpen, 
-  onClose, 
-  formatDate, 
-  getAccessLevelColor 
+export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
+  user,
+  isOpen,
+  onClose,
+  formatDate,
+  getAccessLevelColor
 }) => {
 
   if (!user) return null;
@@ -29,7 +29,7 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
             Complete information about the registration request
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -67,14 +67,14 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
               <p className="text-sm">{formatDate(user.registration_requested_at)}</p>
             </div>
           </div>
-          
+
           {user.manager_email && (
             <div>
               <Label className="text-sm font-medium">Manager Email</Label>
               <p className="text-sm">{user.manager_email}</p>
             </div>
           )}
-          
+
           <div>
             <Label className="text-sm font-medium">Justification</Label>
             <p className="text-sm bg-gray-50 p-3 rounded-lg">
@@ -82,7 +82,7 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
             </p>
           </div>
         </div>
-        
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Close
@@ -92,5 +92,3 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
     </Dialog>
   );
 };
-
- 

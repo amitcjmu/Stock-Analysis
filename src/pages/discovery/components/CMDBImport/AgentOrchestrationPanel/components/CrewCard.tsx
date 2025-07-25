@@ -34,7 +34,7 @@ export const CrewCard: React.FC<CrewCardProps> = ({ crew }) => (
         </div>
       </div>
     </CardHeader>
-    
+
     <CardContent className="pt-0">
       <div className="space-y-4">
         {/* Progress Bar */}
@@ -45,13 +45,13 @@ export const CrewCard: React.FC<CrewCardProps> = ({ crew }) => (
           </div>
           <Progress value={crew.progress} className="h-2" />
         </div>
-        
+
         {/* Current Task */}
         <div>
           <p className="text-sm font-medium text-gray-700 mb-1">Current Task:</p>
           <p className="text-sm text-gray-600">{crew.currentTask}</p>
         </div>
-        
+
         {/* Agents */}
         <div>
           <p className="text-sm font-medium text-gray-700 mb-2">Agents:</p>
@@ -64,7 +64,7 @@ export const CrewCard: React.FC<CrewCardProps> = ({ crew }) => (
             ))}
           </div>
         </div>
-        
+
         {/* Results (if available) */}
         {crew.results && crew.status === 'completed' && (
           <div className="bg-green-50 p-3 rounded-lg border border-green-200">
@@ -85,7 +85,7 @@ export const CrewCard: React.FC<CrewCardProps> = ({ crew }) => (
             </div>
           </div>
         )}
-        
+
         {/* Error (if failed) */}
         {crew.status === 'failed' && crew.results?.error && (
           <div className="bg-red-50 p-3 rounded-lg border border-red-200">

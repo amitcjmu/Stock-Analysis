@@ -1,6 +1,6 @@
 /**
  * File API Types
- * 
+ *
  * Types for file upload, download, and file management operations.
  */
 
@@ -111,4 +111,3 @@ export interface TransformationOptions {
   quality?: number;
   compress?: boolean;
 }
-

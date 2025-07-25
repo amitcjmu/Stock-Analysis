@@ -40,7 +40,7 @@ beforeAll(() => {
   // Mock IntersectionObserver for viewport-based lazy loading
   global.IntersectionObserver = vi.fn().mockImplementation((callback) => ({
     observe: vi.fn(),
-    unobserve: vi.fn(), 
+    unobserve: vi.fn(),
     disconnect: vi.fn(),
     root: null,
     rootMargin: '',
@@ -109,7 +109,7 @@ expect.extend({
   toBeValidAssetType(received) {
     const validTypes = [
       'Application',
-      'Server', 
+      'Server',
       'Database',
       'Network Device',
       'Storage Device',
@@ -118,12 +118,12 @@ expect.extend({
       'Virtualization Platform',
       'Unknown'
     ];
-    
+
     const pass = validTypes.includes(received);
-    
+
     return {
       pass,
-      message: () => pass 
+      message: () => pass
         ? `Expected ${received} not to be a valid asset type`
         : `Expected ${received} to be a valid asset type. Valid types: ${validTypes.join(', ')}`
     };
@@ -134,15 +134,15 @@ expect.extend({
       'Ready',
       'Not Applicable',
       'Needs Owner Info',
-      'Needs Infrastructure Data', 
+      'Needs Infrastructure Data',
       'Needs Version Info',
       'Insufficient Data',
       'Type Classification Needed',
       'Complex Analysis Required'
     ];
-    
+
     const pass = validStatuses.includes(received);
-    
+
     return {
       pass,
       message: () => pass
@@ -153,9 +153,9 @@ expect.extend({
 
   toBeValidMigrationComplexity(received) {
     const validComplexities = ['Low', 'Medium', 'High'];
-    
+
     const pass = validComplexities.includes(received);
-    
+
     return {
       pass,
       message: () => pass
@@ -166,10 +166,10 @@ expect.extend({
 
   toHaveValidSummaryStructure(received) {
     const requiredFields = ['total', 'applications', 'servers', 'databases', 'devices', 'unknown'];
-    const hasAllFields = received && typeof received === 'object' && requiredFields.every(field => 
+    const hasAllFields = received && typeof received === 'object' && requiredFields.every(field =>
       Object.prototype.hasOwnProperty.call(received, field) && typeof received[field] === 'number'
     );
-    
+
     return {
       pass: hasAllFields,
       message: () => hasAllFields
@@ -223,7 +223,7 @@ export const waitFor = (callback, options = {}) => {
   const { timeout = 1000, interval = 50 } = options;
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
-    
+
     const check = () => {
       try {
         const result = callback();
@@ -234,15 +234,15 @@ export const waitFor = (callback, options = {}) => {
       } catch (error) {
         // Continue checking
       }
-      
+
       if (Date.now() - startTime >= timeout) {
         reject(new Error('Timeout waiting for condition'));
         return;
       }
-      
+
       setTimeout(check, interval);
     };
-    
+
     check();
   });
 };
@@ -284,7 +284,7 @@ export const measureLazyLoadPerformance = (componentName) => {
   const startMark = `lazy-${componentName}-start`;
   const endMark = `lazy-${componentName}-end`;
   const measureName = `lazy-${componentName}-duration`;
-  
+
   return {
     start: () => global.performance.mark(startMark),
     end: () => global.performance.mark(endMark),
@@ -294,4 +294,4 @@ export const measureLazyLoadPerformance = (componentName) => {
       return entries.length > 0 ? entries[0].duration : 0;
     }
   };
-}; 
+};

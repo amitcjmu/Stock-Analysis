@@ -27,7 +27,7 @@ export class AgentObservabilityService {
   async getAgentPerformance(agentName: string, periodDays: number = 7): Promise<AgentPerformanceResponse> {
     const endpoint = `/monitoring/agents/${encodeURIComponent(agentName)}/performance`;
     const params = new URLSearchParams({ period_days: periodDays.toString() });
-    
+
     return apiCall(`${endpoint}?${params}`, { method: 'GET' });
   }
 
@@ -35,8 +35,8 @@ export class AgentObservabilityService {
    * Get task history for a specific agent
    */
   async getAgentTaskHistory(
-    agentName: string, 
-    limit: number = 10, 
+    agentName: string,
+    limit: number = 10,
     offset: number = 0
   ): Promise<AgentTaskHistoryResponse> {
     const endpoint = `/monitoring/agents/${encodeURIComponent(agentName)}/history`;
@@ -44,7 +44,7 @@ export class AgentObservabilityService {
       limit: limit.toString(),
       offset: offset.toString()
     });
-    
+
     return apiCall(`${endpoint}?${params}`, { method: 'GET' });
   }
 
@@ -54,7 +54,7 @@ export class AgentObservabilityService {
   async getAgentAnalytics(agentName: string, periodDays: number = 7): Promise<AgentAnalyticsResponse> {
     const endpoint = `/monitoring/agents/${encodeURIComponent(agentName)}/analytics`;
     const params = new URLSearchParams({ period_days: periodDays.toString() });
-    
+
     return apiCall(`${endpoint}?${params}`, { method: 'GET' });
   }
 
@@ -72,11 +72,11 @@ export class AgentObservabilityService {
       include_performance_data: includeCompleted.toString(),
       limit: limit.toString()
     });
-    
+
     if (agentName) {
       params.append('agent_id', agentName);
     }
-    
+
     return apiCall(`${endpoint}?${params}`, { method: 'GET' });
   }
 
@@ -86,7 +86,7 @@ export class AgentObservabilityService {
   async getAllAgentsSummary(periodDays: number = 7): Promise<AllAgentsSummaryResponse> {
     // Use the existing /monitoring/agents endpoint instead of /monitoring/agents/summary
     const endpoint = '/monitoring/agents';
-    
+
     return apiCall(endpoint, { method: 'GET' });
   }
 
@@ -107,7 +107,7 @@ export class AgentObservabilityService {
     }
 
     const agents: AgentCardData[] = [];
-    
+
     // Iterate through all phases and extract agent data
     for (const [phaseName, phaseData] of Object.entries(response.agents_by_phase)) {
       if (phaseData && typeof phaseData === 'object' && 'agents' in phaseData) {
@@ -122,7 +122,7 @@ export class AgentObservabilityService {
             avg_execution_time?: string | number;
           };
         }> }).agents || [];
-        
+
         phaseAgents.forEach((agent: {
           agent_id?: string;
           name: string;
@@ -258,7 +258,7 @@ export class AgentObservabilityService {
   async isAgentActive(agentName: string): Promise<boolean> {
     try {
       const performance = await this.getAgentPerformance(agentName, 1);
-      return performance.success && 
+      return performance.success &&
              performance.data.current_status?.is_active === true;
     } catch (error) {
       console.error(`Failed to check agent status for ${agentName}:`, error);

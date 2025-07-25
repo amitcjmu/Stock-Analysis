@@ -4,10 +4,10 @@
  */
 
 import React from 'react';
-import { 
-  Clock, 
-  AlertTriangle, 
-  Calendar 
+import {
+  Clock,
+  AlertTriangle,
+  Calendar
 } from 'lucide-react';
 import { StatCard } from '@/components/admin/shared/components/StatCard';
 
@@ -30,12 +30,12 @@ export interface PlatformStatsProps {
   className?: string;
 }
 
-export const PlatformStats: React.FC<PlatformStatsProps> = ({ 
-  pendingItems, 
-  className = '' 
+export const PlatformStats: React.FC<PlatformStatsProps> = ({
+  pendingItems,
+  className = ''
 }) => {
   const highPriorityItems = pendingItems.filter(item => item.item_type === 'client_account').length;
-  
+
   const recentItems = pendingItems.filter(item => {
     const deletedDate = new Date(item.deleted_at);
     const yesterday = new Date();
@@ -51,14 +51,14 @@ export const PlatformStats: React.FC<PlatformStatsProps> = ({
         description="awaiting your approval"
         icon={Clock}
       />
-      
+
       <StatCard
         title="High Priority"
         value={highPriorityItems}
         description="client account deletions"
         icon={AlertTriangle}
       />
-      
+
       <StatCard
         title="Recent Activity"
         value={recentItems}

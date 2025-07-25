@@ -1,6 +1,6 @@
 /**
  * Monitoring API Types
- * 
+ *
  * Types for health checks, metrics, monitoring, and system observability.
  */
 

@@ -65,7 +65,7 @@ const AssessIndex = () => {
           <div className="max-w-7xl mx-auto">
             {/* Context Breadcrumbs */}
             <ContextBreadcrumbs />
-            
+
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Assessment Overview</h1>
               <p className="text-gray-600">6R treatments, migration grouping, and wave planning dashboard</p>

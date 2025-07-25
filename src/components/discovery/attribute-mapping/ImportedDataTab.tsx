@@ -3,10 +3,10 @@ import { useState } from 'react'
 import { useMemo, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
-import { 
-  Database, 
-  FileText, 
-  Search, 
+import {
+  Database,
+  FileText,
+  Search,
   Download,
   ChevronLeft,
   ChevronRight,
@@ -51,9 +51,9 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
   const { client, engagement, getAuthHeaders } = useAuth();
 
   // 🚀 React Query with context-aware caching
-  const { 
-    data: importResponse, 
-    isLoading, 
+  const {
+    data: importResponse,
+    isLoading,
     error: queryError,
     isStale,
     refetch
@@ -68,7 +68,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
         if (engagement?.id) {
           headers['X-Engagement-ID'] = engagement.id;
         }
-        
+
         return await apiCall('/api/v1/data-import/latest-import', {
           method: 'GET',
           headers
@@ -101,10 +101,10 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
     setIsRefreshing(true);
     try {
       // 1. Clear React Query cache for imported data with context
-      queryClient.removeQueries({ 
-        queryKey: ['imported-data', client?.id, engagement?.id] 
+      queryClient.removeQueries({
+        queryKey: ['imported-data', client?.id, engagement?.id]
       });
-      
+
       // 2. Call backend to clear SQLAlchemy cache with context headers
       try {
         const headers = getAuthHeaders();
@@ -114,7 +114,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
         if (engagement?.id) {
           headers['X-Engagement-ID'] = engagement.id;
         }
-        
+
         await apiCall('/api/v1/data-import/clear-cache', {
           method: 'POST',
           headers
@@ -122,10 +122,10 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
       } catch (cacheError) {
         console.warn('Cache clear failed (non-critical):', cacheError);
       }
-      
+
       // 3. Trigger fresh data fetch
       await refetch();
-      
+
       toast({
         title: "Data Refreshed",
         description: "Imported data has been refreshed successfully.",
@@ -145,18 +145,18 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
   // Transform and memoize data to prevent unnecessary recalculations
   const { importData, importMetadata, error } = useMemo(() => {
     if (queryError) {
-      return { 
-        importData: [], 
-        importMetadata: null, 
-        error: 'Failed to load imported data' 
+      return {
+        importData: [],
+        importMetadata: null,
+        error: 'Failed to load imported data'
       };
     }
 
     if (!importResponse || !importResponse.success) {
-      return { 
-        importData: [], 
-        importMetadata: null, 
-        error: importResponse?.message || 'Failed to load imported data' 
+      return {
+        importData: [],
+        importMetadata: null,
+        error: importResponse?.message || 'Failed to load imported data'
       };
     }
 
@@ -188,9 +188,9 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
 
   const filteredData = importData.filter(record => {
     if (!searchTerm) return true;
-    
+
     const searchLower = searchTerm.toLowerCase();
-    return Object.values(record.raw_data).some(value => 
+    return Object.values(record.raw_data).some(value =>
       String(value).toLowerCase().includes(searchLower)
     );
   });
@@ -205,8 +205,8 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
   const allColumns = importData.length > 0 ? Object.keys(importData[0].raw_data) : [];
 
   const toggleColumn = (column: string) => {
-    setSelectedColumns(prev => 
-      prev.includes(column) 
+    setSelectedColumns(prev =>
+      prev.includes(column)
         ? prev.filter(col => col !== column)
         : [...prev, column]
     );
@@ -217,8 +217,8 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
 
     const csvContent = [
       selectedColumns.join(','),
-      ...filteredData.map(record => 
-        selectedColumns.map(col => 
+      ...filteredData.map(record =>
+        selectedColumns.map(col =>
           JSON.stringify(record.raw_data[col] || '')
         ).join(',')
       )
@@ -286,7 +286,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
             <div className="text-center">
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Imported Yet</h3>
               <p className="text-sm text-gray-500 mb-4">
-                {importMetadata?.filename 
+                {importMetadata?.filename
                   ? `Import file "${importMetadata.filename}" was found but contains no records.`
                   : "No data has been imported for this engagement yet."
                 }
@@ -360,7 +360,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          
+
           {/* Column Selector */}
           <div className="relative">
             <select
@@ -453,4 +453,4 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
   );
 };
 
-export default ImportedDataTab; 
+export default ImportedDataTab;

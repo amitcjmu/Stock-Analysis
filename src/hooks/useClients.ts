@@ -40,4 +40,4 @@ export const useClients = () => {
     retry: 2, // Retry failed requests twice
     refetchOnWindowFocus: false // Don't refetch when window regains focus
   });
-}; 
+};

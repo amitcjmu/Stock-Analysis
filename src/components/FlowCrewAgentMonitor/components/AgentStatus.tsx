@@ -30,9 +30,9 @@ export const AgentStatus: React.FC<AgentStatusProps> = ({
 
   const allCrews = data.active_flows.flatMap(flow => flow.crews);
   const metrics = calculateAverageMetrics(allCrews);
-  
-  const systemHealthColor = data.system_health.status === 'healthy' ? 'text-green-600' : 
-                           data.system_health.status === 'degraded' ? 'text-yellow-600' : 
+
+  const systemHealthColor = data.system_health.status === 'healthy' ? 'text-green-600' :
+                           data.system_health.status === 'degraded' ? 'text-yellow-600' :
                            'text-red-600';
 
   return (
@@ -212,15 +212,15 @@ export const AgentStatus: React.FC<AgentStatusProps> = ({
               <span className="text-sm text-gray-900">Event Listener</span>
             </div>
             <Badge className={
-              data.system_health.event_listener_active ? 
-              'bg-green-100 text-green-800' : 
+              data.system_health.event_listener_active ?
+              'bg-green-100 text-green-800' :
               'bg-red-100 text-red-800'
             }>
               {data.system_health.event_listener_active ? 'Active' : 'Inactive'}
             </Badge>
           </div>
           <p className="text-xs text-gray-600 mt-2">
-            {data.system_health.event_listener_active ? 
+            {data.system_health.event_listener_active ?
               'Real-time monitoring is active and receiving agent events.' :
               'Real-time monitoring is currently unavailable.'
             }

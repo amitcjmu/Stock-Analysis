@@ -40,15 +40,15 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
 }) => {
   const renderApplicationRow = (app: Application) => {
     const isSelected = selectedApplications.includes(app.id);
-    
+
     return (
-      <TableRow 
-        key={app.id} 
+      <TableRow
+        key={app.id}
         className={`cursor-pointer hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''}`}
         onClick={() => onSelectApplication(app.id)}
       >
         <TableCell>
-          <Checkbox 
+          <Checkbox
             checked={isSelected}
             onChange={() => onSelectApplication(app.id)}
           />
@@ -122,7 +122,7 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
         <TableHeader>
           <TableRow>
             <TableHead className="w-12">
-              <Checkbox 
+              <Checkbox
                 checked={selectedApplications.length === applications.length && applications.length > 0}
                 onChange={onSelectAll}
               />

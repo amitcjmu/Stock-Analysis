@@ -51,7 +51,7 @@ export interface ComplianceData {
 
 export const useCompliance = () => {
   const { getAuthHeaders } = useAuth();
-  
+
   return useQuery<ComplianceData>({
     queryKey: ['compliance'],
     queryFn: async () => {
@@ -99,4 +99,4 @@ export const useUpdateRequirement = () => {
       queryClient.invalidateQueries({ queryKey: ['compliance'] });
     },
   });
-}; 
+};

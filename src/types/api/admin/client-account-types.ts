@@ -1,9 +1,9 @@
 /**
  * Client Account Management API Types
- * 
+ *
  * Type definitions for client account management including account creation,
  * subscription management, billing, and account lifecycle operations.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

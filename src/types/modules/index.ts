@@ -1,6 +1,6 @@
 /**
  * TypeScript Module Boundaries & Namespace Organization
- * 
+ *
  * This file defines the module namespace organization for the AI Modernize Migration Platform.
  * It provides clear architectural boundaries and enhanced type safety across the codebase.
  */
@@ -60,4 +60,3 @@ export type {
   FlowActionType,
   FlowPermission
 } from '../flow';
-

@@ -39,8 +39,8 @@ export const ErrorAndStatusAlerts: React.FC<ErrorAndStatusAlertsProps> = ({
                 {flowId ? 'Discovery Flow Not Found' : 'No Active Discovery Flows'}
               </p>
               <p className="text-sm mb-3">
-                {flowId 
-                  ? 'The discovery flow you\'re trying to access could not be found.' 
+                {flowId
+                  ? 'The discovery flow you\'re trying to access could not be found.'
                   : 'No active discovery flows were found for your current engagement.'
                 } This might happen if:
               </p>
@@ -64,14 +64,14 @@ export const ErrorAndStatusAlerts: React.FC<ErrorAndStatusAlertsProps> = ({
               </p>
             </div>
             <div className="ml-4 flex flex-col space-y-2">
-              <Button 
+              <Button
                 onClick={() => navigate('/discovery/cmdb-import')}
                 className="bg-red-600 hover:bg-red-700 flex items-center space-x-2"
               >
                 <Upload className="h-4 w-4" />
                 <span>Start New Import</span>
               </Button>
-              <Button 
+              <Button
                 onClick={() => navigate('/discovery')}
                 variant="outline"
                 className="flex items-center space-x-2"
@@ -96,7 +96,7 @@ export const ErrorAndStatusAlerts: React.FC<ErrorAndStatusAlertsProps> = ({
             <div>
               <p className="font-medium mb-2">No Field Mapping Available</p>
               <p className="text-sm mb-3">
-                {flowList && flowList.length > 0 
+                {flowList && flowList.length > 0
                   ? `Found ${flowList.length} flow(s) but none contain field mapping data ready for attribute mapping.`
                   : 'No discovery flows found for your current context.'
                 }
@@ -106,7 +106,7 @@ export const ErrorAndStatusAlerts: React.FC<ErrorAndStatusAlertsProps> = ({
               </p>
             </div>
             <div className="ml-4 flex flex-col space-y-2">
-              <Button 
+              <Button
                 onClick={() => navigate('/discovery/cmdb-import')}
                 className="bg-yellow-600 hover:bg-yellow-700 flex items-center space-x-2"
               >
@@ -114,7 +114,7 @@ export const ErrorAndStatusAlerts: React.FC<ErrorAndStatusAlertsProps> = ({
                 <span>Import Data</span>
               </Button>
               {effectiveFlowId && (
-                <Button 
+                <Button
                   onClick={onTriggerFieldMappingCrew}
                   disabled={isAnalyzing}
                   variant="outline"
@@ -141,11 +141,11 @@ export const ErrorAndStatusAlerts: React.FC<ErrorAndStatusAlertsProps> = ({
             <div>
               <p className="font-medium mb-2">Viewing Previous Discovery Data</p>
               <p className="text-sm">
-                You're viewing field mapping data from a previous discovery flow. 
+                You're viewing field mapping data from a previous discovery flow.
                 To start a new discovery with fresh data, upload a new CMDB file.
               </p>
             </div>
-            <Button 
+            <Button
               onClick={() => navigate('/discovery/cmdb-import')}
               className="ml-4 bg-blue-600 hover:bg-blue-700 flex items-center space-x-2"
             >

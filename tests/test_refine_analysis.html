@@ -16,19 +16,19 @@
 </head>
 <body>
     <h1>Refine Analysis Test</h1>
-    
+
     <div class="test-section">
         <h2>Test 1: Get Current Analysis</h2>
         <button onclick="testGetCurrentAnalysis()">Get Analysis 43</button>
         <div id="current-result"></div>
     </div>
-    
+
     <div class="test-section">
         <h2>Test 2: Iterate Analysis</h2>
         <button onclick="testIterateAnalysis()">Refine Analysis</button>
         <div id="iterate-result"></div>
     </div>
-    
+
     <div class="test-section">
         <h2>Test 3: Check Updated Analysis</h2>
         <button onclick="testCheckUpdatedAnalysis()">Check Updated Analysis</button>
@@ -49,12 +49,12 @@
                     },
                     ...options
                 });
-                
+
                 if (!response.ok) {
                     const error = await response.json().catch(() => ({ detail: response.statusText }));
                     throw new Error(`HTTP ${response.status}: ${error.detail || response.statusText}`);
                 }
-                
+
                 return await response.json();
             } catch (error) {
                 console.error('API Error:', error);
@@ -65,10 +65,10 @@
         async function testGetCurrentAnalysis() {
             const resultDiv = document.getElementById('current-result');
             resultDiv.innerHTML = 'Testing...';
-            
+
             try {
                 const result = await apiCall(`/sixr/${currentAnalysisId}`);
-                
+
                 resultDiv.innerHTML = `
                     <div class="success">✓ Analysis ${currentAnalysisId} loaded</div>
                     <div class="info">
@@ -78,7 +78,7 @@
                         <strong>Confidence:</strong> ${result.recommendation ? Math.round(result.recommendation.confidence_score * 100) + '%' : 'N/A'}
                     </div>
                 `;
-                
+
             } catch (error) {
                 resultDiv.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
             }
@@ -87,7 +87,7 @@
         async function testIterateAnalysis() {
             const resultDiv = document.getElementById('iterate-result');
             resultDiv.innerHTML = 'Testing iteration...';
-            
+
             try {
                 const result = await apiCall(`/sixr/${currentAnalysisId}/iterate`, {
                     method: 'POST',
@@ -96,7 +96,7 @@
                         stakeholder_feedback: 'Testing the Refine Analysis button functionality'
                     })
                 });
-                
+
                 resultDiv.innerHTML = `
                     <div class="success">✓ Analysis iteration started</div>
                     <div class="info">
@@ -105,7 +105,7 @@
                         <strong>Progress:</strong> ${result.progress_percentage}%
                     </div>
                 `;
-                
+
                 // Wait a moment and check if it completes
                 setTimeout(async () => {
                     try {
@@ -123,7 +123,7 @@
                         resultDiv.innerHTML += `<div class="error">Error checking completion: ${error.message}</div>`;
                     }
                 }, 3000);
-                
+
             } catch (error) {
                 resultDiv.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
             }
@@ -132,10 +132,10 @@
         async function testCheckUpdatedAnalysis() {
             const resultDiv = document.getElementById('updated-result');
             resultDiv.innerHTML = 'Checking...';
-            
+
             try {
                 const result = await apiCall(`/sixr/${currentAnalysisId}`);
-                
+
                 resultDiv.innerHTML = `
                     <div class="success">✓ Analysis ${currentAnalysisId} checked</div>
                     <div class="info">
@@ -147,7 +147,7 @@
                     </div>
                     <pre>${JSON.stringify(result.recommendation, null, 2)}</pre>
                 `;
-                
+
             } catch (error) {
                 resultDiv.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
             }
@@ -159,4 +159,4 @@
         };
     </script>
 </body>
-</html> 
+</html>

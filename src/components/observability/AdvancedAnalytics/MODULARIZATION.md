@@ -84,10 +84,10 @@ This ensures no breaking changes for existing imports.
 import AdvancedAnalytics from './components/observability/AdvancedAnalytics';
 
 // New way (can import specific parts)
-import { 
+import {
   AdvancedAnalytics,
   TrendIndicator,
-  useAnalyticsData 
+  useAnalyticsData
 } from './components/observability/AdvancedAnalytics';
 ```
 

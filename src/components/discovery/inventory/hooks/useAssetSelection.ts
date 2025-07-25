@@ -5,8 +5,8 @@ export const useAssetSelection = () => {
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
 
   const handleSelectAsset = useCallback((assetId: string) => {
-    setSelectedAssets(prev => 
-      prev.includes(assetId) 
+    setSelectedAssets(prev =>
+      prev.includes(assetId)
         ? prev.filter(id => id !== assetId)
         : [...prev, assetId]
     );

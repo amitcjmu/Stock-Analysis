@@ -1,6 +1,6 @@
 /**
  * Observability Analytics Types
- * 
+ *
  * Type definitions for core observability analytics, metrics analysis,
  * KPI tracking, and overall system health assessment.
  */

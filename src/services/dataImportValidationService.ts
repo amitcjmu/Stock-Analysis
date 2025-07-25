@@ -112,7 +112,7 @@ export class DataImportValidationService {
           },
           {
             agent_id: 'security_scanner',
-            agent_name: 'Security Scanning Agent', 
+            agent_name: 'Security Scanning Agent',
             validation: 'passed',
             confidence: 0.95,
             message: 'No security threats detected',
@@ -181,4 +181,4 @@ export class DataImportValidationService {
       throw new Error(`Failed to get validation data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
-} 
+}

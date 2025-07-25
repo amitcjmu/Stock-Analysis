@@ -4,14 +4,14 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { getVersionInfo } from '../../../utils/version';
 import { useAuth } from '../../../contexts/AuthContext';
 import {
-  Home, 
-  Search, 
-  FileText, 
-  Building2, 
-  Wrench, 
-  Sparkles, 
-  Archive, 
-  BarChart3, 
+  Home,
+  Search,
+  FileText,
+  Building2,
+  Wrench,
+  Sparkles,
+  Archive,
+  BarChart3,
   Eye,
   Settings,
   Database,
@@ -54,7 +54,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   const navigate = useNavigate();
   const versionInfo = getVersionInfo();
   const { isAuthenticated, isAdmin, user, logout, isLoading } = useAuth();
-  
+
   const [expandedStates, setExpandedStates] = useState<ExpandedStates>({
     collection: location.pathname.startsWith('/collection'),
     discovery: location.pathname.startsWith('/discovery'),
@@ -70,9 +70,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
 
   const navigationItems: NavigationItem[] = [
     { name: 'Dashboard', path: '/', icon: Home },
-    { 
-      name: 'Collection', 
-      path: '/collection', 
+    {
+      name: 'Collection',
+      path: '/collection',
       icon: Database,
       hasSubmenu: true,
       submenu: [
@@ -83,9 +83,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         { name: 'Progress', path: '/collection/progress', icon: Activity }
       ]
     },
-    { 
-      name: 'Discovery', 
-      path: '/discovery', 
+    {
+      name: 'Discovery',
+      path: '/discovery',
       icon: Search,
       hasSubmenu: true,
       submenu: [
@@ -98,9 +98,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         { name: 'Tech Debt', path: '/discovery/tech-debt', icon: ShieldAlert },
       ]
     },
-    { 
-      name: 'Assess', 
-      path: '/assess', 
+    {
+      name: 'Assess',
+      path: '/assess',
       icon: FileText,
       hasSubmenu: true,
       submenu: [
@@ -112,9 +112,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         { name: 'Assessment Flow', path: '/assessment/initialize', icon: GitBranch }
       ]
     },
-    { 
-      name: 'Plan', 
-      path: '/plan', 
+    {
+      name: 'Plan',
+      path: '/plan',
       icon: Building2,
       hasSubmenu: true,
       submenu: [
@@ -124,9 +124,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         { name: 'Target', path: '/plan/target', icon: Target }
       ]
     },
-    { 
-      name: 'Execute', 
-      path: '/execute', 
+    {
+      name: 'Execute',
+      path: '/execute',
       icon: Wrench,
       hasSubmenu: true,
       submenu: [
@@ -137,9 +137,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         { name: 'Reports', path: '/execute/reports', icon: Activity }
       ]
     },
-    { 
-      name: 'Modernize', 
-      path: '/modernize', 
+    {
+      name: 'Modernize',
+      path: '/modernize',
       icon: Sparkles,
       hasSubmenu: true,
       submenu: [
@@ -150,9 +150,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         { name: 'Progress', path: '/modernize/progress', icon: Activity }
       ]
     },
-    { 
-      name: 'Decommission', 
-      path: '/decommission', 
+    {
+      name: 'Decommission',
+      path: '/decommission',
       icon: Archive,
       hasSubmenu: true,
       submenu: [
@@ -163,9 +163,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         { name: 'Validation', path: '/decommission/validation', icon: CheckCircle }
       ]
     },
-    { 
-      name: 'FinOps', 
-      path: '/finops', 
+    {
+      name: 'FinOps',
+      path: '/finops',
       icon: BarChart3,
       hasSubmenu: true,
       submenu: [
@@ -178,9 +178,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         { name: 'Budget Alerts', path: '/finops/budget-alerts', icon: AlertTriangle }
       ]
     },
-    { 
-      name: 'Observability', 
-      path: '/observability', 
+    {
+      name: 'Observability',
+      path: '/observability',
       icon: Eye,
       hasSubmenu: true,
       submenu: [
@@ -190,9 +190,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         { name: 'Agent Comparison', path: '/observability/enhanced?tab=comparison', icon: TrendingUp }
       ]
     },
-    { 
-      name: 'Admin', 
-      path: '/admin', 
+    {
+      name: 'Admin',
+      path: '/admin',
       icon: Settings,
       hasSubmenu: true,
       submenu: [
@@ -239,7 +239,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         user={user}
         isAdmin={isAdmin}
       />
-      
+
       <NavigationMenu
         navigationItems={navigationItems}
         currentPath={location.pathname}

@@ -1,7 +1,7 @@
 import React from 'react';
-import { 
-  BarChart3, 
-  Download, 
+import {
+  BarChart3,
+  Download,
   FileText,
   CheckCircle,
   AlertCircle,
@@ -30,7 +30,7 @@ export const JobResults: React.FC<JobResultsProps> = ({
 }) => {
   const [exportFormat, setExportFormat] = React.useState<'csv' | 'json' | 'excel'>('csv');
 
-  const jobResults = selectedJobId 
+  const jobResults = selectedJobId
     ? results.filter(r => r.job_id === selectedJobId)
     : results;
 
@@ -138,13 +138,13 @@ export const JobResults: React.FC<JobResultsProps> = ({
                 <span>Analysis Results</span>
               </CardTitle>
               <CardDescription>
-                {selectedJobId 
+                {selectedJobId
                   ? `Results for job ${selectedJobId}`
                   : 'All analysis results across jobs'
                 }
               </CardDescription>
             </div>
-            
+
             {selectedJobId && (
               <div className="flex items-center space-x-2">
                 <Select value={exportFormat} onValueChange={(value: string) => setExportFormat(value)}>
@@ -157,7 +157,7 @@ export const JobResults: React.FC<JobResultsProps> = ({
                     <SelectItem value="excel">Excel</SelectItem>
                   </SelectContent>
                 </Select>
-                
+
                 <Button
                   size="sm"
                   onClick={() => onExportResults(selectedJobId, exportFormat)}
@@ -176,7 +176,7 @@ export const JobResults: React.FC<JobResultsProps> = ({
               <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Results Available</h3>
               <p className="text-gray-600">
-                {selectedJobId 
+                {selectedJobId
                   ? 'This job has not produced any results yet.'
                   : 'No analysis results to display.'
                 }

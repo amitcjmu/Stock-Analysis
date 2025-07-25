@@ -110,13 +110,13 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                 goal="Identify missing critical attributes that impact 6R migration strategy accuracy",
                 backstory="""You are an expert AI agent specializing in migration data gap analysis.
                 Your deep understanding of the 22 critical attributes framework enables you to:
-                
+
                 - Analyze collected asset data against the critical attributes framework
                 - Identify gaps that impact 6R strategy recommendations (Rehost, Replatform, Refactor, Repurchase, Retire, Retain)
                 - Prioritize gaps based on business impact and migration strategy requirements
                 - Assess data quality and completeness for migration planning
                 - Recommend targeted data collection strategies to fill critical gaps
-                
+
                 You understand that different migration strategies require different attributes:
                 - Rehost needs infrastructure details (OS, dependencies, performance)
                 - Replatform requires technology stack and architecture information
@@ -124,7 +124,7 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                 - Repurchase needs business function and cost analysis
                 - Retire requires business value and dependency assessment
                 - Retain needs operational metrics and cost justification
-                
+
                 Your analysis directly improves migration recommendation confidence scores.""",
                 llm=self.llm,
                 verbose=True,
@@ -137,16 +137,16 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
             impact_assessor = Agent(
                 role="Business Impact Assessment Agent",
                 goal="Evaluate the business impact of identified data gaps on migration outcomes",
-                backstory="""You are a business-focused AI agent that assesses how data gaps 
+                backstory="""You are a business-focused AI agent that assesses how data gaps
                 affect migration project success and business outcomes.
-                
+
                 Your expertise includes:
                 - Understanding how missing data impacts migration strategy confidence
                 - Evaluating business risk from incomplete asset information
                 - Assessing cost implications of data gaps on migration planning
                 - Prioritizing gap resolution based on business value and urgency
                 - Connecting technical gaps to business consequences
-                
+
                 You work closely with the Gap Analysis Specialist to ensure that
                 gap identification considers both technical accuracy and business impact.""",
                 llm=self.llm,
@@ -162,14 +162,14 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                 goal="Validate gap analysis accuracy and ensure comprehensive coverage",
                 backstory="""You are a quality assurance AI agent specializing in data analysis validation.
                 Your role is to ensure gap analysis is accurate, complete, and actionable.
-                
+
                 Your validation expertise covers:
                 - Cross-referencing gap analysis against collected data patterns
                 - Identifying false positives and false negatives in gap detection
                 - Ensuring all critical attribute categories are properly analyzed
                 - Validating business impact assessments for consistency
                 - Confirming gap prioritization aligns with 6R strategy requirements
-                
+
                 You provide the final quality check before gap analysis results
                 are used for questionnaire generation and collection planning.""",
                 llm=self.llm,
@@ -208,48 +208,48 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
         gap_analysis_task = Task(
             description=f"""
             CRITICAL ATTRIBUTES GAP ANALYSIS
-            
+
             Collection Flow ID: {collection_flow_id}
             Automation Tier: {automation_tier}
             Assets Analyzed: {len(collected_data)}
-            
+
             CRITICAL ATTRIBUTES FRAMEWORK (22 Core Attributes):
             {json.dumps(CRITICAL_ATTRIBUTES_FRAMEWORK, indent=2)}
-            
+
             COLLECTED DATA SAMPLE:
             {json.dumps(collected_data[:5], indent=2) if collected_data else "No data collected"}
-            
+
             ANALYSIS OBJECTIVES:
-            
+
             1. ATTRIBUTE COVERAGE ANALYSIS:
                - Map collected data fields to the 22 critical attributes framework
                - Identify missing primary attributes in each category (infrastructure, application, operational, dependencies)
                - Calculate coverage percentage per category and overall
                - Assess data quality for available attributes
-            
+
             2. 6R STRATEGY IMPACT ASSESSMENT:
                - Evaluate how missing attributes affect each 6R strategy confidence:
                  * Rehost: Infrastructure and operational attributes
-                 * Replatform: Technology stack and architecture attributes  
+                 * Replatform: Technology stack and architecture attributes
                  * Refactor: Application complexity and dependencies
                  * Repurchase: Business function and integration points
                  * Retire: Business value and dependency assessment
                  * Retain: Operational metrics and cost justification
                - Assign impact scores (critical, high, medium, low) per 6R strategy
-            
+
             3. GAP PRIORITIZATION:
                - Priority 1 (Critical): Gaps blocking 6R strategy selection
                - Priority 2 (High): Gaps reducing confidence in recommendations
                - Priority 3 (Medium): Gaps affecting migration planning details
                - Priority 4 (Low): Nice-to-have attributes for optimization
-            
+
             4. AUTOMATION TIER CONSIDERATIONS:
                Current Tier: {automation_tier}
                - Tier 1: Focus on API-collectable attributes, minimal manual gaps
                - Tier 2: Balance automated collection with strategic manual input
                - Tier 3: Expect more manual collection, prioritize business-critical gaps
                - Tier 4: Manual-heavy approach, focus on essential migration decisions
-            
+
             OUTPUT FORMAT:
             Return detailed JSON analysis:
             {{
@@ -317,34 +317,34 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
             business_impact_task = Task(
                 description=f"""
                 BUSINESS IMPACT ASSESSMENT FOR IDENTIFIED GAPS
-                
+
                 Business Context: {json.dumps(business_context, indent=2)}
-                
+
                 Using the gap analysis results, assess business impact:
-                
+
                 1. MIGRATION PROJECT RISK ASSESSMENT:
                    - How do identified gaps affect migration timeline?
                    - What is the cost impact of incomplete 6R recommendations?
                    - Which gaps pose the highest business risk?
                    - How do gaps affect migration wave planning?
-                
+
                 2. DECISION-MAKING IMPACT:
                    - Which gaps block go/no-go migration decisions?
                    - How do gaps affect business case accuracy?
                    - What is the confidence impact on executive presentations?
                    - Which gaps affect vendor selection and procurement?
-                
+
                 3. COST-BENEFIT ANALYSIS:
                    - Effort required to fill each gap vs business value gained
                    - ROI of gap resolution activities
                    - Risk of proceeding with incomplete data
                    - Impact on migration success metrics
-                
+
                 4. STAKEHOLDER IMPACT:
                    - Which business stakeholders are affected by each gap?
                    - What decisions are blocked by missing information?
                    - How do gaps affect project timeline and budget?
-                
+
                 Provide business-focused gap prioritization and recommendations.
                 """,
                 agent=self.agents[1],
@@ -358,33 +358,33 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
             validation_task = Task(
                 description="""
                 GAP ANALYSIS QUALITY VALIDATION
-                
+
                 Validate the gap analysis for accuracy and completeness:
-                
+
                 1. COVERAGE VALIDATION:
                    - Verify all 22 critical attributes were considered
                    - Check for missed data in collected information
                    - Validate gap identification accuracy
                    - Ensure no false positives or negatives
-                
+
                 2. PRIORITIZATION REVIEW:
                    - Verify gap priorities align with 6R strategy requirements
                    - Check business impact assessments for consistency
                    - Validate effort estimates for gap resolution
                    - Review collection method recommendations
-                
+
                 3. RECOMMENDATION QUALITY:
                    - Ensure recommendations are actionable
                    - Verify technical feasibility of collection methods
                    - Check alignment with automation tier capabilities
                    - Validate business justifications
-                
+
                 4. COMPLETENESS CHECK:
                    - All critical gaps identified and documented
                    - Business impact properly assessed
                    - Collection strategies clearly defined
                    - Success metrics established
-                
+
                 Provide validation report with any corrections or enhancements.
                 """,
                 agent=self.agents[2],

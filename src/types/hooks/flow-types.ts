@@ -1,6 +1,6 @@
 /**
  * Flow-related types for hooks
- * 
+ *
  * Common types used across flow-related hooks.
  */
 
@@ -15,7 +15,7 @@ export interface FlowInitializationData {
   metadata?: Record<string, PrimitiveValue>;
 }
 
-// Phase execution data types  
+// Phase execution data types
 export interface PhaseExecutionData {
   phaseId?: string;
   phaseName?: string;

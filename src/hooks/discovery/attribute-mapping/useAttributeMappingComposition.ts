@@ -78,7 +78,7 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
     if (importDataHook.importDataError) {
       console.error('❌ Import data error:', importDataHook.importDataError);
     }
-    
+
     if (importData) {
       console.log('✅ Import data available:', {
         import_id: importData?.import_metadata?.import_id,
@@ -88,7 +88,7 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
         metadata_keys: importData?.import_metadata ? Object.keys(importData.import_metadata) : []
       });
     }
-    
+
     if (importDataHook.isImportDataLoading) {
       console.log('⏳ Import data loading...');
     }
@@ -110,7 +110,7 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
     crewAnalysis: state.crewAnalysis,
     mappingProgress: state.mappingProgress,
     criticalAttributes,
-    
+
     // Flow state
     flowState: flow, // Keep backward compatibility
     flow,
@@ -118,23 +118,23 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
     dataImportId: flow?.data_import_id || effectiveFlowId, // Add data_import_id
     availableDataImports: state.availableDataImports,
     selectedDataImportId: state.selectedDataImportId,
-    
+
     // Auto-detection info
     urlFlowId: flowDetection.urlFlowId,
     autoDetectedFlowId: flowDetection.autoDetectedFlowId,
     effectiveFlowId,
     hasEffectiveFlow: flowDetection.hasEffectiveFlow,
     flowList: flowDetection.flowList,
-    
+
     // Loading states
     isAgenticLoading: state.isAgenticLoading,
     isFlowStateLoading: state.isFlowStateLoading,
     isAnalyzing: state.isAnalyzing,
-    
+
     // Error states
     agenticError: state.agenticError,
     flowStateError: state.flowStateError,
-    
+
     // Action handlers
     handleTriggerFieldMappingCrew: actions.handleTriggerFieldMappingCrew,
     handleApproveMapping: actions.handleApproveMapping,
@@ -146,12 +146,12 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
     refetchCriticalAttributes: criticalAttributesHook.refetchCriticalAttributes,
     canContinueToDataCleansing: actions.canContinueToDataCleansing,
     checkMappingApprovalStatus: actions.checkMappingApprovalStatus,
-    
+
     // Flow status
     hasActiveFlow: state.hasActiveFlow,
     currentPhase: state.currentPhase,
     flowProgress: state.flowProgress,
-    
+
     // Agent clarifications
     agentClarifications: state.agentClarifications,
     isClarificationsLoading: state.isClarificationsLoading,

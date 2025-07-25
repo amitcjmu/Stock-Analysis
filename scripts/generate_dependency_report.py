@@ -21,7 +21,7 @@ def analyze_dependencies(svg_file, output_csv_file):
 
     # Namespace is often present in SVG files from graphviz
     namespace = '{http://www.w3.org/2000/svg}'
-    
+
     # Find all edges
     edges = []
     for g in root.findall(f'.//{namespace}g[@class="edge"]'):
@@ -42,10 +42,10 @@ def analyze_dependencies(svg_file, output_csv_file):
             source, dest = edge.split('->')
             source = source.strip().replace('_', '.') # pydeps replaces . with _
             dest = dest.strip().replace('_', '.')
-            
+
             nodes.add(source)
             nodes.add(dest)
-            
+
             out_degree[source] += 1
             in_degree[dest] += 1
         except ValueError:
@@ -78,4 +78,4 @@ def analyze_dependencies(svg_file, output_csv_file):
         print(f"Error: Could not write to file {output_csv_file}")
 
 if __name__ == "__main__":
-    analyze_dependencies('dependency_graph.svg', 'dependency_report.csv') 
+    analyze_dependencies('dependency_graph.svg', 'dependency_report.csv')

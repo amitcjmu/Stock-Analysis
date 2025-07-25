@@ -1,6 +1,6 @@
 /**
  * Shared Types Index
- * 
+ *
  * Central export point for all shared type definitions used across the
  * AI agent swarm ESLint compliance project.
  */
@@ -12,7 +12,7 @@ export type {
   DomainMetadata
 } from './metadata-types';
 
-// API types  
+// API types
 export type {
   ApiResponse,
   ApiError,

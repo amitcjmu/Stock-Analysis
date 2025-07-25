@@ -1,8 +1,8 @@
 /**
  * Audit API Types
- * 
+ *
  * Request and response type definitions for audit logging and security APIs.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

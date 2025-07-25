@@ -180,4 +180,4 @@ export const DependencyGraph: React.FC<DependencyGraphProps> = ({
       </ReactFlow>
     </Card>
   );
-}; 
+};

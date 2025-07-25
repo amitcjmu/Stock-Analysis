@@ -1,8 +1,8 @@
 /**
  * Shared API Types
- * 
+ *
  * Re-exports all shared API types from modular files for backward compatibility.
- * 
+ *
  * This file has been modularized into focused type definition files:
  * - base-types.ts: Core API request/response interfaces and error handling
  * - tenant-types.ts: Multi-tenant context and header types

@@ -54,7 +54,7 @@ export const LazyLoadingProvider: React.FC<LazyLoadingProviderProps> = ({
           }
         });
       });
-      
+
       observer.observe({ entryTypes: ['navigation', 'resource'] });
       return () => observer.disconnect();
     }
@@ -106,4 +106,3 @@ export const LazyLoadingProvider: React.FC<LazyLoadingProviderProps> = ({
     </LazyLoadingContext.Provider>
   );
 };
-

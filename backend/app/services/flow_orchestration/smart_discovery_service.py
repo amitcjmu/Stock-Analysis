@@ -81,7 +81,7 @@ class SmartDiscoveryService:
                 SELECT df.*, di.filename, di.created_at as import_created_at
                 FROM discovery_flows df
                 LEFT JOIN data_imports di ON df.data_import_id = di.id
-                WHERE df.client_account_id = :client_id 
+                WHERE df.client_account_id = :client_id
                 AND df.engagement_id = :engagement_id
                 AND df.created_at >= NOW() - INTERVAL '24 hours'
                 ORDER BY df.created_at DESC
@@ -124,7 +124,7 @@ class SmartDiscoveryService:
             # Look for data imports and discovery flows in the same context
             query = text(
                 """
-                SELECT 
+                SELECT
                     di.id as import_id,
                     di.filename,
                     di.status as import_status,

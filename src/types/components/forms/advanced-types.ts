@@ -1,6 +1,6 @@
 /**
  * Advanced Form Component Types
- * 
+ *
  * Types for sliders, file uploads, and other advanced form components.
  */
 

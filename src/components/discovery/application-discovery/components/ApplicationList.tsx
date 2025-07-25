@@ -3,9 +3,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Server, 
-  Network, 
+import {
+  Server,
+  Network,
   Database,
   Eye,
   Edit,
@@ -94,7 +94,7 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
   };
 
   const formatConfidenceLabel = (status: string) => {
-    return status.split('_').map(word => 
+    return status.split('_').map(word =>
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
   };
@@ -102,8 +102,8 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
   return (
     <div className="space-y-4">
       {applications.map((app) => (
-        <Card 
-          key={app.id} 
+        <Card
+          key={app.id}
           className="hover:shadow-lg transition-shadow cursor-pointer"
           onClick={() => onApplicationSelect(app)}
         >
@@ -121,8 +121,8 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -132,8 +132,8 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
                   <Eye className="h-4 w-4" />
                 </Button>
                 {onEdit && (
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="icon"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -144,8 +144,8 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
                   </Button>
                 )}
                 {onDelete && (
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="icon"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -170,8 +170,8 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
               <div>
                 <span className="text-sm text-gray-600">Dependencies</span>
                 <div className="font-medium">
-                  {app.dependencies.internal.length + 
-                   app.dependencies.external.length + 
+                  {app.dependencies.internal.length +
+                   app.dependencies.external.length +
                    app.dependencies.infrastructure.length}
                 </div>
               </div>
@@ -224,8 +224,8 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
                   {Math.round(app.confidence * 100)}%
                 </span>
               </div>
-              <Progress 
-                value={app.confidence * 100} 
+              <Progress
+                value={app.confidence * 100}
                 className="h-2"
               />
             </div>

@@ -16,7 +16,7 @@ export const ERROR_MESSAGES = {
     CONFLICT: 'A conflict occurred. Please refresh and try again.',
     RATE_LIMITED: 'Too many requests. Please wait a moment and try again.'
   },
-  
+
   // Authentication errors
   AUTH: {
     INVALID_CREDENTIALS: 'Invalid email or password.',
@@ -30,7 +30,7 @@ export const ERROR_MESSAGES = {
     TWO_FACTOR_REQUIRED: 'Two-factor authentication required.',
     TWO_FACTOR_INVALID: 'Invalid two-factor authentication code.'
   },
-  
+
   // Validation errors
   VALIDATION: {
     REQUIRED_FIELD: 'This field is required.',
@@ -42,7 +42,7 @@ export const ERROR_MESSAGES = {
     OUT_OF_RANGE: 'Value is out of allowed range.',
     PATTERN_MISMATCH: 'Value does not match required pattern.'
   },
-  
+
   // Data operation errors
   DATA: {
     CREATE_FAILED: 'Failed to create record.',
@@ -56,7 +56,7 @@ export const ERROR_MESSAGES = {
     PARSE_FAILED: 'Failed to parse data.',
     VALIDATION_FAILED: 'Data validation failed.'
   },
-  
+
   // File operation errors
   FILE: {
     UPLOAD_FAILED: 'Failed to upload file.',
@@ -68,7 +68,7 @@ export const ERROR_MESSAGES = {
     READ_FAILED: 'Failed to read file.',
     WRITE_FAILED: 'Failed to write file.'
   },
-  
+
   // Workflow errors
   WORKFLOW: {
     START_FAILED: 'Failed to start workflow.',
@@ -82,7 +82,7 @@ export const ERROR_MESSAGES = {
     CANCELLED: 'Workflow was cancelled.',
     VALIDATION_FAILED: 'Workflow validation failed.'
   },
-  
+
   // Agent errors
   AGENT: {
     NOT_AVAILABLE: 'Agent is not available.',
@@ -94,7 +94,7 @@ export const ERROR_MESSAGES = {
     NOT_CONFIGURED: 'Agent is not properly configured.',
     LEARNING_FAILED: 'Agent learning process failed.'
   },
-  
+
   // Collection errors
   COLLECTION: {
     IMPORT_FAILED: 'Failed to import collection data.',
@@ -105,7 +105,7 @@ export const ERROR_MESSAGES = {
     INCOMPLETE_DATA: 'Incomplete data provided.',
     FORMAT_ERROR: 'Invalid data format.'
   },
-  
+
   // Discovery errors
   DISCOVERY: {
     SCAN_FAILED: 'Discovery scan failed.',
@@ -114,7 +114,7 @@ export const ERROR_MESSAGES = {
     INSUFFICIENT_DATA: 'Insufficient data for discovery.',
     INVALID_CONFIGURATION: 'Invalid discovery configuration.'
   },
-  
+
   // Permission errors
   PERMISSION: {
     INSUFFICIENT_PRIVILEGES: 'Insufficient privileges for this operation.',
@@ -139,7 +139,7 @@ export const ERROR_CODES = {
   BAD_GATEWAY: 502,
   SERVICE_UNAVAILABLE: 503,
   GATEWAY_TIMEOUT: 504,
-  
+
   // Custom error codes
   VALIDATION_ERROR: 1000,
   AUTHENTICATION_ERROR: 2000,

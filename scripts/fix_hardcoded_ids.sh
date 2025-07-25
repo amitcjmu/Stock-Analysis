@@ -43,7 +43,7 @@ done
 # Update platform admin defaults in database
 echo "🗄️ Updating platform admin defaults..."
 docker exec -it migration_postgres psql -U postgres -d migration_db -c "
-UPDATE user_profiles 
+UPDATE user_profiles
 SET default_client_id = '$NEW_CLIENT_ID'::uuid,
     default_engagement_id = '$NEW_ENGAGEMENT_ID'::uuid
 WHERE email = 'chocka@gmail.com';

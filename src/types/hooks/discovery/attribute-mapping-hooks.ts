@@ -1,6 +1,6 @@
 /**
  * Discovery Attribute Mapping Hook Types
- * 
+ *
  * Type definitions for attribute mapping hooks including field mappings,
  * critical attributes, and mapping configurations.
  */

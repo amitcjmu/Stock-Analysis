@@ -1,9 +1,9 @@
 /**
  * Discovery Flow - Validation Types Module
- * 
+ *
  * Validation rules, business rules, and validation result types.
  * Contains error handling, warnings, and validation configuration.
- * 
+ *
  * Generated with CC - Code Companion
  */
 

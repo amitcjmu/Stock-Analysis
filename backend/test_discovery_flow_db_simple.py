@@ -147,10 +147,10 @@ async def test_discovery_flow_simple():
             result = await db.execute(
                 text(
                     """
-                    INSERT INTO data_imports 
-                    (id, client_account_id, engagement_id, import_name, filename, 
+                    INSERT INTO data_imports
+                    (id, client_account_id, engagement_id, import_name, filename,
                      import_type, status, total_records, imported_by, created_at)
-                    VALUES (:id, :client_id, :engagement_id, :name, :filename, 
+                    VALUES (:id, :client_id, :engagement_id, :name, :filename,
                             :type, :status, :total, :user_id, :created)
                     RETURNING id
                 """
@@ -291,8 +291,8 @@ async def test_discovery_flow_simple():
                                     text(
                                         """
                                         INSERT INTO import_field_mappings
-                                        (id, data_import_id, client_account_id, source_field, 
-                                         target_field, match_type, confidence_score, 
+                                        (id, data_import_id, client_account_id, source_field,
+                                         target_field, match_type, confidence_score,
                                          status, created_at)
                                         VALUES (:id, :import_id, :client_id, :source, :target,
                                                 :type, :confidence, :status, :created)
@@ -328,7 +328,7 @@ async def test_discovery_flow_simple():
                         text(
                             """
                             UPDATE import_field_mappings
-                            SET status = 'approved', 
+                            SET status = 'approved',
                                 approved_by = :user_id,
                                 approved_at = :now
                             WHERE data_import_id = :import_id
@@ -366,7 +366,7 @@ async def test_discovery_flow_simple():
                     result = await db2.execute(
                         text(
                             """
-                            SELECT COUNT(*) FROM assets 
+                            SELECT COUNT(*) FROM assets
                             WHERE discovery_flow_id = :flow_id
                                OR master_flow_id = :flow_id
                         """
@@ -381,8 +381,8 @@ async def test_discovery_flow_simple():
                         asset_result = await db2.execute(
                             text(
                                 """
-                                SELECT name, asset_type, ip_address, operating_system 
-                                FROM assets 
+                                SELECT name, asset_type, ip_address, operating_system
+                                FROM assets
                                 WHERE discovery_flow_id = :flow_id
                                    OR master_flow_id = :flow_id
                                 LIMIT 2

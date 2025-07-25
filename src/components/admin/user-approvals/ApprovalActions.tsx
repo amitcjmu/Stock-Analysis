@@ -25,7 +25,7 @@ export const ApprovalActions: React.FC<ApprovalActionsProps> = ({
         <Eye className="w-4 h-4 mr-1" />
         Details
       </Button>
-      
+
       <Button
         variant="outline"
         size="sm"
@@ -35,7 +35,7 @@ export const ApprovalActions: React.FC<ApprovalActionsProps> = ({
         <XCircle className="w-4 h-4 mr-1" />
         Reject
       </Button>
-      
+
       <Button
         size="sm"
         onClick={onApprove}
@@ -52,4 +52,4 @@ export const ApprovalActions: React.FC<ApprovalActionsProps> = ({
       </Button>
     </div>
   );
-}; 
+};

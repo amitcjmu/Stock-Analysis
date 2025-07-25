@@ -5,9 +5,9 @@
 
 import React from 'react'
 import { useState } from 'react'
-import { 
-  TrendingUp, CheckCircle, Zap, Target, Brain, 
-  ArrowRight, X, RefreshCw, ThumbsUp, ThumbsDown, AlertTriangle 
+import {
+  TrendingUp, CheckCircle, Zap, Target, Brain,
+  ArrowRight, X, RefreshCw, ThumbsUp, ThumbsDown, AlertTriangle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '../../ui/card';
 import { Badge } from '../../ui/badge';
@@ -74,7 +74,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
 
   const handleApply = async () => {
     if (!onApply) return;
-    
+
     setApplying(true);
     try {
       await onApply(recommendation);
@@ -89,8 +89,8 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
     }
   };
 
-  const improvementPercent = recommendation.estimatedImprovement.current > 0 ? 
-    ((recommendation.estimatedImprovement.projected - recommendation.estimatedImprovement.current) / 
+  const improvementPercent = recommendation.estimatedImprovement.current > 0 ?
+    ((recommendation.estimatedImprovement.projected - recommendation.estimatedImprovement.current) /
      recommendation.estimatedImprovement.current * 100) : 0;
 
   return (
@@ -149,10 +149,10 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
               {recommendation.estimatedImprovement.projected.toFixed(1)} {recommendation.estimatedImprovement.unit}
             </span>
           </div>
-          <Progress 
-            value={Math.min(100, (recommendation.estimatedImprovement.projected / 
-                  (recommendation.estimatedImprovement.current * 2)) * 100)} 
-            className="mt-2 h-1" 
+          <Progress
+            value={Math.min(100, (recommendation.estimatedImprovement.projected /
+                  (recommendation.estimatedImprovement.current * 2)) * 100)}
+            className="mt-2 h-1"
           />
         </div>
       </CardHeader>

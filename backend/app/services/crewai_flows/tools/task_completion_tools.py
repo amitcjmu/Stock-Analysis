@@ -80,7 +80,7 @@ if CREWAI_TOOLS_AVAILABLE:
         description: str = """
         Check if assets already exist in the database to avoid creating duplicates.
         Use this tool BEFORE creating new assets to ensure no duplicates are created.
-        
+
         Input: List of assets to check (with hostname/name fields)
         Output: List of assets that don't already exist and are safe to create
         """
@@ -195,7 +195,7 @@ if CREWAI_TOOLS_AVAILABLE:
         description: str = """
         Check if a specific task (like asset inventory) was recently completed
         to avoid redundant work. Use this BEFORE starting major processing tasks.
-        
+
         Input: Task name (e.g., "asset_inventory", "data_cleansing")
         Output: Dict with completion status and details
         """
@@ -207,9 +207,7 @@ if CREWAI_TOOLS_AVAILABLE:
         def _run(self, task_name: str) -> Dict[str, Any]:
             """Check if task was recently completed"""
             try:
-                logger.info(
-                    f"🔍 Agent checking completion status for task: {task_name}"
-                )
+                logger.info(f"🔍 Agent checking completion status for task: {task_name}")
 
                 # Check agent insights for recent completion
                 import json
@@ -254,9 +252,9 @@ if CREWAI_TOOLS_AVAILABLE:
         name: str = "asset_enrichment_analyzer"
         description: str = """
         Analyze and enrich assets with additional metadata for better classification.
-        Use this tool to enhance asset data with technology stack, environment, 
+        Use this tool to enhance asset data with technology stack, environment,
         migration complexity, and criticality assessments.
-        
+
         Input: Asset data to enrich
         Output: Enhanced asset data with enrichment metadata
         """
@@ -431,7 +429,7 @@ if CREWAI_TOOLS_AVAILABLE:
         description: str = """
         Coordinate with other agents to avoid conflicts and redundant execution.
         Use this when starting parallel operations that might conflict.
-        
+
         Input: Operation name and agent identifier
         Output: Coordination status and recommendations
         """

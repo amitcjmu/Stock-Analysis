@@ -113,8 +113,8 @@ def rename_fields():
             text(
                 """
                 SELECT EXISTS (
-                    SELECT FROM information_schema.columns 
-                    WHERE table_name = :table_name 
+                    SELECT FROM information_schema.columns
+                    WHERE table_name = :table_name
                     AND column_name = :column_name
                 )
             """
@@ -232,8 +232,8 @@ def drop_deprecated_columns():
             text(
                 """
                 SELECT EXISTS (
-                    SELECT FROM information_schema.columns 
-                    WHERE table_name = :table_name 
+                    SELECT FROM information_schema.columns
+                    WHERE table_name = :table_name
                     AND column_name = :column_name
                 )
             """
@@ -294,8 +294,8 @@ def add_new_columns():
             text(
                 """
                 SELECT EXISTS (
-                    SELECT FROM information_schema.columns 
-                    WHERE table_name = :table_name 
+                    SELECT FROM information_schema.columns
+                    WHERE table_name = :table_name
                     AND column_name = :column_name
                 )
             """
@@ -369,8 +369,8 @@ def create_indexes():
             text(
                 """
                 SELECT EXISTS (
-                    SELECT FROM pg_indexes 
-                    WHERE indexname = :index_name 
+                    SELECT FROM pg_indexes
+                    WHERE indexname = :index_name
                     AND tablename = :table_name
                 )
             """
@@ -384,8 +384,8 @@ def create_indexes():
             text(
                 """
                 SELECT EXISTS (
-                    SELECT FROM information_schema.columns 
-                    WHERE table_name = :table_name 
+                    SELECT FROM information_schema.columns
+                    WHERE table_name = :table_name
                     AND column_name = :column_name
                 )
             """
@@ -458,7 +458,7 @@ def drop_deprecated_tables():
             text(
                 """
                 SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
+                    SELECT FROM information_schema.tables
                     WHERE table_name = :table_name
                 )
             """

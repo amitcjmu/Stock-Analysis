@@ -88,7 +88,7 @@ export const AnalysisTableRow: React.FC<AnalysisTableRowProps> = ({
               </DropdownMenuItem>
             )}
             {onDelete && (
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => onDelete(analysis.id)}
                 className="text-red-600"
               >

@@ -1,16 +1,16 @@
 /**
  * Security and Threat Types
- * 
+ *
  * Security, anomaly, and threat types for session comparison.
  */
 
 import type {
-  RiskLevel, 
-  AnomalyType, 
-  ViolationType, 
-  ViolationResponse, 
-  AlertType, 
-  ThreatType 
+  RiskLevel,
+  AnomalyType,
+  ViolationType,
+  ViolationResponse,
+  AlertType,
+  ThreatType
 } from './enum-types';
 
 export interface SessionSecurity {

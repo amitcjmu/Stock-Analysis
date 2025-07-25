@@ -209,4 +209,4 @@ export const Currencies = [
   { value: 'AUD', label: 'Australian Dollar (AUD)' },
   { value: 'JPY', label: 'Japanese Yen (JPY)' },
   { value: 'INR', label: 'Indian Rupee (INR)' }
-]; 
+];

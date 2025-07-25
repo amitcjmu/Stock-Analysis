@@ -1,6 +1,6 @@
 /**
  * Shared Analysis Type Definitions
- * 
+ *
  * Standardized analysis result interfaces to replace forward declarations
  * and any types in analysis systems
  */

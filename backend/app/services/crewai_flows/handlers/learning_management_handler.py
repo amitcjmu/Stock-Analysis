@@ -654,17 +654,17 @@ class LearningManagementHandler:
             if self.memory_analytics["analytics_categories"]["learning_effectiveness"][
                 "enabled"
             ]:
-                analytics_report["learning_effectiveness"] = (
-                    self.get_learning_effectiveness_metrics()
-                )
+                analytics_report[
+                    "learning_effectiveness"
+                ] = self.get_learning_effectiveness_metrics()
 
             # Knowledge utilization analytics
             if self.memory_analytics["analytics_categories"]["knowledge_utilization"][
                 "enabled"
             ]:
-                analytics_report["knowledge_utilization"] = (
-                    self._get_knowledge_utilization_analytics()
-                )
+                analytics_report[
+                    "knowledge_utilization"
+                ] = self._get_knowledge_utilization_analytics()
 
             logger.info(f"📊 Memory analytics report generated: {report_type}")
             return {"available": True, "report": analytics_report}

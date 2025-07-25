@@ -18,19 +18,19 @@ check_docker() {
 if check_docker; then
     echo -e "\n1. Removing stopped containers..."
     docker container prune -f
-    
+
     echo -e "\n2. Removing unused images..."
     docker image prune -a -f
-    
+
     echo -e "\n3. Removing unused volumes..."
     docker volume prune -f
-    
+
     echo -e "\n4. Removing build cache..."
     docker builder prune -a -f
-    
+
     echo -e "\n5. Full system cleanup..."
     docker system prune -a -f --volumes
-    
+
     echo -e "\n6. Docker disk usage after cleanup:"
     docker system df
 else

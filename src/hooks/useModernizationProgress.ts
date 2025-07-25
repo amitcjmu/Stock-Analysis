@@ -64,4 +64,4 @@ export const useModernizationProgress = (timeframe: 'week' | 'month' | 'quarter'
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false
   });
-}; 
+};

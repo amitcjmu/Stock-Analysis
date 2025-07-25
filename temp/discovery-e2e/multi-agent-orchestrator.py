@@ -54,7 +54,7 @@ class AgentTask:
     expected_output: str
     timeout_seconds: int = 300
     dependencies: List[str] = None
-    
+
     def __post_init__(self):
         if self.dependencies is None:
             self.dependencies = []
@@ -71,7 +71,7 @@ class Agent:
     current_task: Optional[AgentTask] = None
     completed_tasks: List[str] = None
     failed_tasks: List[str] = None
-    
+
     def __post_init__(self):
         if self.completed_tasks is None:
             self.completed_tasks = []
@@ -81,7 +81,7 @@ class Agent:
 
 class MultiAgentOrchestrator:
     """Main orchestrator for managing multiple agents"""
-    
+
     def __init__(self, issue_id: str, issue_data: Dict, session_dir: str):
         self.issue_id = issue_id
         self.issue_data = issue_data
@@ -92,22 +92,22 @@ class MultiAgentOrchestrator:
         self.workflow_state = "IDENTIFIED"
         self.execution_log = []
         self.start_time = datetime.now()
-        
+
         # Create orchestrator directory
         self.orchestrator_dir = os.path.join(session_dir, "orchestrator")
         os.makedirs(self.orchestrator_dir, exist_ok=True)
-        
+
         # Initialize agents
         self._initialize_agents()
-        
+
         # Create workflow tasks
         self._create_workflow_tasks()
-        
+
         logger.info(f"🚀 Multi-Agent Orchestrator initialized for {issue_id}")
-    
+
     def _initialize_agents(self):
         """Initialize all agents with their specializations"""
-        
+
         # Agent-1: UI Testing Agent
         self.agents["agent-1"] = Agent(
             agent_id="agent-1",
@@ -115,7 +115,7 @@ class MultiAgentOrchestrator:
             role="UI Testing & Validation",
             specialization="Frontend testing, UI validation, user experience testing"
         )
-        
+
         # Agent-2: Backend Monitoring Agent
         self.agents["agent-2"] = Agent(
             agent_id="agent-2",
@@ -123,7 +123,7 @@ class MultiAgentOrchestrator:
             role="Backend Monitoring & Validation",
             specialization="API testing, server monitoring, performance analysis"
         )
-        
+
         # Agent-3: Database Validation Agent
         self.agents["agent-3"] = Agent(
             agent_id="agent-3",
@@ -131,7 +131,7 @@ class MultiAgentOrchestrator:
             role="Database Validation",
             specialization="Database integrity, schema validation, data consistency"
         )
-        
+
         # Agent-4: Solution Architect
         self.agents["agent-4"] = Agent(
             agent_id="agent-4",
@@ -139,7 +139,7 @@ class MultiAgentOrchestrator:
             role="Solution Architecture",
             specialization="System design, architecture review, solution planning"
         )
-        
+
         # Agent-5: Historical Review Agent
         self.agents["agent-5"] = Agent(
             agent_id="agent-5",
@@ -147,7 +147,7 @@ class MultiAgentOrchestrator:
             role="Historical Review",
             specialization="Code history analysis, pattern recognition, lesson learning"
         )
-        
+
         # Agent-7: Verification Agent
         self.agents["agent-7"] = Agent(
             agent_id="agent-7",
@@ -155,7 +155,7 @@ class MultiAgentOrchestrator:
             role="Implementation Verification",
             specialization="Code review, quality assurance, testing validation"
         )
-        
+
         # Agent-8: Implementation Agent
         self.agents["agent-8"] = Agent(
             agent_id="agent-8",
@@ -163,15 +163,15 @@ class MultiAgentOrchestrator:
             role="Implementation",
             specialization="Code implementation, bug fixing, feature development"
         )
-        
+
         logger.info(f"✅ Initialized {len(self.agents)} agents")
-    
+
     def _create_workflow_tasks(self):
         """Create tasks based on the workflow and issue type"""
-        
+
         issue_type = self.issue_data.get("analysis", {}).get("issue_type", "ui")
         self.issue_data.get("analysis", {}).get("suggested_reporter", "agent-1")
-        
+
         # Task 1: Historical Review (Agent-5)
         historical_task = AgentTask(
             task_id=f"{self.issue_id}-historical-review",
@@ -184,7 +184,7 @@ class MultiAgentOrchestrator:
             },
             expected_output="Historical analysis report with recommendations"
         )
-        
+
         # Task 2: Solution Design (Agent-4)
         solution_task = AgentTask(
             task_id=f"{self.issue_id}-solution-design",
@@ -198,7 +198,7 @@ class MultiAgentOrchestrator:
             expected_output="Solution design document with implementation plan",
             dependencies=[historical_task.task_id]
         )
-        
+
         # Task 3: Implementation (Agent-8)
         implementation_task = AgentTask(
             task_id=f"{self.issue_id}-implementation",
@@ -212,7 +212,7 @@ class MultiAgentOrchestrator:
             expected_output="Implementation completed with code changes",
             dependencies=[solution_task.task_id]
         )
-        
+
         # Task 4: Verification (Agent-7)
         verification_task = AgentTask(
             task_id=f"{self.issue_id}-verification",
@@ -225,14 +225,14 @@ class MultiAgentOrchestrator:
             expected_output="Verification report with quality assessment",
             dependencies=[implementation_task.task_id]
         )
-        
+
         # Task 5: Original Reporter Validation (based on issue type)
         validation_task_type = {
             "ui": TaskType.UI_TESTING,
             "backend": TaskType.BACKEND_MONITORING,
             "database": TaskType.DATABASE_VALIDATION
         }.get(issue_type, TaskType.UI_TESTING)
-        
+
         validation_task = AgentTask(
             task_id=f"{self.issue_id}-original-reporter-validation",
             task_type=validation_task_type,
@@ -245,7 +245,7 @@ class MultiAgentOrchestrator:
             expected_output="Original reporter validation confirmation",
             dependencies=[verification_task.task_id]
         )
-        
+
         # Add tasks to queue
         self.task_queue = [
             historical_task,
@@ -254,20 +254,20 @@ class MultiAgentOrchestrator:
             verification_task,
             validation_task
         ]
-        
+
         logger.info(f"✅ Created {len(self.task_queue)} workflow tasks")
-    
+
     def _can_execute_task(self, task: AgentTask) -> bool:
         """Check if a task can be executed (all dependencies completed)"""
         if not task.dependencies:
             return True
-        
+
         for dep_id in task.dependencies:
             if dep_id not in self.completed_tasks:
                 return False
-        
+
         return True
-    
+
     def _get_agent_for_task(self, task: AgentTask) -> str:
         """Get the appropriate agent for a task"""
         task_agent_mapping = {
@@ -279,31 +279,31 @@ class MultiAgentOrchestrator:
             TaskType.BACKEND_MONITORING: "agent-2",
             TaskType.DATABASE_VALIDATION: "agent-3"
         }
-        
+
         return task_agent_mapping.get(task.task_type, "agent-8")
-    
+
     def _execute_agent_task(self, agent_id: str, task: AgentTask) -> bool:
         """Execute a task with a specific agent"""
-        
+
         agent = self.agents[agent_id]
         agent.status = AgentStatus.WORKING
         agent.current_task = task
-        
+
         logger.info(f"🔄 {agent.name} starting task: {task.description}")
-        
+
         try:
             # Create task execution script
             task_script = self._create_task_script(agent, task)
-            
+
             # Execute the task
             result = self._run_task_script(task_script, task.timeout_seconds)
-            
+
             if result["success"]:
                 agent.status = AgentStatus.COMPLETED
                 agent.completed_tasks.append(task.task_id)
                 agent.current_task = None
                 self.completed_tasks.append(task.task_id)
-                
+
                 # Log execution
                 self.execution_log.append({
                     "timestamp": datetime.now().isoformat(),
@@ -313,30 +313,30 @@ class MultiAgentOrchestrator:
                     "output": result.get("output", ""),
                     "duration": result.get("duration", 0)
                 })
-                
+
                 logger.info(f"✅ {agent.name} completed task: {task.description}")
                 return True
             else:
                 agent.status = AgentStatus.FAILED
                 agent.failed_tasks.append(task.task_id)
                 agent.current_task = None
-                
+
                 logger.error(f"❌ {agent.name} failed task: {task.description}")
                 logger.error(f"Error: {result.get('error', 'Unknown error')}")
                 return False
-                
+
         except Exception as e:
             agent.status = AgentStatus.FAILED
             agent.failed_tasks.append(task.task_id)
             agent.current_task = None
-            
+
             logger.error(f"❌ {agent.name} exception in task: {task.description}")
             logger.error(f"Exception: {str(e)}")
             return False
-    
+
     def _create_task_script(self, agent: Agent, task: AgentTask) -> str:
         """Create executable script for the task"""
-        
+
         script_content = f"""#!/bin/bash
 # Task: {task.description}
 # Agent: {agent.name}
@@ -350,7 +350,7 @@ echo "⏰ Started at: $(date)"
 
 # Task-specific execution
 """
-        
+
         if task.task_type == TaskType.HISTORICAL_REVIEW:
             script_content += self._create_historical_review_script(task)
         elif task.task_type == TaskType.SOLUTION_DESIGN:
@@ -365,15 +365,15 @@ echo "⏰ Started at: $(date)"
             script_content += self._create_backend_monitoring_script(task)
         elif task.task_type == TaskType.DATABASE_VALIDATION:
             script_content += self._create_database_validation_script(task)
-        
+
         script_content += f"""
 
 echo "✅ Task completed at: $(date)"
 echo "📊 Task: {task.description}"
 """
-        
+
         return script_content
-    
+
     def _create_historical_review_script(self, task: AgentTask) -> str:
         """Create script for historical review task"""
         return f"""
@@ -418,7 +418,7 @@ EOF
 
 echo "✅ Historical analysis completed and saved"
 """
-    
+
     def _create_solution_design_script(self, task: AgentTask) -> str:
         """Create script for solution design task"""
         return f"""
@@ -465,7 +465,7 @@ EOF
 
 echo "✅ Solution design completed and saved"
 """
-    
+
     def _create_implementation_script(self, task: AgentTask) -> str:
         """Create script for implementation task"""
         return f"""
@@ -508,7 +508,7 @@ EOF
 
 echo "✅ Implementation completed and documented"
 """
-    
+
     def _create_verification_script(self, task: AgentTask) -> str:
         """Create script for verification task"""
         return f"""
@@ -552,7 +552,7 @@ EOF
 
 echo "✅ Verification completed - implementation approved"
 """
-    
+
     def _create_ui_testing_script(self, task: AgentTask) -> str:
         """Create script for UI testing task"""
         return f"""
@@ -596,7 +596,7 @@ EOF
 
 echo "✅ UI validation completed - issue resolved"
 """
-    
+
     def _create_backend_monitoring_script(self, task: AgentTask) -> str:
         """Create script for backend monitoring task"""
         return f"""
@@ -640,7 +640,7 @@ EOF
 
 echo "✅ Backend validation completed - issue resolved"
 """
-    
+
     def _create_database_validation_script(self, task: AgentTask) -> str:
         """Create script for database validation task"""
         return f"""
@@ -684,20 +684,20 @@ EOF
 
 echo "✅ Database validation completed - issue resolved"
 """
-    
+
     def _run_task_script(self, script_content: str, timeout: int) -> Dict[str, Any]:
         """Execute a task script and return results"""
-        
+
         # Create temporary script file
         script_file = os.path.join(self.orchestrator_dir, f"task_script_{int(time.time())}.sh")
-        
+
         try:
             with open(script_file, 'w') as f:
                 f.write(script_content)
-            
+
             # Make script executable
             os.chmod(script_file, 0o755)
-            
+
             # Execute script
             start_time = time.time()
             result = subprocess.run(
@@ -707,7 +707,7 @@ echo "✅ Database validation completed - issue resolved"
                 timeout=timeout
             )
             duration = time.time() - start_time
-            
+
             if result.returncode == 0:
                 return {
                     "success": True,
@@ -721,7 +721,7 @@ echo "✅ Database validation completed - issue resolved"
                     "output": result.stdout,
                     "duration": duration
                 }
-                
+
         except subprocess.TimeoutExpired:
             return {
                 "success": False,
@@ -738,12 +738,12 @@ echo "✅ Database validation completed - issue resolved"
             # Clean up script file
             if os.path.exists(script_file):
                 os.remove(script_file)
-    
+
     def _update_workflow_state(self):
         """Update workflow state based on completed tasks"""
         completed_count = len(self.completed_tasks)
         total_tasks = len(self.task_queue)
-        
+
         if completed_count == 0:
             self.workflow_state = "IDENTIFIED"
         elif completed_count == 1:
@@ -758,7 +758,7 @@ echo "✅ Database validation completed - issue resolved"
             self.workflow_state = "ORIGINAL_REPORTER_VALIDATION"
         elif completed_count == total_tasks:
             self.workflow_state = "COMPLETED"
-    
+
     def _save_progress(self):
         """Save current progress to file"""
         progress_data = {
@@ -779,16 +779,16 @@ echo "✅ Database validation completed - issue resolved"
             "total_tasks": len(self.task_queue),
             "execution_log": self.execution_log
         }
-        
+
         progress_file = os.path.join(self.orchestrator_dir, "progress.json")
         with open(progress_file, 'w') as f:
             json.dump(progress_data, f, indent=2)
-    
+
     async def execute_workflow(self) -> bool:
         """Execute the complete workflow with all agents"""
-        
+
         logger.info(f"🚀 Starting workflow execution for {self.issue_id}")
-        
+
         try:
             # Execute tasks in order
             for task in self.task_queue:
@@ -796,38 +796,38 @@ echo "✅ Database validation completed - issue resolved"
                 while not self._can_execute_task(task):
                     logger.info(f"⏳ Waiting for dependencies: {task.dependencies}")
                     await asyncio.sleep(2)
-                
+
                 # Get agent for task
                 agent_id = self._get_agent_for_task(task)
-                
+
                 # Execute task
                 logger.info(f"🔄 Executing task: {task.description}")
                 success = self._execute_agent_task(agent_id, task)
-                
+
                 if not success:
                     logger.error(f"❌ Task failed: {task.description}")
                     return False
-                
+
                 # Update workflow state
                 self._update_workflow_state()
-                
+
                 # Save progress
                 self._save_progress()
-                
+
                 logger.info(f"✅ Task completed: {task.description}")
                 logger.info(f"📊 Workflow state: {self.workflow_state}")
-            
+
             # Final workflow completion
             self.workflow_state = "COMPLETED"
             self._save_progress()
-            
+
             logger.info(f"🎉 Workflow completed successfully for {self.issue_id}")
             return True
-            
+
         except Exception as e:
             logger.error(f"❌ Workflow execution failed: {str(e)}")
             return False
-    
+
     def get_status(self) -> Dict[str, Any]:
         """Get current workflow status"""
         return {
@@ -850,15 +850,15 @@ echo "✅ Database validation completed - issue resolved"
 
 async def main():
     """Main function for orchestrator"""
-    
+
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="Multi-Agent Orchestrator")
     parser.add_argument("--input", required=True, help="Input JSON file with issue data")
     parser.add_argument("--test", action="store_true", help="Run in test mode")
-    
+
     args = parser.parse_args()
-    
+
     if args.test:
         # Test mode
         test_issue_data = {
@@ -869,15 +869,15 @@ async def main():
                 "suggested_reporter": "agent-1"
             }
         }
-        
+
         session_dir = "/tmp/test_orchestrator"
         os.makedirs(session_dir, exist_ok=True)
-        
+
         # Create and run orchestrator
         orchestrator = MultiAgentOrchestrator("TEST-001", test_issue_data, session_dir)
-        
+
         success = await orchestrator.execute_workflow()
-        
+
         if success:
             print("✅ Workflow completed successfully")
             print(json.dumps(orchestrator.get_status(), indent=2))
@@ -888,20 +888,20 @@ async def main():
         if not os.path.exists(args.input):
             print(f"❌ Input file not found: {args.input}")
             sys.exit(1)
-        
+
         # Load input data
         with open(args.input, 'r') as f:
             input_data = json.load(f)
-        
+
         issue_id = input_data["issue_id"]
         issue_data = input_data["issue_data"]
         session_dir = input_data["session_dir"]
-        
+
         # Create and run orchestrator
         orchestrator = MultiAgentOrchestrator(issue_id, issue_data, session_dir)
-        
+
         success = await orchestrator.execute_workflow()
-        
+
         if success:
             print(f"✅ Workflow completed successfully for {issue_id}")
             print(json.dumps(orchestrator.get_status(), indent=2))

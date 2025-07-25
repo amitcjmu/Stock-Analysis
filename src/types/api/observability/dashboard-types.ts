@@ -1,6 +1,6 @@
 /**
  * Dashboard Management Types
- * 
+ *
  * Type definitions for creating, managing, and customizing dashboards
  * for observability data visualization and monitoring interfaces.
  */
@@ -189,7 +189,7 @@ export interface DashboardChangeImpact {
 }
 
 // Widget Types
-export type WidgetType = 
+export type WidgetType =
   | 'chart' | 'table' | 'stat' | 'gauge' | 'heatmap' | 'histogram'
   | 'timeline' | 'worldmap' | 'piechart' | 'bargraph' | 'linegraph'
   | 'scatterplot' | 'treemap' | 'sankey' | 'text' | 'image' | 'iframe'

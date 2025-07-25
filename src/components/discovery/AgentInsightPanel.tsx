@@ -28,4 +28,4 @@ const AgentInsightPanel: React.FC<AgentInsightPanelProps> = ({
   );
 };
 
-export default AgentInsightPanel; 
+export default AgentInsightPanel;

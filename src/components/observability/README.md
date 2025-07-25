@@ -101,10 +101,10 @@ import { ObservabilityErrorBoundary } from '../components/observability';
 Various loading state components for different scenarios.
 
 ```tsx
-import { 
-  LoadingSpinner, 
-  AgentListSkeleton, 
-  ProgressiveLoader 
+import {
+  LoadingSpinner,
+  AgentListSkeleton,
+  ProgressiveLoader
 } from '../components/observability';
 
 <LoadingSpinner text="Loading agents..." size="lg" />
@@ -149,9 +149,9 @@ import { AgentListOverview } from '../components/observability';
 Create a comprehensive observability dashboard:
 
 ```tsx
-import { 
+import {
   ResponsiveAgentListOverview,
-  ObservabilityErrorBoundary 
+  ObservabilityErrorBoundary
 } from '../components/observability';
 
 const ObservabilityDashboard = () => {
@@ -175,10 +175,10 @@ const ObservabilityDashboard = () => {
 Use individual components for custom layouts:
 
 ```tsx
-import { 
+import {
   AgentStatusIndicator,
   AgentPerformanceCard,
-  SparklineChart 
+  SparklineChart
 } from '../components/observability';
 
 const CustomDashboard = () => {

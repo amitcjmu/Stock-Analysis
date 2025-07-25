@@ -148,7 +148,7 @@ export interface AttributeMappingProps {
   hasSessionData: boolean;
   hasUploadedData: boolean;
   sessionInfo: SessionInfo;
-  
+
   // Handlers
   onTriggerAnalysis: () => void;
   onApproveMapping: (mappingId: string) => void;

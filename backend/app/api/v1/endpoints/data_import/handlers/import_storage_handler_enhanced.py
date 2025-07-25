@@ -43,14 +43,14 @@ os.makedirs(VALIDATION_SESSIONS_PATH, exist_ok=True)
     summary="Store Import Data",
     description="""
     Store validated CSV data in the database and trigger a Discovery Flow.
-    
+
     This endpoint:
     1. Validates that no incomplete discovery flow exists for the engagement
     2. Stores the CSV data in the database
     3. Triggers a Discovery Flow for immediate processing
     4. Returns the import session ID and flow ID for tracking
-    
-    **Authentication Required**: Yes  
+
+    **Authentication Required**: Yes
     **Multi-tenant Headers Required**: X-Client-Account-ID, X-Engagement-ID
     """,
     response_model=DataImportResponse,
@@ -245,8 +245,8 @@ async def store_import_data(
     summary="Get Latest Import",
     description="""
     Retrieve the most recent import data for the current client and engagement context.
-    
-    **Authentication Required**: Yes  
+
+    **Authentication Required**: Yes
     **Multi-tenant Headers Required**: X-Client-Account-ID, X-Engagement-ID
     """,
     response_model=ImportDataResponse,
@@ -332,7 +332,7 @@ async def get_latest_import(
     summary="Get Import Status",
     description="""
     Get the current status of an import operation.
-    
+
     **Authentication Required**: Yes
     """,
     response_model=ImportStatusResponse,

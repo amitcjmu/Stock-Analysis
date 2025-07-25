@@ -25,7 +25,7 @@ export const AgentSelector: React.FC<AgentSelectorProps> = ({
   maxAgents
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   const filteredAgents = availableAgents.filter(agent =>
     agent.toLowerCase().includes(searchTerm.toLowerCase()) &&
     !selectedAgents.includes(agent)
@@ -61,8 +61,8 @@ export const AgentSelector: React.FC<AgentSelectorProps> = ({
                 {selectedAgents.map(agent => (
                   <Badge key={agent} variant="default" className="flex items-center gap-1">
                     {agent.replace('Agent', '')}
-                    <X 
-                      className="w-3 h-3 cursor-pointer hover:text-red-500" 
+                    <X
+                      className="w-3 h-3 cursor-pointer hover:text-red-500"
                       onClick={() => handleRemoveAgent(agent)}
                     />
                   </Badge>

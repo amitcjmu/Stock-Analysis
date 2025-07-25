@@ -65,7 +65,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
 
   const formatValue = (value: unknown, column: string) => {
     if (value === null || value === undefined) return '-';
-    
+
     if (column === 'risk_score' || column === 'migration_readiness') {
       const numValue = typeof value === 'number' ? value : parseInt(value);
       const color = getReadinessColor(numValue);
@@ -78,18 +78,18 @@ export const AssetTable: React.FC<AssetTableProps> = ({
         </div>
       );
     }
-    
+
     if (column === 'business_criticality' || column === 'criticality') {
-      const variant = value === 'High' ? 'destructive' : 
+      const variant = value === 'High' ? 'destructive' :
                      value === 'Medium' ? 'secondary' : 'default';
       return <Badge variant={variant}>{value}</Badge>;
     }
-    
+
     if (column === 'status') {
       const variant = value === 'Active' ? 'default' : 'secondary';
       return <Badge variant={variant}>{value}</Badge>;
     }
-    
+
     if (column === 'asset_type') {
       const Icon = getTypeIcon(value);
       return (
@@ -99,11 +99,11 @@ export const AssetTable: React.FC<AssetTableProps> = ({
         </div>
       );
     }
-    
+
     if (column === 'last_updated' && value) {
       return new Date(value).toLocaleDateString();
     }
-    
+
     return String(value);
   };
 
@@ -141,14 +141,14 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                 <tr>
                   <th className="p-3 text-left">
                     <Checkbox
-                      checked={currentAssetIds.length > 0 && 
+                      checked={currentAssetIds.length > 0 &&
                         currentAssetIds.every(id => selectedAssets.includes(id))}
                       onCheckedChange={() => onSelectAll(currentAssetIds)}
                     />
                   </th>
                   {selectedColumns.map(column => (
                     <th key={column} className="p-3 text-left text-sm font-medium text-gray-700">
-                      {column.split('_').map(word => 
+                      {column.split('_').map(word =>
                         word.charAt(0).toUpperCase() + word.slice(1)
                       ).join(' ')}
                     </th>

@@ -21,58 +21,58 @@ const DiscoveryIndex = () => {
   ];
 
   const quickActions = [
-    { 
-      title: 'Discovery Dashboard', 
-      description: 'Complete landscape view and modernization readiness', 
+    {
+      title: 'Discovery Dashboard',
+      description: 'Complete landscape view and modernization readiness',
       path: '/discovery/dashboard',
       icon: LayoutDashboard,
       color: 'bg-blue-500'
     },
-    { 
-      title: 'Data Import', 
-      description: 'Import and analyze CMDB data with AI validation', 
+    {
+      title: 'Data Import',
+      description: 'Import and analyze CMDB data with AI validation',
       path: '/discovery/data-import',
       icon: Database,
       color: 'bg-green-500'
     },
-    { 
-      title: 'Attribute Mapping', 
-      description: 'Train AI crew on field mappings and associations', 
+    {
+      title: 'Attribute Mapping',
+      description: 'Train AI crew on field mappings and associations',
       path: '/discovery/attribute-mapping',
       icon: Settings,
       color: 'bg-indigo-500'
     },
-    { 
-      title: 'Data Cleansing', 
-      description: 'Human-in-the-loop data quality improvement', 
+    {
+      title: 'Data Cleansing',
+      description: 'Human-in-the-loop data quality improvement',
       path: '/discovery/data-cleansing',
       icon: Sparkles,
       color: 'bg-yellow-500'
     },
-    { 
-      title: 'Asset Inventory', 
-      description: 'Browse discovered assets and their details', 
+    {
+      title: 'Asset Inventory',
+      description: 'Browse discovered assets and their details',
       path: '/discovery/inventory',
       icon: Server,
       color: 'bg-purple-500'
     },
-    { 
-      title: 'Dependency Map', 
-      description: 'Explore relationships between assets', 
+    {
+      title: 'Dependency Map',
+      description: 'Explore relationships between assets',
       path: '/discovery/dependencies',
       icon: Activity,
       color: 'bg-teal-500'
     },
-    { 
-      title: 'Tech Debt Analysis', 
-      description: 'Analyze technology stack support and modernization needs', 
+    {
+      title: 'Tech Debt Analysis',
+      description: 'Analyze technology stack support and modernization needs',
       path: '/discovery/tech-debt-analysis',
       icon: BarChart3,
       color: 'bg-red-500'
     },
-    { 
-      title: 'Scanning Status', 
-      description: 'Monitor ongoing discovery scans', 
+    {
+      title: 'Scanning Status',
+      description: 'Monitor ongoing discovery scans',
       path: '/discovery/scan',
       icon: Activity,
       color: 'bg-orange-500'

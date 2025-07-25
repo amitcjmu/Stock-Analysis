@@ -206,7 +206,7 @@ class FlowRepairService:
                     # Update discovery flow to reference the master flow
                     query = text(
                         """
-                        UPDATE discovery_flows 
+                        UPDATE discovery_flows
                         SET master_flow_id = :flow_id,
                             updated_at = NOW()
                         WHERE id = :item_id
@@ -272,7 +272,7 @@ class FlowRepairService:
                     # Update data import to reference the master flow
                     query = text(
                         """
-                        UPDATE data_imports 
+                        UPDATE data_imports
                         SET master_flow_id = :flow_id,
                             updated_at = NOW()
                         WHERE id = :item_id
@@ -338,7 +338,7 @@ class FlowRepairService:
                     # Update asset to reference the master flow
                     query = text(
                         """
-                        UPDATE assets 
+                        UPDATE assets
                         SET master_flow_id = :flow_id,
                             updated_at = NOW()
                         WHERE id = :item_id

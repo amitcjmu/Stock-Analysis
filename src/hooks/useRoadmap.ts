@@ -23,7 +23,7 @@ export interface RoadmapData {
 
 export const useRoadmap = () => {
   const { getAuthHeaders } = useAuth();
-  
+
   return useQuery<RoadmapData>({
     queryKey: ['roadmap'],
     queryFn: async () => {
@@ -52,4 +52,4 @@ export const useUpdateRoadmap = () => {
       queryClient.invalidateQueries({ queryKey: ['roadmap'] });
     },
   });
-}; 
+};

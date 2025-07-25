@@ -30,30 +30,30 @@ services:
       # Test Database Configuration
       - DATABASE_URL=postgresql://test_user:test_pass@test-db:5432/test_assessment_db
       - TEST_DATABASE_URL=postgresql://test_user:test_pass@test-db:5432/test_assessment_db
-      
+
       # Test Environment Settings
       - ENVIRONMENT=test
       - DEBUG=true
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
-      
+
       # Assessment Flow Test Configuration
       - ASSESSMENT_FLOW_ENABLED=true
       - ASSESSMENT_FLOW_DEBUG=true
       - ASSESSMENT_CREW_PARALLELISM=1  # Reduced for testing
       - ASSESSMENT_TIMEOUT_MINUTES=5   # Shorter timeout for tests
-      
+
       # CrewAI Test Configuration
       - CREWAI_ASSESSMENT_AGENTS_ENABLED=true
       - CREWAI_LOG_LEVEL=DEBUG
       - DEEPINFRA_API_KEY=test_key_for_mocking
-      
+
       # Disable external services for testing
       - OTEL_SDK_DISABLED=true
       - OTEL_TRACES_EXPORTER=none
       - OTEL_METRICS_EXPORTER=none
       - OTEL_LOGS_EXPORTER=none
-      
+
       # Test-specific settings
       - PYTEST_ARGS=tests/assessment_flow/
       - COVERAGE_REPORT=true
@@ -79,16 +79,16 @@ services:
       - ENVIRONMENT=integration_test
       - DEBUG=true
       - PYTHONPATH=/app
-      
+
       # Real CrewAI Configuration for Integration Tests
       - ASSESSMENT_FLOW_ENABLED=true
       - CREWAI_ASSESSMENT_AGENTS_ENABLED=true
       - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}  # Real API key
-      
+
       # Integration test timeouts (longer)
       - ASSESSMENT_TIMEOUT_MINUTES=15
       - CREW_EXECUTION_TIMEOUT_MINUTES=10
-      
+
       # Integration test settings
       - PYTEST_ARGS=tests/integration/assessment_flow/
       - RUN_INTEGRATION_TESTS=true
@@ -112,16 +112,16 @@ services:
       - DATABASE_URL=postgresql://test_user:test_pass@test-db:5432/test_assessment_db
       - ENVIRONMENT=performance_test
       - PYTHONPATH=/app
-      
+
       # Performance test configuration
       - ASSESSMENT_FLOW_ENABLED=true
       - ASSESSMENT_MAX_CONCURRENT_FLOWS=5
       - ASSESSMENT_COMPONENT_BATCH_SIZE=20
-      
+
       # Mock CrewAI for performance testing
       - CREWAI_MOCK_MODE=true
       - MOCK_CREW_RESPONSE_TIME=0.1  # Fast mock responses
-      
+
       # Performance test settings
       - PYTEST_ARGS=tests/performance/assessment_flow/
       - RUN_PERFORMANCE_TESTS=true
@@ -146,7 +146,7 @@ services:
       - NODE_ENV=test
       - VITE_BACKEND_URL=http://test-backend:8000
       - VITE_WS_BASE_URL=ws://test-backend:8000/ws
-      
+
       # Test configuration
       - VITEST_REPORTER=verbose
       - COVERAGE_ENABLED=true

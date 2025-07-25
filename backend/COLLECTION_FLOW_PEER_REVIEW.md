@@ -1,8 +1,8 @@
 # Collection Flow Configuration Peer Review Report
 
-**Review Date**: 2025-07-19  
-**Reviewer**: CC  
-**Team**: A3 - Flow Configuration & Registration  
+**Review Date**: 2025-07-19
+**Reviewer**: CC
+**Team**: A3 - Flow Configuration & Registration
 **Component**: Collection Flow (ADCS - Automated Data Collection and Synthesis)
 
 ## Executive Summary

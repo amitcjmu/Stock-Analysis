@@ -134,7 +134,7 @@ export const BulkEditingControls: React.FC<BulkEditingControlsProps> = ({
               </div>
 
               <div className="flex items-end">
-                <Button 
+                <Button
                   onClick={handleBulkApply}
                   disabled={!bulkStrategy || selectedComponents.length === 0}
                   className="w-full"

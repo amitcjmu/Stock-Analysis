@@ -1,6 +1,6 @@
 /**
  * Data Display Component Types Index
- * 
+ *
  * Central export point for all data display component types organized by component type.
  */
 

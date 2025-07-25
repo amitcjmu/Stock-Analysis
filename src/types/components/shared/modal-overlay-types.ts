@@ -1,6 +1,6 @@
 /**
  * Modal and Overlay Component Types
- * 
+ *
  * Modal, tooltip, and overlay component interfaces.
  */
 

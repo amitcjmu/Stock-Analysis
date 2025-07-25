@@ -84,7 +84,7 @@ export const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({
         onDelete?.(id);
       }
     });
-    
+
     clearSelection();
     toast.success(`${selectedAnalyses.length} analyses ${action}d successfully`);
   };
@@ -171,7 +171,7 @@ export const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({
               {selectedAnalyses.length} analyses selected for export
             </div>
             <div className="flex gap-3">
-              <Button 
+              <Button
                 onClick={() => handleExport('csv')}
                 disabled={selectedAnalyses.length === 0}
                 variant="outline"
@@ -179,7 +179,7 @@ export const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({
                 <Download className="h-4 w-4 mr-2" />
                 Export CSV
               </Button>
-              <Button 
+              <Button
                 onClick={() => handleExport('pdf')}
                 disabled={selectedAnalyses.length === 0}
                 variant="outline"
@@ -187,7 +187,7 @@ export const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({
                 <Download className="h-4 w-4 mr-2" />
                 Export PDF
               </Button>
-              <Button 
+              <Button
                 onClick={() => handleExport('json')}
                 disabled={selectedAnalyses.length === 0}
                 variant="outline"

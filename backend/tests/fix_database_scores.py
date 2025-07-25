@@ -47,9 +47,7 @@ async def fix_scores():
 
         if fixed_count > 0:
             await session.commit()
-            print(
-                f"\n🎯 SUMMARY: Fixed {fixed_count} recommendations with scores > 100"
-            )
+            print(f"\n🎯 SUMMARY: Fixed {fixed_count} recommendations with scores > 100")
         else:
             print("\n🎯 SUMMARY: No scores > 100 found")
 

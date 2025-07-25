@@ -33,7 +33,7 @@ export const InventoryOverview: React.FC<InventoryOverviewProps> = ({ inventoryP
     },
     {
       title: 'Completion',
-      value: inventoryProgress.total_assets > 0 
+      value: inventoryProgress.total_assets > 0
         ? `${Math.round((inventoryProgress.classified_assets / inventoryProgress.total_assets) * 100)}%`
         : '0%',
       icon: CheckCircle,
@@ -57,11 +57,11 @@ export const InventoryOverview: React.FC<InventoryOverviewProps> = ({ inventoryP
             </div>
             <h3 className="text-sm font-medium text-gray-600">{card.title}</h3>
             {card.title === 'Completion' && (
-              <Progress 
-                value={inventoryProgress.total_assets > 0 
+              <Progress
+                value={inventoryProgress.total_assets > 0
                   ? (inventoryProgress.classified_assets / inventoryProgress.total_assets) * 100
-                  : 0} 
-                className="mt-2 h-2" 
+                  : 0}
+                className="mt-2 h-2"
               />
             )}
           </CardContent>

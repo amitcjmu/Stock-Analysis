@@ -34,9 +34,9 @@ discovery_flow_record = DiscoveryFlow(
 ## Verification
 ```sql
 -- Check linkage status
-SELECT COUNT(*) as total_flows, 
+SELECT COUNT(*) as total_flows,
        COUNT(master_flow_id) as linked_flows,
-       ROUND(100.0 * COUNT(master_flow_id) / COUNT(*), 1) as linked_percentage 
+       ROUND(100.0 * COUNT(master_flow_id) / COUNT(*), 1) as linked_percentage
 FROM discovery_flows;
 
 -- Result: 100% linked

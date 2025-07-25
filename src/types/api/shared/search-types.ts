@@ -1,6 +1,6 @@
 /**
  * Search API Types
- * 
+ *
  * Types for search operations, advanced search, and search results.
  */
 

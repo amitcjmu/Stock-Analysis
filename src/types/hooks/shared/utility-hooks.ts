@@ -1,6 +1,6 @@
 /**
  * Utility Hook Types
- * 
+ *
  * Hook interfaces for utility functions including previous values, constants, force updates, and controllable state.
  */
 

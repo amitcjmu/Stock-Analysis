@@ -1,8 +1,8 @@
 /**
  * Flow Orchestration Model Types - Index
- * 
+ *
  * Centralized exports for all flow orchestration model type definitions.
- * This module provides comprehensive type definitions for flow execution, agent coordination, 
+ * This module provides comprehensive type definitions for flow execution, agent coordination,
  * crew management, event handling, and system monitoring.
  */
 

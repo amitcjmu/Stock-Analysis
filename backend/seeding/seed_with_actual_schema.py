@@ -46,8 +46,8 @@ async def seed_users(db: AsyncSession) -> list[dict]:
                 text(
                     """
                 INSERT INTO users (
-                    id, email, hashed_password, full_name, is_active, 
-                    email_verified, created_at, default_client_account_id, 
+                    id, email, hashed_password, full_name, is_active,
+                    email_verified, created_at, default_client_account_id,
                     default_engagement_id
                 ) VALUES (
                     :id, :email, :hashed_password, :full_name, :is_active,

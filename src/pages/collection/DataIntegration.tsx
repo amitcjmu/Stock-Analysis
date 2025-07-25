@@ -15,11 +15,11 @@ import { ValidationDisplay } from '@/components/collection/ValidationDisplay';
 import { ProgressTracker } from '@/components/collection/ProgressTracker';
 
 // Import types
-import type { 
-  DataConflict, 
-  ConflictResolution, 
+import type {
+  DataConflict,
+  ConflictResolution,
   FormValidationResult,
-  ProgressMilestone 
+  ProgressMilestone
 } from '@/components/collection/types';
 
 // UI Components
@@ -190,7 +190,7 @@ const DataIntegration: React.FC = () => {
 
   const handleConflictResolve = (conflictId: string, resolution: ConflictResolution) => {
     setResolvedConflicts(prev => [...prev, conflictId]);
-    
+
     // Update conflicts list
     setConflicts(prev => prev.filter(c => c.id !== conflictId));
 
@@ -203,7 +203,7 @@ const DataIntegration: React.FC = () => {
     if (resolvedConflicts.length + 1 === conflicts.length) {
       // Update validation to mark as valid
       setValidation(prev => prev ? { ...prev, isValid: true } : null);
-      
+
       toast({
         title: 'All Conflicts Resolved',
         description: 'Data integration is complete. Ready to proceed to discovery phase.'
@@ -216,7 +216,7 @@ const DataIntegration: React.FC = () => {
     try {
       // Simulate API call to refresh data
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       toast({
         title: 'Data Refreshed',
         description: 'Latest data has been loaded from all sources.'
@@ -246,7 +246,7 @@ const DataIntegration: React.FC = () => {
     try {
       // Simulate handoff to discovery phase
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       toast({
         title: 'Handoff Successful',
         description: 'Data has been successfully transferred to discovery phase.'
@@ -290,9 +290,9 @@ const DataIntegration: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => navigate('/collection')}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -306,8 +306,8 @@ const DataIntegration: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleRefreshData}
             disabled={isLoading}
           >
@@ -387,7 +387,7 @@ const DataIntegration: React.FC = () => {
         <div className="lg:col-span-3 space-y-6">
           {/* Validation Display */}
           {validation && (
-            <ValidationDisplay 
+            <ValidationDisplay
               validation={validation}
               showWarnings={true}
               onErrorClick={(fieldId) => {
@@ -449,13 +449,13 @@ const DataIntegration: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="flex justify-end space-x-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => navigate('/collection')}
             >
               Save and Return
             </Button>
-            <Button 
+            <Button
               onClick={handleProceedToDiscovery}
               disabled={!validation?.isValid || isProcessing}
             >

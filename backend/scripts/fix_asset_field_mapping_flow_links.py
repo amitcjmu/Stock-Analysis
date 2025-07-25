@@ -23,7 +23,7 @@ async def fix_asset_master_flow_links():
         # Find assets without master_flow_id that should be linked
         unlinked_assets_query = text(
             """
-            SELECT 
+            SELECT
                 a.id as asset_id,
                 a.engagement_id,
                 a.client_account_id,
@@ -31,10 +31,10 @@ async def fix_asset_master_flow_links():
                 di.master_flow_id as data_import_master_flow_id,
                 df.master_flow_id as discovery_flow_master_flow_id
             FROM assets a
-            LEFT JOIN data_imports di ON di.engagement_id = a.engagement_id 
+            LEFT JOIN data_imports di ON di.engagement_id = a.engagement_id
                 AND di.client_account_id = a.client_account_id
                 AND abs(extract(epoch from (a.created_at - di.created_at))) < 3600  -- Within 1 hour
-            LEFT JOIN discovery_flows df ON df.engagement_id = a.engagement_id 
+            LEFT JOIN discovery_flows df ON df.engagement_id = a.engagement_id
                 AND df.client_account_id = a.client_account_id
                 AND abs(extract(epoch from (a.created_at - df.created_at))) < 3600  -- Within 1 hour
             WHERE a.master_flow_id IS NULL
@@ -88,7 +88,7 @@ async def fix_field_mapping_master_flow_links():
         # Find field mappings without master_flow_id that should be linked
         unlinked_mappings_query = text(
             """
-            SELECT 
+            SELECT
                 fm.id as mapping_id,
                 fm.data_import_id,
                 di.engagement_id,
@@ -144,7 +144,7 @@ async def validate_master_flow_links():
         # Check asset linkage
         asset_stats_query = text(
             """
-            SELECT 
+            SELECT
                 COUNT(*) as total_assets,
                 COUNT(CASE WHEN master_flow_id IS NOT NULL THEN 1 END) as linked_assets,
                 COUNT(CASE WHEN master_flow_id IS NULL THEN 1 END) as unlinked_assets
@@ -158,7 +158,7 @@ async def validate_master_flow_links():
         # Check field mapping linkage
         mapping_stats_query = text(
             """
-            SELECT 
+            SELECT
                 COUNT(*) as total_mappings,
                 COUNT(CASE WHEN master_flow_id IS NOT NULL THEN 1 END) as linked_mappings,
                 COUNT(CASE WHEN master_flow_id IS NULL THEN 1 END) as unlinked_mappings
@@ -172,16 +172,16 @@ async def validate_master_flow_links():
         # Check foreign key validity
         invalid_links_query = text(
             """
-            SELECT 
+            SELECT
                 'assets' as table_name,
                 COUNT(*) as invalid_count
             FROM assets a
             LEFT JOIN crewai_flow_state_extensions cfe ON a.master_flow_id = cfe.flow_id
             WHERE a.master_flow_id IS NOT NULL AND cfe.flow_id IS NULL
-            
+
             UNION ALL
-            
-            SELECT 
+
+            SELECT
                 'import_field_mappings' as table_name,
                 COUNT(*) as invalid_count
             FROM import_field_mappings fm

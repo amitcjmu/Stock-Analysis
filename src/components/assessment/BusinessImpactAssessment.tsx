@@ -19,7 +19,7 @@ export const BusinessImpactAssessment: React.FC<BusinessImpactAssessmentProps> =
 }) => {
   // Calculate business impact metrics
   const totalEffort = techDebt.reduce((sum, t) => sum + (t.remediation_effort_hours || 0), 0);
-  const avgTechDebtScore = techDebt.length > 0 ? 
+  const avgTechDebtScore = techDebt.length > 0 ?
     techDebt.reduce((sum, t) => sum + (t.tech_debt_score || 0), 0) / techDebt.length : 0;
 
   // Estimate business impact based on strategy and tech debt
@@ -32,7 +32,7 @@ export const BusinessImpactAssessment: React.FC<BusinessImpactAssessmentProps> =
       'retire': { effort: 'Low', risk: 'Low', value: 'High' },
       'retain': { effort: 'Very Low', risk: 'Very Low', value: 'Low' }
     };
-    
+
     return strategyImpact[decision.overall_strategy] || { effort: 'Unknown', risk: 'Unknown', value: 'Unknown' };
   };
 
@@ -132,17 +132,17 @@ export const BusinessImpactAssessment: React.FC<BusinessImpactAssessmentProps> =
           <h4 className="text-sm font-medium text-gray-700">Value Proposition</h4>
           <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-sm text-green-700">
-              {decision.overall_strategy === 'rehost' && 
+              {decision.overall_strategy === 'rehost' &&
                 "Quick migration with immediate cloud benefits including cost savings and improved reliability."}
-              {decision.overall_strategy === 'replatform' && 
+              {decision.overall_strategy === 'replatform' &&
                 "Balanced approach with moderate effort for significant cloud-native benefits and improved performance."}
-              {decision.overall_strategy === 'refactor' && 
+              {decision.overall_strategy === 'refactor' &&
                 "High investment with maximum modernization benefits including scalability, maintainability, and innovation enablement."}
-              {decision.overall_strategy === 'repurchase' && 
+              {decision.overall_strategy === 'repurchase' &&
                 "Replace with modern SaaS solution to reduce operational overhead and gain advanced features."}
-              {decision.overall_strategy === 'retire' && 
+              {decision.overall_strategy === 'retire' &&
                 "Eliminate application complexity and reduce operational costs by decommissioning unused functionality."}
-              {decision.overall_strategy === 'retain' && 
+              {decision.overall_strategy === 'retain' &&
                 "Maintain current state while planning future modernization strategy based on business priorities."}
             </p>
           </div>

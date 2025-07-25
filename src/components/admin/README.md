@@ -121,9 +121,9 @@ Consistent toast messaging across admin components.
 ```tsx
 import { useAdminToasts } from '@/components/admin/shared';
 
-const { 
-  showUserApprovedToast, 
-  showGenericErrorToast 
+const {
+  showUserApprovedToast,
+  showGenericErrorToast
 } = useAdminToasts();
 
 // Usage
@@ -150,11 +150,11 @@ const { data, loading, error, refetch, isUsingDemoData } = useAdminData(
 Common formatting functions used across admin components.
 
 ```tsx
-import { 
-  formatDate, 
+import {
+  formatDate,
   formatCurrency,
   getAccessLevelColor,
-  safePercentage 
+  safePercentage
 } from '@/components/admin/shared';
 
 // Usage
@@ -213,7 +213,7 @@ Each major admin section is broken into focused components:
 
 **AdminDashboard Components:**
 - `DashboardStats` - Overview metrics
-- `ClientAnalytics` - Client distribution charts  
+- `ClientAnalytics` - Client distribution charts
 - `EngagementAnalytics` - Engagement progress and metrics
 - `UserManagement` - User statistics and actions
 - `RecentActivity` - Platform activity feed
@@ -281,24 +281,24 @@ All components use Tailwind CSS with consistent patterns:
 
 ```tsx
 import React from 'react';
-import { 
-  AdminHeader, 
-  StatCard, 
-  AdminLoadingState 
+import {
+  AdminHeader,
+  StatCard,
+  AdminLoadingState
 } from '@/components/admin/shared';
 
 export const NewAdminPage: React.FC = () => {
   const { data, loading, refetch } = useAdminData('/admin/new-data', demoData);
-  
+
   if (loading) return <AdminLoadingState />;
-  
+
   return (
     <div className="space-y-6">
-      <AdminHeader 
-        title="New Admin Page" 
+      <AdminHeader
+        title="New Admin Page"
         onRefresh={refetch}
       />
-      
+
       <div className="grid grid-cols-3 gap-6">
         <StatCard title="Metric 1" value={data.metric1} />
         <StatCard title="Metric 2" value={data.metric2} />

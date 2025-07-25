@@ -22,7 +22,7 @@ This document tracks all issues encountered during the end-to-end testing of the
 - **Severity**: Critical
 - **Type**: Backend
 - **Description**: UUID JSON Serialization Error blocks all discovery flow creation
-- **Error Details**: 
+- **Error Details**:
 ```
 TypeError: Object of type UUID is not JSON serializable
 Location: backend/app/services/crewai_flows/execution_engine.py:293
@@ -38,7 +38,7 @@ Failed SQL: UPDATE crewai_flow_state_extensions SET flow_persistence_data=$2::JS
 - **Severity**: Critical
 - **Type**: Frontend/Backend
 - **Description**: Incomplete discovery flows blocking new data uploads
-- **Error Details**: 
+- **Error Details**:
 ```
 UI Message: "Upload Blocked: 2 incomplete discovery flows found. Complete or delete existing flows before uploading new data."
 Stuck Flows:
@@ -55,7 +55,7 @@ Stuck Flows:
 - **Severity**: High
 - **Type**: Database
 - **Description**: Discovery flows not properly linked to master flows
-- **Error Details**: 
+- **Error Details**:
 ```
 Database Analysis:
 - 19 out of 22 discovery flows (86%) have NULL master_flow_id
@@ -71,7 +71,7 @@ Database Analysis:
 - **Severity**: High
 - **Type**: Backend
 - **Description**: Multi-tenant header violations causing API failures
-- **Error Details**: 
+- **Error Details**:
 ```
 Multiple endpoints missing X-Client-Account-Id header validation:
 - /api/v1/unified-discovery/flow/initialize
@@ -88,7 +88,7 @@ Returning 403 Forbidden when headers missing
 - **Severity**: Critical
 - **Type**: Database
 - **Description**: No assets being generated from imported data
-- **Error Details**: 
+- **Error Details**:
 ```
 Database query results:
 - 0 assets created in last 24 hours
@@ -106,7 +106,7 @@ Database query results:
 - **Severity**: High
 - **Type**: Backend
 - **Description**: High flow failure rate (60%+ flows not completing)
-- **Error Details**: 
+- **Error Details**:
 ```
 Master Flow Status Distribution:
 - 43% cancelled (38/88)
@@ -124,7 +124,7 @@ Master Flow Status Distribution:
 - **Severity**: Medium
 - **Type**: Frontend
 - **Description**: Dialog system failure when attempting to delete flows
-- **Error Details**: 
+- **Error Details**:
 ```
 Browser dialog becomes stuck after clicking Delete button
 Cannot dismiss or accept the confirmation dialog
@@ -140,7 +140,7 @@ All browser operations blocked until page refresh
 - **Severity**: Medium
 - **Type**: Backend
 - **Description**: Aggressive rate limiting affecting normal usage
-- **Error Details**: 
+- **Error Details**:
 ```
 Rate limit (429) triggered after just 5 rapid requests
 Rate limit persists even after 5 second delay
@@ -156,7 +156,7 @@ Affects legitimate testing and user workflows
 - **Severity**: Medium
 - **Type**: Backend
 - **Description**: User context issues preventing flow visibility
-- **Error Details**: 
+- **Error Details**:
 ```
 Error: Failed to get active flows for user: 'engagement_id'
 Location: User service context creation
@@ -172,7 +172,7 @@ Users cannot see their active flows in UI
 - **Severity**: Medium
 - **Type**: Backend
 - **Description**: Data import validation too strict, missing documentation
-- **Error Details**: 
+- **Error Details**:
 ```
 POST /api/v1/data-import/store-import returns 422
 Required fields not documented: file_data, metadata, upload_context
@@ -188,7 +188,7 @@ No clear error messages for missing fields
 - **Severity**: Critical
 - **Type**: Frontend
 - **Description**: Browser native confirm dialog blocking ALL UI access on page load
-- **Error Details**: 
+- **Error Details**:
 ```
 Location: flowDeletionService.ts line 170
 Code: const confirmed = window.confirm(...)
@@ -206,9 +206,9 @@ Playwright cannot interact with native browser dialogs
 - **Severity**: Critical
 - **Type**: Frontend
 - **Description**: Vite lazy loading failure preventing CMDBImport module from loading
-- **Error Details**: 
+- **Error Details**:
 ```
-TypeError: Failed to fetch dynamically imported module: 
+TypeError: Failed to fetch dynamically imported module:
 http://localhost:8081/src/pages/discovery/CMDBImport.tsx?t=1752595262211
 
 UI shows: "Failed to load Data Import"

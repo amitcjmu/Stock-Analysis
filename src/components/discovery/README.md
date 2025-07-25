@@ -99,7 +99,7 @@ import UniversalProcessingStatus from '@/components/discovery/UniversalProcessin
 The `page_context` prop determines which insights and updates are shown:
 
 - `data_import` - Data upload and validation phase
-- `attribute_mapping` - Field mapping and transformation phase  
+- `attribute_mapping` - Field mapping and transformation phase
 - `data_cleansing` - Data quality improvement phase
 - `asset_inventory` - Asset discovery and classification phase
 - `dependency_analysis` - Relationship mapping phase
@@ -113,7 +113,7 @@ The `page_context` prop determines which insights and updates are shown:
 ```tsx
 const DataImportPage = () => {
   const [currentFlow, setCurrentFlow] = useState<string | null>(null);
-  
+
   const handleFileUpload = async (file: File) => {
     const flowResponse = await startDataImportFlow(file);
     setCurrentFlow(flowResponse.flow_id);
@@ -125,7 +125,7 @@ const DataImportPage = () => {
         {/* File upload UI */}
         <FileUploadComponent onUpload={handleFileUpload} />
       </div>
-      
+
       <div>
         {/* Real-time processing status */}
         <UniversalProcessingStatus
@@ -152,12 +152,12 @@ const DataImportPage = () => {
 ```tsx
 const AttributeMappingPage = () => {
   const { flow_id } = useParams();
-  
+
   return (
     <div className="space-y-6">
       {/* Mapping interface */}
       <FieldMappingInterface flow_id={flow_id} />
-      
+
       {/* Real-time processing status */}
       <UniversalProcessingStatus
         flow_id={flow_id}
@@ -179,7 +179,7 @@ const AttributeMappingPage = () => {
 ```tsx
 const DashboardPage = () => {
   const { activeFlows } = useActiveFlows();
-  
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {activeFlows.map((flow) => (
@@ -206,7 +206,7 @@ The component relies on these backend endpoints:
 - `GET /api/v1/discovery/flow/{flow_id}/validation-status` - Validation results
 - `GET /api/v1/discovery/flow/{flow_id}/agent-insights` - Agent insights and updates
 
-### Optional Endpoints  
+### Optional Endpoints
 - `POST /api/v1/discovery/flow/{flow_id}/validate` - Manual validation trigger
 - `POST /api/v1/discovery/flow/{flow_id}/retry` - Retry failed processing
 - `POST /api/v1/discovery/flow/{flow_id}/pause` - Pause processing
@@ -221,7 +221,7 @@ graph TD
     C -->|No| D[Show Demo State]
     C -->|Yes| E[Start Real-time Monitoring]
     E --> F[Fetch Processing Status]
-    E --> G[Fetch Validation Status]  
+    E --> G[Fetch Validation Status]
     E --> H[Fetch Agent Insights]
     F --> I[Update Progress UI]
     G --> J[Update Validation UI]
@@ -264,7 +264,7 @@ The component uses Tailwind CSS classes and can be customized:
 
 ### Polling Strategy
 - **Active Processing**: 2-second intervals
-- **Idle State**: 10-second intervals  
+- **Idle State**: 10-second intervals
 - **Completed**: Stops polling automatically
 - **Error State**: 5-second intervals with exponential backoff
 
@@ -331,17 +331,17 @@ test('shows processing status when flow_id provided', () => {
 ```tsx
 test('calls onProcessingComplete when status changes to completed', async () => {
   const mockCallback = jest.fn();
-  
+
   render(
-    <UniversalProcessingStatus 
+    <UniversalProcessingStatus
       flow_id="test-flow"
       onProcessingComplete={mockCallback}
     />
   );
-  
+
   // Mock API response with completed status
   // ... test implementation
-  
+
   await waitFor(() => {
     expect(mockCallback).toHaveBeenCalledTimes(1);
   });
@@ -433,7 +433,7 @@ test('calls onProcessingComplete when status changes to completed', async () => 
 When contributing to the Universal Processing Status component:
 
 1. **Follow the modular pattern** - Keep processing logic separate from UI
-2. **Maintain backward compatibility** - Don't break existing integrations  
+2. **Maintain backward compatibility** - Don't break existing integrations
 3. **Add comprehensive tests** - Unit and integration tests required
 4. **Update documentation** - Keep this README current
 5. **Performance first** - Consider impact on polling and re-renders
@@ -445,4 +445,4 @@ For issues with the Universal Processing Status component:
 1. Check this documentation first
 2. Review the component source code
 3. Check backend API endpoint availability
-4. File an issue with reproduction steps 
+4. File an issue with reproduction steps

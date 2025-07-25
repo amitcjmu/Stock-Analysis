@@ -36,4 +36,4 @@ export const useDependencyNavigation = (flowId?: string, dependencyData?: unknow
     handleNavigateToDataCleansing,
     handleNavigateToAttributeMapping
   };
-}; 
+};

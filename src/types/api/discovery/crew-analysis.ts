@@ -1,6 +1,6 @@
 /**
  * Discovery Crew Analysis API Types
- * 
+ *
  * Type definitions for AI crew analysis operations including analysis execution,
  * findings, recommendations, and implementation planning.
  */

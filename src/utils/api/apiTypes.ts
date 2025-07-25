@@ -4,10 +4,10 @@
  */
 
 // Import shared types
-import type { 
-  ApiResponse as SharedApiResponse, 
-  ApiError as SharedApiError, 
-  ResponseMetadata 
+import type {
+  ApiResponse as SharedApiResponse,
+  ApiError as SharedApiError,
+  ResponseMetadata
 } from '../../types/shared/api-types';
 import type { AuditableMetadata } from '../../types/shared/metadata-types';
 

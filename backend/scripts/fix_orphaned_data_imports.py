@@ -113,7 +113,7 @@ class DataImportMigrator:
             text(
                 """
                 SELECT id, client_account_id, engagement_id, import_name, created_at
-                FROM migration.data_imports 
+                FROM migration.data_imports
                 WHERE master_flow_id IS NULL
                 ORDER BY created_at DESC
             """
@@ -138,7 +138,7 @@ class DataImportMigrator:
             text(
                 """
                 SELECT id, client_account_id, engagement_id, '', created_at
-                FROM migration.raw_import_records 
+                FROM migration.raw_import_records
                 WHERE master_flow_id IS NULL
                 ORDER BY created_at DESC
             """
@@ -297,7 +297,7 @@ class DataImportMigrator:
                     await session.execute(
                         text(
                             """
-                            UPDATE migration.data_imports 
+                            UPDATE migration.data_imports
                             SET master_flow_id = :master_flow_id,
                                 updated_at = CURRENT_TIMESTAMP
                             WHERE id = :data_import_id
@@ -370,7 +370,7 @@ class DataImportMigrator:
                         await session.execute(
                             text(
                                 """
-                                UPDATE migration.raw_import_records 
+                                UPDATE migration.raw_import_records
                                 SET master_flow_id = :master_flow_id
                                 WHERE id = :raw_record_id
                             """
@@ -404,13 +404,13 @@ class DataImportMigrator:
 -- Generated: {datetime.now().isoformat()}
 
 -- Rollback DataImport linkages
-UPDATE migration.data_imports 
-SET master_flow_id = NULL 
+UPDATE migration.data_imports
+SET master_flow_id = NULL
 WHERE master_flow_id IS NOT NULL;
 
 -- Rollback RawImportRecord linkages
-UPDATE migration.raw_import_records 
-SET master_flow_id = NULL 
+UPDATE migration.raw_import_records
+SET master_flow_id = NULL
 WHERE master_flow_id IS NOT NULL;
 
 -- Verification queries
@@ -437,9 +437,10 @@ SELECT COUNT(*) as orphaned_raw_records FROM migration.raw_import_records WHERE 
         try:
             async with AsyncSessionLocal() as session:
                 # Step 1: Identify orphaned records
-                orphaned_data_imports, orphaned_raw_records = (
-                    await self.identify_orphaned_records(session)
-                )
+                (
+                    orphaned_data_imports,
+                    orphaned_raw_records,
+                ) = await self.identify_orphaned_records(session)
 
                 if not orphaned_data_imports and not orphaned_raw_records:
                     self.logger.info("No orphaned records found. Migration not needed.")

@@ -1,6 +1,6 @@
 /**
  * Assessment Flow Types
- * 
+ *
  * Type definitions for the assessment flow hook and related interfaces.
  */
 
@@ -13,17 +13,17 @@ export interface UserInput {
 }
 
 // Types for Assessment Flow
-export type AssessmentFlowStatus = 
-  | 'initialized' 
-  | 'processing' 
-  | 'paused_for_user_input' 
-  | 'completed' 
+export type AssessmentFlowStatus =
+  | 'initialized'
+  | 'processing'
+  | 'paused_for_user_input'
+  | 'completed'
   | 'error';
 
-export type AssessmentPhase = 
+export type AssessmentPhase =
   | 'initialization'
   | 'architecture_minimums'
-  | 'tech_debt_analysis' 
+  | 'tech_debt_analysis'
   | 'component_sixr_strategies'
   | 'app_on_page_generation'
   | 'finalization';
@@ -87,20 +87,20 @@ export interface AssessmentFlowState {
   nextPhase: AssessmentPhase | null;
   pausePoints: string[];
   selectedApplicationIds: string[];
-  
+
   // Phase-specific data
   engagementStandards: ArchitectureStandard[];
   applicationOverrides: Record<string, ArchitectureStandard>;
   applicationComponents: Record<string, ApplicationComponent[]>;
   techDebtAnalysis: Record<string, TechDebtItem[]>;
   sixrDecisions: Record<string, SixRDecision>;
-  
+
   // UI state
   isLoading: boolean;
   error: string | null;
   lastUserInteraction: Date | null;
   appsReadyForPlanning: string[];
-  
+
   // Real-time updates
   agentUpdates: Array<{
     timestamp: Date;
@@ -113,35 +113,35 @@ export interface AssessmentFlowState {
 export interface UseAssessmentFlowReturn {
   // State
   state: AssessmentFlowState;
-  
+
   // Flow control
   initializeFlow: (selectedAppIds: string[]) => Promise<void>;
   resumeFlow: (userInput: UserInput) => Promise<void>;
   navigateToPhase: (phase: AssessmentPhase) => Promise<void>;
   finalizeAssessment: () => Promise<void>;
-  
+
   // Data operations
   updateArchitectureStandards: (
-    standards: ArchitectureStandard[], 
+    standards: ArchitectureStandard[],
     overrides: Record<string, ArchitectureStandard>
   ) => Promise<void>;
   updateApplicationComponents: (
-    appId: string, 
+    appId: string,
     components: ApplicationComponent[]
   ) => Promise<void>;
   updateTechDebtAnalysis: (
-    appId: string, 
+    appId: string,
     techDebt: TechDebtItem[]
   ) => Promise<void>;
   updateSixRDecision: (
-    appId: string, 
+    appId: string,
     decision: Partial<SixRDecision>
   ) => Promise<void>;
-  
+
   // Real-time updates
   subscribeToUpdates: () => void;
   unsubscribeFromUpdates: () => void;
-  
+
   // Utilities
   getPhaseProgress: (phase: AssessmentPhase) => number;
   canNavigateToPhase: (phase: AssessmentPhase) => boolean;

@@ -19,7 +19,7 @@ assessment_flow_repository/
 ├── __init__.py                 # Re-exports main repository
 ├── base_repository.py          # Main repository class with delegation (216 LOC)
 ├── commands/                   # Write operations (279 LOC total)
-│   ├── __init__.py            
+│   ├── __init__.py
 │   ├── flow_commands.py        # Flow CRUD operations (144 LOC)
 │   ├── architecture_commands.py # Architecture standards management (65 LOC)
 │   ├── component_commands.py   # Component and tech debt management (99 LOC)
@@ -44,7 +44,7 @@ assessment_flow_repository/
 - **DecisionCommands**: 6R decisions and planning readiness
 - **FeedbackCommands**: Learning feedback for agent improvement
 
-### Queries (Read Operations)  
+### Queries (Read Operations)
 - **FlowQueries**: Flow state retrieval and basic queries
 - **AnalyticsQueries**: Analytics data and reporting
 - **StateQueries**: Complex state construction and data transformation

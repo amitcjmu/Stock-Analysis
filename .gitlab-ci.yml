@@ -32,14 +32,14 @@ sast:
   script:
     - echo "Running SAST scans..."
     - mkdir -p reports
-    
+
     # Bandit
     - bandit -r backend/ -f json -o reports/bandit-report.json --severity-level medium || true
     - bandit -r backend/ -f txt -o reports/bandit-report.txt --severity-level medium || true
-    
+
     # Semgrep
     - semgrep --config=auto --json --output=reports/semgrep-report.json backend/ || true
-    
+
     # Custom security checks
     - python scripts/security/check_credentials.py backend/**/*.py || true
   artifacts:
@@ -60,12 +60,12 @@ secret_detection:
   script:
     - echo "Running secret detection..."
     - mkdir -p reports
-    
+
     # GitLeaks
     - wget -q https://github.com/gitleaks/gitleaks/releases/download/v8.18.0/gitleaks_8.18.0_linux_x64.tar.gz
     - tar -xzf gitleaks_8.18.0_linux_x64.tar.gz
     - ./gitleaks detect --source . --report-path reports/gitleaks-report.json || true
-    
+
     # TruffleHog
     - wget -q https://github.com/trufflesecurity/trufflehog/releases/download/v3.63.0/trufflehog_3.63.0_linux_amd64.tar.gz
     - tar -xzf trufflehog_3.63.0_linux_amd64.tar.gz
@@ -86,13 +86,13 @@ dependency_scanning:
   script:
     - echo "Running dependency scans..."
     - mkdir -p reports
-    
+
     # Safety
     - safety check --json --output reports/safety-report.json -r backend/requirements.txt || true
-    
+
     # pip-audit
     - pip-audit -r backend/requirements.txt --format json --output reports/pip-audit-report.json || true
-    
+
     # OWASP Dependency Check (if using)
     - |
       if command -v dependency-check; then
@@ -118,10 +118,10 @@ container_scanning:
   script:
     - echo "Running container security scans..."
     - mkdir -p reports
-    
+
     # Build image for scanning
     - docker build -t $CI_PROJECT_NAME:$CI_COMMIT_SHA -f Dockerfile .
-    
+
     # Trivy scan
     - |
       docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
@@ -131,7 +131,7 @@ container_scanning:
         --output /reports/trivy-report.json \
         --severity HIGH,CRITICAL \
         $CI_PROJECT_NAME:$CI_COMMIT_SHA || true
-    
+
     # Grype scan
     - |
       docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
@@ -139,7 +139,7 @@ container_scanning:
         anchore/grype:latest \
         $CI_PROJECT_NAME:$CI_COMMIT_SHA \
         -o json > reports/grype-report.json || true
-    
+
     # Hadolint for Dockerfile
     - |
       docker run --rm -i hadolint/hadolint < Dockerfile > reports/hadolint-report.txt || true
@@ -178,10 +178,10 @@ dast:
   script:
     - echo "Running DAST scan..."
     - mkdir -p reports
-    
+
     # Start the application (you need to adapt this)
     # docker-compose up -d
-    
+
     # Run ZAP baseline scan
     - |
       zap-baseline.py \
@@ -211,13 +211,13 @@ security_report:
   script:
     - echo "Generating consolidated security report..."
     - mkdir -p final-reports
-    
+
     # Download all artifacts
     - cp -r reports/* final-reports/ || true
-    
+
     # Generate report
     - python scripts/security/generate_security_report.py final-reports/ > final-reports/security-assessment.md
-    
+
     # Check for critical issues
     - |
       if grep -q "CRITICAL" final-reports/security-assessment.md; then

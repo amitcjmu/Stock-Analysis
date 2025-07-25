@@ -47,7 +47,7 @@ const FieldMappingItem: React.FC<FieldMappingItemProps> = ({
           <div className="flex items-center space-x-4 mb-2">
             <h4 className="font-medium text-gray-900">{mapping.sourceField}</h4>
             <ArrowRight className="h-4 w-4 text-gray-400" />
-            
+
             <TargetFieldSelector
               mapping={mapping}
               availableFields={availableFields}
@@ -60,7 +60,7 @@ const FieldMappingItem: React.FC<FieldMappingItemProps> = ({
               onCategoryChange={onCategoryChange}
               onSearchTermChange={onSearchTermChange}
             />
-            
+
             {/* Show current field category if mapped */}
             {mapping.targetAttribute !== 'unmapped' && Array.isArray(availableFields) && (
               <span className={`text-xs px-2 py-1 rounded ${getCategoryColor(availableFields.find(f => f.name === mapping.targetAttribute)?.category || 'unknown')}`}>
@@ -68,7 +68,7 @@ const FieldMappingItem: React.FC<FieldMappingItemProps> = ({
               </span>
             )}
           </div>
-          
+
           {/* Confidence and sample values */}
           <div className="flex items-center space-x-4 mb-2">
             <span className={`px-2 py-1 text-xs rounded-full ${getConfidenceColor(mapping.confidence)}`}>
@@ -81,7 +81,7 @@ const FieldMappingItem: React.FC<FieldMappingItemProps> = ({
               </div>
             )}
           </div>
-          
+
           {/* AI reasoning */}
           {mapping.ai_reasoning && (
             <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
@@ -89,7 +89,7 @@ const FieldMappingItem: React.FC<FieldMappingItemProps> = ({
             </div>
           )}
         </div>
-        
+
         <ApprovalWorkflow
           mapping={mapping}
           isApproving={isApproving}

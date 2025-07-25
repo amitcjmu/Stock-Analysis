@@ -131,4 +131,4 @@ const QualityIssuesPanel: React.FC<QualityIssuesPanelProps> = ({
   );
 };
 
-export default QualityIssuesPanel; 
+export default QualityIssuesPanel;

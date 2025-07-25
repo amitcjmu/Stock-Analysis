@@ -63,7 +63,7 @@ WORKFLOW:
 
 AGENTS:
     • Agent-1: UI Testing & Validation
-    • Agent-2: Backend Monitoring & Validation  
+    • Agent-2: Backend Monitoring & Validation
     • Agent-3: Database Validation
     • Agent-4: Solution Architecture
     • Agent-5: Historical Review

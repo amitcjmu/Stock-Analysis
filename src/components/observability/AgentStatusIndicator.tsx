@@ -107,7 +107,7 @@ export const AgentStatusIndicator: React.FC<StatusIndicatorProps> = ({
 
   if (variant === 'dot') {
     return (
-      <div 
+      <div
         className={baseClasses}
         onClick={onClick}
         title={config.description}
@@ -138,12 +138,12 @@ export const AgentStatusIndicator: React.FC<StatusIndicatorProps> = ({
 
   if (variant === 'icon') {
     return (
-      <div 
+      <div
         className={baseClasses}
         onClick={onClick}
         title={config.description}
       >
-        <IconComponent 
+        <IconComponent
           className={cn(
             sizes.icon,
             status === 'active' && 'text-green-600',
@@ -151,7 +151,7 @@ export const AgentStatusIndicator: React.FC<StatusIndicatorProps> = ({
             status === 'error' && 'text-red-600',
             status === 'offline' && 'text-gray-400',
             pulse && 'animate-pulse'
-          )} 
+          )}
         />
         {showLabel && (
           <span className={cn(

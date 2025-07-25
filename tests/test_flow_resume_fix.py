@@ -22,14 +22,14 @@ TEST_FLOW_ID = "7bdc1dc3-2793-4b02-abd7-e35f1697d37a"
 def test_flow_status():
     """Test if we can get flow status"""
     print(f"🔍 Testing flow status for {TEST_FLOW_ID}...")
-    
+
     try:
         response = requests.get(
             f"{BASE_URL}/api/v1/flows/{TEST_FLOW_ID}/status",
             headers=HEADERS,
             timeout=10
         )
-        
+
         print(f"Status code: {response.status_code}")
         if response.status_code == 200:
             data = response.json()
@@ -40,7 +40,7 @@ def test_flow_status():
         else:
             print(f"❌ Error: {response.text}")
             return False
-            
+
     except Exception as e:
         print(f"❌ Exception: {e}")
         return False
@@ -48,14 +48,14 @@ def test_flow_status():
 def test_flow_resume():
     """Test if we can resume the flow"""
     print(f"🔄 Testing flow resume for {TEST_FLOW_ID}...")
-    
+
     try:
         response = requests.post(
             f"{BASE_URL}/api/v1/flows/{TEST_FLOW_ID}/resume",
             headers=HEADERS,
             timeout=30
         )
-        
+
         print(f"Status code: {response.status_code}")
         if response.status_code == 200:
             data = response.json()
@@ -65,7 +65,7 @@ def test_flow_resume():
         else:
             print(f"❌ Error: {response.text}")
             return False
-            
+
     except Exception as e:
         print(f"❌ Exception: {e}")
         return False
@@ -73,7 +73,7 @@ def test_flow_resume():
 def test_health_check():
     """Test basic API health"""
     print("🏥 Testing API health...")
-    
+
     try:
         response = requests.get(f"{BASE_URL}/api/v1/health", timeout=5)
         print(f"Status code: {response.status_code}")
@@ -92,13 +92,13 @@ def main():
     print("=" * 50)
     print("🧪 Flow Resume Fix Test Suite")
     print("=" * 50)
-    
+
     tests = [
         ("Health Check", test_health_check),
         ("Flow Status", test_flow_status),
         ("Flow Resume", test_flow_resume),
     ]
-    
+
     results = {}
     for test_name, test_func in tests:
         print(f"\n📋 Running {test_name}...")
@@ -108,18 +108,18 @@ def main():
             print(f"❌ {test_name} failed with exception: {e}")
             results[test_name] = False
         print("-" * 30)
-    
+
     # Summary
     print("\n📊 Test Results:")
     passed = sum(1 for result in results.values() if result)
     total = len(results)
-    
+
     for test_name, result in results.items():
         status = "✅ PASS" if result else "❌ FAIL"
         print(f"  {test_name}: {status}")
-    
+
     print(f"\n🎯 Overall: {passed}/{total} tests passed")
-    
+
     if passed == total:
         print("🎉 All tests passed! Flow resume fix is working.")
     else:

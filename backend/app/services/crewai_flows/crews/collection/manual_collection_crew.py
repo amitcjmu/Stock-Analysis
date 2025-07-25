@@ -44,14 +44,14 @@ def create_manual_collection_crew(
             role="Dynamic Questionnaire Generation Expert",
             goal="Generate targeted, user-friendly questionnaires that efficiently collect missing critical data",
             backstory="""You are a questionnaire design expert specializing in technical data collection.
-            
+
             You excel at:
             - Creating clear, unambiguous questions for technical and non-technical users
             - Grouping related questions for logical flow
             - Providing helpful context and examples
             - Minimizing user effort while maximizing data quality
             - Adapting questions based on user responses
-            
+
             Your questionnaires balance completeness with user experience, ensuring high response rates
             and quality data collection.""",
             llm=llm,
@@ -64,14 +64,14 @@ def create_manual_collection_crew(
             role="Data Validation and Quality Assurance Specialist",
             goal="Validate user responses for completeness, accuracy, and consistency with existing data",
             backstory="""You are a data validation expert who ensures collected data meets quality standards.
-            
+
             Your expertise includes:
             - Validating data formats and types
             - Cross-referencing responses with existing data
             - Detecting inconsistencies and anomalies
             - Ensuring business rule compliance
             - Identifying incomplete or ambiguous responses
-            
+
             You ensure all manually collected data is accurate and ready for migration planning.""",
             llm=llm,
             memory=shared_memory,
@@ -83,14 +83,14 @@ def create_manual_collection_crew(
             role="Manual Collection Coordination Expert",
             goal="Coordinate manual collection efforts, track progress, and optimize the collection process",
             backstory="""You are a collection coordination expert who manages manual data gathering.
-            
+
             You specialize in:
             - Tracking questionnaire completion rates
             - Identifying collection bottlenecks
             - Prioritizing follow-up actions
             - Coordinating with stakeholders
             - Optimizing collection workflows
-            
+
             Your coordination ensures manual collection is completed efficiently and on schedule.""",
             llm=llm,
             memory=shared_memory,

@@ -1,6 +1,6 @@
 /**
  * Discovery Training and Learning API Types
- * 
+ *
  * Type definitions for AI model training, learning operations,
  * and model management within the discovery flow.
  */

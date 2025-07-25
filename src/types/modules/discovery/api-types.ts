@@ -1,9 +1,9 @@
 /**
  * Discovery Flow - API Types Module
- * 
+ *
  * API request and response interfaces for Discovery Flow operations.
  * Contains field mapping, flow management, data import, and crew analysis API types.
- * 
+ *
  * Generated with CC - Code Companion
  */
 

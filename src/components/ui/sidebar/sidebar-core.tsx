@@ -1,6 +1,6 @@
 /**
  * Core Sidebar Components
- * 
+ *
  * Main sidebar container and related core components.
  */
 

@@ -1,6 +1,6 @@
 /**
  * Field Mapping Component Types
- * 
+ *
  * Types for field mapping components, filters, and related functionality.
  */
 

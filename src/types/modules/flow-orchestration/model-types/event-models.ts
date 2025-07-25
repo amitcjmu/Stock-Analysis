@@ -1,6 +1,6 @@
 /**
  * Event Models
- * 
+ *
  * Type definitions for flow events, subscriptions, and event metrics.
  */
 

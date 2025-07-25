@@ -3,7 +3,7 @@ import axios from 'axios';
 async function testUserContext() {
   try {
     console.log('Testing login to backend...');
-    
+
     // First login
     const loginResponse = await axios.post('http://localhost:8000/api/v1/auth/login', {
       email: 'chocka@gmail.com',
@@ -13,11 +13,11 @@ async function testUserContext() {
         'Content-Type': 'application/json'
       }
     });
-    
+
     console.log('Login successful!');
     const token = loginResponse.data.token.access_token;
     console.log('Token:', token);
-    
+
     // Test get current user (the one that's failing in get_current_user_context)
     console.log('\nTesting get_current_user dependency...');
     try {
@@ -32,7 +32,7 @@ async function testUserContext() {
     } catch (error) {
       console.error('Failed to get user:', error.response ? error.response.data : error.message);
     }
-    
+
     // Test master flow endpoint to trigger get_current_user_context
     console.log('\nTesting master flow endpoint that uses get_current_user_context...');
     try {
@@ -47,7 +47,7 @@ async function testUserContext() {
     } catch (error) {
       console.error('Master flow request failed:', error.response ? error.response.data : error.message);
     }
-    
+
   } catch (error) {
     console.error('Login failed:', error.response ? error.response.data : error.message);
   }

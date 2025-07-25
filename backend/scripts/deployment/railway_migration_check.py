@@ -51,9 +51,9 @@ async def check_database_schema_state() -> Dict[str, Any]:
                 crewai_columns = await conn.execute(
                     sa.text(
                         """
-                    SELECT column_name, data_type, is_nullable, column_default 
-                    FROM information_schema.columns 
-                    WHERE table_name = 'crewai_flow_state_extensions' 
+                    SELECT column_name, data_type, is_nullable, column_default
+                    FROM information_schema.columns
+                    WHERE table_name = 'crewai_flow_state_extensions'
                     ORDER BY ordinal_position
                 """
                     )
@@ -76,8 +76,8 @@ async def check_database_schema_state() -> Dict[str, Any]:
                     sa.text(
                         """
                     SELECT column_name, data_type, is_nullable
-                    FROM information_schema.columns 
-                    WHERE table_name = 'discovery_flows' 
+                    FROM information_schema.columns
+                    WHERE table_name = 'discovery_flows'
                     ORDER BY ordinal_position
                 """
                     )
@@ -99,7 +99,7 @@ async def check_database_schema_state() -> Dict[str, Any]:
                     sa.text(
                         """
                     SELECT column_name, data_type, is_nullable
-                    FROM information_schema.columns 
+                    FROM information_schema.columns
                     WHERE table_name = 'assets' AND column_name = 'flow_id'
                 """
                     )
@@ -126,7 +126,7 @@ async def check_database_schema_state() -> Dict[str, Any]:
                     sa.text(
                         """
                     SELECT tablename, indexname, indexdef
-                    FROM pg_indexes 
+                    FROM pg_indexes
                     WHERE tablename IN ('crewai_flow_state_extensions', 'discovery_flows', 'assets')
                     AND indexname LIKE '%flow_id%'
                     ORDER BY tablename, indexname
@@ -149,7 +149,7 @@ async def check_database_schema_state() -> Dict[str, Any]:
                 constraints = await conn.execute(
                     sa.text(
                         """
-                    SELECT 
+                    SELECT
                         tc.table_name,
                         tc.constraint_name,
                         tc.constraint_type,

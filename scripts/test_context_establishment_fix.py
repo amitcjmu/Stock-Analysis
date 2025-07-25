@@ -33,7 +33,7 @@ async def test_context_establishment_workflow():
     """Test the complete context establishment workflow"""
     print("🧪 Testing Context Establishment Workflow")
     print("=" * 60)
-    
+
     async with aiohttp.ClientSession() as session:
         # Step 1: Test context establishment - get available clients
         print("\n1️⃣ Testing Context Establishment - Get Clients")
@@ -76,7 +76,7 @@ async def test_context_establishment_workflow():
                     print(f"   Found {len(engagements)} engagements for {MARATHON_CONTEXT['name']}")
                     for engagement in engagements:
                         print(f"   - {engagement['name']} ({engagement['id']}) - Status: {engagement['status']}")
-                    
+
                     if engagements:
                         selected_engagement = engagements[0]
                         MARATHON_CONTEXT["engagement_id"] = selected_engagement["id"]
@@ -147,18 +147,18 @@ async def test_context_establishment_workflow():
         print("   2. Call /api/v1/context/engagements?client_id=X to get engagements")
         print("   3. Establish full context and use regular endpoints for operations")
         print("✅ Multi-tenant security maintained - no circular dependency")
-        
+
         return True
 
 async def test_data_import_page_scenario():
     """Test the specific Data Import page scenario that was failing"""
     print("\n🎯 Testing Data Import Page Scenario")
     print("=" * 60)
-    
+
     async with aiohttp.ClientSession() as session:
         # Simulate frontend loading Data Import page without context
         print("📄 Simulating Data Import page load without established context...")
-        
+
         # Frontend can now get clients for context selector
         try:
             async with session.get(
@@ -172,12 +172,12 @@ async def test_data_import_page_scenario():
                     data = await response.json()
                     clients = data.get("clients", [])
                     print(f"✅ Data Import page can populate client selector: {len(clients)} clients")
-                    
+
                     # User selects Marathon Petroleum
                     marathon_client = next((c for c in clients if c["name"] == "Marathon Petroleum"), None)
                     if marathon_client:
                         print(f"👤 User selects: {marathon_client['name']}")
-                        
+
                         # Frontend gets engagements for selected client
                         async with session.get(
                             f"{BASE_URL}/api/v1/context/engagements?client_id={marathon_client['id']}",
@@ -190,7 +190,7 @@ async def test_data_import_page_scenario():
                                 eng_data = await eng_response.json()
                                 engagements = eng_data.get("engagements", [])
                                 print(f"✅ Data Import page can populate engagement selector: {len(engagements)} engagements")
-                                
+
                                 if engagements:
                                     selected_engagement = engagements[0]
                                     print(f"👤 User selects: {selected_engagement['name']}")
@@ -210,13 +210,13 @@ async def main():
     print("=" * 80)
     print(f"Testing at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print()
-    
+
     # Test 1: Complete context establishment workflow
     workflow_success = await test_context_establishment_workflow()
-    
+
     # Test 2: Data Import page specific scenario
     page_success = await test_data_import_page_scenario()
-    
+
     # Final summary
     print("\n🎯 FINAL RESULTS")
     print("=" * 80)
@@ -240,4 +240,4 @@ async def main():
             print("   - Data Import page scenario issues")
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())

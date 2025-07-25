@@ -1,6 +1,6 @@
 /**
  * Import/Export API Types
- * 
+ *
  * Types for data import, export, and data transformation operations.
  */
 

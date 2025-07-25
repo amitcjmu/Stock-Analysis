@@ -14,7 +14,7 @@ on:
           - dast
           - dependencies
           - containers
-  
+
   # Run on release branches only
   push:
     branches:
@@ -34,27 +34,27 @@ jobs:
     name: Static Application Security Testing
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'sast' || github.event_name == 'push' }}
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      
+
       - name: Install security tools
         run: |
           pip install bandit safety pip-audit semgrep
-      
+
       - name: Run Bandit (Python Security Linter)
         continue-on-error: true
         run: |
           bandit -r backend/ -f json -o reports/bandit-report.json --severity-level medium
           bandit -r backend/ -f html -o reports/bandit-report.html --severity-level medium
-      
+
       - name: Run Semgrep
         continue-on-error: true
         run: |
@@ -62,17 +62,17 @@ jobs:
             --json \
             --output=reports/semgrep-report.json \
             backend/
-      
+
       - name: Run Safety Check
         continue-on-error: true
         run: |
           safety check --json --output reports/safety-report.json -r backend/requirements.txt
-      
+
       - name: Run pip-audit
         continue-on-error: true
         run: |
           pip-audit -r backend/requirements.txt --format json --output reports/pip-audit-report.json
-      
+
       - name: Upload SAST Reports
         uses: actions/upload-artifact@v4
         with:
@@ -84,17 +84,17 @@ jobs:
     name: Secret Detection
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'sast' || github.event_name == 'push' }}
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Detect secrets with Gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: TruffleHog OSS
         uses: trufflesecurity/trufflehog@main
         with:
@@ -107,10 +107,10 @@ jobs:
     name: Dependency Vulnerability Scan
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'dependencies' || github.event_name == 'push' }}
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/python@master
         continue-on-error: true
@@ -118,7 +118,7 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --severity-threshold=high --file=backend/requirements.txt
-      
+
       - name: OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
@@ -128,7 +128,7 @@ jobs:
           args: >
             --enableRetired
             --enableExperimental
-      
+
       - name: Upload dependency check results
         uses: actions/upload-artifact@v4
         with:
@@ -139,14 +139,14 @@ jobs:
     name: Container Security Scan
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'containers' }}
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Build Docker image for scanning
         run: |
           docker build -t migrate-platform:scan -f Dockerfile .
-      
+
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
@@ -154,21 +154,21 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'HIGH,CRITICAL'
-      
+
       - name: Run Grype vulnerability scanner
         uses: anchore/scan-action@v6
         with:
           image: 'migrate-platform:scan'
           output-format: sarif
           fail-build: false
-      
+
       - name: Dockerfile linting with Hadolint
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile
           format: sarif
           output-file: hadolint-results.sarif
-      
+
       - name: Upload container scan results
         uses: github/codeql-action/upload-sarif@v3
         with:
@@ -178,10 +178,10 @@ jobs:
     name: Infrastructure as Code Security
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.scan_type == 'full' }}
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Checkov IaC Scan
         uses: bridgecrewio/checkov-action@master
         with:
@@ -191,7 +191,7 @@ jobs:
           framework: all
           output_format: sarif
           output_file_path: reports/checkov.sarif
-      
+
       - name: KICS Security Scan
         uses: Checkmarx/kics-github-action@v1.7.0
         with:
@@ -199,7 +199,7 @@ jobs:
           output_path: reports/
           output_formats: 'json,sarif'
           fail_on: high
-      
+
       - name: Upload IaC scan results
         uses: actions/upload-artifact@v4
         with:
@@ -211,15 +211,15 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'dast' }}
     needs: [sast-scan]  # Run after SAST completes
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up test environment
         run: |
           docker-compose -f docker-compose.yml up -d
           sleep 30  # Wait for services to start
-      
+
       - name: OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.10.0
         with:
@@ -227,13 +227,13 @@ jobs:
           target: 'http://localhost:8000'
           rules_file_name: '.zap/rules.tsv'
           cmd_options: '-a -j -l WARN'
-      
+
       - name: Nuclei Security Scan
         uses: projectdiscovery/nuclei-action@main
         with:
           target: 'http://localhost:8000'
           flags: '-severity high,critical -stats'
-      
+
       - name: Cleanup test environment
         if: always()
         run: |
@@ -244,27 +244,27 @@ jobs:
     runs-on: ubuntu-latest
     needs: [sast-scan, secret-scan, dependency-scan, container-scan, iac-scan]
     if: always()
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: security-artifacts/
-      
+
       - name: Generate consolidated report
         run: |
           pip install jinja2 markdown2
           python scripts/security/generate_security_report.py security-artifacts/ > security-report.md
-      
+
       - name: Create security issue if critical findings
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const report = fs.readFileSync('security-report.md', 'utf8');
-            
+
             if (report.includes('CRITICAL')) {
               github.rest.issues.create({
                 owner: context.repo.owner,
@@ -274,7 +274,7 @@ jobs:
                 labels: ['security', 'critical', 'automated']
               });
             }
-      
+
       - name: Upload final security report
         uses: actions/upload-artifact@v4
         with:
@@ -289,7 +289,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [security-report]
     if: always()
-    
+
     steps:
       - name: Send notification
         uses: 8398a7/action-slack@v3

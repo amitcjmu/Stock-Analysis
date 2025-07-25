@@ -37,7 +37,7 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
   connectionType
 }) => {
   const isFlowPaused = flowStatus === 'paused' || flowStatus === 'waiting_for_approval' || flowStatus === 'waiting_for_user_approval';
-  
+
   return (
     <>
       {/* Show alert if flow is paused and waiting for approval */}
@@ -47,21 +47,21 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
           <AlertDescription className="text-blue-800">
             <strong>Flow Paused for Your Review</strong>
             <p className="mt-1">
-              The discovery flow has generated field mapping suggestions and is waiting for your approval. 
+              The discovery flow has generated field mapping suggestions and is waiting for your approval.
               Please review the mappings below, make any necessary adjustments, and click "Continue to Data Cleansing" to resume the flow.
             </p>
           </AlertDescription>
         </Alert>
       )}
-      
+
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Field Mapping & Critical Attributes</h1>
             <div className="flex items-center space-x-3">
               <p className="text-gray-600">
-                {mappingProgress.total > 0 
-                  ? `${mappingProgress.total} attributes analyzed with ${mappingProgress.mapped} mapped and ${mappingProgress.critical_mapped} migration-critical` 
+                {mappingProgress.total > 0
+                  ? `${mappingProgress.total} attributes analyzed with ${mappingProgress.mapped} mapped and ${mappingProgress.critical_mapped} migration-critical`
                   : 'AI-powered field mapping and critical attribute identification'
                 }
               </p>
@@ -91,7 +91,7 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
             </div>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-3">
         <Button
           onClick={onRefetch}
@@ -116,7 +116,7 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
           <Zap className="h-4 w-4" />
           <span>Trigger Analysis</span>
         </Button>
-        
+
         {onReprocessMappings && hasFieldMappings && (
           <Button
             onClick={onReprocessMappings}

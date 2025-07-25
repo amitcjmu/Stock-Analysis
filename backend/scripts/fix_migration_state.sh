@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Migration State Fix Script
-# 
+#
 # This script fixes common Alembic migration state issues in different environments.
 # Used by CC for deployment migrations.
 #
@@ -72,32 +72,32 @@ EOF
 
 check_requirements() {
     log_info "Checking requirements..."
-    
+
     # Check if Python is available
     if ! command -v python3 &> /dev/null; then
         log_error "Python 3 is required but not installed"
         return 1
     fi
-    
+
     # Check if we're in the right directory
     if [[ ! -f "$BACKEND_DIR/alembic.ini" ]]; then
         log_error "alembic.ini not found. Please run this script from the backend directory or its scripts subdirectory"
         return 1
     fi
-    
+
     # Check if the Python script exists
     if [[ ! -f "$SCRIPT_DIR/fix_migration_state.py" ]]; then
         log_error "fix_migration_state.py not found"
         return 1
     fi
-    
+
     log_success "Requirements check passed"
     return 0
 }
 
 check_database_connection() {
     log_info "Checking database connection..."
-    
+
     # Try to determine database connection details
     if [[ -z "${DATABASE_URL:-}" ]]; then
         # Try to construct from individual components
@@ -105,52 +105,52 @@ check_database_connection() {
         POSTGRES_PORT="${POSTGRES_PORT:-5432}"
         POSTGRES_USER="${POSTGRES_USER:-postgres}"
         POSTGRES_DB="${POSTGRES_DB:-migration_db}"
-        
+
         if [[ -z "${POSTGRES_PASSWORD:-}" ]]; then
             log_warning "No database connection details found"
             log_warning "Please set DATABASE_URL or POSTGRES_* environment variables"
             return 1
         fi
-        
+
         DATABASE_URL="postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
         export DATABASE_URL
     fi
-    
+
     log_success "Database connection details configured"
     return 0
 }
 
 run_migration_fix() {
     local check_only="${1:-false}"
-    
+
     log_info "Running migration state fix..."
-    
+
     cd "$BACKEND_DIR"
-    
+
     # Set PYTHONPATH to include the backend directory
     export PYTHONPATH="$BACKEND_DIR:${PYTHONPATH:-}"
-    
+
     if [[ "$check_only" == "true" ]]; then
         log_info "Running in check-only mode..."
         # For check-only mode, we could add a flag to the Python script
         # For now, we'll just run the normal script which reports the state
     fi
-    
+
     python3 "$SCRIPT_DIR/fix_migration_state.py"
     local exit_code=$?
-    
+
     if [[ $exit_code -eq 0 ]]; then
         log_success "Migration state fix completed successfully"
     else
         log_error "Migration state fix failed with exit code $exit_code"
     fi
-    
+
     return $exit_code
 }
 
 main() {
     local check_only=false
-    
+
     # Parse command line arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -169,18 +169,18 @@ main() {
                 ;;
         esac
     done
-    
+
     log_info "🔧 Starting Migration State Fix Script..."
-    
+
     # Run checks
     if ! check_requirements; then
         exit 1
     fi
-    
+
     if ! check_database_connection; then
         exit 1
     fi
-    
+
     # Run the migration fix
     if run_migration_fix "$check_only"; then
         log_success "✅ Migration state fix completed successfully"

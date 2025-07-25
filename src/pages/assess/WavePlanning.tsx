@@ -57,7 +57,7 @@ const WavePlanning = () => {
           <div className="max-w-7xl mx-auto">
             {/* Context Breadcrumbs */}
             <ContextBreadcrumbs showContextSelector={true} />
-            
+
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Wave Planning</h1>
               <p className="text-gray-600">Plan migration waves and group applications</p>
@@ -78,7 +78,7 @@ const WavePlanning = () => {
                       {wave.status}
                     </span>
                   </div>
-                  
+
                   <div className="space-y-4">
                     <div className="flex items-center space-x-3">
                       <Calendar className="h-5 w-5 text-blue-500" />
@@ -87,7 +87,7 @@ const WavePlanning = () => {
                         <p className="text-sm text-gray-600">{wave.startDate}</p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-3">
                       <Target className="h-5 w-5 text-green-500" />
                       <div>
@@ -95,7 +95,7 @@ const WavePlanning = () => {
                         <p className="text-sm text-gray-600">{wave.targetDate}</p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-3">
                       <Users className="h-5 w-5 text-purple-500" />
                       <div>
@@ -104,7 +104,7 @@ const WavePlanning = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="mt-6 pt-4 border-t border-gray-200">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-500">Applications</span>

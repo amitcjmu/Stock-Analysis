@@ -109,7 +109,7 @@ export function useFlowUpdates(
       safeSetState({ isLoading: true, error: null });
 
       const sseUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/flows/${flowId}/events`;
-      
+
       // Create EventSource
       // Note: Native EventSource doesn't support custom headers
       // We'll need to pass auth token as query param or use cookies
@@ -151,9 +151,9 @@ export function useFlowUpdates(
         if (retryCountRef.current < mergedOptions.maxRetries) {
           retryCountRef.current++;
           const delay = mergedOptions.retryDelay * Math.pow(2, retryCountRef.current - 1);
-          
+
           console.log(`Retrying SSE connection in ${delay}ms (attempt ${retryCountRef.current})`);
-          
+
           setTimeout(() => {
             if (isMountedRef.current) {
               connectSSE();
@@ -166,7 +166,7 @@ export function useFlowUpdates(
             connectionType: 'disconnected',
             error: 'SSE connection failed',
           });
-          
+
           // Fall back to polling
           if (mergedOptions.enablePolling && startPollingRef.current) {
             startPollingRef.current();
@@ -191,7 +191,7 @@ export function useFlowUpdates(
         error: error instanceof Error ? error.message : 'Failed to connect',
         isLoading: false,
       });
-      
+
       // Fall back to polling
       if (mergedOptions.enablePolling && startPollingRef.current) {
         startPollingRef.current();
@@ -223,7 +223,7 @@ export function useFlowUpdates(
       }
 
       const data = await response.json();
-      
+
       // Store ETag for next request
       const newEtag = response.headers.get('ETag');
       if (newEtag) {
@@ -265,7 +265,7 @@ export function useFlowUpdates(
     }
 
     console.log(`Starting polling for flow ${flowId} with interval ${mergedOptions.pollingInterval}ms`);
-    
+
     // Initial poll
     pollStatus();
 
@@ -301,7 +301,7 @@ export function useFlowUpdates(
     // Reset state
     retryCountRef.current = 0;
     etagRef.current = null;
-    
+
     safeSetState({
       isConnected: false,
       connectionType: 'disconnected',
@@ -311,7 +311,7 @@ export function useFlowUpdates(
   // Reconnect
   const reconnect = useCallback(() => {
     disconnect();
-    
+
     if (mergedOptions.enableSSE) {
       connectSSE();
     } else if (mergedOptions.enablePolling && startPollingRef.current) {

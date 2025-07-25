@@ -259,7 +259,7 @@ describe('Asset Inventory Enhanced Features', () => {
         expect(screen.getByText('Applications')).toBeInTheDocument();
         expect(screen.getByText('Servers')).toBeInTheDocument();
         expect(screen.getByText('Databases')).toBeInTheDocument();
-        
+
         // Enhanced categories
         expect(screen.getByText('Devices')).toBeInTheDocument();
         expect(screen.getByText('Unknown')).toBeInTheDocument();
@@ -415,10 +415,10 @@ describe('Asset Inventory Enhanced Features', () => {
 
       await waitFor(() => {
         const filterSelect = screen.getByDisplayValue('All Types');
-        
+
         // Filter by Network Devices
         fireEvent.change(filterSelect, { target: { value: 'network_device' } });
-        
+
         // Should only show network devices
         expect(screen.getByText('core-switch-01')).toBeInTheDocument();
         expect(screen.queryByText('web-server-01')).not.toBeInTheDocument();
@@ -435,10 +435,10 @@ describe('Asset Inventory Enhanced Features', () => {
 
       await waitFor(() => {
         const filterSelect = screen.getByDisplayValue('All Types');
-        
+
         // Filter by Security Devices
         fireEvent.change(filterSelect, { target: { value: 'security_device' } });
-        
+
         // Should only show security devices
         expect(screen.getByText('firewall-perimeter')).toBeInTheDocument();
         expect(screen.queryByText('core-switch-01')).not.toBeInTheDocument();
@@ -499,7 +499,7 @@ describe('Asset Inventory Enhanced Features', () => {
 
     it('shows loading state during refresh', async () => {
       // Mock a delayed response
-      apiCall.mockImplementation(() => new Promise(resolve => 
+      apiCall.mockImplementation(() => new Promise(resolve =>
         setTimeout(() => resolve(mockAssetData), 1000)
       ));
 
@@ -618,7 +618,7 @@ describe('Asset Inventory Enhanced Features', () => {
         // Check main layout elements
         expect(screen.getByTestId('sidebar')).toBeInTheDocument();
         expect(screen.getByTestId('feedback-widget')).toBeInTheDocument();
-        
+
         // Check responsive grid classes exist
         const summarySection = screen.getByText('Applications').closest('div');
         expect(summarySection).toBeInTheDocument();
@@ -638,11 +638,11 @@ describe('Asset Inventory Enhanced Features', () => {
         // Check table structure
         const table = screen.getByRole('table');
         expect(table).toBeInTheDocument();
-        
+
         // Check buttons
         const refreshButton = screen.getByRole('button', { name: /refresh/i });
         expect(refreshButton).toBeInTheDocument();
-        
+
         const exportButton = screen.getByRole('button', { name: /export csv/i });
         expect(exportButton).toBeInTheDocument();
       });
@@ -659,7 +659,7 @@ describe('Asset Inventory Enhanced Features', () => {
         // Check select elements
         const typeFilter = screen.getByDisplayValue('All Types');
         expect(typeFilter).toBeInTheDocument();
-        
+
         const deptFilter = screen.getByDisplayValue('All Departments');
         expect(deptFilter).toBeInTheDocument();
       });
@@ -736,4 +736,4 @@ describe('Asset Inventory Agentic Workflow Preservation', () => {
       expect(screen.getByText('IoT_Sensor_Network')).toBeInTheDocument();
     });
   });
-}); 
+});

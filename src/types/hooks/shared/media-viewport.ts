@@ -1,6 +1,6 @@
 /**
  * Media and Viewport Hook Types
- * 
+ *
  * Hook interfaces for media queries, breakpoints, and viewport management.
  */
 

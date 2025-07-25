@@ -31,7 +31,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Expected migration version (the current comprehensive schema)
-EXPECTED_MIGRATION_VERSION = "014_fix_remaining_agent_foreign_keys"
+EXPECTED_MIGRATION_VERSION = "019_implement_row_level_security"
 
 # Expected core tables that should exist in a properly migrated database
 EXPECTED_CORE_TABLES = {
@@ -85,8 +85,8 @@ class MigrationStateFixer:
                 result = await conn.execute(
                     text(
                         """
-                    SELECT table_name 
-                    FROM information_schema.tables 
+                    SELECT table_name
+                    FROM information_schema.tables
                     WHERE table_schema = 'migration' OR table_schema = 'public'
                     ORDER BY table_name
                 """
@@ -122,7 +122,7 @@ class MigrationStateFixer:
                     text(
                         """
                     SELECT EXISTS (
-                        SELECT FROM information_schema.tables 
+                        SELECT FROM information_schema.tables
                         WHERE table_name = 'alembic_version'
                         AND (table_schema = 'migration' OR table_schema = 'public')
                     )

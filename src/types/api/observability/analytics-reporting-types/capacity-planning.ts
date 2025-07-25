@@ -1,6 +1,6 @@
 /**
  * Capacity Planning Types
- * 
+ *
  * Type definitions for capacity analysis, growth projections, resource planning,
  * and generating capacity recommendations and risk assessments.
  */
@@ -256,4 +256,3 @@ export interface RiskIndicator {
   trend: 'improving' | 'degrading' | 'stable';
   alerting: boolean;
 }
-

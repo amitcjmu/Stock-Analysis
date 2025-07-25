@@ -31,7 +31,7 @@ export const useBulkAnalysis = ({
   onDeleteJob,
   onExportResults
 }: UseBulkAnalysisProps) => {
-  
+
   const [state, setState] = useState<BulkAnalysisState>({
     jobs,
     results,
@@ -162,7 +162,7 @@ export const useBulkAnalysis = ({
           applications: newJobConfig.selectedApplications,
           parameters: newJobConfig.parameters
         });
-        
+
         setState(prev => ({ ...prev, showCreateDialog: false }));
         setNewJobConfig({
           name: '',
@@ -176,7 +176,7 @@ export const useBulkAnalysis = ({
             confidence_threshold: 0.8
           }
         });
-        
+
         toast.success('Job created successfully');
       }
     },
@@ -186,7 +186,7 @@ export const useBulkAnalysis = ({
         toast.error(`Cannot start more than ${maxConcurrentJobs} concurrent jobs`);
         return;
       }
-      
+
       if (onStartJob) {
         onStartJob(jobId);
         toast.success('Job started');
@@ -270,11 +270,11 @@ export const useBulkAnalysis = ({
     state,
     newJobConfig,
     setNewJobConfig,
-    
+
     // Computed values
     filteredAndSortedJobs,
     queueStats,
-    
+
     // Actions
     ...actions
   };

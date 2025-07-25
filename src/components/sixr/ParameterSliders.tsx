@@ -214,7 +214,7 @@ export const ParameterSliders: React.FC<ParameterSliderProps> = ({
             </span>
           </div>
         </div>
-        
+
         <div className="space-y-2">
           <Slider
             id={config.key}
@@ -231,7 +231,7 @@ export const ParameterSliders: React.FC<ParameterSliderProps> = ({
             <span>{config.highLabel}</span>
           </div>
         </div>
-        
+
         <p className="text-xs text-gray-600">{config.description}</p>
       </div>
     );
@@ -277,7 +277,7 @@ export const ParameterSliders: React.FC<ParameterSliderProps> = ({
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-6">
         {showApplicationType && (
           <div className="space-y-4 pb-6 border-b border-gray-200">
@@ -298,7 +298,7 @@ export const ParameterSliders: React.FC<ParameterSliderProps> = ({
                 </Tooltip>
               </TooltipProvider>
             </div>
-            
+
             <Select
               value={localParameters.application_type}
               onValueChange={(value) => handleParameterChange('application_type', value)}
@@ -346,4 +346,4 @@ export const ParameterSliders: React.FC<ParameterSliderProps> = ({
   );
 };
 
-export default ParameterSliders; 
+export default ParameterSliders;

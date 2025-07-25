@@ -173,7 +173,7 @@ describe('useAttributeMappingLogic', () => {
     const { result } = renderHook(() => useAttributeMappingLogic());
 
     expect(result.current.isAgenticLoading).toBe(false);
-    
+
     await waitFor(() => {
       expect(result.current.fieldMappings).toHaveLength(2);
     });

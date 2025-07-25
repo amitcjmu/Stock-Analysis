@@ -14,7 +14,7 @@ import Sidebar from '../../components/Sidebar';
 const Compliance = () => {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
-  
+
   const {
     data: complianceData,
     isLoading,
@@ -190,7 +190,7 @@ const Compliance = () => {
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm text-gray-600 mb-4">{requirement.description}</p>
-                        
+
                         <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                           <div>
                             <p className="text-gray-500">Last Checked</p>
@@ -241,4 +241,4 @@ const Compliance = () => {
   );
 };
 
-export default Compliance; 
+export default Compliance;

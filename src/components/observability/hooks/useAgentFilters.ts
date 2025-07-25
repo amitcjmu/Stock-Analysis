@@ -35,7 +35,7 @@ export const useAgentFilters = (agents: AgentCardData[]) => {
     // Filter by search query
     if (filters.searchQuery && filters.searchQuery.trim()) {
       const query = filters.searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(agent => 
+      filtered = filtered.filter(agent =>
         agent.name.toLowerCase().includes(query)
       );
     }

@@ -32,40 +32,40 @@ const WorkflowProgress: React.FC<WorkflowProgressProps> = ({
   const steps: WorkflowStep[] = [
     {
       name: 'Discovery',
-      status: workflowAnalysis.completion_percentages.discovery >= 100 
-        ? 'completed' 
-        : workflowAnalysis.completion_percentages.discovery > 0 
-          ? 'in-progress' 
+      status: workflowAnalysis.completion_percentages.discovery >= 100
+        ? 'completed'
+        : workflowAnalysis.completion_percentages.discovery > 0
+          ? 'in-progress'
           : 'pending',
       progress: workflowAnalysis.completion_percentages.discovery,
       description: 'Asset inventory and initial data collection',
     },
     {
       name: 'Mapping',
-      status: workflowAnalysis.completion_percentages.mapping >= 100 
-        ? 'completed' 
-        : workflowAnalysis.completion_percentages.mapping > 0 
-          ? 'in-progress' 
+      status: workflowAnalysis.completion_percentages.mapping >= 100
+        ? 'completed'
+        : workflowAnalysis.completion_percentages.mapping > 0
+          ? 'in-progress'
           : 'pending',
       progress: workflowAnalysis.completion_percentages.mapping,
       description: 'Field mapping and data transformation',
     },
     {
       name: 'Cleanup',
-      status: workflowAnalysis.completion_percentages.cleanup >= 100 
-        ? 'completed' 
-        : workflowAnalysis.completion_percentages.cleanup > 0 
-          ? 'in-progress' 
+      status: workflowAnalysis.completion_percentages.cleanup >= 100
+        ? 'completed'
+        : workflowAnalysis.completion_percentages.cleanup > 0
+          ? 'in-progress'
           : 'pending',
       progress: workflowAnalysis.completion_percentages.cleanup,
       description: 'Data quality improvements and deduplication',
     },
     {
       name: 'Assessment Ready',
-      status: workflowAnalysis.completion_percentages.assessment_ready >= 100 
-        ? 'completed' 
-        : workflowAnalysis.completion_percentages.assessment_ready > 0 
-          ? 'in-progress' 
+      status: workflowAnalysis.completion_percentages.assessment_ready >= 100
+        ? 'completed'
+        : workflowAnalysis.completion_percentages.assessment_ready > 0
+          ? 'in-progress'
           : 'pending',
       progress: workflowAnalysis.completion_percentages.assessment_ready,
       description: 'Ready for migration assessment',
@@ -132,8 +132,8 @@ const WorkflowProgress: React.FC<WorkflowProgressProps> = ({
             </span>
           </div>
           <div className="pl-11">
-            <ProgressBar 
-              percentage={step.progress} 
+            <ProgressBar
+              percentage={step.progress}
               color={getProgressBarColor(step.status).replace('bg-', '')}
               height="sm"
             />

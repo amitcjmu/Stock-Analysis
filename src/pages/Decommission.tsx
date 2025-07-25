@@ -6,7 +6,7 @@ import { Shield, Trash2, Clock, CheckCircle, AlertTriangle } from 'lucide-react'
 
 const Decommission = () => {
   const [selectedPhase, setSelectedPhase] = useState('planning');
-  
+
   const decommissionQueue = [
     {
       id: 'D001',
@@ -133,8 +133,8 @@ const Decommission = () => {
                       {metric.total && (
                         <div className="mt-2">
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-red-500 h-2 rounded-full" 
+                            <div
+                              className="bg-red-500 h-2 rounded-full"
                               style={{ width: `${metric.percentage}%` }}
                             ></div>
                           </div>
@@ -158,7 +158,7 @@ const Decommission = () => {
                     const Icon = phase.icon;
                     const isSelected = selectedPhase === phase.id;
                     return (
-                      <div 
+                      <div
                         key={phase.id}
                         className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
                           isSelected ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300'
@@ -176,8 +176,8 @@ const Decommission = () => {
                             <span className="font-medium">{phase.completed}/{phase.systems}</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-red-500 h-2 rounded-full" 
+                            <div
+                              className="bg-red-500 h-2 rounded-full"
                               style={{ width: `${(phase.completed / phase.systems) * 100}%` }}
                             ></div>
                           </div>

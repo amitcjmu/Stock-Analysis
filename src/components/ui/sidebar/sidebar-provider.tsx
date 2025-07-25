@@ -1,6 +1,6 @@
 /**
  * Sidebar Provider
- * 
+ *
  * Main provider component for sidebar state management and context.
  */
 

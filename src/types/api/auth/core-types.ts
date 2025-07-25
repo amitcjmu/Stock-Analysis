@@ -1,6 +1,6 @@
 /**
  * Core Authentication and Authorization Types
- * 
+ *
  * Shared interfaces and types used across authentication modules.
  */
 

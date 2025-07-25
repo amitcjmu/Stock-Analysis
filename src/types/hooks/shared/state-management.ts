@@ -1,8 +1,8 @@
 /**
  * State Management Hook Types
- * 
+ *
  * Hook interfaces for state management including storage, toggle, counter, and list hooks.
- * 
+ *
  * These types provide comprehensive React hook patterns for state management
  * with proper generic constraints and type safety.
  */

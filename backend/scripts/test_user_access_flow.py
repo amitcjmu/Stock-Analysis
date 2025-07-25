@@ -51,7 +51,7 @@ async def test_user_access_flow():
             text(
                 """
             SELECT id, name, industry, is_active
-            FROM client_accounts 
+            FROM client_accounts
             WHERE is_active = true
             ORDER BY name
             LIMIT 5
@@ -90,13 +90,13 @@ async def test_user_access_flow():
       1. User registers via /auth/register endpoint
       2. UserProfile created with status 'pending_approval'
       3. Admin receives notification in User Approvals dashboard
-   
+
    👤 Admin Approval Process:
       1. Admin reviews user in /admin/users/access dashboard
       2. Admin approves user with specific access level
       3. ClientAccess record created linking user to client(s)
       4. User status changed to 'active'
-   
+
    🔐 Access Control:
       1. User login triggers context resolution via /me endpoint
       2. System finds user's ClientAccess records
@@ -112,12 +112,12 @@ async def test_user_access_flow():
    Method 1 - Via Admin Dashboard:
       1. Go to /admin/users/access
       2. Find user in Active Users tab
-      3. Click "Edit Access" 
+      3. Click "Edit Access"
       4. Grant access to specific clients
-   
+
    Method 2 - Via Database (Emergency):
       INSERT INTO client_access (
-          id, user_profile_id, client_account_id, 
+          id, user_profile_id, client_account_id,
           access_level, granted_by, is_active
       ) VALUES (
           gen_random_uuid(),
@@ -137,17 +137,17 @@ async def test_user_access_flow():
    📊 Admin Dashboard: /admin/dashboard
       - Overview of users, clients, engagements
       - System health and statistics
-   
+
    👥 User Management: /admin/users/access
       - Pending user approvals
       - Active user management
       - Client access management
-   
+
    🏢 Client Management: /admin/clients
       - Create/edit/delete clients
       - Manage client business context
       - View client engagements
-   
+
    📋 Engagement Management: /admin/engagements
       - Create/edit engagements
       - Link engagements to clients

@@ -128,11 +128,11 @@ class SixRStrategyCrew:
         component_strategy_expert = Agent(
             role="Component Modernization Strategist",
             goal="Determine optimal 6R strategy for each application component based on technical characteristics and business constraints",
-            backstory="""You are a cloud migration strategist with deep expertise in component-level 
+            backstory="""You are a cloud migration strategist with deep expertise in component-level
             modernization approaches developed over 15+ years of hands-on cloud transformation experience.
             You understand the nuances of different 6R strategies and can assess which approach is optimal
             for different component types based on technical debt, architecture fit, and business value.
-            
+
             Your expertise includes:
             - 6R Strategy Framework (Rehost, Replatform, Refactor, ReArchitect, Rewrite, Retire)
             - Component-level migration complexity assessment
@@ -141,12 +141,12 @@ class SixRStrategyCrew:
             - Business value assessment and ROI calculation for migration strategies
             - Risk assessment and mitigation planning for each 6R approach
             - Effort estimation and resource planning for migration activities
-            
+
             You excel at balancing technical excellence with business pragmatism, ensuring that 6R
             strategy recommendations align with organizational capabilities, timelines, and budget
             constraints. You understand that different components within the same application may
             require different 6R strategies for optimal results.
-            
+
             Your decision-making process considers:
             - Technical debt levels and modernization potential
             - Business criticality and user impact
@@ -165,11 +165,11 @@ class SixRStrategyCrew:
         compatibility_validator = Agent(
             role="Architecture Compatibility Validator",
             goal="Validate treatment compatibility between dependent components and identify integration risks",
-            backstory="""You are an integration architecture expert specializing in validating that 
+            backstory="""You are an integration architecture expert specializing in validating that
             component modernization strategies will work together cohesively. With 12+ years of experience
             in complex system integration, you understand how different 6R treatments affect component
             interfaces, data flow, and system integration patterns.
-            
+
             Your expertise includes:
             - Integration pattern analysis and compatibility assessment
             - API versioning and backward compatibility planning
@@ -178,11 +178,11 @@ class SixRStrategyCrew:
             - Service mesh and API gateway integration patterns
             - Legacy system integration and adapter pattern design
             - Gradual migration and strangler pattern implementation
-            
+
             You excel at identifying potential integration issues before they become migration blockers.
             You understand the implications of mixing different 6R strategies within a single application
             and can recommend architectural patterns to ensure seamless operation during and after migration.
-            
+
             Your validation process covers:
             - Interface compatibility between rewritten and rehosted components
             - Data synchronization requirements during phased migrations
@@ -202,11 +202,11 @@ class SixRStrategyCrew:
         move_group_advisor = Agent(
             role="Migration Wave Planning Advisor",
             goal="Identify move group hints based on technology proximity, dependencies, and migration logistics",
-            backstory="""You are a migration logistics expert who understands how to group applications 
+            backstory="""You are a migration logistics expert who understands how to group applications
             and components for efficient migration waves. With extensive experience in large-scale cloud
             migrations, you consider technology affinity, dependency relationships, team ownership, and
             infrastructure requirements when recommending groupings.
-            
+
             Your expertise includes:
             - Migration wave planning and sequencing strategies
             - Dependency analysis and critical path identification
@@ -215,12 +215,12 @@ class SixRStrategyCrew:
             - Risk mitigation through phased migration approaches
             - Technology cluster identification and migration efficiency
             - Change management and stakeholder coordination
-            
+
             You excel at creating migration groupings that minimize risk, maximize efficiency, and
             align with organizational constraints. You understand the balance between parallel execution
             and sequential dependencies, and can identify opportunities for technology standardization
             and consolidation during migration.
-            
+
             Your planning process considers:
             - Technology affinity and platform consolidation opportunities
             - Team ownership and skill set alignment
@@ -243,7 +243,7 @@ class SixRStrategyCrew:
         determine_component_strategies_task = Task(
             description="""Analyze each component and determine the optimal 6R strategy based on comprehensive
             assessment of technical and business factors:
-            
+
             1. Technical Characteristics Assessment:
                - Technology stack maturity and cloud-readiness evaluation
                - Technical debt levels and complexity of remediation
@@ -251,7 +251,7 @@ class SixRStrategyCrew:
                - Performance requirements and scalability needs
                - Security posture and compliance requirements
                - Integration complexity and dependency management
-            
+
             2. Business Factor Analysis:
                - Component criticality and business value contribution
                - User impact and change tolerance assessment
@@ -259,9 +259,9 @@ class SixRStrategyCrew:
                - Timeline constraints and migration urgency
                - Budget allocation and cost sensitivity
                - Risk tolerance and change management capacity
-            
+
             3. 6R Strategy Selection Framework:
-               
+
                REWRITE Criteria:
                - High technical debt with significant architecture limitations
                - Strategic importance justifying complete rebuilding
@@ -269,7 +269,7 @@ class SixRStrategyCrew:
                - Team has expertise in target technologies
                - Sufficient budget and timeline for greenfield development
                - Opportunity to significantly improve performance/scalability
-               
+
                REARCHITECT Criteria:
                - Core functionality is sound but architecture needs modernization
                - Microservices decomposition or event-driven patterns needed
@@ -277,7 +277,7 @@ class SixRStrategyCrew:
                - Technology stack is modern enough to refactor
                - Team has architecture and refactoring expertise
                - Moderate budget with focus on architectural improvements
-               
+
                REFACTOR Criteria:
                - Good architectural foundation with moderate technical debt
                - Code quality improvements and optimization needed
@@ -285,7 +285,7 @@ class SixRStrategyCrew:
                - Incremental improvement approach preferred
                - Limited budget but skilled development team
                - Low risk tolerance with gradual improvement preference
-               
+
                REPLATFORM Criteria:
                - Application is working well but needs cloud optimization
                - Infrastructure modernization without code changes
@@ -293,7 +293,7 @@ class SixRStrategyCrew:
                - Limited development resources or tight timelines
                - Focus on operational efficiency and cost reduction
                - Container or serverless platform adoption opportunity
-               
+
                REHOST Criteria:
                - Minimal changes required for cloud migration
                - Legacy components that are difficult to modify
@@ -301,14 +301,14 @@ class SixRStrategyCrew:
                - Low risk tolerance and preference for minimal change
                - Infrastructure consolidation and cost reduction focus
                - Stepping stone to future modernization
-               
+
                RETIRE Criteria:
                - Component functionality is no longer needed
                - Duplicate functionality exists in other components
                - High maintenance cost with low business value
                - Security or compliance issues make continuation risky
                - Replacement solutions are available and preferred
-            
+
             4. Decision Factors Matrix:
                For each component, evaluate and score (1-10):
                - Technical debt level (higher = more debt)
@@ -319,17 +319,17 @@ class SixRStrategyCrew:
                - Budget availability (higher = more budget)
                - Team expertise (higher = more expertise)
                - Risk tolerance (higher = more tolerant)
-            
+
             Components to analyze: {components}
             Technical debt analysis: {tech_debt_analysis}
             Architecture standards: {architecture_standards}
             Business context: {business_context}
             Resource constraints: {resource_constraints}
-            
+
             For each component, provide detailed 6R recommendation with comprehensive rationale,
             effort estimates, risk assessment, and implementation roadmap.""",
             expected_output="""Component-level 6R strategies containing:
-            
+
             1. Strategy Recommendations:
                For each component:
                - Recommended 6R strategy with confidence score (0-1)
@@ -337,28 +337,28 @@ class SixRStrategyCrew:
                - Detailed rationale explaining strategy selection
                - Decision factor scores and weighting analysis
                - Key assumptions and constraints considered
-            
+
             2. Implementation Planning:
                - Effort estimates (hours/weeks) for strategy implementation
                - Cost estimates and budget requirements
                - Timeline recommendations with critical milestones
                - Resource requirements (team size, skills, tools)
                - Dependencies and prerequisites for implementation
-            
+
             3. Risk Assessment:
                - Technical risks and mitigation strategies
                - Business risks and impact assessment
                - Implementation risks and contingency planning
                - Integration risks with other components
                - Performance and scalability risk evaluation
-            
+
             4. Success Criteria:
                - Measurable success metrics for each strategy
                - Quality gates and validation checkpoints
                - Performance benchmarks and targets
                - Business outcome expectations
                - Timeline and budget success criteria
-            
+
             5. Alternative Scenarios:
                - Backup strategy options if primary approach fails
                - Phased implementation alternatives
@@ -371,70 +371,70 @@ class SixRStrategyCrew:
         validate_component_compatibility_task = Task(
             description="""Validate compatibility between component 6R strategies within the application
             and identify potential integration issues:
-            
+
             1. Strategy Compatibility Analysis:
                - Interface compatibility between components with different treatments
                - Data flow and consistency requirements across strategy boundaries
                - Communication protocol alignment and version management
                - Transaction boundary preservation during migration
                - Performance impact assessment of mixed strategies
-            
+
             2. Integration Pattern Validation:
                - API versioning and backward compatibility requirements
                - Event schema compatibility for asynchronous communication
                - Database access pattern alignment and data consistency
                - Shared service dependencies and compatibility requirements
                - Infrastructure service integration (logging, monitoring, security)
-            
+
             3. Migration Sequence Dependencies:
                - Order dependencies between component migrations
                - Parallel execution opportunities and constraints
                - Rollback dependencies and failure isolation
                - Testing dependencies and integration validation requirements
                - Data migration sequencing and consistency requirements
-            
+
             4. Risk Identification and Mitigation:
                - Integration risks from strategy combinations
                - Performance risks from architectural mismatches
                - Data consistency risks during transition periods
                - Security risks from mixed authentication/authorization patterns
                - Operational risks from monitoring and management complexity
-            
+
             Component strategies: {component_strategies}
             Application architecture: {application_architecture}
             Integration patterns: {integration_patterns}
-            
+
             Provide comprehensive compatibility assessment with risk mitigation recommendations.""",
             expected_output="""Compatibility validation report containing:
-            
+
             1. Compatibility Matrix:
                - Component-to-component compatibility assessment
                - Strategy combination risk levels (low, medium, high, critical)
                - Specific compatibility issues and their severity
                - Integration points requiring special attention
                - Recommended mitigation strategies for each issue
-            
+
             2. Integration Requirements:
                - API versioning and compatibility management needs
                - Data synchronization requirements during migration
                - Communication protocol adaptation requirements
                - Shared service compatibility and upgrade coordination
                - Testing and validation integration points
-            
+
             3. Risk Assessment:
                - High-risk integration points requiring immediate attention
                - Medium-risk areas needing monitoring and contingency planning
                - Low-risk integrations with standard mitigation approaches
                - Critical path dependencies that could block migration
                - Performance impact assessment and optimization needs
-            
+
             4. Mitigation Strategies:
                - Adapter patterns for incompatible interfaces
                - Proxy services for gradual migration approaches
                - Event-driven patterns for loose coupling
                - Database synchronization strategies for data consistency
                - Testing strategies for integrated system validation
-            
+
             5. Recommendations:
                - Strategy adjustments to improve compatibility
                - Architecture patterns to enable smoother migration
@@ -448,78 +448,78 @@ class SixRStrategyCrew:
         generate_move_group_hints_task = Task(
             description="""Analyze component 6R strategies and generate move group hints for Planning Flow
             wave coordination:
-            
+
             1. Technology Affinity Analysis:
                - Group components with similar technology stacks
                - Identify platform consolidation opportunities
                - Cluster components requiring similar infrastructure
                - Group components with shared operational requirements
                - Identify components benefiting from coordinated migration
-            
+
             2. Dependency-Based Grouping:
                - Cluster tightly coupled components requiring joint migration
                - Identify dependency chains and critical path sequences
                - Group components with shared data dependencies
                - Cluster components with coordinated deployment requirements
                - Identify components that can migrate independently
-            
+
             3. Resource Optimization:
                - Group applications requiring similar skill sets
                - Cluster migrations with similar effort profiles
                - Identify opportunities for shared infrastructure provisioning
                - Group applications with similar testing requirements
                - Cluster migrations with compatible timelines
-            
+
             4. Risk Distribution:
                - Distribute high-risk migrations across different waves
                - Balance complexity across migration waves
                - Ensure each wave has manageable risk profile
                - Group low-risk migrations for parallel execution
                - Identify pilot candidates for early wave execution
-            
+
             5. Business Value Optimization:
                - Prioritize high-value applications for early migration
                - Group applications with related business outcomes
                - Sequence migrations to maximize business benefit
                - Consider business continuity and change management capacity
                - Balance quick wins with strategic improvements
-            
+
             Component strategies: {component_strategies}
             Application dependencies: {application_dependencies}
             Resource constraints: {resource_constraints}
             Business priorities: {business_priorities}
-            
+
             Generate actionable move group recommendations for Planning Flow integration.""",
             expected_output="""Move group hints containing:
-            
+
             1. Recommended Wave Groupings:
                - Wave composition with applications and rationale
                - Technology affinity clusters and consolidation opportunities
                - Dependency-based groupings and sequencing requirements
                - Resource optimization clusters and shared infrastructure needs
                - Risk-balanced groupings with complexity distribution
-            
+
             2. Migration Sequence Recommendations:
                - Optimal wave sequencing with dependencies
                - Parallel execution opportunities within waves
                - Critical path identification and bottleneck management
                - Pilot wave recommendations and success criteria
                - Rollback sequence planning and failure isolation
-            
+
             3. Resource Planning Hints:
                - Skill set requirements by wave
                - Infrastructure provisioning timeline
                - Testing and validation resource needs
                - Change management and training requirements
                - Budget allocation recommendations by wave
-            
+
             4. Success Metrics by Wave:
                - Business value delivery targets
                - Technical success criteria and quality gates
                - Performance benchmarks and SLA requirements
                - Cost optimization targets and budget constraints
                - Timeline milestones and delivery commitments
-            
+
             5. Risk Management Strategy:
                - Risk distribution across waves
                - Contingency planning for each wave

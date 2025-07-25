@@ -1,6 +1,6 @@
 /**
  * Analytics Dashboard Types - Index
- * 
+ *
  * Centralized exports for all analytics dashboard type modules.
  * This module provides comprehensive type definitions for dashboard components
  * including widgets, metrics, visualizations, and configurations.

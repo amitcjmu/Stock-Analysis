@@ -1,6 +1,6 @@
 /**
  * Badge and Chip Component Types
- * 
+ *
  * Badge, chip, and similar indicator component interfaces.
  */
 

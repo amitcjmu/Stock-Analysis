@@ -16,7 +16,7 @@ import { Badge } from '../ui/badge';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Filter, Activity } from 'lucide-react'
 import { RefreshCw, Search, Grid, List, Settings, AlertCircle, Users, TrendingUp, Wifi, WifiOff } from 'lucide-react'
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -34,7 +34,7 @@ import { LoadingSpinner, ProgressiveLoader } from './LoadingStates'
 import { useComponentVisibility, useGridLayout } from './hooks/useResponsiveLayout'
 import { agentObservabilityService } from '../../services/api/agentObservabilityService';
 
-import type { 
+import type {
   AgentListOverviewProps,
   AgentCardData,
   AgentListState,
@@ -55,7 +55,7 @@ const filterAgents = (agents: AgentCardData[], filters: AgentListFilters): Agent
   // Filter by search query
   if (filters.searchQuery && filters.searchQuery.trim()) {
     const query = filters.searchQuery.toLowerCase().trim();
-    filtered = filtered.filter(agent => 
+    filtered = filtered.filter(agent =>
       agent.name.toLowerCase().includes(query)
     );
   }
@@ -135,9 +135,9 @@ const useAgentData = (refreshInterval?: number) => {
       if (!isRefresh) {
         for (let i = 0; i < loadingStages.length; i++) {
           setProgressStage(i);
-          setLoadingState({ 
-            isLoading: true, 
-            loadingText: loadingStages[i] 
+          setLoadingState({
+            isLoading: true,
+            loadingText: loadingStages[i]
           });
           await new Promise(resolve => setTimeout(resolve, 200));
         }
@@ -171,10 +171,10 @@ const useAgentData = (refreshInterval?: number) => {
 
     } catch (error) {
       console.error('Failed to fetch agents:', error);
-      
+
       const errorMessage = error instanceof Error ? error.message : 'Failed to load agents';
-      const isNetworkError = errorMessage.includes('fetch') || 
-                           errorMessage.includes('network') || 
+      const isNetworkError = errorMessage.includes('fetch') ||
+                           errorMessage.includes('network') ||
                            errorMessage.includes('connection') ||
                            !navigator.onLine;
 
@@ -194,7 +194,7 @@ const useAgentData = (refreshInterval?: number) => {
       }));
 
       setLoadingState({ isLoading: false });
-      
+
       if (isNetworkError) {
         setConnectionState(prev => ({ ...prev, isOnline: false }));
       }
@@ -285,10 +285,10 @@ export const ResponsiveAgentListOverview: React.FC<AgentListOverviewProps> = ({
   const [showSettings, setShowSettings] = useState(false);
 
   const { columns, gridClass, isMobile, isTablet } = useGridLayout(4);
-  const { 
-    showFilters: showFiltersResponsive, 
-    compactMode, 
-    stackedLayout 
+  const {
+    showFilters: showFiltersResponsive,
+    compactMode,
+    stackedLayout
   } = useComponentVisibility();
 
   const {
@@ -347,7 +347,7 @@ export const ResponsiveAgentListOverview: React.FC<AgentListOverviewProps> = ({
         </div>
       );
     }
-    
+
     return (
       <ProgressiveLoader
         stages={loadingStages}
@@ -366,7 +366,7 @@ export const ResponsiveAgentListOverview: React.FC<AgentListOverviewProps> = ({
 
   if (errorState.hasError && !errorState.canRetry) {
     return (
-      <LoadingError 
+      <LoadingError
         error={errorState.errorMessage || 'Unknown error occurred'}
         onRetry={retryFetch}
         canRetry={false}
@@ -414,13 +414,13 @@ export const ResponsiveAgentListOverview: React.FC<AgentListOverviewProps> = ({
             </div>
 
             {!isMobile && (
-              <AgentStatusGroup 
+              <AgentStatusGroup
                 statuses={statusGroups}
                 size="sm"
                 variant="badge"
               />
             )}
-            
+
             <Button
               variant="outline"
               size="sm"
@@ -448,7 +448,7 @@ export const ResponsiveAgentListOverview: React.FC<AgentListOverviewProps> = ({
 
         {/* Mobile Status Groups */}
         {isMobile && (
-          <AgentStatusGroup 
+          <AgentStatusGroup
             statuses={statusGroups}
             size="sm"
             variant="badge"
@@ -503,8 +503,8 @@ export const ResponsiveAgentListOverview: React.FC<AgentListOverviewProps> = ({
                 {/* Status Filter */}
                 <Select
                   value={filters.status?.[0] || 'all'}
-                  onValueChange={(value) => 
-                    updateFilters({ 
+                  onValueChange={(value) =>
+                    updateFilters({
                       status: value === 'all' ? undefined : [value as ('active' | 'idle' | 'error' | 'offline')]
                     })
                   }
@@ -580,8 +580,8 @@ export const ResponsiveAgentListOverview: React.FC<AgentListOverviewProps> = ({
           <EmptyState
             title="No Agents Found"
             description={
-              filters.searchQuery || filters.status ? 
-                'No agents match your current filters.' : 
+              filters.searchQuery || filters.status ?
+                'No agents match your current filters.' :
                 'No agents are currently registered.'
             }
             action={
@@ -597,9 +597,9 @@ export const ResponsiveAgentListOverview: React.FC<AgentListOverviewProps> = ({
           />
         ) : (
           <div className={cn(
-            isMobile 
+            isMobile
               ? 'space-y-4'
-              : viewMode === 'grid' 
+              : viewMode === 'grid'
                 ? gridClass + ' gap-6'
                 : 'space-y-4'
           )}>
@@ -637,7 +637,7 @@ export const ResponsiveAgentListOverview: React.FC<AgentListOverviewProps> = ({
                   Showing {displayedAgents.length} of {filteredAgents.length} agents
                   {maxAgents && filteredAgents.length > maxAgents && ` (${maxAgents} max)`}
                 </span>
-                
+
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-1">
                     <TrendingUp className="h-4 w-4 text-green-500" />
@@ -645,7 +645,7 @@ export const ResponsiveAgentListOverview: React.FC<AgentListOverviewProps> = ({
                       {Math.round((statusDistribution.active || 0) / agents.length * 100)}% uptime
                     </span>
                   </div>
-                  
+
                   {connectionState.lastSuccessfulFetch && (
                     <div className="text-xs text-gray-500">
                       Last updated: {connectionState.lastSuccessfulFetch.toLocaleTimeString()}

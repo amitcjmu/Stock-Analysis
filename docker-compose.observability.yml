@@ -118,4 +118,4 @@ networks:
   openlit_network:
     driver: bridge
   migrate-ui-orchestrator_default:
-    external: true 
+    external: true

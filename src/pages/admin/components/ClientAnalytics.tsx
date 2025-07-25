@@ -13,9 +13,9 @@ export interface ClientAnalyticsProps {
   className?: string;
 }
 
-export const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ 
-  clientsData, 
-  className = '' 
+export const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({
+  clientsData,
+  className = ''
 }) => {
   // Transform industry data for ProgressCard
   const industryItems: ProgressItemData[] = clientsData.byIndustry && Object.keys(clientsData.byIndustry).length > 0
@@ -26,7 +26,7 @@ export const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({
       }))
     : [];
 
-  // Transform company size data for ProgressCard  
+  // Transform company size data for ProgressCard
   const sizeItems: ProgressItemData[] = clientsData.bySize && Object.keys(clientsData.bySize).length > 0
     ? Object.entries(clientsData.bySize).map(([size, count]) => ({
         label: size,

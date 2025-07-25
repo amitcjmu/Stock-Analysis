@@ -17,7 +17,7 @@ This directory previously contained archived files from the modularization proce
 The modularization is complete and all archived files have been cleaned up. The active implementation uses the modularized structure in the parent directory with the following key modules:
 
 - `base_flow.py` - Main flow orchestration
-- `flow_config.py` - Configuration management  
+- `flow_config.py` - Configuration management
 - `state_management.py` - State persistence
 - `crew_coordination.py` - Agent orchestration
 - `flow_management.py` - Flow lifecycle management

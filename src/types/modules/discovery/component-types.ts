@@ -1,9 +1,9 @@
 /**
  * Discovery Flow - Component Types Module
- * 
+ *
  * React component prop interfaces for all Discovery Flow UI components.
  * Includes field mappings, navigation, data import, and analysis components.
- * 
+ *
  * Generated with CC - Code Companion
  */
 

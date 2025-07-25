@@ -27,7 +27,7 @@ const SummaryPage: React.FC<SummaryPageProps> = ({ flowId }) => {
               <CheckCircle className="h-12 w-12 text-green-600" />
             </div>
           </div>
-          
+
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Assessment Complete!
@@ -87,7 +87,7 @@ const SummaryPage: React.FC<SummaryPageProps> = ({ flowId }) => {
                   <p className="text-sm text-gray-600">Use assessment data to create detailed migration plans</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                   <span className="text-sm font-medium text-blue-600">2</span>
@@ -97,7 +97,7 @@ const SummaryPage: React.FC<SummaryPageProps> = ({ flowId }) => {
                   <p className="text-sm text-gray-600">Organize applications into migration waves based on dependencies</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                   <span className="text-sm font-medium text-blue-600">3</span>
@@ -117,7 +117,7 @@ const SummaryPage: React.FC<SummaryPageProps> = ({ flowId }) => {
             <Download className="h-4 w-4 mr-2" />
             Download Report
           </Button>
-          
+
           <Button size="lg">
             Continue to Planning
             <ArrowRight className="h-4 w-4 ml-2" />

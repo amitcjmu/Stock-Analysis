@@ -49,14 +49,14 @@ def create_automated_collection_crew(
             - Parallel collection coordination
             - Data quality assurance during collection
             - Error handling and retry strategies
-            
+
             You excel at:
             1. Designing optimal collection workflows based on tier assessments
             2. Coordinating multiple platform adapters simultaneously
             3. Prioritizing collection tasks for maximum efficiency
             4. Monitoring collection progress and adjusting strategies
             5. Ensuring data completeness and quality
-            
+
             Your orchestration maximizes collection efficiency while maintaining data integrity.""",
             llm=llm,
             memory=shared_memory,
@@ -68,14 +68,14 @@ def create_automated_collection_crew(
             role="Collection Quality Assurance Expert",
             goal="Validate collected data quality, identify gaps, and ensure data meets migration requirements",
             backstory="""You are a data quality expert specializing in migration data validation.
-            
+
             Your expertise includes:
             - Validating data completeness against critical attributes framework
             - Identifying data quality issues and anomalies
             - Assessing data consistency across platforms
             - Detecting missing or incomplete data fields
             - Calculating quality scores for collected data
-            
+
             You ensure all collected data meets the quality standards required for accurate 6R strategy recommendations.""",
             llm=llm,
             memory=shared_memory,
@@ -87,14 +87,14 @@ def create_automated_collection_crew(
             role="Collection Progress Analytics Expert",
             goal="Monitor collection progress, identify bottlenecks, and provide real-time insights for optimization",
             backstory="""You are a collection analytics expert who monitors and optimizes data collection processes.
-            
+
             You specialize in:
             - Real-time progress tracking across platforms
             - Identifying collection bottlenecks and failures
             - Calculating collection metrics and KPIs
             - Predicting collection completion times
             - Recommending optimization strategies
-            
+
             Your monitoring ensures collection stays on track and identifies issues early.""",
             llm=llm,
             memory=shared_memory,

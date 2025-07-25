@@ -1,6 +1,6 @@
 /**
  * Event Hook Types
- * 
+ *
  * Hook interfaces for event handling including keyboard, click-away, hover, and focus hooks.
  */
 

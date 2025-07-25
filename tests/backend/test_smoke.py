@@ -29,20 +29,20 @@ def test_agent_manager_initialization():
     import os
     import sys
     import importlib.util
-    
+
     # Get the path relative to the current working directory
     agents_module_path = os.path.join(os.path.dirname(__file__), '../../backend/app/services/agents.py')
     agents_module_path = os.path.abspath(agents_module_path)
-    
+
     # If running from backend directory (as in CI/CD), adjust the path
     if not os.path.exists(agents_module_path):
         agents_module_path = os.path.join('app/services/agents.py')
-    
+
     spec = importlib.util.spec_from_file_location("agents_module", agents_module_path)
     agents_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(agents_module)
     AgentManager = agents_module.AgentManager
-    
+
     from app.services.deepinfra_llm import create_deepinfra_llm
     from app.core.config import settings
     llm = create_deepinfra_llm(
@@ -69,8 +69,8 @@ def test_discovery_endpoint_available(client):
     response = client.get("/api/health")
     # The endpoint should exist and not return 500
     assert response.status_code != 500
-    
-    # Also test the root endpoint  
+
+    # Also test the root endpoint
     response = client.get("/")
     assert response.status_code in (200, 307)  # 307 is redirect
 

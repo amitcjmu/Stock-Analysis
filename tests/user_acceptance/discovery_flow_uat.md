@@ -24,7 +24,7 @@ This document outlines user acceptance testing scenarios for the Discovery Flow 
 
 ### **Objective**: Verify users can successfully execute a complete Discovery Flow
 
-### **User Story**: 
+### **User Story**:
 As a Migration Analyst, I want to run a Discovery Flow on my CMDB data so that I can understand my infrastructure and prepare for migration planning.
 
 ### **Test Steps**:
@@ -472,4 +472,4 @@ As a Mobile Migration Analyst, I want to monitor discovery progress and review r
 - **Crew Execution Time**: <30 seconds per 100 assets
 - **Memory Usage**: <500MB per active flow
 - **CPU Usage**: <70% during peak processing
-- **WebSocket Latency**: <100ms for real-time updates 
+- **WebSocket Latency**: <100ms for real-time updates

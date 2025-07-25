@@ -32,11 +32,11 @@ const patterns = [
     type: 'component',
     check: (content, match) => {
       const name = match[4];
-      return name && name[0] === name[0].toUpperCase() && 
+      return name && name[0] === name[0].toUpperCase() &&
              !content.substring(match.index, match.index + 200).includes('): ');
     }
   },
-  
+
   // React Components with props: const Component = (props) => {
   {
     pattern: /^(\s*)(export\s+)?(const)\s+([A-Z][a-zA-Z0-9]*)\s*=\s*\(([^)]+)\)\s*=>\s*\{/gm,
@@ -44,11 +44,11 @@ const patterns = [
     type: 'component',
     check: (content, match) => {
       const name = match[4];
-      return name && name[0] === name[0].toUpperCase() && 
+      return name && name[0] === name[0].toUpperCase() &&
              !content.substring(match.index, match.index + 200).includes('): ');
     }
   },
-  
+
   // Pages/Views: export default function Component() {
   {
     pattern: /^(\s*)(export\s+default\s+)?function\s+([A-Z][a-zA-Z0-9]*)\s*\(\s*\)\s*\{/gm,
@@ -58,7 +58,7 @@ const patterns = [
       return !content.substring(match.index, match.index + 200).includes('): ');
     }
   },
-  
+
   // Event handlers: handleSomething = () => {
   {
     pattern: /^(\s*)(handle[A-Z][a-zA-Z0-9]*)\s*=\s*\(\s*\)\s*=>\s*\{/gm,
@@ -68,7 +68,7 @@ const patterns = [
       return !content.substring(match.index, match.index + 200).includes('): ');
     }
   },
-  
+
   // Event handlers with params: handleSomething = (event) => {
   {
     pattern: /^(\s*)(handle[A-Z][a-zA-Z0-9]*)\s*=\s*\(([^)]+)\)\s*=>\s*\{/gm,
@@ -78,7 +78,7 @@ const patterns = [
       return !content.substring(match.index, match.index + 200).includes('): ');
     }
   },
-  
+
   // onClick handlers: onClick = () => {
   {
     pattern: /^(\s*)(on[A-Z][a-zA-Z0-9]*)\s*=\s*\(\s*\)\s*=>\s*\{/gm,
@@ -88,7 +88,7 @@ const patterns = [
       return !content.substring(match.index, match.index + 200).includes('): ');
     }
   },
-  
+
   // Hooks: export const useXXX = () => {
   {
     pattern: /^(\s*)(export\s+)?(const)\s+(use[A-Z][a-zA-Z0-9]*)\s*=\s*\(\s*\)\s*=>\s*\{/gm,
@@ -98,7 +98,7 @@ const patterns = [
       return !content.substring(match.index, match.index + 200).includes('): ');
     }
   },
-  
+
   // Utility functions that are clearly void
   {
     pattern: /^(\s*)(export\s+)?(const)\s+(log[A-Z][a-zA-Z0-9]*|show[A-Z][a-zA-Z0-9]*|set[A-Z][a-zA-Z0-9]*)\s*=\s*\([^)]*\)\s*=>\s*\{/gm,
@@ -115,29 +115,29 @@ function processFile(filePath) {
   if (stats.totalFixes >= config.targetFixes) {
     return; // Stop if we've fixed enough
   }
-  
+
   try {
     const content = fs.readFileSync(filePath, 'utf8');
     let modified = content;
     let fileFixCount = 0;
-    
+
     // Quick skip for already processed files
     if (content.includes('): JSX.Element') || content.includes('): void')) {
       return;
     }
-    
+
     // Apply patterns
     for (const patternDef of patterns) {
       const matches = [...content.matchAll(patternDef.pattern)];
-      
+
       for (const match of matches) {
         if (stats.totalFixes >= config.targetFixes) {
           break;
         }
-        
+
         if (patternDef.check(content, match)) {
           let replacement = patternDef.replacement;
-          
+
           // Special handling for hooks and utils
           if (patternDef.type === 'hook') {
             // For hooks, we'll just add a generic return type
@@ -150,12 +150,12 @@ function processFile(filePath) {
               replacement = match[0].replace('=> {', '): void => {');
             }
           }
-          
+
           if (replacement) {
             modified = modified.replace(match[0], replacement);
             fileFixCount++;
             stats.totalFixes++;
-            
+
             switch(patternDef.type) {
               case 'component': stats.componentsFixed++; break;
               case 'void': stats.voidFunctionsFixed++; break;
@@ -166,7 +166,7 @@ function processFile(filePath) {
         }
       }
     }
-    
+
     // Write file if changed
     if (fileFixCount > 0 && !config.dryRun) {
       fs.writeFileSync(filePath, modified, 'utf8');
@@ -175,7 +175,7 @@ function processFile(filePath) {
     } else if (fileFixCount > 0) {
       console.log(`Would fix ${fileFixCount} in ${path.basename(filePath)}`);
     }
-    
+
   } catch (error) {
     console.error(`Error in ${filePath}: ${error.message}`);
   }
@@ -184,11 +184,11 @@ function processFile(filePath) {
 // Main
 async function main() {
   console.log('🚀 Fast Return Type Fixer\n');
-  
+
   if (config.dryRun) {
     console.log('🔍 DRY RUN MODE\n');
   }
-  
+
   // Get files sorted by most likely to have issues
   const patterns = [
     'src/components/**/*.tsx',
@@ -198,7 +198,7 @@ async function main() {
     'src/utils/**/*.ts',
     'src/services/**/*.ts',
   ];
-  
+
   let allFiles = [];
   for (const pattern of patterns) {
     const files = await glob(path.join(__dirname, '..', pattern), {
@@ -206,12 +206,12 @@ async function main() {
     });
     allFiles = allFiles.concat(files);
   }
-  
+
   // Remove duplicates
   allFiles = [...new Set(allFiles)];
-  
+
   console.log(`Processing ${allFiles.length} files...\n`);
-  
+
   // Process files
   for (const file of allFiles) {
     if (stats.totalFixes >= config.targetFixes) {
@@ -220,7 +220,7 @@ async function main() {
     }
     processFile(file);
   }
-  
+
   // Summary
   console.log('\n📊 Summary:');
   console.log(`Files modified: ${stats.filesProcessed}`);
@@ -229,7 +229,7 @@ async function main() {
   console.log(`Hooks marked: ${stats.hookReturnsFixed}`);
   console.log(`Util functions: ${stats.utilFunctionsFixed}`);
   console.log(`Total fixes: ${stats.totalFixes}`);
-  
+
   if (config.dryRun) {
     console.log('\n💡 Run with dryRun: false to apply changes');
   }

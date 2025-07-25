@@ -131,9 +131,9 @@ async def update_assets_with_migration_planning(session: AsyncSession):
 
     # Get all assets
     assets_sql = """
-    SELECT id, name, asset_type, business_criticality, technology_stack, operating_system, 
+    SELECT id, name, asset_type, business_criticality, technology_stack, operating_system,
            custom_attributes, dependencies
-    FROM assets 
+    FROM assets
     WHERE client_account_id = :client_account_id
     ORDER BY asset_type, name
     """
@@ -311,9 +311,12 @@ async def create_migration_planning_raw_sql():
         print(f"    ✅ Created {waves_created} migration waves")
 
         # Update assets with 6R strategies and waves
-        total_assets, strategy_counts, wave_assignments, readiness_counts = (
-            await update_assets_with_migration_planning(session)
-        )
+        (
+            total_assets,
+            strategy_counts,
+            wave_assignments,
+            readiness_counts,
+        ) = await update_assets_with_migration_planning(session)
         print(f"    ✅ Updated {total_assets} assets with migration planning")
 
         # Update wave statistics

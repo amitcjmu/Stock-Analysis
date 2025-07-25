@@ -73,7 +73,6 @@ class UXRecommendationEngine:
                 and collection_flow.status == "completed"
                 and not flows_data.get("discovery_flow")
             ):
-
                 recommendations.append(
                     UXRecommendation(
                         id="auto_advance_discovery",

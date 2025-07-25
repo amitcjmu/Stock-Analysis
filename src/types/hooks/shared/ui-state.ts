@@ -1,8 +1,8 @@
 /**
  * UI State Hook Types
- * 
+ *
  * Hook interfaces for UI components including disclosure, modal, tooltip, and dropdown hooks.
- * 
+ *
  * These types provide proper typing for React hook patterns, replacing 'any' types with
  * specific interfaces and generic constraints.
  */

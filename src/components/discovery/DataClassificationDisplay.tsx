@@ -35,7 +35,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
   isProcessing = false
 }) => {
   const { session } = useAuth();
-  
+
   const [classifications, setClassifications] = useState<{
     good_data: DataItem[];
     needs_clarification: DataItem[];
@@ -53,13 +53,13 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
   // Memoize the fetch function to prevent unnecessary re-renders
   const fetchClassifications = React.useCallback(async () => {
     if (!pageContext) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const result = await apiCall(`/api/v1/agents/discovery/data-classifications?page=${pageContext}`);
-      
+
       // Process the result
       if (result.success && result.classifications) {
         setClassifications({
@@ -95,11 +95,11 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
   // Set up polling only when processing is active
   useEffect(() => {
     if (!isProcessing) return;
-    
+
     const interval = setInterval(fetchClassifications, 30000); // Poll every 30 seconds when processing
     return () => clearInterval(interval);
   }, [isProcessing, fetchClassifications]);
-  
+
   // Handle refresh trigger
   useEffect(() => {
     if (refreshTrigger === undefined) return;
@@ -122,22 +122,22 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
       if (result.success) {
         // Update local state
         const updatedClassifications = { ...classifications };
-        
+
         // Find and remove the item from all categories
         Object.keys(updatedClassifications).forEach(category => {
-          updatedClassifications[category as keyof typeof updatedClassifications] = 
+          updatedClassifications[category as keyof typeof updatedClassifications] =
             updatedClassifications[category as keyof typeof updatedClassifications].filter(item => item.id !== itemId);
         });
-        
+
         // Find the item to move
         const allItems = [...classifications.good_data, ...classifications.needs_clarification, ...classifications.unusable];
         const itemToMove = allItems.find(item => item.id === itemId);
-        
+
         if (itemToMove) {
           itemToMove.classification = newClassification;
           updatedClassifications[newClassification].push(itemToMove);
         }
-        
+
         setClassifications(updatedClassifications);
         onClassificationUpdate?.(itemId, newClassification);
       }
@@ -209,8 +209,8 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
   };
 
   const getTotalCount = React.useCallback(() => {
-    return classifications.good_data.length + 
-           classifications.needs_clarification.length + 
+    return classifications.good_data.length +
+           classifications.needs_clarification.length +
            classifications.unusable.length;
   }, [classifications]);
 
@@ -223,7 +223,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
   const currentClassificationConfig = React.useMemo(() => {
     return getClassificationConfig(selectedTab);
   }, [selectedTab]);
-  
+
   // Get the current items based on the selected tab
   const currentItems = React.useMemo(() => {
     return classifications[selectedTab] || [];
@@ -265,7 +265,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
               <span className="font-medium text-gray-900">{getCompletionPercentage()}% Ready</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className="bg-green-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${getCompletionPercentage()}%` }}
               />
@@ -279,7 +279,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
             const config = getClassificationConfig(classification);
             const count = classifications[classification].length;
             const Icon = config.icon;
-            
+
             return (
               <button
                 key={classification}
@@ -310,21 +310,21 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
               <h4 className="font-medium text-gray-900">{currentClassificationConfig.title}</h4>
               <span className="text-sm text-gray-500">({currentItems.length} items)</span>
             </div>
-            
+
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {currentItems.map((item, index) => (
                 <div key={item.id} className="bg-white border rounded p-3 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="text-sm font-medium text-gray-900">
-                        {item.content?.Hostname || item.content?.hostname || 
-                         item.content?.Name || item.content?.name || 
+                        {item.content?.Hostname || item.content?.hostname ||
+                         item.content?.Name || item.content?.name ||
                          item.content?.['Asset Name'] || `Asset ${index + 1}`}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
                         {item.data_type} • <span className={getConfidenceColor(item.confidence)}>{item.confidence} confidence</span>
                       </div>
-                      
+
                       {/* Show key details for the asset */}
                       {item.content && (
                         <div className="text-xs text-gray-600 mt-1">
@@ -336,7 +336,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
                         </div>
                       )}
                     </div>
-                    
+
                     {/* Classification Actions */}
                     <div className="flex space-x-1 ml-2">
                       {(['good_data', 'needs_clarification', 'unusable'] as const)
@@ -359,9 +359,9 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
                         })}
                     </div>
                   </div>
-                  
+
                   {/* Show issues if any for needs_clarification or unusable */}
-                  {(item.classification === 'needs_clarification' || item.classification === 'unusable') && 
+                  {(item.classification === 'needs_clarification' || item.classification === 'unusable') &&
                    item.issues && item.issues.length > 0 && (
                     <div className="mt-2 p-2 bg-red-50 rounded text-xs">
                       <strong className="text-red-700">Issues:</strong>
@@ -403,4 +403,4 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
   );
 };
 
-export default DataClassificationDisplay; 
+export default DataClassificationDisplay;

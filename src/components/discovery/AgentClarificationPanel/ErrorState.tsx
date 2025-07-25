@@ -1,6 +1,6 @@
 /**
  * Error State Component
- * 
+ *
  * Displays error state when questions fail to load.
  */
 

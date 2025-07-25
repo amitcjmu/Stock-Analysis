@@ -19,7 +19,7 @@ export const createLazyLoadingConfig = (baseConfig: UserConfig = {}): ReturnType
             // Core vendor chunks (CRITICAL priority)
             'vendor-react': ['react', 'react-dom', 'react-router-dom'],
             'vendor-query': ['@tanstack/react-query'],
-            
+
             // UI library chunks (HIGH priority)
             'vendor-ui-core': [
               '@radix-ui/react-accordion',
@@ -37,21 +37,21 @@ export const createLazyLoadingConfig = (baseConfig: UserConfig = {}): ReturnType
               '@radix-ui/react-toast',
               '@radix-ui/react-tooltip'
             ],
-            
+
             // Icons and styling (NORMAL priority)
             'vendor-icons': ['lucide-react'],
             'vendor-styling': ['clsx', 'tailwind-merge', 'class-variance-authority'],
-            
+
             // Form handling (NORMAL priority)
             'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
-            
+
             // Data processing (NORMAL priority)
             'vendor-data': ['papaparse', 'date-fns'],
-            
+
             // Visualization (LOW priority)
             'vendor-charts': ['recharts'],
             'vendor-3d': ['@react-three/fiber', '@react-three/drei', 'three'],
-            
+
             // Feature-based chunks (organized by priority)
             'discovery-core': [
               './src/pages/Discovery.tsx',
@@ -67,7 +67,7 @@ export const createLazyLoadingConfig = (baseConfig: UserConfig = {}): ReturnType
               './src/pages/discovery/AttributeMapping.tsx',
               './src/pages/discovery/TechDebtAnalysis.tsx'
             ],
-            
+
             'assessment-core': [
               './src/pages/Assess.tsx',
               './src/pages/assessment/AssessmentFlowOverview.tsx'
@@ -81,44 +81,44 @@ export const createLazyLoadingConfig = (baseConfig: UserConfig = {}): ReturnType
               './src/pages/assessment/InitializeFlow.tsx',
               './src/pages/assessment/InitializeFlowWithInventory.tsx'
             ],
-            
+
             'planning': [
               './src/pages/Plan.tsx',
               './src/pages/plan/Index.tsx',
               './src/pages/plan/Timeline.tsx',
               './src/pages/plan/Resource.tsx'
             ],
-            
+
             'execution': [
               './src/pages/Execute.tsx',
               './src/pages/execute/Index.tsx',
               './src/pages/execute/Rehost.tsx',
               './src/pages/execute/Replatform.tsx'
             ],
-            
+
             'modernization': [
               './src/pages/Modernize.tsx',
               './src/pages/modernize/Index.tsx',
               './src/pages/modernize/Refactor.tsx'
             ],
-            
+
             'finops': [
               './src/pages/FinOps.tsx',
               './src/pages/finops/CloudComparison.tsx',
               './src/pages/finops/CostAnalysis.tsx'
             ],
-            
+
             'decommissioning': [
               './src/pages/Decommission.tsx',
               './src/pages/decommission/Index.tsx',
               './src/pages/decommission/Planning.tsx'
             ],
-            
+
             'observability': [
               './src/pages/Observability.tsx',
               './src/pages/AgentMonitoring.tsx'
             ],
-            
+
             // Admin chunks (LOW priority)
             'admin-core': [
               './src/pages/admin/AdminDashboard.tsx',
@@ -129,7 +129,7 @@ export const createLazyLoadingConfig = (baseConfig: UserConfig = {}): ReturnType
               './src/pages/admin/EngagementManagement.tsx',
               './src/pages/admin/UserApprovals.tsx'
             ],
-            
+
             // Component chunks
             'components-discovery': [
               './src/components/discovery/FileUploadArea.tsx',
@@ -145,7 +145,7 @@ export const createLazyLoadingConfig = (baseConfig: UserConfig = {}): ReturnType
               './src/components/admin/user-approvals/UserStats.tsx',
               './src/components/admin/engagement-management/EngagementFilters.tsx'
             ],
-            
+
             // Utility chunks
             'utils-data': [
               './src/utils/dataCleansingUtils.ts',
@@ -157,42 +157,42 @@ export const createLazyLoadingConfig = (baseConfig: UserConfig = {}): ReturnType
               './src/utils/lazy/performanceMonitor.ts'
             ]
           },
-          
+
           // Chunk naming strategy
           chunkFileNames: (chunkInfo) => {
             const name = chunkInfo.name;
-            
+
             // Critical chunks get short names for faster loading
             if (name?.includes('vendor-react') || name?.includes('vendor-query')) {
               return 'assets/critical-[name]-[hash].js';
             }
-            
+
             // Feature chunks get descriptive names
             if (name?.includes('discovery') || name?.includes('assessment')) {
               return 'assets/features-[name]-[hash].js';
             }
-            
+
             // Admin chunks get grouped
             if (name?.includes('admin')) {
               return 'assets/admin-[name]-[hash].js';
             }
-            
+
             // Default naming
             return 'assets/[name]-[hash].js';
           },
-          
+
           // Asset naming
           assetFileNames: 'assets/[name]-[hash].[ext]',
           entryFileNames: 'assets/[name]-[hash].js'
         }
       },
-      
+
       // Optimize chunk sizes
       chunkSizeWarningLimit: 1000, // 1MB warning limit
-      
+
       // Enable source maps in development
       sourcemap: process.env.NODE_ENV === 'development',
-      
+
       // Minification options
       minify: 'terser',
       terserOptions: {
@@ -202,7 +202,7 @@ export const createLazyLoadingConfig = (baseConfig: UserConfig = {}): ReturnType
         }
       }
     },
-    
+
     // Optimization for development
     optimizeDeps: {
       ...baseConfig.optimizeDeps,
@@ -221,7 +221,7 @@ export const createLazyLoadingConfig = (baseConfig: UserConfig = {}): ReturnType
         'three'
       ]
     },
-    
+
     // Split vendor chunks in development too
     esbuild: {
       ...baseConfig.esbuild,

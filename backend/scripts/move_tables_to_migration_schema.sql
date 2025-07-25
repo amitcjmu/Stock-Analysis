@@ -10,10 +10,10 @@ DECLARE
     tbl RECORD;
 BEGIN
     -- Move each table
-    FOR tbl IN 
-        SELECT tablename 
-        FROM pg_tables 
-        WHERE schemaname = 'public' 
+    FOR tbl IN
+        SELECT tablename
+        FROM pg_tables
+        WHERE schemaname = 'public'
         AND tablename != 'spatial_ref_sys'  -- Skip PostGIS system tables
     LOOP
         EXECUTE format('ALTER TABLE public.%I SET SCHEMA migration', tbl.tablename);
@@ -25,10 +25,10 @@ END$$;
 ALTER DATABASE migration_db SET search_path TO migration, public;
 
 -- Verify the move
-SELECT 
+SELECT
     schemaname,
-    COUNT(*) as table_count 
-FROM pg_tables 
+    COUNT(*) as table_count
+FROM pg_tables
 WHERE schemaname IN ('public', 'migration')
 GROUP BY schemaname
 ORDER BY schemaname;

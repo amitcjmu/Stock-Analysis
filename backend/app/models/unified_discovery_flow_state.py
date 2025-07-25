@@ -201,9 +201,7 @@ class UnifiedDiscoveryFlowState(BaseModel):
     # ========================================
     # FLOW CONTROL AND STATUS
     # ========================================
-    status: str = (
-        "running"  # running, completed, failed, paused, waiting_for_approval, waiting_for_user_approval
-    )
+    status: str = "running"  # running, completed, failed, paused, waiting_for_approval, waiting_for_user_approval
     progress_percentage: float = 0.0
     estimated_remaining_time: str = "Calculating..."
 
@@ -313,9 +311,7 @@ class UnifiedDiscoveryFlowState(BaseModel):
     # Final integration results
     discovery_summary: Dict[str, Any] = Field(default_factory=dict)
     assessment_flow_package: Dict[str, Any] = Field(default_factory=dict)
-    final_result: str = (
-        ""  # Track final result of flow (e.g., "awaiting_user_approval_in_attribute_mapping")
-    )
+    final_result: str = ""  # Track final result of flow (e.g., "awaiting_user_approval_in_attribute_mapping")
 
     # ========================================
     # ENTERPRISE FEATURES

@@ -16,7 +16,7 @@ const Reports = () => {
   const { isAuthenticated } = useAuth();
 
   // Queries
-  const { 
+  const {
     data: reportsData,
     isLoading: isLoadingReports,
     error: reportsError

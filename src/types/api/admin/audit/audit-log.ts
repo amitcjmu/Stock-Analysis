@@ -1,14 +1,14 @@
 /**
  * Audit Log Types
- * 
+ *
  * Core audit log data structures and related types.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 
 import type {
-  AuditMetadata, 
-  GeoLocation, 
+  AuditMetadata,
+  GeoLocation,
   DeviceInfo,
   Environment,
   SessionType,
@@ -19,9 +19,9 @@ import type {
   ChangeType
 } from '../common';
 import type {
-  AuditSeverity, 
-  AuditAction, 
-  AuditResource, 
+  AuditSeverity,
+  AuditAction,
+  AuditResource,
   AuditOutcome,
   AuditSource
 } from './enums';

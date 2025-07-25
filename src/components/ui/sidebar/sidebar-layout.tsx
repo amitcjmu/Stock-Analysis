@@ -1,6 +1,6 @@
 /**
  * Sidebar Layout Components
- * 
+ *
  * Components for sidebar layout structure including header, footer, content, input, and separator.
  */
 

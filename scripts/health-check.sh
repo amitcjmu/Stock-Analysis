@@ -51,24 +51,24 @@ check_postgres() {
 
 check_containers() {
     echo "🔍 Checking Docker Containers..."
-    
+
     # Check if containers are running
     local backend_running=$(docker ps --filter "name=migration_backend" --format "{{.Names}}" | wc -l)
     local frontend_running=$(docker ps --filter "name=migration_frontend" --format "{{.Names}}" | wc -l)
     local postgres_running=$(docker ps --filter "name=migration_postgres" --format "{{.Names}}" | wc -l)
-    
+
     if [ "$backend_running" -eq 1 ]; then
         echo -e "${GREEN}✅ Backend container is running${NC}"
     else
         echo -e "${RED}❌ Backend container is not running${NC}"
     fi
-    
+
     if [ "$frontend_running" -eq 1 ]; then
         echo -e "${GREEN}✅ Frontend container is running${NC}"
     else
         echo -e "${RED}❌ Frontend container is not running${NC}"
     fi
-    
+
     if [ "$postgres_running" -eq 1 ]; then
         echo -e "${GREEN}✅ PostgreSQL container is running${NC}"
     else
@@ -80,10 +80,10 @@ check_containers() {
 main() {
     local service="$1"
     local exit_code=0
-    
+
     echo "🏥 Migration Platform Health Check"
     echo "=================================="
-    
+
     case "$service" in
         "backend")
             check_backend || exit_code=1
@@ -106,14 +106,14 @@ main() {
             check_frontend || exit_code=1
             ;;
     esac
-    
+
     echo ""
     if [ $exit_code -eq 0 ]; then
         echo -e "${GREEN}🎉 All requested services are healthy!${NC}"
     else
         echo -e "${RED}⚠️  Some services have issues. Check the output above.${NC}"
     fi
-    
+
     exit $exit_code
 }
 
@@ -127,4 +127,4 @@ if ! command -v nc &> /dev/null; then
     echo -e "${YELLOW}⚠️  netcat (nc) not found, skipping direct port checks${NC}"
 fi
 
-main "$@" 
+main "$@"

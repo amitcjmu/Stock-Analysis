@@ -15,8 +15,10 @@ export const useDebugLogging = (
       console.log('🔐 Auth State:', {
         authenticated: isAuthenticated,
         user: user?.email || 'none',
-        role: user?.role || 'none'
+        role: user?.role || 'none',
+        isAdmin,
+        expectedIsAdmin: user?.role === 'admin'
       });
     }
-  }, [isAuthenticated, user?.id]); // Only log when authentication status or user actually changes
+  }, [isAuthenticated, user?.id, user?.role, isAdmin]); // Only log when authentication status or user actually changes
 };

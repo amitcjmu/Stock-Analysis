@@ -1,6 +1,6 @@
 /**
  * API Utilities Types
- * 
+ *
  * Types for API clients, request handling, caching, and retry mechanisms.
  */
 

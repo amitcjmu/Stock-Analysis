@@ -5,7 +5,7 @@ This document summarizes the migration from `unknown` types to specific types in
 
 ## Progress
 - **Original unknown types**: 280
-- **Fixed unknown types**: 74  
+- **Fixed unknown types**: 74
 - **Remaining unknown types**: 206
 - **Progress**: 26.4% completed
 

@@ -11,7 +11,7 @@ interface FlowAutoDetectionOptions {
 export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions = {}) => {
   const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
   const { data: flowList, isLoading: isFlowListLoading, error: flowListError } = useDiscoveryFlowList();
-  
+
   const {
     currentPhase,
     preferredStatuses = ['initialized', 'running', 'active', 'in_progress'],
@@ -22,23 +22,23 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
   const autoDetectedFlowId = useMemo(() => {
     if (!flowList || flowList.length === 0) {
       console.log(`🔍 No flows available for auto-detection`, { flowList, length: flowList?.length });
-      
+
       // Emergency fallback: try to extract flow ID from URL or other context
       const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
       console.log('🔍 Checking for emergency flow ID fallback from URL:', currentUrl);
-      
+
       // Look for flow ID patterns in current URL or context
       const flowIdPattern = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}/i;
       const urlMatch = currentUrl.match(flowIdPattern);
-      
+
       if (urlMatch) {
         console.log('✅ Found emergency flow ID from URL:', urlMatch[0]);
         return urlMatch[0];
       }
-      
+
       return null;
     }
-    
+
     console.log(`🔍 Auto-detecting flow for phase: ${currentPhase}`, {
       totalFlows: flowList.length,
       preferredStatuses,
@@ -54,10 +54,10 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
         [`${currentPhase}_completed`]: flow[`${currentPhase}_completed`]
       }))
     });
-    
+
     // Priority 1: Flow currently in the specified phase (next_phase matches)
     if (currentPhase) {
-      const currentPhaseFlow = flowList.find((flow: unknown) => 
+      const currentPhaseFlow = flowList.find((flow: unknown) =>
         flow.next_phase === currentPhase
       );
       if (currentPhaseFlow) {
@@ -66,32 +66,32 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
         return flowId;
       }
     }
-    
+
     // Priority 1.5: For attribute_mapping, also check flows that completed data_import
     if (currentPhase === 'attribute_mapping') {
       const dataImportCompleteFlow = flowList.find((flow: unknown) => {
         // Check if data_import is completed
-        const dataImportCompleted = flow.phases?.data_import === true || 
+        const dataImportCompleted = flow.phases?.data_import === true ||
                                    flow.data_import_completed === true ||
                                    flow.current_phase === 'data_import';
-        
+
         // Check if flow is in a suitable status
         const isPreferredStatus = preferredStatuses.includes(flow.status);
-        
+
         // Check if attribute_mapping is not yet completed
-        const attributeMappingNotCompleted = flow.phases?.attribute_mapping !== true && 
+        const attributeMappingNotCompleted = flow.phases?.attribute_mapping !== true &&
                                            flow.attribute_mapping_completed !== true;
-        
+
         return dataImportCompleted && isPreferredStatus && attributeMappingNotCompleted;
       });
-      
+
       if (dataImportCompleteFlow) {
         const flowId = dataImportCompleteFlow.flow_id || dataImportCompleteFlow.id;
         console.log(`✅ Found flow with completed data_import ready for attribute_mapping:`, flowId);
         return flowId;
       }
     }
-    
+
     // Priority 2: Flow with specified phase completed but still in preferred status
     if (currentPhase) {
       const completedPhaseFlow = flowList.find((flow: unknown) => {
@@ -99,9 +99,9 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
         const directField = flow[`${currentPhase}_completed`];
         const phasesField = flow.phases?.[`${currentPhase}_completed`];
         const isPhaseCompleted = directField === true || phasesField === true;
-        
+
         const isPreferredStatus = preferredStatuses.includes(flow.status);
-        
+
         console.log(`🔍 Checking flow ${flow.id} for completed ${currentPhase}:`, {
           directField,
           phasesField,
@@ -109,20 +109,20 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
           status: flow.status,
           isPreferredStatus
         });
-        
+
         return isPhaseCompleted && isPreferredStatus;
       });
-      
+
       if (completedPhaseFlow) {
         const flowId = completedPhaseFlow.flow_id || completedPhaseFlow.id;
         console.log(`✅ Found flow with completed ${currentPhase} phase:`, flowId);
         return flowId;
       }
     }
-    
+
     // Priority 3: Any flow in preferred status
     if (fallbackToAnyRunning) {
-      const runningFlow = flowList.find((flow: unknown) => 
+      const runningFlow = flowList.find((flow: unknown) =>
         preferredStatuses.includes(flow.status)
       );
       if (runningFlow) {
@@ -131,32 +131,32 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
         return flowId;
       }
     }
-    
+
     // Priority 4: Most recent flow (even if completed)
-    const sortedFlows = [...flowList].sort((a: unknown, b: unknown) => 
+    const sortedFlows = [...flowList].sort((a: unknown, b: unknown) =>
       new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime()
     );
-    
+
     if (sortedFlows.length > 0) {
       const flowId = sortedFlows[0].flow_id || sortedFlows[0].id;
       console.log(`✅ Using most recent flow:`, flowId);
       return flowId;
     }
-    
+
     // Priority 5: Any flow at all (last resort)
     if (flowList.length > 0) {
       const flowId = flowList[0].flow_id || flowList[0].id;
       console.log(`✅ Using first available flow as last resort:`, flowId);
       return flowId;
     }
-    
+
     console.log('❌ No suitable flow found');
     return null;
   }, [flowList, currentPhase, preferredStatuses, fallbackToAnyRunning]);
 
   // Use URL flow ID if provided, otherwise use auto-detected flow ID
   const effectiveFlowId = urlFlowId || autoDetectedFlowId;
-  
+
   console.log(`🎯 Flow detection result for ${currentPhase}:`, {
     urlFlowId,
     autoDetectedFlowId,
@@ -172,12 +172,12 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
     urlFlowId,
     autoDetectedFlowId,
     effectiveFlowId,
-    
+
     // Flow list data
     flowList,
     isFlowListLoading,
     flowListError,
-    
+
     // Debugging info
     hasUrlFlowId: !!urlFlowId,
     hasAutoDetectedFlow: !!autoDetectedFlowId,

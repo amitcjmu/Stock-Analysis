@@ -39,7 +39,7 @@ export interface VerificationData {
 
 export const useVerification = () => {
   const { getAuthHeaders } = useAuth();
-  
+
   return useQuery<VerificationData>({
     queryKey: ['verification'],
     queryFn: async () => {
@@ -82,4 +82,4 @@ export const useGenerateReport = () => {
       return response.data;
     },
   });
-}; 
+};

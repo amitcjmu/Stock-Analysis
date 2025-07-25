@@ -72,17 +72,17 @@ export const FlowsOverview: React.FC<FlowsOverviewProps> = ({
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-gray-900">Active Discovery Flows</h2>
-      
+
       <div className="grid gap-4">
         {flows.map((flow) => {
           // Validate flow ID and detect corruption
           const validation = validateFlowObject(flow, 'FlowsOverview');
-          
+
           if (!validation.validated) {
             console.error('❌ Flow validation failed:', validation.issues);
             debugUUID(flow.flow_id, `Corrupted Flow ID for ${flow.engagement_name}`);
           }
-          
+
           return (
           <Card key={flow.flow_id} className="border border-gray-200">
             <CardHeader>
@@ -98,7 +98,7 @@ export const FlowsOverview: React.FC<FlowsOverviewProps> = ({
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
                   <Badge className={getStatusColor(flow.status)}>
                     {flow.status.charAt(0).toUpperCase() + flow.status.slice(1)}
@@ -109,7 +109,7 @@ export const FlowsOverview: React.FC<FlowsOverviewProps> = ({
                 </div>
               </div>
             </CardHeader>
-            
+
             <CardContent>
               <div className="space-y-4">
                 {/* Progress bar */}
@@ -120,7 +120,7 @@ export const FlowsOverview: React.FC<FlowsOverviewProps> = ({
                   </div>
                   <Progress value={flow.progress} className="h-2" />
                 </div>
-                
+
                 {/* Flow metrics */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
@@ -144,16 +144,16 @@ export const FlowsOverview: React.FC<FlowsOverviewProps> = ({
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Action buttons */}
                 <div className="flex items-center justify-between pt-2 border-t">
                   <div className="text-xs text-gray-500 font-mono">
-                    {validation.validated 
+                    {validation.validated
                       ? createDisplaySafeUUID(validation.flow_id, { length: 8 })
                       : `⚠️ INVALID: ${flow.flow_id.slice(0, 8)}...`
                     }
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <Button
                       variant="outline"
@@ -164,7 +164,7 @@ export const FlowsOverview: React.FC<FlowsOverviewProps> = ({
                       <Activity className="h-3 w-3" />
                       <span>Monitor</span>
                     </Button>
-                    
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -174,7 +174,7 @@ export const FlowsOverview: React.FC<FlowsOverviewProps> = ({
                       <Eye className="h-3 w-3" />
                       <span>View</span>
                     </Button>
-                    
+
                     {flow.status === 'failed' && (
                       <Button
                         variant="outline"

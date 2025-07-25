@@ -1,8 +1,8 @@
 /**
  * Notification Delivery Types
- * 
+ *
  * Types related to notification delivery, tracking, and status management.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

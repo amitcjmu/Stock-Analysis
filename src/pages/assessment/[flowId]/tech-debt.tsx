@@ -81,7 +81,7 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
 
   const handleSaveDraft = async () => {
     if (!selectedApp) return;
-    
+
     setIsDraft(true);
     try {
       await updateApplicationComponents(selectedApp, currentAppComponents);
@@ -100,11 +100,11 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
       for (const appId of state.selectedApplicationIds) {
         const components = state.applicationComponents[appId] || [];
         const techDebt = state.techDebtAnalysis[appId] || [];
-        
+
         await updateApplicationComponents(appId, components);
         await updateTechDebtAnalysis(appId, techDebt);
       }
-      
+
       await resumeFlow({
         components: state.applicationComponents,
         techDebtAnalysis: state.techDebtAnalysis
@@ -182,7 +182,7 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
 
         {/* Real-time Progress */}
         {state.status === 'processing' && (
-          <RealTimeProgressIndicator 
+          <RealTimeProgressIndicator
             agentUpdates={state.agentUpdates}
             currentPhase="tech_debt_analysis"
           />
@@ -296,7 +296,7 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
             {(editingComponent || editingTechDebt) && (
               <UserModificationForm
                 type={editingComponent ? 'component' : 'tech-debt'}
-                item={editingComponent ? 
+                item={editingComponent ?
                   currentAppComponents.find(c => c.component_name === editingComponent) :
                   currentAppTechDebt.find(t => t.category === editingTechDebt)
                 }
@@ -327,8 +327,8 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
         {/* Action Buttons */}
         <div className="flex justify-between items-center pt-6 border-t border-gray-200">
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleSaveDraft}
               disabled={isDraft || !selectedApp}
             >
@@ -336,8 +336,8 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
               {isDraft ? 'Saving...' : 'Save Progress'}
             </Button>
           </div>
-          
-          <Button 
+
+          <Button
             onClick={handleSubmit}
             disabled={isSubmitting || state.isLoading}
             size="lg"

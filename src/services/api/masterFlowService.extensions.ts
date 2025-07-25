@@ -13,7 +13,7 @@ const apiClient = ApiClient.getInstance();
 export const masterFlowServiceExtended = {
   // Include all existing methods
   ...masterFlowService,
-  
+
   /**
    * Execute a specific phase in a flow
    */
@@ -27,10 +27,10 @@ export const masterFlowServiceExtended = {
     const token = localStorage.getItem('auth_token');
     return apiClient.post<ApiResponse<{ success: boolean; message?: string; data?: Record<string, unknown> }>>(
       `/flows/${flowId}/execute`,
-      { 
-        phase_input: { 
-          phase: phase, 
-          ...phaseData 
+      {
+        phase_input: {
+          phase: phase,
+          ...phaseData
         },
         force_execution: false
       },

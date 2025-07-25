@@ -79,7 +79,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
 
   // Check admin access using both isAdmin computed property and direct user role check
   const hasAdminAccess = isAdmin || user?.role === 'admin' || user?.role === 'platform_admin';
-  
+
   // Only log access check if it's a new decision
   const accessDecision = `${hasAdminAccess}-${user?.role}`;
   if (accessDecision !== lastLoggedStateRef.current + '-access') {
@@ -116,14 +116,14 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
               <p>If you believe you should have access to this area, please contact your system administrator.</p>
             </div>
             <div className="flex flex-col gap-2">
-              <Button 
-                onClick={() => window.history.back()} 
-                variant="outline" 
+              <Button
+                onClick={() => window.history.back()}
+                variant="outline"
                 className="w-full"
               >
                 Go Back
               </Button>
-              <Button 
+              <Button
                 onClick={() => window.location.href = '/'}
                 className="w-full"
               >
@@ -140,4 +140,4 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   return <>{children}</>;
 };
 
-export default AdminRoute; 
+export default AdminRoute;

@@ -1,6 +1,6 @@
 /**
  * Subscription Hook Types
- * 
+ *
  * Hook types for real-time data subscriptions including
  * WebSocket, Server-Sent Events (SSE), and polling.
  */

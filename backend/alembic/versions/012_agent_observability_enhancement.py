@@ -50,11 +50,9 @@ def create_table_if_not_exists(table_name, *columns, **kwargs):
 
 
 def index_exists(index_name, table_name):
-    """Check if an index exists on a table"""
+    """Check if an index exists in the database"""
     bind = op.get_bind()
     try:
-        # Use parameterized query with proper escaping
-        # Note: table_name and index_name are string literal values, not identifiers
         result = bind.execute(
             sa.text(
                 """
@@ -69,19 +67,17 @@ def index_exists(index_name, table_name):
         ).scalar()
         return result
     except Exception as e:
-        print(f"Error checking if index {index_name} exists on table {table_name}: {e}")
+        print(f"Error checking if index {index_name} exists: {e}")
         # If we get an error, assume index exists to avoid trying to create it
         return True
 
 
 def create_index_if_not_exists(index_name, table_name, columns, **kwargs):
     """Create an index only if it doesn't already exist"""
-    if table_exists(table_name) and not index_exists(index_name, table_name):
+    if not index_exists(index_name, table_name):
         op.create_index(index_name, table_name, columns, **kwargs)
     else:
-        print(
-            f"Index {index_name} already exists or table doesn't exist, skipping creation"
-        )
+        print(f"Index {index_name} on {table_name} already exists, skipping creation")
 
 
 def upgrade():
@@ -265,31 +261,31 @@ def upgrade():
     )
 
     # Create indexes for agent_task_history
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_agent_task_history_agent_name"),
         "agent_task_history",
         ["agent_name", sa.text("created_at DESC")],
         unique=False,
     )
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_agent_task_history_flow_id"),
         "agent_task_history",
         ["flow_id"],
         unique=False,
     )
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_agent_task_history_status"),
         "agent_task_history",
         ["status", sa.text("created_at DESC")],
         unique=False,
     )
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_agent_task_history_client"),
         "agent_task_history",
         ["client_account_id", "engagement_id"],
         unique=False,
     )
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_agent_task_history_task_id"),
         "agent_task_history",
         ["task_id"],
@@ -426,19 +422,19 @@ def upgrade():
     )
 
     # Create indexes for agent_performance_daily
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_agent_performance_daily_agent"),
         "agent_performance_daily",
         ["agent_name", sa.text("date_recorded DESC")],
         unique=False,
     )
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_agent_performance_daily_client"),
         "agent_performance_daily",
         ["client_account_id", "engagement_id"],
         unique=False,
     )
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_agent_performance_daily_date"),
         "agent_performance_daily",
         ["date_recorded"],
@@ -602,31 +598,31 @@ def upgrade():
     )
 
     # Create indexes for agent_discovered_patterns
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_agent_discovered_patterns_agent"),
         "agent_discovered_patterns",
         ["discovered_by_agent"],
         unique=False,
     )
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_agent_discovered_patterns_pattern_id"),
         "agent_discovered_patterns",
         ["pattern_id"],
         unique=False,
     )
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_agent_discovered_patterns_pattern_type"),
         "agent_discovered_patterns",
         ["pattern_type"],
         unique=False,
     )
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_agent_discovered_patterns_client"),
         "agent_discovered_patterns",
         ["client_account_id", "engagement_id"],
         unique=False,
     )
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_agent_discovered_patterns_confidence"),
         "agent_discovered_patterns",
         [sa.text("confidence_score DESC")],
@@ -649,20 +645,42 @@ def upgrade():
     # Create triggers for updated_at on agent_performance_daily
     op.execute(
         """
-        CREATE TRIGGER update_agent_performance_daily_updated_at
-        BEFORE UPDATE ON agent_performance_daily
-        FOR EACH ROW
-        EXECUTE FUNCTION update_agent_observability_updated_at();
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.triggers
+                WHERE trigger_schema = 'migration'
+                AND event_object_schema = 'migration'
+                AND event_object_table = 'agent_performance_daily'
+                AND trigger_name = 'update_agent_performance_daily_updated_at'
+            ) THEN
+                CREATE TRIGGER update_agent_performance_daily_updated_at
+                BEFORE UPDATE ON agent_performance_daily
+                FOR EACH ROW
+                EXECUTE FUNCTION update_agent_observability_updated_at();
+            END IF;
+        END $$;
     """
     )
 
     # Create triggers for updated_at on agent_discovered_patterns
     op.execute(
         """
-        CREATE TRIGGER update_agent_discovered_patterns_updated_at
-        BEFORE UPDATE ON agent_discovered_patterns
-        FOR EACH ROW
-        EXECUTE FUNCTION update_agent_observability_updated_at();
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.triggers
+                WHERE trigger_schema = 'migration'
+                AND event_object_schema = 'migration'
+                AND event_object_table = 'agent_discovered_patterns'
+                AND trigger_name = 'update_agent_discovered_patterns_updated_at'
+            ) THEN
+                CREATE TRIGGER update_agent_discovered_patterns_updated_at
+                BEFORE UPDATE ON agent_discovered_patterns
+                FOR EACH ROW
+                EXECUTE FUNCTION update_agent_observability_updated_at();
+            END IF;
+        END $$;
     """
     )
 

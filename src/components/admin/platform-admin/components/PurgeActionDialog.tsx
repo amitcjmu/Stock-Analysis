@@ -47,13 +47,13 @@ export const PurgeActionDialog: React.FC<PurgeActionDialogProps> = ({
             {isApprove ? 'Approve Permanent Deletion' : 'Reject Deletion and Restore'}
           </DialogTitle>
           <DialogDescription>
-            {isApprove 
+            {isApprove
               ? `You are about to permanently delete "${purgeAction.item.item_name}". This action cannot be undone.`
               : `You are about to restore "${purgeAction.item.item_name}" and reject the deletion request.`
             }
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {/* Item Summary */}
           <div className="bg-gray-50 rounded p-3 space-y-2">
@@ -72,7 +72,7 @@ export const PurgeActionDialog: React.FC<PurgeActionDialogProps> = ({
               </p>
             )}
           </div>
-          
+
           {/* Admin Notes */}
           <div>
             <label htmlFor="admin-notes" className="block text-sm font-medium mb-2">
@@ -80,7 +80,7 @@ export const PurgeActionDialog: React.FC<PurgeActionDialogProps> = ({
             </label>
             <Textarea
               id="admin-notes"
-              placeholder={isApprove 
+              placeholder={isApprove
                 ? "Add any notes about this approval..."
                 : "Explain why this deletion is being rejected..."
               }
@@ -90,12 +90,12 @@ export const PurgeActionDialog: React.FC<PurgeActionDialogProps> = ({
             />
           </div>
         </div>
-        
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button 
+          <Button
             variant={isApprove ? "destructive" : "default"}
             onClick={onExecute}
             disabled={isReject && !purgeAction.notes?.trim()}

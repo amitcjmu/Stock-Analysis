@@ -1,6 +1,6 @@
 /**
  * Agent Models
- * 
+ *
  * Type definitions for agent instances, status, metrics, coordination, and communication.
  */
 

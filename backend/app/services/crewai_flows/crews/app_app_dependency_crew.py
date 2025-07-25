@@ -101,8 +101,8 @@ class AppAppDependencyCrew:
         integration_manager = Agent(
             role="Integration Analysis Manager",
             goal="Coordinate comprehensive app-to-app integration dependency mapping for migration planning",
-            backstory="""You are an enterprise integration architect with expertise in application 
-            integration patterns and dependency mapping. You excel at coordinating integration analysis 
+            backstory="""You are an enterprise integration architect with expertise in application
+            integration patterns and dependency mapping. You excel at coordinating integration analysis
             across complex enterprise application portfolios and ensuring comprehensive dependency discovery.""",
             llm=self.llm_model,
             memory=self.shared_memory,
@@ -117,8 +117,8 @@ class AppAppDependencyCrew:
         integration_expert = Agent(
             role="Integration Pattern Expert",
             goal="Identify and map application integration patterns and dependencies",
-            backstory="""You are an expert in enterprise application integration with deep knowledge of 
-            integration patterns, APIs, messaging, and data flows. You excel at identifying how applications 
+            backstory="""You are an expert in enterprise application integration with deep knowledge of
+            integration patterns, APIs, messaging, and data flows. You excel at identifying how applications
             communicate and depend on each other for business functionality.""",
             llm=self.llm_model,
             memory=self.shared_memory,
@@ -132,8 +132,8 @@ class AppAppDependencyCrew:
         business_flow_analyst = Agent(
             role="Business Flow Analyst",
             goal="Map business process flows and critical application dependencies for migration sequencing",
-            backstory="""You are a business process expert with extensive experience in analyzing business 
-            workflows and application dependencies. You excel at understanding which applications support 
+            backstory="""You are a business process expert with extensive experience in analyzing business
+            workflows and application dependencies. You excel at understanding which applications support
             critical business processes and how they must be sequenced for migration.""",
             llm=self.llm_model,
             memory=self.shared_memory,
@@ -160,18 +160,18 @@ class AppAppDependencyCrew:
         # Planning Task - Manager coordinates integration analysis approach
         planning_task = Task(
             description=f"""Plan comprehensive app-to-app integration dependency analysis strategy.
-            
+
             Available assets for analysis:
             - Applications: {len(applications)} identified application assets
             - Hosting context: {len(hosting_relationships)} hosting relationships available
-            
+
             Create an integration analysis plan that:
             1. Assigns integration pattern discovery priorities
             2. Defines dependency mapping methodology for app-to-app relationships
             3. Establishes business flow analysis criteria
             4. Plans collaboration between integration and business flow specialists
             5. Leverages hosting and inventory insights from shared memory
-            
+
             Use your planning capabilities to coordinate comprehensive integration mapping.""",
             expected_output="Comprehensive integration analysis execution plan with pattern discovery strategy and business flow approach",
             agent=manager,
@@ -181,12 +181,12 @@ class AppAppDependencyCrew:
         # Integration Pattern Discovery Task
         integration_discovery_task = Task(
             description=f"""Identify and map application integration patterns and dependencies.
-            
+
             Assets to analyze:
             - Application inventory: {len(applications)} applications
             - Sample applications: {applications[:3] if applications else []}
             - Hosting context: Available from app-server dependency analysis
-            
+
             Integration Analysis Requirements:
             1. Identify API dependencies between applications
             2. Map database sharing and data flow patterns
@@ -195,7 +195,7 @@ class AppAppDependencyCrew:
             5. Map authentication and authorization dependencies
             6. Generate integration dependency matrix
             7. Store integration insights in shared memory for business flow analysis
-            
+
             Collaborate with business flow analyst to share integration discoveries.""",
             expected_output="Comprehensive integration dependency matrix with app-to-app mappings and integration patterns",
             agent=integration_expert,
@@ -206,11 +206,11 @@ class AppAppDependencyCrew:
         # Business Flow Analysis Task
         business_flow_task = Task(
             description=f"""Map business process flows and critical application dependencies.
-            
+
             Integration context: Use insights from integration expert
             Application inventory: {len(applications)} applications with integration dependencies
             Hosting relationships: Available from previous dependency analysis
-            
+
             Business Flow Analysis Requirements:
             1. Map critical business process flows across applications
             2. Identify single points of failure in business processes
@@ -219,7 +219,7 @@ class AppAppDependencyCrew:
             5. Identify opportunities for process optimization
             6. Generate business impact assessment for integration dependencies
             7. Use integration expert insights from shared memory
-            
+
             Collaborate with integration expert to validate business flow mappings.""",
             expected_output="Comprehensive business flow analysis with criticality assessment and migration sequencing recommendations",
             agent=business_flow_analyst,

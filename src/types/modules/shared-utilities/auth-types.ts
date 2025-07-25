@@ -1,6 +1,6 @@
 /**
  * Authentication & Authorization Types
- * 
+ *
  * Types for authentication, authorization, multi-tenancy, and session management.
  */
 

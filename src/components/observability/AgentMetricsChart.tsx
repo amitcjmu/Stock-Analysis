@@ -11,27 +11,27 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Zap } from 'lucide-react'
 import { TrendingUp, TrendingDown, Activity, BarChart3, Target, Timer } from 'lucide-react'
-import type { 
-  MetricsChartProps, 
+import type {
+  MetricsChartProps,
   SparklineData,
-  AgentMetricsData 
+  AgentMetricsData
 } from '../../types/api/observability/agent-performance';
-import { 
-  ChartDataPoint 
+import {
+  ChartDataPoint
 } from '../../types/api/observability/agent-performance';
 
 // Helper function to calculate trend
 const calculateTrend = (data: number[]): { direction: 'up' | 'down' | 'stable'; percentage: number } => {
   if (data.length < 2) return { direction: 'stable', percentage: 0 };
-  
+
   const start = data[0];
   const end = data[data.length - 1];
   const percentage = start !== 0 ? ((end - start) / start) * 100 : 0;
-  
+
   if (Math.abs(percentage) < 1) return { direction: 'stable', percentage: 0 };
-  return { 
-    direction: percentage > 0 ? 'up' : 'down', 
-    percentage: Math.abs(percentage) 
+  return {
+    direction: percentage > 0 ? 'up' : 'down',
+    percentage: Math.abs(percentage)
   };
 };
 
@@ -48,18 +48,18 @@ export const SparklineChart: React.FC<MetricsChartProps> = ({
     const values = data.data.map(d => d.value);
     const max = Math.max(...values);
     const min = Math.min(...values);
-    
+
     const points = data.data.map((point, index) => {
       const x = (index / (data.data.length - 1)) * 100;
       const y = max !== min ? ((max - point.value) / (max - min)) * 100 : 50;
       return `${x},${y}`;
     }).join(' ');
-    
+
     return { points, maxValue: max, minValue: min };
   }, [data.data]);
 
   const trend = calculateTrend(data.data.map(d => d.value));
-  
+
   return (
     <div className={cn('space-y-2', className)}>
       <div className="flex items-center justify-between">
@@ -77,11 +77,11 @@ export const SparklineChart: React.FC<MetricsChartProps> = ({
           )}
         </div>
       </div>
-      
+
       <div className="relative" style={{ height }}>
-        <svg 
-          width="100%" 
-          height="100%" 
+        <svg
+          width="100%"
+          height="100%"
           className="absolute inset-0"
           preserveAspectRatio="none"
         >
@@ -92,7 +92,7 @@ export const SparklineChart: React.FC<MetricsChartProps> = ({
               <line x1="0" y1="75%" x2="100%" y2="75%" stroke="currentColor" strokeWidth="0.5" />
             </g>
           )}
-          
+
           <polyline
             fill="none"
             stroke={data.color}
@@ -100,7 +100,7 @@ export const SparklineChart: React.FC<MetricsChartProps> = ({
             points={points}
             className={animate ? 'transition-all duration-1000 ease-in-out' : ''}
           />
-          
+
           {/* Data points */}
           {data.data.map((point, index) => {
             const x = (index / (data.data.length - 1)) * 100;
@@ -120,7 +120,7 @@ export const SparklineChart: React.FC<MetricsChartProps> = ({
           })}
         </svg>
       </div>
-      
+
       <div className="flex justify-between text-xs text-gray-500">
         <span>{minValue.toFixed(1)}</span>
         <span>{maxValue.toFixed(1)}</span>
@@ -136,7 +136,7 @@ export const PerformanceDistributionChart: React.FC<{
   className?: string;
 }> = ({ data, title, className }) => {
   const maxValue = Math.max(...data.map(d => d.value));
-  
+
   return (
     <div className={cn('space-y-3', className)}>
       <h4 className="text-sm font-medium text-gray-700">{title}</h4>
@@ -172,7 +172,7 @@ export const SuccessRateGauge: React.FC<{
   const percentage = value * 100;
   const angle = (percentage / 100) * 180;
   const color = percentage >= 90 ? '#10b981' : percentage >= 70 ? '#f59e0b' : '#ef4444';
-  
+
   return (
     <div className={cn('flex flex-col items-center space-y-2', className)}>
       <div className="relative" style={{ width: size, height: size / 2 }}>
@@ -221,7 +221,7 @@ export const AgentMetricsDashboard: React.FC<{
     trend: calculateTrend(agentData.trends.successRateHistory).direction,
     changePercent: calculateTrend(agentData.trends.successRateHistory).percentage
   };
-  
+
   const durationData: SparklineData = {
     data: agentData.trends.durationHistory.map((value, index) => ({
       timestamp: agentData.trends.timestamps[index] || `T${index}`,
@@ -231,7 +231,7 @@ export const AgentMetricsDashboard: React.FC<{
     trend: calculateTrend(agentData.trends.durationHistory).direction,
     changePercent: calculateTrend(agentData.trends.durationHistory).percentage
   };
-  
+
   const taskCountData: SparklineData = {
     data: agentData.trends.taskCountHistory.map((value, index) => ({
       timestamp: agentData.trends.timestamps[index] || `T${index}`,

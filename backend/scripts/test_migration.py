@@ -25,19 +25,19 @@ async def test_migration():
             result = await session.execute(
                 text(
                     """
-                    SELECT 
-                        tc.table_name, 
-                        tc.constraint_name, 
+                    SELECT
+                        tc.table_name,
+                        tc.constraint_name,
                         kcu.column_name,
                         ccu.table_name AS foreign_table_name,
                         ccu.column_name AS foreign_column_name,
                         rc.delete_rule
                     FROM information_schema.table_constraints tc
-                    JOIN information_schema.key_column_usage kcu 
+                    JOIN information_schema.key_column_usage kcu
                         ON tc.constraint_name = kcu.constraint_name
-                    JOIN information_schema.constraint_column_usage ccu 
+                    JOIN information_schema.constraint_column_usage ccu
                         ON tc.constraint_name = ccu.constraint_name
-                    JOIN information_schema.referential_constraints rc 
+                    JOIN information_schema.referential_constraints rc
                         ON tc.constraint_name = rc.constraint_name
                     WHERE tc.constraint_type = 'FOREIGN KEY'
                         AND kcu.column_name = 'master_flow_id'

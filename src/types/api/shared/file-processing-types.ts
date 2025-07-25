@@ -1,6 +1,6 @@
 /**
  * File Processing Types
- * 
+ *
  * Common file processing interfaces used across file operations and import/export.
  */
 

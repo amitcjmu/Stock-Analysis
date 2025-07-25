@@ -1,6 +1,6 @@
 /**
  * Card Component Types
- * 
+ *
  * Card component interfaces and related types.
  */
 

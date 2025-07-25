@@ -13,9 +13,9 @@ export const useAuthHeaders = (
     const token = tokenStorage.getToken();
     const storedUser = tokenStorage.getUser();
     const headers: Record<string, string> = {};
-    
+
     const effectiveUser = user || storedUser;
-    
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -39,7 +39,7 @@ export const useAuthHeaders = (
     if (engagement && engagement.id) {
       headers['X-Engagement-ID'] = engagement.id;
     }
-    
+
     if (flowId) {
       headers['X-Flow-ID'] = flowId;
     }

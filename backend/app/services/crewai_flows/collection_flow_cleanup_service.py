@@ -309,9 +309,9 @@ class CollectionFlowCleanupService:
                     ]:
                         # Keep completed/cancelled flows but clear the orphaned reference
                         flow.master_flow_id = None
-                        cleanup_detail["action"] = (
-                            "Cleared orphaned master_flow_id reference"
-                        )
+                        cleanup_detail[
+                            "action"
+                        ] = "Cleared orphaned master_flow_id reference"
                     else:
                         # Delete incomplete orphaned flows
                         await self.db.delete(flow)

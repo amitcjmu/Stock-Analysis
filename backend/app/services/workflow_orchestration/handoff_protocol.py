@@ -694,13 +694,14 @@ class CollectionDiscoveryHandoffProtocol:
         }
 
         # Create Discovery Flow using Master Flow Orchestrator
-        discovery_flow_id, discovery_flow_data = (
-            await self.master_orchestrator.create_flow(
-                flow_type="discovery",
-                flow_name=f"Discovery Flow from Collection {handoff.collection_flow_id}",
-                configuration=discovery_config,
-                initial_state=initial_state,
-            )
+        (
+            discovery_flow_id,
+            discovery_flow_data,
+        ) = await self.master_orchestrator.create_flow(
+            flow_type="discovery",
+            flow_name=f"Discovery Flow from Collection {handoff.collection_flow_id}",
+            configuration=discovery_config,
+            initial_state=initial_state,
         )
 
         # Initialize Discovery Flow with transferred data

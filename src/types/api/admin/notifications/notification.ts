@@ -1,17 +1,17 @@
 /**
  * Core Notification Types
- * 
+ *
  * Core notification data structures and interfaces.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 
 import type { BaseMetadata } from '../../../shared/metadata-types';
 import type { NotificationMetadata } from '../common';
 import type {
-  NotificationPriority, 
-  NotificationStatus, 
-  NotificationType, 
+  NotificationPriority,
+  NotificationStatus,
+  NotificationType,
   NotificationCategory,
   NotificationSource,
   ChannelType

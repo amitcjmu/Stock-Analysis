@@ -75,7 +75,7 @@ describe('ParameterSliders', () => {
 
   it('calls onParametersChange when slider value changes', async () => {
     const user = userEvent.setup();
-    
+
     render(
       <ParameterSliders
         parameters={defaultParameters}
@@ -85,7 +85,7 @@ describe('ParameterSliders', () => {
     );
 
     const businessValueSlider = screen.getByLabelText(/business value/i);
-    
+
     // Change slider value
     await user.clear(businessValueSlider);
     await user.type(businessValueSlider, '8');
@@ -100,7 +100,7 @@ describe('ParameterSliders', () => {
 
   it('calls onParametersChange when application type changes', async () => {
     const user = userEvent.setup();
-    
+
     render(
       <ParameterSliders
         parameters={defaultParameters}
@@ -124,9 +124,9 @@ describe('ParameterSliders', () => {
 
   it('shows COTS warning when COTS application type is selected', async () => {
     const user = userEvent.setup();
-    
+
     const cotsParameters = { ...defaultParameters, application_type: 'cots' as const };
-    
+
     render(
       <ParameterSliders
         parameters={cotsParameters}
@@ -157,14 +157,14 @@ describe('ParameterSliders', () => {
 
     // Check for high business value indicator
     expect(screen.getByText(/high/i)).toBeInTheDocument();
-    
+
     // Check for low technical complexity indicator
     expect(screen.getByText(/low/i)).toBeInTheDocument();
   });
 
   it('shows tooltips on hover', async () => {
     const user = userEvent.setup();
-    
+
     render(
       <ParameterSliders
         parameters={defaultParameters}
@@ -175,7 +175,7 @@ describe('ParameterSliders', () => {
 
     // Find tooltip trigger (info icon)
     const tooltipTrigger = screen.getAllByRole('button')[0]; // First info icon
-    
+
     await user.hover(tooltipTrigger);
 
     // Tooltip content should appear
@@ -186,7 +186,7 @@ describe('ParameterSliders', () => {
 
   it('calls onSave when save button is clicked', async () => {
     const user = userEvent.setup();
-    
+
     render(
       <ParameterSliders
         parameters={defaultParameters}
@@ -203,7 +203,7 @@ describe('ParameterSliders', () => {
 
   it('resets parameters when reset button is clicked', async () => {
     const user = userEvent.setup();
-    
+
     const modifiedParameters = {
       ...defaultParameters,
       business_value: 8,
@@ -279,7 +279,7 @@ describe('ParameterSliders', () => {
 
   it('validates parameter ranges', async () => {
     const user = userEvent.setup();
-    
+
     render(
       <ParameterSliders
         parameters={defaultParameters}
@@ -289,7 +289,7 @@ describe('ParameterSliders', () => {
     );
 
     const businessValueSlider = screen.getByLabelText(/business value/i);
-    
+
     // Try to set value above maximum (10)
     await user.clear(businessValueSlider);
     await user.type(businessValueSlider, '15');
@@ -305,7 +305,7 @@ describe('ParameterSliders', () => {
 
   it('handles keyboard navigation', async () => {
     const user = userEvent.setup();
-    
+
     render(
       <ParameterSliders
         parameters={defaultParameters}
@@ -315,10 +315,10 @@ describe('ParameterSliders', () => {
     );
 
     const businessValueSlider = screen.getByLabelText(/business value/i);
-    
+
     // Focus the slider
     await user.click(businessValueSlider);
-    
+
     // Use arrow keys to change value
     await user.keyboard('{ArrowRight}');
 
@@ -332,7 +332,7 @@ describe('ParameterSliders', () => {
 
   it('shows real-time visual feedback during parameter changes', async () => {
     const user = userEvent.setup();
-    
+
     render(
       <ParameterSliders
         parameters={defaultParameters}
@@ -342,7 +342,7 @@ describe('ParameterSliders', () => {
     );
 
     const businessValueSlider = screen.getByLabelText(/business value/i);
-    
+
     // Change value and check for visual feedback
     await user.clear(businessValueSlider);
     await user.type(businessValueSlider, '9');
@@ -355,7 +355,7 @@ describe('ParameterSliders', () => {
 
   it('handles edge case values correctly', async () => {
     const user = userEvent.setup();
-    
+
     render(
       <ParameterSliders
         parameters={defaultParameters}
@@ -365,7 +365,7 @@ describe('ParameterSliders', () => {
     );
 
     const businessValueSlider = screen.getByLabelText(/business value/i);
-    
+
     // Test minimum value
     await user.clear(businessValueSlider);
     await user.type(businessValueSlider, '1');
@@ -409,4 +409,4 @@ describe('ParameterSliders', () => {
     expect(screen.getByLabelText(/business value/i)).toBeInTheDocument();
     expect(screen.getByText(/save parameters/i)).toBeInTheDocument();
   });
-}); 
+});

@@ -1,6 +1,6 @@
 /**
  * Resolved Questions List Component
- * 
+ *
  * Displays recently resolved questions with their responses.
  */
 
@@ -13,8 +13,8 @@ interface ResolvedQuestionsListProps {
   resolvedQuestions: AgentQuestion[];
 }
 
-const ResolvedQuestionsList: React.FC<ResolvedQuestionsListProps> = ({ 
-  resolvedQuestions 
+const ResolvedQuestionsList: React.FC<ResolvedQuestionsListProps> = ({
+  resolvedQuestions
 }) => {
   if (resolvedQuestions.length === 0) {
     return null;

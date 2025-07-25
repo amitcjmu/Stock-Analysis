@@ -1,6 +1,6 @@
 /**
  * Alert Component Types
- * 
+ *
  * Type definitions for alert components and their variants.
  */
 

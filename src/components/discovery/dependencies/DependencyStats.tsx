@@ -89,7 +89,7 @@ export const DependencyStats: React.FC<DependencyStatsProps> = ({ dependencyData
           </div>
         </div>
       </div>
-      
+
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
@@ -103,7 +103,7 @@ export const DependencyStats: React.FC<DependencyStatsProps> = ({ dependencyData
           </div>
         </div>
       </div>
-      
+
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
@@ -133,4 +133,4 @@ export const DependencyStats: React.FC<DependencyStatsProps> = ({ dependencyData
       </div>
     </div>
   );
-}; 
+};

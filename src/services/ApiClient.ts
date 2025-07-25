@@ -21,7 +21,7 @@ export interface RequestConfig {
 /**
  * Generic request payload type for external API data
  */
-export type RequestPayload = 
+export type RequestPayload =
   | Record<string, unknown>
   | FormData
   | string
@@ -76,7 +76,7 @@ export class ApiClient {
 
     try {
       const response = await fetch(url, requestOptions);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }

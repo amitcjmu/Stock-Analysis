@@ -205,7 +205,7 @@ export const TechDebtAnalysisGrid: React.FC<TechDebtAnalysisGridProps> = ({
             />
           </div>
 
-          <Button 
+          <Button
             onClick={addTechDebtItem}
             disabled={!newItem.category || !newItem.description}
             className="w-full"
@@ -411,8 +411,8 @@ const TechDebtCard: React.FC<TechDebtCardProps> = ({
                   <span className={cn("font-medium", getTechDebtScoreColor(item.tech_debt_score || 0))}>
                     {item.tech_debt_score || 0}/100
                   </span>
-                  <Progress 
-                    value={item.tech_debt_score || 0} 
+                  <Progress
+                    value={item.tech_debt_score || 0}
                     className="h-2 flex-1"
                   />
                 </div>

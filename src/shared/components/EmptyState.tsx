@@ -31,10 +31,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       <p className="font-medium">{title}</p>
       {description && <p className="text-sm mt-1">{description}</p>}
       {action && (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={action.onClick} 
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={action.onClick}
           className="mt-2"
         >
           {action.label}

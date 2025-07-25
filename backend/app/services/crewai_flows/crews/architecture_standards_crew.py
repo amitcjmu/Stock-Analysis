@@ -107,11 +107,11 @@ class ArchitectureStandardsCrew:
         architecture_standards_agent = Agent(
             role="Architecture Standards Specialist",
             goal="Define and evaluate engagement-level architecture minimums based on industry best practices and client requirements",
-            backstory="""You are an expert cloud architect with 15+ years of experience in enterprise 
-            architecture standards. You specialize in defining technology lifecycle policies, security 
-            requirements, and cloud-native architecture patterns. You understand the balance between 
+            backstory="""You are an expert cloud architect with 15+ years of experience in enterprise
+            architecture standards. You specialize in defining technology lifecycle policies, security
+            requirements, and cloud-native architecture patterns. You understand the balance between
             innovation and risk management in large enterprise environments.
-            
+
             Your expertise includes:
             - Technology version lifecycle management and EOL planning
             - Cloud-native architecture patterns and microservices design
@@ -119,7 +119,7 @@ class ArchitectureStandardsCrew:
             - Compliance requirements (SOC2, PCI-DSS, GDPR, HIPAA)
             - Enterprise integration patterns and API design standards
             - Infrastructure as Code and DevOps best practices
-            
+
             You work collaboratively with business stakeholders to balance technical excellence
             with practical business constraints and timelines.""",
             tools=(
@@ -138,10 +138,10 @@ class ArchitectureStandardsCrew:
         technology_stack_analyst = Agent(
             role="Technology Stack Analyst",
             goal="Assess application technology stacks against supported versions and identify upgrade paths",
-            backstory="""You are a technology lifecycle expert who tracks the evolution of programming 
-            languages, frameworks, and platforms. You have deep knowledge of version compatibility, 
+            backstory="""You are a technology lifecycle expert who tracks the evolution of programming
+            languages, frameworks, and platforms. You have deep knowledge of version compatibility,
             end-of-life schedules, and migration paths across the entire technology landscape.
-            
+
             Your specializations include:
             - Programming language ecosystems (Java, .NET, Python, Node.js, Go, Rust)
             - Web frameworks and libraries (Spring, Django, React, Angular, Vue)
@@ -149,7 +149,7 @@ class ArchitectureStandardsCrew:
             - Container and orchestration technologies (Docker, Kubernetes, OpenShift)
             - Cloud platform services (AWS, Azure, GCP native services)
             - Security vulnerability tracking and patch management
-            
+
             You can quickly identify technical debt related to outdated technology versions
             and recommend practical upgrade strategies that minimize business disruption.""",
             tools=(
@@ -164,10 +164,10 @@ class ArchitectureStandardsCrew:
         exception_handler_agent = Agent(
             role="Business Constraint Analyst",
             goal="Identify and document valid architecture exceptions based on business constraints and technical trade-offs",
-            backstory="""You are a business-technology liaison with expertise in evaluating when 
-            architecture standards should have exceptions. You understand vendor relationships, 
+            backstory="""You are a business-technology liaison with expertise in evaluating when
+            architecture standards should have exceptions. You understand vendor relationships,
             licensing constraints, integration dependencies, and business continuity requirements.
-            
+
             Your expertise covers:
             - Vendor relationship management and licensing constraints
             - Legacy system integration patterns and dependencies
@@ -175,7 +175,7 @@ class ArchitectureStandardsCrew:
             - Business continuity and disaster recovery planning
             - Cost-benefit analysis for technical upgrades vs. exceptions
             - Risk assessment and mitigation strategy development
-            
+
             You can articulate the business case for exceptions while quantifying associated risks
             and developing appropriate mitigation strategies. You ensure exceptions are properly
             documented, time-bounded, and include clear paths to future compliance.""",
@@ -194,77 +194,77 @@ class ArchitectureStandardsCrew:
         """Create crew with architecture standards tasks"""
 
         capture_standards_task = Task(
-            description="""Analyze the engagement requirements and client context to capture comprehensive 
+            description="""Analyze the engagement requirements and client context to capture comprehensive
             architecture standards. Consider the following key areas:
-            
+
             1. Technology Version Requirements:
                - Programming languages (Java 11+, .NET 6+, Python 3.8+, Node.js 16+)
                - Web frameworks and libraries with security patch currency
                - Database systems and minimum supported versions
                - Operating systems and container runtime requirements
                - Infrastructure components (load balancers, message brokers)
-            
+
             2. Security and Compliance Standards:
                - Authentication patterns (OAuth 2.0, OIDC, SAML)
                - Authorization models (RBAC, ABAC, policy-based)
                - Data encryption requirements (at rest and in transit)
                - Audit logging and monitoring capabilities
                - Regulatory compliance needs (map to client industry)
-            
+
             3. Architecture Pattern Requirements:
                - API design standards (REST, GraphQL, OpenAPI specifications)
                - Event-driven architecture patterns and message formats
                - Data persistence patterns and consistency models
                - Caching strategies and distributed system patterns
                - Error handling and circuit breaker patterns
-            
+
             4. Cloud-Native Capabilities:
                - Containerization standards (Docker, OCI compliance)
                - Infrastructure as Code requirements (Terraform, CloudFormation)
                - CI/CD pipeline integration and deployment automation
                - Observability requirements (metrics, logs, traces)
                - Auto-scaling and load balancing patterns
-            
+
             5. Integration Standards:
                - Inter-service communication patterns
                - Data exchange formats and schemas
                - Protocol standards and version compatibility
                - Service mesh and API gateway requirements
-            
+
             Base your analysis on:
             - Engagement context: {engagement_context}
             - Selected applications: {selected_applications}
             - Existing standards: {existing_standards}
             - Industry best practices for the client's domain
             - Current technology landscape and emerging trends
-            
+
             Output a comprehensive set of architecture standards with clear rationale.""",
             expected_output="""A structured list of architecture standards containing:
-            
+
             1. Technology Standards:
                - Minimum and recommended versions for each technology
                - End-of-life dates and upgrade timelines
                - Security vulnerability thresholds and patch requirements
                - Performance and compatibility requirements
-            
+
             2. Security Standards:
                - Authentication and authorization requirements
                - Data protection and encryption specifications
                - Network security and access control policies
                - Audit logging and compliance monitoring requirements
-            
+
             3. Architecture Patterns:
                - Required design patterns and architectural principles
                - Integration standards and communication protocols
                - Data management and persistence requirements
                - Scalability and resilience patterns
-            
+
             4. Implementation Guidance:
                - Detailed implementation guidelines for each standard
                - Code examples and reference architectures
                - Tooling recommendations and approved technologies
                - Exception criteria and approval processes
-            
+
             Each standard should include:
             - Clear rationale linking to business value
             - Implementation difficulty and timeline estimates
@@ -274,73 +274,73 @@ class ArchitectureStandardsCrew:
         )
 
         analyze_application_stacks_task = Task(
-            description="""For each selected application, analyze its current technology stack against 
+            description="""For each selected application, analyze its current technology stack against
             the captured architecture standards. Perform a comprehensive assessment including:
-            
+
             1. Technology Version Compliance Analysis:
                - Compare current technology versions vs. minimum requirements
                - Identify end-of-life technologies requiring immediate attention
                - Calculate version-based technical debt scores (0-10 scale)
                - Assess security vulnerability exposure and patch currency
                - Evaluate compatibility with target cloud platforms
-            
+
             2. Architecture Pattern Compliance:
                - Assess current architecture against required patterns
                - Identify anti-patterns and design debt
                - Evaluate API design and integration compliance
                - Review data management and persistence approaches
                - Analyze error handling and resilience patterns
-            
+
             3. Security and Compliance Assessment:
                - Evaluate authentication and authorization implementations
                - Assess data protection and encryption usage
                - Review audit logging and monitoring capabilities
                - Identify compliance gaps and regulatory risks
                - Validate network security and access controls
-            
+
             4. Upgrade Path Analysis:
                - Identify clear migration paths for non-compliant technologies
                - Estimate effort and complexity for version upgrades
                - Highlight breaking changes and compatibility issues
                - Recommend incremental vs. wholesale upgrade strategies
                - Assess business impact and downtime requirements
-            
+
             5. Risk and Priority Assessment:
                - Categorize compliance gaps by severity (critical, high, medium, low)
                - Estimate business and technical risks of current state
                - Recommend prioritization based on risk and effort
                - Identify quick wins and long-term improvements
-            
+
             Application metadata: {application_metadata}
             Architecture standards: {architecture_standards}
-            
+
             Provide detailed analysis with actionable recommendations.""",
             expected_output="""For each application, provide a comprehensive compliance report:
-            
+
             1. Executive Summary:
                - Overall compliance score (0-100)
                - Key findings and priority recommendations
                - Estimated effort and timeline for full compliance
                - Business impact assessment
-            
+
             2. Technology Compliance Matrix:
                - Technology-by-technology compliance status
                - Current vs. required versions with gap analysis
                - Security vulnerability assessment
                - Upgrade complexity ratings
-            
+
             3. Architecture Assessment:
                - Pattern compliance evaluation
                - Identified design debt and anti-patterns
                - Integration and API compliance review
                - Data management assessment
-            
+
             4. Detailed Recommendations:
                - Prioritized list of improvements with effort estimates
                - Specific upgrade paths and migration strategies
                - Risk mitigation approaches for each gap
                - Timeline recommendations with dependencies
-            
+
             5. Compliance Roadmap:
                - Phase-based improvement plan
                - Quick wins vs. long-term investments
@@ -351,9 +351,9 @@ class ArchitectureStandardsCrew:
         )
 
         evaluate_exceptions_task = Task(
-            description="""Evaluate potential exceptions to architecture standards based on business 
+            description="""Evaluate potential exceptions to architecture standards based on business
             constraints and technical realities. Conduct a thorough analysis including:
-            
+
             1. Business Constraint Evaluation:
                - Vendor support agreements and licensing limitations
                - Legacy system integration requirements and dependencies
@@ -361,7 +361,7 @@ class ArchitectureStandardsCrew:
                - Business continuity and operational stability requirements
                - Budget constraints and resource availability
                - Timeline pressures and market competitive factors
-            
+
             2. Technical Trade-off Analysis:
                - Cost vs. benefit analysis for standard compliance
                - Technical debt implications of maintaining exceptions
@@ -369,34 +369,34 @@ class ArchitectureStandardsCrew:
                - Performance and scalability impact assessment
                - Security risk evaluation and mitigation options
                - Maintenance burden and long-term sustainability
-            
+
             3. Risk Assessment and Mitigation:
                - Quantify risks associated with each proposed exception
                - Develop specific mitigation strategies and controls
                - Define monitoring and alerting requirements
                - Establish review cycles and compliance checkpoints
                - Create contingency plans for risk scenarios
-            
+
             4. Exception Documentation and Governance:
                - Clear rationale for each proposed exception
                - Time-bounded approval with specific review dates
                - Escalation paths and approval authority requirements
                - Monitoring and reporting obligations
                - Exit strategy and compliance pathway definition
-            
+
             Application analysis results: {application_analysis_results}
             Business constraints: {business_constraints}
             Risk tolerance guidelines: {risk_tolerance}
-            
+
             Provide recommendations for valid exceptions with proper business justification.""",
             expected_output="""A comprehensive exception analysis containing:
-            
+
             1. Exception Summary:
                - Total applications requiring exceptions
                - Category breakdown (technology, security, architecture, compliance)
                - Overall risk assessment and business impact
                - Resource implications and ongoing costs
-            
+
             2. Detailed Exception Proposals:
                For each proposed exception:
                - Specific standard(s) affected and deviation details
@@ -405,21 +405,21 @@ class ArchitectureStandardsCrew:
                - Proposed mitigation strategies and controls
                - Time-bounded approval recommendation
                - Exit strategy and compliance timeline
-            
+
             3. Risk Management Framework:
                - Risk categorization and severity matrix
                - Monitoring and alerting requirements
                - Review cycle and approval renewal process
                - Escalation procedures for risk threshold breaches
                - Compliance reporting and audit trail requirements
-            
+
             4. Governance Recommendations:
                - Exception approval authority and process
                - Documentation and tracking requirements
                - Regular review and reassessment schedule
                - Compliance pathway and improvement plans
                - Budget allocation for risk management activities
-            
+
             5. Strategic Recommendations:
                - Long-term architecture evolution planning
                - Investment priorities for reducing exceptions

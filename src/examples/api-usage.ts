@@ -3,8 +3,8 @@
  * This file demonstrates how to use the new shared types and API client
  */
 
-import type { 
-  ApiResponse, 
+import type {
+  ApiResponse,
   ApiError,
   PaginatedResponse
 } from '../utils/api';
@@ -48,7 +48,7 @@ export async function getDiscoveryFlow(flowId: string): Promise<DiscoveryFlowDat
     const response: ApiResponse<DiscoveryFlowData> = await apiClient.get(
       `/api/v1/discovery/flows/${flowId}`
     );
-    
+
     if (response.success) {
       return response.data;
     } else {
@@ -79,7 +79,7 @@ export async function getUsers(page: number = 1, pageSize: number = 10): Promise
         page_size: pageSize
       }
     });
-    
+
     if (response.success) {
       // For this example, we'll assume the response includes pagination info
       const paginationData = response.pagination;
@@ -107,7 +107,7 @@ export async function getUsers(page: number = 1, pageSize: number = 10): Promise
 export async function createUser(userData: Omit<UserData, 'id'>): Promise<UserData> {
   try {
     const response: ApiResponse<UserData> = await apiClient.post('/api/v1/users', userData);
-    
+
     if (response.success) {
       return response.data;
     } else {
@@ -126,8 +126,8 @@ export async function createUser(userData: Omit<UserData, 'id'>): Promise<UserDa
 
 // Example: Multi-tenant context usage
 export async function setupMultiTenantClient(
-  clientAccountId: string, 
-  engagementId: string, 
+  clientAccountId: string,
+  engagementId: string,
   userId: string
 ): Promise<void> {
   apiClient.setMultiTenantContext({
@@ -153,7 +153,7 @@ export async function uploadFile(file: File, metadata?: Record<string, unknown>)
         console.log(`Upload progress: ${progress.percentage}%`);
       }
     });
-    
+
     if (response.success) {
       return response.data as { fileId: string; url: string; };
     } else {
@@ -173,11 +173,11 @@ export async function batchCreateUsers(users: Array<Omit<UserData, 'id'>>): Prom
     url: '/api/v1/users',
     data: user
   }));
-  
+
   try {
     const responses = await apiClient.batch(requests);
     const successfulUsers: UserData[] = [];
-    
+
     responses.forEach((response, index) => {
       if (response.status === 200 && response.data) {
         successfulUsers.push((response.data as ApiResponse<UserData>).data);
@@ -185,7 +185,7 @@ export async function batchCreateUsers(users: Array<Omit<UserData, 'id'>>): Prom
         console.error(`Failed to create user ${index}:`, response.error);
       }
     });
-    
+
     return successfulUsers;
   } catch (error) {
     console.error('Error in batch user creation:', error);

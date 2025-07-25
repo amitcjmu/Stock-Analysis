@@ -1,6 +1,6 @@
 /**
  * Observability Core Types
- * 
+ *
  * Core type definitions and supporting data structures used across
  * all observability modules including enums, base interfaces, and shared types.
  */
@@ -55,7 +55,7 @@ export interface MonitoringStrategy {
 }
 
 // Core Status and Priority Types
-export type ObservabilityStatus = 
+export type ObservabilityStatus =
   | 'planning' | 'configuration' | 'deployment' | 'calibration'
   | 'monitoring' | 'optimization' | 'maintenance' | 'scaling'
   | 'completed' | 'paused' | 'failed' | 'deprecated';

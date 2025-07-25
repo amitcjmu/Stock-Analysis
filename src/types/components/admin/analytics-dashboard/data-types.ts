@@ -1,6 +1,6 @@
 /**
  * Data Types
- * 
+ *
  * Data source and transformation type definitions.
  */
 

@@ -85,9 +85,9 @@ def test_create_session(test_session, mocker):
     mock_service.create_session.return_value = test_session
 
     # Replace the dependency
-    app.dependency_overrides[app.dependencies.get_session_management_service] = (
-        lambda: mock_service
-    )
+    app.dependency_overrides[
+        app.dependencies.get_session_management_service
+    ] = lambda: mock_service
 
     # Make the request
     response = client.post(
@@ -123,9 +123,9 @@ def test_get_session(test_session, mocker):
     mock_service.get_session.return_value = test_session
 
     # Replace the dependency
-    app.dependency_overrides[app.dependencies.get_session_management_service] = (
-        lambda: mock_service
-    )
+    app.dependency_overrides[
+        app.dependencies.get_session_management_service
+    ] = lambda: mock_service
 
     # Make the request
     session_id = str(test_session.id)
@@ -148,9 +148,9 @@ def test_get_default_session(test_session, mocker):
     mock_service.get_default_session.return_value = test_session
 
     # Replace the dependency
-    app.dependency_overrides[app.dependencies.get_session_management_service] = (
-        lambda: mock_service
-    )
+    app.dependency_overrides[
+        app.dependencies.get_session_management_service
+    ] = lambda: mock_service
 
     # Make the request
     engagement_id = str(TEST_ENGAGEMENT.id)
@@ -173,9 +173,9 @@ def test_set_default_session(test_session, mocker):
     mock_service.set_default_session.return_value = test_session
 
     # Replace the dependency
-    app.dependency_overrides[app.dependencies.get_session_management_service] = (
-        lambda: mock_service
-    )
+    app.dependency_overrides[
+        app.dependencies.get_session_management_service
+    ] = lambda: mock_service
 
     # Make the request
     session_id = str(test_session.id)
@@ -215,9 +215,9 @@ def test_merge_sessions(test_session, mocker):
     mock_service.merge_sessions.return_value = target_session
 
     # Replace the dependency
-    app.dependency_overrides[app.dependencies.get_session_management_service] = (
-        lambda: mock_service
-    )
+    app.dependency_overrides[
+        app.dependencies.get_session_management_service
+    ] = lambda: mock_service
 
     # Make the request
     response = client.post(

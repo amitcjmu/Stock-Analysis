@@ -6,7 +6,7 @@ export const DebugCheckbox = () => {
     console.log('Checkbox changed:', checked);
     console.log('Type of checked:', typeof checked);
     console.log('Is boolean?', typeof checked === 'boolean');
-    
+
     // If checked is an object, this would cause the React child error
     if (typeof checked === 'object') {
       console.error('ERROR: Checkbox is passing an object instead of boolean!');

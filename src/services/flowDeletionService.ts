@@ -91,9 +91,9 @@ export interface FlowDeletionResult {
 
 class FlowDeletionService {
   private static instance: FlowDeletionService;
-  
+
   private constructor() {}
-  
+
   static getInstance(): FlowDeletionService {
     if (!FlowDeletionService.instance) {
       FlowDeletionService.instance = new FlowDeletionService();
@@ -112,7 +112,7 @@ class FlowDeletionService {
   ): Promise<FlowDeletionCandidate[]> {
     try {
       const flows = await masterFlowService.getActiveFlows(clientAccountId, engagementId, flowType);
-      
+
       return flows.map(flow => this.analyzeFlowForDeletion(flow)).filter(Boolean);
     } catch (error) {
       console.error('Failed to identify deletion candidates:', error);
@@ -127,7 +127,7 @@ class FlowDeletionService {
     const now = new Date();
     const updatedAt = new Date(flow.updated_at || flow.updatedAt);
     const daysSinceUpdate = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
-    
+
     let reason_for_deletion: FlowDeletionCandidate['reason_for_deletion'] | null = null;
     let auto_cleanup_eligible = false;
 
@@ -190,7 +190,7 @@ class FlowDeletionService {
     }
 
     let userConfirmed = false;
-    
+
     if (skipBrowserConfirm) {
       // When skipBrowserConfirm is true, it means a custom UI already collected confirmation
       // This is used when components have their own deletion dialogs
@@ -201,14 +201,14 @@ class FlowDeletionService {
       // This blocks UI automation and provides poor user experience
       console.error('❌ ERROR: Attempted to use native browser confirm dialog');
       console.error('❌ Use the useFlowDeletion hook with FlowDeletionModal component instead');
-      
+
       // Throw error to prevent fallback to native dialogs
       throw new Error(
         'Flow deletion requires proper React-based confirmation dialog. ' +
         'Use FlowDeletionModal component or pass skipBrowserConfirm=true with pre-confirmed deletion.'
       );
     }
-    
+
     if (!userConfirmed) {
       console.log('🚫 User declined flow deletion request');
       return null;
@@ -233,7 +233,7 @@ class FlowDeletionService {
   ): string {
     const count = candidates.length;
     const single = count === 1;
-    
+
     let header = '';
     switch (source) {
       case 'automatic_cleanup':
@@ -250,7 +250,7 @@ class FlowDeletionService {
     }
 
     let message = `${header}\n\n`;
-    
+
     if (single) {
       const flow = candidates[0];
       message += `Delete this flow?\n\n`;
@@ -263,7 +263,7 @@ class FlowDeletionService {
     } else {
       message += `Delete ${count} flows?\n\n`;
       message += `Breakdown by reason:\n`;
-      
+
       const reasonGroups = candidates.reduce((acc, flow) => {
         acc[flow.reason_for_deletion] = (acc[flow.reason_for_deletion] || 0) + 1;
         return acc;
@@ -272,7 +272,7 @@ class FlowDeletionService {
       Object.entries(reasonGroups).forEach(([reason, count]) => {
         message += `• ${this.getReasonDescription(reason as FlowDeletionCandidate['reason_for_deletion'])}: ${count} flows\n`;
       });
-      
+
       message += `\nOldest flows:\n`;
       candidates
         .sort((a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime())
@@ -306,7 +306,7 @@ class FlowDeletionService {
     });
 
     const results: FlowDeletionResult['results'] = [];
-    
+
     // Execute deletions one by one for better error handling
     for (const flowId of request.flowIds) {
       try {
@@ -351,7 +351,7 @@ class FlowDeletionService {
     try {
       // Get flow details for confirmation
       const allFlows = await masterFlowService.getActiveFlows(clientAccountId, engagementId);
-      const targetFlows = allFlows.filter(flow => 
+      const targetFlows = allFlows.filter(flow =>
         flowIds.includes(flow.master_flow_id || flow.flowId || flow.flow_id)
       );
 
@@ -396,7 +396,7 @@ class FlowDeletionService {
 
       // Request user approval
       const approval = await this.requestDeletionApproval(candidates, deletion_source, user_id, skipBrowserConfirm);
-      
+
       if (!approval) {
         return {
           success: false,
@@ -414,7 +414,7 @@ class FlowDeletionService {
 
       // Execute approved deletion
       return await this.executeApprovedDeletion(approval, clientAccountId, engagementId);
-      
+
     } catch (error) {
       console.error('Flow deletion request failed:', error);
       return {
@@ -454,7 +454,7 @@ class FlowDeletionService {
       const now = new Date();
       const time = new Date(timestamp);
       const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
-      
+
       if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
       if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
       return `${Math.floor(diffInMinutes / 1440)}d ago`;

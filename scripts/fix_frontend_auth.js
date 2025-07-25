@@ -50,4 +50,4 @@ fetch('/api/v1/me', {
   console.error('❌ API Test Failed:', error);
   console.log('🔄 Refreshing page anyway...');
   setTimeout(() => location.reload(), 1000);
-}); 
+});

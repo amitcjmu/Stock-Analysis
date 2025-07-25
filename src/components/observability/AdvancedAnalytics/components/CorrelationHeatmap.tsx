@@ -12,7 +12,7 @@ interface CorrelationHeatmapProps {
 
 const CorrelationHeatmap: React.FC<CorrelationHeatmapProps> = ({ correlationMatrix }) => {
   const metrics = Object.keys(correlationMatrix);
-  
+
   const getCorrelationColor = (value: number): string => {
     const intensity = Math.abs(value);
     if (value > 0) {

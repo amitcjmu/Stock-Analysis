@@ -1,9 +1,9 @@
 /**
  * Security and Compliance Types
- * 
+ *
  * Security settings, audit trails, compliance frameworks,
  * and regulatory compliance management types.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

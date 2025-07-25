@@ -8,41 +8,41 @@ export const DISCOVERY_PHASE_ROUTES: Record<string, (flowId: string) => string> 
   'initialization': () => '/discovery/cmdb-import',
   'data_import_validation': () => '/discovery/cmdb-import',
   'data_import': () => '/discovery/cmdb-import',
-  
+
   // Field mapping phases
   'field_mapping': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
   'attribute_mapping': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
-  
+
   // Data cleansing phase
   'data_cleansing': (flowId: string) => `/discovery/data-cleansing/${flowId}`,
-  
+
   // Asset inventory phases
   'asset_inventory': (flowId: string) => `/discovery/inventory/${flowId}`,
   'inventory': (flowId: string) => `/discovery/inventory/${flowId}`,
-  
+
   // Dependency analysis phases
   'dependency_analysis': (flowId: string) => `/discovery/dependencies/${flowId}`,
   'dependencies': (flowId: string) => `/discovery/dependencies/${flowId}`,
-  
+
   // Tech debt assessment phases
   'tech_debt_assessment': (flowId: string) => `/discovery/tech-debt/${flowId}`,
   'tech_debt_analysis': (flowId: string) => `/discovery/tech-debt/${flowId}`,
   'tech_debt': (flowId: string) => `/discovery/tech-debt/${flowId}`,
   'technical_debt': (flowId: string) => `/discovery/tech-debt/${flowId}`,
-  
+
   // Completed flow - route to inventory
   'completed': (flowId: string) => `/discovery/inventory/${flowId}`,
-  
+
   // Status-based routing
   'waiting_for_user_approval': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
   'paused': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
   'pending_approval': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
-  
+
   // Error states - go back to import
   'failed': () => '/discovery/cmdb-import',
   'error': () => '/discovery/cmdb-import',
   'not_found': () => '/discovery/cmdb-import',
-  
+
   // Unknown/undefined states - default to cmdb-import
   'unknown': () => '/discovery/cmdb-import',
   'undefined': () => '/discovery/cmdb-import',
@@ -60,7 +60,7 @@ export function getDiscoveryPhaseRoute(phase: string, flowId: string): string {
   if (routeFunction) {
     return routeFunction(flowId);
   }
-  
+
   // Default to cmdb-import for unknown phases
   console.warn(`Unknown discovery phase: ${phase}, defaulting to cmdb-import`);
   return '/discovery/cmdb-import';
@@ -83,6 +83,6 @@ export function phaseRequiresFlowId(phase: string): boolean {
     'undefined',
     'current'
   ];
-  
+
   return !noFlowIdPhases.includes(phase);
 }

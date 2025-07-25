@@ -57,7 +57,7 @@ def generate_flow_plot():
                 <p style="text-align: center; color: #666; margin-bottom: 40px;">
                     Comprehensive asset discovery workflow with CrewAI agents and PostgreSQL persistence
                 </p>
-                
+
                 <div class="phase phase-start">
                     <div class="phase-title">🎯 1. Initialize Discovery (@start)</div>
                     <div class="phase-description">Set up flow state and validate input data</div>
@@ -71,9 +71,9 @@ def generate_flow_plot():
                         • Context establishment
                     </div>
                 </div>
-                
+
                 <div class="flow-arrow">⬇️</div>
-                
+
                 <div class="phase phase-validation">
                     <div class="phase-title">🔍 2. Data Import Validation (@listen)</div>
                     <div class="phase-description">PII detection, security scanning, and data type validation</div>
@@ -91,9 +91,9 @@ def generate_flow_plot():
                         • Field structure analysis
                     </div>
                 </div>
-                
+
                 <div class="flow-arrow">⬇️</div>
-                
+
                 <div class="phase phase-mapping">
                     <div class="phase-title">🗺️ 3. Field Mapping (@listen)</div>
                     <div class="phase-description">Intelligent field mapping to critical migration attributes</div>
@@ -111,9 +111,9 @@ def generate_flow_plot():
                         • Learning pattern integration
                     </div>
                 </div>
-                
+
                 <div class="flow-arrow">⬇️</div>
-                
+
                 <div class="phase phase-cleansing">
                     <div class="phase-title">🧹 4. Data Cleansing (@listen)</div>
                     <div class="phase-description">Data quality improvement and standardization</div>
@@ -131,9 +131,9 @@ def generate_flow_plot():
                         • Completeness assessment
                     </div>
                 </div>
-                
+
                 <div class="flow-arrow">⬇️</div>
-                
+
                 <div class="phase phase-inventory">
                     <div class="phase-title">📦 5. Asset Inventory (@listen)</div>
                     <div class="phase-description">Asset classification and inventory building</div>
@@ -151,9 +151,9 @@ def generate_flow_plot():
                         • Asset counting and validation
                     </div>
                 </div>
-                
+
                 <div class="flow-arrow">⬇️</div>
-                
+
                 <div class="phase phase-dependencies">
                     <div class="phase-title">🔗 6. Dependency Analysis (@listen)</div>
                     <div class="phase-description">Application and infrastructure dependency mapping</div>
@@ -171,9 +171,9 @@ def generate_flow_plot():
                         • Risk assessment preparation
                     </div>
                 </div>
-                
+
                 <div class="flow-arrow">⬇️</div>
-                
+
                 <div class="phase phase-techdebt">
                     <div class="phase-title">⚠️ 7. Tech Debt Analysis (@listen)</div>
                     <div class="phase-description">Technical debt assessment and modernization recommendations</div>
@@ -191,9 +191,9 @@ def generate_flow_plot():
                         • Risk and complexity assessment
                     </div>
                 </div>
-                
+
                 <div class="flow-arrow">⬇️</div>
-                
+
                 <div class="phase phase-finalize">
                     <div class="phase-title">🎯 8. Finalize Discovery (@listen)</div>
                     <div class="phase-description">Comprehensive summary and validation</div>
@@ -207,7 +207,7 @@ def generate_flow_plot():
                         • Discovery completion certification
                     </div>
                 </div>
-                
+
                 <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
                     <h3>🔧 Technical Architecture</h3>
                     <ul>
@@ -219,7 +219,7 @@ def generate_flow_plot():
                         <li><strong>Data Flow:</strong> raw_data → cleaned_data → asset_inventory → analysis results</li>
                     </ul>
                 </div>
-                
+
                 <div style="margin-top: 20px; padding: 20px; background: #e7f3ff; border-radius: 8px;">
                     <h3>📊 Performance Metrics</h3>
                     <ul>

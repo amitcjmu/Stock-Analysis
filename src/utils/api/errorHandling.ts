@@ -19,7 +19,7 @@ export function createApiError(
   context: { url: string; method: string; response?: unknown }
 ): ApiErrorType {
   const responseObj = response as Record<string, unknown>;
-  
+
   if (status >= 500) {
     return {
       type: 'server',
@@ -30,7 +30,7 @@ export function createApiError(
       correlationId: (responseObj?.correlationId as string)
     } as ServerError;
   }
-  
+
   if (status === 401) {
     return {
       type: 'authentication',
@@ -40,7 +40,7 @@ export function createApiError(
       correlationId: (responseObj?.correlationId as string)
     } as AuthenticationError;
   }
-  
+
   if (status === 403) {
     return {
       type: 'authorization',
@@ -52,7 +52,7 @@ export function createApiError(
       correlationId: (responseObj?.correlationId as string)
     } as AuthorizationError;
   }
-  
+
   if (status === 422) {
     return {
       type: 'validation',
@@ -64,7 +64,7 @@ export function createApiError(
       correlationId: (responseObj?.correlationId as string)
     } as ValidationError;
   }
-  
+
   return {
     type: 'network',
     message: (responseObj?.message as string) || `HTTP ${status} error`,
@@ -79,7 +79,7 @@ export function createApiError(
 
 function determineAuthReason(response: Record<string, unknown> | undefined): 'token_expired' | 'invalid_credentials' | 'missing_token' {
   const code = (response?.error_code as string)?.toLowerCase();
-  
+
   if (code?.includes('expired')) return 'token_expired';
   if (code?.includes('invalid')) return 'invalid_credentials';
   return 'missing_token';
@@ -99,7 +99,7 @@ export function handleApiError(error: ApiErrorType): {
         shouldRetry: false,
         actions: ['redirect_to_login', 'refresh_token']
       };
-    
+
     case 'authorization':
       return {
         userMessage: 'You do not have permission to perform this action',
@@ -107,7 +107,7 @@ export function handleApiError(error: ApiErrorType): {
         shouldRetry: false,
         actions: ['contact_admin', 'request_permission']
       };
-    
+
     case 'validation':
       return {
         userMessage: 'Please check your input and try again',
@@ -115,7 +115,7 @@ export function handleApiError(error: ApiErrorType): {
         shouldRetry: false,
         actions: ['fix_validation_errors']
       };
-    
+
     case 'network':
       return {
         userMessage: 'Network error. Please check your connection',
@@ -123,7 +123,7 @@ export function handleApiError(error: ApiErrorType): {
         shouldRetry: true,
         actions: ['retry_request', 'check_connection']
       };
-    
+
     case 'server':
       return {
         userMessage: 'Server error. Please try again later',
@@ -131,7 +131,7 @@ export function handleApiError(error: ApiErrorType): {
         shouldRetry: true,
         actions: ['retry_request', 'contact_support']
       };
-    
+
     default:
       return {
         userMessage: 'An unexpected error occurred',
@@ -143,7 +143,7 @@ export function handleApiError(error: ApiErrorType): {
 }
 
 export function isRetryableError(error: ApiErrorType): boolean {
-  return ['network', 'server'].includes(error.type) && 
+  return ['network', 'server'].includes(error.type) &&
     (!('status' in error) || error.status >= 500 || error.status === 429);
 }
 

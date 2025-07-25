@@ -1,6 +1,6 @@
 /**
  * Bulk Operations Logic
- * 
+ *
  * Functions for handling bulk approve and bulk reject operations with retry logic and error handling.
  */
 
@@ -47,24 +47,24 @@ export const createBulkApproveHandler = ({
 }: BulkApproveHandlerParams): BulkApproveHandler => {
   return async (mappingIds: string[]) => {
     if (mappingIds.length === 0) return;
-    
+
     // Filter out placeholder and fallback mappings that shouldn't be approved via API
     const validMappingIds = mappingIds.filter(id => {
       const mapping = fieldMappings.find(m => m.id === id);
       return !(mapping && (mapping.is_placeholder || mapping.is_fallback));
     });
-    
+
     if (validMappingIds.length === 0) {
       if (typeof window !== 'undefined' && window.showWarningToast) {
         window.showWarningToast('No valid mappings to approve. Please configure unmapped fields first.');
       }
       return;
     }
-    
+
     if (validMappingIds.length < mappingIds.length) {
       console.log(`⚠️ Filtered out ${mappingIds.length - validMappingIds.length} placeholder/fallback mappings from bulk approval`);
     }
-    
+
     // Check authentication before proceeding
     if (!client?.id || !engagement?.id) {
       if (typeof window !== 'undefined' && window.showErrorToast) {
@@ -72,7 +72,7 @@ export const createBulkApproveHandler = ({
       }
       return;
     }
-    
+
     // Prevent concurrent bulk operations
     const now = Date.now();
     if (now - lastBulkOperationTime < 5000) { // 5 second cooldown
@@ -82,17 +82,17 @@ export const createBulkApproveHandler = ({
       return;
     }
     setLastBulkOperationTime(now);
-    
+
     const maxRetries = 3;
     const baseDelay = 2000; // 2 seconds
-    
+
     const attemptBulkApproval = async (attempt: number = 0): Promise<BulkOperationResult> => {
       try {
         console.log(`🔄 Bulk approving mappings (attempt ${attempt + 1}/${maxRetries + 1}):`, mappingIds);
-        
+
         // Call bulk approval API with filtered IDs
         const { apiCall } = await import('../../../../../../config/api');
-        
+
         const response = await apiCall('/api/v1/data-import/field-mapping/approval/approve-mappings', {
           method: 'POST',
           includeContext: true, // Use centralized context handling
@@ -102,35 +102,35 @@ export const createBulkApproveHandler = ({
             approval_note: 'Bulk approved from UI'
           })
         });
-        
+
         console.log('✅ Bulk approval response:', response);
         return response;
-        
+
       } catch (error) {
         console.error(`❌ Bulk approval attempt ${attempt + 1} failed:`, error);
-        
+
         // Check if it's a rate limit error and we have retries left
-        if (attempt < maxRetries && error instanceof Error && 
-            (error.message.includes('429') || error.message.includes('Too Many Requests') || 
+        if (attempt < maxRetries && error instanceof Error &&
+            (error.message.includes('429') || error.message.includes('Too Many Requests') ||
              error.message.includes('Rate limit'))) {
-          
+
           const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
           console.log(`⏳ Rate limited, waiting ${delay}ms before retry...`);
-          
+
           // Show user feedback about retry
           if (typeof window !== 'undefined' && window.showInfoToast) {
             window.showInfoToast(`Rate limited, retrying in ${delay/1000} seconds...`);
           }
-          
+
           await new Promise(resolve => setTimeout(resolve, delay));
           return attemptBulkApproval(attempt + 1);
         }
-        
+
         // Re-throw if not rate limited or no retries left
         throw error;
       }
     };
-    
+
     try {
       // Add all valid mappings to processing set
       setProcessingMappings(prev => {
@@ -138,24 +138,24 @@ export const createBulkApproveHandler = ({
         validMappingIds.forEach(id => newSet.add(id));
         return newSet;
       });
-      
+
       // Attempt bulk approval with retry logic
       const response = await attemptBulkApproval();
-      
+
       // Show success message
       if (typeof window !== 'undefined' && window.showSuccessToast) {
         window.showSuccessToast(`Successfully approved ${response.successful_updates} mappings`);
       }
-      
+
       // Refresh the data
       if (onRefresh) {
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
         onRefresh();
       }
-      
+
     } catch (error) {
       console.error('❌ Bulk approval failed after all retries:', error);
-      
+
       // Handle specific error types
       let errorMessage = 'Failed to approve mappings. Please try again.';
       if (error instanceof Error) {
@@ -167,7 +167,7 @@ export const createBulkApproveHandler = ({
           errorMessage = `Error: ${error.message}`;
         }
       }
-      
+
       if (typeof window !== 'undefined' && window.showErrorToast) {
         window.showErrorToast(errorMessage);
       }
@@ -203,7 +203,7 @@ export const createBulkRejectHandler = ({
 }: BulkRejectHandlerParams): BulkRejectHandler => {
   return async (mappingIds: string[]) => {
     if (mappingIds.length === 0) return;
-    
+
     // Check authentication before proceeding
     if (!client?.id || !engagement?.id) {
       if (typeof window !== 'undefined' && window.showErrorToast) {
@@ -211,7 +211,7 @@ export const createBulkRejectHandler = ({
       }
       return;
     }
-    
+
     // Prevent concurrent bulk operations
     const now = Date.now();
     if (now - lastBulkOperationTime < 5000) { // 5 second cooldown
@@ -221,17 +221,17 @@ export const createBulkRejectHandler = ({
       return;
     }
     setLastBulkOperationTime(now);
-    
+
     const maxRetries = 3;
     const baseDelay = 2000; // 2 seconds
-    
+
     const attemptBulkRejection = async (attempt: number = 0): Promise<BulkOperationResult> => {
       try {
         console.log(`🔄 Bulk rejecting mappings (attempt ${attempt + 1}/${maxRetries + 1}):`, mappingIds);
-        
+
         // Call bulk rejection API
         const { apiCall } = await import('../../../../../../config/api');
-        
+
         const response = await apiCall('/api/v1/data-import/field-mapping/approval/approve-mappings', {
           method: 'POST',
           includeContext: true, // Use centralized context handling
@@ -241,35 +241,35 @@ export const createBulkRejectHandler = ({
             approval_note: 'Bulk rejected from UI'
           })
         });
-        
+
         console.log('✅ Bulk rejection response:', response);
         return response;
-        
+
       } catch (error) {
         console.error(`❌ Bulk rejection attempt ${attempt + 1} failed:`, error);
-        
+
         // Check if it's a rate limit error and we have retries left
-        if (attempt < maxRetries && error instanceof Error && 
-            (error.message.includes('429') || error.message.includes('Too Many Requests') || 
+        if (attempt < maxRetries && error instanceof Error &&
+            (error.message.includes('429') || error.message.includes('Too Many Requests') ||
              error.message.includes('Rate limit'))) {
-          
+
           const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
           console.log(`⏳ Rate limited, waiting ${delay}ms before retry...`);
-          
+
           // Show user feedback about retry
           if (typeof window !== 'undefined' && window.showInfoToast) {
             window.showInfoToast(`Rate limited, retrying in ${delay/1000} seconds...`);
           }
-          
+
           await new Promise(resolve => setTimeout(resolve, delay));
           return attemptBulkRejection(attempt + 1);
         }
-        
+
         // Re-throw if not rate limited or no retries left
         throw error;
       }
     };
-    
+
     try {
       // Add all mappings to processing set
       setProcessingMappings(prev => {
@@ -277,24 +277,24 @@ export const createBulkRejectHandler = ({
         mappingIds.forEach(id => newSet.add(id));
         return newSet;
       });
-      
+
       // Attempt bulk rejection with retry logic
       const response = await attemptBulkRejection();
-      
+
       // Show success message
       if (typeof window !== 'undefined' && window.showSuccessToast) {
         window.showSuccessToast(`Successfully rejected ${response.successful_updates} mappings`);
       }
-      
+
       // Refresh the data
       if (onRefresh) {
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
         onRefresh();
       }
-      
+
     } catch (error) {
       console.error('❌ Bulk rejection failed after all retries:', error);
-      
+
       // Handle specific error types
       let errorMessage = 'Failed to reject mappings. Please try again.';
       if (error instanceof Error) {
@@ -306,7 +306,7 @@ export const createBulkRejectHandler = ({
           errorMessage = `Error: ${error.message}`;
         }
       }
-      
+
       if (typeof window !== 'undefined' && window.showErrorToast) {
         window.showErrorToast(errorMessage);
       }

@@ -1,6 +1,6 @@
 /**
  * Collection Components Index
- * 
+ *
  * Sub-components for the Manual Collection Framework
  */
 

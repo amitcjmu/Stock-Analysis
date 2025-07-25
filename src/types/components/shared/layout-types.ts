@@ -1,6 +1,6 @@
 /**
  * Layout Component Types
- * 
+ *
  * Layout-related component interfaces including flexbox and grid layouts.
  */
 

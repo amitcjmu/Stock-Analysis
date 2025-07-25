@@ -1,8 +1,8 @@
 import React from 'react';
-import { 
-  TrendingUp, 
-  Users, 
-  Target, 
+import {
+  TrendingUp,
+  Users,
+  Target,
   Clock,
   BarChart3,
   PieChart
@@ -20,8 +20,8 @@ interface AnalyticsSummaryProps {
 export const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
   summary
 }) => {
-  const successRate = summary.total_jobs > 0 
-    ? ((summary.completed_jobs / summary.total_jobs) * 100) 
+  const successRate = summary.total_jobs > 0
+    ? ((summary.completed_jobs / summary.total_jobs) * 100)
     : 0;
 
   const strategyEntries = Object.entries(summary.strategy_distribution)
@@ -126,9 +126,9 @@ export const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
                   {summary.processing_time_stats.average.toFixed(1)}s
                 </span>
               </div>
-              <Progress 
-                value={(summary.processing_time_stats.average / summary.processing_time_stats.max) * 100} 
-                className="h-2" 
+              <Progress
+                value={(summary.processing_time_stats.average / summary.processing_time_stats.max) * 100}
+                className="h-2"
               />
             </div>
 
@@ -136,18 +136,18 @@ export const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Performance Index</span>
                 <span className="text-sm text-gray-600">
-                  {summary.processing_time_stats.min > 0 
+                  {summary.processing_time_stats.min > 0
                     ? (summary.processing_time_stats.min / summary.processing_time_stats.average * 100).toFixed(0)
                     : 0
                   }%
                 </span>
               </div>
-              <Progress 
-                value={summary.processing_time_stats.min > 0 
+              <Progress
+                value={summary.processing_time_stats.min > 0
                   ? (summary.processing_time_stats.min / summary.processing_time_stats.average) * 100
                   : 0
-                } 
-                className="h-2" 
+                }
+                className="h-2"
               />
             </div>
           </div>
@@ -176,7 +176,7 @@ export const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
             <div className="space-y-4">
               {strategyEntries.map(([strategy, count]) => {
                 const percentage = totalStrategies > 0 ? (count / totalStrategies) * 100 : 0;
-                
+
                 return (
                   <div key={strategy} className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -212,17 +212,17 @@ export const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
               <div className="text-2xl font-bold text-blue-600">{summary.active_jobs}</div>
               <div className="text-sm text-gray-600">Active Jobs</div>
             </div>
-            
+
             <div className="text-center p-4 border rounded-lg">
               <div className="text-2xl font-bold text-green-600">{summary.completed_jobs}</div>
               <div className="text-sm text-gray-600">Completed Jobs</div>
             </div>
-            
+
             <div className="text-center p-4 border rounded-lg">
               <div className="text-2xl font-bold text-red-600">{summary.failed_jobs}</div>
               <div className="text-sm text-gray-600">Failed Jobs</div>
             </div>
-            
+
             <div className="text-center p-4 border rounded-lg">
               <div className="text-2xl font-bold text-purple-600">{summary.total_applications_processed}</div>
               <div className="text-sm text-gray-600">Apps Processed</div>

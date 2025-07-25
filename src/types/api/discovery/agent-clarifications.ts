@@ -1,6 +1,6 @@
 /**
  * Discovery Agent Clarifications API Types
- * 
+ *
  * Type definitions for agent clarification operations including creation,
  * responses, escalation, and resolution workflows.
  */

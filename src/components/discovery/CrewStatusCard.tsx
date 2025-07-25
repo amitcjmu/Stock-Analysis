@@ -5,11 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle, 
-  Users, 
+import {
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  Users,
   Activity,
   Brain,
   Crown,
@@ -114,7 +114,7 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
       failed: 'destructive',
       paused: 'outline'
     } as const;
-    
+
     const colors = {
       pending: 'bg-gray-100 text-gray-700',
       running: 'bg-blue-100 text-blue-700',
@@ -122,9 +122,9 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
       failed: 'bg-red-100 text-red-700',
       paused: 'bg-yellow-100 text-yellow-700'
     } as const;
-    
+
     return (
-      <Badge variant={variants[status as keyof typeof variants] || 'secondary'} 
+      <Badge variant={variants[status as keyof typeof variants] || 'secondary'}
              className={colors[status as keyof typeof colors] || ''}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
@@ -152,9 +152,9 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
 
   const AgentCard: React.FC<{ agent: AgentStatus }> = ({ agent }) => (
     <div className={`p-3 rounded-lg border transition-colors ${
-      agent.isManager 
-        ? 'border-yellow-200 bg-yellow-50' 
-        : agent.status === 'active' 
+      agent.isManager
+        ? 'border-yellow-200 bg-yellow-50'
+        : agent.status === 'active'
           ? 'border-blue-200 bg-blue-50'
           : 'border-gray-200 bg-gray-50'
     }`}>
@@ -177,13 +177,13 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
           )}
         </div>
       </div>
-      
+
       <p className="text-xs text-gray-600 mb-1">{agent.role}</p>
-      
+
       {agent.currentTask && (
         <p className="text-xs text-blue-600 italic mb-2">{agent.currentTask}</p>
       )}
-      
+
       {agent.performance && (
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div className="text-center">
@@ -200,7 +200,7 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
           </div>
         </div>
       )}
-      
+
       {agent.last_activity && (
         <div className="text-xs text-gray-500 mt-2">
           Last: {new Date(agent.last_activity).toLocaleTimeString()}
@@ -211,7 +211,7 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
 
   return (
     <Card className={`transition-all duration-300 ${
-      crewData.status === 'running' ? 'border-blue-500 shadow-md' : 
+      crewData.status === 'running' ? 'border-blue-500 shadow-md' :
       crewData.status === 'completed' ? 'border-green-500' :
       crewData.status === 'failed' ? 'border-red-500' :
       crewData.status === 'paused' ? 'border-yellow-500' : ''
@@ -228,14 +228,14 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
               )}
               {getStatusBadge(crewData.status)}
             </div>
-            
+
             {crewData.current_phase && (
               <CardDescription className="text-sm">
                 Current Phase: {crewData.current_phase}
               </CardDescription>
             )}
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -245,7 +245,7 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
               <Eye className="h-4 w-4" />
               {isExpanded ? 'Collapse' : 'Expand'}
             </Button>
-            
+
             {crewData.status === 'running' && (
               <Button
                 variant="outline"
@@ -255,7 +255,7 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
                 <Pause className="h-4 w-4" />
               </Button>
             )}
-            
+
             {crewData.status === 'paused' && (
               <Button
                 variant="outline"
@@ -265,7 +265,7 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
                 <Play className="h-4 w-4" />
               </Button>
             )}
-            
+
             {(crewData.status === 'failed' || crewData.status === 'completed') && (
               <Button
                 variant="outline"
@@ -278,7 +278,7 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="pt-0">
         <div className="space-y-4">
           {/* Progress Bar */}
@@ -299,7 +299,7 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
               </div>
               <div className="text-gray-500 text-xs">Agents</div>
             </div>
-            
+
             <div className="text-center">
               <div className="flex items-center justify-center gap-1 mb-1">
                 <Timer className="h-3 w-3" />
@@ -307,7 +307,7 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
               </div>
               <div className="text-gray-500 text-xs">Runtime</div>
             </div>
-            
+
             {crewData.collaboration_metrics && (
               <>
                 <div className="text-center">
@@ -317,7 +317,7 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
                   </div>
                   <div className="text-gray-500 text-xs">Collaboration</div>
                 </div>
-                
+
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <Brain className="h-3 w-3" />
@@ -451,4 +451,4 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
   );
 };
 
-export default CrewStatusCard; 
+export default CrewStatusCard;

@@ -1,6 +1,6 @@
 /**
  * Bulk Upload Component
- * 
+ *
  * File upload interface for bulk data import
  * Agent Team B3 - Bulk upload functionality
  */
@@ -49,10 +49,10 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const files = Array.from(e.dataTransfer.files);
     const file = files[0];
-    
+
     if (file) {
       await handleFileUpload(file);
     }
@@ -69,7 +69,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({
     // Validate file type
     const allowedTypes = ['.csv', '.xlsx', '.xls', '.json'];
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-    
+
     if (!allowedTypes.includes(fileExtension)) {
       setError(`Invalid file type. Please upload one of: ${allowedTypes.join(', ')}`);
       return;
@@ -83,7 +83,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({
 
     setError(null);
     setIsUploading(true);
-    
+
     try {
       await onUpload(file);
       // Mock upload result - in real app this would come from the upload response
@@ -108,7 +108,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({
     // Generate CSV template with field headers
     const headers = ['Application Name', 'Application ID', ...fields.map(f => f.label)];
     const csvContent = headers.join(',') + '\n';
-    
+
     // Add example row
     const exampleRow = [
       'Example Application',
@@ -128,9 +128,9 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({
         }
       })
     ];
-    
+
     const fullContent = csvContent + exampleRow.join(',');
-    
+
     // Download template
     const blob = new Blob([fullContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -207,7 +207,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({
                   Supports CSV, Excel (.xlsx, .xls), and JSON files up to 10MB
                 </p>
               </div>
-              
+
               <input
                 type="file"
                 accept=".csv,.xlsx,.xls,.json"

@@ -28,7 +28,7 @@ async def update_learning_tables():
             await session.execute(
                 text(
                     """
-                ALTER TABLE migration.asset_classification_patterns 
+                ALTER TABLE migration.asset_classification_patterns
                 DROP COLUMN IF EXISTS asset_name_embedding CASCADE;
             """
                 )
@@ -37,7 +37,7 @@ async def update_learning_tables():
             await session.execute(
                 text(
                     """
-                ALTER TABLE migration.asset_classification_patterns 
+                ALTER TABLE migration.asset_classification_patterns
                 DROP COLUMN IF EXISTS metadata_embedding CASCADE;
             """
                 )
@@ -47,7 +47,7 @@ async def update_learning_tables():
             await session.execute(
                 text(
                     """
-                ALTER TABLE migration.asset_classification_patterns 
+                ALTER TABLE migration.asset_classification_patterns
                 ADD COLUMN asset_name_embedding vector(1024);
             """
                 )
@@ -56,7 +56,7 @@ async def update_learning_tables():
             await session.execute(
                 text(
                     """
-                ALTER TABLE migration.asset_classification_patterns 
+                ALTER TABLE migration.asset_classification_patterns
                 ADD COLUMN metadata_embedding vector(1024);
             """
                 )
@@ -70,7 +70,7 @@ async def update_learning_tables():
             await session.execute(
                 text(
                     """
-                CREATE TABLE IF NOT EXISTS migration.mapping_learning_patterns_backup AS 
+                CREATE TABLE IF NOT EXISTS migration.mapping_learning_patterns_backup AS
                 SELECT * FROM migration.mapping_learning_patterns;
             """
                 )
@@ -101,28 +101,28 @@ async def update_learning_tables():
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     client_account_id VARCHAR(255) NOT NULL,
                     engagement_id VARCHAR(255),
-                    
+
                     -- Source field information
                     source_field_name VARCHAR(255) NOT NULL,
                     source_field_embedding vector(1024) NOT NULL,
                     source_sample_values JSONB,
                     source_sample_embedding vector(1024),
-                    
+
                     -- Target field information
                     target_field_name VARCHAR(255) NOT NULL,
                     target_field_type VARCHAR(100),
-                    
+
                     -- Pattern metadata
                     pattern_context JSONB,
                     confidence_score FLOAT DEFAULT 0.0,
                     success_count INTEGER DEFAULT 0,
                     failure_count INTEGER DEFAULT 0,
                     last_used_at TIMESTAMP WITH TIME ZONE,
-                    
+
                     -- Learning metadata
                     learned_from_user BOOLEAN DEFAULT true,
                     learning_source VARCHAR(100),
-                    
+
                     -- Audit fields
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
                     updated_at TIMESTAMP WITH TIME ZONE,
@@ -141,7 +141,7 @@ async def update_learning_tables():
             await session.execute(
                 text(
                     """
-                CREATE INDEX idx_mapping_patterns_client_source 
+                CREATE INDEX idx_mapping_patterns_client_source
                 ON migration.mapping_learning_patterns (client_account_id, source_field_name);
             """
                 )
@@ -150,7 +150,7 @@ async def update_learning_tables():
             await session.execute(
                 text(
                     """
-                CREATE INDEX idx_mapping_patterns_target 
+                CREATE INDEX idx_mapping_patterns_target
                 ON migration.mapping_learning_patterns (target_field_name);
             """
                 )
@@ -159,7 +159,7 @@ async def update_learning_tables():
             await session.execute(
                 text(
                     """
-                CREATE INDEX idx_mapping_patterns_confidence 
+                CREATE INDEX idx_mapping_patterns_confidence
                 ON migration.mapping_learning_patterns (confidence_score);
             """
                 )
@@ -168,8 +168,8 @@ async def update_learning_tables():
             await session.execute(
                 text(
                     """
-                CREATE INDEX idx_mapping_patterns_embedding 
-                ON migration.mapping_learning_patterns 
+                CREATE INDEX idx_mapping_patterns_embedding
+                ON migration.mapping_learning_patterns
                 USING ivfflat (source_field_embedding vector_cosine_ops);
             """
                 )
@@ -179,8 +179,8 @@ async def update_learning_tables():
             await session.execute(
                 text(
                     """
-                CREATE INDEX IF NOT EXISTS idx_classification_patterns_name_embedding 
-                ON migration.asset_classification_patterns 
+                CREATE INDEX IF NOT EXISTS idx_classification_patterns_name_embedding
+                ON migration.asset_classification_patterns
                 USING ivfflat (asset_name_embedding vector_cosine_ops);
             """
                 )
@@ -189,8 +189,8 @@ async def update_learning_tables():
             await session.execute(
                 text(
                     """
-                CREATE INDEX IF NOT EXISTS idx_classification_patterns_metadata_embedding 
-                ON migration.asset_classification_patterns 
+                CREATE INDEX IF NOT EXISTS idx_classification_patterns_metadata_embedding
+                ON migration.asset_classification_patterns
                 USING ivfflat (metadata_embedding vector_cosine_ops);
             """
                 )
@@ -209,28 +209,28 @@ async def update_learning_tables():
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     client_account_id VARCHAR(255) NOT NULL,
                     engagement_id VARCHAR(255),
-                    
+
                     -- Threshold configuration
                     operation_type VARCHAR(100) NOT NULL,
                     threshold_name VARCHAR(100) NOT NULL,
                     threshold_value FLOAT NOT NULL,
-                    
+
                     -- Adaptation metadata
                     initial_value FLOAT NOT NULL,
                     adjustment_count INTEGER DEFAULT 0,
                     last_adjustment TIMESTAMP WITH TIME ZONE,
-                    
+
                     -- Performance tracking
                     true_positives INTEGER DEFAULT 0,
                     false_positives INTEGER DEFAULT 0,
                     true_negatives INTEGER DEFAULT 0,
                     false_negatives INTEGER DEFAULT 0,
-                    
+
                     -- Calculated metrics
                     precision FLOAT DEFAULT 0.0,
                     recall FLOAT DEFAULT 0.0,
                     f1_score FLOAT DEFAULT 0.0,
-                    
+
                     -- Audit fields
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
                     updated_at TIMESTAMP WITH TIME ZONE,
@@ -248,26 +248,26 @@ async def update_learning_tables():
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     client_account_id VARCHAR(255) NOT NULL,
                     engagement_id VARCHAR(255),
-                    
+
                     -- Feedback context
                     feedback_type VARCHAR(100) NOT NULL,
                     operation_id VARCHAR(255),
-                    
+
                     -- Original suggestion
                     original_suggestion JSONB NOT NULL,
                     original_confidence FLOAT,
-                    
+
                     -- User correction
                     user_correction JSONB NOT NULL,
                     correction_type VARCHAR(100) NOT NULL,
-                    
+
                     -- Pattern references
                     related_patterns JSONB,
-                    
+
                     -- Learning impact
                     pattern_updates_applied BOOLEAN DEFAULT false,
                     threshold_updates_applied BOOLEAN DEFAULT false,
-                    
+
                     -- Audit fields
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
                     created_by VARCHAR(255)
@@ -284,7 +284,7 @@ async def update_learning_tables():
             await session.execute(
                 text(
                     """
-                CREATE INDEX IF NOT EXISTS idx_confidence_thresholds_client_operation 
+                CREATE INDEX IF NOT EXISTS idx_confidence_thresholds_client_operation
                 ON migration.confidence_thresholds (client_account_id, operation_type);
             """
                 )
@@ -293,7 +293,7 @@ async def update_learning_tables():
             await session.execute(
                 text(
                     """
-                CREATE INDEX IF NOT EXISTS idx_feedback_events_client_type 
+                CREATE INDEX IF NOT EXISTS idx_feedback_events_client_type
                 ON migration.user_feedback_events (client_account_id, feedback_type);
             """
                 )

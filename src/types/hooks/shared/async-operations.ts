@@ -1,6 +1,6 @@
 /**
  * Async Operations Hook Types
- * 
+ *
  * Hook interfaces for async operations including async execution, debouncing, throttling, intervals, and timeouts.
  */
 

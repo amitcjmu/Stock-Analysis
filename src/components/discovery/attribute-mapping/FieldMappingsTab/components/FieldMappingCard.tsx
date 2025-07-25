@@ -33,7 +33,7 @@ export const FieldMappingCard: React.FC<FieldMappingCardProps> = ({
 
   const handleApproval = async () => {
     if (isProcessing) return; // Prevent duplicate calls
-    
+
     setIsProcessing(true);
     try {
       await onMappingAction(mapping.id, 'approve');
@@ -45,7 +45,7 @@ export const FieldMappingCard: React.FC<FieldMappingCardProps> = ({
 
   const handleRejection = async () => {
     if (isProcessing) return; // Prevent duplicate calls
-    
+
     setIsProcessing(true);
     try {
       onReject(mapping.id, mapping.sourceField, mapping.targetAttribute);
@@ -104,7 +104,7 @@ export const FieldMappingCard: React.FC<FieldMappingCardProps> = ({
               <span className="font-medium text-blue-600">{mapping.targetAttribute}</span>
             )}
           </div>
-          
+
           <div className="flex items-center space-x-4 text-sm text-gray-600">
             <span className="flex items-center">
               <span className="mr-1">{getMappingTypeIcon(mapping.mapping_type)}</span>

@@ -1,6 +1,6 @@
 /**
  * Shared Hook Types - Index
- * 
+ *
  * Centralized exports for all shared hook type definitions.
  * This module provides comprehensive type definitions for common hook patterns used across the application.
  */

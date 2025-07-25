@@ -23,12 +23,12 @@ const FileUploadArea: React.FC<FileUploadAreaProps> = ({ onFilesUploaded, isAnal
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
       <h2 className="text-xl font-semibold text-gray-900 mb-4">Upload CMDB Files</h2>
-      
+
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-          isDragActive 
-            ? 'border-blue-500 bg-blue-50' 
+          isDragActive
+            ? 'border-blue-500 bg-blue-50'
             : isAnalyzing
             ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
             : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
@@ -75,4 +75,4 @@ const FileUploadArea: React.FC<FileUploadAreaProps> = ({ onFilesUploaded, isAnal
   );
 };
 
-export default FileUploadArea; 
+export default FileUploadArea;

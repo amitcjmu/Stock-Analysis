@@ -139,4 +139,4 @@ const DependencyAnalysisPanel: React.FC<DependencyAnalysisPanelProps> = ({
   );
 };
 
-export default DependencyAnalysisPanel; 
+export default DependencyAnalysisPanel;

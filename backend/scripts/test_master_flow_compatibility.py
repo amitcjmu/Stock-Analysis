@@ -27,8 +27,8 @@ async def test_asset_repository_master_flow():
         result = await session.execute(
             text(
                 """
-            SELECT DISTINCT client_account_id, engagement_id 
-            FROM assets 
+            SELECT DISTINCT client_account_id, engagement_id
+            FROM assets
             WHERE master_flow_id IS NOT NULL
             LIMIT 1
         """
@@ -53,8 +53,8 @@ async def test_asset_repository_master_flow():
         result = await session.execute(
             text(
                 """
-            SELECT DISTINCT master_flow_id 
-            FROM assets 
+            SELECT DISTINCT master_flow_id
+            FROM assets
             WHERE client_account_id = :client_id AND master_flow_id IS NOT NULL
             LIMIT 1
         """
@@ -69,7 +69,7 @@ async def test_asset_repository_master_flow():
                 text(
                     """
                 SELECT COUNT(*) as asset_count
-                FROM assets 
+                FROM assets
                 WHERE master_flow_id = :master_flow_id
                 AND client_account_id = :client_id
             """
@@ -90,11 +90,11 @@ async def test_asset_repository_master_flow():
         multi_phase_query = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 source_phase,
                 current_phase,
                 COUNT(*) as asset_count
-            FROM assets 
+            FROM assets
             WHERE client_account_id = :client_id
             GROUP BY source_phase, current_phase
         """
@@ -114,7 +114,7 @@ async def test_asset_repository_master_flow():
         discovery_assets = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 df.id as discovery_flow_id,
                 df.master_flow_id,
                 COUNT(a.id) as asset_count
@@ -151,7 +151,7 @@ async def test_discovery_flow_master_integration():
         result = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 COUNT(*) as total_flows,
                 COUNT(master_flow_id) as flows_with_master,
                 COUNT(DISTINCT master_flow_id) as unique_master_flows
@@ -171,7 +171,7 @@ async def test_discovery_flow_master_integration():
         result = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 cse.current_phase,
                 cse.phase_progression,
                 df.flow_name,
@@ -195,7 +195,7 @@ async def test_discovery_flow_master_integration():
         result = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 current_phase,
                 COUNT(*) as count,
                 AVG(CASE WHEN phase_progression::text != '{}' THEN 1 ELSE 0 END) as progression_rate
@@ -227,7 +227,7 @@ async def test_crewai_master_flow_coordination():
         result = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 COUNT(*) as total_extensions,
                 COUNT(CASE WHEN flow_persistence_data != '{}' THEN 1 END) as with_persistence,
                 COUNT(CASE WHEN current_phase IS NOT NULL THEN 1 END) as with_phase
@@ -247,7 +247,7 @@ async def test_crewai_master_flow_coordination():
         result = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 flow_id,
                 current_phase,
                 cross_phase_context
@@ -272,7 +272,7 @@ async def test_crewai_master_flow_coordination():
         result = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 cse.flow_id as master_flow_id,
                 df.id as discovery_flow_id,
                 df.flow_name,

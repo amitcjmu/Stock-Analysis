@@ -1,6 +1,6 @@
 /**
  * Audit Types
- * 
+ *
  * Audit logging and activity tracking type definitions including
  * audit logs, activity records, and related enums.
  */

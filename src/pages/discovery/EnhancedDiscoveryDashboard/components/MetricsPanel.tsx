@@ -1,8 +1,8 @@
 import React from 'react';
-import { 
-  Activity, 
-  Users, 
-  Target, 
+import {
+  Activity,
+  Users,
+  Target,
   TrendingUp,
   Database,
   Network,
@@ -41,7 +41,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = ({
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-gray-900">System Metrics</h2>
-      
+
       {/* System Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>

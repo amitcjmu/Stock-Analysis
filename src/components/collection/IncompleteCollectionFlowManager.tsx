@@ -107,8 +107,8 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
   };
 
   const handleSelectFlow = (flowId: string, checked: boolean) => {
-    setSelectedFlows(prev => 
-      checked 
+    setSelectedFlows(prev =>
+      checked
         ? [...prev, flowId]
         : prev.filter(id => id !== flowId)
     );
@@ -150,11 +150,11 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Incomplete Collection Flows</h2>
           <p className="text-gray-600 mt-1">
-            {flows.length} incomplete collection flow{flows.length !== 1 ? 's' : ''} found. 
+            {flows.length} incomplete collection flow{flows.length !== 1 ? 's' : ''} found.
             Complete existing flows before starting new ones.
           </p>
         </div>
-        
+
         {selectedFlows.length > 0 && (
           <div className="flex items-center space-x-3">
             <span className="text-sm text-gray-600">
@@ -191,7 +191,7 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
         {flows.map((flow, index) => {
           const PhaseIcon = getPhaseIcon(flow.current_phase);
           const isSelected = selectedFlows.includes(flow.id);
-          
+
           return (
             <Card key={flow.id || `flow-${index}`} className={`${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
               <CardHeader className="pb-3">
@@ -218,7 +218,7 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
                       </CardDescription>
                     </div>
                   </div>
-                  
+
                   <div className="text-right">
                     <p className="text-sm text-gray-600">
                       {Math.round(flow.progress || 0)}% complete
@@ -229,14 +229,14 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
                   </div>
                 </div>
               </CardHeader>
-              
+
               <CardContent className="pt-0">
                 <div className="space-y-4">
                   {/* Progress bar */}
                   <div>
                     <Progress value={flow.progress || 0} className="h-2" />
                   </div>
-                  
+
                   {/* Flow details */}
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
@@ -250,7 +250,7 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
                       <p className="font-medium">{flow.flow_name || 'Collection Flow'}</p>
                     </div>
                   </div>
-                  
+
                   {/* Collection metrics */}
                   {(flow.gaps_identified !== undefined || flow.collection_config?.detected_platforms) && (
                     <div className="bg-blue-50 p-3 rounded-lg">
@@ -268,8 +268,8 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
                           <div>
                             <p className="text-blue-600">Platforms Detected</p>
                             <p className="font-medium text-blue-800">
-                              {Array.isArray(flow.collection_config.detected_platforms) 
-                                ? flow.collection_config.detected_platforms.length 
+                              {Array.isArray(flow.collection_config.detected_platforms)
+                                ? flow.collection_config.detected_platforms.length
                                 : 0}
                             </p>
                           </div>
@@ -277,7 +277,7 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Action buttons */}
                   <div className="flex items-center justify-between pt-2">
                     <div className="flex items-center space-x-2">
@@ -296,7 +296,7 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
                           Continue Flow
                         </Button>
                       )}
-                      
+
                       {onViewDetails && (
                         <Button
                           variant="outline"
@@ -309,7 +309,7 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
                         </Button>
                       )}
                     </div>
-                    
+
                     <Button
                       variant="destructive"
                       size="sm"

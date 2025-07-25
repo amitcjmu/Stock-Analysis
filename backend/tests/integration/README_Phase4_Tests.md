@@ -216,7 +216,7 @@ test_results/
 
 ```sql
 -- Check foreign key constraints
-SELECT 
+SELECT
     tc.table_name,
     kcu.column_name,
     ccu.table_name AS foreign_table_name,
@@ -241,11 +241,11 @@ AND tc.table_name IN ('discovery_flows', 'data_imports', 'assets');
 
 ```sql
 -- Check indexes on foreign key columns
-SELECT 
+SELECT
     tablename,
     indexname,
     indexdef
-FROM pg_indexes 
+FROM pg_indexes
 WHERE tablename IN ('discovery_flows', 'data_imports', 'assets')
 AND indexdef LIKE '%client_account_id%';
 ```
@@ -294,13 +294,13 @@ If performance tests fail, consider:
 
 1. **Index Optimization:**
    ```sql
-   CREATE INDEX IF NOT EXISTS idx_discovery_flows_master_flow_id 
+   CREATE INDEX IF NOT EXISTS idx_discovery_flows_master_flow_id
    ON discovery_flows(master_flow_id);
-   
-   CREATE INDEX IF NOT EXISTS idx_data_imports_master_flow_id 
+
+   CREATE INDEX IF NOT EXISTS idx_data_imports_master_flow_id
    ON data_imports(master_flow_id);
-   
-   CREATE INDEX IF NOT EXISTS idx_assets_discovery_flow_id 
+
+   CREATE INDEX IF NOT EXISTS idx_assets_discovery_flow_id
    ON assets(discovery_flow_id);
    ```
 
@@ -360,7 +360,7 @@ Add Phase 4 tests to your CI/CD pipeline:
   run: |
     cd backend
     python scripts/deployment/run_phase4_tests.py --all --output-dir ci_test_results
-    
+
 - name: Upload Test Results
   uses: actions/upload-artifact@v3
   if: always()

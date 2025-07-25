@@ -54,4 +54,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 USER appuser
 
 # Start command - use entrypoint.sh which handles migrations
-CMD ["./entrypoint.sh"] 
+CMD ["./entrypoint.sh"]

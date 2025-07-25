@@ -207,7 +207,7 @@ class RailwayDatabaseFixer:
                 result = await db.execute(
                     text(
                         """
-                    SELECT COUNT(*) FROM information_schema.tables 
+                    SELECT COUNT(*) FROM information_schema.tables
                     WHERE table_schema IN ('migration', 'public')
                     AND table_type = 'BASE TABLE'
                 """

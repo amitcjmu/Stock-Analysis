@@ -1,10 +1,10 @@
 import React from 'react';
-import { 
-  Bot, 
-  Activity, 
-  Clock, 
-  TrendingUp, 
-  Network, 
+import {
+  Bot,
+  Activity,
+  Clock,
+  TrendingUp,
+  Network,
   Brain,
   CheckCircle,
   AlertTriangle,
@@ -67,7 +67,7 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({
                 </p>
               </div>
             </div>
-            
+
             <Badge className={`${getStatusColor(agent.status)} text-lg px-4 py-2`}>
               {getStatusIcon(agent.status)} {agent.status.toUpperCase()}
             </Badge>
@@ -91,7 +91,7 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({
                 {agent.current_task}
               </p>
             </div>
-            
+
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center space-x-2 text-gray-600">
                 <Clock className="h-4 w-4" />
@@ -128,8 +128,8 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({
               </div>
               <Progress value={successRatePercentage} className="h-2" />
               <p className="text-xs text-gray-600 mt-1">
-                {successRatePercentage >= 95 ? 'Excellent' : 
-                 successRatePercentage >= 85 ? 'Good' : 
+                {successRatePercentage >= 95 ? 'Excellent' :
+                 successRatePercentage >= 85 ? 'Good' :
                  successRatePercentage >= 70 ? 'Fair' : 'Needs Improvement'}
               </p>
             </div>
@@ -153,11 +153,11 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({
             {/* Performance Indicators */}
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div className={`text-center p-2 rounded ${
-                successRatePercentage >= 95 ? 'bg-green-100 text-green-800' : 
-                successRatePercentage >= 85 ? 'bg-yellow-100 text-yellow-800' : 
+                successRatePercentage >= 95 ? 'bg-green-100 text-green-800' :
+                successRatePercentage >= 85 ? 'bg-yellow-100 text-yellow-800' :
                 'bg-red-100 text-red-800'
               }`}>
-                {successRatePercentage >= 95 ? <CheckCircle className="h-4 w-4 mx-auto mb-1" /> : 
+                {successRatePercentage >= 95 ? <CheckCircle className="h-4 w-4 mx-auto mb-1" /> :
                  <AlertTriangle className="h-4 w-4 mx-auto mb-1" />}
                 Reliability
               </div>

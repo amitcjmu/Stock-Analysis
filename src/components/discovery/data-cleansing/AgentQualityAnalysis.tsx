@@ -166,7 +166,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
             </span>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4 text-center">
           <div className="p-3 bg-red-50 rounded-lg">
             <div className="text-2xl font-bold text-red-600">{qualityIssues.length}</div>
@@ -205,10 +205,10 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
                         {Math.round(issue.confidence * 100)}% confidence
                       </span>
                     </div>
-                    
+
                     <h4 className="font-medium text-gray-900 mb-1">{issue.issue_type}</h4>
                     <p className="text-sm text-gray-600 mb-2">{issue.description}</p>
-                    
+
                     {issue.current_value !== undefined && (
                       <div className="mb-2 p-2 bg-gray-50 rounded-md">
                         <div className="text-xs font-medium text-gray-700 mb-1">Current Value:</div>
@@ -248,7 +248,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
                         )}
                       </div>
                     )}
-                    
+
                     {expandedIssues.has(issue.id) && (
                       <div className="mt-3 p-3 bg-gray-50 rounded-md">
                         <h5 className="text-sm font-medium text-gray-700 mb-1">Suggested Fix:</h5>
@@ -259,7 +259,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
                         )}
                       </div>
                     )}
-                    
+
                     <div className="flex items-center space-x-3 mt-3">
                       <button
                         onClick={() => toggleIssueExpansion(issue.id)}
@@ -272,7 +272,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
                         )}
                         {expandedIssues.has(issue.id) ? 'Hide details' : 'Show details'}
                       </button>
-                      
+
                       <button
                         onClick={() => onFixIssue(issue.id)}
                         className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
@@ -314,7 +314,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
                         {Math.round(rec.confidence * 100)}% confidence
                       </span>
                     </div>
-                    
+
                     <p className="text-sm text-gray-600 mb-2">{rec.description}</p>
                     <p className="text-xs text-gray-500 mb-2">
                       Affects {rec.affected_assets} assets • {rec.estimated_improvement}% improvement expected
@@ -333,7 +333,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
                         </ul>
                       </div>
                     )}
-                    
+
                     {expandedRecommendations.has(rec.id) && (
                       <div className="mt-3 p-3 bg-white rounded-md border">
                         <h5 className="text-sm font-medium text-gray-700 mb-2">Technical Details</h5>
@@ -344,7 +344,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
                         </div>
                       </div>
                     )}
-                    
+
                     <div className="flex items-center space-x-3 mt-3">
                       <button
                         onClick={() => toggleRecommendationExpansion(rec.id)}
@@ -357,7 +357,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
                         )}
                         {expandedRecommendations.has(rec.id) ? 'Hide details' : 'Show details'}
                       </button>
-                      
+
                       <button
                         onClick={() => onApplyRecommendation(rec.id)}
                         className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
@@ -386,4 +386,4 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
   );
 };
 
-export default AgentQualityAnalysis; 
+export default AgentQualityAnalysis;

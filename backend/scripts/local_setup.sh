@@ -80,7 +80,7 @@ echo "------------------------"
 # Check if PostgreSQL is available
 if check_postgres; then
     echo "📊 Using existing PostgreSQL installation"
-    
+
     # Update .env with correct port if needed
     if [ "$POSTGRES_PORT" = "5433" ]; then
         sed -i.bak 's/localhost:5432/localhost:5433/g' .env
@@ -89,7 +89,7 @@ if check_postgres; then
     fi
 elif check_docker; then
     echo "🐳 PostgreSQL not found, using Docker..."
-    
+
     # Start PostgreSQL in Docker
     docker run -d \
         --name migration_postgres \
@@ -98,7 +98,7 @@ elif check_docker; then
         -e POSTGRES_PASSWORD=postgres \
         -p 5432:5432 \
         postgres:16-alpine || echo "⚠️  PostgreSQL container already exists"
-    
+
     echo "⏳ Waiting for PostgreSQL to start..."
     sleep 5
 else

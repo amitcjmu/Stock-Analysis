@@ -73,7 +73,7 @@ Verification Agent → Fixes Verified: 0
 
 **P0 Issues Requiring Immediate Attention**:
 1. DISC-001: UUID JSON Serialization - **REJECTED** - Incorrect solution, actual issue at line 168
-2. DISC-002: Stuck flows blocking uploads - **PENDING** 
+2. DISC-002: Stuck flows blocking uploads - **PENDING**
 3. DISC-005: No assets being generated - **PENDING** (depends on DISC-003)
 
 ---

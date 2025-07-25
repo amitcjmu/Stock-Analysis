@@ -24,7 +24,7 @@ if [ "$http_code" = "200" ]; then
     echo "✅ Admin login: SUCCESS ($http_code)"
     echo "   User: $(echo "$body" | jq -r '.user.full_name // "N/A"') ($(echo "$body" | jq -r '.user.role // "N/A"'))"
     echo "   Token: $(echo "$body" | jq -r '.token // "N/A"' | cut -c1-20)..."
-    
+
     # Extract token for subsequent tests
     TOKEN=$(echo "$body" | jq -r '.token // "demo-token"')
 else
@@ -73,14 +73,14 @@ declare -a endpoint_names=(
 for i in "${!endpoints[@]}"; do
     endpoint="${endpoints[$i]}"
     name="${endpoint_names[$i]}"
-    
+
     response=$(curl -s -w "%{http_code}" "${HEADERS[@]}" "$BASE_URL$endpoint")
     http_code="${response: -3}"
     body="${response%???}"
-    
+
     if [ "$http_code" = "200" ]; then
         echo "✅ $name: SUCCESS ($http_code)"
-        
+
         # Extract relevant data based on endpoint
         case $endpoint in
             *"auth/admin"*)
@@ -166,4 +166,4 @@ echo "1. Navigate to http://localhost:8081/admin/dashboard"
 echo "2. Use credentials: admin@aiforce.com / admin123"
 echo "3. Test password changes through Profile → Change Password"
 echo "4. Verify no JavaScript errors in browser console"
-echo "5. Admin dashboard should load without 403 errors" 
+echo "5. Admin dashboard should load without 403 errors"

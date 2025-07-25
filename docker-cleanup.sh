@@ -44,25 +44,25 @@ echo "Attempting to clean Docker resources..."
 # Check if Docker is running
 if command -v docker &> /dev/null && docker info &> /dev/null; then
     echo "Docker is running. Performing cleanup..."
-    
+
     # Stop all containers
     docker stop $(docker ps -aq) 2>/dev/null || echo "No containers to stop"
-    
+
     # Remove all stopped containers
     docker container prune -f
-    
+
     # Remove all unused images
     docker image prune -a -f
-    
+
     # Remove all unused volumes
     docker volume prune -f
-    
+
     # Remove build cache
     docker builder prune -a -f
-    
+
     # Full system prune
     docker system prune -a -f --volumes
-    
+
     echo "Docker cleanup completed!"
 else
     echo "Docker is not responsive. Here are manual steps:"

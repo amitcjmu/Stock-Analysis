@@ -5,30 +5,30 @@ import { Building2, Calendar, Users, Target, Clock, Layers, Download, Plus } fro
 
 const Plan = () => {
   const [selectedWave, setSelectedWave] = useState('W1');
-  
+
   const migrationWaves = [
-    { 
-      id: 'W1', 
-      name: 'Wave 1 - Critical Systems', 
-      startDate: '2025-01-15', 
+    {
+      id: 'W1',
+      name: 'Wave 1 - Critical Systems',
+      startDate: '2025-01-15',
       endDate: '2025-03-30',
       applications: 15,
       status: 'Planning',
       progress: 85
     },
-    { 
-      id: 'W2', 
-      name: 'Wave 2 - Business Applications', 
-      startDate: '2025-04-01', 
+    {
+      id: 'W2',
+      name: 'Wave 2 - Business Applications',
+      startDate: '2025-04-01',
       endDate: '2025-06-30',
       applications: 32,
       status: 'Ready',
       progress: 60
     },
-    { 
-      id: 'W3', 
-      name: 'Wave 3 - Supporting Systems', 
-      startDate: '2025-07-01', 
+    {
+      id: 'W3',
+      name: 'Wave 3 - Supporting Systems',
+      startDate: '2025-07-01',
       endDate: '2025-09-30',
       applications: 48,
       status: 'Draft',
@@ -82,8 +82,8 @@ const Plan = () => {
             {/* Migration Waves Overview */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
               {migrationWaves.map((wave) => (
-                <div 
-                  key={wave.id} 
+                <div
+                  key={wave.id}
                   className={`bg-white rounded-lg shadow-md p-6 cursor-pointer transition-all ${
                     selectedWave === wave.id ? 'ring-2 ring-blue-500' : 'hover:shadow-lg'
                   }`}
@@ -114,8 +114,8 @@ const Plan = () => {
                         <span className="font-medium">{wave.progress}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-500 h-2 rounded-full transition-all" 
+                        <div
+                          className="bg-blue-500 h-2 rounded-full transition-all"
                           style={{ width: `${wave.progress}%` }}
                         ></div>
                       </div>
@@ -183,7 +183,7 @@ const Plan = () => {
                         </div>
                         <div className="flex items-center space-x-3">
                           <div className="flex-1 bg-gray-200 rounded-full h-2">
-                            <div 
+                            <div
                               className={`h-2 rounded-full ${
                                 parseInt(resource.utilization) >= 90 ? 'bg-red-500' :
                                 parseInt(resource.utilization) >= 75 ? 'bg-yellow-500' :

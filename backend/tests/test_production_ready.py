@@ -198,7 +198,9 @@ async def test_production_cmdb_analysis():
                 )
                 return False
         else:
-            print(f"⚠️  Average duration {avg_duration:.2f}s is too slow for production")
+            print(
+                f"⚠️  Average duration {avg_duration:.2f}s is too slow for production"
+            )
             return False
 
     except Exception as e:

@@ -36,37 +36,37 @@ const getBackendUrl = (): string => {
     console.log('🔧 Docker development mode detected - using Vite proxy');
     return '';
   }
-  
+
   // Priority 1: Explicit VITE_BACKEND_URL (for production deployments)
   if (import.meta.env.VITE_BACKEND_URL) {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
     console.log('🔧 Using VITE_BACKEND_URL:', backendUrl);
     return backendUrl;
   }
-  
+
   // Priority 2: Legacy VITE_API_BASE_URL
   if (import.meta.env.VITE_API_BASE_URL) {
     console.log('🔧 Using VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
     return import.meta.env.VITE_API_BASE_URL;
   }
-  
+
   // Priority 3: Check if we're in production mode with Vercel
   if (import.meta.env.PROD && typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    
+
     // If running on Vercel (vercel.app domain), use Railway backend
     if (hostname.includes('.vercel.app')) {
       console.warn('Production deployment detected. Ensure VITE_BACKEND_URL is set to your Railway backend URL.');
       return window.location.origin;
     }
   }
-  
+
   // Priority 4: Development mode - use empty string to utilize Vite proxy
   if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
     console.log('🔧 Vite development mode detected - using proxy');
     return '';  // Empty string means use same origin with proxy
   }
-  
+
   // Priority 5: Final fallback - use proxy for development
   if (typeof window !== 'undefined') {
     // In development, always use proxy to avoid CORS issues
@@ -78,7 +78,7 @@ const getBackendUrl = (): string => {
     console.warn('No VITE_BACKEND_URL environment variable found. Using same origin as fallback.');
     return window.location.origin;
   }
-  
+
   // Fallback for SSR or build time - use empty string for proxy
   console.log('🔧 SSR/build fallback - using proxy');
   return '';
@@ -98,7 +98,7 @@ export const API_CONFIG = {
   ENDPOINTS: {
     DISCOVERY: {
       AGENT_ANALYSIS: '/agents/discovery/analysis', // FIXED: Use actual agent analysis endpoint
-      ANALYZE_CMDB: '/agents/discovery/analysis', // FIXED: Use actual agent analysis endpoint  
+      ANALYZE_CMDB: '/agents/discovery/analysis', // FIXED: Use actual agent analysis endpoint
       PROCESS_CMDB: '/discovery/flow/run', // Discovery flow execution endpoint
       CMDB_TEMPLATES: '/discovery/cmdb-templates',
       CMDB_FEEDBACK: '/discovery/cmdb-feedback',
@@ -133,7 +133,7 @@ export const API_CONFIG = {
       DEPENDENCY_FEEDBACK: '/discovery/agents/dependencies/dependency-feedback',
       DEPENDENCIES: '/discovery/dependencies',
       EXPORT_VISUALIZATION: '/discovery/dependencies/export-visualization',
-      // Data cleanup endpoints  
+      // Data cleanup endpoints
       DATA_CLEANUP_ANALYZE: '/discovery/data-cleanup/agent-analyze',
       DATA_CLEANUP_PROCESS: '/discovery/data-cleanup/agent-process',
       // Data import persistence endpoints
@@ -183,7 +183,7 @@ export const API_CONFIG = {
 };
 
 // CC: External API request payload types for integration layer
-export type ExternalApiRequestPayload = 
+export type ExternalApiRequestPayload =
   | Record<string, unknown>
   | FormData
   | string
@@ -193,7 +193,7 @@ export type ExternalApiRequestPayload =
   | undefined;
 
 /**
- * Enhanced API response for external integrations 
+ * Enhanced API response for external integrations
  */
 export type ExternalApiResponse<TData = unknown> = ApiResponse<TData, ApiError>;
 
@@ -237,20 +237,20 @@ function isRateLimited(method: string, normalizedEndpoint: string): boolean {
   const key = `${method}:${normalizedEndpoint}`;
   const config = RATE_LIMITS[key] || RATE_LIMITS.default;
   const now = Date.now();
-  
+
   let entry = rateLimitTracker.get(key);
-  
+
   if (!entry || now > entry.resetTime) {
     // Reset or create new entry
     entry = { count: 0, resetTime: now + config.windowMs };
     rateLimitTracker.set(key, entry);
   }
-  
+
   if (entry.count >= config.maxRequests) {
     console.warn(`Rate limit exceeded for ${key}. Reset at ${new Date(entry.resetTime).toISOString()}`);
     return true;
   }
-  
+
   entry.count++;
   return false;
 }
@@ -258,15 +258,15 @@ function isRateLimited(method: string, normalizedEndpoint: string): boolean {
 function getCachedResponse<T = unknown>(method: string, normalizedEndpoint: string): T | null {
   const key = `${method}:${normalizedEndpoint}`;
   const entry = responseCache.get(key);
-  
+
   if (!entry) return null;
-  
+
   const now = Date.now();
   if (now > entry.expiry) {
     responseCache.delete(key);
     return null;
   }
-  
+
   console.log(`📋 Cache hit for ${key}, expires in ${Math.round((entry.expiry - now) / 1000)}s`);
   return entry.data;
 }
@@ -275,7 +275,7 @@ function setCachedResponse<T = unknown>(method: string, normalizedEndpoint: stri
   const key = `${method}:${normalizedEndpoint}`;
   const config = CACHE_CONFIG[key] || CACHE_CONFIG.default;
   const expiry = Date.now() + config;
-  
+
   responseCache.set(key, { data, timestamp: Date.now(), expiry });
   console.log(`💾 Cached response for ${key}, expires at ${new Date(expiry).toISOString()}`);
 }
@@ -306,33 +306,33 @@ interface ApiRequestInit extends RequestInit {
  * @param includeContext Whether to include the current context in the request headers
  */
 export const apiCall = async (
-  endpoint: string, 
-  options: ApiRequestInit = {}, 
+  endpoint: string,
+  options: ApiRequestInit = {},
   includeContext: boolean = true
 ): Promise<ExternalApiResponse> => {
   const requestId = Math.random().toString(36).substring(2, 8);
   const startTime = performance.now();
-  
+
   // Log API call parameters for debugging
   console.log(`🔍 API Call [${requestId}] - endpoint="${endpoint}", includeContext=${includeContext}`);
-  
+
   // Normalize endpoint - NO double prefixes
   let normalizedEndpoint: string;
   if (endpoint.startsWith('/api/v1') || endpoint.startsWith('/api/v2')) {
     // Endpoint already has version prefix - use as is
     normalizedEndpoint = endpoint;
   } else {
-    // Add V1 prefix for legacy endpoints  
+    // Add V1 prefix for legacy endpoints
     normalizedEndpoint = `/api/v1${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   }
-  
+
   const baseUrl = API_CONFIG.BASE_URL;
   const url = `${baseUrl}${normalizedEndpoint}`;
   const method = (options.method || 'GET').toUpperCase();
-  
+
   // Debug: Log the URL being called
   console.log(`🔗 API Call [${requestId}] - baseUrl="${baseUrl}", url="${url}"`);
-  
+
   // Safety check: If we're in development and the URL contains localhost:8000, force proxy
   if (typeof window !== 'undefined' && window.location.port === '8081' && url.includes('localhost:8000')) {
     console.warn(`⚠️ API Call [${requestId}] - Detected direct backend URL, forcing proxy`);
@@ -341,19 +341,19 @@ export const apiCall = async (
     console.log(`🔧 API Call [${requestId}] - Rewritten URL: ${proxyUrl}`);
     return apiCall(proxyUrl, options, includeContext);
   }
-  
+
   // Create a unique key for this request to prevent duplicates
   // Exclude POST/PUT/PATCH/DELETE requests from deduplication as they can have side effects
   const requestKey = `${method}:${normalizedEndpoint}`;
   const shouldDeduplicate = ['GET', 'HEAD', 'OPTIONS'].includes(method);
-  
+
   // Check cache first for GET requests
   if (shouldDeduplicate) {
     const cachedResponse = getCachedResponse(method, normalizedEndpoint);
     if (cachedResponse !== null) {
       return Promise.resolve(cachedResponse);
     }
-    
+
     // Check rate limiting
     if (isRateLimited(method, normalizedEndpoint)) {
       const rateLimitError = new Error('Rate limit exceeded') as EnhancedApiError;
@@ -364,7 +364,7 @@ export const apiCall = async (
       throw rateLimitError;
     }
   }
-  
+
   // If we already have a request with the same key, return that instead (only for safe methods)
   if (shouldDeduplicate && pendingRequests.has(requestKey)) {
     console.log(`[${requestId}] Request already in flight: ${requestKey}`);
@@ -376,7 +376,7 @@ export const apiCall = async (
   console.log('Method:', method);
   console.log('URL:', url);
   console.log('Current Context:', currentContext);
-  
+
   // Create the request promise and store it
   const requestPromise = (async () => {
     try {
@@ -384,16 +384,16 @@ export const apiCall = async (
       const headers: HeadersInit = {
         'X-Request-ID': requestId,
       };
-      
+
       // Only set default Content-Type for non-FormData requests
       // FormData uploads need the browser to set Content-Type with boundary
       if (!(options.body instanceof FormData)) {
         headers['Content-Type'] = 'application/json';
       }
-      
+
       // Merge user headers last to allow overrides
       Object.assign(headers, options.headers);
-      
+
       // Add auth token if available (don't override if user provided one)
       try {
         const token = localStorage.getItem('auth_token');
@@ -408,12 +408,12 @@ export const apiCall = async (
       } catch (storageError) {
         console.warn(`⚠️ API Call [${requestId}] - Failed to access localStorage for auth token:`, storageError);
       }
-      
+
       // Add context headers if needed
       if (includeContext) {
         try {
           console.log(`🏢 API Call [${requestId}] - Current context:`, currentContext);
-          
+
           // Only add headers if the value exists and is not "null" string
           if (currentContext?.user?.id && currentContext.user.id !== 'null') {
             headers['X-User-ID'] = currentContext.user.id;
@@ -421,21 +421,21 @@ export const apiCall = async (
           } else {
             console.warn(`⚠️ API Call [${requestId}] - No user ID available for X-User-ID header`);
           }
-          
+
           if (currentContext?.client?.id && currentContext.client.id !== 'null') {
             headers['X-Client-Account-ID'] = currentContext.client.id;
             console.log(`🏢 API Call [${requestId}] - Added client ID: ${currentContext.client.id}`);
           } else {
             console.warn(`⚠️ API Call [${requestId}] - No client or client_id available for X-Client-Account-ID header`);
           }
-          
+
           if (currentContext?.engagement?.id && currentContext.engagement.id !== 'null') {
             headers['X-Engagement-ID'] = currentContext.engagement.id;
             console.log(`📋 API Call [${requestId}] - Added engagement ID: ${currentContext.engagement.id}`);
           } else {
             console.warn(`⚠️ API Call [${requestId}] - No engagement or engagement_id available for X-Engagement-ID header`);
           }
-          
+
           if (currentContext?.flow?.id && currentContext.flow.id !== 'null') {
             headers['X-Flow-ID'] = currentContext.flow.id;
             console.log(`🔄 API Call [${requestId}] - Added flow ID: ${currentContext.flow.id}`);
@@ -448,13 +448,13 @@ export const apiCall = async (
       } else {
         console.log(`🚫 API Call [${requestId}] - Context headers skipped (includeContext=false)`);
       }
-      
+
       // Log final headers being sent
       console.log(`🔗 API Call [${requestId}] - Final headers:`, headers);
-      
+
       // Create abort controller for timeout
       const controller = new AbortController();
-      
+
       // Determine timeout based on operation type
       // Agentic activities (classification, analysis, flow execution) have no timeout
       // UI interactions have reasonable timeouts
@@ -465,13 +465,13 @@ export const apiCall = async (
         normalizedEndpoint.includes('/asset_inventory') ||
         normalizedEndpoint.includes('/classification')
       );
-      
+
       const timeoutMs = options.timeout || (
         isAgenticActivity ? null : // No timeout for agentic activities
         normalizedEndpoint.includes('/bulk') ? 180000 : // 3 minutes for bulk operations (UI-based)
         60000 // Default 1 minute for UI interactions
       );
-      
+
       let timeoutId = null;
       if (timeoutMs !== null) {
         timeoutId = setTimeout(() => {
@@ -481,7 +481,7 @@ export const apiCall = async (
       } else {
         console.log(`🔄 API Call [${requestId}] - No timeout set for agentic activity`);
       }
-      
+
       // Make the request with abort signal
       const response = await fetch(url, {
         ...options,
@@ -494,10 +494,10 @@ export const apiCall = async (
           clearTimeout(timeoutId);
         }
       });
-      
+
       const endTime = performance.now();
       const duration = (endTime - startTime).toFixed(2);
-      
+
       // Parse response as JSON if possible
       let data;
       const contentType = response.headers.get('content-type');
@@ -511,12 +511,12 @@ export const apiCall = async (
       } else {
         data = await response.text();
       }
-      
+
       // Log the response
       console.log('Status:', response.status, response.statusText);
       console.log('Duration:', `${duration}ms`);
       console.log('Response:', data);
-      
+
       if (!response.ok) {
         const error = new Error(data?.message || response.statusText || 'Request failed') as EnhancedApiError;
         error.status = response.status;
@@ -526,7 +526,7 @@ export const apiCall = async (
         error.isApiError = true;
         error.code = `HTTP_${response.status}`;
         error.message = data?.message || response.statusText || 'Request failed';
-        
+
         // Special handling for different status codes
         if (response.status === 404) {
           console.warn(`[${requestId}] Resource not found: ${url}`);
@@ -544,7 +544,7 @@ export const apiCall = async (
         } else if (response.status === 401) {
           console.warn(`[${requestId}] Authentication failed: ${url}`);
           error.isAuthError = true;
-          
+
           // Handle token expiration by logging out
           console.warn('🔐 Token expired, logging out user');
           tokenStorage.removeToken();
@@ -553,29 +553,29 @@ export const apiCall = async (
           localStorage.removeItem('auth_engagement');
           localStorage.removeItem('auth_flow');
           sessionStorage.removeItem('auth_initialization_complete');
-          
+
           // Redirect to login
           window.location.href = '/login';
         } else if (response.status === 403) {
           console.warn(`[${requestId}] Authorization failed: ${url}`);
           error.isForbidden = true;
         }
-        
+
         throw error;
       }
-      
+
       // Cache successful GET responses
       if (shouldDeduplicate && response.ok) {
         setCachedResponse(method, normalizedEndpoint, data);
       }
-      
+
       return data;
     } catch (error) {
       const endTime = performance.now();
       const duration = (endTime - startTime).toFixed(2);
-      
+
       let apiError: EnhancedApiError;
-      
+
       // Handle timeout errors specifically
       if (error.name === 'AbortError') {
         apiError = new Error(`Request timed out after ${duration}ms. The server may be processing a large dataset.`) as EnhancedApiError;
@@ -598,11 +598,11 @@ export const apiCall = async (
         apiError.code = 'UNKNOWN_ERROR';
         apiError.message = 'Unknown API error';
       }
-      
+
       apiError.requestId = requestId;
-      
+
       console.error(`API Call [${requestId}] failed after ${duration}ms:`, apiError);
-      
+
       // Re-throw the enhanced error
       throw apiError;
     } finally {
@@ -613,12 +613,12 @@ export const apiCall = async (
       console.groupEnd();
     }
   })();
-  
+
   // Store the promise for deduplication (only for safe methods)
   if (shouldDeduplicate) {
     pendingRequests.set(requestKey, requestPromise);
   }
-  
+
   return requestPromise;
 };
 
@@ -629,13 +629,13 @@ export const apiCall = async (
  * @param includeContext Whether to include the current context in the request headers
  */
 export const apiCallWithFallback = async (
-  endpoint: string, 
-  options: ApiRequestInit = {}, 
+  endpoint: string,
+  options: ApiRequestInit = {},
   includeContext: boolean = true
 ): Promise<{ ok: boolean; status: string; data?: ExternalApiResponse; message?: string; json?: () => Promise<ExternalApiResponse> }> => {
   try {
     const data = await apiCall(endpoint, options, includeContext);
-    
+
     // Return a structured response that mimics fetch Response object
     return {
       ok: true,
@@ -645,13 +645,13 @@ export const apiCallWithFallback = async (
     };
   } catch (error) {
     console.error('API call failed, using fallback behavior:', error);
-    
+
     const apiError = error as EnhancedApiError;
     return {
       ok: false,
       status: 'error',
       message: apiError.message || 'Request failed',
-      json: async () => ({ 
+      json: async () => ({
         error: {
           code: apiError.code || 'UNKNOWN_ERROR',
           message: apiError.message || 'Request failed',

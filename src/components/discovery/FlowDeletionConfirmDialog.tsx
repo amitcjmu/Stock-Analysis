@@ -44,7 +44,7 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
   const getPhaseDisplayName = (phase: string) => {
     const names = {
       'field_mapping': 'Field Mapping',
-      'data_cleansing': 'Data Cleansing', 
+      'data_cleansing': 'Data Cleansing',
       'asset_inventory': 'Asset Inventory',
       'dependency_analysis': 'Dependency Analysis',
       'tech_debt_analysis': 'Tech Debt Analysis'
@@ -56,7 +56,7 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
     const now = new Date();
     const time = new Date(timestamp);
     const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
@@ -77,7 +77,7 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
             <span>Delete Discovery Flow</span>
           </DialogTitle>
           <DialogDescription>
-            This action will permanently delete the discovery flow and all associated data. 
+            This action will permanently delete the discovery flow and all associated data.
             This cannot be undone.
           </DialogDescription>
         </DialogHeader>
@@ -122,13 +122,13 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
               <Database className="h-4 w-4 mr-2" />
               Deletion Impact
             </h3>
-            
+
             {flow.deletion_impact?.data_to_delete ? (
               <>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   {Object.entries(flow.deletion_impact.data_to_delete).map(([key, count]) => {
                     if (typeof count !== 'number' || count === 0) return null;
-                    
+
                     const icons = {
                       workflow_state: FileText,
                       import_sessions: Server,
@@ -137,9 +137,9 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
                       dependencies: Users,
                       shared_memory_refs: Server
                     };
-                    
+
                     const Icon = icons[key as keyof typeof icons] || Database;
-                    
+
                     return (
                       <div key={key} className="flex items-center space-x-2">
                         <Icon className="h-4 w-4 text-red-600" />
@@ -205,8 +205,8 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
           <Alert className="border-red-200 bg-red-50">
             <AlertTriangle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-800">
-              <strong>Warning:</strong> This deletion is permanent and cannot be undone. 
-              All progress, agent insights, and associated data will be lost. 
+              <strong>Warning:</strong> This deletion is permanent and cannot be undone.
+              All progress, agent insights, and associated data will be lost.
               Consider resuming the flow instead if you want to continue the discovery process.
             </AlertDescription>
           </Alert>
@@ -231,4 +231,4 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
       </DialogContent>
     </Dialog>
   );
-}; 
+};

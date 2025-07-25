@@ -1,6 +1,6 @@
 /**
  * Tests for Unified Discovery Flow Hook - Consolidation Implementation
- * 
+ *
  * This test suite validates the unified discovery flow hook functionality,
  * ensuring proper integration with the backend flow system.
  */
@@ -77,7 +77,7 @@ describe('useUnifiedDiscoveryFlow Hook', () => {
   beforeEach(() => {
     mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
     mockFetch.mockClear();
-    
+
     // Default successful API response
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -138,7 +138,7 @@ describe('useUnifiedDiscoveryFlow Hook', () => {
 
     it('should handle error state correctly', async () => {
       const mockError = new Error('Failed to fetch flow state');
-      
+
       mockUseUnifiedDiscoveryFlow.mockReturnValue({
         flowState: null,
         isLoading: false,
@@ -184,7 +184,7 @@ describe('useUnifiedDiscoveryFlow Hook', () => {
       );
 
       const fieldMappingData = result.current.getPhaseData('field_mapping');
-      
+
       expect(mockGetPhaseData).toHaveBeenCalledWith('field_mapping');
       expect(fieldMappingData).toEqual(mockFlowState.field_mappings);
     });
@@ -224,7 +224,7 @@ describe('useUnifiedDiscoveryFlow Hook', () => {
         const phaseOrder = ['field_mapping', 'data_cleansing', 'asset_inventory', 'dependency_analysis', 'tech_debt_analysis'];
         const currentIndex = phaseOrder.indexOf(phase);
         if (currentIndex <= 0) return true;
-        
+
         const previousPhase = phaseOrder[currentIndex - 1];
         return mockFlowState.phase_completion[previousPhase as keyof typeof mockFlowState.phase_completion];
       });
@@ -459,4 +459,4 @@ describe('useUnifiedDiscoveryFlow Hook', () => {
       expect(result.current.flowState?.engagement_id).toBe('different-engagement-456');
     });
   });
-}); 
+});

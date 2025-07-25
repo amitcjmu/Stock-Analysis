@@ -1,6 +1,6 @@
 /**
  * Avatar Component Types
- * 
+ *
  * Avatar component interfaces and related types.
  */
 

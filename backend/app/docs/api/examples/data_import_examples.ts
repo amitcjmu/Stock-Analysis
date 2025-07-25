@@ -1,6 +1,6 @@
 /**
  * Data Import API Examples - TypeScript/JavaScript Client Implementation
- * 
+ *
  * This file provides complete working examples for all data import API endpoints.
  */
 
@@ -176,7 +176,7 @@ class DataImportClient {
 
     while (Date.now() - startTime < timeout) {
       const status = await this.getImportStatus(importId);
-      
+
       if (status.status === 'completed' || status.status === 'failed') {
         return status;
       }
@@ -236,11 +236,11 @@ class DataImportClient {
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i].split(',').map(v => v.trim());
       const row: Record<string, unknown> = {};
-      
+
       headers.forEach((header, index) => {
         row[header] = values[index] || '';
       });
-      
+
       data.push(row);
     }
 
@@ -295,7 +295,7 @@ async function demonstrateDataImportAPI() {
       'servers_inventory.csv',
       'servers'
     );
-    
+
     console.log('Import successful!');
     console.log(`Import ID: ${result.data_import_id}`);
     console.log(`Flow ID: ${result.flow_id}`);
@@ -364,17 +364,17 @@ function DataImportComponent() {
     try {
       // Import the file
       const result = await client.importFile(file, 'servers');
-      
+
       // Monitor progress
       const pollProgress = setInterval(async () => {
         try {
           const status = await client.getImportStatus(result.data_import_id);
           setProgress(status.progress || 0);
-          
+
           if (status.status === 'completed' || status.status === 'failed') {
             clearInterval(pollProgress);
             setImporting(false);
-            
+
             if (status.status === 'failed') {
               setError('Import failed');
             }
@@ -400,14 +400,14 @@ function DataImportComponent() {
         onChange={handleFileUpload}
         disabled={importing}
       />
-      
+
       {importing && (
         <div>
           <progress value={progress} max={100} />
           <span>{progress}%</span>
         </div>
       )}
-      
+
       {error && <div className="error">{error}</div>}
     </div>
   );
@@ -480,7 +480,7 @@ function DataImportComponent() {
     while (true) {
       const status = await client.getImportStatus(result.data_import_id);
       const progress = status.progress || 0;
-      
+
       if (progress !== lastProgress) {
         process.stdout.write(`\r${progressBar(progress)} - ${status.current_phase || 'Processing'}`);
         lastProgress = progress;

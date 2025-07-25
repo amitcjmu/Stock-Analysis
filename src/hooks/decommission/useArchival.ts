@@ -42,7 +42,7 @@ export interface ArchivalData {
 
 export const useArchival = () => {
   const { getAuthHeaders } = useAuth();
-  
+
   return useQuery<ArchivalData>({
     queryKey: ['archival'],
     queryFn: async () => {
@@ -89,4 +89,4 @@ export const useVerifyArchival = () => {
       queryClient.invalidateQueries({ queryKey: ['archival'] });
     },
   });
-}; 
+};

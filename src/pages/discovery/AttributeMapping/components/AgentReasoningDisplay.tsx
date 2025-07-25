@@ -1,12 +1,12 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect, useMemo } from 'react'
-import { 
-  Brain, 
-  Zap, 
-  TrendingUp, 
-  AlertCircle, 
-  CheckCircle, 
+import {
+  Brain,
+  Zap,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle,
   RefreshCw,
   Wifi,
   WifiOff,
@@ -66,7 +66,7 @@ export const AgentReasoningDisplay: React.FC<AgentReasoningDisplayProps> = ({
         const confidence = mapping.confidence || 0;
         const isHighConfidence = confidence > 0.8;
         const isMediumConfidence = confidence > 0.6;
-        
+
         // Generate realistic reasoning based on confidence and field names
         let reasoning = '';
         let factors: string[] = [];
@@ -121,7 +121,7 @@ export const AgentReasoningDisplay: React.FC<AgentReasoningDisplayProps> = ({
           reasoning,
           factors,
           timestamp: new Date(),
-          status: mapping.status === 'approved' ? 'approved' : 
+          status: mapping.status === 'approved' ? 'approved' :
                   mapping.status === 'rejected' ? 'rejected' : 'suggested',
           agentType
         };
@@ -312,7 +312,7 @@ export const AgentReasoningDisplay: React.FC<AgentReasoningDisplayProps> = ({
                       <div className="bg-gray-50 p-3 rounded-md mb-3">
                         <h5 className="text-sm font-medium text-gray-700 mb-2">Agent Reasoning</h5>
                         <p className="text-sm text-gray-600 mb-3">{decision.reasoning}</p>
-                        
+
                         <h6 className="text-xs font-medium text-gray-700 mb-1">Key Factors</h6>
                         <ul className="text-xs text-gray-600 space-y-1">
                           {decision.factors.map((factor, idx) => (

@@ -52,7 +52,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
 
         const clientId = sessionStorage.getItem(CLIENT_KEY);
-        
+
         if (clientId) {
           // Try to get the specific client
           const response = await apiCall(`/api/v1/context-establishment/clients/${clientId}`);
@@ -74,7 +74,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         } else {
           sessionStorage.removeItem(CLIENT_KEY);
           setCurrentClient(null);
-          
+
           // If no default client found, redirect to appropriate page
           if (user?.role === 'admin') {
             navigate('/admin/dashboard');
@@ -87,7 +87,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         sessionStorage.removeItem(CLIENT_KEY);
         setCurrentClient(null);
         setError(err instanceof Error ? err : new Error('Client initialization failed'));
-        
+
         // On error, redirect to appropriate page
         if (user?.role === 'admin') {
           navigate('/admin/dashboard');
@@ -110,10 +110,10 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           // We'll set the first available client as default instead
 
           // Also fetch all available clients
-          const response = await apiCall('/api/v1/context-establishment/clients', {}, false); // Don't include context headers when fetching clients 
+          const response = await apiCall('/api/v1/context-establishment/clients', {}, false); // Don't include context headers when fetching clients
           if (response.clients) {
             setAvailableClients(response.clients);
-            
+
             // If we didn't get a default client, use stored or first available
             if (!currentClient) {
               const storedClientId = sessionStorage.getItem(CLIENT_KEY);
@@ -258,4 +258,4 @@ export const withClient = <P extends object>(
 
     return <WrappedComponent {...props} />;
   };
-}; 
+};

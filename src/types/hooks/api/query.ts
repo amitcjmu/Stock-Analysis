@@ -1,6 +1,6 @@
 /**
  * Query Hook Types
- * 
+ *
  * Hook types for data fetching operations including standard queries
  * and infinite/paginated queries.
  */

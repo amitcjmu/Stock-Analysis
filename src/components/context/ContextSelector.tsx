@@ -4,12 +4,12 @@ import { useEffect } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { ChevronDown, Building2, Calendar, Database, Eye, Layers, RefreshCw, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -54,7 +54,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
   const { currentSession, setCurrentSession, viewMode, setViewMode } = useSession();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [isExpanded, setIsExpanded] = useState(!compact);
 
   // Staging selections (local state for preview)
@@ -152,18 +152,18 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
         console.log('🔄 Switching client first:', stagedClient.id);
         await auth.switchClient(stagedClient.id, stagedClient);
         console.log('✅ Client switch completed');
-        
+
         // Small delay to ensure context state is updated
         await new Promise(resolve => setTimeout(resolve, 100));
       }
-      
+
       // Then switch engagement with the updated client context
       if (stagedEngagement && stagedEngagement.id !== auth.engagement?.id) {
         console.log('🔄 Switching engagement:', stagedEngagement.id);
         await auth.switchEngagement(stagedEngagement.id, stagedEngagement);
         console.log('✅ Engagement switch completed');
       }
-      
+
       // Also update local context providers for compatibility
       if (stagedClient) {
         setCurrentClient(stagedClient);
@@ -437,7 +437,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
           <div className="text-sm text-gray-500">
             {hasChanges() ? "You have unsaved changes" : "No changes"}
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
@@ -493,4 +493,4 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
   );
 };
 
-export default ContextSelector; 
+export default ContextSelector;

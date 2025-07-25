@@ -1,7 +1,7 @@
 # Legacy Code Archive
 
-**Archived on:** 2025-01-27  
-**Phase:** Backend Session-to-Flow Refactor Phase 5  
+**Archived on:** 2025-01-27
+**Phase:** Backend Session-to-Flow Refactor Phase 5
 **Reason:** Removing session references and transitioning to flow-based architecture
 
 ## What was archived

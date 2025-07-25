@@ -1,7 +1,7 @@
 /**
  * Demo Context Service
  * Dynamically fetches demo IDs from the backend instead of using hardcoded values
- * 
+ *
  * This service ensures the frontend always uses the correct demo IDs that exist in the database,
  * preventing foreign key errors when database is rebuilt or deployed to new environments.
  */
@@ -78,7 +78,7 @@ class DemoContextService {
 
     // Start initialization
     this.initializationPromise = this.fetchDemoContext();
-    
+
     try {
       this.demoContext = await this.initializationPromise;
       this.initialized = true;
@@ -102,38 +102,38 @@ class DemoContextService {
       }
 
       console.log('🔄 Fetching demo context from backend...');
-      
+
       // Try to fetch user's available contexts
       const clientsResponse = await apiCall('/api/v1/context-establishment/clients', {}, false);
-      
+
       if (clientsResponse && Array.isArray(clientsResponse)) {
         // Check if user has access to demo client
-        const demoClient = (clientsResponse as ExternalClientData[]).find((client: ExternalClientData) => 
+        const demoClient = (clientsResponse as ExternalClientData[]).find((client: ExternalClientData) =>
           client.id && client.id.includes('def0-def0-def0')
         );
-        
+
         if (demoClient) {
           // User has access to demo data
           console.log('✅ User has access to demo client:', demoClient.name);
-          
+
           // Fetch engagements for demo client
           const engagementsResponse = await apiCall(
             `/api/v1/context-establishment/engagements?client_id=${demoClient.id}`,
             {},
             false
           );
-          
+
           if (engagementsResponse && Array.isArray(engagementsResponse)) {
             const demoEngagement = (engagementsResponse as ExternalEngagementData[]).find((eng: ExternalEngagementData) =>
               eng.id && eng.id.includes('def0-def0-def0')
             );
-            
+
             if (demoEngagement) {
               console.log('✅ Demo context found:', {
                 client: demoClient.name,
                 engagement: demoEngagement.name
               });
-              
+
               return {
                 client: {
                   id: demoClient.id,
@@ -151,9 +151,9 @@ class DemoContextService {
           console.log('ℹ️ User does not have access to demo data');
         }
       }
-      
+
       return null;
-      
+
     } catch (error) {
       const apiError = error as ApiError;
       if (apiError.status === 401) {

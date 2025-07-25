@@ -1,6 +1,6 @@
 /**
  * Utility Functions
- * 
+ *
  * Helper functions for styling and status management.
  */
 

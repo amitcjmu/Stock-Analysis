@@ -101,7 +101,7 @@ class DataCleansingCrew:
         data_quality_manager = Agent(
             role="Data Quality Specialist",
             goal="Process and validate data quality efficiently without delegation",
-            backstory="""You are a data quality expert who processes data directly and efficiently. 
+            backstory="""You are a data quality expert who processes data directly and efficiently.
             You provide comprehensive data cleansing results without requiring additional agents or conversations.""",
             llm=self.llm_model,
             memory=True,  # RE-ENABLED MEMORY - APIStatusError was from auth issues, not memory
@@ -125,17 +125,17 @@ class DataCleansingCrew:
         # 🚀 SINGLE TASK - Direct data processing without delegation
         data_processing_task = Task(
             description=f"""Process and validate data quality directly for {len(cleaned_data)} records.
-            
+
             Data sample: {data_sample}
             Field mappings: {mapped_fields}
             Confidence scores: {field_mappings.get('confidence_scores', {})}
-            
+
             Complete the following in a single response:
             1. Validate data completeness and format consistency
             2. Standardize field values and formats
             3. Generate quality metrics and scores
             4. Provide final cleansed dataset
-            
+
             Provide results in JSON format with:
             - validation_results: quality scores and issues
             - standardized_data: processed records
@@ -230,18 +230,18 @@ def create_data_cleansing_crew(
         agentic_enrichment_agent = Agent(
             role="Agentic Asset Intelligence Orchestrator",
             goal="Enrich assets with comprehensive business value, risk, and modernization analysis using agent intelligence",
-            backstory="""You are an intelligent asset analysis orchestrator who coordinates 
-            specialized agents to provide comprehensive asset enrichment. Instead of basic data 
-            cleansing, you orchestrate business value analysis, risk assessment, and modernization 
+            backstory="""You are an intelligent asset analysis orchestrator who coordinates
+            specialized agents to provide comprehensive asset enrichment. Instead of basic data
+            cleansing, you orchestrate business value analysis, risk assessment, and modernization
             evaluation to transform raw asset data into intelligent insights.
-            
+
             Your process:
             1. Coordinate business value assessment for each asset
             2. Orchestrate risk analysis including security and operational factors
             3. Direct modernization potential analysis for cloud readiness
             4. Synthesize agent insights into comprehensive asset profiles
             5. Learn from patterns and improve future analysis
-            
+
             You work with real CrewAI agents that use memory and pattern discovery
             to continuously improve their analysis capabilities.""",
             verbose=True,  # Enable detailed logging for intelligence tracking
@@ -255,39 +255,39 @@ def create_data_cleansing_crew(
         enrichment_task = Task(
             description=f"""
             Orchestrate comprehensive agentic asset enrichment for {len(state.raw_data)} assets.
-            
+
             AGENTIC INTELLIGENCE PROCESS:
-            
+
             1. ASSET PREPARATION:
                Transform raw data into structured asset profiles suitable for agent analysis.
                Clean and standardize basic fields (name, type, technology, environment).
-               
+
             2. AGENTIC ENRICHMENT COORDINATION:
                Coordinate three specialized intelligence agents for each asset:
                - BusinessValueAgent: Analyze business criticality and value scoring
-               - RiskAssessmentAgent: Evaluate security, operational, and compliance risks  
+               - RiskAssessmentAgent: Evaluate security, operational, and compliance risks
                - ModernizationAgent: Assess cloud readiness and modernization potential
-               
+
             3. INTELLIGENCE SYNTHESIS:
                Combine agent insights into comprehensive asset intelligence profiles:
                - Business value scores (1-10) with detailed reasoning
                - Risk assessments (Low/Medium/High/Critical) with threat analysis
                - Cloud readiness scores (0-100) with modernization strategies
                - Pattern-based insights from agent memory and learning
-               
+
             4. QUALITY METRICS:
                Generate intelligent quality metrics based on:
                - Completeness of agent analysis across all dimensions
                - Confidence levels from individual agent assessments
                - Pattern discovery and learning progress
                - Overall enrichment success rate
-               
+
             EXPECTED OUTCOMES:
             - {len(state.raw_data)} assets enriched with business intelligence
             - Business value, risk, and modernization assessments for each asset
             - Pattern discovery and memory learning progress
             - Comprehensive intelligence summary for migration planning
-            
+
             Focus on delivering actionable intelligence rather than basic data validation.
             Ensure all assets receive comprehensive agentic analysis.
             """,
@@ -296,7 +296,7 @@ def create_data_cleansing_crew(
             Comprehensive Agentic Asset Enrichment Report:
             - Total assets processed with agentic intelligence
             - Business value distribution (high/medium/low value assets)
-            - Risk assessment summary (critical/high/medium/low risk assets)  
+            - Risk assessment summary (critical/high/medium/low risk assets)
             - Modernization readiness overview (cloud-ready vs. legacy assets)
             - Pattern discovery results (new patterns learned)
             - Overall intelligence quality score (0-100)

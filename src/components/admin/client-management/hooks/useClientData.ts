@@ -15,7 +15,7 @@ export const useClientData = ({ searchTerm = '', filterIndustry = 'all' }: UseCl
   const fetchClients = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       const params = new URLSearchParams();
       if (searchTerm) params.append('account_name', searchTerm);
       if (filterIndustry && filterIndustry !== 'all') params.append('industry', filterIndustry);
@@ -26,7 +26,7 @@ export const useClientData = ({ searchTerm = '', filterIndustry = 'all' }: UseCl
       const url = `/api/v1/admin/clients/${queryString ? `?${queryString}` : ''}`;
 
       const result = await apiCall(url);
-      
+
       if (result && result.items) {
         setClients(result.items || []);
       } else {

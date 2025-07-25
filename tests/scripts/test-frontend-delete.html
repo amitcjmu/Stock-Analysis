@@ -51,26 +51,26 @@
 </head>
 <body>
     <h1>Test Flow Deletion</h1>
-    
+
     <div>
         <h2>1. Login</h2>
         <button id="loginBtn" class="button" style="background-color: #007bff;">Login as demo@demo-corp.com</button>
         <div id="loginStatus"></div>
     </div>
-    
+
     <div>
         <h2>2. List Flows</h2>
         <button id="listFlowsBtn" class="button" style="background-color: #28a745;">List Discovery Flows</button>
         <div id="flowsList"></div>
     </div>
-    
+
     <div>
         <h2>3. Delete Flow</h2>
         <input type="text" id="flowIdInput" placeholder="Enter flow ID to delete" style="width: 300px; padding: 5px;">
         <button id="deleteFlowBtn" class="button">Delete Flow</button>
         <div id="deleteStatus"></div>
     </div>
-    
+
     <div>
         <h2>Console Log</h2>
         <div id="consoleLog" class="log"></div>
@@ -81,7 +81,7 @@
         const CLIENT_ID = '11111111-1111-1111-1111-111111111111';
         const ENGAGEMENT_ID = '22222222-2222-2222-2222-222222222222';
         const API_URL = 'http://localhost:8000';
-        
+
         function log(message, isError = false) {
             const logDiv = document.getElementById('consoleLog');
             const timestamp = new Date().toLocaleTimeString();
@@ -89,7 +89,7 @@
             logDiv.innerHTML += `<div style="${color}">[${timestamp}] ${message}</div>`;
             logDiv.scrollTop = logDiv.scrollHeight;
         }
-        
+
         // Login
         document.getElementById('loginBtn').addEventListener('click', async () => {
             try {
@@ -104,7 +104,7 @@
                         password: 'Demo123!'
                     })
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     authToken = data.access_token || data.token;
@@ -119,14 +119,14 @@
                 log(`Login error: ${error.message}`, true);
             }
         });
-        
+
         // List flows
         document.getElementById('listFlowsBtn').addEventListener('click', async () => {
             if (!authToken) {
                 alert('Please login first');
                 return;
             }
-            
+
             try {
                 log('Fetching flows...');
                 const response = await fetch(`${API_URL}/api/v1/flows/?flowType=discovery`, {
@@ -136,11 +136,11 @@
                         'X-Engagement-ID': ENGAGEMENT_ID
                     }
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     const flows = data.flows || [];
-                    
+
                     let html = `<h3>Found ${flows.length} flows:</h3>`;
                     flows.forEach(flow => {
                         html += `
@@ -154,7 +154,7 @@
                             </div>
                         `;
                     });
-                    
+
                     document.getElementById('flowsList').innerHTML = html;
                     log(`Listed ${flows.length} flows`);
                 } else {
@@ -165,20 +165,20 @@
                 log(`List flows error: ${error.message}`, true);
             }
         });
-        
+
         // Delete flow
         document.getElementById('deleteFlowBtn').addEventListener('click', async () => {
             if (!authToken) {
                 alert('Please login first');
                 return;
             }
-            
+
             const flowId = document.getElementById('flowIdInput').value;
             if (!flowId) {
                 alert('Please enter a flow ID');
                 return;
             }
-            
+
             try {
                 log(`Attempting to delete flow: ${flowId}`);
                 const response = await fetch(`${API_URL}/api/v1/master-flows/${flowId}`, {
@@ -189,12 +189,12 @@
                         'X-Engagement-ID': ENGAGEMENT_ID
                     }
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     document.getElementById('deleteStatus').innerHTML = '<div class="success">✅ Flow deleted successfully</div>';
                     log(`Delete successful: ${JSON.stringify(data)}`);
-                    
+
                     // Refresh the flows list
                     setTimeout(() => {
                         document.getElementById('listFlowsBtn').click();

@@ -1,6 +1,6 @@
 /**
  * Bulk Operations API Types
- * 
+ *
  * Types for bulk operations, batch processing, and bulk responses.
  */
 

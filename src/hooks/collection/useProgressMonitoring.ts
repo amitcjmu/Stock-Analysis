@@ -1,6 +1,6 @@
 /**
  * Custom hook for monitoring collection progress
- * 
+ *
  * Extracted from Progress.tsx to provide reusable progress monitoring logic
  * for collection workflows and flow management.
  */
@@ -62,7 +62,7 @@ export interface ProgressMonitoringActions {
  */
 export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => {
   const baseProgress = flow.progress;
-  
+
   switch (flow.type) {
     case 'adaptive':
       return [
@@ -109,7 +109,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           required: true
         }
       ];
-    
+
     case 'bulk':
       return [
         {
@@ -146,7 +146,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           required: true
         }
       ];
-    
+
     case 'integration':
       return [
         {
@@ -183,7 +183,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           required: true
         }
       ];
-    
+
     default:
       return [];
   }
@@ -262,7 +262,7 @@ export const generateMockFlows = (includeSpecificFlow?: string): CollectionFlow[
 export const generateMockMetrics = (flows: CollectionFlow[]): CollectionMetrics => {
   const totalApplications = flows.reduce((sum, flow) => sum + flow.applicationCount, 0);
   const completedApplications = flows.reduce((sum, flow) => sum + flow.completedApplications, 0);
-  
+
   return {
     totalFlows: flows.length,
     activeFlows: flows.filter(f => f.status === 'running').length,
@@ -280,7 +280,7 @@ export const useProgressMonitoring = (
 ): ProgressMonitoringState & ProgressMonitoringActions & { autoRefresh: boolean } => {
   const { flowId, autoRefresh: initialAutoRefresh = true, refreshInterval = 3000 } = options;
   const { toast } = useToast();
-  
+
   const [state, setState] = useState<ProgressMonitoringState>({
     flows: [],
     metrics: null,
@@ -288,7 +288,7 @@ export const useProgressMonitoring = (
     isLoading: true,
     error: null
   });
-  
+
   const [autoRefresh, setAutoRefresh] = useState(initialAutoRefresh);
 
   /**
@@ -296,17 +296,17 @@ export const useProgressMonitoring = (
    */
   const loadData = async (): Promise<void> => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
-    
+
     try {
       // If a specific flow ID is provided, fetch that flow's details
       if (flowId) {
         const flowDetails = await collectionFlowApi.getFlowDetails(flowId);
-        
+
         // Transform API response to match our CollectionFlow interface
         const flow: CollectionFlow = {
           id: flowDetails.id,
           name: `Collection Flow - ${flowDetails.automation_tier}`,
-          type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' : 
+          type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' :
                 flowDetails.automation_tier === 'tier_2' ? 'bulk' : 'integration',
           status: flowDetails.status === 'initialized' || flowDetails.status === 'running' ? 'running' :
                   flowDetails.status === 'completed' ? 'completed' :
@@ -317,7 +317,7 @@ export const useProgressMonitoring = (
           applicationCount: flowDetails.collection_metrics?.platforms_detected || 0,
           completedApplications: flowDetails.collection_metrics?.data_collected || 0
         };
-        
+
         // Create metrics from single flow
         const metrics: CollectionMetrics = {
           totalFlows: 1,
@@ -329,7 +329,7 @@ export const useProgressMonitoring = (
           averageCompletionTime: 0,
           dataQualityScore: flowDetails.collection_metrics?.data_collected || 0
         };
-        
+
         setState(prev => ({
           ...prev,
           flows: [flow],
@@ -340,12 +340,12 @@ export const useProgressMonitoring = (
       } else {
         // Load all incomplete flows if no specific flow ID
         const incompleteFlows = await collectionFlowApi.getIncompleteFlows();
-        
+
         // Transform flows
         const flows: CollectionFlow[] = incompleteFlows.map(flowDetails => ({
           id: flowDetails.id,
           name: `Collection Flow - ${flowDetails.automation_tier}`,
-          type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' : 
+          type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' :
                 flowDetails.automation_tier === 'tier_2' ? 'bulk' : 'integration',
           status: flowDetails.status === 'initialized' || flowDetails.status === 'running' ? 'running' :
                   flowDetails.status === 'completed' ? 'completed' :
@@ -356,7 +356,7 @@ export const useProgressMonitoring = (
           applicationCount: flowDetails.collection_metrics?.platforms_detected || 10,
           completedApplications: flowDetails.collection_metrics?.data_collected || 0
         }));
-        
+
         // Calculate metrics
         const metrics: CollectionMetrics = {
           totalFlows: flows.length,
@@ -368,7 +368,7 @@ export const useProgressMonitoring = (
           averageCompletionTime: 0,
           dataQualityScore: 0
         };
-        
+
         setState(prev => ({
           ...prev,
           flows,
@@ -380,7 +380,7 @@ export const useProgressMonitoring = (
     } catch (error: unknown) {
       console.error('Failed to load collection flow data:', error);
       setState(prev => ({ ...prev, error, isLoading: false }));
-      
+
       // Show error toast
       toast({
         title: 'Failed to load data',
@@ -419,7 +419,7 @@ export const useProgressMonitoring = (
         // Use update endpoint to pause
         await collectionFlowApi.updateFlow(flowId, { action: 'pause' });
       }
-      
+
       // Reload data to get updated status
       await loadData();
 
@@ -450,8 +450,8 @@ export const useProgressMonitoring = (
       }))
     };
 
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { 
-      type: 'application/json' 
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], {
+      type: 'application/json'
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -494,7 +494,7 @@ export const useProgressMonitoring = (
     // State
     ...state,
     autoRefresh,
-    
+
     // Actions
     selectFlow,
     handleFlowAction,

@@ -37,4 +37,4 @@ const DataCleansingNavigationButtons: React.FC<DataCleansingNavigationButtonsPro
   );
 };
 
-export default DataCleansingNavigationButtons; 
+export default DataCleansingNavigationButtons;

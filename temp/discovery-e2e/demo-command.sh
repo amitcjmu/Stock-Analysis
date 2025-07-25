@@ -67,7 +67,7 @@ Stack trace:
   File '/app/services/database.py', line 45, in connect
   sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) could not connect to server
   Connection timeout occurred while trying to connect to PostgreSQL database
-  
+
 Context: User authentication flow
 Time: 2025-01-15 16:30:00
 Environment: Production"

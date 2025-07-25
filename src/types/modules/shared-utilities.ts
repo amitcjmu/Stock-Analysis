@@ -1,8 +1,8 @@
 /**
  * Shared Utilities Module
- * 
+ *
  * Re-exports all shared utility types from modular files for backward compatibility.
- * 
+ *
  * This file has been modularized into focused type definition files:
  * - base-types.ts: Common base types and configuration options
  * - auth-types.ts: Authentication, authorization, multi-tenancy, and session management

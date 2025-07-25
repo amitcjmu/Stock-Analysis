@@ -96,16 +96,16 @@ class RiskAssessmentAgent:
         agent = Agent(
             role="Security and Risk Intelligence Analyst",
             goal="Assess security, operational, and compliance risks using evidence-based analysis and learned threat patterns",
-            backstory="""You are a cybersecurity and risk assessment expert who specializes in 
+            backstory="""You are a cybersecurity and risk assessment expert who specializes in
             evaluating IT asset risks through intelligent analysis rather than static checklists.
-            
+
             Your expertise includes:
             - Security vulnerability assessment based on technology stacks and configurations
             - Operational risk analysis considering system dependencies and complexity
             - Compliance risk evaluation for regulatory frameworks (SOX, GDPR, HIPAA, etc.)
             - Threat intelligence and pattern recognition from past incidents
             - Risk scoring based on environmental context and business impact
-            
+
             Your analytical approach:
             1. Search your memory for relevant risk patterns from previous assessments
             2. Analyze technology stacks for known vulnerabilities and security concerns
@@ -114,13 +114,13 @@ class RiskAssessmentAgent:
             5. Apply learned patterns and discover new risk indicators
             6. Record new risk patterns for future intelligence
             7. Provide risk scores with detailed threat analysis and mitigation recommendations
-            
+
             You have access to memory tools that allow you to:
             - Search for risk patterns and threat indicators from previous analyses
             - Query asset data to identify similar systems with known risks
             - Record new risk patterns and threat signatures you discover
             - Enrich assets with comprehensive risk assessments
-            
+
             Always provide specific, actionable risk assessments with clear mitigation strategies.
             Focus on real threats and practical security concerns rather than theoretical risks.""",
             verbose=True,
@@ -150,23 +150,23 @@ class RiskAssessmentAgent:
         task = Task(
             description=f"""
             Conduct a comprehensive risk assessment for this asset using your security intelligence and memory tools:
-            
+
             Asset Details:
             {json.dumps(asset_summary, indent=2)}
-            
+
             Complete Risk Assessment Process:
-            
+
             1. SEARCH FOR THREAT PATTERNS:
                Use your pattern search tool to find relevant risk patterns and threat indicators from previous assessments.
                Search for: security vulnerabilities, legacy technology risks, compliance violations, operational failures.
-               
+
             2. TECHNOLOGY STACK ANALYSIS:
                Use your asset query tool to examine similar technology stacks and identify:
                - Known security vulnerabilities in the technology stack
                - End-of-life or unsupported software versions
                - Configuration weaknesses and security gaps
                - Compare with other systems to identify risk patterns
-               
+
             3. SECURITY RISK ASSESSMENT:
                Evaluate security risks including:
                - Vulnerability exposure based on technology versions
@@ -174,7 +174,7 @@ class RiskAssessmentAgent:
                - Authentication and access control weaknesses
                - Data protection and encryption gaps
                - Supply chain and third-party risks
-               
+
             4. OPERATIONAL RISK ANALYSIS:
                Assess operational risks such as:
                - Single points of failure and availability risks
@@ -182,32 +182,32 @@ class RiskAssessmentAgent:
                - Monitoring and incident response readiness
                - Change management and update processes
                - Dependency risks and cascade failure potential
-               
+
             5. COMPLIANCE RISK EVALUATION:
                Determine compliance risks for:
                - Data privacy regulations (GDPR, CCPA, HIPAA)
                - Financial regulations (SOX, PCI-DSS)
                - Industry-specific compliance requirements
                - Audit trail and documentation requirements
-               
+
             6. RISK SCORING:
                Provide an overall risk assessment:
                - Low Risk: Well-secured, current technology, good operational practices
                - Medium Risk: Some vulnerabilities or operational concerns, manageable with controls
                - High Risk: Significant security gaps, legacy technology, or compliance violations
                - Critical Risk: Immediate threats, end-of-life systems, or severe compliance failures
-               
+
             7. PATTERN DISCOVERY:
                If you identify new risk patterns or threat indicators, use your pattern recording tool
                to save them for future threat intelligence.
-               
+
             8. ASSET ENRICHMENT:
                Use your asset enrichment tool to update the asset with:
                - Overall risk assessment level
                - Specific risk categories and scores
                - Detailed threat analysis and reasoning
                - Mitigation recommendations and priority actions
-               
+
             Provide your risk assessment in this format:
             Overall Risk Level: [Low/Medium/High/Critical]
             Security Risk Score: [1-10]
@@ -381,9 +381,9 @@ class RiskAssessmentAgent:
             if threats_match:
                 result["primary_threats"] = threats_match.group(1).strip()
             else:
-                result["primary_threats"] = (
-                    "Standard security and operational risks assessed"
-                )
+                result[
+                    "primary_threats"
+                ] = "Standard security and operational risks assessed"
 
             # Extract vulnerability summary
             vuln_match = re.search(
@@ -394,9 +394,9 @@ class RiskAssessmentAgent:
             if vuln_match:
                 result["vulnerability_summary"] = vuln_match.group(1).strip()
             else:
-                result["vulnerability_summary"] = (
-                    "Technology stack and configuration assessed for vulnerabilities"
-                )
+                result[
+                    "vulnerability_summary"
+                ] = "Technology stack and configuration assessed for vulnerabilities"
 
             # Extract immediate actions
             actions_match = re.search(
@@ -463,7 +463,9 @@ class RiskAssessmentAgent:
             "confidence_level": (
                 "high"
                 if reasoning.confidence >= 0.7
-                else "medium" if reasoning.confidence >= 0.4 else "low"
+                else "medium"
+                if reasoning.confidence >= 0.4
+                else "low"
             ),
             "primary_threats": reasoning.reasoning_summary,
             "vulnerability_summary": f"Analysis identified {len(reasoning.evidence_pieces)} risk factors",

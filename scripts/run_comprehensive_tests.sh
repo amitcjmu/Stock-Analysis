@@ -26,20 +26,20 @@ check_service_health() {
     local url=$2
     local max_attempts=30
     local attempt=1
-    
+
     echo -e "${BLUE}🔍 Checking $service_name health at $url${NC}"
-    
+
     while [ $attempt -le $max_attempts ]; do
         if curl -s -f "$url/health" > /dev/null 2>&1 || curl -s -f "$url" > /dev/null 2>&1; then
             echo -e "${GREEN}✅ $service_name is healthy${NC}"
             return 0
         fi
-        
+
         echo -e "${YELLOW}⏳ Waiting for $service_name... (attempt $attempt/$max_attempts)${NC}"
         sleep 2
         ((attempt++))
     done
-    
+
     echo -e "${RED}❌ $service_name health check failed after $max_attempts attempts${NC}"
     return 1
 }
@@ -48,9 +48,9 @@ check_service_health() {
 run_backend_tests() {
     echo -e "\n${BLUE}🧪 Running Backend Integration Tests${NC}"
     echo "-----------------------------------"
-    
+
     cd tests/backend/integration
-    
+
     # Real agent processing tests
     echo -e "${YELLOW}🤖 Testing real CrewAI agent processing...${NC}"
     if python -m pytest test_real_agent_processing.py -v -m real_agents --timeout=$TEST_TIMEOUT; then
@@ -59,7 +59,7 @@ run_backend_tests() {
         echo -e "${RED}❌ Real agent processing tests failed${NC}"
         return 1
     fi
-    
+
     # Cross-flow persistence tests
     echo -e "${YELLOW}🔄 Testing cross-flow data persistence...${NC}"
     if python -m pytest test_cross_flow_persistence.py -v -m cross_flow --timeout=$TEST_TIMEOUT; then
@@ -68,7 +68,7 @@ run_backend_tests() {
         echo -e "${RED}❌ Cross-flow persistence tests failed${NC}"
         return 1
     fi
-    
+
     cd - > /dev/null
 }
 
@@ -76,7 +76,7 @@ run_backend_tests() {
 run_e2e_tests() {
     echo -e "\n${BLUE}🎭 Running End-to-End Tests${NC}"
     echo "-------------------------"
-    
+
     # Complete user journey test
     echo -e "${YELLOW}🚶 Testing complete user journey...${NC}"
     if npx playwright test tests/e2e/complete-user-journey.spec.ts --timeout=$((TEST_TIMEOUT * 1000)); then
@@ -85,7 +85,7 @@ run_e2e_tests() {
         echo -e "${RED}❌ Complete user journey tests failed${NC}"
         return 1
     fi
-    
+
     # Existing E2E tests for regression
     echo -e "${YELLOW}🔄 Running existing E2E regression tests...${NC}"
     if npx playwright test tests/e2e/discovery-flow.spec.ts --timeout=120000; then
@@ -100,9 +100,9 @@ run_e2e_tests() {
 run_performance_tests() {
     echo -e "\n${BLUE}⚡ Running Performance Tests${NC}"
     echo "-------------------------"
-    
+
     cd tests/backend/integration
-    
+
     # Performance markers
     echo -e "${YELLOW}📊 Testing system performance...${NC}"
     if python -m pytest test_real_agent_processing.py::TestRealAgentProcessing::test_agent_processing_performance -v --timeout=$TEST_TIMEOUT; then
@@ -111,7 +111,7 @@ run_performance_tests() {
         echo -e "${RED}❌ Performance tests failed${NC}"
         return 1
     fi
-    
+
     cd - > /dev/null
 }
 
@@ -119,12 +119,12 @@ run_performance_tests() {
 generate_test_report() {
     echo -e "\n${BLUE}📊 Generating Test Report${NC}"
     echo "------------------------"
-    
+
     local report_dir="test-results"
     local report_file="$report_dir/comprehensive-test-report.md"
-    
+
     mkdir -p "$report_dir"
-    
+
     cat > "$report_file" << EOF
 # Comprehensive Test Suite Report
 
@@ -187,82 +187,82 @@ EOF
 cleanup_test_artifacts() {
     echo -e "\n${BLUE}🧹 Cleaning up test artifacts${NC}"
     echo "-----------------------------"
-    
+
     # Remove temporary files if any
     find . -name "*.tmp" -delete 2>/dev/null || true
     find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-    
+
     echo -e "${GREEN}✅ Cleanup completed${NC}"
 }
 
 # Main execution flow
 main() {
     local start_time=$(date +%s)
-    
+
     echo -e "${BLUE}🎯 Comprehensive Test Suite for Discovery → Assessment Flows${NC}"
     echo -e "${BLUE}Target: Complete user journey validation with real CrewAI agents${NC}"
     echo ""
-    
+
     # Pre-flight checks
     echo -e "${YELLOW}🔍 Running pre-flight checks...${NC}"
-    
+
     # Check if services are running
     if ! check_service_health "Backend" "$BACKEND_URL"; then
         echo -e "${RED}❌ Backend service is not running. Please start with: docker-compose up -d${NC}"
         exit 1
     fi
-    
+
     if ! check_service_health "Frontend" "$FRONTEND_URL"; then
         echo -e "${RED}❌ Frontend service is not running. Please start with: docker-compose up -d${NC}"
         exit 1
     fi
-    
+
     # Check required tools
     if ! command -v python &> /dev/null; then
         echo -e "${RED}❌ Python is required but not installed${NC}"
         exit 1
     fi
-    
+
     if ! command -v npx &> /dev/null; then
         echo -e "${RED}❌ Node.js/npx is required but not installed${NC}"
         exit 1
     fi
-    
+
     echo -e "${GREEN}✅ Pre-flight checks passed${NC}"
-    
+
     # Execute test suites
     local failed_tests=0
-    
+
     # Backend tests
     if ! run_backend_tests; then
         ((failed_tests++))
     fi
-    
+
     # E2E tests
     if ! run_e2e_tests; then
         ((failed_tests++))
     fi
-    
+
     # Performance tests
     if ! run_performance_tests; then
         ((failed_tests++))
     fi
-    
+
     # Generate report
     generate_test_report
-    
+
     # Cleanup
     cleanup_test_artifacts
-    
+
     # Final results
     local end_time=$(date +%s)
     local duration=$((end_time - start_time))
-    
+
     echo -e "\n${BLUE}📈 Final Results${NC}"
     echo "==============="
     echo -e "Execution time: ${duration}s"
     echo -e "Failed test suites: $failed_tests"
-    
+
     if [ $failed_tests -eq 0 ]; then
         echo -e "\n${GREEN}🎉 ALL TESTS PASSED! 🎉${NC}"
         echo -e "${GREEN}Complete Discovery → Assessment flow validation successful!${NC}"
@@ -270,12 +270,12 @@ main() {
         echo -e "${GREEN}✅ Multi-tenant isolation confirmed${NC}"
         echo -e "${GREEN}✅ Data persistence across flows validated${NC}"
         echo -e "${GREEN}✅ End-to-end user journey working correctly${NC}"
-        
+
         return 0
     else
         echo -e "\n${RED}❌ $failed_tests test suite(s) failed${NC}"
         echo -e "${RED}Please check the logs above for details${NC}"
-        
+
         return 1
     fi
 }

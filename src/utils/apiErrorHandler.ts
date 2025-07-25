@@ -8,31 +8,31 @@ export const handleApiError = (error: ApiError & { status?: number; isAuthError?
   // Check if it's an authentication error
   if (error?.status === 401 || error?.isAuthError) {
     console.warn('🔐 Authentication error detected, redirecting to login');
-    
+
     // Clear the stored token
     tokenStorage.removeToken();
     tokenStorage.setUser(null);
-    
+
     // Clear any stored context
     localStorage.removeItem('auth_client');
     localStorage.removeItem('auth_engagement');
     localStorage.removeItem('auth_flow');
     sessionStorage.removeItem('auth_initialization_complete');
-    
+
     // Show toast notification
     toast({
       title: 'Session Expired',
       description: 'Please log in again to continue.',
       variant: 'destructive'
     });
-    
+
     // Redirect to login
     navigate('/login');
-    
+
     // Prevent further processing
     return true;
   }
-  
+
   return false;
 };
 
@@ -42,12 +42,12 @@ export const createQueryClient = (navigate: (path: string) => void) => {
     queryCache: new QueryCache({
       onError: (error: ApiError & { status?: number }) => {
         console.error('Query error:', error);
-        
+
         // Handle authentication errors
         if (handleApiError(error, navigate)) {
           return;
         }
-        
+
         // Handle other errors
         if (error?.status === 500) {
           toast({
@@ -61,12 +61,12 @@ export const createQueryClient = (navigate: (path: string) => void) => {
     mutationCache: new MutationCache({
       onError: (error: ApiError & { status?: number }) => {
         console.error('Mutation error:', error);
-        
+
         // Handle authentication errors
         if (handleApiError(error, navigate)) {
           return;
         }
-        
+
         // Let individual mutations handle other errors
       }
     }),
@@ -77,12 +77,12 @@ export const createQueryClient = (navigate: (path: string) => void) => {
           if (error?.status === 401 || error?.isAuthError) {
             return false;
           }
-          
+
           // Don't retry on client errors (4xx except 429)
           if (error?.status >= 400 && error?.status < 500 && error?.status !== 429) {
             return false;
           }
-          
+
           // Retry up to 3 times for other errors
           return failureCount < 3;
         },

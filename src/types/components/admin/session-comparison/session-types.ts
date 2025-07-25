@@ -1,28 +1,28 @@
 /**
  * Session Core Types
- * 
+ *
  * Core session and user type definitions for session comparison.
  */
 
 import type { ReactNode } from 'react';
 import type {
-  DeviceType, 
-  AuthMethod, 
-  ActivityType, 
-  ActivityStatus, 
-  RiskLevel 
+  DeviceType,
+  AuthMethod,
+  ActivityType,
+  ActivityStatus,
+  RiskLevel
 } from './enum-types';
 import type {
-  DeviceInfo, 
-  LocationInfo, 
-  NetworkInfo, 
-  BrowserInfo 
+  DeviceInfo,
+  LocationInfo,
+  NetworkInfo,
+  BrowserInfo
 } from './device-types';
 import type {
-  SessionSecurity 
+  SessionSecurity
 } from './security-types';
 import type {
-  SessionMetrics 
+  SessionMetrics
 } from './metric-types';
 
 export interface UserSession {

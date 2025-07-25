@@ -132,11 +132,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const token = tokenStorage.getToken();
     const storedUser = tokenStorage.getUser();
     console.log('🔍 Auth State Debug:', {
-      user: user ? { 
-        id: user.id, 
-        role: user.role, 
+      user: user ? {
+        id: user.id,
+        role: user.role,
         full_name: user.full_name,
-        email: user.email 
+        email: user.email
       } : null,
       isAuthenticated,
       isAdmin,
@@ -157,18 +157,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const token = tokenStorage.getToken();
     const storedUser = tokenStorage.getUser(); // Get user from storage as fallback
     const headers: Record<string, string> = {};
-    
+
     // Use current user or fallback to stored user
     const effectiveUser = user || storedUser;
-    
+
     // Debug logging for authentication headers
     console.log('🔍 getAuthHeaders Debug:', {
       token: token ? `present (${token.substring(0, 20)}...)` : 'missing',
-      user: user ? { 
-        id: user.id, 
-        role: user.role, 
+      user: user ? {
+        id: user.id,
+        role: user.role,
         full_name: user.full_name,
-        email: user.email 
+        email: user.email
       } : null,
       storedUser: storedUser ? {
         id: storedUser.id,
@@ -186,7 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       engagement: engagement ? { id: engagement.id, name: engagement.name } : null,
       session: session ? { id: session.id, name: session.name } : null
     });
-    
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -224,7 +224,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       console.warn('⚠️ No engagement or engagement.id available for X-Engagement-ID header:', { engagement });
     }
-    
+
     if (session && session.id) {
       headers['X-Session-ID'] = session.id;
       console.log('✅ Added X-Session-ID header:', session.id);
@@ -252,7 +252,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initializeAuth = async () => {
       try {
         setIsLoading(true);
-        
+
         const token = tokenStorage.getToken();
         if (!token) {
           console.log('🔄 No authentication token found, redirecting to login');
@@ -268,7 +268,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Verify token and get user info
         let userInfo = null;
         let needsContextEstablishment = false;
-        
+
         try {
           userInfo = await apiCall('/context/me', {}, false); // Don't include context headers for /context/me endpoint
         } catch (error: any) {
@@ -296,7 +296,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (userInfo && userInfo.user && userInfo.user.id) {
           setUser(userInfo.user);
-          
+
           // Check if /context/me endpoint returned context information
           if (userInfo.client && userInfo.engagement && userInfo.session) {
             console.log('🔄 Using context from /context/me endpoint:', {
@@ -304,70 +304,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               engagement: userInfo.engagement.name,
               session: userInfo.session.id
             });
-            
+
             setClient(userInfo.client);
             setEngagement(userInfo.engagement);
             setSession(userInfo.session);
-            
+
             // Immediately update API context before any other API calls
-            updateApiContext({ 
-              user: userInfo.user, 
-              client: userInfo.client, 
-              engagement: userInfo.engagement, 
-              session: userInfo.session 
+            updateApiContext({
+              user: userInfo.user,
+              client: userInfo.client,
+              engagement: userInfo.engagement,
+              session: userInfo.session
             });
-            
+
             // Save context to localStorage for persistence
             localStorage.setItem('auth_client', JSON.stringify(userInfo.client));
             localStorage.setItem('auth_engagement', JSON.stringify(userInfo.engagement));
             localStorage.setItem('auth_session', JSON.stringify(userInfo.session));
-            
+
             setIsLoading(false);
             return; // Exit early - context is complete
           }
-          
+
           // Fallback: Get stored context from localStorage (persistent across sessions)
           const storedClient = localStorage.getItem('auth_client');
           const storedEngagement = localStorage.getItem('auth_engagement');
           const storedSession = localStorage.getItem('auth_session');
-          
+
           // Try to restore client context even if engagement/session are missing
           if (storedClient) {
             try {
               const clientData = JSON.parse(storedClient);
-              
+
               // Validate that the stored client data has required fields
               if (clientData.id && clientData.name) {
                 console.log('🔄 Restoring client from localStorage:', {
                   client: clientData.name,
                   id: clientData.id
                 });
-                
+
                 setClient(clientData);
-                
+
                 // Try to restore engagement and session if available
                 if (storedEngagement && storedSession) {
                   try {
                     const engagementData = JSON.parse(storedEngagement);
                     const sessionData = JSON.parse(storedSession);
-                    
+
                     if (engagementData.id && sessionData.id) {
                       console.log('🔄 Restoring full context from localStorage:', {
                         engagement: engagementData.name,
                         session: sessionData.id
                       });
-                      
+
                       setEngagement(engagementData);
                       setSession(sessionData);
-                      
+
                       // Immediately update API context before any other API calls
-                      updateApiContext({ 
-                        user: userInfo.user, 
-                        client: clientData, 
-                        engagement: engagementData, 
-                        session: sessionData 
+                      updateApiContext({
+                        user: userInfo.user,
+                        client: clientData,
+                        engagement: engagementData,
+                        session: sessionData
                       });
-                      
+
                       setIsLoading(false);
                       return; // Exit early - context fully restored
                     }
@@ -378,7 +378,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     localStorage.removeItem('auth_session');
                   }
                 }
-                
+
                 // Client restored but need to fetch engagement/session
                 console.log('🔄 Client restored, fetching engagement for client:', clientData.name);
                 await switchClient(clientData.id, clientData);
@@ -393,7 +393,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               localStorage.removeItem('auth_session');
             }
           }
-          
+
           // Last resort: fetch default context if no context is available
           console.log('🔄 No context available, fetching defaults...');
           await fetchDefaultContext();
@@ -406,12 +406,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(storedUser);
             console.log('🔄 Using stored user info:', storedUser);
           }
-          
+
           // Set user to null initially to trigger context establishment flow
           setClient(null);
           setEngagement(null);
           setSession(null);
-          
+
           // The ContextBreadcrumbs component will handle the context establishment
         } else {
           // Authentication failed - clear everything and redirect to login
@@ -456,9 +456,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('🔄 Context already complete, skipping default fetch');
         return;
       }
-      
+
       console.log('🔄 Fetching default context...');
-      
+
       // Get available clients first - use context establishment endpoint
       const clientsResponse = await apiCall('/api/v1/context/clients', {
         method: 'GET',
@@ -467,19 +467,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!clientsResponse?.clients || clientsResponse.clients.length === 0) {
         console.warn('No clients available');
         return;
       }
-      
-      console.log(`🔄 Found ${clientsResponse.clients.length} available clients:`, 
+
+      console.log(`🔄 Found ${clientsResponse.clients.length} available clients:`,
         clientsResponse.clients.map(c => c.name));
-      
+
       // Check if we have a stored client preference that's still valid
       const storedClientId = localStorage.getItem('auth_client_id');
       let targetClient = null;
-      
+
       if (storedClientId) {
         targetClient = clientsResponse.clients.find(c => c.id === storedClientId);
         if (targetClient) {
@@ -490,17 +490,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           localStorage.removeItem('auth_client_id');
         }
       }
-      
+
       // Use first available client as default only if no valid stored client and no current client
       if (!targetClient && !client) {
         targetClient = clientsResponse.clients[0];
         console.log(`🔄 Using first available client as default: ${targetClient.name}`);
       }
-      
+
       if (targetClient && (!client || client.id !== targetClient.id)) {
         await switchClient(targetClient.id, targetClient);
       }
-      
+
     } catch (error: any) {
       console.error('Error fetching default context:', error);
       // Don't clear authentication on context fetch errors
@@ -545,13 +545,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const context = await apiCall('/context/me', {}, false); // Don't include context headers for /context/me endpoint
         console.log('🔐 Login Step 2 - Context from /me:', context);
-        
+
         if (context) {
           // Set context from backend response
           setClient(context.client || null);
           setEngagement(context.engagement || null);
           setSession(context.session || null);
-          
+
           // Save the actual backend context
           contextStorage.setContext({
             client: context.client,
@@ -560,7 +560,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             timestamp: Date.now(),
             source: 'login_backend'
           });
-          
+
           // Use the role from /me endpoint as it's more accurate
           if (context.user && context.user.role) {
             actualUserRole = context.user.role;
@@ -568,14 +568,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const updatedUser = { ...response.user, role: context.user.role };
             tokenStorage.setUser(updatedUser);
             setUser(updatedUser);
-            
+
             console.log('🔐 Login Step 3 - User updated with context role:', {
               updatedUser,
               actualUserRole,
               isAdminCheck: updatedUser.role === 'admin'
             });
           }
-          
+
           console.log('🔐 Login Step 3 - Context set from backend:', {
             client: context.client,
             engagement: context.engagement,
@@ -592,17 +592,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Determine redirect path based on actual user role
-      const redirectPath = actualUserRole === 'admin' 
-        ? '/admin/dashboard' 
+      const redirectPath = actualUserRole === 'admin'
+        ? '/admin/dashboard'
         : (tokenStorage.getRedirectPath() || '/');
       tokenStorage.clearRedirectPath();
-      
+
       console.log('🔐 Login Step 4 - Redirect decision:', {
         actualUserRole,
         redirectPath,
         isAdminRole: actualUserRole === 'admin'
       });
-      
+
       // Use setTimeout to ensure navigation happens after state updates
       setTimeout(() => {
         console.log('🔐 Login Step 5 - Navigating to:', redirectPath);
@@ -647,9 +647,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const switchClient = async (clientId: string, clientData?: any) => {
     try {
       console.log('🔄 Switching to client:', clientId);
-      
+
       let fullClientData = clientData;
-      
+
       // If no client data provided, fetch it
       if (!fullClientData) {
         const response = await apiCall(`/context/clients/${clientId}`, {
@@ -658,30 +658,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         fullClientData = response.client;
       }
-      
+
       if (!fullClientData) {
         throw new Error('Client data not found');
       }
-      
+
       setClient(fullClientData);
       // Persist to localStorage for cross-session persistence
       localStorage.setItem('auth_client', JSON.stringify(fullClientData));
       localStorage.setItem('auth_client_id', fullClientData.id); // Store ID separately for preference
-      
+
       // Immediately update API context
-      updateApiContext({ 
-        user, 
-        client: fullClientData, 
-        engagement, 
-        session 
+      updateApiContext({
+        user,
+        client: fullClientData,
+        engagement,
+        session
       });
-      
+
       // Get engagements for this client using context establishment endpoint
       const engagementsResponse = await apiCall(`/context/clients/${clientId}/engagements`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
-      
+
       if (engagementsResponse?.engagements && engagementsResponse.engagements.length > 0) {
         // Use first engagement as default
         const defaultEngagement = engagementsResponse.engagements[0];
@@ -692,7 +692,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(null);
         localStorage.removeItem('auth_engagement');
         localStorage.removeItem('auth_session');
-        
+
         // Update user defaults with just the client (non-blocking)
         try {
           const result = await updateUserDefaults({ client_id: clientId });
@@ -705,7 +705,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn('⚠️ Failed to update user default client (non-blocking):', defaultError);
         }
       }
-      
+
     } catch (error) {
       console.error('Error switching client:', error);
       throw error;
@@ -715,9 +715,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const switchEngagement = async (engagementId: string, engagementData?: any) => {
     try {
       console.log('🔄 Switching to engagement:', engagementId, 'with data:', engagementData);
-      
+
       let fullEngagementData = engagementData;
-      
+
       // If no engagement data provided, try to get it from the list of engagements
       if (!fullEngagementData && client) {
         try {
@@ -733,23 +733,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn('Failed to fetch engagement data:', fetchError);
         }
       }
-      
+
       if (!fullEngagementData) {
         throw new Error('Engagement data not found');
       }
-      
+
       setEngagement(fullEngagementData);
       // Persist to localStorage for cross-session persistence
       localStorage.setItem('auth_engagement', JSON.stringify(fullEngagementData));
-      
+
       // Immediately update API context
-      updateApiContext({ 
-        user, 
-        client, 
-        engagement: fullEngagementData, 
-        session 
+      updateApiContext({
+        user,
+        client,
+        engagement: fullEngagementData,
+        session
       });
-      
+
       // For demo user, create a simple session object based on engagement
       // V2 Discovery Flow API handles session management internally
       const sessionData = {
@@ -765,19 +765,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
-      
+
       setSession(sessionData);
       // Persist to localStorage for cross-session persistence
       localStorage.setItem('auth_session', JSON.stringify(sessionData));
-      
+
       // Immediately update API context
-      updateApiContext({ 
-        user, 
-        client, 
-        engagement: fullEngagementData, 
-        session: sessionData 
+      updateApiContext({
+        user,
+        client,
+        engagement: fullEngagementData,
+        session: sessionData
       });
-      
+
       // Update user defaults in the backend (non-blocking)
       // Only update if we have a valid client-engagement combination
       try {
@@ -802,7 +802,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (defaultError) {
         console.warn('⚠️ Failed to update user defaults (non-blocking):', defaultError);
       }
-      
+
     } catch (error) {
       console.error('Error switching engagement:', error);
       throw error;

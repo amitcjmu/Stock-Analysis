@@ -28,8 +28,8 @@ class PhaseTransitionAgent(BaseDecisionAgent):
             - Business process optimization
             - Risk management and decision theory
             - Migration best practices
-            
-            You make intelligent decisions about when to proceed, pause for human input, 
+
+            You make intelligent decisions about when to proceed, pause for human input,
             or skip phases based on comprehensive analysis of the current situation.""",
         )
 

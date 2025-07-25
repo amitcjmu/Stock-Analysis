@@ -21,7 +21,7 @@ export const DebugContext: React.FC = () => {
     // Read all auth-related localStorage items
     const authKeys = ['auth_token', 'user_data', 'auth_client', 'auth_engagement', 'auth_session', 'auth_client_id'];
     const data: Record<string, unknown> = {};
-    
+
     authKeys.forEach(key => {
       const value = window.localStorage.getItem(key);
       if (value) {
@@ -32,7 +32,7 @@ export const DebugContext: React.FC = () => {
         }
       }
     });
-    
+
     setLocalStorage(data);
   }, []);
 
@@ -67,7 +67,7 @@ export const DebugContext: React.FC = () => {
   return (
     <div className="container mx-auto py-8 space-y-6">
       <h1 className="text-3xl font-bold">Debug Context & Authentication</h1>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Current Auth Context</CardTitle>
@@ -79,7 +79,7 @@ export const DebugContext: React.FC = () => {
               {user ? JSON.stringify(user, null, 2) : 'null'}
             </pre>
           </div>
-          
+
           <div>
             <h3 className="font-semibold">Client:</h3>
             <pre className="bg-gray-100 p-2 rounded text-sm">
@@ -98,7 +98,7 @@ export const DebugContext: React.FC = () => {
               </div>
             )}
           </div>
-          
+
           <div>
             <h3 className="font-semibold">Engagement:</h3>
             <pre className="bg-gray-100 p-2 rounded text-sm">
@@ -116,7 +116,7 @@ export const DebugContext: React.FC = () => {
           <pre className="bg-gray-100 p-2 rounded text-sm overflow-auto">
             {JSON.stringify(localStorage, null, 2)}
           </pre>
-          
+
           <div className="mt-4 space-x-2">
             <Button onClick={clearLocalStorage} variant="destructive">
               Clear Context Data

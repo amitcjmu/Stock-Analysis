@@ -27,4 +27,4 @@ export const useDataCleansingNavigation = (flowState: unknown, cleansingProgress
     handleBackToAttributeMapping,
     handleContinueToInventory,
   };
-}; 
+};

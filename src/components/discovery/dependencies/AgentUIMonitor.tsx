@@ -1,12 +1,12 @@
 import React from 'react'
 import { useState } from 'react'
-import { 
-  Bot, 
-  Brain, 
-  Users, 
-  CheckCircle, 
-  AlertCircle, 
-  Clock, 
+import {
+  Bot,
+  Brain,
+  Users,
+  CheckCircle,
+  AlertCircle,
+  Clock,
   MessageSquare,
   Lightbulb,
   BarChart3,
@@ -24,7 +24,7 @@ interface AgentUIMonitorProps {
   pageContext?: string;
 }
 
-const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({ 
+const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
   className = "",
   pageContext = "dependencies"
 }) => {
@@ -71,7 +71,7 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
         question_id: questionId,
         response: answer
       });
-      
+
       // Clear the selected answer
       setSelectedAnswers(prev => {
         const next = { ...prev };
@@ -332,7 +332,7 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
                   <span className="text-xs text-gray-500">0</span>
                 </div>
               </div>
-              
+
               <div className="text-center text-gray-500 py-4">
                 <Network className="w-12 h-12 mx-auto mb-2 text-gray-400" />
                 <p className="text-sm">No data classifications yet</p>
@@ -409,7 +409,7 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
               <option value="tech_debt_analysis_agent">Tech Debt Analysis</option>
             </select>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => handleThink(activeAgent)}
@@ -423,7 +423,7 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
               )}
               <span className="text-sm">Think</span>
             </button>
-            
+
             <button
               onClick={() => handlePonderMore(activeAgent)}
               disabled={ponderMutation.isPending}
@@ -437,7 +437,7 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
               <span className="text-sm">Ponder More</span>
             </button>
           </div>
-          
+
           <p className="text-xs text-gray-500 mt-2 text-center">
             Use "Think" for deeper analysis or "Ponder More" for crew collaboration
           </p>
@@ -447,4 +447,4 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
   );
 };
 
-export default AgentUIMonitor; 
+export default AgentUIMonitor;

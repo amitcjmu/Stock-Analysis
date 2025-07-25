@@ -31,11 +31,11 @@ export const UserManagementTabs: React.FC = () => {
                 Access Management
               </TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="search" className="mt-6">
               <UserSearchAndEdit />
             </TabsContent>
-            
+
             <TabsContent value="access" className="mt-6">
               <UserAccessManagement />
             </TabsContent>
@@ -44,4 +44,4 @@ export const UserManagementTabs: React.FC = () => {
       </Card>
     </div>
   );
-}; 
+};

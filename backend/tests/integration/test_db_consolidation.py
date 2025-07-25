@@ -20,9 +20,9 @@ class TestDatabaseConsolidation:
             result = await session.execute(
                 text(
                     """
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public' 
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
                 AND table_name LIKE 'v3_%'
             """
                 )
@@ -39,8 +39,8 @@ class TestDatabaseConsolidation:
             result = await session.execute(
                 text(
                     """
-                SELECT table_name, column_name 
-                FROM information_schema.columns 
+                SELECT table_name, column_name
+                FROM information_schema.columns
                 WHERE column_name = 'is_mock'
                 AND table_schema = 'public'
             """
@@ -60,8 +60,8 @@ class TestDatabaseConsolidation:
             result = await session.execute(
                 text(
                     """
-                SELECT column_name 
-                FROM information_schema.columns 
+                SELECT column_name
+                FROM information_schema.columns
                 WHERE table_name = 'data_imports'
                 AND column_name IN ('filename', 'file_size', 'mime_type', 'source_system', 'error_message', 'error_details')
             """
@@ -85,8 +85,8 @@ class TestDatabaseConsolidation:
             result = await session.execute(
                 text(
                     """
-                SELECT column_name 
-                FROM information_schema.columns 
+                SELECT column_name
+                FROM information_schema.columns
                 WHERE table_name = 'data_imports'
                 AND column_name IN ('source_filename', 'file_size_bytes', 'file_type')
             """
@@ -104,8 +104,8 @@ class TestDatabaseConsolidation:
             result = await session.execute(
                 text(
                     """
-                SELECT column_name 
-                FROM information_schema.columns 
+                SELECT column_name
+                FROM information_schema.columns
                 WHERE table_name = 'discovery_flows'
                 AND column_name LIKE '%_completed'
             """
@@ -130,7 +130,7 @@ class TestDatabaseConsolidation:
                 text(
                     """
                 SELECT column_name, data_type
-                FROM information_schema.columns 
+                FROM information_schema.columns
                 WHERE table_name = 'discovery_flows'
                 AND data_type IN ('json', 'jsonb')
             """
@@ -153,8 +153,8 @@ class TestDatabaseConsolidation:
                 result = await session.execute(
                     text(
                         f"""
-                    SELECT column_name 
-                    FROM information_schema.columns 
+                    SELECT column_name
+                    FROM information_schema.columns
                     WHERE table_name = '{table}'
                     AND column_name = 'master_flow_id'
                 """
@@ -186,7 +186,7 @@ class TestDatabaseConsolidation:
                     text(
                         f"""
                     SELECT EXISTS (
-                        SELECT 1 FROM information_schema.tables 
+                        SELECT 1 FROM information_schema.tables
                         WHERE table_name = '{table}'
                     )
                 """
@@ -216,8 +216,8 @@ class TestDatabaseConsolidation:
             result = await session.execute(
                 text(
                     """
-                SELECT column_name 
-                FROM information_schema.columns 
+                SELECT column_name
+                FROM information_schema.columns
                 WHERE table_name = 'assets'
             """
                 )
@@ -240,8 +240,8 @@ class TestDatabaseConsolidation:
                 result = await session.execute(
                     text(
                         f"""
-                    SELECT COUNT(*) 
-                    FROM pg_indexes 
+                    SELECT COUNT(*)
+                    FROM pg_indexes
                     WHERE tablename = '{table}'
                     AND indexdef LIKE '%client_account_id%'
                 """
@@ -257,8 +257,8 @@ class TestDatabaseConsolidation:
                 result = await session.execute(
                     text(
                         f"""
-                    SELECT COUNT(*) 
-                    FROM pg_indexes 
+                    SELECT COUNT(*)
+                    FROM pg_indexes
                     WHERE tablename = '{table}'
                     AND indexdef LIKE '%engagement_id%'
                 """

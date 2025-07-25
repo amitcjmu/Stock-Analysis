@@ -25,20 +25,20 @@ wait_for_service() {
     local service=$2
     local max_attempts=30
     local attempt=1
-    
+
     echo -e "${YELLOW}⏳ Waiting for $service to be ready...${NC}"
-    
+
     while [ $attempt -le $max_attempts ]; do
         if curl -s -o /dev/null -w "%{http_code}" "$url" | grep -q "200\|302"; then
             echo -e "${GREEN}✅ $service is ready!${NC}"
             return 0
         fi
-        
+
         echo -n "."
         sleep 2
         attempt=$((attempt + 1))
     done
-    
+
     echo -e "${RED}❌ $service failed to start after $max_attempts attempts${NC}"
     return 1
 }
@@ -110,7 +110,7 @@ async def create_test_apps():
             Asset(
                 id=str(uuid.uuid4()),
                 name='Order Management System',
-                type='Application', 
+                type='Application',
                 category='Enterprise Application',
                 client_account_id=1,
                 ready_for_assessment=True,
@@ -121,10 +121,10 @@ async def create_test_apps():
                 }
             )
         ]
-        
+
         for app in apps:
             db.add(app)
-        
+
         await db.commit()
         print(f'✅ Created {len(apps)} test applications')
 
@@ -147,11 +147,11 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ All Assessment Flow tests passed!${NC}"
 else
     echo -e "${RED}❌ Some tests failed. Check the output above.${NC}"
-    
+
     # Show logs for debugging
     echo -e "${YELLOW}📋 Backend logs:${NC}"
     docker-compose logs --tail=50 backend
-    
+
     echo -e "${YELLOW}📋 Frontend logs:${NC}"
     docker-compose logs --tail=50 frontend
 fi

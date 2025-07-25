@@ -27,7 +27,7 @@ export const ResourceAnalytics: React.FC<ResourceAnalyticsProps> = ({ agentData 
               <span className="font-medium">{agentData.performance.memoryUsage.toFixed(1)} MB</span>
             </div>
             <Progress value={Math.min((agentData.performance.memoryUsage / 500) * 100, 100)} />
-            <AgentMetricsChart 
+            <AgentMetricsChart
               data={{
                 data: agentData.trends.memoryUsageHistory.map((usage, index) => ({
                   timestamp: agentData.trends.timestamps[index],

@@ -10,7 +10,7 @@ import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminLoadingState } from '@/components/admin/shared/components'
 import { AdminHeader } from '@/components/admin/shared/components'
-import { 
+import {
   useAdminToasts
 } from '@/components/admin/shared';
 import type {
@@ -28,26 +28,26 @@ import {
 
 export const PlatformAdminDashboard: React.FC = () => {
   const { getAuthHeaders } = useAuth();
-  const { 
-    showPurgeApprovedToast, 
-    showPurgeRejectedToast, 
-    showGenericErrorToast 
+  const {
+    showPurgeApprovedToast,
+    showPurgeRejectedToast,
+    showGenericErrorToast
   } = useAdminToasts();
-  
+
   const [pendingItems, setPendingItems] = useState<SoftDeletedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<SoftDeletedItem | null>(null);
   const [showPurgeDialog, setShowPurgeDialog] = useState(false);
   const [purgeAction, setPurgeAction] = useState<PurgeAction | null>(null);
-  
+
   const fetchPendingItems = useCallback(async () => {
     try {
       setLoading(true);
       const response = await apiCall('admin/platform/platform-admin/pending-purge-items', {
         headers: getAuthHeaders()
       });
-      
+
       if (response.status === 'success') {
         setPendingItems(response.pending_items || []);
       } else {
@@ -105,13 +105,13 @@ export const PlatformAdminDashboard: React.FC = () => {
   useEffect(() => {
     fetchPendingItems();
   }, [fetchPendingItems]);
-  
+
   // fetchPendingItems moved above with useCallback
-  
+
   const handleViewDetails = (item: SoftDeletedItem) => {
     setSelectedItem(item);
   };
-  
+
   const handleApprovePurge = (item: SoftDeletedItem) => {
     setPurgeAction({
       action: 'approve',
@@ -120,7 +120,7 @@ export const PlatformAdminDashboard: React.FC = () => {
     });
     setShowPurgeDialog(true);
   };
-  
+
   const handleRejectPurge = (item: SoftDeletedItem) => {
     setPurgeAction({
       action: 'reject',
@@ -129,17 +129,17 @@ export const PlatformAdminDashboard: React.FC = () => {
     });
     setShowPurgeDialog(true);
   };
-  
+
   const executePurgeAction = async () => {
     if (!purgeAction) return;
-    
+
     try {
       setActionLoading(purgeAction.item.id);
-      
-      const endpoint = purgeAction.action === 'approve' 
+
+      const endpoint = purgeAction.action === 'approve'
         ? 'admin/platform/platform-admin/approve-purge'
         : 'admin/platform/platform-admin/reject-purge';
-      
+
       const response = await apiCall(endpoint, {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -148,14 +148,14 @@ export const PlatformAdminDashboard: React.FC = () => {
           notes: purgeAction.notes
         })
       });
-      
+
       if (response.status === 'success') {
         if (purgeAction.action === 'approve') {
           showPurgeApprovedToast(response.message);
         } else {
           showPurgeRejectedToast(response.message);
         }
-        
+
         // Remove item from list
         setPendingItems(prev => prev.filter(item => item.id !== purgeAction.item.id));
         setShowPurgeDialog(false);
@@ -170,13 +170,13 @@ export const PlatformAdminDashboard: React.FC = () => {
       setActionLoading(null);
     }
   };
-  
+
   // Utility functions moved to shared/utils/adminFormatters
-  
+
   if (loading) {
     return <AdminLoadingState message="Loading Platform Administration..." fullScreen />;
   }
-  
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -186,10 +186,10 @@ export const PlatformAdminDashboard: React.FC = () => {
         onRefresh={fetchPendingItems}
         refreshLoading={loading}
       />
-      
+
       {/* Stats */}
       <PlatformStats pendingItems={pendingItems} />
-      
+
       {/* Pending Items List */}
       <PendingItemsList
         pendingItems={pendingItems}
@@ -198,7 +198,7 @@ export const PlatformAdminDashboard: React.FC = () => {
         onApprove={handleApprovePurge}
         onReject={handleRejectPurge}
       />
-      
+
       {/* Purge Action Dialog */}
       <PurgeActionDialog
         isOpen={showPurgeDialog}
@@ -207,7 +207,7 @@ export const PlatformAdminDashboard: React.FC = () => {
         onExecute={executePurgeAction}
         onNotesChange={(notes) => setPurgeAction(prev => prev ? { ...prev, notes } : null)}
       />
-      
+
       {/* Item Details Dialog */}
       <ItemDetailsDialog
         item={selectedItem}
@@ -216,4 +216,4 @@ export const PlatformAdminDashboard: React.FC = () => {
       />
     </div>
   );
-}; 
+};

@@ -5,4 +5,4 @@ const PlatformAdmin: React.FC = () => {
   return <PlatformAdminDashboard />;
 };
 
-export default PlatformAdmin; 
+export default PlatformAdmin;

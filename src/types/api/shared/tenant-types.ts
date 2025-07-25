@@ -1,6 +1,6 @@
 /**
  * Multi-Tenant API Types
- * 
+ *
  * Types for multi-tenant context, headers, and tenant-specific operations.
  */
 

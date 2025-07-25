@@ -1,6 +1,6 @@
 /**
  * Discovery Hooks Types Index
- * 
+ *
  * Central export point for all discovery hook types organized by functional area.
  */
 
@@ -10,7 +10,7 @@ export type * from './base-hooks';
 // Attribute mapping types
 export type * from './attribute-mapping-hooks';
 
-// Flow detection types  
+// Flow detection types
 export type * from './flow-detection-hooks';
 
 // Analysis and training types

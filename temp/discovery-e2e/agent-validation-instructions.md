@@ -73,8 +73,8 @@ This document provides specific instructions for each agent on how to perform or
    ```bash
    # Check database for stuck flows, timeouts, etc.
    docker exec migration_db psql -U postgres -d migration_db -c "
-   SELECT id, status, progress_percentage, created_at, timeout_at 
-   FROM discovery_flows 
+   SELECT id, status, progress_percentage, created_at, timeout_at
+   FROM discovery_flows
    WHERE status IN ('active', 'initialized', 'running')
    ORDER BY created_at DESC LIMIT 10;"
    ```
@@ -113,7 +113,7 @@ This document provides specific instructions for each agent on how to perform or
    ```bash
    # Verify flow linkage integrity
    docker exec migration_db psql -U postgres -d migration_db -c "
-   SELECT 
+   SELECT
      df.id,
      df.master_flow_id,
      cf.id as master_exists
@@ -233,7 +233,7 @@ enforcement_system.request_state_transition(
 issue = enforcement_system.issues["DISC-XXX"]
 if issue.current_state == WorkflowState.ORIGINAL_REPORTER_VALIDATION:
     # Ready for original reporter validation
-    
+
 if issue.original_reporter_validated:
     # Can transition to COMPLETED
 ```
@@ -289,7 +289,7 @@ Each agent must follow their specific validation process to ensure proper issue 
 
 ---
 
-**Implementation**: Follow validation instructions for your agent type  
-**Quality Standard**: Provide detailed, evidence-based validation  
-**Compliance**: Only original reporters can validate their issues  
+**Implementation**: Follow validation instructions for your agent type
+**Quality Standard**: Provide detailed, evidence-based validation
+**Compliance**: Only original reporters can validate their issues
 **Closure**: Issues complete only after successful validation

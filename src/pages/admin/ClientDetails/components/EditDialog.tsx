@@ -40,7 +40,7 @@ export const EditDialog: React.FC<EditDialogProps> = ({
             Update client account information and business context.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -53,7 +53,7 @@ export const EditDialog: React.FC<EditDialogProps> = ({
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="industry">Industry *</Label>
               <Select value={formData.industry} onValueChange={(value) => setFormData(prev => ({ ...prev, industry: value }))}>

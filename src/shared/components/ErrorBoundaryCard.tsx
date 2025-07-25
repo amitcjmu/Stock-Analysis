@@ -40,10 +40,10 @@ export const ErrorBoundaryCard: React.FC<ErrorBoundaryCardProps> = ({
           </AlertDescription>
         </Alert>
         {onRetry && (
-          <Button 
-            onClick={onRetry} 
-            variant="outline" 
-            size="sm" 
+          <Button
+            onClick={onRetry}
+            variant="outline"
+            size="sm"
             className="mt-4"
           >
             <RefreshCw className="h-4 w-4 mr-2" />

@@ -30,9 +30,9 @@ except ImportError:
     ENHANCED_RBAC_AVAILABLE = False
     EnhancedUserProfile = RolePermissions = SoftDeletedItems = AccessAuditLog = None
     User = ClientAccount = Engagement = None
-    RoleLevel = DataScope = UserStatus = DeletedItemType = DEFAULT_ROLE_PERMISSIONS = (
-        None
-    )
+    RoleLevel = (
+        DataScope
+    ) = UserStatus = DeletedItemType = DEFAULT_ROLE_PERMISSIONS = None
 
 logger = logging.getLogger(__name__)
 

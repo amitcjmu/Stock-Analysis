@@ -117,19 +117,19 @@ export const useAttributeMappingState = (
         }));
         return { attributes };
       }
-      
+
       // Fallback: Check flow state data structures for attributes
       if (fieldMappingData) {
         // Case 1: Direct attributes array
         if (fieldMappingData.attributes && Array.isArray(fieldMappingData.attributes)) {
           return { attributes: fieldMappingData.attributes };
         }
-        
+
         // Case 2: Flow state data with nested attributes
         if (fieldMappingData.data?.attributes && Array.isArray(fieldMappingData.data.attributes)) {
           return { attributes: fieldMappingData.data.attributes };
         }
-        
+
         // Case 3: Check if we have any field mapping data at all and create mock attributes
         if (fieldMappingData.mappings || (typeof fieldMappingData === 'object' && Object.keys(fieldMappingData).length > 0)) {
           // Generate attributes from available field mappings
@@ -144,7 +144,7 @@ export const useAttributeMappingState = (
           return { attributes: mockAttributes };
         }
       }
-      
+
       return { attributes: [] };
     } catch (error) {
       console.error('Error extracting agenticData:', error);
@@ -173,17 +173,17 @@ export const useAttributeMappingState = (
           pending: (fieldMappingData.progress.total || 0) - (fieldMappingData.progress.mapped || 0)
         };
       }
-      
+
       // Otherwise calculate from field mappings
       const total = fieldMappings?.length || 0;
       const approved = fieldMappings?.filter(m => m.status === 'approved').length || 0;
       const pending = fieldMappings?.filter(m => m.status === 'pending').length || 0;
       const unmapped = fieldMappings?.filter(m => (m.status as string) === 'unmapped').length || 0;
-      
+
       // Only count explicitly approved mappings as "mapped"
       // Pending mappings are suggestions that need user approval
       const totalMapped = approved;
-      
+
       // Critical fields for migration treatment decisions - must match backend and available mappings
       const criticalFields = [
         'asset_name', 'name', 'hostname', 'asset_type', 'ip_address', 'environment',
@@ -192,13 +192,13 @@ export const useAttributeMappingState = (
         'memory_gb', 'storage_gb', 'ram_gb', 'six_r_strategy', 'migration_priority',
         'migration_complexity', 'dependencies', 'mac_address'
       ];
-      
+
       // Count how many critical fields are mapped (only count approved mappings for critical)
       // Critical mappings must be user-approved for accuracy
-      const criticalMapped = fieldMappings?.filter(m => 
+      const criticalMapped = fieldMappings?.filter(m =>
         criticalFields.includes(m.targetAttribute?.toLowerCase()) && m.status === 'approved'
       ).length || 0;
-      
+
       const progress = {
         total: total,
         mapped: totalMapped,
@@ -206,7 +206,7 @@ export const useAttributeMappingState = (
         pending: pending + unmapped, // All non-approved items need user action
         accuracy: total > 0 ? Math.round((totalMapped / total) * 100) : 0
       };
-      
+
       console.log('📊 Mapping Progress Calculation:', {
         field_mappings_count: fieldMappings?.length || 0,
         status_breakdown: {
@@ -223,7 +223,7 @@ export const useAttributeMappingState = (
           status: m.status
         }))
       });
-      
+
       return progress;
     } catch (error) {
       console.error('Error calculating mappingProgress:', error);
@@ -273,15 +273,15 @@ export const useAttributeMappingState = (
           keys: Object.keys(fieldMappingData)
         } : null
       });
-      
+
       // Log the full flow object to see all properties
       console.log('📋 Full flow object:', flow);
-      
+
       // Additional debugging for validation errors
       if (flow.validation_errors) {
         console.error('❌ Flow validation errors:', flow.validation_errors);
       }
-      
+
       // Check if data import phase is completed (for debugging only)
       if (flow.phase_completion?.data_import) {
         console.log('✅ Data import phase is marked as completed');

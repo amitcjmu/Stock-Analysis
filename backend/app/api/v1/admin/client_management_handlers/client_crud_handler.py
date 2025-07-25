@@ -346,7 +346,7 @@ class ClientCRUDHandler:
                 await db.execute(
                     text(
                         """
-                    DELETE FROM workflow_states 
+                    DELETE FROM workflow_states
                     WHERE data_import_id IN (
                         SELECT di.id FROM data_imports di
                         JOIN engagements e ON di.engagement_id = e.id
@@ -361,9 +361,9 @@ class ClientCRUDHandler:
                 await db.execute(
                     text(
                         """
-                    DELETE FROM data_imports 
+                    DELETE FROM data_imports
                     WHERE engagement_id IN (
-                        SELECT id FROM engagements 
+                        SELECT id FROM engagements
                         WHERE client_account_id = :client_id
                     )
                 """
@@ -375,7 +375,7 @@ class ClientCRUDHandler:
                 await db.execute(
                     text(
                         """
-                    DELETE FROM client_access 
+                    DELETE FROM client_access
                     WHERE client_account_id = :client_id
                 """
                     ),
@@ -386,7 +386,7 @@ class ClientCRUDHandler:
                 await db.execute(
                     text(
                         """
-                    DELETE FROM engagements 
+                    DELETE FROM engagements
                     WHERE client_account_id = :client_id
                 """
                     ),

@@ -111,8 +111,8 @@ class FlowRelationshipValidator:
             text(
                 """
                 SELECT COUNT(*) FROM migration.crewai_flow_state_extensions
-                WHERE flow_id IS NULL 
-                   OR client_account_id IS NULL 
+                WHERE flow_id IS NULL
+                   OR client_account_id IS NULL
                    OR engagement_id IS NULL
                    OR flow_type IS NULL
             """
@@ -816,7 +816,9 @@ class FlowRelationshipValidator:
             status = (
                 "✅"
                 if result.health_score >= 95
-                else "🟡" if result.health_score >= 85 else "🔴"
+                else "🟡"
+                if result.health_score >= 85
+                else "🔴"
             )
             print(f"{status} {result.check_name} ({result.table_name})")
             print(f"    Total Records: {result.total_records:,}")

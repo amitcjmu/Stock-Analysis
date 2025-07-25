@@ -1,6 +1,6 @@
 /**
  * Base Component Props
- * 
+ *
  * Fundamental component prop interfaces used across all components.
  */
 

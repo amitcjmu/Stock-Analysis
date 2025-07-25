@@ -588,9 +588,9 @@ async def verify_seeded_data():
             flow_details = await session.execute(
                 text(
                     """
-                SELECT flow_id, flow_name, status, progress_percentage, 
+                SELECT flow_id, flow_name, status, progress_percentage,
                        data_import_completed, attribute_mapping_completed, data_cleansing_completed
-                FROM discovery_flows 
+                FROM discovery_flows
                 WHERE is_mock = true
             """
                 )

@@ -11,7 +11,7 @@ const Editor = () => {
   const { isAuthenticated } = useAuth();
 
   // Fetch application data
-  const { 
+  const {
     data: application,
     isLoading,
     error
@@ -23,7 +23,7 @@ const Editor = () => {
   // Handle input changes
   const handleInputChange = (field: keyof Application, value: Application[keyof Application]) => {
     if (!applicationId) return;
-    
+
     updateApplication(
       {
         applicationId,
@@ -97,7 +97,7 @@ const Editor = () => {
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-xl font-semibold text-gray-900">Application Configuration</h2>
               </div>
-              
+
               <div className="p-6 space-y-8">
                 {/* Scope Section */}
                 <div className="border border-gray-200 rounded-lg p-6">

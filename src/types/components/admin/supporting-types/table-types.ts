@@ -1,6 +1,6 @@
 /**
  * Table Types
- * 
+ *
  * Table column definitions, pagination settings, and table-related
  * configuration types.
  */

@@ -34,7 +34,6 @@ class ClassificationHandler:
         issues: List[str],
         recommendations: List[str],
     ):
-
         classification_entry = {
             "id": item_id,
             "type": data_type,

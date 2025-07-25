@@ -27,9 +27,9 @@ async def analyze_flow():
         result = await db.execute(
             text(
                 """
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public' 
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
             ORDER BY table_name
         """
             )
@@ -44,8 +44,8 @@ async def analyze_flow():
                 col_result = await db.execute(
                     text(
                         f"""
-                    SELECT column_name 
-                    FROM information_schema.columns 
+                    SELECT column_name
+                    FROM information_schema.columns
                     WHERE table_name = '{table_name}'
                 """
                     )
@@ -117,7 +117,7 @@ async def analyze_flow():
                    data_import_completed, field_mapping_completed,
                    data_cleansing_completed, asset_inventory_completed,
                    field_mappings, created_at, updated_at
-            FROM discovery_flows 
+            FROM discovery_flows
             WHERE flow_id = :flow_id
         """
             ),
@@ -146,7 +146,7 @@ async def analyze_flow():
             text(
                 """
             SELECT id, status, created_at
-            FROM data_imports 
+            FROM data_imports
             WHERE master_flow_id = :flow_id
         """
             ),
@@ -164,7 +164,7 @@ async def analyze_flow():
                 raw_count = await db.execute(
                     text(
                         """
-                    SELECT COUNT(*) FROM raw_import_records 
+                    SELECT COUNT(*) FROM raw_import_records
                     WHERE data_import_id = :import_id
                 """
                     ),
@@ -179,10 +179,10 @@ async def analyze_flow():
         result = await db.execute(
             text(
                 """
-            SELECT flow_id, flow_status, flow_type, 
+            SELECT flow_id, flow_status, flow_type,
                    flow_persistence_data->>'field_mappings' as field_mappings,
                    created_at, updated_at
-            FROM crewai_flow_state_extensions 
+            FROM crewai_flow_state_extensions
             WHERE flow_id = :flow_id
         """
             ),
@@ -204,7 +204,7 @@ async def analyze_flow():
         result = await db.execute(
             text(
                 """
-            SELECT COUNT(*) FROM unified_discovery_flow_states 
+            SELECT COUNT(*) FROM unified_discovery_flow_states
             WHERE flow_state::text LIKE :flow_id_pattern
         """
             ),

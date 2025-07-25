@@ -90,7 +90,7 @@ export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}) => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     const baseUrl = `${protocol}//${host}/api/v1/ws`;
-    
+
     if (analysisId) {
       return `${baseUrl}/sixr/${analysisId}`;
     } else if (jobId) {
@@ -143,10 +143,10 @@ export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}) => {
           error: null,
           reconnectAttempts: 0
         }));
-        
+
         startHeartbeat();
         onConnect?.();
-        
+
         // Send initial subscription message
         if (wsRef.current?.readyState === WebSocket.OPEN) {
           wsRef.current.send(JSON.stringify({
@@ -160,7 +160,7 @@ export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}) => {
       wsRef.current.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
-          
+
           setState(prev => ({ ...prev, lastMessage: message }));
           onMessage?.(message);
 
@@ -171,13 +171,13 @@ export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}) => {
                 description: `Analysis for ${message.data.application_name} is ready for review.`
               });
               break;
-            
+
             case 'analysis_error':
               toast.error('Analysis failed', {
                 description: message.data.error || 'An error occurred during analysis.'
               });
               break;
-            
+
             case 'bulk_job_update': {
               const jobUpdate = message.data as BulkJobUpdate;
               if (jobUpdate.status === 'completed') {
@@ -191,7 +191,7 @@ export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}) => {
               }
               break;
             }
-            
+
             case 'agent_activity': {
               const activity = message.data as AgentActivity;
               if (activity.status === 'failed') {
@@ -218,14 +218,14 @@ export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}) => {
           isConnected: false,
           isConnecting: false
         }));
-        
+
         clearHeartbeat();
         onDisconnect?.();
 
         // Attempt to reconnect if enabled and not a clean close
         if (autoReconnect && event.code !== 1000 && state.reconnectAttempts < maxReconnectAttempts) {
           setState(prev => ({ ...prev, reconnectAttempts: prev.reconnectAttempts + 1 }));
-          
+
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
           }, reconnectInterval);
@@ -259,12 +259,12 @@ export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}) => {
   const disconnect = useCallback(() => {
     clearReconnectTimeout();
     clearHeartbeat();
-    
+
     if (wsRef.current) {
       wsRef.current.close(1000, 'Manual disconnect');
       wsRef.current = null;
     }
-    
+
     setState(prev => ({
       ...prev,
       isConnected: false,
@@ -304,7 +304,7 @@ export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}) => {
   // Auto-connect on mount and when dependencies change
   useEffect(() => {
     connect();
-    
+
     return () => {
       disconnect();
     };
@@ -323,20 +323,20 @@ export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}) => {
     isConnecting: state.isConnecting,
     error: state.error,
     reconnectAttempts: state.reconnectAttempts,
-    
+
     // Last received message
     lastMessage: state.lastMessage,
-    
+
     // Connection controls
     connect,
     disconnect,
-    
+
     // Message handling
     sendMessage,
     subscribe,
     unsubscribe,
-    
+
     // Connection info
     canReconnect: autoReconnect && state.reconnectAttempts < maxReconnectAttempts
   };
-}; 
+};

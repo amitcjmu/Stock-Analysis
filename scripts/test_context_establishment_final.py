@@ -15,7 +15,7 @@ DEMO_TOKEN = "demo_token"
 def test_authentication():
     """Test authentication with demo token"""
     print("🔐 Testing authentication...")
-    
+
     response = requests.get(
         f"{BASE_URL}/api/v1/me",
         headers={
@@ -23,7 +23,7 @@ def test_authentication():
             "Content-Type": "application/json"
         }
     )
-    
+
     if response.status_code == 200:
         data = response.json()
         print("✅ Authentication successful")
@@ -38,7 +38,7 @@ def test_authentication():
 def test_context_clients():
     """Test context establishment clients endpoint"""
     print("\n🔍 Testing context/clients endpoint...")
-    
+
     response = requests.get(
         f"{BASE_URL}/api/v1/context/clients",
         headers={
@@ -46,7 +46,7 @@ def test_context_clients():
             "Content-Type": "application/json"
         }
     )
-    
+
     if response.status_code == 200:
         data = response.json()
         print("✅ Context clients endpoint successful")
@@ -61,7 +61,7 @@ def test_context_clients():
 def test_context_engagements(client_id):
     """Test context establishment engagements endpoint"""
     print(f"\n🔍 Testing context/engagements endpoint for client {client_id}...")
-    
+
     response = requests.get(
         f"{BASE_URL}/api/v1/context/engagements",
         params={"client_id": client_id},
@@ -70,7 +70,7 @@ def test_context_engagements(client_id):
             "Content-Type": "application/json"
         }
     )
-    
+
     if response.status_code == 200:
         data = response.json()
         print("✅ Context engagements endpoint successful")
@@ -85,7 +85,7 @@ def test_context_engagements(client_id):
 def test_operational_endpoint_security():
     """Test that operational endpoints properly require engagement context"""
     print("\n🔒 Testing operational endpoint security...")
-    
+
     # Test without engagement header (should fail)
     response = requests.get(
         f"{BASE_URL}/api/v1/data-import/latest",
@@ -96,7 +96,7 @@ def test_operational_endpoint_security():
             "X-User-Id": "44444444-4444-4444-4444-444444444444"
         }
     )
-    
+
     if response.status_code == 400:
         print("✅ Security working: Operational endpoint properly requires engagement context")
         print(f"   Status: {response.status_code} - {response.json().get('detail', 'No detail')}")
@@ -107,7 +107,7 @@ def test_operational_endpoint_security():
 def test_operational_endpoint_with_context():
     """Test operational endpoint with proper context"""
     print("\n✅ Testing operational endpoint with full context...")
-    
+
     # Test with full context headers (should work or give 404 for no data)
     response = requests.get(
         f"{BASE_URL}/api/v1/data-import/latest",
@@ -119,7 +119,7 @@ def test_operational_endpoint_with_context():
             "X-Engagement-Id": "3362a198-c917-459c-be10-b10e19b1810e"
         }
     )
-    
+
     if response.status_code in [200, 404]:
         print("✅ Operational endpoint working with context")
         print(f"   Status: {response.status_code} (404 is expected - no data uploaded yet)")
@@ -130,29 +130,29 @@ def main():
     """Main test function"""
     print("🚀 Starting Context Establishment Test Suite")
     print("=" * 60)
-    
+
     # Test 1: Authentication
     auth_data = test_authentication()
     if not auth_data:
         print("❌ Authentication failed, cannot continue")
         sys.exit(1)
-    
+
     # Test 2: Context clients endpoint
     clients = test_context_clients()
     if not clients:
         print("❌ No clients found, cannot continue")
         sys.exit(1)
-    
+
     # Test 3: Context engagements endpoint
     first_client_id = clients[0]['id']
     engagements = test_context_engagements(first_client_id)
-    
+
     # Test 4: Security validation
     test_operational_endpoint_security()
-    
+
     # Test 5: Operational endpoint with context
     test_operational_endpoint_with_context()
-    
+
     print("\n" + "=" * 60)
     print("🎉 Context Establishment Test Suite Complete!")
     print("\n📊 Summary:")
@@ -161,7 +161,7 @@ def main():
     print(f"   ✅ Context Engagements: {len(engagements)} engagements found")
     print("   ✅ Security: Engagement context properly enforced")
     print("   ✅ Architecture: Context establishment endpoints working")
-    
+
     print("\n🎯 Frontend Integration:")
     print("   1. Use /api/v1/context/clients to populate client dropdown")
     print("   2. Use /api/v1/context/engagements?client_id=X to populate engagement dropdown")
@@ -169,4 +169,4 @@ def main():
     print("   4. Operational endpoints properly require full context for security")
 
 if __name__ == "__main__":
-    main() 
+    main()

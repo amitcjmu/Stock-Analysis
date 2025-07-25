@@ -130,7 +130,7 @@ export const ComponentIdentificationPanel: React.FC<ComponentIdentificationPanel
             </div>
           </div>
 
-          <Button 
+          <Button
             onClick={addComponent}
             disabled={!newComponent.component_name || !newComponent.component_type}
             className="w-full"
@@ -247,8 +247,8 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
             <Input
               placeholder="e.g., Database, External API"
               value={editData.dependencies?.join(', ') || ''}
-              onChange={(e) => setEditData({ 
-                ...editData, 
+              onChange={(e) => setEditData({
+                ...editData,
                 dependencies: e.target.value.split(',').map(d => d.trim()).filter(Boolean)
               })}
             />

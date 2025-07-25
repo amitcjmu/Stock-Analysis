@@ -6,7 +6,7 @@ import { Sparkles, TrendingUp, RefreshCw } from 'lucide-react'
 
 const Modernize = () => {
   const [selectedCategory, setSelectedCategory] = useState('containerization');
-  
+
   const modernizationOpportunities = [
     {
       id: 'M001',
@@ -122,8 +122,8 @@ const Modernize = () => {
                       {metric.total && (
                         <div className="mt-2">
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full" 
+                            <div
+                              className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full"
                               style={{ width: `${metric.percentage}%` }}
                             ></div>
                           </div>
@@ -147,7 +147,7 @@ const Modernize = () => {
                     const Icon = pattern.icon;
                     const isSelected = selectedCategory === pattern.category;
                     return (
-                      <div 
+                      <div
                         key={pattern.category}
                         className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
                           isSelected ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-gray-300'
@@ -165,8 +165,8 @@ const Modernize = () => {
                             <span className="font-medium">{pattern.completed}/{pattern.applications}</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full" 
+                            <div
+                              className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full"
                               style={{ width: `${(pattern.completed / pattern.applications) * 100}%` }}
                             ></div>
                           </div>

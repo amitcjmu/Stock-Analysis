@@ -51,7 +51,7 @@ interface MappingQuality {
   learning_applied: boolean;
 }
 
-const TrainingProgressTab: React.FC<TrainingProgressTabProps> = ({ 
+const TrainingProgressTab: React.FC<TrainingProgressTabProps> = ({
   className = "",
   fieldMappings = []
 }) => {
@@ -82,10 +82,10 @@ const TrainingProgressTab: React.FC<TrainingProgressTabProps> = ({
     const aiSuccessful = fieldMappings.filter(m => m.status === 'approved' && m.confidence >= 0.8).length;
     const humanIntervention = fieldMappings.filter(m => m.status === 'pending' && m.confidence < 0.7).length;
     const pendingReview = fieldMappings.filter(m => m.status === 'pending').length;
-    
+
     // Calculate average confidence as accuracy score
-    const avgConfidence = fieldMappings.length > 0 
-      ? fieldMappings.reduce((sum, m) => sum + (m.confidence || 0), 0) / fieldMappings.length 
+    const avgConfidence = fieldMappings.length > 0
+      ? fieldMappings.reduce((sum, m) => sum + (m.confidence || 0), 0) / fieldMappings.length
       : 0;
 
     // Confidence distribution
@@ -119,7 +119,7 @@ const TrainingProgressTab: React.FC<TrainingProgressTabProps> = ({
   const fetchTrainingProgress = async () => {
     try {
       setIsLoading(true);
-      
+
       // Transform field mappings to mapping quality data
       if (fieldMappings && fieldMappings.length > 0) {
         const qualityData = fieldMappings.map(mapping => ({
@@ -130,10 +130,10 @@ const TrainingProgressTab: React.FC<TrainingProgressTabProps> = ({
           intervention_reason: mapping.confidence < 0.7 ? 'Low confidence mapping' : undefined,
           learning_applied: mapping.status === 'approved'
         }));
-        
+
         setMappingQuality(qualityData);
       }
-      
+
     } catch (err) {
       console.error('Error fetching training progress:', err);
       setError('Failed to load training progress');
@@ -247,8 +247,8 @@ const TrainingProgressTab: React.FC<TrainingProgressTabProps> = ({
             <div className="flex items-center">
               <span className="w-16 text-sm text-gray-600">High</span>
               <div className="flex-1 mx-4 bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-green-500 h-2 rounded-full" 
+                <div
+                  className="bg-green-500 h-2 rounded-full"
                   style={{ width: `${(trainingMetrics.confidence_distribution.high / trainingMetrics.total_mappings) * 100}%` }}
                 ></div>
               </div>
@@ -257,8 +257,8 @@ const TrainingProgressTab: React.FC<TrainingProgressTabProps> = ({
             <div className="flex items-center">
               <span className="w-16 text-sm text-gray-600">Medium</span>
               <div className="flex-1 mx-4 bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-yellow-500 h-2 rounded-full" 
+                <div
+                  className="bg-yellow-500 h-2 rounded-full"
                   style={{ width: `${(trainingMetrics.confidence_distribution.medium / trainingMetrics.total_mappings) * 100}%` }}
                 ></div>
               </div>
@@ -267,8 +267,8 @@ const TrainingProgressTab: React.FC<TrainingProgressTabProps> = ({
             <div className="flex items-center">
               <span className="w-16 text-sm text-gray-600">Low</span>
               <div className="flex-1 mx-4 bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-red-500 h-2 rounded-full" 
+                <div
+                  className="bg-red-500 h-2 rounded-full"
                   style={{ width: `${(trainingMetrics.confidence_distribution.low / trainingMetrics.total_mappings) * 100}%` }}
                 ></div>
               </div>
@@ -287,8 +287,8 @@ const TrainingProgressTab: React.FC<TrainingProgressTabProps> = ({
                 <span className="text-sm text-green-600">+{Math.round(trainingMetrics.learning_improvements.pattern_recognition * 100)}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-green-500 h-2 rounded-full" 
+                <div
+                  className="bg-green-500 h-2 rounded-full"
                   style={{ width: `${trainingMetrics.learning_improvements.pattern_recognition * 100}%` }}
                 ></div>
               </div>
@@ -299,8 +299,8 @@ const TrainingProgressTab: React.FC<TrainingProgressTabProps> = ({
                 <span className="text-sm text-green-600">+{Math.round(trainingMetrics.learning_improvements.field_matching * 100)}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-green-500 h-2 rounded-full" 
+                <div
+                  className="bg-green-500 h-2 rounded-full"
                   style={{ width: `${trainingMetrics.learning_improvements.field_matching * 100}%` }}
                 ></div>
               </div>
@@ -311,8 +311,8 @@ const TrainingProgressTab: React.FC<TrainingProgressTabProps> = ({
                 <span className="text-sm text-green-600">+{Math.round(trainingMetrics.learning_improvements.confidence_calibration * 100)}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-green-500 h-2 rounded-full" 
+                <div
+                  className="bg-green-500 h-2 rounded-full"
                   style={{ width: `${trainingMetrics.learning_improvements.confidence_calibration * 100}%` }}
                 ></div>
               </div>
@@ -396,4 +396,4 @@ const TrainingProgressTab: React.FC<TrainingProgressTabProps> = ({
   );
 };
 
-export default TrainingProgressTab; 
+export default TrainingProgressTab;
