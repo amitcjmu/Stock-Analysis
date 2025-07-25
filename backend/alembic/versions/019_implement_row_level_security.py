@@ -65,18 +65,10 @@ def upgrade() -> None:
     )
 
     # 2. Grant necessary permissions to application_role
-    op.execute(
-        """
-        -- Grant schema usage
-        GRANT USAGE ON SCHEMA migration TO application_role;
-
-        -- Grant table permissions for all multi-tenant tables
-        GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA migration TO application_role;
-
-        -- Grant sequence permissions
-        GRANT USAGE ON ALL SEQUENCES IN SCHEMA migration TO application_role;
-    """
-    )
+    # Split into separate statements for asyncpg compatibility
+    op.execute("GRANT USAGE ON SCHEMA migration TO application_role")
+    op.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA migration TO application_role")
+    op.execute("GRANT USAGE ON ALL SEQUENCES IN SCHEMA migration TO application_role")
 
     # 3. Enable RLS on all multi-tenant tables
     print("🔒 Enabling Row-Level Security on multi-tenant tables...")

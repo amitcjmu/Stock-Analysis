@@ -21,18 +21,15 @@ def table_exists(table_name):
     """Check if a table exists in the database"""
     bind = op.get_bind()
     try:
-        result = bind.execute(
-            sa.text(
-                """
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_schema = 'migration' 
-                    AND table_name = :table_name
-                )
-                """
-            ),
-            {"table_name": table_name},
-        ).scalar()
+        # Use direct SQL to avoid asyncpg parameter issues
+        sql = f"""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'migration' 
+                AND table_name = '{table_name}'
+            )
+        """
+        result = bind.execute(sa.text(sql)).scalar()
         return result
     except Exception as e:
         print(f"Error checking if table {table_name} exists: {e}")
@@ -51,19 +48,16 @@ def create_table_if_not_exists(table_name, *columns, **kwargs):
 def index_exists(index_name, table_name):
     """Check if an index exists on a table"""
     bind = op.get_bind()
-    result = bind.execute(
-        sa.text(
-            """
-            SELECT EXISTS (
-                SELECT FROM pg_indexes 
-                WHERE schemaname = 'migration' 
-                AND tablename = :table_name 
-                AND indexname = :index_name
-            )
-            """
-        ),
-        {"table_name": table_name, "index_name": index_name},
-    ).scalar()
+    # Use direct SQL to avoid asyncpg parameter issues
+    sql = f"""
+        SELECT EXISTS (
+            SELECT FROM pg_indexes 
+            WHERE schemaname = 'migration' 
+            AND tablename = '{table_name}' 
+            AND indexname = '{index_name}'
+        )
+    """
+    result = bind.execute(sa.text(sql)).scalar()
     return result
 
 
