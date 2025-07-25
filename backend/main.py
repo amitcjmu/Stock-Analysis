@@ -18,12 +18,10 @@ from app.core.rich_config import configure_rich_for_backend
 configure_rich_for_backend()
 
 import logging
-import os
 import uuid
 from contextlib import asynccontextmanager
 
 import uvicorn
-from app.core.context import RequestContext, get_current_context_dependency
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -97,9 +95,8 @@ async def lifespan(app: FastAPI):
         if flow_init_results.get("success", False):
             logger.info("✅ Master Flow Orchestrator initialized successfully")
         else:
-            logger.warning(
-                f"Flow initialization completed with issues: {flow_init_results.get('initialization', {}).get('errors', [])}"
-            )
+            errors = flow_init_results.get("initialization", {}).get("errors", [])
+            logger.warning(f"Flow initialization completed with issues: {errors}")
     except Exception as e:
         logger.warning(f"Flow initialization warning: {e}", exc_info=True)
         # Don't fail startup on flow initialization issues
@@ -151,10 +148,14 @@ async def lifespan(app: FastAPI):
                         logger.warning(f"Database initialization warning: {e}")
                         # Don't fail startup on initialization issues
             else:
-                logger.warning("⚠️⚠️⚠️ Database connection test failed, but continuing...")
+                logger.warning(
+                    "⚠️⚠️⚠️ Database connection test failed, but continuing..."
+                )
 
         except Exception as e:
-            logger.warning(f"⚠️⚠️⚠️ Database connection test failed: {e}", exc_info=True)
+            logger.warning(
+                f"⚠️⚠️⚠️ Database connection test failed: {e}", exc_info=True
+            )
             # Don't fail startup on database connection issues
 
     # Start flow health monitor
@@ -271,7 +272,7 @@ except Exception as e:
 # Try to import database components
 try:
     from app.core.database import SQLALCHEMY_AVAILABLE, Base, engine
-    from app.models.data_import import *
+    import app.models.data_import  # noqa: F401
 
     DATABASE_ENABLED = SQLALCHEMY_AVAILABLE
     logger.info("✅ Database components loaded")
@@ -392,6 +393,7 @@ ENABLE_MIDDLEWARE = True  # Production setting
 if ENABLE_MIDDLEWARE:
     try:
         # Import request tracking middleware
+        from app.core.context import RequestContext, get_current_context_dependency
         from app.core.middleware import ContextMiddleware, RequestLoggingMiddleware
         from app.middleware.adaptive_rate_limit_middleware import (
             AdaptiveRateLimitMiddleware,
@@ -401,7 +403,6 @@ if ENABLE_MIDDLEWARE:
             SecurityHeadersMiddleware,
         )
         from starlette.middleware.base import BaseHTTPMiddleware
-        from starlette.requests import Request
 
         class TraceIDMiddleware(BaseHTTPMiddleware):
             """Middleware to add trace ID to all requests"""
@@ -429,6 +430,13 @@ if ENABLE_MIDDLEWARE:
         # CRITICAL: Middleware is executed in REVERSE order of addition.
         # Actual execution order will be: CORS -> Context -> RequestLogging
         # This ensures CORS headers are added to ALL responses, including errors
+
+        # Import tenant context middleware for RLS
+        from app.middleware.tenant_context import TenantContextMiddleware
+
+        # Add tenant context middleware (for Row-Level Security)
+        app.add_middleware(TenantContextMiddleware)
+        logger.info("✅ Tenant context middleware added for RLS")
 
         # Add context middleware with app-specific additional exempt paths
         # Core paths (health, auth, docs) are handled by middleware defaults
