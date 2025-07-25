@@ -20,6 +20,38 @@ branch_labels = None
 depends_on = None
 
 
+def table_exists(table_name):
+    """Check if a table exists in the database"""
+    bind = op.get_bind()
+    try:
+        # Use parameterized query with proper escaping
+        # Note: table_name is a string literal value, not an identifier
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables
+                    WHERE table_schema = 'migration'
+                    AND table_name = :table_name
+                )
+            """
+            ).bindparams(table_name=table_name)
+        ).scalar()
+        return result
+    except Exception as e:
+        print(f"Error checking if table {table_name} exists: {e}")
+        # If we get an error, assume table exists to avoid trying to create it
+        return True
+
+
+def create_table_if_not_exists(table_name, *columns, **kwargs):
+    """Create a table only if it doesn't already exist"""
+    if not table_exists(table_name):
+        op.create_table(table_name, *columns, **kwargs)
+    else:
+        print(f"Table {table_name} already exists, skipping creation")
+
+
 def upgrade() -> None:
     """Add security constraints and data protection measures"""
 
@@ -180,7 +212,7 @@ def upgrade() -> None:
     )
 
     # Create PII data tracking table
-    op.create_table(
+    create_table_if_not_exists(
         "pii_data_registry",
         sa.Column(
             "id",
