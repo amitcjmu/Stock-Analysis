@@ -17,9 +17,76 @@ branch_labels = None
 depends_on = None
 
 
+def table_exists(table_name):
+    """Check if a table exists in the database"""
+    bind = op.get_bind()
+    try:
+        # Use parameterized query with proper escaping
+        # Note: table_name is a string literal value, not an identifier
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables
+                    WHERE table_schema = 'migration'
+                    AND table_name = :table_name
+                )
+            """
+            ).bindparams(table_name=table_name)
+        ).scalar()
+        return result
+    except Exception as e:
+        print(f"Error checking if table {table_name} exists: {e}")
+        # If we get an error, assume table exists to avoid trying to create it
+        return True
+
+
+def create_table_if_not_exists(table_name, *columns, **kwargs):
+    """Create a table only if it doesn't already exist"""
+    if not table_exists(table_name):
+        op.create_table(table_name, *columns, **kwargs)
+    else:
+        print(f"Table {table_name} already exists, skipping creation")
+
+
+def index_exists(index_name, table_name):
+    """Check if an index exists on a table"""
+    bind = op.get_bind()
+    try:
+        # Use parameterized query with proper escaping
+        # Note: table_name and index_name are string literal values, not identifiers
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT FROM pg_indexes
+                    WHERE schemaname = 'migration'
+                    AND tablename = :table_name
+                    AND indexname = :index_name
+                )
+            """
+            ).bindparams(table_name=table_name, index_name=index_name)
+        ).scalar()
+        return result
+    except Exception as e:
+        print(f"Error checking if index {index_name} exists on table {table_name}: {e}")
+        # If we get an error, assume index exists to avoid trying to create it
+        return True
+
+
+def create_index_if_not_exists(index_name, table_name, columns, **kwargs):
+    """Create an index only if it doesn't already exist"""
+    if table_exists(table_name) and not index_exists(index_name, table_name):
+        op.create_index(index_name, table_name, columns, **kwargs)
+    else:
+        print(
+            f"Index {index_name} already exists or table doesn't exist, skipping creation"
+        )
+
+
 def upgrade() -> None:
     # Create collection_gap_analysis table
-    op.create_table(
+    create_table_if_not_exists(
         "collection_gap_analysis",
         sa.Column("id", sa.UUID(), nullable=False),
         sa.Column("client_account_id", sa.UUID(), nullable=False),
@@ -117,25 +184,25 @@ def upgrade() -> None:
     )
 
     # Create indexes for collection_gap_analysis
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_collection_gap_analysis_id"),
         "collection_gap_analysis",
         ["id"],
         unique=False,
     )
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_collection_gap_analysis_client_account_id"),
         "collection_gap_analysis",
         ["client_account_id"],
         unique=False,
     )
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_collection_gap_analysis_engagement_id"),
         "collection_gap_analysis",
         ["engagement_id"],
         unique=False,
     )
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_collection_gap_analysis_collection_flow_id"),
         "collection_gap_analysis",
         ["collection_flow_id"],
@@ -143,7 +210,7 @@ def upgrade() -> None:
     )
 
     # Create adaptive_questionnaires table
-    op.create_table(
+    create_table_if_not_exists(
         "adaptive_questionnaires",
         sa.Column("id", sa.UUID(), nullable=False),
         sa.Column("client_account_id", sa.UUID(), nullable=False),
@@ -234,25 +301,25 @@ def upgrade() -> None:
     )
 
     # Create indexes for adaptive_questionnaires
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_adaptive_questionnaires_id"),
         "adaptive_questionnaires",
         ["id"],
         unique=False,
     )
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_adaptive_questionnaires_client_account_id"),
         "adaptive_questionnaires",
         ["client_account_id"],
         unique=False,
     )
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_adaptive_questionnaires_engagement_id"),
         "adaptive_questionnaires",
         ["engagement_id"],
         unique=False,
     )
-    op.create_index(
+    create_index_if_not_exists(
         op.f("ix_adaptive_questionnaires_template_type"),
         "adaptive_questionnaires",
         ["template_type"],
