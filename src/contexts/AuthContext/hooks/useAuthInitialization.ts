@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { getUserContext } from '@/lib/api/context';
 import type { User, Client, Engagement, Flow } from '../types';
-import { tokenStorage } from '../storage';
+import { tokenStorage, clearInvalidContextData } from '../storage';
 
 interface UseAuthInitializationProps {
   setUser: (user: User | null) => void;
@@ -96,6 +96,10 @@ export const useAuthInitialization = ({
           return;
         } catch (error) {
           console.warn('⚠️ Failed to restore context, clearing session and continuing with full init:', error);
+          // Clear invalid context data from localStorage
+          clearInvalidContextData();
+          setClient(null);
+          setEngagement(null);
           // Clear session state and continue with full initialization
           setInitializationState(false);
           globalAuthInitialized = false;

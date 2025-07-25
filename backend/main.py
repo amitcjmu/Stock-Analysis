@@ -365,10 +365,10 @@ def get_cors_origins():
     if hasattr(settings, "allowed_origins_list"):
         cors_origins.extend(settings.allowed_origins_list)
 
-    # Ensure Vercel domain is always included if we're on Railway
+    # Ensure Vercel domain is always included if we're on Railway or in production
     if (
         os.getenv("DATABASE_URL") and "railway.app" in os.getenv("DATABASE_URL", "")
-    ) or os.getenv("PORT"):
+    ) or os.getenv("PORT") or os.getenv("RAILWAY_ENVIRONMENT") or env == "production":
         vercel_domain = "https://aiforce-assess.vercel.app"
         if vercel_domain not in cors_origins:
             cors_origins.append(vercel_domain)

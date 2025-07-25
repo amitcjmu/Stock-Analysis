@@ -86,6 +86,30 @@ def create_index_if_not_exists(index_name, table_name, columns, **kwargs):
         )
 
 
+def constraint_exists(constraint_name, table_name):
+    """Check if a constraint exists"""
+    bind = op.get_bind()
+    try:
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.table_constraints
+                    WHERE table_schema = 'migration'
+                    AND constraint_schema = 'migration'
+                    AND table_name = :table_name
+                    AND constraint_name = :constraint_name
+                )
+            """
+            ).bindparams(table_name=table_name, constraint_name=constraint_name)
+        ).scalar()
+        return result
+    except Exception as e:
+        print(f"Error checking if constraint {constraint_name} exists: {e}")
+        # If we get an error, assume constraint exists
+        return True
+
+
 def upgrade() -> None:
     # Create asset_dependencies table
     create_table_if_not_exists(
@@ -131,12 +155,13 @@ def upgrade() -> None:
     )
 
     # Create unique constraint to prevent duplicate dependencies
-    op.create_unique_constraint(
-        "uq_asset_dependencies_asset_depends_on",
-        "asset_dependencies",
-        ["asset_id", "depends_on_asset_id"],
-        schema="migration",
-    )
+    if not constraint_exists("uq_asset_dependencies_asset_depends_on", "asset_dependencies"):
+        op.create_unique_constraint(
+            "uq_asset_dependencies_asset_depends_on",
+            "asset_dependencies",
+            ["asset_id", "depends_on_asset_id"],
+            schema="migration",
+        )
 
 
 def downgrade() -> None:

@@ -166,6 +166,14 @@ export const getStoredSessionData = (): ExternalSessionData | null => {
   return null;
 };
 
+export const clearInvalidContextData = () => {
+  console.log('🧹 Clearing invalid context data from localStorage');
+  localStorage.removeItem('auth_client');
+  localStorage.removeItem('auth_engagement');
+  localStorage.removeItem('auth_client_id');
+  localStorage.removeItem('user_context_selection');
+};
+
 export const clearAllStoredData = () => {
   localStorage.removeItem('auth_token');
   localStorage.removeItem('auth_user');

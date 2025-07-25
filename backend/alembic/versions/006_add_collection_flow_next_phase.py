@@ -18,9 +18,21 @@ depends_on = None
 
 def upgrade():
     # Add next_phase column to collection_flows table
-    op.add_column(
-        "collection_flows", sa.Column("next_phase", sa.String(100), nullable=True)
+    # Check if column already exists
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_schema = 'migration'
+            AND table_name = 'collection_flows' 
+            AND column_name = 'next_phase'
+        """)
     )
+    if not result.fetchone():
+        op.add_column(
+            "collection_flows", sa.Column("next_phase", sa.String(100), nullable=True)
+        )
 
 
 def downgrade():

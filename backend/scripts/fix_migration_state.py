@@ -31,7 +31,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Expected migration version (the current comprehensive schema)
-EXPECTED_MIGRATION_VERSION = "014_fix_remaining_agent_foreign_keys"
+EXPECTED_MIGRATION_VERSION = "019_implement_row_level_security"
 
 # Expected core tables that should exist in a properly migrated database
 EXPECTED_CORE_TABLES = {

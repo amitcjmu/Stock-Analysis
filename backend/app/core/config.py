@@ -164,7 +164,7 @@ class Settings(BaseSettings):
     CREWAI_FLOW_TTL_HOURS: int = Field(default=1, env="CREWAI_FLOW_TTL_HOURS")
 
     model_config = ConfigDict(
-        env_file=".env",
+        env_file=".env" if os.getenv("RAILWAY_ENVIRONMENT") is None else None,
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",  # Ignore extra environment variables

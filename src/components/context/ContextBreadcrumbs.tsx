@@ -131,12 +131,19 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
           variant: 'destructive',
         });
 
-        // If client doesn't exist, suggest clearing cache
+        // If client doesn't exist, clear invalid context data
         if (status === 404 && errorMessage.includes('Client not found')) {
+          console.warn('🧹 Client not found, clearing invalid context data');
+          // Clear invalid context from localStorage
+          localStorage.removeItem('auth_client');
+          localStorage.removeItem('auth_engagement');
+          localStorage.removeItem('auth_client_id');
+          localStorage.removeItem('user_context_selection');
+          
           toast({
             title: 'Client Not Found',
             description:
-              'The selected client no longer exists. Try refreshing the page or clearing your browser cache.',
+              'The selected client no longer exists. Context has been cleared. Please select a new client.',
             variant: 'destructive',
             duration: 10000, // Show for 10 seconds
             action: {

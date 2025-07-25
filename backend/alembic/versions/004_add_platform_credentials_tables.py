@@ -492,7 +492,8 @@ def upgrade() -> None:
                 """
                 SELECT EXISTS (
                     SELECT FROM information_schema.table_constraints 
-                    WHERE constraint_schema = 'migration' 
+                    WHERE table_schema = 'migration'
+            AND constraint_schema = 'migration' 
                     AND table_name = :table_name 
                     AND constraint_name = :constraint_name
                     AND constraint_type = 'FOREIGN KEY'
