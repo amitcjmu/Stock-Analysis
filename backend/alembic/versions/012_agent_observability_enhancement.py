@@ -17,11 +17,78 @@ branch_labels = None
 depends_on = None
 
 
+def table_exists(table_name):
+    """Check if a table exists in the database"""
+    bind = op.get_bind()
+    try:
+        # Use parameterized query with proper escaping
+        # Note: table_name is a string literal value, not an identifier
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables
+                    WHERE table_schema = 'migration'
+                    AND table_name = :table_name
+                )
+            """
+            ).bindparams(table_name=table_name)
+        ).scalar()
+        return result
+    except Exception as e:
+        print(f"Error checking if table {table_name} exists: {e}")
+        # If we get an error, assume table exists to avoid trying to create it
+        return True
+
+
+def create_table_if_not_exists(table_name, *columns, **kwargs):
+    """Create a table only if it doesn't already exist"""
+    if not table_exists(table_name):
+        op.create_table(table_name, *columns, **kwargs)
+    else:
+        print(f"Table {table_name} already exists, skipping creation")
+
+
+def index_exists(index_name, table_name):
+    """Check if an index exists on a table"""
+    bind = op.get_bind()
+    try:
+        # Use parameterized query with proper escaping
+        # Note: table_name and index_name are string literal values, not identifiers
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT FROM pg_indexes
+                    WHERE schemaname = 'migration'
+                    AND tablename = :table_name
+                    AND indexname = :index_name
+                )
+            """
+            ).bindparams(table_name=table_name, index_name=index_name)
+        ).scalar()
+        return result
+    except Exception as e:
+        print(f"Error checking if index {index_name} exists on table {table_name}: {e}")
+        # If we get an error, assume index exists to avoid trying to create it
+        return True
+
+
+def create_index_if_not_exists(index_name, table_name, columns, **kwargs):
+    """Create an index only if it doesn't already exist"""
+    if table_exists(table_name) and not index_exists(index_name, table_name):
+        op.create_index(index_name, table_name, columns, **kwargs)
+    else:
+        print(
+            f"Index {index_name} already exists or table doesn't exist, skipping creation"
+        )
+
+
 def upgrade():
     """Create agent observability tables for enhanced monitoring and performance tracking"""
 
     # Create agent_task_history table for detailed task tracking
-    op.create_table(
+    create_table_if_not_exists(
         "agent_task_history",
         sa.Column(
             "id",
@@ -187,7 +254,8 @@ def upgrade():
             "duration_seconds >= 0", name="chk_agent_task_history_duration_seconds"
         ),
         sa.CheckConstraint(
-            "status IN ('pending', 'starting', 'running', 'thinking', 'waiting_llm', 'processing_response', 'completed', 'failed', 'timeout')",
+            "status IN ('pending', 'starting', 'running', 'thinking', 'waiting_llm', "
+            "'processing_response', 'completed', 'failed', 'timeout')",
             name="chk_agent_task_history_status",
         ),
         sa.CheckConstraint(
@@ -229,7 +297,7 @@ def upgrade():
     )
 
     # Create agent_performance_daily table for aggregated metrics
-    op.create_table(
+    create_table_if_not_exists(
         "agent_performance_daily",
         sa.Column(
             "id",
@@ -378,7 +446,7 @@ def upgrade():
     )
 
     # Create agent_discovered_patterns table (new table as it doesn't exist)
-    op.create_table(
+    create_table_if_not_exists(
         "agent_discovered_patterns",
         sa.Column(
             "id",
@@ -600,13 +668,15 @@ def upgrade():
 
     # Add comment to tables
     op.execute(
-        "COMMENT ON TABLE agent_task_history IS 'Detailed history of all agent task executions for performance tracking and analysis';"
+        "COMMENT ON TABLE agent_task_history IS "
+        "'Detailed history of all agent task executions for performance tracking and analysis';"
     )
     op.execute(
         "COMMENT ON TABLE agent_performance_daily IS 'Daily aggregated performance metrics for each agent';"
     )
     op.execute(
-        "COMMENT ON TABLE agent_discovered_patterns IS 'Patterns discovered by agents during task execution for learning and optimization';"
+        "COMMENT ON TABLE agent_discovered_patterns IS "
+        "'Patterns discovered by agents during task execution for learning and optimization';"
     )
 
 
