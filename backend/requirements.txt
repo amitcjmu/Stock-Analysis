@@ -47,7 +47,7 @@ ecdsa==0.19.1
 embedchain==0.1.128
 et_xmlfile==2.0.0
 executing==2.2.0
-fastapi==0.116.0
+fastapi==0.116.1
 fastavro==1.11.1
 filelock==3.18.0
 flatbuffers==25.2.10

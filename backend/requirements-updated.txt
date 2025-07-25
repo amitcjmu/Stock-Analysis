@@ -1,5 +1,5 @@
 # FastAPI and ASGI server - UPDATED FOR SECURITY
-fastapi==0.115.14  # Updated from >=0.104.0
+fastapi==0.116.1  # Updated from >=0.104.0 - supports Starlette 0.47.2
 uvicorn[standard]==0.35.0  # Updated from >=0.24.0
 starlette==0.47.2  # Updated from >=0.27.0
 python-multipart==0.0.20  # Updated from >=0.0.6

@@ -9,6 +9,10 @@ This branch contains security updates for the following vulnerable dependencies:
   - Fixes security vulnerability in versions < 0.47.2
   - Already updated in all requirements*.txt files
 
+- **fastapi**: Updated to 0.116.1 (from 0.115.14 and 0.116.0)
+  - Required to support Starlette 0.47.2
+  - FastAPI 0.116.1 supports Starlette >=0.40.0,<0.48.0
+
 - **aiohttp**: Already at 3.12.14 (no update needed)
   - Was already at the patched version
 
