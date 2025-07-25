@@ -43,7 +43,11 @@ def get_url():
         # Ensure it uses sync driver for migrations (remove asyncpg)
         if database_url.startswith("postgresql+asyncpg://"):
             database_url = database_url.replace(
-                "postgresql+asyncpg://", "postgresql://", 1
+                "postgresql+asyncpg://", "postgresql+psycopg://", 1
+            )
+        elif database_url.startswith("postgresql://"):
+            database_url = database_url.replace(
+                "postgresql://", "postgresql+psycopg://", 1
             )
         return database_url
 
@@ -55,7 +59,7 @@ def get_url():
     db_name = os.getenv("POSTGRES_DB", "migration_db")
 
     # Use psycopg (sync) for migrations instead of asyncpg
-    return f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    return f"postgresql+psycopg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 
 def run_migrations_offline() -> None:
