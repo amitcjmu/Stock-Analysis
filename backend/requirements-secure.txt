@@ -24,7 +24,7 @@ python-multipart>=0.0.20
 fastapi>=0.115.14
 uvicorn[standard]>=0.35.0
 httpx>=0.28.1
-starlette>=0.46.2
+starlette==0.47.2
 
 # Database
 psycopg2-binary>=2.9.10  # PostgreSQL 16 security updates

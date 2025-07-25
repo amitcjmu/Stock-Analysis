@@ -4,7 +4,7 @@
 # FastAPI and ASGI server
 fastapi==0.115.14  # Security update
 uvicorn[standard]>=0.24.0
-starlette>=0.27.0
+starlette==0.47.2
 python-multipart>=0.0.6
 
 # Database
