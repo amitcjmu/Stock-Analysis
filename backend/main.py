@@ -665,6 +665,9 @@ async def health_check():
 
 # WebSocket endpoint removed - using HTTP polling for Vercel+Railway compatibility
 
+# Create an alias for backward compatibility
+app = fastapi_app
+
 if __name__ == "__main__":
     # Port assignment - Use Railway PORT or default to 8000 for local development
     port = int(os.getenv("PORT", 8000))
