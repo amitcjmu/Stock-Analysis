@@ -8,6 +8,7 @@ import type { ApiResponse, ApiError } from '../../types/shared/api-types';
 import type { EnhancedApiError } from '../../config/api';
 import type { AuditableMetadata } from '../../types/shared/metadata-types'
 import type { BaseMetadata } from '../../types/shared/metadata-types'
+import type { ActiveFlowSummary } from '../../types/modules/flow-orchestration/model-types'
 
 const apiClient = ApiClient.getInstance();
 import type { AuthService } from '../../contexts/AuthContext/services/authService';
@@ -219,7 +220,7 @@ export const masterFlowService = {
     clientAccountId: string,
     engagementId?: string,
     flowType?: string
-  ): Promise<MasterFlowResponse[]> {
+  ): Promise<ActiveFlowSummary[]> {
     try {
       const params = new URLSearchParams();
       if (flowType) params.append('flowType', flowType);
@@ -243,7 +244,25 @@ export const masterFlowService = {
       );
       
       console.log('✅ MasterFlowService.getActiveFlows - Response received:', response);
-      return response;
+      
+      // Transform MasterFlowResponse[] to ActiveFlowSummary[]
+      return response.map(flow => ({
+        flowId: flow.flowId,
+        flowType: flow.flowType,
+        flowName: flow.metadata?.flow_name || flow.flowType,
+        status: flow.status,
+        progress: flow.progress,
+        currentPhase: flow.currentPhase,
+        assignedAgents: 0, // Default values as these are not in MasterFlowResponse
+        activeCrews: 0,
+        childFlows: 0,
+        priority: 'normal',
+        startTime: flow.createdAt,
+        estimatedCompletion: undefined,
+        clientAccountId: clientAccountId,
+        engagementId: engagementId || '',
+        userId: ''
+      }));
     } catch (error) {
       console.error('❌ MasterFlowService.getActiveFlows - API call failed:', error);
       handleApiError(error, 'getActiveFlows');
@@ -412,7 +431,7 @@ export const masterFlowService = {
   async getActiveDiscoveryFlows(
     clientAccountId: string,
     engagementId?: string
-  ): Promise<MasterFlowResponse[]> {
+  ): Promise<ActiveFlowSummary[]> {
     return this.getActiveFlows(clientAccountId, engagementId, 'discovery');
   },
 };
