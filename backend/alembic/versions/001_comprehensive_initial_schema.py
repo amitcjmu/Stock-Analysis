@@ -24,13 +24,15 @@ def table_exists(table_name):
         # Use parameterized query with proper escaping
         # Note: table_name is a string literal value, not an identifier
         result = bind.execute(
-            sa.text("""
+            sa.text(
+                """
                 SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_schema = 'migration' 
+                    SELECT FROM information_schema.tables
+                    WHERE table_schema = 'migration'
                     AND table_name = :table_name
                 )
-            """).bindparams(table_name=table_name)
+            """
+            ).bindparams(table_name=table_name)
         ).scalar()
         return result
     except Exception as e:
@@ -54,14 +56,16 @@ def index_exists(index_name, table_name):
         # Use parameterized query with proper escaping
         # Note: table_name and index_name are string literal values, not identifiers
         result = bind.execute(
-            sa.text("""
+            sa.text(
+                """
                 SELECT EXISTS (
-                    SELECT FROM pg_indexes 
-                    WHERE schemaname = 'migration' 
-                    AND tablename = :table_name 
+                    SELECT FROM pg_indexes
+                    WHERE schemaname = 'migration'
+                    AND tablename = :table_name
                     AND indexname = :index_name
                 )
-            """).bindparams(table_name=table_name, index_name=index_name)
+            """
+            ).bindparams(table_name=table_name, index_name=index_name)
         ).scalar()
         return result
     except Exception as e:
@@ -77,6 +81,44 @@ def create_index_if_not_exists(index_name, table_name, columns, **kwargs):
     else:
         print(
             f"Index {index_name} already exists or table doesn't exist, skipping creation"
+        )
+
+
+def constraint_exists(constraint_name, table_name):
+    """Check if a constraint exists on a table"""
+    bind = op.get_bind()
+    try:
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.table_constraints
+                    WHERE table_schema = 'migration'
+                    AND table_name = :table_name
+                    AND constraint_name = :constraint_name
+                )
+            """
+            ).bindparams(table_name=table_name, constraint_name=constraint_name)
+        ).scalar()
+        return result
+    except Exception as e:
+        print(
+            f"Error checking if constraint {constraint_name} exists on table {table_name}: {e}"
+        )
+        # If we get an error, assume constraint exists to avoid trying to create it
+        return True
+
+
+def create_check_constraint_if_not_exists(constraint_name, table_name, condition):
+    """Create a check constraint only if it doesn't already exist"""
+    if table_exists(table_name) and not constraint_exists(constraint_name, table_name):
+        try:
+            op.create_check_constraint(constraint_name, table_name, condition)
+        except Exception as e:
+            print(f"Check constraint {constraint_name} creation failed: {e}")
+    else:
+        print(
+            f"Check constraint {constraint_name} already exists or table doesn't exist, skipping creation"
         )
 
 
@@ -238,7 +280,9 @@ def upgrade() -> None:
             "agent_preferences",
             postgresql.JSON(astext_type=sa.Text()),
             server_default=sa.text(
-                '\'{"discovery_depth": "comprehensive", "automation_level": "assisted", "risk_tolerance": "moderate", "preferred_clouds": [], "compliance_requirements": [], "custom_rules": []}\'::json'
+                '\'{"discovery_depth": "comprehensive", "automation_level": "assisted", '
+                '"risk_tolerance": "moderate", "preferred_clouds": [], '
+                '"compliance_requirements": [], "custom_rules": []}\'::json'
             ),
             nullable=True,
         ),
@@ -331,7 +375,9 @@ def upgrade() -> None:
             "migration_scope",
             postgresql.JSON(astext_type=sa.Text()),
             server_default=sa.text(
-                '\'{"target_clouds": [], "migration_strategies": [], "excluded_systems": [], "included_environments": [], "business_units": [], "geographic_scope": [], "timeline_constraints": {}}\'::json'
+                '\'{"target_clouds": [], "migration_strategies": [], "excluded_systems": [], '
+                '"included_environments": [], "business_units": [], "geographic_scope": [], '
+                '"timeline_constraints": {}}\'::json'
             ),
             nullable=True,
         ),
@@ -339,7 +385,10 @@ def upgrade() -> None:
             "team_preferences",
             postgresql.JSON(astext_type=sa.Text()),
             server_default=sa.text(
-                '\'{"stakeholders": [], "decision_makers": [], "technical_leads": [], "communication_style": "formal", "reporting_frequency": "weekly", "preferred_meeting_times": [], "escalation_contacts": [], "project_methodology": "agile"}\'::json'
+                '\'{"stakeholders": [], "decision_makers": [], "technical_leads": [], '
+                '"communication_style": "formal", "reporting_frequency": "weekly", '
+                '"preferred_meeting_times": [], "escalation_contacts": [], '
+                '"project_methodology": "agile"}\'::json'
             ),
             nullable=True,
         ),
@@ -412,7 +461,8 @@ def upgrade() -> None:
             "notification_preferences",
             postgresql.JSON(astext_type=sa.Text()),
             server_default=sa.text(
-                '\'{"email_notifications": true, "system_alerts": true, "learning_updates": false, "weekly_reports": true}\'::json'
+                '\'{"email_notifications": true, "system_alerts": true, '
+                '"learning_updates": false, "weekly_reports": true}\'::json'
             ),
             nullable=True,
         ),
@@ -562,7 +612,9 @@ def upgrade() -> None:
             "permissions",
             postgresql.JSON(astext_type=sa.Text()),
             server_default=sa.text(
-                '\'{"can_view_data": true, "can_import_data": false, "can_export_data": false, "can_manage_engagements": false, "can_configure_client_settings": false, "can_manage_client_users": false}\'::json'
+                '\'{"can_view_data": true, "can_import_data": false, "can_export_data": false, '
+                '"can_manage_engagements": false, "can_configure_client_settings": false, '
+                '"can_manage_client_users": false}\'::json'
             ),
             nullable=True,
         ),
@@ -633,7 +685,9 @@ def upgrade() -> None:
             "permissions",
             postgresql.JSON(astext_type=sa.Text()),
             server_default=sa.text(
-                '\'{"can_view_data": true, "can_import_data": false, "can_export_data": false, "can_manage_sessions": false, "can_configure_agents": false, "can_approve_migration_decisions": false, "can_access_sensitive_data": false}\'::json'
+                '\'{"can_view_data": true, "can_import_data": false, "can_export_data": false, '
+                '"can_manage_sessions": false, "can_configure_agents": false, '
+                '"can_approve_migration_decisions": false, "can_access_sensitive_data": false}\'::json'
             ),
             nullable=True,
         ),
@@ -1470,19 +1524,11 @@ def upgrade() -> None:
     )
 
     # Check constraint - only create if table exists
-    if table_exists("assets"):
-        try:
-            op.create_check_constraint(
-                "ck_assets_has_identifier",
-                "assets",
-                sa.text(
-                    "hostname IS NOT NULL OR name IS NOT NULL OR ip_address IS NOT NULL"
-                ),
-            )
-        except Exception as e:
-            print(
-                f"Check constraint ck_assets_has_identifier already exists or error: {e}"
-            )
+    create_check_constraint_if_not_exists(
+        "ck_assets_has_identifier",
+        "assets",
+        sa.text("hostname IS NOT NULL OR name IS NOT NULL OR ip_address IS NOT NULL"),
+    )
 
     # Create migration_waves table
     create_table_if_not_exists(
