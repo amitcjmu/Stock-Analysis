@@ -21,15 +21,17 @@ def table_exists(table_name):
     """Check if a table exists in the database"""
     bind = op.get_bind()
     try:
-        # Use direct SQL to avoid asyncpg parameter issues
-        sql = f"""
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_schema = 'migration' 
-                AND table_name = '{table_name}'
-            )
-        """
-        result = bind.execute(sa.text(sql)).scalar()
+        # Use parameterized query with proper escaping
+        # Note: table_name is a string literal value, not an identifier
+        result = bind.execute(
+            sa.text("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = 'migration' 
+                    AND table_name = :table_name
+                )
+            """).bindparams(table_name=table_name)
+        ).scalar()
         return result
     except Exception as e:
         print(f"Error checking if table {table_name} exists: {e}")
@@ -48,17 +50,24 @@ def create_table_if_not_exists(table_name, *columns, **kwargs):
 def index_exists(index_name, table_name):
     """Check if an index exists on a table"""
     bind = op.get_bind()
-    # Use direct SQL to avoid asyncpg parameter issues
-    sql = f"""
-        SELECT EXISTS (
-            SELECT FROM pg_indexes 
-            WHERE schemaname = 'migration' 
-            AND tablename = '{table_name}' 
-            AND indexname = '{index_name}'
-        )
-    """
-    result = bind.execute(sa.text(sql)).scalar()
-    return result
+    try:
+        # Use parameterized query with proper escaping
+        # Note: table_name and index_name are string literal values, not identifiers
+        result = bind.execute(
+            sa.text("""
+                SELECT EXISTS (
+                    SELECT FROM pg_indexes 
+                    WHERE schemaname = 'migration' 
+                    AND tablename = :table_name 
+                    AND indexname = :index_name
+                )
+            """).bindparams(table_name=table_name, index_name=index_name)
+        ).scalar()
+        return result
+    except Exception as e:
+        print(f"Error checking if index {index_name} exists on table {table_name}: {e}")
+        # If we get an error, assume index exists to avoid trying to create it
+        return True
 
 
 def create_index_if_not_exists(index_name, table_name, columns, **kwargs):

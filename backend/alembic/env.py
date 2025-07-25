@@ -40,10 +40,10 @@ def get_url():
     # First try to get Railway's DATABASE_URL
     database_url = os.getenv("DATABASE_URL")
     if database_url:
-        # Ensure it uses asyncpg driver for migrations
-        if database_url.startswith("postgresql://"):
+        # Ensure it uses sync driver for migrations (remove asyncpg)
+        if database_url.startswith("postgresql+asyncpg://"):
             database_url = database_url.replace(
-                "postgresql://", "postgresql+asyncpg://", 1
+                "postgresql+asyncpg://", "postgresql://", 1
             )
         return database_url
 
@@ -54,7 +54,8 @@ def get_url():
     db_port = os.getenv("POSTGRES_PORT", "5432")
     db_name = os.getenv("POSTGRES_DB", "migration_db")
 
-    return f"postgresql+asyncpg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    # Use psycopg (sync) for migrations instead of asyncpg
+    return f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 
 def run_migrations_offline() -> None:
