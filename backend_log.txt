@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/main.py", line 24, in <module>
+    import uvicorn
+ModuleNotFoundError: No module named 'uvicorn'

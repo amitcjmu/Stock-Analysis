@@ -12,7 +12,7 @@ from app.models.rbac import UserProfile, UserRole
 from app.schemas.auth_schemas import UserRegistrationResponse
 from app.services.rbac_service import create_rbac_service
 from fastapi import HTTPException
-from sqlalchemy import and_, desc, select, text
+from sqlalchemy import and_, desc, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
@@ -39,20 +39,24 @@ class AdminOperationsService:
                     status_code=403, detail="Access denied: Admin privileges required"
                 )
 
-            # For now, return demo statistics
-            # In full implementation, would aggregate from various models
+            # Get real statistics from database
+            from app.models import User
+
+            # Total users
+            total_users_query = select(func.count()).select_from(User)
+            total_users = (await self.db.execute(total_users_query)).scalar_one()
+
+            # Active users
+            active_users_query = select(func.count()).where(
+                and_(User.is_active == True  # noqa: E712, User.is_verified == True  # noqa: E712)
+            )
+            active_users = (await self.db.execute(active_users_query)).scalar_one()
+
+            # Return real statistics
             return {
                 "status": "success",
-                "dashboard_stats": {
-                    "total_users": 25,
-                    "pending_approvals": 3,
-                    "active_users": 20,
-                    "suspended_users": 2,
-                    "total_clients": 5,
-                    "total_engagements": 12,
-                    "total_sessions_today": 45,
-                    "system_health": "healthy",
-                },
+                "total_users": total_users,
+                "active_users": active_users,
             }
 
         except HTTPException:
@@ -88,9 +92,9 @@ class AdminOperationsService:
                     .join(UserProfile, User.id == UserProfile.user_id)
                     .where(
                         and_(
-                            User.is_active is True,
-                            User.is_verified is True,
-                            UserProfile.status == "active",
+                            User.is_active == True  # noqa: E712,
+                            User.is_verified == True  # noqa: E712,
+                            UserProfile.status == "active",  # noqa: E712
                         )
                     )
                     .order_by(desc(UserProfile.last_login_at))
@@ -103,7 +107,7 @@ class AdminOperationsService:
                 for user, profile in users_with_profiles:
                     # Get user roles
                     user_roles_query = select(UserRole).where(
-                        and_(UserRole.user_id == user.id, UserRole.is_active is True)
+                        and_(UserRole.user_id == user.id, UserRole.is_active == True)  # noqa: E712
                     )
                     roles_result = await self.db.execute(user_roles_query)
                     user_roles = roles_result.scalars().all()

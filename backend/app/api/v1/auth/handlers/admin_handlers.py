@@ -87,12 +87,16 @@ async def admin_update_user(
 
         # Check admin access first
         admin_service = AdminOperationsService(db)
-        stats_check = await admin_service.get_admin_dashboard_stats(updated_by)
-
-        if stats_check.get("status") != "success":
-            raise HTTPException(
-                status_code=403, detail="Access denied: Admin privileges required"
-            )
+        try:
+            # This will raise 403 if user doesn't have admin access
+            await admin_service.get_admin_dashboard_stats(updated_by)
+        except HTTPException as e:
+            if e.status_code == 403:
+                raise
+            else:
+                raise HTTPException(
+                    status_code=500, detail=f"Failed to verify admin access: {str(e)}"
+                )
 
         # Use user management service to update the user
         user_service = UserManagementService(db)
@@ -198,12 +202,16 @@ async def get_role_statistics(
 
         # Check admin access first
         admin_service = AdminOperationsService(db)
-        stats_check = await admin_service.get_admin_dashboard_stats(user_id_str)
-
-        if stats_check.get("status") != "success":
-            raise HTTPException(
-                status_code=403, detail="Access denied: Admin privileges required"
-            )
+        try:
+            # This will raise 403 if user doesn't have admin access
+            await admin_service.get_admin_dashboard_stats(user_id_str)
+        except HTTPException as e:
+            if e.status_code == 403:
+                raise
+            else:
+                raise HTTPException(
+                    status_code=500, detail=f"Failed to verify admin access: {str(e)}"
+                )
 
         rbac_core_service = RBACCoreService(db)
         return await rbac_core_service.get_role_statistics()
@@ -228,12 +236,16 @@ async def ensure_basic_roles(
 
         # Check admin access first
         admin_service = AdminOperationsService(db)
-        stats_check = await admin_service.get_admin_dashboard_stats(user_id_str)
-
-        if stats_check.get("status") != "success":
-            raise HTTPException(
-                status_code=403, detail="Access denied: Admin privileges required"
-            )
+        try:
+            # This will raise 403 if user doesn't have admin access
+            await admin_service.get_admin_dashboard_stats(user_id_str)
+        except HTTPException as e:
+            if e.status_code == 403:
+                raise
+            else:
+                raise HTTPException(
+                    status_code=500, detail=f"Failed to verify admin access: {str(e)}"
+                )
 
         rbac_core_service = RBACCoreService(db)
         await rbac_core_service.ensure_basic_roles_exist()

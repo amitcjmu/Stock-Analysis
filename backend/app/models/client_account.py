@@ -523,6 +523,11 @@ class User(Base):
         default=False,
         comment="Indicates if the user has verified their email address.",
     )
+    is_admin = Column(
+        Boolean,
+        default=False,
+        comment="Indicates if the user is a platform administrator.",
+    )
 
     # Default Context (for faster context establishment)
     default_client_id = Column(
@@ -675,4 +680,7 @@ class UserAccountAssociation(Base):
     )
 
     def __repr__(self):
-        return f"<UserAccountAssociation(user_id={self.user_id}, client_account_id={self.client_account_id}, role='{self.role}')>"
+        return (
+            f"<UserAccountAssociation(user_id={self.user_id}, "
+            f"client_account_id={self.client_account_id}, role='{self.role}')>"
+        )

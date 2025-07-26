@@ -326,7 +326,7 @@ class ClientCRUDHandler:
                     .select_from(Engagement)
                     .where(
                         Engagement.client_account_id == client_id,
-                        Engagement.is_active is True,
+                        Engagement.is_active == True,  # noqa: E712
                     )
                 )
                 active_engagements = (
@@ -471,7 +471,7 @@ class ClientCRUDHandler:
                             and_(
                                 UserRole.user_id == user_id,
                                 UserRole.role_type == RoleType.ADMIN,
-                                UserRole.is_active is True,
+                                UserRole.is_active == True,  # noqa: E712
                             )
                         )
                     )
@@ -542,9 +542,9 @@ class ClientCRUDHandler:
             total_clients_query = select(func.count()).select_from(ClientAccount)
             total_clients = (await db.execute(total_clients_query)).scalar_one()
 
-            # Active clients (example: updated in last 90 days)
+            # Active clients (based on is_active field)
             active_clients_query = select(func.count()).where(
-                ClientAccount.updated_at > datetime.utcnow() - timedelta(days=90)
+                ClientAccount.is_active == True  # noqa: E712
             )
             active_clients = (await db.execute(active_clients_query)).scalar_one()
 
@@ -653,7 +653,7 @@ class ClientCRUDHandler:
             .where(
                 and_(
                     Engagement.client_account_id == client.id,
-                    Engagement.is_active is True,
+                    Engagement.is_active == True,
                 )
             )
         )
