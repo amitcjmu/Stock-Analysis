@@ -23,7 +23,7 @@ const TargetFieldSelector: React.FC<TargetFieldSelectorProps> = ({
     return ['all', ...categories];
   };
 
-  const getFilteredFields = (): any[] => {
+  const getFilteredFields = (): unknown[] => {
     if (!Array.isArray(availableFields) || availableFields.length === 0) {
       return [];
     }

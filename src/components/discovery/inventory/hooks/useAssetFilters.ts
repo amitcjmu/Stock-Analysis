@@ -4,7 +4,7 @@ import type { AssetInventory, AssetFilters } from '../types/inventory.types';
 
 export const useAssetFilters = (assets: AssetInventory[]): {
   filters: AssetFilters;
-  updateFilter: (key: keyof AssetFilters, value: any) => void;
+  updateFilter: (key: keyof AssetFilters, value: unknown) => void;
   resetFilters: () => void;
   filteredAssets: AssetInventory[];
   uniqueEnvironments: string[];

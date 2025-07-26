@@ -62,6 +62,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
   );
 
   // Create bulk operation handlers
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleBulkApprove = useCallback(
     createBulkApproveHandler({
       fieldMappings,
@@ -75,6 +76,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     [fieldMappings, client, engagement, lastBulkOperationTime, onRefresh]
   );
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleBulkReject = useCallback(
     createBulkRejectHandler({
       client,

@@ -14,7 +14,7 @@ export interface ExternalSessionData {
 
 // Token storage - using localStorage for now (httpOnly cookies not yet implemented)
 export const tokenStorage: TokenStorage = {
-  getToken: () => {
+  getToken: (): void => {
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) return null;
@@ -44,7 +44,7 @@ export const tokenStorage: TokenStorage = {
       return null;
     }
   },
-  setToken: (token) => {
+  setToken: (token): void => {
     try {
       if (token) {
         localStorage.setItem('auth_token', token);
@@ -55,7 +55,7 @@ export const tokenStorage: TokenStorage = {
       console.error("Failed to set token in localStorage", error);
     }
   },
-  getUser: () => {
+  getUser: (): void => {
     try {
       const userData = localStorage.getItem('auth_user');
       return userData ? JSON.parse(userData) : null;
@@ -64,7 +64,7 @@ export const tokenStorage: TokenStorage = {
       return null;
     }
   },
-  setUser: (user) => {
+  setUser: (user): void => {
     try {
       if (user) {
         localStorage.setItem('auth_user', JSON.stringify(user));
@@ -78,14 +78,14 @@ export const tokenStorage: TokenStorage = {
   getRedirectPath: () => localStorage.getItem('redirect_path'),
   setRedirectPath: (path) => localStorage.setItem('redirect_path', path),
   clearRedirectPath: () => localStorage.removeItem('redirect_path'),
-  removeToken: () => {
+  removeToken: (): void => {
     try {
       localStorage.removeItem('auth_token');
     } catch (error) {
       console.error("Failed to remove token from localStorage", error);
     }
   },
-  removeUser: () => {
+  removeUser: (): void => {
     try {
       localStorage.removeItem('auth_user');
     } catch (error) {
@@ -106,10 +106,10 @@ export const contextStorage = {
       return null;
     }
   },
-  setContext: (context: ContextData) => {
+  setContext: (context: ContextData): void => {
     localStorage.setItem(CONTEXT_STORAGE_KEY, JSON.stringify(context));
   },
-  clearContext: () => {
+  clearContext: (): void => {
     localStorage.removeItem(CONTEXT_STORAGE_KEY);
   }
 };

@@ -68,7 +68,7 @@ export class ObservabilityErrorBoundary extends Component<Props, State> {
     }));
   };
 
-  render(): any {
+  render(): unknown {
     if (this.state.hasError) {
       // Custom fallback if provided
       if (this.props.fallback) {

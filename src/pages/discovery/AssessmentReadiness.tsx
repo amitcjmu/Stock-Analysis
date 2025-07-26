@@ -36,7 +36,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(): any {
+  static getDerivedStateFromError(): unknown {
     return { hasError: true };
   }
 
@@ -44,7 +44,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
     console.error('AssessmentReadiness error:', error, errorInfo);
   }
 
-  render(): any {
+  render(): unknown {
     if (this.state.hasError) {
       return (
         <div className="p-6 max-w-4xl mx-auto">
@@ -88,7 +88,7 @@ const AssessmentReadiness: React.FC = () => {
 
   // Generate signoff package mutation
   const { mutate: generateSignoff, isLoading: isGeneratingSignoff } = useGenerateSignoffPackage({
-    onSuccess: (data) => {
+    onSuccess: (data): void => {
       toast({
         title: 'Signoff package generated',
         description: 'The signoff package has been successfully created.',
@@ -97,7 +97,7 @@ const AssessmentReadiness: React.FC = () => {
       queryClient.invalidateQueries(['readinessAssessment', { clientAccountId, engagementId }]);
       setActiveTab('signoff');
     },
-    onError: (error) => {
+    onError: (error): void => {
       toast({
         title: 'Error generating signoff',
         description: error.message || 'Failed to generate signoff package',
@@ -108,7 +108,7 @@ const AssessmentReadiness: React.FC = () => {
 
   // Submit for approval mutation
   const { mutate: submitApproval, isLoading: isSubmittingApproval } = useSubmitForApproval({
-    onSuccess: () => {
+    onSuccess: (): void => {
       toast({
         title: 'Submitted for approval',
         description: 'The assessment has been submitted for stakeholder approval.',
@@ -116,7 +116,7 @@ const AssessmentReadiness: React.FC = () => {
       // Invalidate queries to refetch the latest data
       queryClient.invalidateQueries(['readinessAssessment', { clientAccountId, engagementId }]);
     },
-    onError: (error) => {
+    onError: (error): void => {
       toast({
         title: 'Submission failed',
         description: error.message || 'Failed to submit for approval',

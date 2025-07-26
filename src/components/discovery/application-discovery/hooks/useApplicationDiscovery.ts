@@ -55,7 +55,7 @@ export const useApplicationDiscovery = (): {
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
-  validateApplication: (appId: string, validationData: any) => Promise<void>;
+  validateApplication: (appId: string, validationData: unknown) => Promise<void>;
 } => {
   const [portfolio, setPortfolio] = useState<ApplicationPortfolio | null>(null);
   const [loading, setLoading] = useState(true);

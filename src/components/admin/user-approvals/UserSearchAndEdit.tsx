@@ -151,7 +151,7 @@ export const UserSearchAndEdit: React.FC = () => {
   };
 
   // Filter engagements based on selected client
-  const getFilteredEngagements = (): any[] => {
+  const getFilteredEngagements = (): unknown[] => {
     if (editForm.default_client_id === 'none') {
       return [];
     }

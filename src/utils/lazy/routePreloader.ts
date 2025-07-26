@@ -205,12 +205,12 @@ class RoutePreloader {
     const originalPushState = history.pushState;
     const originalReplaceState = history.replaceState;
 
-    history.pushState = function(...args): any {
+    history.pushState = function(...args): unknown {
       originalPushState.apply(history, args);
       setTimeout(trackNavigation, 0);
     };
 
-    history.replaceState = function(...args): any {
+    history.replaceState = function(...args): unknown {
       originalReplaceState.apply(history, args);
       setTimeout(trackNavigation, 0);
     };

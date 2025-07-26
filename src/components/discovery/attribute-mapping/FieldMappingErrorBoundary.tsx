@@ -59,7 +59,7 @@ export class FieldMappingErrorBoundary extends Component<Props, State> {
     this.setState({ hasError: false, error: undefined, errorInfo: undefined });
   };
 
-  render(): any {
+  render(): unknown {
     if (this.state.hasError) {
       return (
         <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-red-200">

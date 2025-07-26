@@ -169,7 +169,7 @@ export const APIImporter = createModuleImporter('API');
 
 // Development helpers
 export const DEV_HELPERS = {
-  listAllTypes: () => {
+  listAllTypes: (): void => {
     console.group('Available Type Modules');
     console.log('Modules:', MODULE_BOUNDARIES.MODULES);
     console.log('Components:', MODULE_BOUNDARIES.COMPONENTS);
@@ -177,7 +177,7 @@ export const DEV_HELPERS = {
     console.log('API:', MODULE_BOUNDARIES.API);
     console.groupEnd();
   },
-  validateImport: (category: string, module: string) => {
+  validateImport: (category: string, module: string): void => {
     const isValid = Object.entries(MODULE_BOUNDARIES).some(([key, modules]) =>
       key.toLowerCase() === category.toLowerCase() && (modules as readonly string[]).includes(module)
     );
