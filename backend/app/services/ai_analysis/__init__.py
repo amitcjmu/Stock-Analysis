@@ -25,9 +25,11 @@ Status: COMPLETE - All 6 core services implemented
 
 from .ai_validation_service import AIValidationService
 from .business_context_analyzer import BusinessContextAnalyzer
-from .business_context_analyzer_compat import (
-    BusinessContextAnalyzer as BusinessContextAnalyzerCompat,
-)
+
+# BusinessContextAnalyzerCompat import commented out - unused
+# from .business_context_analyzer_compat import (
+#     BusinessContextAnalyzer as BusinessContextAnalyzerCompat,
+# )
 from .confidence_scoring import ConfidenceScorer
 from .gap_analysis_agent import GapAnalysisAgent
 from .learning_optimizer import LearningOptimizer

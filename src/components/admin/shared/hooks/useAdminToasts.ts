@@ -5,7 +5,20 @@
 
 import { useToast } from '@/components/ui/use-toast';
 
-export const useAdminToasts = () => {
+export const useAdminToasts = (): {
+  showSuccessToast: (title: string, description?: string) => void;
+  showErrorToast: (title: string, description?: string) => void;
+  showWarningToast: (title: string, description?: string) => void;
+  showUserApprovedToast: (userName: string) => void;
+  showUserRejectedToast: (userName: string) => void;
+  showUserDeactivatedToast: (userName: string) => void;
+  showUserActivatedToast: (userName: string) => void;
+  showPurgeApprovedToast: (message?: string) => void;
+  showPurgeRejectedToast: (message?: string) => void;
+  showDataFetchErrorToast: () => void;
+  showGenericErrorToast: (operation: string) => void;
+  showDemoDataWarningToast: (errorMessage?: string) => void;
+} => {
   const { toast } = useToast();
 
   const showSuccessToast = (title: string, description?: string) => {

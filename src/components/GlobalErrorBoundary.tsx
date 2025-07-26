@@ -21,15 +21,15 @@ class GlobalErrorBoundary extends React.Component<GlobalErrorBoundaryProps, Stat
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     console.error('Global Error Boundary:', error, errorInfo);
   }
 
-  handleReset = () => {
+  handleReset = (): void => {
     this.setState({ hasError: false, error: null });
   };
 
-  render() {
+  render(): JSX.Element {
     if (this.state.hasError) {
       return (
         <div className="flex items-center justify-center h-screen bg-background p-4">

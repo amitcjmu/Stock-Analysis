@@ -139,7 +139,10 @@ Example: {"query": "database business value indicators",
             response = {
                 "found_patterns": len(pattern_summaries),
                 "patterns": pattern_summaries[:5],  # Limit to top 5 for readability
-                "search_summary": f"Found {len(pattern_summaries)} patterns matching '{query_text}' with confidence >= {min_confidence}",
+                "search_summary": (
+                    f"Found {len(pattern_summaries)} patterns matching '{query_text}' "
+                    f"with confidence >= {min_confidence}"
+                ),
             }
 
             return json.dumps(response, indent=2)
@@ -174,7 +177,8 @@ Input should be a JSON object with:
 - limit: maximum number of results (default 10)
 - include_fields: list of specific fields to include in results
 
-Example: {"asset_type": "database", "environment": "production", "limit": 5, "include_fields": ["name", "technology_stack", "business_criticality"]}""",
+Example: {"asset_type": "database", "environment": "production", "limit": 5,
+"include_fields": ["name", "technology_stack", "business_criticality"]}""",
         )
 
         # Store context after super init
@@ -323,7 +327,11 @@ Input should be a JSON object with:
 - confidence_score: your confidence in this pattern (0.0 to 1.0)
 - evidence_assets: list of asset IDs that support this pattern (optional)
 
-Example: {"pattern_type": "business_value_indicator", "pattern_name": "Production Database Critical Business Value", "pattern_description": "Production databases with high utilization indicate critical business value", "pattern_logic": {"environment": "production", "asset_type": "database", "cpu_utilization_percent": ">= 70"}, "confidence_score": 0.85}""",
+Example: {"pattern_type": "business_value_indicator",
+"pattern_name": "Production Database Critical Business Value",
+"pattern_description": "Production databases with high utilization indicate critical business value",
+"pattern_logic": {"environment": "production", "asset_type": "database",
+"cpu_utilization_percent": ">= 70"}, "confidence_score": 0.85}""",
         )
 
         # Store context after super init
@@ -355,13 +363,17 @@ Example: {"pattern_type": "business_value_indicator", "pattern_name": "Productio
 
             # Validate required fields
             if not all([pattern_type_str, pattern_name, pattern_description]):
-                return "Error: pattern_type, pattern_name, and pattern_description are required"
+                return (
+                    "Error: pattern_type, pattern_name, and pattern_description "
+                    "are required"
+                )
 
             # Convert pattern type string to enum
             try:
                 pattern_type = PatternType(pattern_type_str)
             except ValueError:
-                return f"Error: Unknown pattern type '{pattern_type_str}'. Valid types: {[pt.value for pt in PatternType]}"
+                valid_types = [pt.value for pt in PatternType]
+                return f"Error: Unknown pattern type '{pattern_type_str}'. Valid types: {valid_types}"
 
             # Convert evidence asset IDs
             evidence_assets = []
@@ -430,7 +442,9 @@ Input should be a JSON object with:
 - cloud_readiness_score: cloud readiness 0-100 (optional)
 - reasoning: detailed explanation of your analysis and conclusions
 
-Example: {"asset_id": "123e4567-e89b-12d3-a456-426614174000", "business_value_score": 8, "risk_assessment": "medium", "modernization_potential": "high", "reasoning": "Production database with high utilization serving critical customer applications"}""",
+Example: {"asset_id": "123e4567-e89b-12d3-a456-426614174000", "business_value_score": 8,
+"risk_assessment": "medium", "modernization_potential": "high",
+"reasoning": "Production database with high utilization serving critical customer applications"}""",
         )
 
         # Store context after super init

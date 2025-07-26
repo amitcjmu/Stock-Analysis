@@ -20,24 +20,16 @@ from typing import Any, Dict, List, Optional
 from .console_manager import console_manager
 
 try:
-    from crewai.utilities.events import (  # Agent and Task Events - For detailed progress; Crew Events - For crew-level progress; Flow Events - These are what we need for flow tracking; Tool and LLM Events - For operational insights
+    from crewai.utilities.events import (  # Agent/Task Events - For detailed progress
+        # Crew Events - For crew-level progress; Flow Events - For flow tracking
         AgentExecutionCompletedEvent,
-        AgentExecutionErrorEvent,
         AgentExecutionStartedEvent,
-        CrewKickoffCompletedEvent,
-        CrewKickoffStartedEvent,
-        FlowCreatedEvent,
         FlowFinishedEvent,
         FlowStartedEvent,
-        LLMCallCompletedEvent,
-        LLMCallStartedEvent,
         MethodExecutionFailedEvent,
         MethodExecutionFinishedEvent,
         MethodExecutionStartedEvent,
         TaskCompletedEvent,
-        TaskStartedEvent,
-        ToolUsageFinishedEvent,
-        ToolUsageStartedEvent,
     )
     from crewai.utilities.events.base_event_listener import BaseEventListener
 
@@ -190,7 +182,9 @@ class DiscoveryFlowEventListener(BaseEventListener):
 
             # Debug logging to see what we're getting
             logger.info(
-                f"🔍 Flow finished event attributes: output={getattr(event, 'output', 'None')}, result={getattr(event, 'result', 'None')}, final_result={getattr(event, 'final_result', 'None')}"
+                f"🔍 Flow finished event attributes: output={getattr(event, 'output', 'None')}, "
+                f"result={getattr(event, 'result', 'None')}, "
+                f"final_result={getattr(event, 'final_result', 'None')}"
             )
             logger.info(
                 f"🔍 Checking final_result: '{final_result}' for pause conditions"
