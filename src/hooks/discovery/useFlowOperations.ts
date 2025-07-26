@@ -24,7 +24,7 @@ export interface IncompleteFlowV2 {
 }
 
 // Hook to detect incomplete flows
-export const useIncompleteFlowDetectionV2 = (): any => {
+export const useIncompleteFlowDetectionV2 = (): unknown => {
   const { client, engagement } = useAuth();
 
   return useQuery({
@@ -57,7 +57,7 @@ export const useIncompleteFlowDetectionV2 = (): any => {
         ).map((flow: unknown, index: number) => {
           // Generate a demo-pattern UUID as fallback if no flow ID exists
           // Uses the demo pattern: XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX
-          const generateDemoFallbackUuid = (index: number): any => {
+          const generateDemoFallbackUuid = (index: number): unknown => {
             const indexPadded = index.toString().padStart(8, '0');
             const timestamp = Date.now().toString().slice(-12).padStart(12, '0');
             return `${indexPadded}-def0-def0-def0-${timestamp}`;
@@ -117,7 +117,7 @@ export const useIncompleteFlowDetectionV2 = (): any => {
 };
 
 // Hook for resuming flows
-export const useFlowResumptionV2 = (): any => {
+export const useFlowResumptionV2 = (): unknown => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -178,7 +178,7 @@ export const useFlowResumptionV2 = (): any => {
 
 // Hook for deleting flows
 // @deprecated Use useFlowDeletion from '@/hooks/useFlowDeletion' instead
-export const useFlowDeletionV2 = (): any => {
+export const useFlowDeletionV2 = (): unknown => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { client, engagement } = useAuth();
@@ -217,7 +217,7 @@ export const useFlowDeletionV2 = (): any => {
 
 // Hook for bulk flow operations
 // @deprecated Use useFlowDeletion from '@/hooks/useFlowDeletion' instead
-export const useBulkFlowOperationsV2 = (): any => {
+export const useBulkFlowOperationsV2 = (): unknown => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { client, engagement } = useAuth();

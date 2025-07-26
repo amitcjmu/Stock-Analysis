@@ -147,7 +147,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
     }
   };
 
-  const toggleItemExpansion = (itemId: string): any => {
+  const toggleItemExpansion = (itemId: string): unknown => {
     const newExpanded = new Set(expandedItems);
     if (newExpanded.has(itemId)) {
       newExpanded.delete(itemId);
@@ -157,7 +157,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
     setExpandedItems(newExpanded);
   };
 
-  const getClassificationConfig = (classification: string): any => {
+  const getClassificationConfig = (classification: string): unknown => {
     switch (classification) {
       case 'good_data':
         return {
@@ -198,7 +198,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
     }
   };
 
-  const getConfidenceColor = (confidence: string): any => {
+  const getConfidenceColor = (confidence: string): unknown => {
     switch (confidence) {
       case 'high': return 'text-green-600';
       case 'medium': return 'text-yellow-600';

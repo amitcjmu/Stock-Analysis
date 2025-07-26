@@ -45,7 +45,7 @@ export const useAuthService = (
 ) => {
   const navigate = useNavigate();
 
-  const logout = (): any => {
+  const logout = (): unknown => {
     tokenStorage.removeToken();
     tokenStorage.setUser(null);
     contextStorage.clearContext();
@@ -482,7 +482,7 @@ export const useAuthService = (
   };
 
   // Debounced version of fetchDefaultContext for use in hooks that need delayed execution
-  const debouncedFetchDefaultContext = (): any => {
+  const debouncedFetchDefaultContext = (): unknown => {
     if (fetchDefaultContextTimer) {
       clearTimeout(fetchDefaultContextTimer);
     }

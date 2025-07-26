@@ -25,7 +25,7 @@ const DataCleansingHeader: React.FC<DataCleansingHeaderProps> = ({
   onRefresh,
   onTriggerAnalysis
 }) => {
-  const getQualityScoreClass = (score: number): any => {
+  const getQualityScoreClass = (score: number): unknown => {
     if (score >= 80) return 'bg-green-100 text-green-800 border border-green-200';
     if (score >= 60) return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
     return 'bg-red-100 text-red-800 border border-red-200';

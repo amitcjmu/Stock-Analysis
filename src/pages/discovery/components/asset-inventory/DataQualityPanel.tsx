@@ -28,25 +28,25 @@ const DataQualityPanel: React.FC<DataQualityPanelProps> = ({
   const issuesCount = dataQuality.missing_critical_data.length;
   const fieldsCount = Object.keys(dataQuality.completeness_by_field).length;
 
-  const getScoreColor = (score: number): any => {
+  const getScoreColor = (score: number): unknown => {
     if (score >= 90) return 'text-green-600';
     if (score >= 70) return 'text-yellow-600';
     return 'text-red-600';
   };
 
-  const getScoreBgColor = (score: number): any => {
+  const getScoreBgColor = (score: number): unknown => {
     if (score >= 90) return 'bg-green-100';
     if (score >= 70) return 'bg-yellow-100';
     return 'bg-red-100';
   };
 
-  const getSeverity = (completeness: number): any => {
+  const getSeverity = (completeness: number): unknown => {
     if (completeness >= 90) return 'Low';
     if (completeness >= 70) return 'Medium';
     return 'High';
   };
 
-  const getSeverityColor = (severity: string): any => {
+  const getSeverityColor = (severity: string): unknown => {
     switch (severity) {
       case 'High': return 'bg-red-100 text-red-800';
       case 'Medium': return 'bg-yellow-100 text-yellow-800';

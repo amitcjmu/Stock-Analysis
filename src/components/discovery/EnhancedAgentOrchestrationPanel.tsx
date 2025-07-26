@@ -194,7 +194,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
     }
   };
 
-  const getOverallProgress = (): any => {
+  const getOverallProgress = (): unknown => {
     if (crews.length === 0) return 0;
     const totalProgress = crews.reduce((sum, crew) => sum + crew.progress, 0);
     return Math.round(totalProgress / crews.length);

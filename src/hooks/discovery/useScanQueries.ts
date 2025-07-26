@@ -45,12 +45,12 @@ export const useScanLogs = (options = {}): JSX.Element => {
   });
 };
 
-export const useScanMutations = (): any => {
+export const useScanMutations = (): unknown => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
 
-  const invalidateScanQueries = (): any => {
+  const invalidateScanQueries = (): unknown => {
     queryClient.invalidateQueries({ queryKey: SCAN_QUERY_KEYS.SCAN_PROGRESS });
     queryClient.invalidateQueries({ queryKey: SCAN_QUERY_KEYS.SCAN_LOGS });
   };
@@ -148,7 +148,7 @@ export const useScanMutations = (): any => {
   };
 };
 
-export const useScanControls = (): any => {
+export const useScanControls = (): unknown => {
   const { data: scanProgress, isLoading: isLoadingProgress } = useScanProgress();
   const { data: scanLogs, isLoading: isLoadingLogs } = useScanLogs();
   const {

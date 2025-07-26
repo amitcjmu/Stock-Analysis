@@ -16,7 +16,7 @@ export const ComponentBreakdownView: React.FC<ComponentBreakdownViewProps> = ({
   treatments,
   printMode = false
 }) => {
-  const getComponentTreatment = (componentName: string): any => {
+  const getComponentTreatment = (componentName: string): unknown => {
     return treatments.find(t => t.component_name === componentName);
   };
 

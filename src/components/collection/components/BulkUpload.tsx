@@ -104,7 +104,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({
     }
   };
 
-  const generateTemplate = (): any => {
+  const generateTemplate = (): unknown => {
     // Generate CSV template with field headers
     const headers = ['Application Name', 'Application ID', ...fields.map(f => f.label)];
     const csvContent = headers.join(',') + '\n';

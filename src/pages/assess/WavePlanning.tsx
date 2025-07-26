@@ -10,7 +10,7 @@ const WavePlanning = (): JSX.Element => {
   const { isAuthenticated } = useAuth();
   const { data: wavePlanningData, isLoading, error } = useWavePlanning();
 
-  const getStatusColor = (status: string): any => {
+  const getStatusColor = (status: string): unknown => {
     const colors = {
       'Planning': 'bg-blue-100 text-blue-800',
       'Scheduled': 'bg-green-100 text-green-800',

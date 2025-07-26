@@ -258,7 +258,7 @@ const FeedbackView: React.FC = () => {
     });
   };
 
-  const applyFilters = (): any => {
+  const applyFilters = (): unknown => {
     let filtered = feedback;
 
     if (selectedPage !== 'all') {
@@ -287,7 +287,7 @@ const FeedbackView: React.FC = () => {
     setFilteredFeedback(filtered);
   };
 
-  const getStatusColor = (status: string): any => {
+  const getStatusColor = (status: string): unknown => {
     switch (status) {
       case 'new': return 'bg-blue-100 text-blue-800';
       case 'reviewed': return 'bg-yellow-100 text-yellow-800';
@@ -315,7 +315,7 @@ const FeedbackView: React.FC = () => {
     ));
   };
 
-  const getUniqueValues = (field: keyof FeedbackItem): any => {
+  const getUniqueValues = (field: keyof FeedbackItem): unknown => {
     const values = Array.from(new Set(feedback.map(f => f[field])));
     return values.filter(v => v !== undefined && v !== null);
   };

@@ -87,7 +87,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     }
   };
 
-  const toggleInsightExpansion = (insightId: string): any => {
+  const toggleInsightExpansion = (insightId: string): unknown => {
     const newExpanded = new Set(expandedInsights);
     if (newExpanded.has(insightId)) {
       newExpanded.delete(insightId);
@@ -97,7 +97,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     setExpandedInsights(newExpanded);
   };
 
-  const getInsightTypeConfig = (type: string): any => {
+  const getInsightTypeConfig = (type: string): unknown => {
     switch (type) {
       case 'data_volume':
         return {
@@ -151,7 +151,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     }
   };
 
-  const getConfidenceColor = (confidence: string): any => {
+  const getConfidenceColor = (confidence: string): unknown => {
     switch (confidence) {
       case 'high': return 'text-green-600 bg-green-100';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
@@ -161,11 +161,11 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     }
   };
 
-  const formatTimestamp = (timestamp: string): any => {
+  const formatTimestamp = (timestamp: string): unknown => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const getFilteredInsights = (): any => {
+  const getFilteredInsights = (): unknown => {
     switch (selectedFilter) {
       case 'actionable':
         return insights.filter(insight => insight.actionable);
@@ -257,7 +257,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     return issues;
   };
 
-  const toggleFeedbackInput = (insightId: string): any => {
+  const toggleFeedbackInput = (insightId: string): unknown => {
     setShowFeedbackInput(prev => {
       const next = new Set(prev);
       if (next.has(insightId)) {
@@ -269,7 +269,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     });
   };
 
-  const updateFeedbackExplanation = (insightId: string, explanation: string): any => {
+  const updateFeedbackExplanation = (insightId: string, explanation: string): unknown => {
     setFeedbackExplanations(prev => {
       const next = new Map(prev);
       next.set(insightId, explanation);

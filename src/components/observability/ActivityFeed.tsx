@@ -292,7 +292,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
     return mapping[apiSeverity] || 'info';
   };
 
-  const playNotificationSound = (): any => {
+  const playNotificationSound = (): unknown => {
     if (audioRef.current) {
       audioRef.current.play().catch(() => {
         // Ignore audio play errors (user interaction required)
@@ -359,7 +359,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
     setEvents([]);
   };
 
-  const getEventCounts = (): any => {
+  const getEventCounts = (): unknown => {
     const counts = {
       total: filteredEvents.length,
       success: filteredEvents.filter(e => e.severity === 'success').length,

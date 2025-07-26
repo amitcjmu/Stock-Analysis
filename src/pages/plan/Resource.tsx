@@ -44,13 +44,13 @@ const Resource = (): JSX.Element => {
     );
   }
 
-  const getUtilizationColor = (utilization: number): any => {
+  const getUtilizationColor = (utilization: number): unknown => {
     if (utilization > 90) return 'text-red-600';
     if (utilization > 75) return 'text-yellow-600';
     return 'text-green-600';
   };
 
-  const getImpactColor = (impact: string): any => {
+  const getImpactColor = (impact: string): unknown => {
     const colors = {
       'High': 'bg-red-100 text-red-800',
       'Medium': 'bg-yellow-100 text-yellow-800',

@@ -187,7 +187,7 @@ const TechDebtAnalysis = (): JSX.Element => {
     }
   };
 
-  const getSupportStatusColor = (status: string): any => {
+  const getSupportStatusColor = (status: string): unknown => {
     switch (status) {
       case 'supported': return 'text-green-600 bg-green-100';
       case 'extended': return 'text-yellow-600 bg-yellow-100';
@@ -197,7 +197,7 @@ const TechDebtAnalysis = (): JSX.Element => {
     }
   };
 
-  const getRiskColor = (risk: string): any => {
+  const getRiskColor = (risk: string): unknown => {
     switch (risk) {
       case 'low': return 'text-green-600 bg-green-100';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
@@ -217,7 +217,7 @@ const TechDebtAnalysis = (): JSX.Element => {
     }
   };
 
-  const calculateDaysUntilEOL = (eolDate: string): any => {
+  const calculateDaysUntilEOL = (eolDate: string): unknown => {
     const today = new Date();
     const eol = new Date(eolDate);
     const diffTime = eol.getTime() - today.getTime();

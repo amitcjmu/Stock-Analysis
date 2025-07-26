@@ -139,7 +139,7 @@ const ClientManagementMain: React.FC = () => {
     });
   };
 
-  const exportClients = (): any => {
+  const exportClients = (): unknown => {
     const dataStr = JSON.stringify(clients, null, 2);
     const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
     const exportFileDefaultName = `clients_export_${new Date().toISOString().split('T')[0]}.json`;

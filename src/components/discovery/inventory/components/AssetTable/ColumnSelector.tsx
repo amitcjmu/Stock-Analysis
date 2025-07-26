@@ -20,7 +20,7 @@ export const ColumnSelector: React.FC<ColumnSelectorProps> = ({
   selectedColumns,
   onToggleColumn
 }) => {
-  const formatColumnName = (column: string): any => {
+  const formatColumnName = (column: string): unknown => {
     return column
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))

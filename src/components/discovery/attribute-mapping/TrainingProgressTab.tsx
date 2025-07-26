@@ -142,13 +142,13 @@ const TrainingProgressTab: React.FC<TrainingProgressTabProps> = ({
     }
   };
 
-  const getConfidenceColor = (confidence: number): any => {
+  const getConfidenceColor = (confidence: number): unknown => {
     if (confidence >= 0.8) return 'text-green-600 bg-green-100';
     if (confidence >= 0.6) return 'text-yellow-600 bg-yellow-100';
     return 'text-red-600 bg-red-100';
   };
 
-  const getAccuracyColor = (accuracy: number): any => {
+  const getAccuracyColor = (accuracy: number): unknown => {
     if (accuracy >= 0.9) return 'text-green-600';
     if (accuracy >= 0.7) return 'text-yellow-600';
     return 'text-red-600';

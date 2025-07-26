@@ -179,7 +179,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const clearClient = (): any => {
+  const clearClient = (): unknown => {
     sessionStorage.removeItem(CLIENT_KEY);
     setCurrentClient(null);
   };
@@ -188,7 +188,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return sessionStorage.getItem(CLIENT_KEY);
   };
 
-  const setDemoClient = (client: Client): any => {
+  const setDemoClient = (client: Client): unknown => {
     setCurrentClient(client);
     setIsLoading(false);
     setError(null);
@@ -209,7 +209,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   return <ClientContext.Provider value={value}>{children}</ClientContext.Provider>;
 };
 
-export const useClient = (): any => {
+export const useClient = (): unknown => {
   const context = useContext(ClientContext);
   if (context === undefined) {
     throw new Error('useClient must be used within a ClientProvider');

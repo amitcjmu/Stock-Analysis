@@ -23,7 +23,7 @@ const Roadmap = (): JSX.Element => {
     }
   };
 
-  const getStatusColor = (status: string): any => {
+  const getStatusColor = (status: string): unknown => {
     const colors = {
       'completed': 'bg-green-500',
       'in-progress': 'bg-blue-500',
@@ -32,7 +32,7 @@ const Roadmap = (): JSX.Element => {
     return colors[status] || 'bg-gray-300';
   };
 
-  const getProgressWidth = (status: string): any => {
+  const getProgressWidth = (status: string): unknown => {
     switch (status) {
       case 'completed':
         return 'w-full';

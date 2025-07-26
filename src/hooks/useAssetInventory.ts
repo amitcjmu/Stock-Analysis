@@ -184,7 +184,7 @@ export const useAssetInventoryAnalysis = (): JSX.Element => {
   });
 };
 
-export const useRefreshAssetInventory = (): any => {
+export const useRefreshAssetInventory = (): unknown => {
   const queryClient = useQueryClient();
   const { getContextHeaders } = useAuth();
 

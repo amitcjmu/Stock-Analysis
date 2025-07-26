@@ -36,7 +36,7 @@ const formatValue = (value: number, format: MetricCardProps['format'], unit: str
   }
 };
 
-const getColorClasses = (color: MetricCardProps['color']): any => {
+const getColorClasses = (color: MetricCardProps['color']): unknown => {
   switch (color) {
     case 'success':
       return 'text-green-600 bg-green-50 border-green-200';

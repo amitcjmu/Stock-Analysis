@@ -56,7 +56,7 @@ export function PollingControls({
 
   // Monitor polling status
   useEffect(() => {
-    const checkPollingStatus = (): any => {
+    const checkPollingStatus = (): unknown => {
       // Get query cache and analyze error patterns
       const queryCache = queryClient.getQueryCache();
       const queries = queryCache.getAll();
@@ -213,7 +213,7 @@ export function PollingControls({
     }
   };
 
-  const getStatusColor = (): any => {
+  const getStatusColor = (): unknown => {
     if (isEmergencyActive) return 'destructive';
     if (pollingStatus.consecutiveErrors > 3) return 'destructive';
     if (pollingStatus.errorRate > 25) return 'secondary';

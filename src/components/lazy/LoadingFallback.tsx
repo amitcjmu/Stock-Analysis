@@ -24,7 +24,7 @@ export const LoadingFallback: React.FC<LoadingFallbackProps> = ({
   progress = 0,
   compact = false
 }) => {
-  const getPriorityColor = (priority: LoadingPriority): any => {
+  const getPriorityColor = (priority: LoadingPriority): unknown => {
     switch (priority) {
       case LoadingPriority.CRITICAL:
         return 'text-red-600 border-red-200';

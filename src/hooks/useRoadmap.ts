@@ -35,7 +35,7 @@ export const useRoadmap = (): JSX.Element => {
   });
 };
 
-export const useUpdateRoadmap = (): any => {
+export const useUpdateRoadmap = (): unknown => {
   const queryClient = useQueryClient();
   const { getAuthHeaders } = useAuth();
 

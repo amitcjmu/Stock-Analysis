@@ -29,7 +29,7 @@ const TestObservabilityPhase4B: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState('overview');
 
-  const testComponent = (componentName: string): any => {
+  const testComponent = (componentName: string): unknown => {
     setTestResults(prev => ({ ...prev, [componentName]: 'pending' }));
 
     // Simulate test
@@ -49,7 +49,7 @@ const TestObservabilityPhase4B: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: 'pass' | 'fail' | 'pending'): any => {
+  const getStatusColor = (status: 'pass' | 'fail' | 'pending'): unknown => {
     switch (status) {
       case 'pass':
         return 'text-green-600 bg-green-100';

@@ -93,7 +93,7 @@ const EngagementDetails: React.FC = () => {
   // Use engagement data or fallback to demo data
   const displayEngagement = engagement || (isError ? demoEngagement : null);
 
-  const formatDate = (dateString: string): any => {
+  const formatDate = (dateString: string): unknown => {
     if (!dateString) return 'Not set';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return 'Invalid Date';
@@ -104,7 +104,7 @@ const EngagementDetails: React.FC = () => {
     });
   };
 
-  const calculateDurationMonths = (startDate: string, endDate: string): any => {
+  const calculateDurationMonths = (startDate: string, endDate: string): unknown => {
     if (!startDate || !endDate) return 'Not calculated';
 
     const start = new Date(startDate);
@@ -120,7 +120,7 @@ const EngagementDetails: React.FC = () => {
     return diffMonths > 0 ? `${diffMonths} months` : 'Invalid duration';
   };
 
-  const formatCurrency = (amount: number, currency: string): any => {
+  const formatCurrency = (amount: number, currency: string): unknown => {
     // Handle NaN and invalid amounts
     if (isNaN(amount) || amount === null || amount === undefined) {
       return 'N/A';
@@ -148,7 +148,7 @@ const EngagementDetails: React.FC = () => {
     }
   };
 
-  const getPhaseColor = (phase: string): any => {
+  const getPhaseColor = (phase: string): unknown => {
     if (!phase) return 'bg-gray-100 text-gray-800';
 
     switch (phase) {

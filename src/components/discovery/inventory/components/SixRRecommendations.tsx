@@ -8,7 +8,7 @@ import { GitBranch } from 'lucide-react';
 import type { SixRRecommendationsProps } from '../types/InventoryInsightsTypes';
 
 export const SixRRecommendations: React.FC<SixRRecommendationsProps> = ({ recommendations }) => {
-  const getStrategyColor = (strategy: string): any => {
+  const getStrategyColor = (strategy: string): unknown => {
     switch (strategy) {
       case 'Rehost': return 'bg-blue-500';
       case 'Replatform': return 'bg-green-500';

@@ -62,7 +62,7 @@ export const useCompliance = (): JSX.Element => {
   });
 };
 
-export const useStartAudit = (): any => {
+export const useStartAudit = (): unknown => {
   const { getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
 

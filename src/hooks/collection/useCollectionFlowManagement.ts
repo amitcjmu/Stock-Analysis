@@ -144,7 +144,7 @@ export const useIncompleteCollectionFlows = (enabled: boolean = true): JSX.Eleme
   return queryResult;
 };
 
-export const useCollectionFlowManagement = (): any => {
+export const useCollectionFlowManagement = (): unknown => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isOperationPending, setIsOperationPending] = useState(false);
@@ -294,7 +294,7 @@ export const useCollectionFlowManagement = (): any => {
   };
 };
 
-export const useCollectionFlowStatus = (flowId?: string, enabled: boolean = true): any => {
+export const useCollectionFlowStatus = (flowId?: string, enabled: boolean = true): unknown => {
   return useQuery({
     queryKey: ['collection-flows', 'status', flowId],
     queryFn: () => collectionFlowApi.getFlowStatus(),
@@ -317,7 +317,7 @@ export const useCollectionFlowStatus = (flowId?: string, enabled: boolean = true
   });
 };
 
-export const useCollectionFlowDetails = (flowId: string, enabled: boolean = true): any => {
+export const useCollectionFlowDetails = (flowId: string, enabled: boolean = true): unknown => {
   return useQuery({
     queryKey: ['collection-flows', 'details', flowId],
     queryFn: () => collectionFlowApi.getFlowDetails(flowId),
@@ -326,7 +326,7 @@ export const useCollectionFlowDetails = (flowId: string, enabled: boolean = true
   });
 };
 
-export const useCollectionFlowGaps = (flowId: string, enabled: boolean = true): any => {
+export const useCollectionFlowGaps = (flowId: string, enabled: boolean = true): unknown => {
   return useQuery({
     queryKey: ['collection-flows', 'gaps', flowId],
     queryFn: () => collectionFlowApi.getFlowGaps(flowId),
@@ -335,7 +335,7 @@ export const useCollectionFlowGaps = (flowId: string, enabled: boolean = true): 
   });
 };
 
-export const useCollectionFlowQuestionnaires = (flowId: string, enabled: boolean = true): any => {
+export const useCollectionFlowQuestionnaires = (flowId: string, enabled: boolean = true): unknown => {
   return useQuery({
     queryKey: ['collection-flows', 'questionnaires', flowId],
     queryFn: () => collectionFlowApi.getFlowQuestionnaires(flowId),

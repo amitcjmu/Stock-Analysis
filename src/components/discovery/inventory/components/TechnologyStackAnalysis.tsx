@@ -13,7 +13,7 @@ interface TechnologyStackAnalysisProps {
 }
 
 export const TechnologyStackAnalysis: React.FC<TechnologyStackAnalysisProps> = ({ analysis }) => {
-  const getComplexityColor = (complexity: string): any => {
+  const getComplexityColor = (complexity: string): unknown => {
     switch (complexity) {
       case 'high': return 'destructive';
       case 'medium': return 'default';

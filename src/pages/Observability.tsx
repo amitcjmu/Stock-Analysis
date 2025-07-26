@@ -56,7 +56,7 @@ const Observability = (): JSX.Element => {
     }
   };
 
-  const getMetrics = (): any => {
+  const getMetrics = (): unknown => {
     if (!monitoringData) {
       return [
         { name: 'API Latency', value: '---', trend: 'none', change: '---', status: 'normal' },
@@ -136,7 +136,7 @@ const Observability = (): JSX.Element => {
     }
   ];
 
-  const getSystemHealth = (): any => {
+  const getSystemHealth = (): unknown => {
     if (!monitoringData) {
       return [
         { component: 'Agent Registry', status: 'unknown', uptime: '---', lastCheck: '---' },
@@ -207,7 +207,7 @@ const Observability = (): JSX.Element => {
     }
   ];
 
-  const getRecentEvents = (): any => {
+  const getRecentEvents = (): unknown => {
     if (!monitoringData || !monitoringData.tasks?.active) {
       return hardcodedEvents;
     }
@@ -250,7 +250,7 @@ const Observability = (): JSX.Element => {
 
   const recentEvents = getRecentEvents();
 
-  const getStatusColor = (status: string): any => {
+  const getStatusColor = (status: string): unknown => {
     switch (status) {
       case 'healthy':
         return 'bg-green-100 text-green-800';

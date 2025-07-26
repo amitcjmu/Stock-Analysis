@@ -114,16 +114,16 @@ export const contextStorage = {
   }
 };
 
-export const persistClientData = (client: Client): any => {
+export const persistClientData = (client: Client): unknown => {
   localStorage.setItem('auth_client', JSON.stringify(client));
   localStorage.setItem('auth_client_id', client.id);
 };
 
-export const persistEngagementData = (engagement: Engagement): any => {
+export const persistEngagementData = (engagement: Engagement): unknown => {
   localStorage.setItem('auth_engagement', JSON.stringify(engagement));
 };
 
-export const persistSessionData = (session: ExternalSessionData): any => {
+export const persistSessionData = (session: ExternalSessionData): unknown => {
   localStorage.setItem('auth_session', JSON.stringify(session));
 };
 
@@ -166,7 +166,7 @@ export const getStoredSessionData = (): ExternalSessionData | null => {
   return null;
 };
 
-export const clearInvalidContextData = (): any => {
+export const clearInvalidContextData = (): unknown => {
   console.log('🧹 Clearing invalid context data from localStorage');
   localStorage.removeItem('auth_client');
   localStorage.removeItem('auth_engagement');
@@ -174,7 +174,7 @@ export const clearInvalidContextData = (): any => {
   localStorage.removeItem('user_context_selection');
 };
 
-export const clearAllStoredData = (): any => {
+export const clearAllStoredData = (): unknown => {
   localStorage.removeItem('auth_token');
   localStorage.removeItem('auth_user');
   localStorage.removeItem('auth_client');

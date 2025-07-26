@@ -30,7 +30,7 @@ const getInitializationState = (): boolean => {
   }
 };
 
-const setInitializationState = (completed: boolean): any => {
+const setInitializationState = (completed: boolean): unknown => {
   try {
     if (completed) {
       sessionStorage.setItem(AUTH_INIT_KEY, 'true');

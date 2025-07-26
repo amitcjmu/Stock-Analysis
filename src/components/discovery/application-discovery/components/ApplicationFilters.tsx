@@ -43,7 +43,7 @@ export const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
     });
   };
 
-  const hasActiveFilters = (): any => {
+  const hasActiveFilters = (): unknown => {
     return Object.entries(filters).some(([key, value]) => {
       if (key.includes('_min') || key.includes('_max')) return value !== '';
       return value !== 'all';

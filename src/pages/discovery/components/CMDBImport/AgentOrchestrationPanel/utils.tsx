@@ -7,7 +7,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import type { CrewStatus, BadgeVariant } from './types';
 
-export const getStatusIcon = (status: string): any => {
+export const getStatusIcon = (status: string): unknown => {
   switch (status) {
     case 'completed':
       return CheckCircle2;
@@ -46,7 +46,7 @@ export const getStatusBadgeVariant = (status: CrewStatus): BadgeVariant => {
   return variants[status] || 'secondary';
 };
 
-export const getCrewStatusStyles = (status: CrewStatus): any => {
+export const getCrewStatusStyles = (status: CrewStatus): unknown => {
   switch (status) {
     case 'running':
       return 'border-blue-500 shadow-lg';
@@ -59,7 +59,7 @@ export const getCrewStatusStyles = (status: CrewStatus): any => {
   }
 };
 
-export const getIconContainerStyles = (status: CrewStatus): any => {
+export const getIconContainerStyles = (status: CrewStatus): unknown => {
   switch (status) {
     case 'running':
       return 'bg-blue-100 text-blue-600';

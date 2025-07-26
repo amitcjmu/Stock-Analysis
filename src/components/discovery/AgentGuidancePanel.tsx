@@ -83,7 +83,7 @@ const AgentGuidancePanel: React.FC<AgentGuidancePanelProps> = ({
     }
   };
 
-  const getStatusColor = (status: string): any => {
+  const getStatusColor = (status: string): unknown => {
     switch (status) {
       case 'completed':
         return 'text-green-600 bg-green-50 border-green-200';

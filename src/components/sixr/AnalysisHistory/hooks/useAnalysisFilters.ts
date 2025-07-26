@@ -43,7 +43,7 @@ export const useAnalysisFilters = (analyses: AnalysisHistoryItem[]): JSX.Element
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const clearFilters = (): any => {
+  const clearFilters = (): unknown => {
     setFilters({
       searchTerm: '',
       statusFilter: 'all',

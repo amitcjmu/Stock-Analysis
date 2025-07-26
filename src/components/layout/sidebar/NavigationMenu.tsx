@@ -18,7 +18,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
     return false;
   };
 
-  const getExpandedState = (itemName: string): any => {
+  const getExpandedState = (itemName: string): unknown => {
     const key = itemName.toLowerCase();
     return expandedStates[key] || false;
   };

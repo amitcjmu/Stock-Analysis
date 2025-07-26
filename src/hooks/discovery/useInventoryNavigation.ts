@@ -21,7 +21,7 @@ interface InventoryNavigationOptions {
   engagement_id: string;
 }
 
-export const useInventoryNavigation = (flowId?: string): any => {
+export const useInventoryNavigation = (flowId?: string): unknown => {
   const navigate = useNavigate();
   const { flowState: flow, executeFlowPhase: updatePhase } = useUnifiedDiscoveryFlow(flowId);
 

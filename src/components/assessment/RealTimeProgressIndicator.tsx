@@ -46,7 +46,7 @@ export const RealTimeProgressIndicator: React.FC<RealTimeProgressIndicatorProps>
     return <Activity className="h-4 w-4 text-orange-600" />;
   };
 
-  const formatTime = (timestamp: Date): any => {
+  const formatTime = (timestamp: Date): unknown => {
     return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 

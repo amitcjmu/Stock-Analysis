@@ -44,7 +44,7 @@ const Timeline = (): JSX.Element => {
     );
   }
 
-  const getStatusColor = (status: string): any => {
+  const getStatusColor = (status: string): unknown => {
     const colors = {
       'Not Started': 'bg-gray-100 text-gray-800',
       'In Progress': 'bg-blue-100 text-blue-800',
@@ -57,7 +57,7 @@ const Timeline = (): JSX.Element => {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const getImpactColor = (impact: string): any => {
+  const getImpactColor = (impact: string): unknown => {
     const colors = {
       'High': 'bg-red-100 text-red-800',
       'Medium': 'bg-yellow-100 text-yellow-800',

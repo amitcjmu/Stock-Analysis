@@ -102,7 +102,7 @@ const Assess = (): JSX.Element => {
            (filterTreatment === 'All' || app.treatment === filterTreatment);
   });
 
-  const getTreatmentColor = (treatment): any => {
+  const getTreatmentColor = (treatment): unknown => {
     const colors = {
       'Rehost': 'bg-blue-100 text-blue-800',
       'Replatform': 'bg-green-100 text-green-800',
@@ -114,7 +114,7 @@ const Assess = (): JSX.Element => {
     return colors[treatment] || 'bg-gray-100 text-gray-800';
   };
 
-  const getCriticalityColor = (criticality): any => {
+  const getCriticalityColor = (criticality): unknown => {
     const colors = {
       'High': 'bg-red-100 text-red-800',
       'Medium': 'bg-yellow-100 text-yellow-800',

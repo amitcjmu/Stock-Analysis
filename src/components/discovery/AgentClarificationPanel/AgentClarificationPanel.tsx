@@ -146,7 +146,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     }
   };
 
-  const toggleAssetDetails = (componentName: string): any => {
+  const toggleAssetDetails = (componentName: string): unknown => {
     setExpandedAssetDetails(prev => {
       const next = new Set(prev);
       if (next.has(componentName)) {

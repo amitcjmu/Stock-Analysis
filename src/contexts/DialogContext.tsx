@@ -76,7 +76,7 @@ interface DialogContextValue {
 
 const DialogContext = createContext<DialogContextValue | undefined>(undefined);
 
-export const useDialog = (): any => {
+export const useDialog = (): unknown => {
   const context = useContext(DialogContext);
   if (!context) {
     throw new Error('useDialog must be used within a DialogProvider');

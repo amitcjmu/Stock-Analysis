@@ -29,7 +29,7 @@ export const BatchDeletionConfirmDialog: React.FC<BatchDeletionConfirmDialogProp
   onConfirm,
   onCancel
 }) => {
-  const getPhaseDisplayName = (phase: string): any => {
+  const getPhaseDisplayName = (phase: string): unknown => {
     const names = {
       'field_mapping': 'Field Mapping',
       'data_cleansing': 'Data Cleansing',

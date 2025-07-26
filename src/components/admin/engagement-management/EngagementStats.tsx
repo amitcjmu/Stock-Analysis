@@ -30,7 +30,7 @@ export const EngagementStats: React.FC<EngagementStatsProps> = ({ engagements })
     return acc;
   }, {} as Record<string, number>);
 
-  const formatCurrency = (amount: number): any => {
+  const formatCurrency = (amount: number): unknown => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',

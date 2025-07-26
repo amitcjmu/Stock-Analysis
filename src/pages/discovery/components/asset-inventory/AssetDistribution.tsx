@@ -68,7 +68,7 @@ const CustomTooltip = ({ active, payload, label }: unknown): JSX.Element => {
   return null;
 };
 
-const prepareChartData = (data: Record<string, number>, total: number): any => {
+const prepareChartData = (data: Record<string, number>, total: number): unknown => {
   return Object.entries(data).map(([name, value]) => ({
     name,
     value,

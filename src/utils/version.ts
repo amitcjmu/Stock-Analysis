@@ -10,7 +10,7 @@ export const getCurrentVersion = (): string => {
   return '0.4.9';
 };
 
-export const getVersionInfo = (): any => {
+export const getVersionInfo = (): unknown => {
   const version = getCurrentVersion();
   return {
     version,

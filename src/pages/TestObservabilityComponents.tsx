@@ -119,12 +119,12 @@ const TestObservabilityComponents = (): JSX.Element => {
     setSelectedAgent(agent);
   };
 
-  const simulateError = (): any => {
+  const simulateError = (): unknown => {
     setShowError(true);
     setTimeout(() => setShowError(false), 5000);
   };
 
-  const simulateLoading = (): any => {
+  const simulateLoading = (): unknown => {
     setShowLoading(true);
     setLoadingStage(0);
 

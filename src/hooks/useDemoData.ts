@@ -516,7 +516,7 @@ export const useSimilaritySearch = (): JSX.Element => {
 };
 
 // Combined hook for dashboard data
-export const useDemoDashboard = (): any => {
+export const useDemoDashboard = (): unknown => {
   const { assets, loading: assetsLoading, error: assetsError } = useDemoAssets({ limit: 10 });
   const { summary, loading: summaryLoading, error: summaryError } = useDemoAssetsSummary();
   const { analyses, loading: analysesLoading, error: analysesError } = useDemoSixRAnalyses(1);

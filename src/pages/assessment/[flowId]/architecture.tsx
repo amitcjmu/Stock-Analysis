@@ -54,7 +54,7 @@ const ArchitecturePage: React.FC = () => {
     }
   };
 
-  const hasChanges = (): any => {
+  const hasChanges = (): unknown => {
     return JSON.stringify(standards) !== JSON.stringify(state.engagementStandards) ||
            JSON.stringify(overrides) !== JSON.stringify(state.applicationOverrides);
   };

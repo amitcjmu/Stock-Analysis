@@ -85,7 +85,7 @@ const WorkflowProgress: React.FC<WorkflowProgressProps> = ({
     }
   };
 
-  const getStatusColor = (status: WorkflowStep['status']): any => {
+  const getStatusColor = (status: WorkflowStep['status']): unknown => {
     switch (status) {
       case 'completed':
         return 'bg-green-100 text-green-800';
@@ -98,7 +98,7 @@ const WorkflowProgress: React.FC<WorkflowProgressProps> = ({
     }
   };
 
-  const getProgressBarColor = (status: WorkflowStep['status']): any => {
+  const getProgressBarColor = (status: WorkflowStep['status']): unknown => {
     switch (status) {
       case 'completed':
         return 'bg-green-500';

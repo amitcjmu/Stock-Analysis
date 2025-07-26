@@ -93,7 +93,7 @@ export const useAdminData = <T>(
  */
 
 // Dashboard stats hook
-export const useAdminDashboardStats = (): any => {
+export const useAdminDashboardStats = (): unknown => {
   const demoStats = {
     clients: {
       total: 12,
@@ -125,7 +125,7 @@ export const useAdminDashboardStats = (): any => {
 };
 
 // Pending purge items hook
-export const usePendingPurgeItems = (): any => {
+export const usePendingPurgeItems = (): unknown => {
   const demoItems = [
     {
       id: 'item_001',

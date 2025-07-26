@@ -281,7 +281,7 @@ export const UserAccessManagement: React.FC = () => {
     }
   };
 
-  const getAccessLevelColor = (level: string): any => {
+  const getAccessLevelColor = (level: string): unknown => {
     switch (level) {
       case 'admin':
         return 'bg-red-100 text-red-800 border-red-200';
@@ -301,7 +301,7 @@ export const UserAccessManagement: React.FC = () => {
   );
 
   // Filter resources based on type and selected client
-  const getAvailableResources = (): any => {
+  const getAvailableResources = (): unknown => {
     if (selectedResourceType === 'client') {
       return clients;
     } else {

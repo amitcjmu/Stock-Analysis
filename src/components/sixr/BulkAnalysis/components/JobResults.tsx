@@ -47,7 +47,7 @@ export const JobResults: React.FC<JobResultsProps> = ({
     }
   };
 
-  const getConfidenceColor = (score: number): any => {
+  const getConfidenceColor = (score: number): unknown => {
     if (score >= 0.8) return 'text-green-600';
     if (score >= 0.6) return 'text-yellow-600';
     return 'text-red-600';

@@ -201,7 +201,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     }
   };
 
-  const toggleDropdown = (mappingId: string): any => {
+  const toggleDropdown = (mappingId: string): unknown => {
     setOpenDropdowns(prev => ({
       ...prev,
       [mappingId]: !prev[mappingId]
@@ -271,7 +271,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     });
   };
 
-  const getCategories = (): any => {
+  const getCategories = (): unknown => {
     if (!Array.isArray(availableFields) || availableFields.length === 0) {
       return ['all'];
     }

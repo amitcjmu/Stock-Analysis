@@ -97,17 +97,17 @@ function getBreakpoint(width: number, breakpoints: ResponsiveBreakpoints): Respo
 }
 
 // Grid layout utilities
-export const useGridLayout = (baseColumns: number = 4): any => {
+export const useGridLayout = (baseColumns: number = 4): unknown => {
   const { isMobile, isTablet, isDesktop, isLargeDesktop } = useResponsiveLayout();
 
-  const getGridColumns = (): any => {
+  const getGridColumns = (): unknown => {
     if (isMobile) return 1;
     if (isTablet) return Math.min(2, baseColumns);
     if (isDesktop) return Math.min(3, baseColumns);
     return baseColumns;
   };
 
-  const getGridClass = (): any => {
+  const getGridClass = (): unknown => {
     const columns = getGridColumns();
     return `grid grid-cols-1 md:grid-cols-${Math.min(2, columns)} lg:grid-cols-${Math.min(3, columns)} xl:grid-cols-${columns}`;
   };
@@ -123,7 +123,7 @@ export const useGridLayout = (baseColumns: number = 4): any => {
 };
 
 // Component visibility utilities
-export const useComponentVisibility = (): any => {
+export const useComponentVisibility = (): unknown => {
   const { isMobile, isTablet } = useResponsiveLayout();
 
   return {

@@ -174,7 +174,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     setCurrentPage(1);
   };
 
-  const toggleColumn = (column: string): any => {
+  const toggleColumn = (column: string): unknown => {
     setSelectedColumns(prev =>
       prev.includes(column)
         ? prev.filter(col => col !== column)

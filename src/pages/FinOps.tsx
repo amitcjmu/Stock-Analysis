@@ -63,7 +63,7 @@ const FinOps = (): JSX.Element => {
   const totalForecast = costData.reduce((sum, wave) => sum + wave.forecast, 0);
   const avgSavings = Math.round(costData.reduce((sum, wave) => sum + wave.savings, 0) / costData.length);
 
-  const formatCurrency = (amount): any => {
+  const formatCurrency = (amount): unknown => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',

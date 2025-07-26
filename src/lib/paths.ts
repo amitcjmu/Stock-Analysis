@@ -14,7 +14,7 @@ export const Paths = {
 } as const;
 
 // Helper to get the correct import path
-export const getImportPath = (path: string): any => {
+export const getImportPath = (path: string): unknown => {
   // Convert @ alias to relative path if needed
   if (path.startsWith('@/')) {
     return path.replace('@/', '../');

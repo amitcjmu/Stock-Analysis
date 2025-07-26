@@ -58,7 +58,7 @@ export const useWavePlanning = (): JSX.Element => {
   });
 };
 
-export const useUpdateWavePlanning = (): any => {
+export const useUpdateWavePlanning = (): unknown => {
   const queryClient = useQueryClient();
 
   return useMutation({

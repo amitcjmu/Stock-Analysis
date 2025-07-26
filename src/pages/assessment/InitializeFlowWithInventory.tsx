@@ -188,7 +188,7 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
     }
   };
 
-  const getCriticalityColor = (criticality: string): any => {
+  const getCriticalityColor = (criticality: string): unknown => {
     switch (criticality?.toLowerCase()) {
       case 'high':
       case 'critical':

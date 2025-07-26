@@ -116,7 +116,7 @@ export const useApplications = (enabled = true): JSX.Element => {
     gcTime: 15 * 60 * 1000, // 15 minutes (cacheTime was renamed to gcTime in v5)
   });
 
-  const refetchApplications = (): any => {
+  const refetchApplications = (): unknown => {
     return queryClient.invalidateQueries({ queryKey: ['applications'] });
   };
 

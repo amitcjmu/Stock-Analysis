@@ -126,7 +126,7 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
     updateTechDebtAnalysis(selectedApp, techDebt);
   };
 
-  const getSeverityColor = (severity: SeverityLevel): any => {
+  const getSeverityColor = (severity: SeverityLevel): unknown => {
     switch (severity) {
       case 'critical': return 'bg-red-100 text-red-700 border-red-200';
       case 'high': return 'bg-orange-100 text-orange-700 border-orange-200';

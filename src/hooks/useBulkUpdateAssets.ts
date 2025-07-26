@@ -7,7 +7,7 @@ interface BulkUpdatePayload {
   updates: Record<string, unknown>;
 }
 
-export function useBulkUpdateAssets(): any {
+export function useBulkUpdateAssets(): unknown {
   const { getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
 

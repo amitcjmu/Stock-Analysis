@@ -53,7 +53,7 @@ export const useArchival = (): JSX.Element => {
   });
 };
 
-export const useStartArchival = (): any => {
+export const useStartArchival = (): unknown => {
   const { getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
 
@@ -72,7 +72,7 @@ export const useStartArchival = (): any => {
   });
 };
 
-export const useVerifyArchival = (): any => {
+export const useVerifyArchival = (): unknown => {
   const { getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
 

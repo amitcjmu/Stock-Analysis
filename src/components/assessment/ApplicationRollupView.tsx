@@ -28,7 +28,7 @@ export const ApplicationRollupView: React.FC<ApplicationRollupViewProps> = ({
   selectedApplicationIds,
   onApplicationSelect
 }) => {
-  const getStrategyInfo = (strategy: string): any => {
+  const getStrategyInfo = (strategy: string): unknown => {
     return SIX_R_STRATEGIES.find(s => s.value === strategy) || {
       value: strategy,
       label: strategy,
@@ -116,7 +116,7 @@ const ApplicationRollupCard: React.FC<ApplicationRollupCardProps> = ({
   hasDecision,
   onSelect
 }) => {
-  const getStrategyInfo = (strategy: string): any => {
+  const getStrategyInfo = (strategy: string): unknown => {
     return SIX_R_STRATEGIES.find(s => s.value === strategy) || {
       value: strategy,
       label: strategy,

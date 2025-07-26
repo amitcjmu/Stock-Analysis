@@ -97,7 +97,7 @@ export const ConflictResolver: React.FC<ConflictResolverProps> = ({
     }
   };
 
-  const formatTimestamp = (timestamp: string): any => {
+  const formatTimestamp = (timestamp: string): unknown => {
     return new Date(timestamp).toLocaleString();
   };
 

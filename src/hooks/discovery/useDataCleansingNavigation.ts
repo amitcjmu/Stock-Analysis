@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-export const useDataCleansingNavigation = (flowState: unknown, cleansingProgress: unknown): any => {
+export const useDataCleansingNavigation = (flowState: unknown, cleansingProgress: unknown): unknown => {
   const navigate = useNavigate();
   const { user, client, engagement } = useAuth();
 

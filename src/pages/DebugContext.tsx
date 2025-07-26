@@ -36,7 +36,7 @@ export const DebugContext: React.FC = () => {
     setLocalStorage(data);
   }, []);
 
-  const clearLocalStorage = (): any => {
+  const clearLocalStorage = (): unknown => {
     window.localStorage.removeItem('auth_client');
     window.localStorage.removeItem('auth_engagement');
     window.localStorage.removeItem('auth_session');

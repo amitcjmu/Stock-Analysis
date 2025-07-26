@@ -76,7 +76,7 @@ const getErrorIcon = (type: string): JSX.Element => {
   }
 };
 
-const getErrorColor = (type: string): any => {
+const getErrorColor = (type: string): unknown => {
   switch (type) {
     case 'network': return 'text-orange-600 bg-orange-50 border-orange-200';
     case 'server': return 'text-red-600 bg-red-50 border-red-200';

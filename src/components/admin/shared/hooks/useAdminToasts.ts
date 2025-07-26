@@ -21,7 +21,7 @@ export const useAdminToasts = (): {
 } => {
   const { toast } = useToast();
 
-  const showSuccessToast = (title: string, description?: string): any => {
+  const showSuccessToast = (title: string, description?: string): unknown => {
     toast({
       title,
       description,
@@ -29,7 +29,7 @@ export const useAdminToasts = (): {
     });
   };
 
-  const showErrorToast = (title: string, description?: string): any => {
+  const showErrorToast = (title: string, description?: string): unknown => {
     toast({
       title,
       description,
@@ -37,7 +37,7 @@ export const useAdminToasts = (): {
     });
   };
 
-  const showWarningToast = (title: string, description?: string): any => {
+  const showWarningToast = (title: string, description?: string): unknown => {
     toast({
       title,
       description,
@@ -46,63 +46,63 @@ export const useAdminToasts = (): {
   };
 
   // Specific admin operation toasts
-  const showUserApprovedToast = (userName: string): any => {
+  const showUserApprovedToast = (userName: string): unknown => {
     showSuccessToast(
       "User Approved",
       `${userName} has been approved and granted access`
     );
   };
 
-  const showUserRejectedToast = (userName: string): any => {
+  const showUserRejectedToast = (userName: string): unknown => {
     showSuccessToast(
       "User Rejected",
       `${userName}'s request has been rejected`
     );
   };
 
-  const showUserDeactivatedToast = (userName: string): any => {
+  const showUserDeactivatedToast = (userName: string): unknown => {
     showSuccessToast(
       "User Deactivated",
       `${userName} has been deactivated`
     );
   };
 
-  const showUserActivatedToast = (userName: string): any => {
+  const showUserActivatedToast = (userName: string): unknown => {
     showSuccessToast(
       "User Activated",
       `${userName} has been activated`
     );
   };
 
-  const showPurgeApprovedToast = (message?: string): any => {
+  const showPurgeApprovedToast = (message?: string): unknown => {
     showSuccessToast(
       "Purge Approved",
       message || "Purge request has been approved"
     );
   };
 
-  const showPurgeRejectedToast = (message?: string): any => {
+  const showPurgeRejectedToast = (message?: string): unknown => {
     showSuccessToast(
       "Purge Rejected",
       message || "Purge request has been rejected"
     );
   };
 
-  const showDataFetchErrorToast = (): any => {
+  const showDataFetchErrorToast = (): unknown => {
     showErrorToast(
       "Error",
       "Failed to fetch data. Please try again."
     );
   };
 
-  const showGenericErrorToast = (operation: string): any => {
+  const showGenericErrorToast = (operation: string): unknown => {
     showErrorToast(
       "Error",
       `Failed to ${operation}. Please try again.`
     );
   };
 
-  const showDemoDataWarningToast = (errorMessage?: string): any => {
+  const showDemoDataWarningToast = (errorMessage?: string): unknown => {
     showWarningToast(
       "Using Demo Data",
       `There was an issue fetching live data. Showing demo statistics. ${errorMessage ? `Error: ${errorMessage}` : ''}`

@@ -264,7 +264,7 @@ const DataIntegration: React.FC = () => {
     }
   };
 
-  const getConflictStatusCounts = (): any => {
+  const getConflictStatusCounts = (): unknown => {
     const total = conflicts.length + resolvedConflicts.length;
     const resolved = resolvedConflicts.length;
     const pending = conflicts.length;

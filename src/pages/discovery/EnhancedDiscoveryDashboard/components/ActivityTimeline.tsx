@@ -26,7 +26,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
     }
   };
 
-  const getAlertColor = (type: string): any => {
+  const getAlertColor = (type: string): unknown => {
     switch (type) {
       case 'success':
         return 'bg-green-100 text-green-800 border-green-200';
@@ -40,7 +40,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
     }
   };
 
-  const formatTimestamp = (timestamp: string): any => {
+  const formatTimestamp = (timestamp: string): unknown => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();

@@ -75,7 +75,7 @@ const FeedbackWidget = (): JSX.Element => {
     }
   };
 
-  const getStatusColor = (status: string): any => {
+  const getStatusColor = (status: string): unknown => {
     const colors = {
       'New': 'bg-blue-100 text-blue-800',
       'In Review': 'bg-yellow-100 text-yellow-800',
@@ -86,7 +86,7 @@ const FeedbackWidget = (): JSX.Element => {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const getTypeColor = (type: string): any => {
+  const getTypeColor = (type: string): unknown => {
     const colors = {
       'Bug': 'bg-red-100 text-red-800',
       'Feature': 'bg-blue-100 text-blue-800',

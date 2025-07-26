@@ -23,11 +23,11 @@ export const JobCreationDialog: React.FC<JobCreationDialogProps> = ({
   onFormDataChange,
   onCreateJob
 }) => {
-  const updateFormData = (updates: Partial<JobCreationFormData>): any => {
+  const updateFormData = (updates: Partial<JobCreationFormData>): unknown => {
     onFormDataChange({ ...formData, ...updates });
   };
 
-  const updateParameters = (updates: Partial<JobCreationFormData['parameters']>): any => {
+  const updateParameters = (updates: Partial<JobCreationFormData['parameters']>): unknown => {
     onFormDataChange({
       ...formData,
       parameters: { ...formData.parameters, ...updates }

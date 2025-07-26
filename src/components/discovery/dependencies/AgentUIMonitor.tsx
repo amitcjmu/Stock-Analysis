@@ -43,7 +43,7 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
   const thinkMutation = useAgentThink();
   const ponderMutation = useAgentPonderMore();
 
-  const toggleSection = (section: string): any => {
+  const toggleSection = (section: string): unknown => {
     setExpandedSections(prev => {
       const next = new Set(prev);
       if (next.has(section)) {

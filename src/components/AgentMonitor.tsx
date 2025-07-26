@@ -115,12 +115,12 @@ const AgentMonitor = (): JSX.Element => {
     return colors[status.toLowerCase()] || 'bg-gray-100 text-gray-800';
   };
 
-  const formatTime = (timestamp: string | null): any => {
+  const formatTime = (timestamp: string | null): unknown => {
     if (!timestamp) return 'Never';
     return new Date(timestamp).toLocaleTimeString();
   };
 
-  const formatPercentage = (value: number): any => {
+  const formatPercentage = (value: number): unknown => {
     return Math.round(value * 100);
   };
 

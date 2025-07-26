@@ -52,7 +52,7 @@ export const ArchitectureStandardsForm: React.FC<ArchitectureStandardsFormProps>
     verification_status: 'pending'
   });
 
-  const getRequirementTypeColor = (type: string): any => {
+  const getRequirementTypeColor = (type: string): unknown => {
     const reqType = REQUIREMENT_TYPES.find(rt => rt.value === type);
     return reqType?.color || 'bg-gray-100 text-gray-700';
   };
@@ -81,14 +81,14 @@ export const ArchitectureStandardsForm: React.FC<ArchitectureStandardsFormProps>
     });
   };
 
-  const updateStandard = (id: string, updates: Partial<ArchitectureStandard>): any => {
+  const updateStandard = (id: string, updates: Partial<ArchitectureStandard>): unknown => {
     const updatedStandards = standards.map(standard =>
       standard.id === id ? { ...standard, ...updates } : standard
     );
     onChange(updatedStandards);
   };
 
-  const removeStandard = (id: string): any => {
+  const removeStandard = (id: string): unknown => {
     onChange(standards.filter(standard => standard.id !== id));
   };
 
@@ -274,7 +274,7 @@ const StandardCard: React.FC<StandardCardProps> = ({
 }) => {
   const [editData, setEditData] = useState<Partial<ArchitectureStandard>>(standard);
 
-  const getRequirementTypeColor = (type: string): any => {
+  const getRequirementTypeColor = (type: string): unknown => {
     const reqType = REQUIREMENT_TYPES.find(rt => rt.value === type);
     return reqType?.color || 'bg-gray-100 text-gray-700';
   };

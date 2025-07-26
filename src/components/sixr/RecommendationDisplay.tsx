@@ -140,7 +140,7 @@ export const RecommendationDisplay: React.FC<RecommendationDisplayProps> = ({
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['overview']));
   const [selectedTab, setSelectedTab] = useState('recommendation');
 
-  const toggleSection = (section: string): any => {
+  const toggleSection = (section: string): unknown => {
     const newExpanded = new Set(expandedSections);
     if (newExpanded.has(section)) {
       newExpanded.delete(section);

@@ -187,7 +187,7 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
 };
 
 // Specific hooks for each Discovery page
-export const useDataImportFlowDetection = (): any => {
+export const useDataImportFlowDetection = (): unknown => {
   return useDiscoveryFlowAutoDetection({
     currentPhase: 'data_import',
     preferredStatuses: ['running', 'active', 'pending'],
@@ -195,7 +195,7 @@ export const useDataImportFlowDetection = (): any => {
   });
 };
 
-export const useAttributeMappingFlowDetection = (): any => {
+export const useAttributeMappingFlowDetection = (): unknown => {
   return useDiscoveryFlowAutoDetection({
     currentPhase: 'attribute_mapping',
     preferredStatuses: ['initialized', 'running', 'active', 'initializing', 'processing', 'paused', 'waiting_for_user_approval', 'waiting_for_approval'],
@@ -203,7 +203,7 @@ export const useAttributeMappingFlowDetection = (): any => {
   });
 };
 
-export const useDataCleansingFlowDetection = (): any => {
+export const useDataCleansingFlowDetection = (): unknown => {
   return useDiscoveryFlowAutoDetection({
     currentPhase: 'data_cleansing',
     preferredStatuses: ['running', 'active'],
@@ -211,7 +211,7 @@ export const useDataCleansingFlowDetection = (): any => {
   });
 };
 
-export const useInventoryFlowDetection = (): any => {
+export const useInventoryFlowDetection = (): unknown => {
   return useDiscoveryFlowAutoDetection({
     currentPhase: 'inventory',
     preferredStatuses: ['running', 'active'],
@@ -219,7 +219,7 @@ export const useInventoryFlowDetection = (): any => {
   });
 };
 
-export const useDependenciesFlowDetection = (): any => {
+export const useDependenciesFlowDetection = (): unknown => {
   return useDiscoveryFlowAutoDetection({
     currentPhase: 'dependencies',
     preferredStatuses: ['running', 'active'],
@@ -227,7 +227,7 @@ export const useDependenciesFlowDetection = (): any => {
   });
 };
 
-export const useTechDebtFlowDetection = (): any => {
+export const useTechDebtFlowDetection = (): unknown => {
   return useDiscoveryFlowAutoDetection({
     currentPhase: 'tech_debt',
     preferredStatuses: ['running', 'active'],

@@ -88,7 +88,7 @@ export const useAgentQuestions = (page: string = "dependencies"): JSX.Element =>
   });
 };
 
-export const useAnswerAgentQuestion = (): any => {
+export const useAnswerAgentQuestion = (): unknown => {
   const queryClient = useQueryClient();
 
   return useMutation({

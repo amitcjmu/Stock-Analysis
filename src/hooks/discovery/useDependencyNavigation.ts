@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 
-export const useDependencyNavigation = (flowId?: string, dependencyData?: unknown): any => {
+export const useDependencyNavigation = (flowId?: string, dependencyData?: unknown): unknown => {
   const navigate = useNavigate();
   const { flowState: flow, executeFlowPhase: updatePhase } = useUnifiedDiscoveryFlow(flowId);
 

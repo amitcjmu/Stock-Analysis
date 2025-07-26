@@ -109,7 +109,7 @@ const Verification = (): JSX.Element => {
     }
   };
 
-  const getStatusColor = (status: string): any => {
+  const getStatusColor = (status: string): unknown => {
     switch (status) {
       case 'passed':
         return 'bg-green-100 text-green-800';

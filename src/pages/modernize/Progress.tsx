@@ -52,7 +52,7 @@ const ModernizationProgress = (): JSX.Element => {
     }
   };
 
-  const getActivityColor = (status: string): any => {
+  const getActivityColor = (status: string): unknown => {
     switch (status) {
       case 'success':
         return 'border-green-200 bg-green-50';

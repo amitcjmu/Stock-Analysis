@@ -136,11 +136,11 @@ const AssessmentFlowOverview = (): JSX.Element => {
     );
   };
 
-  const formatPhase = (phase: string): any => {
+  const formatPhase = (phase: string): unknown => {
     return phase.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  const formatDate = (dateString: string): any => {
+  const formatDate = (dateString: string): unknown => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',

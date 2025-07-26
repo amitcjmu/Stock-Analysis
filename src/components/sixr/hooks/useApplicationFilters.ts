@@ -27,11 +27,11 @@ export const useApplicationFilters = (applications: Application[]): UseApplicati
 
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-  const setFilters = (newFilters: Partial<ApplicationFilters>): any => {
+  const setFilters = (newFilters: Partial<ApplicationFilters>): unknown => {
     setFiltersState(prev => ({ ...prev, ...newFilters }));
   };
 
-  const clearFilters = (): any => {
+  const clearFilters = (): unknown => {
     setFiltersState({
       searchTerm: '',
       departmentFilter: 'all',

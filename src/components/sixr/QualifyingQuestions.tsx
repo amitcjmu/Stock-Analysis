@@ -93,7 +93,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     disabled
   });
 
-  const removeFile = (index: number): any => {
+  const removeFile = (index: number): unknown => {
     const newFiles = uploadedFiles.filter((_, i) => i !== index);
     setUploadedFiles(newFiles);
     onFileChange(newFiles);
@@ -188,7 +188,7 @@ export const QualifyingQuestions: React.FC<QualifyingQuestionsProps> = ({
   ).length;
   const progressPercentage = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
 
-  const getResponseValue = (questionId: string): any => {
+  const getResponseValue = (questionId: string): unknown => {
     const response = responses.find(r => r.question_id === questionId);
     return response?.response;
   };
@@ -197,7 +197,7 @@ export const QualifyingQuestions: React.FC<QualifyingQuestionsProps> = ({
     onResponseChange(questionId, value);
   };
 
-  const toggleCategory = (category: string): any => {
+  const toggleCategory = (category: string): unknown => {
     const newExpanded = new Set(expandedCategories);
     if (newExpanded.has(category)) {
       newExpanded.delete(category);

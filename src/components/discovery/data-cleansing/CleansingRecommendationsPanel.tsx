@@ -26,7 +26,7 @@ const CleansingRecommendationsPanel: React.FC<CleansingRecommendationsPanelProps
   onApplyRecommendation,
   isLoading = false
 }) => {
-  const getPriorityBadgeClass = (priority: 'high' | 'medium' | 'low'): any => {
+  const getPriorityBadgeClass = (priority: 'high' | 'medium' | 'low'): unknown => {
     switch (priority) {
       case 'high':
         return 'bg-red-100 text-red-800';

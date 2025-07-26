@@ -20,7 +20,7 @@ export const useSixRSubmission = ({
   resumeFlow,
   selectedApp,
   currentAppDecision
-}: UseSixRSubmissionProps): any => {
+}: UseSixRSubmissionProps): unknown => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
 

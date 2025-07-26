@@ -11,7 +11,7 @@ interface TechDebtItemCardProps {
   showCheckbox?: boolean;
 }
 
-const getRiskColor = (risk: string): any => {
+const getRiskColor = (risk: string): unknown => {
   switch (risk) {
     case 'critical':
       return 'bg-red-100 text-red-800 border-red-200';
@@ -24,7 +24,7 @@ const getRiskColor = (risk: string): any => {
   }
 };
 
-const getStatusColor = (status: string): any => {
+const getStatusColor = (status: string): unknown => {
   switch (status) {
     case 'end_of_life':
       return 'bg-red-100 text-red-800 border-red-200';
@@ -37,7 +37,7 @@ const getStatusColor = (status: string): any => {
   }
 };
 
-const getEffortValue = (effort: string): any => {
+const getEffortValue = (effort: string): unknown => {
   switch (effort) {
     case 'low':
       return 25;

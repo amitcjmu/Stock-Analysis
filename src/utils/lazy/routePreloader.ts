@@ -182,7 +182,7 @@ class RoutePreloader {
    */
   private setupNavigationTracking(): void {
     // Track navigation history for pattern analysis
-    const trackNavigation = (): any => {
+    const trackNavigation = (): unknown => {
       const currentPath = window.location.pathname;
       this.navigationHistory.push(currentPath);
 
@@ -223,7 +223,7 @@ class RoutePreloader {
     let idleTimer: NodeJS.Timeout;
     const idleTime = 2000; // 2 seconds of inactivity
 
-    const resetIdleTimer = (): any => {
+    const resetIdleTimer = (): unknown => {
       clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
         this.preloadIdleRoutes();

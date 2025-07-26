@@ -24,7 +24,7 @@ const actionTypes = {
 
 let count = 0
 
-function genId(): any {
+function genId(): unknown {
   count = (count + 1) % Number.MAX_SAFE_INTEGER
   return count.toString()
 }
@@ -55,7 +55,7 @@ interface State {
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
-const addToRemoveQueue = (toastId: string): any => {
+const addToRemoveQueue = (toastId: string): unknown => {
   if (toastTimeouts.has(toastId)) {
     return
   }

@@ -44,7 +44,7 @@ const Rewrite = (): JSX.Element => {
     );
   }
 
-  const getSeverityColor = (severity: string): any => {
+  const getSeverityColor = (severity: string): unknown => {
     const colors = {
       'High': 'bg-red-100 text-red-800',
       'Medium': 'bg-yellow-100 text-yellow-800',
@@ -53,7 +53,7 @@ const Rewrite = (): JSX.Element => {
     return colors[severity] || 'bg-gray-100 text-gray-800';
   };
 
-  const getStatusColor = (status: string): any => {
+  const getStatusColor = (status: string): unknown => {
     const colors = {
       'Planning': 'bg-blue-100 text-blue-800',
       'In Progress': 'bg-yellow-100 text-yellow-800',

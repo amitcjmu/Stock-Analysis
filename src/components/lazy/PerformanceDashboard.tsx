@@ -92,7 +92,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
     }
   }, [autoRefresh, refreshInterval]);
 
-  const exportPerformanceData = (): any => {
+  const exportPerformanceData = (): unknown => {
     const data = performanceMonitor.exportPerformanceData();
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -105,7 +105,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const getPerformanceScoreColor = (score: number): any => {
+  const getPerformanceScoreColor = (score: number): unknown => {
     if (score >= 90) return 'text-green-600';
     if (score >= 70) return 'text-yellow-600';
     if (score >= 50) return 'text-orange-600';

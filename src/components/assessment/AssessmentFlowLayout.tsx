@@ -95,11 +95,11 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
     return 'disabled';
   };
 
-  const isPhaseComplete = (phaseId: AssessmentPhase): any => {
+  const isPhaseComplete = (phaseId: AssessmentPhase): unknown => {
     return getPhaseStatus(phaseId) === 'completed';
   };
 
-  const canNavigateToPhase = (phaseId: AssessmentPhase): any => {
+  const canNavigateToPhase = (phaseId: AssessmentPhase): unknown => {
     const status = getPhaseStatus(phaseId);
     return status === 'completed' || status === 'active' || status === 'processing';
   };

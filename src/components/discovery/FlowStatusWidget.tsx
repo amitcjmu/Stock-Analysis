@@ -194,7 +194,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
     }
   };
 
-  const getTaskStatusColor = (status: string): any => {
+  const getTaskStatusColor = (status: string): unknown => {
     switch (status) {
       case 'completed': return 'default';
       case 'pending': return 'secondary';

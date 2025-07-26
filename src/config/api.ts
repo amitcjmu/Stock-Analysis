@@ -25,7 +25,7 @@ let currentContext: AppContextType = {
 
 // Export a function to update the context
 // This will be called by the AppContextProvider when the context changes
-export const updateApiContext = (context: AppContextType): any => {
+export const updateApiContext = (context: AppContextType): unknown => {
   currentContext = { ...context };
 };
 

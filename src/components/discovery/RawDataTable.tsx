@@ -43,7 +43,7 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
     return sortedColumns;
   };
 
-  const formatColumnName = (columnName: string): any => {
+  const formatColumnName = (columnName: string): unknown => {
     return columnName
       .replace(/([A-Z])/g, ' $1') // Add space before capital letters
       .replace(/_/g, ' ') // Replace underscores with spaces
@@ -59,19 +59,19 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
     return String(value);
   };
 
-  const getCurrentPageData = (): any => {
+  const getCurrentPageData = (): unknown => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     return data.slice(startIndex, endIndex);
   };
 
   // Get asset identifier for highlighting
-  const getAssetIdentifier = (row: unknown): any => {
+  const getAssetIdentifier = (row: unknown): unknown => {
     return row.id || row.ID || row.asset_name || row.hostname || row.name || row.NAME || 'unknown';
   };
 
   // Get unique row key that combines asset identifier with row index to prevent duplicates
-  const getRowKey = (row: unknown, index: number): any => {
+  const getRowKey = (row: unknown, index: number): unknown => {
     const assetId = getAssetIdentifier(row);
     // Ensure uniqueness even if multiple rows have 'unknown' identifier
     return assetId === 'unknown' ? `unknown-${index}` : assetId;

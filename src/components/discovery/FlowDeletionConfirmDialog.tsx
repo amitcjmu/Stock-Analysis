@@ -41,7 +41,7 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
   onConfirm,
   onCancel
 }) => {
-  const getPhaseDisplayName = (phase: string): any => {
+  const getPhaseDisplayName = (phase: string): unknown => {
     const names = {
       'field_mapping': 'Field Mapping',
       'data_cleansing': 'Data Cleansing',
@@ -62,7 +62,7 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
-  const getTotalDataRecords = (): any => {
+  const getTotalDataRecords = (): unknown => {
     if (!flow.deletion_impact?.data_to_delete) return 0;
     const data = flow.deletion_impact.data_to_delete;
     return Object.values(data).reduce((sum, count) => sum + (typeof count === 'number' ? count : 0), 0);

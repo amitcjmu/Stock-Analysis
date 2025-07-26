@@ -51,7 +51,7 @@ How can I assist you with your migration today?`,
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = (): any => {
+  const scrollToBottom = (): unknown => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -60,7 +60,7 @@ How can I assist you with your migration today?`,
   }, [messages]);
 
   // Restrictive system prompt for Gemma chatbot
-  const getRestrictiveSystemPrompt = (): any => {
+  const getRestrictiveSystemPrompt = (): unknown => {
     return `You are a specialized AI assistant for IT infrastructure migration and cloud transformation. You MUST follow these strict guidelines:
 
 ALLOWED TOPICS ONLY:

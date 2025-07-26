@@ -204,7 +204,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
 
   const allColumns = importData.length > 0 ? Object.keys(importData[0].raw_data) : [];
 
-  const toggleColumn = (column: string): any => {
+  const toggleColumn = (column: string): unknown => {
     setSelectedColumns(prev =>
       prev.includes(column)
         ? prev.filter(col => col !== column)

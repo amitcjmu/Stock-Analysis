@@ -50,7 +50,7 @@ export const useVerification = (): JSX.Element => {
   });
 };
 
-export const useRunVerification = (): any => {
+export const useRunVerification = (): unknown => {
   const { getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
 
@@ -69,7 +69,7 @@ export const useRunVerification = (): any => {
   });
 };
 
-export const useGenerateReport = (): any => {
+export const useGenerateReport = (): unknown => {
   const { getAuthHeaders } = useAuth();
 
   return useMutation({

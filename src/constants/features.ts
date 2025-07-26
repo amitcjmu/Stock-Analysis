@@ -166,6 +166,6 @@ export const isFeatureEnabled = (featurePath: string): boolean => {
 };
 
 // Helper function to get features for current environment
-export const getFeaturesForEnvironment = (env: 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION' = 'PRODUCTION'): any => {
+export const getFeaturesForEnvironment = (env: 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION' = 'PRODUCTION'): unknown => {
   return FEATURE_ENVIRONMENTS[env];
 };

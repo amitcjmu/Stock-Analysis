@@ -36,7 +36,7 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
   const { user } = useAuth();
   const [deletingFlowId, setDeletingFlowId] = useState<string | null>(null);
 
-  const getPhaseDisplayName = (phase: string): any => {
+  const getPhaseDisplayName = (phase: string): unknown => {
     if (!phase) return 'Unknown';
 
     const names = {
@@ -52,7 +52,7 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
     return names[phase as keyof typeof names] || phase.replace('_', ' ').toUpperCase();
   };
 
-  const getStatusColor = (status: string): any => {
+  const getStatusColor = (status: string): unknown => {
     if (!status) return 'bg-gray-100 text-gray-800 border-gray-200';
 
     switch (status.toLowerCase()) {

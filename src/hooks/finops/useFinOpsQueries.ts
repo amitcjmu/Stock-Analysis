@@ -47,7 +47,7 @@ export interface BudgetAlert {
 }
 
 // Hooks
-export const useCostMetrics = (): any => {
+export const useCostMetrics = (): unknown => {
   const { getAuthHeaders } = useAuth();
 
   return useQuery({
@@ -62,7 +62,7 @@ export const useCostMetrics = (): any => {
   });
 };
 
-export const useResourceCosts = (): any => {
+export const useResourceCosts = (): unknown => {
   const { getAuthHeaders } = useAuth();
 
   return useQuery({
@@ -77,7 +77,7 @@ export const useResourceCosts = (): any => {
   });
 };
 
-export const useSavingsOpportunities = (): any => {
+export const useSavingsOpportunities = (): unknown => {
   const { getAuthHeaders } = useAuth();
 
   return useQuery({
@@ -92,7 +92,7 @@ export const useSavingsOpportunities = (): any => {
   });
 };
 
-export const useBudgetAlerts = (): any => {
+export const useBudgetAlerts = (): unknown => {
   const { getAuthHeaders } = useAuth();
 
   return useQuery({

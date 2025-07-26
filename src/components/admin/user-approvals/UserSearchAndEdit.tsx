@@ -223,12 +223,12 @@ export const UserSearchAndEdit: React.FC = () => {
     }
   };
 
-  const getClientName = (clientId: string): any => {
+  const getClientName = (clientId: string): unknown => {
     const client = clients.find(c => c.id === clientId);
     return client ? client.account_name : 'Unknown Client';
   };
 
-  const getEngagementName = (engagementId: string): any => {
+  const getEngagementName = (engagementId: string): unknown => {
     const engagement = engagements.find(e => e.id === engagementId);
     return engagement ? engagement.engagement_name : 'Unknown Engagement';
   };
@@ -245,7 +245,7 @@ export const UserSearchAndEdit: React.FC = () => {
     }
   };
 
-  const getRoleColor = (roleName: string): any => {
+  const getRoleColor = (roleName: string): unknown => {
     switch (roleName.toLowerCase()) {
       case 'platform administrator':
       case 'admin':

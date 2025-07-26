@@ -102,7 +102,7 @@ const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
     }
   };
 
-  const getStatusColor = (status: string): any => {
+  const getStatusColor = (status: string): unknown => {
     switch (status) {
       case 'running':
       case 'in_progress':

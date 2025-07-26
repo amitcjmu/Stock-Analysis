@@ -207,7 +207,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
   };
 
   // Check if there are changes to confirm
-  const hasChanges = (): any => {
+  const hasChanges = (): unknown => {
     return (
       stagedClient?.id !== currentClient?.id ||
       stagedEngagement?.id !== currentEngagement?.id ||

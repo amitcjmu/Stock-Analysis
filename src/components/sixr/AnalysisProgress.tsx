@@ -69,7 +69,7 @@ const stepIcons = {
   validation: <CheckSquare className="h-4 w-4" />
 };
 
-const getStatusColor = (status: string): any => {
+const getStatusColor = (status: string): unknown => {
   switch (status) {
     case 'completed': return 'text-green-600 bg-green-50 border-green-200';
     case 'in_progress': return 'text-blue-600 bg-blue-50 border-blue-200';
@@ -127,7 +127,7 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
 
   useEffect(() => {
     if (progress.estimatedCompletion && progress.status === 'in_progress') {
-      const updateTimeRemaining = (): any => {
+      const updateTimeRemaining = (): unknown => {
         setTimeRemaining(formatTimeRemaining(progress.estimatedCompletion));
       };
 
@@ -138,7 +138,7 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
     }
   }, [progress.estimatedCompletion, progress.status]);
 
-  const toggleStepDetails = (stepId: string): any => {
+  const toggleStepDetails = (stepId: string): unknown => {
     const newExpanded = new Set(expandedSteps);
     if (newExpanded.has(stepId)) {
       newExpanded.delete(stepId);

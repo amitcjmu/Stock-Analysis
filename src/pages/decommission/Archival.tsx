@@ -111,7 +111,7 @@ const Archival = (): JSX.Element => {
     }
   };
 
-  const getStatusColor = (status: string): any => {
+  const getStatusColor = (status: string): unknown => {
     switch (status) {
       case 'completed':
         return 'bg-green-100 text-green-800';

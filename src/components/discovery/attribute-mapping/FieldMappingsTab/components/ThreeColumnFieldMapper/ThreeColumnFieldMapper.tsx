@@ -154,7 +154,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     }
   };
 
-  const toggleReasoningExpansion = (mappingId: string): any => {
+  const toggleReasoningExpansion = (mappingId: string): unknown => {
     setExpandedReasonings(prev => {
       const newSet = new Set(prev);
       if (newSet.has(mappingId)) {

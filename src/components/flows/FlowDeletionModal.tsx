@@ -41,7 +41,7 @@ export const FlowDeletionModal: React.FC<FlowDeletionModalProps> = ({
     return null;
   }
 
-  const getSourceIcon = (): any => {
+  const getSourceIcon = (): unknown => {
     switch (deletionSource) {
       case 'automatic_cleanup':
         return '🤖';
@@ -54,7 +54,7 @@ export const FlowDeletionModal: React.FC<FlowDeletionModalProps> = ({
     }
   };
 
-  const getSourceTitle = (): any => {
+  const getSourceTitle = (): unknown => {
     switch (deletionSource) {
       case 'automatic_cleanup':
         return 'System Cleanup Recommendation';
