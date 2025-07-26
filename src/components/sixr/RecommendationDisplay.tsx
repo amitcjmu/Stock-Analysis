@@ -117,7 +117,7 @@ const getConfidenceLevel = (score: number): { level: string; color: string; icon
   };
 };
 
-const getEffortIcon = (effort: string) => {
+const getEffortIcon = (effort: string): JSX.Element => {
   switch (effort?.toLowerCase()) {
     case 'low': return <Zap className="h-4 w-4 text-green-500" />;
     case 'medium': return <Clock className="h-4 w-4 text-yellow-500" />;
@@ -140,7 +140,7 @@ export const RecommendationDisplay: React.FC<RecommendationDisplayProps> = ({
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['overview']));
   const [selectedTab, setSelectedTab] = useState('recommendation');
 
-  const toggleSection = (section: string) => {
+  const toggleSection = (section: string): any => {
     const newExpanded = new Set(expandedSections);
     if (newExpanded.has(section)) {
       newExpanded.delete(section);
@@ -156,7 +156,7 @@ export const RecommendationDisplay: React.FC<RecommendationDisplayProps> = ({
   // Sort strategy scores by score
   const sortedStrategies = [...recommendation.strategy_scores].sort((a, b) => b.score - a.score);
 
-  const renderStrategyCard = (strategyScore: SixRStrategyScore, isRecommended: boolean = false) => {
+  const renderStrategyCard = (strategyScore: SixRStrategyScore, isRecommended: boolean = false): JSX.Element => {
     const config = strategyConfig[strategyScore.strategy as keyof typeof strategyConfig];
     if (!config) return null;
 
@@ -215,7 +215,7 @@ export const RecommendationDisplay: React.FC<RecommendationDisplayProps> = ({
     );
   };
 
-  const renderComparisonView = () => {
+  const renderComparisonView = (): JSX.Element => {
     if (!previousRecommendation) return null;
 
     const prevStrategy = strategyConfig[previousRecommendation.recommended_strategy as keyof typeof strategyConfig];

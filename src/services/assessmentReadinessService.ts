@@ -142,7 +142,7 @@ export interface StakeholderSignoffData {
   metadata?: Record<string, unknown>;
 }
 
-const submitForApproval = async (clientAccountId: string, engagementId: string, signoffData: StakeholderSignoffData) => {
+const submitForApproval = async (clientAccountId: string, engagementId: string, signoffData: StakeholderSignoffData): Promise<any> => {
   const response = await api.post(`/api/v1/assess/submit-approval/${clientAccountId}/${engagementId}`, signoffData);
   return response.data;
 };

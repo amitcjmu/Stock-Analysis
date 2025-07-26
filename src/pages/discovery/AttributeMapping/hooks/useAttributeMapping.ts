@@ -4,7 +4,7 @@ import { useAttributeMappingLogic } from '../../../../hooks/discovery/attribute-
 import { useAttributeMappingNavigation } from '../../../../hooks/discovery/useAttributeMappingNavigation';
 import type { AttributeMappingState, AttributeMappingActions, NavigationState, SessionInfo } from '../types';
 
-export const useAttributeMapping = () => {
+export const useAttributeMapping = (): JSX.Element => {
   // Navigation state
   const [activeTab, setActiveTab] = useState<'mappings' | 'data' | 'critical'>('mappings');
   const { flowId: urlFlowId } = useParams<{ flowId?: string }>();

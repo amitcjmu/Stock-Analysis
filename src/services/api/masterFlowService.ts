@@ -114,7 +114,7 @@ const getMultiTenantHeaders = (
   clientAccountId: string,
   engagementId?: string,
   userId?: string
-) => {
+): any => {
   const token = localStorage.getItem('auth_token');
   return {
     'X-Client-Account-ID': clientAccountId,
@@ -128,7 +128,7 @@ const getMultiTenantHeaders = (
 /**
  * Handle API errors consistently
  */
-const handleApiError = (error: Error | { message?: string; code?: string }, operation: string) => {
+const handleApiError = (error: Error | { message?: string; code?: string }, operation: string): void => {
   console.error(`MasterFlowService.${operation} failed:`, error);
   if (error instanceof Error) {
     throw new Error(`${operation} failed: ${error.message}`);

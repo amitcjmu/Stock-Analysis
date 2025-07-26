@@ -74,7 +74,7 @@ const CollectionIndex: React.FC = () => {
     }
   ];
 
-  const getStatusBadge = (status: string, completionRate: number) => {
+  const getStatusBadge = (status: string, completionRate: number): JSX.Element => {
     if (completionRate > 0) {
       return <Badge variant="secondary"><CheckCircle className="h-3 w-3 mr-1" />{completionRate}% Complete</Badge>;
     }
@@ -93,7 +93,7 @@ const CollectionIndex: React.FC = () => {
   /**
    * Start a collection workflow by creating a flow through CrewAI
    */
-  const startCollectionWorkflow = async (workflowId: string, workflowPath: string) => {
+  const startCollectionWorkflow = async (workflowId: string, workflowPath: string): Promise<any> => {
     console.log(`🚀 Frontend: Starting collection workflow: ${workflowId}`);
 
     // Check if user has permission to create collection flows

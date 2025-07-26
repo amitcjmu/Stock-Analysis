@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import Sidebar from '../../components/Sidebar';
 
-const Archival = () => {
+const Archival = (): JSX.Element => {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
 
@@ -62,7 +62,7 @@ const Archival = () => {
     tasks: []
   };
 
-  const handleStartArchival = (systemId: string) => {
+  const handleStartArchival = (systemId: string): void => {
     startArchival(systemId, {
       onSuccess: () => {
         toast({
@@ -80,7 +80,7 @@ const Archival = () => {
     });
   };
 
-  const handleVerifyArchival = (systemId: string) => {
+  const handleVerifyArchival = (systemId: string): void => {
     verifyArchival(systemId, {
       onSuccess: () => {
         toast({
@@ -98,7 +98,7 @@ const Archival = () => {
     });
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string): JSX.Element => {
     switch (status) {
       case 'completed':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -111,7 +111,7 @@ const Archival = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): any => {
     switch (status) {
       case 'completed':
         return 'bg-green-100 text-green-800';

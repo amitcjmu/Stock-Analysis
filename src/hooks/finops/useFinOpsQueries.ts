@@ -47,7 +47,7 @@ export interface BudgetAlert {
 }
 
 // Hooks
-export const useCostMetrics = () => {
+export const useCostMetrics = (): any => {
   const { getAuthHeaders } = useAuth();
 
   return useQuery({
@@ -62,7 +62,7 @@ export const useCostMetrics = () => {
   });
 };
 
-export const useResourceCosts = () => {
+export const useResourceCosts = (): any => {
   const { getAuthHeaders } = useAuth();
 
   return useQuery({
@@ -77,7 +77,7 @@ export const useResourceCosts = () => {
   });
 };
 
-export const useSavingsOpportunities = () => {
+export const useSavingsOpportunities = (): any => {
   const { getAuthHeaders } = useAuth();
 
   return useQuery({
@@ -92,7 +92,7 @@ export const useSavingsOpportunities = () => {
   });
 };
 
-export const useBudgetAlerts = () => {
+export const useBudgetAlerts = (): any => {
   const { getAuthHeaders } = useAuth();
 
   return useQuery({
@@ -108,7 +108,7 @@ export const useBudgetAlerts = () => {
 };
 
 // Mutations
-export const useUpdateSavingsOpportunity = () => {
+export const useUpdateSavingsOpportunity = (): JSX.Element => {
   const queryClient = useQueryClient();
   const { getAuthHeaders } = useAuth();
 
@@ -131,7 +131,7 @@ export const useUpdateSavingsOpportunity = () => {
   });
 };
 
-export const useUpdateBudgetAlert = () => {
+export const useUpdateBudgetAlert = (): JSX.Element => {
   const queryClient = useQueryClient();
   const { getAuthHeaders } = useAuth();
 

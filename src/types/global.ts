@@ -198,13 +198,13 @@ export const assertIsEngagementId = (value: string): asserts value is Engagement
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   // Expose type system utilities in development
   window.__MIGRATION_PLATFORM_DEV__ = {
-    get typeGuards() {
+    get typeGuards(): any {
       return import('./guards').then(m => m.DEV_TYPE_GUARDS);
     },
-    get moduleHelpers() {
+    get moduleHelpers(): any {
       return import('./index').then(m => m.DEV_HELPERS);
     },
-    get typeSystem() {
+    get typeSystem(): any {
       return import('./index').then(m => m.TYPE_SYSTEM_METADATA);
     }
   };

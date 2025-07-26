@@ -66,7 +66,7 @@ const SecurityScreeningPanel: React.FC<SecurityScreeningPanelProps> = ({
     }
   }, [dataImportId, flowId, refreshTrigger]);
 
-  const fetchSecurityScreening = async () => {
+  const fetchSecurityScreening = async (): Promise<any> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -108,7 +108,7 @@ const SecurityScreeningPanel: React.FC<SecurityScreeningPanelProps> = ({
     }
   };
 
-  const getRiskLevelColor = (level: string) => {
+  const getRiskLevelColor = (level: string): any => {
     switch (level) {
       case 'low': return 'text-green-600 bg-green-100';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
@@ -117,7 +117,7 @@ const SecurityScreeningPanel: React.FC<SecurityScreeningPanelProps> = ({
     }
   };
 
-  const getConfidenceColor = (confidence: number) => {
+  const getConfidenceColor = (confidence: number): any => {
     if (confidence >= 90) return 'text-green-600 bg-green-100';
     if (confidence >= 70) return 'text-yellow-600 bg-yellow-100';
     return 'text-red-600 bg-red-100';

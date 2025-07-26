@@ -42,7 +42,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
     isLoadingRecommendations
   } = useFlowCleanup();
 
-  const getPhaseDisplayName = (phase: string) => {
+  const getPhaseDisplayName = (phase: string): any => {
     if (!phase) return 'Unknown';
 
     const names = {
@@ -56,7 +56,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
     return names[phase as keyof typeof names] || phase.replace('_', ' ').toUpperCase();
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): any => {
     if (!status) return 'bg-gray-100 text-gray-800 border-gray-200';
 
     switch (status) {
@@ -69,7 +69,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
     }
   };
 
-  const formatTimeAgo = (timestamp: string) => {
+  const formatTimeAgo = (timestamp: string): JSX.Element => {
     if (!timestamp) return 'Unknown';
 
     try {
@@ -98,7 +98,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
     }
   };
 
-  const getHighestPriorityFlow = () => {
+  const getHighestPriorityFlow = (): null => {
     if (!incompleteFlows || incompleteFlows.length === 0) return null;
 
     // Filter out invalid flows first
@@ -126,7 +126,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
    * New user-approval cleanup system
    * System recommends but never auto-deletes
    */
-  const handleIntelligentCleanup = async () => {
+  const handleIntelligentCleanup = async (): void => {
     try {
       console.log('🧹 Starting intelligent cleanup with user approval...');
 

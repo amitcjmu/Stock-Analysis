@@ -45,7 +45,7 @@ const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({
     selectedMetrics
   });
 
-  const handleMetricToggle = (metric: string) => {
+  const handleMetricToggle = (metric: string): void => {
     setSelectedMetrics(prev =>
       prev.includes(metric)
         ? prev.filter(m => m !== metric)
@@ -53,7 +53,7 @@ const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({
     );
   };
 
-  const handleExport = () => {
+  const handleExport = (): void => {
     handleExportData(analyticsData, timeRange, agentNames);
   };
 

@@ -60,7 +60,7 @@ interface WebSocketState {
   reconnectAttempts: number;
 }
 
-export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}) => {
+export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}): JSX.Element => {
   const {
     analysisId,
     jobId,

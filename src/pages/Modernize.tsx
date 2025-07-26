@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar';
 import { Zap, Layers, Package, Code, Cloud } from 'lucide-react'
 import { Sparkles, TrendingUp, RefreshCw } from 'lucide-react'
 
-const Modernize = () => {
+const Modernize = (): JSX.Element => {
   const [selectedCategory, setSelectedCategory] = useState('containerization');
 
   const modernizationOpportunities = [

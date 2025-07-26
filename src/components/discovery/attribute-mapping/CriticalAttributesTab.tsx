@@ -32,7 +32,7 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
 
   // Load available target fields with error handling
   useEffect(() => {
-    const fetchAvailableFields = async () => {
+    const fetchAvailableFields = async (): Promise<any> => {
       try {
         const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AVAILABLE_TARGET_FIELDS, {
           method: 'GET',

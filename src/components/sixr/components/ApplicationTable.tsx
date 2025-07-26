@@ -38,7 +38,7 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
   onSelectApplication,
   onSelectAll
 }) => {
-  const renderApplicationRow = (app: Application) => {
+  const renderApplicationRow = (app: Application): JSX.Element => {
     const isSelected = selectedApplications.includes(app.id);
 
     return (

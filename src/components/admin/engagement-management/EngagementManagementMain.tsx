@@ -172,7 +172,7 @@ const EngagementManagementMain: React.FC = () => {
   }, []);
 
   // Handle engagement update
-  const handleUpdateEngagement = async () => {
+  const handleUpdateEngagement = async (): void => {
     if (!editingEngagement) return;
 
     try {
@@ -232,7 +232,7 @@ const EngagementManagementMain: React.FC = () => {
   };
 
   // Handle engagement deletion
-  const handleDeleteEngagement = async (engagementId: string, engagementName: string) => {
+  const handleDeleteEngagement = async (engagementId: string, engagementName: string): void => {
     const confirmed = await dialog.confirm({
       title: 'Delete Engagement',
       description: `Are you sure you want to delete "${engagementName}"? This action cannot be undone.`,

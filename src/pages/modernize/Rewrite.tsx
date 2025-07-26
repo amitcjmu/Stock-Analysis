@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 
-const Rewrite = () => {
+const Rewrite = (): JSX.Element => {
   const [activeTab, setActiveTab] = useState('projects');
   const [statusFilter, setStatusFilter] = useState('All');
   const { data, isLoading, isError, error } = useRewrite(statusFilter !== 'All' ? statusFilter : undefined);
@@ -44,7 +44,7 @@ const Rewrite = () => {
     );
   }
 
-  const getSeverityColor = (severity: string) => {
+  const getSeverityColor = (severity: string): any => {
     const colors = {
       'High': 'bg-red-100 text-red-800',
       'Medium': 'bg-yellow-100 text-yellow-800',
@@ -53,7 +53,7 @@ const Rewrite = () => {
     return colors[severity] || 'bg-gray-100 text-gray-800';
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): any => {
     const colors = {
       'Planning': 'bg-blue-100 text-blue-800',
       'In Progress': 'bg-yellow-100 text-yellow-800',

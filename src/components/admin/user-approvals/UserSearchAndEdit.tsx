@@ -96,7 +96,7 @@ export const UserSearchAndEdit: React.FC = () => {
     }
   }, [editForm.default_client_id, engagements]);
 
-  const loadUsers = async () => {
+  const loadUsers = async (): Promise<any> => {
     try {
       setLoading(true);
       const response = await apiCall('/auth/active-users');
@@ -118,7 +118,7 @@ export const UserSearchAndEdit: React.FC = () => {
     }
   };
 
-  const loadClients = async () => {
+  const loadClients = async (): JSX.Element => {
     try {
       const response = await apiCall('/admin/clients/?page_size=100');
       if (response.items) {
@@ -134,7 +134,7 @@ export const UserSearchAndEdit: React.FC = () => {
     }
   };
 
-  const loadEngagements = async () => {
+  const loadEngagements = async (): JSX.Element => {
     try {
       const response = await apiCall('/admin/engagements/?page_size=100');
       if (response.items) {
@@ -151,14 +151,14 @@ export const UserSearchAndEdit: React.FC = () => {
   };
 
   // Filter engagements based on selected client
-  const getFilteredEngagements = () => {
+  const getFilteredEngagements = (): any[] => {
     if (editForm.default_client_id === 'none') {
       return [];
     }
     return engagements.filter(engagement => engagement.client_account_id === editForm.default_client_id);
   };
 
-  const handleEditUser = (user: User) => {
+  const handleEditUser = (user: User): void => {
     setSelectedUser(user);
     setEditForm({
       full_name: user.full_name,
@@ -172,7 +172,7 @@ export const UserSearchAndEdit: React.FC = () => {
     setShowEditDialog(true);
   };
 
-  const handleSaveUser = async () => {
+  const handleSaveUser = async (): void => {
     if (!selectedUser) return;
 
     try {
@@ -223,17 +223,17 @@ export const UserSearchAndEdit: React.FC = () => {
     }
   };
 
-  const getClientName = (clientId: string) => {
+  const getClientName = (clientId: string): any => {
     const client = clients.find(c => c.id === clientId);
     return client ? client.account_name : 'Unknown Client';
   };
 
-  const getEngagementName = (engagementId: string) => {
+  const getEngagementName = (engagementId: string): any => {
     const engagement = engagements.find(e => e.id === engagementId);
     return engagement ? engagement.engagement_name : 'Unknown Engagement';
   };
 
-  const getRoleIcon = (roleName: string) => {
+  const getRoleIcon = (roleName: string): JSX.Element => {
     switch (roleName.toLowerCase()) {
       case 'platform administrator':
       case 'admin':
@@ -245,7 +245,7 @@ export const UserSearchAndEdit: React.FC = () => {
     }
   };
 
-  const getRoleColor = (roleName: string) => {
+  const getRoleColor = (roleName: string): any => {
     switch (roleName.toLowerCase()) {
       case 'platform administrator':
       case 'admin':

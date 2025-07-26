@@ -87,7 +87,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     [client, engagement, lastBulkOperationTime, onRefresh]
   );
 
-  const handleApprove = async (mappingId: string) => {
+  const handleApprove = async (mappingId: string): void => {
     if (processingMappings.has(mappingId)) {
       return; // Already processing this mapping
     }
@@ -124,7 +124,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     }
   };
 
-  const handleReject = (mappingId: string) => {
+  const handleReject = (mappingId: string): void => {
     if (showRejectionInput === mappingId) {
       try {
         onMappingAction(mappingId, 'reject', rejectionReason);
@@ -141,7 +141,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     }
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = (): JSX.Element => {
     const now = Date.now();
     if (now - lastRefreshTime < 10000) {
       // Less than 10 seconds since last refresh
@@ -154,7 +154,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     }
   };
 
-  const toggleReasoningExpansion = (mappingId: string) => {
+  const toggleReasoningExpansion = (mappingId: string): any => {
     setExpandedReasonings(prev => {
       const newSet = new Set(prev);
       if (newSet.has(mappingId)) {

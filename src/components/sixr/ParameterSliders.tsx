@@ -161,21 +161,21 @@ export const ParameterSliders: React.FC<ParameterSliderProps> = ({
     setHasChanges(false);
   }, [parameters]);
 
-  const handleParameterChange = (key: keyof SixRParameters, value: number | string) => {
+  const handleParameterChange = (key: keyof SixRParameters, value: number | string): void => {
     const newParameters = { ...localParameters, [key]: value };
     setLocalParameters(newParameters);
     setHasChanges(true);
     onParametersChange(newParameters);
   };
 
-  const handleReset = () => {
+  const handleReset = (): void => {
     setLocalParameters(defaultParameters);
     setHasChanges(true);
     onParametersChange(defaultParameters);
     toast.success('Parameters reset to defaults');
   };
 
-  const handleSave = () => {
+  const handleSave = (): void => {
     if (onSave) {
       onSave();
       setHasChanges(false);
@@ -183,7 +183,7 @@ export const ParameterSliders: React.FC<ParameterSliderProps> = ({
     }
   };
 
-  const renderParameterSlider = (config: ParameterConfig) => {
+  const renderParameterSlider = (config: ParameterConfig): JSX.Element => {
     const value = localParameters[config.key];
     const { level, color } = getParameterLevel(value);
 

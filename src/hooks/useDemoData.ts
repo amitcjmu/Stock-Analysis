@@ -184,7 +184,7 @@ const apiRequest = async <T>(endpoint: string, options?: RequestInit): Promise<T
 };
 
 // Hook for fetching demo assets
-export const useDemoAssets = (filters?: AssetFilters) => {
+export const useDemoAssets = (filters?: AssetFilters): JSX.Element => {
   const [assets, setAssets] = useState<DemoAsset[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -225,7 +225,7 @@ export const useDemoAssets = (filters?: AssetFilters) => {
 };
 
 // Hook for fetching a single demo asset
-export const useDemoAsset = (assetId: string | null) => {
+export const useDemoAsset = (assetId: string | null): JSX.Element => {
   const [asset, setAsset] = useState<DemoAsset | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -255,7 +255,7 @@ export const useDemoAsset = (assetId: string | null) => {
 };
 
 // Hook for fetching demo assets summary
-export const useDemoAssetsSummary = () => {
+export const useDemoAssetsSummary = (): JSX.Element => {
   const [summary, setSummary] = useState<DemoAssetSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -283,7 +283,7 @@ export const useDemoAssetsSummary = () => {
 };
 
 // Hook for fetching 6R analyses
-export const useDemoSixRAnalyses = (limit?: number) => {
+export const useDemoSixRAnalyses = (limit?: number): JSX.Element => {
   const [analyses, setAnalyses] = useState<DemoSixRAnalysis[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -317,7 +317,7 @@ export const useDemoSixRAnalyses = (limit?: number) => {
 };
 
 // Hook for fetching migration waves
-export const useDemoMigrationWaves = (status?: string) => {
+export const useDemoMigrationWaves = (status?: string): JSX.Element => {
   const [waves, setWaves] = useState<DemoMigrationWave[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -351,7 +351,7 @@ export const useDemoMigrationWaves = (status?: string) => {
 };
 
 // Hook for fetching tags
-export const useDemoTags = (category?: string) => {
+export const useDemoTags = (category?: string): JSX.Element => {
   const [tags, setTags] = useState<DemoTag[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -385,7 +385,7 @@ export const useDemoTags = (category?: string) => {
 };
 
 // Hook for engagement information
-export const useDemoEngagement = () => {
+export const useDemoEngagement = (): JSX.Element => {
   const [engagementInfo, setEngagementInfo] = useState<{
     client_account: DemoClientAccount | null;
     engagement: DemoEngagement | null;
@@ -421,7 +421,7 @@ export const useDemoEngagement = () => {
 };
 
 // Hook for similarity search
-export const useSimilaritySearch = () => {
+export const useSimilaritySearch = (): JSX.Element => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -516,7 +516,7 @@ export const useSimilaritySearch = () => {
 };
 
 // Combined hook for dashboard data
-export const useDemoDashboard = () => {
+export const useDemoDashboard = (): any => {
   const { assets, loading: assetsLoading, error: assetsError } = useDemoAssets({ limit: 10 });
   const { summary, loading: summaryLoading, error: summaryError } = useDemoAssetsSummary();
   const { analyses, loading: analysesLoading, error: analysesError } = useDemoSixRAnalyses(1);

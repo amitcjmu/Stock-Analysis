@@ -93,7 +93,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     disabled
   });
 
-  const removeFile = (index: number) => {
+  const removeFile = (index: number): any => {
     const newFiles = uploadedFiles.filter((_, i) => i !== index);
     setUploadedFiles(newFiles);
     onFileChange(newFiles);
@@ -188,16 +188,16 @@ export const QualifyingQuestions: React.FC<QualifyingQuestionsProps> = ({
   ).length;
   const progressPercentage = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
 
-  const getResponseValue = (questionId: string) => {
+  const getResponseValue = (questionId: string): any => {
     const response = responses.find(r => r.question_id === questionId);
     return response?.response;
   };
 
-  const handleResponseChange = (questionId: string, value: string | number | boolean | string[] | File[]) => {
+  const handleResponseChange = (questionId: string, value: string | number | boolean | string[] | File[]): void => {
     onResponseChange(questionId, value);
   };
 
-  const toggleCategory = (category: string) => {
+  const toggleCategory = (category: string): any => {
     const newExpanded = new Set(expandedCategories);
     if (newExpanded.has(category)) {
       newExpanded.delete(category);
@@ -207,7 +207,7 @@ export const QualifyingQuestions: React.FC<QualifyingQuestionsProps> = ({
     setExpandedCategories(newExpanded);
   };
 
-  const renderQuestion = (question: QualifyingQuestion) => {
+  const renderQuestion = (question: QualifyingQuestion): JSX.Element => {
     const currentValue = getResponseValue(question.id);
     const isAnswered = currentValue !== undefined && currentValue !== null && currentValue !== '';
 
@@ -334,7 +334,7 @@ export const QualifyingQuestions: React.FC<QualifyingQuestionsProps> = ({
     );
   };
 
-  const renderCategorySection = (category: string) => {
+  const renderCategorySection = (category: string): JSX.Element => {
     const categoryQuestions = questionsByCategory[category];
     const isExpanded = expandedCategories.has(category);
     const answeredInCategory = categoryQuestions.filter(q =>

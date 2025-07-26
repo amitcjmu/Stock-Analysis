@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMemo, useCallback } from 'react'
 import type { FlowSummary, DashboardFilters } from '../types';
 
-export const useDashboardFilters = (flows: FlowSummary[]) => {
+export const useDashboardFilters = (flows: FlowSummary[]): JSX.Element => {
   const [filters, setFilters] = useState<DashboardFilters>({
     timeRange: '24h',
     status: [],

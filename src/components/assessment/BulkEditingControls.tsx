@@ -38,7 +38,7 @@ export const BulkEditingControls: React.FC<BulkEditingControlsProps> = ({
   const [bulkStrategy, setBulkStrategy] = useState<string>('');
   const [bulkRationale, setBulkRationale] = useState<string>('');
 
-  const handleSelectAll = () => {
+  const handleSelectAll = (): void => {
     if (selectedComponents.length === componentTreatments.length) {
       onSelectionChange([]);
     } else {
@@ -46,7 +46,7 @@ export const BulkEditingControls: React.FC<BulkEditingControlsProps> = ({
     }
   };
 
-  const handleBulkApply = () => {
+  const handleBulkApply = (): void => {
     if (bulkStrategy && selectedComponents.length > 0) {
       onBulkUpdate({
         recommended_strategy: bulkStrategy,

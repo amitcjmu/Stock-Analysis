@@ -65,7 +65,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({
     }
   }, []);
 
-  const handleFileUpload = async (file: File) => {
+  const handleFileUpload = async (file: File): void => {
     // Validate file type
     const allowedTypes = ['.csv', '.xlsx', '.xls', '.json'];
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -104,7 +104,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({
     }
   };
 
-  const generateTemplate = () => {
+  const generateTemplate = (): any => {
     // Generate CSV template with field headers
     const headers = ['Application Name', 'Application ID', ...fields.map(f => f.label)];
     const csvContent = headers.join(',') + '\n';

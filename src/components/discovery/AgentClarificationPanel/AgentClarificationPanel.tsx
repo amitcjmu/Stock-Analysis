@@ -57,7 +57,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     };
   }, [isProcessing]);
 
-  const fetchQuestions = async () => {
+  const fetchQuestions = async (): Promise<any> => {
     try {
       const fetchedQuestions = await api.fetchAgentQuestions(pageContext);
       setQuestions(fetchedQuestions);
@@ -72,7 +72,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     }
   };
 
-  const fetchAssetDetailsForQuestions = async (questions: AgentQuestion[]) => {
+  const fetchAssetDetailsForQuestions = async (questions: AgentQuestion[]): JSX.Element => {
     const assetDetailsMap: Record<string, AssetDetails> = {};
 
     for (const question of questions) {
@@ -94,7 +94,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     setAssetDetails(assetDetailsMap);
   };
 
-  const handleResponseSubmit = async (questionId: string) => {
+  const handleResponseSubmit = async (questionId: string): void => {
     const response = responses[questionId];
     if (!response?.trim()) return;
 
@@ -124,7 +124,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     }
   };
 
-  const handleMultipleChoiceResponse = async (questionId: string, selectedOption: string) => {
+  const handleMultipleChoiceResponse = async (questionId: string, selectedOption: string): void => {
     setIsSubmitting(prev => ({ ...prev, [questionId]: true }));
 
     try {
@@ -146,7 +146,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     }
   };
 
-  const toggleAssetDetails = (componentName: string) => {
+  const toggleAssetDetails = (componentName: string): any => {
     setExpandedAssetDetails(prev => {
       const next = new Set(prev);
       if (next.has(componentName)) {
@@ -158,11 +158,11 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     });
   };
 
-  const handleToggleExpanded = (questionId: string) => {
+  const handleToggleExpanded = (questionId: string): void => {
     setExpandedQuestion(expandedQuestion === questionId ? null : questionId);
   };
 
-  const handleResponseChange = (questionId: string, value: string) => {
+  const handleResponseChange = (questionId: string, value: string): void => {
     setResponses(prev => ({ ...prev, [questionId]: value }));
   };
 

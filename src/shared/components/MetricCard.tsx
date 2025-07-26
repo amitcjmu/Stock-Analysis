@@ -29,7 +29,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   trend,
   className = ''
 }) => {
-  const getTrendColor = () => {
+  const getTrendColor = (): any => {
     switch (trend) {
       case 'up': return 'text-green-600';
       case 'down': return 'text-red-600';

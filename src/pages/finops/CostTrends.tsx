@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
 import { Progress } from '@/components/ui/progress';
 
-const CostTrends = () => {
+const CostTrends = (): JSX.Element => {
   const { isAuthenticated } = useAuth();
 
   // Queries

@@ -11,7 +11,7 @@ import { Select } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
-const Refactor = () => {
+const Refactor = (): JSX.Element => {
   const [activeTab, setActiveTab] = useState('planning');
   const [filterStatus, setFilterStatus] = useState('All');
   const { data, isLoading, isError, error } = useRefactor(filterStatus);
@@ -44,7 +44,7 @@ const Refactor = () => {
     );
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): any => {
     const colors = {
       'Planning': 'bg-blue-100 text-blue-800',
       'In Progress': 'bg-yellow-100 text-yellow-800',
@@ -54,7 +54,7 @@ const Refactor = () => {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const getComplexityColor = (complexity: string) => {
+  const getComplexityColor = (complexity: string): any => {
     const colors = {
       'Low': 'bg-green-100 text-green-800',
       'Medium': 'bg-yellow-100 text-yellow-800',

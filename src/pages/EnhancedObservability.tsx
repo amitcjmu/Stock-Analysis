@@ -16,7 +16,7 @@ import { Badge } from '../components/ui/badge';
 import { AgentListOverview } from '../components/observability';
 import type { AgentCardData } from '../types/api/observability/agent-performance';
 
-const EnhancedObservability = () => {
+const EnhancedObservability = (): JSX.Element => {
   const [selectedAgent, setSelectedAgent] = useState<AgentCardData | null>(null);
   const [activeTab, setActiveTab] = useState<string>('overview');
 
@@ -106,7 +106,7 @@ const EnhancedObservability = () => {
     }
   ];
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): any => {
     switch (status) {
       case 'healthy':
         return 'bg-green-100 text-green-800';
@@ -119,7 +119,7 @@ const EnhancedObservability = () => {
     }
   };
 
-  const getEventIcon = (type: string) => {
+  const getEventIcon = (type: string): JSX.Element => {
     switch (type) {
       case 'success':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -132,7 +132,7 @@ const EnhancedObservability = () => {
     }
   };
 
-  const handleAgentSelect = (agent: AgentCardData) => {
+  const handleAgentSelect = (agent: AgentCardData): void => {
     setSelectedAgent(agent);
     setActiveTab('agents');
   };

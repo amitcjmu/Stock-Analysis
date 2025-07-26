@@ -36,7 +36,7 @@ export interface RefactorData {
   };
 }
 
-export const useRefactor = (filterStatus: string = 'All') => {
+export const useRefactor = (filterStatus: string = 'All'): JSX.Element => {
   const { getContextHeaders } = useAuth();
 
   return useQuery<RefactorData>({

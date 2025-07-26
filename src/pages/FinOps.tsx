@@ -4,7 +4,7 @@ import { Cloud, BarChart3, Calculator } from 'lucide-react'
 import { DollarSign, TrendingUp, AlertTriangle, Download, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom';
 
-const FinOps = () => {
+const FinOps = (): JSX.Element => {
   const finOpsAreas = [
     {
       name: 'Cloud Provider Comparison',
@@ -63,7 +63,7 @@ const FinOps = () => {
   const totalForecast = costData.reduce((sum, wave) => sum + wave.forecast, 0);
   const avgSavings = Math.round(costData.reduce((sum, wave) => sum + wave.savings, 0) / costData.length);
 
-  const formatCurrency = (amount) => {
+  const formatCurrency = (amount): any => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',

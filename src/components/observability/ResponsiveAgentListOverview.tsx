@@ -81,7 +81,7 @@ const filterAgents = (agents: AgentCardData[], filters: AgentListFilters): Agent
 };
 
 // Enhanced hook with better error handling and retry logic
-const useAgentData = (refreshInterval?: number) => {
+const useAgentData = (refreshInterval?: number): JSX.Element => {
   const [state, setState] = useState<AgentListState>({
     agents: [],
     filteredAgents: [],
@@ -224,14 +224,14 @@ const useAgentData = (refreshInterval?: number) => {
 
   // Connection status monitoring
   useEffect(() => {
-    const handleOnline = () => {
+    const handleOnline = (): void => {
       setConnectionState(prev => ({ ...prev, isOnline: true }));
       if (errorState.hasError) {
         retryFetch();
       }
     };
 
-    const handleOffline = () => {
+    const handleOffline = (): void => {
       setConnectionState(prev => ({ ...prev, isOnline: false }));
     };
 
@@ -310,14 +310,14 @@ export const ResponsiveAgentListOverview: React.FC<AgentListOverviewProps> = ({
     retryFetch
   } = useAgentData(refreshInterval);
 
-  const handleAgentSelect = (agent: AgentCardData) => {
+  const handleAgentSelect = (agent: AgentCardData): void => {
     selectAgent(agent.id);
     if (onAgentSelect) {
       onAgentSelect(agent);
     }
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = (): void => {
     fetchAgents(true);
   };
 

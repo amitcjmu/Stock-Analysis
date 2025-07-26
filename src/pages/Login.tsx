@@ -52,7 +52,7 @@ const Login: React.FC = () => {
 
   const from = location.state?.from?.pathname || '/';
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent): void => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -70,7 +70,7 @@ const Login: React.FC = () => {
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent): void => {
     e.preventDefault();
 
     if (registerData.password !== registerData.confirmPassword) {

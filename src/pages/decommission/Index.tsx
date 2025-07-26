@@ -4,7 +4,7 @@ import Sidebar from '../../components/Sidebar';
 import { Shield, Database, Clock, AlertTriangle, CheckCircle, FileText } from 'lucide-react'
 import { Archive, Trash2 } from 'lucide-react'
 
-const DecommissionIndex = () => {
+const DecommissionIndex = (): JSX.Element => {
   const decommissionMetrics = [
     { label: 'Systems Queued', value: '45', total: '120', percentage: 38, color: 'text-red-600' },
     { label: 'Annual Savings', value: '$2.4M', color: 'text-green-600' },

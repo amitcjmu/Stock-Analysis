@@ -7,7 +7,7 @@ import { Brain, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 
-const PlanIndex = () => {
+const PlanIndex = (): JSX.Element => {
   const summaryCards = [
     { title: 'Waves Planned', value: '3', subtitle: 'Migration Waves', icon: Calendar, color: 'bg-blue-500' },
     { title: 'Resource Utilization', value: '75%', subtitle: 'Team Capacity', icon: Users, color: 'bg-green-500' },

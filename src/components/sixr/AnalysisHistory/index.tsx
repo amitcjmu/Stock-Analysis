@@ -54,7 +54,7 @@ export const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({
   const analytics = useAnalysisAnalytics(filteredAnalyses);
 
   // Event handlers
-  const handleExport = (format: 'csv' | 'pdf' | 'json') => {
+  const handleExport = (format: 'csv' | 'pdf' | 'json'): void => {
     if (selectedAnalyses.length === 0) {
       toast.error('Please select analyses to export');
       return;
@@ -63,7 +63,7 @@ export const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({
     clearSelection();
   };
 
-  const handleCompare = () => {
+  const handleCompare = (): JSX.Element => {
     if (selectedAnalyses.length < 2) {
       toast.error('Please select at least 2 analyses to compare');
       return;
@@ -71,7 +71,7 @@ export const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({
     setShowCompareDialog(true);
   };
 
-  const handleBulkAction = (action: 'archive' | 'delete') => {
+  const handleBulkAction = (action: 'archive' | 'delete'): void => {
     if (selectedAnalyses.length === 0) {
       toast.error('Please select analyses first');
       return;

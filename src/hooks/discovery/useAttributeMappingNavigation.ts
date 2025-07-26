@@ -5,7 +5,7 @@ import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 import masterFlowServiceExtended from '@/services/api/masterFlowService.extensions';
 import { useToast } from '@/components/ui/use-toast';
 
-export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgress?: unknown) => {
+export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgress?: unknown): any => {
   const navigate = useNavigate();
   const { user, client, engagement } = useAuth();
   const { flowState: flow, executeFlowPhase: updatePhase } = useUnifiedDiscoveryFlow(flowState?.flow_id);

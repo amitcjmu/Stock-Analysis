@@ -27,7 +27,7 @@ export const TechDebtSummaryChart: React.FC<TechDebtSummaryChartProps> = ({
   const avgScore = techDebt.length > 0 ?
     techDebt.reduce((sum, t) => sum + (t.tech_debt_score || 0), 0) / techDebt.length : 0;
 
-  const getSeverityColor = (severity: string) => {
+  const getSeverityColor = (severity: string): JSX.Element => {
     const colors: Record<string, string> = {
       'critical': 'bg-red-100 text-red-700 border-red-200',
       'high': 'bg-orange-100 text-orange-700 border-orange-200',

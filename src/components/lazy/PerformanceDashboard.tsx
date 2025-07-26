@@ -71,7 +71,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
   const [performanceData, setPerformanceData] = useState<PerformanceData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshData = async () => {
+  const refreshData = async () =>  {
     setLoading(true);
     try {
       const data = performanceMonitor.getPerformanceAnalysis();
@@ -92,7 +92,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
     }
   }, [autoRefresh, refreshInterval]);
 
-  const exportPerformanceData = () => {
+  const exportPerformanceData = (): any => {
     const data = performanceMonitor.exportPerformanceData();
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -105,14 +105,14 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const getPerformanceScoreColor = (score: number) => {
+  const getPerformanceScoreColor = (score: number): any => {
     if (score >= 90) return 'text-green-600';
     if (score >= 70) return 'text-yellow-600';
     if (score >= 50) return 'text-orange-600';
     return 'text-red-600';
   };
 
-  const getInsightTypeIcon = (type: string) => {
+  const getInsightTypeIcon = (type: string): JSX.Element => {
     switch (type) {
       case 'optimization':
         return <TrendingUp className="h-4 w-4 text-blue-500" />;

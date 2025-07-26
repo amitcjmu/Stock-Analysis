@@ -33,7 +33,7 @@ const FormField = <
   )
 }
 
-const useFormField = () => {
+const useFormField = (): JSX.Element => {
   const fieldContext = React.useContext(FormFieldContext)
   const itemContext = React.useContext(FormItemContext)
   const { getFieldState, formState } = useFormContext()

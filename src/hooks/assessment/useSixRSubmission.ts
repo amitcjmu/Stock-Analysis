@@ -20,11 +20,11 @@ export const useSixRSubmission = ({
   resumeFlow,
   selectedApp,
   currentAppDecision
-}: UseSixRSubmissionProps) => {
+}: UseSixRSubmissionProps): any => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
 
-  const handleSaveDraft = async () => {
+  const handleSaveDraft = async (): void => {
     if (!selectedApp || !currentAppDecision) return;
 
     setIsDraft(true);
@@ -38,7 +38,7 @@ export const useSixRSubmission = ({
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): void => {
     setIsSubmitting(true);
     try {
       // Save all application decisions

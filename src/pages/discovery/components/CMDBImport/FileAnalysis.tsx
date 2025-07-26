@@ -56,7 +56,7 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
     }
   }, [statusData?.status, statusData?.message, queryClient]);
 
-  const getStatusDisplay = () => {
+  const getStatusDisplay = (): JSX.Element => {
     if (isStatusLoading) {
       return {
         icon: <Loader2 className="h-4 w-4 animate-spin text-blue-500" />,
@@ -115,14 +115,14 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
     }
   };
 
-  const handleCancelWorkflow = async () => {
+  const handleCancelWorkflow = async (): void => {
     // This would call an API to cancel the existing workflow
     console.log('Cancel workflow requested for flow:', file.flowId);
     setShowWorkflowControls(false);
     // In the future, implement actual cancellation logic
   };
 
-  const handleRetryWorkflow = () => {
+  const handleRetryWorkflow = (): void => {
     setShowWorkflowControls(false);
     if (onRetry) {
       onRetry();

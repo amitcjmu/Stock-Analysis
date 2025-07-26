@@ -40,7 +40,7 @@ const AgentDetailPage: React.FC = () => {
   const { performanceMetrics } = useAgentMetrics(agentData);
 
 
-  const handleExportData = () => {
+  const handleExportData = (): void => {
     if (!agentData) return;
 
     const dataStr = JSON.stringify(agentData, null, 2);
@@ -53,7 +53,7 @@ const AgentDetailPage: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleViewTaskDetails = (taskId: string) => {
+  const handleViewTaskDetails = (taskId: string): void => {
     // This would navigate to a task detail view
     console.log('View task details:', taskId);
   };

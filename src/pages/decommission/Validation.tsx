@@ -4,7 +4,7 @@ import Sidebar from '../../components/Sidebar';
 import { FileText, Database, Shield, Clock } from 'lucide-react'
 import { CheckCircle, AlertTriangle, X, Search, Download } from 'lucide-react'
 
-const DecommissionValidation = () => {
+const DecommissionValidation = (): JSX.Element => {
   const [selectedTab, setSelectedTab] = useState('validation');
 
   const validationMetrics = [

@@ -4,7 +4,7 @@ import { apiCall, API_CONFIG } from '../config/api';
 import type { AnalysisResult } from '../components/discovery/FileList'
 import type { FileUpload } from '../components/discovery/FileList'
 
-export const useCMDBAnalysis = () => {
+export const useCMDBAnalysis = (): JSX.Element => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 

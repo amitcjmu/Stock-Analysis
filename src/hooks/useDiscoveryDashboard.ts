@@ -56,7 +56,7 @@ export interface InfrastructureLandscape {
   };
 }
 
-export const useDiscoveryMetrics = () => {
+export const useDiscoveryMetrics = (): JSX.Element => {
   const { client, engagement } = useAuth();
 
   return useQuery<DiscoveryMetrics, Error>({
@@ -89,7 +89,7 @@ export const useDiscoveryMetrics = () => {
   });
 };
 
-export const useApplicationLandscape = () => {
+export const useApplicationLandscape = (): JSX.Element => {
   const { client, engagement } = useAuth();
 
   return useQuery<ApplicationLandscape, Error>({
@@ -120,7 +120,7 @@ export const useApplicationLandscape = () => {
   });
 };
 
-export const useInfrastructureLandscape = () => {
+export const useInfrastructureLandscape = (): JSX.Element => {
   const { client, engagement } = useAuth();
 
   return useQuery<InfrastructureLandscape, Error>({

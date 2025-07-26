@@ -40,7 +40,7 @@ export interface ArchivalData {
   tasks: ArchivalTask[];
 }
 
-export const useArchival = () => {
+export const useArchival = (): JSX.Element => {
   const { getAuthHeaders } = useAuth();
 
   return useQuery<ArchivalData>({
@@ -53,7 +53,7 @@ export const useArchival = () => {
   });
 };
 
-export const useStartArchival = () => {
+export const useStartArchival = (): any => {
   const { getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
 
@@ -72,7 +72,7 @@ export const useStartArchival = () => {
   });
 };
 
-export const useVerifyArchival = () => {
+export const useVerifyArchival = (): any => {
   const { getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
 

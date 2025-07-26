@@ -36,7 +36,7 @@ interface AssessmentFlowMetrics {
   total_applications_assessed: number;
 }
 
-const AssessmentFlowOverview = () => {
+const AssessmentFlowOverview = (): JSX.Element => {
   const navigate = useNavigate();
   const { getAuthHeaders } = useAuth();
 
@@ -105,7 +105,7 @@ const AssessmentFlowOverview = () => {
     }
   });
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string): JSX.Element => {
     switch (status) {
       case 'processing':
         return <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />;
@@ -120,7 +120,7 @@ const AssessmentFlowOverview = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string): JSX.Element => {
     const variants = {
       processing: 'default',
       paused_for_user_input: 'secondary',
@@ -136,11 +136,11 @@ const AssessmentFlowOverview = () => {
     );
   };
 
-  const formatPhase = (phase: string) => {
+  const formatPhase = (phase: string): any => {
     return phase.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): any => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',

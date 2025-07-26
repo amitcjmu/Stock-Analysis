@@ -36,7 +36,7 @@ export const DebugContext: React.FC = () => {
     setLocalStorage(data);
   }, []);
 
-  const clearLocalStorage = () => {
+  const clearLocalStorage = (): any => {
     window.localStorage.removeItem('auth_client');
     window.localStorage.removeItem('auth_engagement');
     window.localStorage.removeItem('auth_session');
@@ -44,7 +44,7 @@ export const DebugContext: React.FC = () => {
     window.location.reload();
   };
 
-  const fetchClients = async () => {
+  const fetchClients = async (): Promise<any> => {
     setLoading(true);
     try {
       const token = window.localStorage.getItem('auth_token');

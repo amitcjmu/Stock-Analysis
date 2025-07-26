@@ -102,7 +102,7 @@ const mockDistributionData = [
   { label: 'Confidence Score', value: 92, color: '#10b981' }
 ];
 
-const TestObservabilityComponents = () => {
+const TestObservabilityComponents = (): JSX.Element => {
   const [selectedAgent, setSelectedAgent] = useState<AgentCardData | null>(null);
   const [showError, setShowError] = useState(false);
   const [showLoading, setShowLoading] = useState(false);
@@ -115,16 +115,16 @@ const TestObservabilityComponents = () => {
     'Processing metrics...'
   ];
 
-  const handleAgentSelect = (agent: AgentCardData) => {
+  const handleAgentSelect = (agent: AgentCardData): void => {
     setSelectedAgent(agent);
   };
 
-  const simulateError = () => {
+  const simulateError = (): any => {
     setShowError(true);
     setTimeout(() => setShowError(false), 5000);
   };
 
-  const simulateLoading = () => {
+  const simulateLoading = (): any => {
     setShowLoading(true);
     setLoadingStage(0);
 

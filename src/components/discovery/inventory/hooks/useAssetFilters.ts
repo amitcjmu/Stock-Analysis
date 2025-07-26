@@ -69,7 +69,7 @@ export const useAssetFilters = (assets: AssetInventory[]): {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const resetFilters = () => {
+  const resetFilters = (): any => {
     setFilters({
       searchTerm: '',
       selectedAssetType: 'all',

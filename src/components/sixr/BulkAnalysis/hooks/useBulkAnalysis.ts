@@ -30,7 +30,7 @@ export const useBulkAnalysis = ({
   onRetryJob,
   onDeleteJob,
   onExportResults
-}: UseBulkAnalysisProps) => {
+}: UseBulkAnalysisProps): JSX.Element => {
 
   const [state, setState] = useState<BulkAnalysisState>({
     jobs,

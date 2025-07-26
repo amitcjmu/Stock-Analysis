@@ -21,7 +21,7 @@ export interface RoadmapData {
   plannedApps: number;
 }
 
-export const useRoadmap = () => {
+export const useRoadmap = (): JSX.Element => {
   const { getAuthHeaders } = useAuth();
 
   return useQuery<RoadmapData>({
@@ -35,7 +35,7 @@ export const useRoadmap = () => {
   });
 };
 
-export const useUpdateRoadmap = () => {
+export const useUpdateRoadmap = (): any => {
   const queryClient = useQueryClient();
   const { getAuthHeaders } = useAuth();
 

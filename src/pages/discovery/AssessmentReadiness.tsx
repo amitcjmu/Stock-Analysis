@@ -36,7 +36,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError() {
+  static getDerivedStateFromError(): any {
     return { hasError: true };
   }
 
@@ -44,7 +44,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
     console.error('AssessmentReadiness error:', error, errorInfo);
   }
 
-  render() {
+  render(): any {
     if (this.state.hasError) {
       return (
         <div className="p-6 max-w-4xl mx-auto">
@@ -126,7 +126,7 @@ const AssessmentReadiness: React.FC = () => {
   });
 
   // Handle signoff generation
-  const handleGenerateSignoff = () => {
+  const handleGenerateSignoff = (): void => {
     if (!readinessAssessment) return;
     generateSignoff({
       assessmentId: readinessAssessment.id,
@@ -136,7 +136,7 @@ const AssessmentReadiness: React.FC = () => {
   };
 
   // Handle submission for approval
-  const handleSubmitForApproval = () => {
+  const handleSubmitForApproval = (): void => {
     if (!readinessAssessment?.signoffPackage) return;
 
     submitApproval({

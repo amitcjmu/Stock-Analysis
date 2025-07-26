@@ -39,7 +39,7 @@ export const FormField: React.FC<FormFieldProps> = ({
     onChange(newValue);
   }, [onChange]);
 
-  const renderFieldInput = () => {
+  const renderFieldInput = (): JSX.Element => {
     const commonProps = {
       id: field.id,
       disabled,
@@ -217,7 +217,7 @@ export const FormField: React.FC<FormFieldProps> = ({
     }
   };
 
-  const renderValidationFeedback = () => {
+  const renderValidationFeedback = (): JSX.Element => {
     if (!validation || !hasBeenTouched) return null;
 
     const { errors, warnings } = validation;

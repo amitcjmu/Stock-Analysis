@@ -75,7 +75,7 @@ export const useImportData = (finalFlowId: string | null): ImportDataResult => {
   const importDataError = flowImportError;
 
   // Combined refetch function
-  const refetchImportData = async () => {
+  const refetchImportData = async (): Promise<any> => {
     const results = await Promise.allSettled([
       refetchFlowImportData(),
       // Note: Latest import refetch is handled by the useLatestImport hook automatically

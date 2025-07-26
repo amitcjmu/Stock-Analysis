@@ -86,7 +86,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
   const hasIncompleteFlows = incompleteFlows.length > 0;
 
   // Handle view details navigation with agentic intelligence
-  const handleViewDetails = (flowId: string, phase: string) => {
+  const handleViewDetails = (flowId: string, phase: string): void => {
     console.log(`🤖 AGENTIC NAVIGATION: Analyzing flow ${flowId} in phase "${phase}"`);
 
     // If phase is 'current', we need to find the actual phase from the flow data
@@ -113,7 +113,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
   };
 
   // Handle flow deletion using centralized user-approval system
-  const handleDeleteFlow = async (flowId: string) => {
+  const handleDeleteFlow = async (flowId: string): void => {
     if (!client?.id) {
       toast({
         title: "Error",
@@ -134,7 +134,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
   };
 
   // Handle batch deletion
-  const handleBatchDelete = async (flowIds: string[]) => {
+  const handleBatchDelete = async (flowIds: string[]): void => {
     if (!client?.id) {
       toast({
         title: "Error",
@@ -155,25 +155,25 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
   };
 
   // Navigation handlers
-  const handleNewFlow = () => {
+  const handleNewFlow = (): void => {
     navigate('/discovery/cmdb-import');
   };
 
-  const handleDataImport = () => {
+  const handleDataImport = (): void => {
     navigate('/discovery/cmdb-import');
   };
 
-  const handleViewFlows = () => {
+  const handleViewFlows = (): void => {
     toggleFlowManager(true);
   };
 
-  const handleSystemHealth = () => {
+  const handleSystemHealth = (): void => {
     // Navigate to system health page when available
     console.log('System health navigation not yet implemented');
   };
 
   // Time range change handler
-  const handleTimeRangeChange = (timeRange: string) => {
+  const handleTimeRangeChange = (timeRange: string): void => {
     setSelectedTimeRange(timeRange);
     setTimeRange(timeRange);
   };

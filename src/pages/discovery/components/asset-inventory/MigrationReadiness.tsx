@@ -34,7 +34,7 @@ const MigrationReadiness: React.FC<MigrationReadinessProps> = ({
   const readinessPercentage = Math.round((readiness.ready_for_assessment / totalAssets) * 100) || 0;
   const readinessStatus = readinessPercentage >= 90 ? 'ready' : readinessPercentage >= 50 ? 'partial' : 'not-ready';
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): any => {
     switch (status) {
       case 'ready': return 'bg-green-100 text-green-800';
       case 'partial': return 'bg-yellow-100 text-yellow-800';
@@ -42,7 +42,7 @@ const MigrationReadiness: React.FC<MigrationReadinessProps> = ({
     }
   };
 
-  const getStatusText = (status: string) => {
+  const getStatusText = (status: string): any => {
     switch (status) {
       case 'ready': return 'Ready for Migration';
       case 'partial': return 'Partially Ready';
@@ -50,7 +50,7 @@ const MigrationReadiness: React.FC<MigrationReadinessProps> = ({
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string): JSX.Element => {
     switch (status) {
       case 'ready':
         return <CheckCircle className="h-4 w-4 text-green-500" />;

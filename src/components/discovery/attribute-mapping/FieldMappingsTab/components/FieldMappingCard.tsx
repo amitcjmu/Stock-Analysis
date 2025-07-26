@@ -31,7 +31,7 @@ export const FieldMappingCard: React.FC<FieldMappingCardProps> = ({
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleApproval = async () => {
+  const handleApproval = async (): void => {
     if (isProcessing) return; // Prevent duplicate calls
 
     setIsProcessing(true);
@@ -43,7 +43,7 @@ export const FieldMappingCard: React.FC<FieldMappingCardProps> = ({
     }
   };
 
-  const handleRejection = async () => {
+  const handleRejection = async (): void => {
     if (isProcessing) return; // Prevent duplicate calls
 
     setIsProcessing(true);
@@ -55,21 +55,21 @@ export const FieldMappingCard: React.FC<FieldMappingCardProps> = ({
     }
   };
 
-  const getConfidenceColor = (confidence: number) => {
+  const getConfidenceColor = (confidence: number): any => {
     if (confidence >= 90) return 'text-green-600';
     if (confidence >= 70) return 'text-blue-600';
     if (confidence >= 50) return 'text-yellow-600';
     return 'text-red-600';
   };
 
-  const getConfidenceLabel = (confidence: number) => {
+  const getConfidenceLabel = (confidence: number): any => {
     if (confidence >= 90) return 'Very High';
     if (confidence >= 70) return 'High';
     if (confidence >= 50) return 'Medium';
     return 'Low';
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): any => {
     switch (status) {
       case 'approved': return 'text-green-600 bg-green-50';
       case 'rejected': return 'text-red-600 bg-red-50';
@@ -78,7 +78,7 @@ export const FieldMappingCard: React.FC<FieldMappingCardProps> = ({
     }
   };
 
-  const getMappingTypeIcon = (type: string) => {
+  const getMappingTypeIcon = (type: string): any => {
     switch (type) {
       case 'direct': return '🔗';
       case 'calculated': return '🧮';

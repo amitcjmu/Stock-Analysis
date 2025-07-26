@@ -25,7 +25,7 @@ const QualityIssuesPanel: React.FC<QualityIssuesPanelProps> = ({
   onResolveIssue,
   isLoading = false
 }) => {
-  const getSeverityBadgeClass = (severity: 'high' | 'medium' | 'low') => {
+  const getSeverityBadgeClass = (severity: 'high' | 'medium' | 'low'): any => {
     switch (severity) {
       case 'high':
         return 'bg-red-100 text-red-800';

@@ -167,7 +167,7 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
   }, [gridData]);
 
   // Render cell based on field type
-  const renderCell = (row: GridRow, field: FormField) => {
+  const renderCell = (row: GridRow, field: FormField): JSX.Element => {
     const value = row.data[field.id];
     const cellId = `${row.applicationId}-${field.id}`;
 

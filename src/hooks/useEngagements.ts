@@ -13,7 +13,7 @@ export interface Engagement {
 
 const engagementsQueryKey = (clientId: string | null) => ["engagements", clientId];
 
-export const useEngagements = () => {
+export const useEngagements = (): JSX.Element => {
   const { user, client, isDemoMode } = useAuth();
   const clientId = client?.id;
 

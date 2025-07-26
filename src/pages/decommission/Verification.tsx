@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import Sidebar from '../../components/Sidebar';
 
-const Verification = () => {
+const Verification = (): JSX.Element => {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
 
@@ -60,7 +60,7 @@ const Verification = () => {
     reports: []
   };
 
-  const handleRunVerification = (checkId: string) => {
+  const handleRunVerification = (checkId: string): void => {
     runVerification(checkId, {
       onSuccess: () => {
         toast({
@@ -78,7 +78,7 @@ const Verification = () => {
     });
   };
 
-  const handleGenerateReport = (checkId: string) => {
+  const handleGenerateReport = (checkId: string): void => {
     generateReport(checkId, {
       onSuccess: () => {
         toast({
@@ -96,7 +96,7 @@ const Verification = () => {
     });
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string): JSX.Element => {
     switch (status) {
       case 'passed':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -109,7 +109,7 @@ const Verification = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): any => {
     switch (status) {
       case 'passed':
         return 'bg-green-100 text-green-800';
@@ -122,7 +122,7 @@ const Verification = () => {
     }
   };
 
-  const getTypeIcon = (type: string) => {
+  const getTypeIcon = (type: string): JSX.Element => {
     switch (type) {
       case 'data_integrity':
         return <Database className="h-4 w-4" />;

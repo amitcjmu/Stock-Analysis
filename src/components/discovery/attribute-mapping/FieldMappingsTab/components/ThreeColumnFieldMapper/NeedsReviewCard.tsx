@@ -27,7 +27,7 @@ const NeedsReviewCard: React.FC<NeedsReviewCardProps> = ({
 }) => {
   const [selectedTarget, setSelectedTarget] = useState(mapping.targetAttribute || '');
 
-  const handleConfirmMapping = () => {
+  const handleConfirmMapping = (): void => {
     if (onMappingChange && selectedTarget !== mapping.targetAttribute) {
       onMappingChange(mapping.id, selectedTarget);
     }

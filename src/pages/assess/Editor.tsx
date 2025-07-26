@@ -6,7 +6,7 @@ import Sidebar from '../../components/Sidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApplication, useUpdateApplication } from '@/hooks/useApplication';
 
-const Editor = () => {
+const Editor = (): JSX.Element => {
   const { applicationId } = useParams<{ applicationId: string }>();
   const { isAuthenticated } = useAuth();
 
@@ -21,7 +21,7 @@ const Editor = () => {
   const { mutate: updateApplication, isPending: isUpdating } = useUpdateApplication();
 
   // Handle input changes
-  const handleInputChange = (field: keyof Application, value: Application[keyof Application]) => {
+  const handleInputChange = (field: keyof Application, value: Application[keyof Application]): void => {
     if (!applicationId) return;
 
     updateApplication(

@@ -27,12 +27,12 @@ export const DependencyModal: React.FC<DependencyModalProps> = ({
     return null;
   }
 
-  const handleSave = () => {
+  const handleSave = (): void => {
     onSave(editedDependency);
     onClose();
   };
 
-  const handleDelete = () => {
+  const handleDelete = (): void => {
     if (onDelete) {
       onDelete(editedDependency);
     }

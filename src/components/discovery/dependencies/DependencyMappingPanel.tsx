@@ -25,7 +25,7 @@ const DependencyMappingPanel: React.FC<DependencyMappingPanelProps> = ({
 
   if (!data) return null;
 
-  const getApplications = () => {
+  const getApplications = (): any => {
     if (activeView === 'app-server') {
       const hostingRelationships = data?.app_server_mapping?.hosting_relationships || [];
       return Array.from(new Set(
@@ -40,14 +40,14 @@ const DependencyMappingPanel: React.FC<DependencyMappingPanelProps> = ({
     }
   };
 
-  const getServers = () => {
+  const getServers = (): any => {
     const hostingRelationships = data?.app_server_mapping?.hosting_relationships || [];
     return Array.from(new Set(
       hostingRelationships.map(r => r?.server_name).filter(Boolean)
     ));
   };
 
-  const handleCreateDependency = () => {
+  const handleCreateDependency = (): void => {
     if (activeView === 'app-server') {
       if (!sourceApp || !server) return;
       onCreateDependency({

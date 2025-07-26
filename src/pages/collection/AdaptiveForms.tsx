@@ -75,7 +75,7 @@ const AdaptiveForms: React.FC = () => {
   });
 
   // Flow management handlers for incomplete flows
-  const handleContinueFlow = async (flowId: string) => {
+  const handleContinueFlow = async (flowId: string): void => {
     try {
       // Navigate to appropriate collection phase
       navigate(`/collection/progress/${flowId}`);
@@ -84,7 +84,7 @@ const AdaptiveForms: React.FC = () => {
     }
   };
 
-  const handleDeleteFlow = async (flowId: string) => {
+  const handleDeleteFlow = async (flowId: string): void => {
     // Mark this flow as being deleted to hide it from UI immediately
     setDeletingFlows(prev => new Set(prev).add(flowId));
 
@@ -128,11 +128,11 @@ const AdaptiveForms: React.FC = () => {
     }
   };
 
-  const handleViewFlowDetails = (flowId: string, phase: string) => {
+  const handleViewFlowDetails = (flowId: string, phase: string): void => {
     navigate(`/collection/progress/${flowId}`);
   };
 
-  const handleManageFlows = () => {
+  const handleManageFlows = (): void => {
     navigate('/collection/management');
   };
 

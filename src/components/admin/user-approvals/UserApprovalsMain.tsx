@@ -166,7 +166,7 @@ export const UserApprovalsMain: React.FC = () => {
 
   useEffect(() => {
     // Listen for user creation events
-    const handleUserCreated = (event: CustomEvent) => {
+    const handleUserCreated = (event: CustomEvent): void => {
       console.log('User created event received:', event.detail);
       // Refresh the user lists
       fetchPendingUsers();
@@ -188,7 +188,7 @@ export const UserApprovalsMain: React.FC = () => {
     };
   }, [toast, fetchPendingUsers, fetchActiveUsers]);
 
-  const handleApprove = async () => {
+  const handleApprove = async (): void => {
     if (!selectedUser) return;
 
     try {
@@ -246,7 +246,7 @@ export const UserApprovalsMain: React.FC = () => {
     }
   };
 
-  const handleReject = async () => {
+  const handleReject = async (): JSX.Element => {
     if (!selectedUser || !rejectionData.rejection_reason || rejectionData.rejection_reason.length < 10) {
       return;
     }
@@ -282,7 +282,7 @@ export const UserApprovalsMain: React.FC = () => {
     }
   };
 
-  const handleDeactivateUser = async (user: ActiveUser) => {
+  const handleDeactivateUser = async (user: ActiveUser): void => {
     try {
       setActionLoading(user.user_id);
 
@@ -312,7 +312,7 @@ export const UserApprovalsMain: React.FC = () => {
     }
   };
 
-  const handleActivateUser = async (user: ActiveUser) => {
+  const handleActivateUser = async (user: ActiveUser): void => {
     try {
       setActionLoading(user.user_id);
 
@@ -343,12 +343,12 @@ export const UserApprovalsMain: React.FC = () => {
 
   // formatDate and getAccessLevelColor functions moved to shared utilities
 
-  const handleViewDetails = (user: PendingUser) => {
+  const handleViewDetails = (user: PendingUser): void => {
     setSelectedUser(user);
     setShowDetailsDialog(true);
   };
 
-  const handleApproveUser = (user: PendingUser) => {
+  const handleApproveUser = (user: PendingUser): void => {
     setSelectedUser(user);
     setApprovalData({
       access_level: user.requested_access_level,
@@ -359,12 +359,12 @@ export const UserApprovalsMain: React.FC = () => {
     setShowApprovalDialog(true);
   };
 
-  const handleRejectUser = (user: PendingUser) => {
+  const handleRejectUser = (user: PendingUser): void => {
     setSelectedUser(user);
     setShowRejectionDialog(true);
   };
 
-  const handleEditAccess = (user: ActiveUser) => {
+  const handleEditAccess = (user: ActiveUser): void => {
     // For now, show a toast indicating this feature is coming soon
     // In a full implementation, this would open a modal to edit user permissions
     toast({

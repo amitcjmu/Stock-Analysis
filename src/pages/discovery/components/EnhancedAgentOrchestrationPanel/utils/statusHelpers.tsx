@@ -3,7 +3,7 @@ import { Activity } from 'lucide-react'
 import { CheckCircle2, Clock, AlertCircle, Timer } from 'lucide-react'
 import { Badge } from '@/components/ui/badge';
 
-export const getStatusIcon = (status: string) => {
+export const getStatusIcon = (status: string): JSX.Element => {
   switch (status) {
     case 'completed':
       return <CheckCircle2 className="h-4 w-4 text-green-500" />;
@@ -18,7 +18,7 @@ export const getStatusIcon = (status: string) => {
   }
 };
 
-export const getStatusBadge = (status: string) => {
+export const getStatusBadge = (status: string): JSX.Element => {
   const statusConfig = {
     completed: { variant: 'default' as const, className: 'bg-green-100 text-green-800' },
     running: { variant: 'secondary' as const, className: 'bg-blue-100 text-blue-800' },

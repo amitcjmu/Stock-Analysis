@@ -29,7 +29,7 @@ export const RetryWrapper: React.FC<RetryWrapperProps> = ({
   const [isRetrying, setIsRetrying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleRetry = async () => {
+  const handleRetry = async (): void => {
     if (retryCount >= maxRetries) {
       toast.error('Maximum retry attempts reached');
       return;

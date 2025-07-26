@@ -11,7 +11,7 @@ import type { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 
-export const useFlowManagement = () => {
+export const useFlowManagement = (): JSX.Element => {
   const navigate = useNavigate();
   const { client, engagement, user } = useAuth();
   const { toast } = useToast();

@@ -63,7 +63,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
   const currentAssets = filteredAssets.slice(startIndex, endIndex);
   const currentAssetIds = currentAssets.map(a => a.id);
 
-  const formatValue = (value: unknown, column: string) => {
+  const formatValue = (value: unknown, column: string): JSX.Element => {
     if (value === null || value === undefined) return '-';
 
     if (column === 'risk_score' || column === 'migration_readiness') {

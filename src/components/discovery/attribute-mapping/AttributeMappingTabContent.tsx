@@ -41,7 +41,7 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
   isLoading = false,
   sessionInfo
 }) => {
-  const renderTabContent = () => {
+  const renderTabContent = (): JSX.Element => {
     switch (activeTab) {
       case 'mappings':
         return (

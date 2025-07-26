@@ -35,7 +35,7 @@ const renderCustomizedLabel = ({
   percent,
   name,
   value,
-}: unknown) => {
+}: unknown): JSX.Element => {
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
   const x = cx + radius * Math.cos(-midAngle * RADIAN) * 1.2;
   const y = cy + radius * Math.sin(-midAngle * RADIAN) * 1.2;
@@ -54,7 +54,7 @@ const renderCustomizedLabel = ({
   );
 };
 
-const CustomTooltip = ({ active, payload, label }: unknown) => {
+const CustomTooltip = ({ active, payload, label }: unknown): JSX.Element => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white p-3 border border-gray-200 rounded shadow-lg">
@@ -68,7 +68,7 @@ const CustomTooltip = ({ active, payload, label }: unknown) => {
   return null;
 };
 
-const prepareChartData = (data: Record<string, number>, total: number) => {
+const prepareChartData = (data: Record<string, number>, total: number): any => {
   return Object.entries(data).map(([name, value]) => ({
     name,
     value,

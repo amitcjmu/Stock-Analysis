@@ -71,7 +71,7 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
 
   // Load health status and recommendations on mount
   useEffect(() => {
-    const loadHealthData = async () => {
+    const loadHealthData = async (): Promise<any> => {
       try {
         const [health, recommendations] = await Promise.all([
           collectionFlowApi.getFlowHealthStatus(),
@@ -104,7 +104,7 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
   }, [autoRefresh]);
 
   // Handlers
-  const handleContinueFlow = async (flowId: string) => {
+  const handleContinueFlow = async (flowId: string): void => {
     try {
       await continueFlow(flowId);
       // Refetch incomplete flows
@@ -114,7 +114,7 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
     }
   };
 
-  const handleDeleteFlow = async (flowId: string) => {
+  const handleDeleteFlow = async (flowId: string): void => {
     try {
       await deleteFlow(flowId, false);
       await incompleteFlowsQuery.refetch();
@@ -123,7 +123,7 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
     }
   };
 
-  const handleBatchDelete = async (flowIds: string[]) => {
+  const handleBatchDelete = async (flowIds: string[]): void => {
     try {
       await batchDeleteFlows(flowIds, false);
       await incompleteFlowsQuery.refetch();
@@ -132,7 +132,7 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
     }
   };
 
-  const handleCleanupFlows = async () => {
+  const handleCleanupFlows = async (): void => {
     try {
       const result = await cleanupFlows(cleanupOptions);
       setCleanupResult(result);
@@ -150,7 +150,7 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
     }
   };
 
-  const handleViewDetails = (flowId: string, phase: string) => {
+  const handleViewDetails = (flowId: string, phase: string): void => {
     // Navigate to flow details page - implement based on your routing
     console.log('View details for flow:', flowId, 'phase:', phase);
     toast({
@@ -161,7 +161,7 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
   };
 
   // Render status badge
-  const renderStatusBadge = (status: string, healthy?: boolean) => {
+  const renderStatusBadge = (status: string, healthy?: boolean): JSX.Element => {
     if (healthy === true) {
       return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Healthy</Badge>;
     } else if (healthy === false) {

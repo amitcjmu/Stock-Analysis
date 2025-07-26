@@ -72,7 +72,7 @@ export const updateUserDefaults = async (
  * Get current user context including client, engagement, and flow
  * Note: Backend still returns session, so we convert it to flow format
  */
-export const getUserContext = async () => {
+export const getUserContext = async (): Promise<any> => {
   try {
     console.log('🔍 getUserContext - Making API call to /api/v1/context/me');
     const response = await apiCall('/api/v1/context/me', {
@@ -135,7 +135,7 @@ export const getUserContext = async () => {
 /**
  * Get list of clients accessible to the current user
  */
-export const getUserClients = async () => {
+export const getUserClients = async (): Promise<any> => {
   try {
     const response = await apiCall('/api/v1/context-establishment/clients', {
       method: 'GET',
@@ -151,7 +151,7 @@ export const getUserClients = async () => {
 /**
  * Get list of engagements for a specific client
  */
-export const getClientEngagements = async (clientId: string) => {
+export const getClientEngagements = async (clientId: string): Promise<any> => {
   try {
     const response = await apiCall(`/api/v1/context-establishment/engagements?client_id=${clientId}`, {
       method: 'GET',

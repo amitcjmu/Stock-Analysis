@@ -49,7 +49,7 @@ export interface ComplianceData {
   audits: ComplianceAudit[];
 }
 
-export const useCompliance = () => {
+export const useCompliance = (): JSX.Element => {
   const { getAuthHeaders } = useAuth();
 
   return useQuery<ComplianceData>({
@@ -62,7 +62,7 @@ export const useCompliance = () => {
   });
 };
 
-export const useStartAudit = () => {
+export const useStartAudit = (): any => {
   const { getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
 
@@ -81,7 +81,7 @@ export const useStartAudit = () => {
   });
 };
 
-export const useUpdateRequirement = () => {
+export const useUpdateRequirement = (): JSX.Element => {
   const { getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
 

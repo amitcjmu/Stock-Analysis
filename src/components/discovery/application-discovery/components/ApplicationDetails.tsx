@@ -53,7 +53,7 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
   onClose,
   onValidate
 }) => {
-  const getAssetIcon = (assetType: string) => {
+  const getAssetIcon = (assetType: string): JSX.Element => {
     switch (assetType.toLowerCase()) {
       case 'server':
       case 'vm':
@@ -68,7 +68,7 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
     }
   };
 
-  const getConfidenceColor = (value: number) => {
+  const getConfidenceColor = (value: number): any => {
     if (value >= 0.8) return 'text-green-600';
     if (value >= 0.6) return 'text-yellow-600';
     return 'text-red-600';

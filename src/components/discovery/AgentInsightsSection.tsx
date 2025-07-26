@@ -65,7 +65,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     };
   }, [isProcessing]);
 
-  const fetchInsights = async () => {
+  const fetchInsights = async (): Promise<any> => {
     try {
       const result = await apiCall(`/api/v1/agents/discovery/agent-insights?page=${pageContext}`);
       if (result.success && result.insights) {
@@ -87,7 +87,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     }
   };
 
-  const toggleInsightExpansion = (insightId: string) => {
+  const toggleInsightExpansion = (insightId: string): any => {
     const newExpanded = new Set(expandedInsights);
     if (newExpanded.has(insightId)) {
       newExpanded.delete(insightId);
@@ -97,7 +97,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     setExpandedInsights(newExpanded);
   };
 
-  const getInsightTypeConfig = (type: string) => {
+  const getInsightTypeConfig = (type: string): any => {
     switch (type) {
       case 'data_volume':
         return {
@@ -151,7 +151,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     }
   };
 
-  const getConfidenceColor = (confidence: string) => {
+  const getConfidenceColor = (confidence: string): any => {
     switch (confidence) {
       case 'high': return 'text-green-600 bg-green-100';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
@@ -161,11 +161,11 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     }
   };
 
-  const formatTimestamp = (timestamp: string) => {
+  const formatTimestamp = (timestamp: string): any => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const getFilteredInsights = () => {
+  const getFilteredInsights = (): any => {
     switch (selectedFilter) {
       case 'actionable':
         return insights.filter(insight => insight.actionable);
@@ -179,7 +179,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
   const [feedbackExplanations, setFeedbackExplanations] = useState<Map<string, string>>(new Map());
   const [showFeedbackInput, setShowFeedbackInput] = useState<Set<string>>(new Set());
 
-  const handleInsightFeedback = async (insightId: string, helpful: boolean, explanation?: string) => {
+  const handleInsightFeedback = async (insightId: string, helpful: boolean, explanation?: string): void => {
     try {
       const insight = insights.find(i => i.id === insightId);
 
@@ -257,7 +257,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     return issues;
   };
 
-  const toggleFeedbackInput = (insightId: string) => {
+  const toggleFeedbackInput = (insightId: string): any => {
     setShowFeedbackInput(prev => {
       const next = new Set(prev);
       if (next.has(insightId)) {
@@ -269,7 +269,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     });
   };
 
-  const updateFeedbackExplanation = (insightId: string, explanation: string) => {
+  const updateFeedbackExplanation = (insightId: string, explanation: string): any => {
     setFeedbackExplanations(prev => {
       const next = new Map(prev);
       next.set(insightId, explanation);

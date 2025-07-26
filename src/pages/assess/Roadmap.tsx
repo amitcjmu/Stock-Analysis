@@ -6,11 +6,11 @@ import { useRoadmap } from '@/hooks/useRoadmap';
 import { useAuth } from '@/contexts/AuthContext';
 import { Spinner } from '@/components/ui/spinner';
 
-const Roadmap = () => {
+const Roadmap = (): JSX.Element => {
   const { isAuthenticated } = useAuth();
   const { data: roadmapData, isLoading, error } = useRoadmap();
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string): JSX.Element => {
     switch (status) {
       case 'completed':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -23,7 +23,7 @@ const Roadmap = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): any => {
     const colors = {
       'completed': 'bg-green-500',
       'in-progress': 'bg-blue-500',
@@ -32,7 +32,7 @@ const Roadmap = () => {
     return colors[status] || 'bg-gray-300';
   };
 
-  const getProgressWidth = (status: string) => {
+  const getProgressWidth = (status: string): any => {
     switch (status) {
       case 'completed':
         return 'w-full';

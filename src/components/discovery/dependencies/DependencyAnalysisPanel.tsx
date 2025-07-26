@@ -27,7 +27,7 @@ const DependencyAnalysisPanel: React.FC<DependencyAnalysisPanelProps> = ({
 
   if (!data) return null;
 
-  const renderAppServerAnalysis = () => {
+  const renderAppServerAnalysis = (): JSX.Element => {
     const { hosting_relationships = [], suggested_mappings = [], confidence_scores = {} } = data?.app_server_mapping || {};
     const confirmedCount = hosting_relationships.filter(r => r?.status === 'confirmed').length;
     const pendingCount = hosting_relationships.filter(r => r?.status === 'pending').length;
@@ -79,7 +79,7 @@ const DependencyAnalysisPanel: React.FC<DependencyAnalysisPanelProps> = ({
     );
   };
 
-  const renderAppAppAnalysis = () => {
+  const renderAppAppAnalysis = (): JSX.Element => {
     const { cross_app_dependencies = [], application_clusters = [], suggested_patterns = [], confidence_scores = {} } = data?.cross_application_mapping || {};
     const confirmedCount = cross_app_dependencies.filter(d => d?.status === 'confirmed').length;
     const pendingCount = cross_app_dependencies.filter(d => d?.status === 'pending').length;

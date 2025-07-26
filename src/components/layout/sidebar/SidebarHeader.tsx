@@ -10,7 +10,7 @@ const SidebarHeader: React.FC<SidebarHeaderProps> = ({
   isAdmin
 }) => {
   // Determine cloud icon color based on authentication status
-  const getCloudIconColor = () => {
+  const getCloudIconColor = (): any => {
     console.log('🌤️ Cloud Icon Color Check:', {
       isAuthenticated,
       isAdmin,

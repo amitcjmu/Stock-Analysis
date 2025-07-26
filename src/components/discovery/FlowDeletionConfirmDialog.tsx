@@ -41,7 +41,7 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
   onConfirm,
   onCancel
 }) => {
-  const getPhaseDisplayName = (phase: string) => {
+  const getPhaseDisplayName = (phase: string): any => {
     const names = {
       'field_mapping': 'Field Mapping',
       'data_cleansing': 'Data Cleansing',
@@ -52,7 +52,7 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
     return names[phase as keyof typeof names] || phase.replace('_', ' ').toUpperCase();
   };
 
-  const formatTimeAgo = (timestamp: string) => {
+  const formatTimeAgo = (timestamp: string): JSX.Element => {
     const now = new Date();
     const time = new Date(timestamp);
     const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
@@ -62,7 +62,7 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
-  const getTotalDataRecords = () => {
+  const getTotalDataRecords = (): any => {
     if (!flow.deletion_impact?.data_to_delete) return 0;
     const data = flow.deletion_impact.data_to_delete;
     return Object.values(data).reduce((sum, count) => sum + (typeof count === 'number' ? count : 0), 0);

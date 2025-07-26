@@ -69,7 +69,7 @@ export const useCrewAIInsights = (): UseCrewAIInsightsResult => {
       );
 
       // Parse insights content to extract structured data
-      const parseInsightContent = (insightText: string) => {
+      const parseInsightContent = (insightText: string): null => {
         try {
           // Try to extract JSON from insight text
           const jsonMatch = insightText.match(/\\{[\\s\\S]*\\}/);

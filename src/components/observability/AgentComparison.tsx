@@ -81,7 +81,7 @@ const AgentComparison: React.FC<AgentComparisonProps> = ({
     }
   }, [selectedAgents, onComparisonChange]);
 
-  const loadAvailableAgents = async () => {
+  const loadAvailableAgents = async (): Promise<any> => {
     try {
       const agents = await agentObservabilityService.getAgentNames();
       setAvailableAgents(agents);
@@ -90,11 +90,11 @@ const AgentComparison: React.FC<AgentComparisonProps> = ({
     }
   };
 
-  const handleSelectionChange = (agents: string[]) => {
+  const handleSelectionChange = (agents: string[]): void => {
     setSelectedAgents(agents);
   };
 
-  const handleExportData = () => {
+  const handleExportData = (): void => {
     if (comparisonData.length === 0) return;
 
     const exportData = {

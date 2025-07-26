@@ -6,7 +6,7 @@ const MappingFilters: React.FC<MappingFiltersProps> = ({
   onFilterChange,
   mappingCounts
 }) => {
-  const handleFilterChange = (filterType: keyof typeof filterOptions, value: boolean) => {
+  const handleFilterChange = (filterType: keyof typeof filterOptions, value: boolean): void => {
     onFilterChange({
       ...filterOptions,
       [filterType]: value

@@ -45,7 +45,7 @@ export interface CreateFeedbackInput {
   description: string;
 }
 
-export const useFeedback = () => {
+export const useFeedback = (): JSX.Element => {
   const { getContextHeaders } = useAuth();
   const queryClient = useQueryClient();
 

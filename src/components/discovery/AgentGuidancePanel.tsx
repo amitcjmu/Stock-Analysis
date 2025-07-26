@@ -70,7 +70,7 @@ const AgentGuidancePanel: React.FC<AgentGuidancePanelProps> = ({
   const [isExpanded, setIsExpanded] = useState(true);
   const [showDetailedChecklist, setShowDetailedChecklist] = useState(false);
 
-  const getTaskStatusIcon = (status: TaskResult['status']) => {
+  const getTaskStatusIcon = (status: TaskResult['status']): JSX.Element => {
     switch (status) {
       case 'completed':
         return <CheckCircle2 className="h-4 w-4 text-green-600" />;
@@ -83,7 +83,7 @@ const AgentGuidancePanel: React.FC<AgentGuidancePanelProps> = ({
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): any => {
     switch (status) {
       case 'completed':
         return 'text-green-600 bg-green-50 border-green-200';

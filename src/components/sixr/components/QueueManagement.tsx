@@ -14,7 +14,7 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
   applications,
   onQueueAction
 }) => {
-  const renderQueueItem = (queue: AnalysisQueue) => {
+  const renderQueueItem = (queue: AnalysisQueue): JSX.Element => {
     const queueApplications = applications.filter(app => queue.applications.includes(app.id));
 
     return (

@@ -34,7 +34,7 @@ export interface RearchitectData {
   aiInsights: AIInsights;
 }
 
-export const useRearchitect = () => {
+export const useRearchitect = (): JSX.Element => {
   const { getContextHeaders } = useAuth();
 
   return useQuery<RearchitectData>({

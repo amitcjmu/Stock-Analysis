@@ -5,7 +5,7 @@ import { masterFlowService } from '../../services/api/masterFlowService';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 
-export const useInventoryLogic = (flowId?: string) => {
+export const useInventoryLogic = (flowId?: string): JSX.Element => {
   const { client, engagement } = useAuth();
 
   // Use the unified discovery flow

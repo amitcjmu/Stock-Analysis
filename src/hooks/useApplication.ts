@@ -24,7 +24,7 @@ export interface Application {
   email: string;
 }
 
-export const useApplication = (applicationId: string) => {
+export const useApplication = (applicationId: string): JSX.Element => {
   const { isAuthenticated, client, engagement } = useAuth();
 
   return useQuery<Application>({
@@ -56,7 +56,7 @@ export const useApplication = (applicationId: string) => {
   });
 };
 
-export const useUpdateApplication = () => {
+export const useUpdateApplication = (): JSX.Element => {
   const queryClient = useQueryClient();
 
   return useMutation({

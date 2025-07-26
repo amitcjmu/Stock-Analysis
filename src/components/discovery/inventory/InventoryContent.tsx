@@ -169,12 +169,12 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   } = useAssetSelection();
 
   // Handlers
-  const handleClassificationCardClick = (assetType: string) => {
+  const handleClassificationCardClick = (assetType: string): void => {
     updateFilter('selectedAssetType', assetType);
     setCurrentPage(1);
   };
 
-  const toggleColumn = (column: string) => {
+  const toggleColumn = (column: string): any => {
     setSelectedColumns(prev =>
       prev.includes(column)
         ? prev.filter(col => col !== column)
@@ -182,12 +182,12 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     );
   };
 
-  const handleExportAssets = () => {
+  const handleExportAssets = (): void => {
     exportAssets(filteredAssets, selectedColumns);
   };
 
   // Enhanced refresh function that triggers CrewAI classification
-  const handleRefreshClassification = async () => {
+  const handleRefreshClassification = async (): void => {
     try {
       console.log('🔄 Refreshing asset classification with CrewAI...');
 
@@ -219,7 +219,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   };
 
   // Reclassify selected assets function
-  const handleReclassifySelected = async () => {
+  const handleReclassifySelected = async (): void => {
     if (selectedAssets.length === 0) {
       console.warn('No assets selected for reclassification');
       return;

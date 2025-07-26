@@ -114,7 +114,7 @@ class PerformanceMonitor {
   /**
    * Calculate summary performance metrics
    */
-  private calculateSummaryMetrics() {
+  private calculateSummaryMetrics(): any {
     const totalLoads = this.metrics.length;
     if (totalLoads === 0) {
       return {

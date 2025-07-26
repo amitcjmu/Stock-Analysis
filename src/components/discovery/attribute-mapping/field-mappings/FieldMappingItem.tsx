@@ -22,13 +22,13 @@ const FieldMappingItem: React.FC<FieldMappingItemProps> = ({
   onCategoryChange,
   onSearchTermChange
 }) => {
-  const getConfidenceColor = (confidence: number) => {
+  const getConfidenceColor = (confidence: number): any => {
     if (confidence >= 0.8) return 'bg-green-100 text-green-800';
     if (confidence >= 0.6) return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';
   };
 
-  const getMappingStatusColor = (status: string) => {
+  const getMappingStatusColor = (status: string): any => {
     switch (status) {
       case 'approved': return 'bg-green-50 border-green-200';
       case 'rejected': return 'bg-red-50 border-red-200';
@@ -36,7 +36,7 @@ const FieldMappingItem: React.FC<FieldMappingItemProps> = ({
     }
   };
 
-  const getCategoryColor = (category: string) => {
+  const getCategoryColor = (category: string): any => {
     return CATEGORY_COLORS[category] || 'bg-gray-100 text-gray-700';
   };
 

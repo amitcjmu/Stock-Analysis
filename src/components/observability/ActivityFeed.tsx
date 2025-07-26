@@ -105,7 +105,7 @@ const ActivityEventRow: React.FC<{
     error: 'border-l-red-400 bg-red-50'
   };
 
-  const handleClick = () => {
+  const handleClick = (): void => {
     if (onClick) {
       onClick(event);
     }
@@ -221,7 +221,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
     };
   }, [isPlaying, realTime, refreshInterval, filters.agent, filters.timeRange]);
 
-  const loadActivityData = async () => {
+  const loadActivityData = async (): Promise<any> => {
     try {
       setError(null);
 
@@ -292,7 +292,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
     return mapping[apiSeverity] || 'info';
   };
 
-  const playNotificationSound = () => {
+  const playNotificationSound = (): any => {
     if (audioRef.current) {
       audioRef.current.play().catch(() => {
         // Ignore audio play errors (user interaction required)
@@ -343,23 +343,23 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
     });
   }, [events, filters]);
 
-  const handleTogglePlayPause = () => {
+  const handleTogglePlayPause = (): void => {
     setIsPlaying(!isPlaying);
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = (): void => {
     setLoading(true);
     loadActivityData();
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = (): void => {
     setEvents([]);
   };
 
-  const getEventCounts = () => {
+  const getEventCounts = (): any => {
     const counts = {
       total: filteredEvents.length,
       success: filteredEvents.filter(e => e.severity === 'success').length,

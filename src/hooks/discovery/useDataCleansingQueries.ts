@@ -12,7 +12,7 @@ const queryKeys = {
 };
 
 // Custom hook to fetch the latest import data
-export const useLatestImport = () => {
+export const useLatestImport = (): any => {
   const { isAuthenticated } = useAuth();
 
   return useQuery({
@@ -25,7 +25,7 @@ export const useLatestImport = () => {
 };
 
 // Custom hook to fetch paginated assets
-export const useAssets = (page = 1, pageSize = 1000) => {
+export const useAssets = (page = 1, pageSize = 1000): any => {
   const { isAuthenticated } = useAuth();
 
   return useQuery({
@@ -38,7 +38,7 @@ export const useAssets = (page = 1, pageSize = 1000) => {
 };
 
 // Custom hook to perform agent analysis
-export const useAgentAnalysis = (data: unknown[] | null) => {
+export const useAgentAnalysis = (data: unknown[] | null): any => {
   const queryClient = useQueryClient();
   const dataHash = data ? JSON.stringify(data) : '';
 
@@ -53,7 +53,7 @@ export const useAgentAnalysis = (data: unknown[] | null) => {
 };
 
 // Custom hook to apply a fix
-export const useApplyFix = () => {
+export const useApplyFix = (): any => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -69,7 +69,7 @@ export const useApplyFix = () => {
 // Custom hook to get agent analysis result
 // This would be used to cache the analysis result
 // and avoid re-running the analysis unnecessarily
-export const useCachedAgentAnalysis = (data: unknown[] | null) => {
+export const useCachedAgentAnalysis = (data: unknown[] | null): any => {
   const dataHash = data ? JSON.stringify(data) : '';
   const { data: analysis, isLoading } = useQuery({
     queryKey: queryKeys.agentAnalysis(dataHash),

@@ -286,7 +286,7 @@ export const loadVersionUtils = (): Promise<unknown> =>
 /**
  * Conditional utility loading based on environment or feature flags - Currently not implemented
  */
-// export const loadDevUtilities = () => {
+// export const loadDevUtilities = (): JSX.Element => {
 //   if (process.env.NODE_ENV === 'development') {
 //     return lazyUtilityManager.loadUtility(
 //       'dev-utilities',
@@ -297,7 +297,7 @@ export const loadVersionUtils = (): Promise<unknown> =>
 //   return Promise.resolve(null);
 // };
 
-// export const loadTestUtilities = () => {
+// export const loadTestUtilities = (): JSX.Element => {
 //   if (process.env.NODE_ENV === 'test') {
 //     return lazyUtilityManager.loadUtility(
 //       'test-utilities',

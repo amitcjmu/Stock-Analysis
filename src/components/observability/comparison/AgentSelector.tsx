@@ -31,13 +31,13 @@ export const AgentSelector: React.FC<AgentSelectorProps> = ({
     !selectedAgents.includes(agent)
   );
 
-  const handleAddAgent = (agent: string) => {
+  const handleAddAgent = (agent: string): JSX.Element => {
     if (selectedAgents.length < maxAgents) {
       onSelectionChange([...selectedAgents, agent]);
     }
   };
 
-  const handleRemoveAgent = (agent: string) => {
+  const handleRemoveAgent = (agent: string): void => {
     onSelectionChange(selectedAgents.filter(a => a !== agent));
   };
 

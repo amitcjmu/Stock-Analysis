@@ -6,11 +6,11 @@ import { useWavePlanning } from '@/hooks/useWavePlanning';
 import { useAuth } from '@/contexts/AuthContext';
 import { Spinner } from '@/components/ui/spinner';
 
-const WavePlanning = () => {
+const WavePlanning = (): JSX.Element => {
   const { isAuthenticated } = useAuth();
   const { data: wavePlanningData, isLoading, error } = useWavePlanning();
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): any => {
     const colors = {
       'Planning': 'bg-blue-100 text-blue-800',
       'Scheduled': 'bg-green-100 text-green-800',

@@ -9,7 +9,7 @@ import InventoryContent from '../../components/discovery/inventory/InventoryCont
 import { useInventoryFlowDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
 import { useAuth } from '@/contexts/AuthContext';
 
-const Inventory = () => {
+const Inventory = (): JSX.Element => {
   const { client, engagement } = useAuth();
 
   // Use the new auto-detection hook for consistent flow detection

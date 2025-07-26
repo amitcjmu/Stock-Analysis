@@ -47,7 +47,7 @@ const getSuccessRateColor = (rate: number): string => {
 };
 
 // Helper function to get trend icon
-const getTrendIcon = (value: number, threshold: number = 0) => {
+const getTrendIcon = (value: number, threshold: number = 0): JSX.Element => {
   if (value > threshold) return <TrendingUp className="h-3 w-3 text-green-500" />;
   if (value < threshold) return <TrendingDown className="h-3 w-3 text-red-500" />;
   return null;
@@ -62,7 +62,7 @@ export const AgentPerformanceCard: React.FC<PerformanceCardProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
-  const handleCardClick = () => {
+  const handleCardClick = (): void => {
     if (onClick) {
       onClick(agent);
     }

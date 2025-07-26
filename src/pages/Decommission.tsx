@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar';
 import { Archive, Database, FileText } from 'lucide-react'
 import { Shield, Trash2, Clock, CheckCircle, AlertTriangle } from 'lucide-react'
 
-const Decommission = () => {
+const Decommission = (): JSX.Element => {
   const [selectedPhase, setSelectedPhase] = useState('planning');
 
   const decommissionQueue = [

@@ -4,7 +4,7 @@ import type { FilterState } from '../types'
 import type { AnalysisHistoryItem } from '../types'
 import { matchesDateRange } from '../utils/dateUtils';
 
-export const useAnalysisFilters = (analyses: AnalysisHistoryItem[]) => {
+export const useAnalysisFilters = (analyses: AnalysisHistoryItem[]): JSX.Element => {
   const [filters, setFilters] = useState<FilterState>({
     searchTerm: '',
     statusFilter: 'all',
@@ -43,7 +43,7 @@ export const useAnalysisFilters = (analyses: AnalysisHistoryItem[]) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const clearFilters = () => {
+  const clearFilters = (): any => {
     setFilters({
       searchTerm: '',
       statusFilter: 'all',

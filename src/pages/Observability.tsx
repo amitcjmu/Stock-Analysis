@@ -14,7 +14,7 @@ interface Task {
   duration: number;
 }
 
-const Observability = () => {
+const Observability = (): JSX.Element => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [monitoringData, setMonitoringData] = useState<{
@@ -40,7 +40,7 @@ const Observability = () => {
     fetchMonitoringData();
   }, []);
 
-  const fetchMonitoringData = async () => {
+  const fetchMonitoringData = async (): Promise<any> => {
     try {
       setLoading(true);
       setError(null);
@@ -56,7 +56,7 @@ const Observability = () => {
     }
   };
 
-  const getMetrics = () => {
+  const getMetrics = (): any => {
     if (!monitoringData) {
       return [
         { name: 'API Latency', value: '---', trend: 'none', change: '---', status: 'normal' },
@@ -136,7 +136,7 @@ const Observability = () => {
     }
   ];
 
-  const getSystemHealth = () => {
+  const getSystemHealth = (): any => {
     if (!monitoringData) {
       return [
         { component: 'Agent Registry', status: 'unknown', uptime: '---', lastCheck: '---' },
@@ -207,7 +207,7 @@ const Observability = () => {
     }
   ];
 
-  const getRecentEvents = () => {
+  const getRecentEvents = (): any => {
     if (!monitoringData || !monitoringData.tasks?.active) {
       return hardcodedEvents;
     }
@@ -250,7 +250,7 @@ const Observability = () => {
 
   const recentEvents = getRecentEvents();
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): any => {
     switch (status) {
       case 'healthy':
         return 'bg-green-100 text-green-800';
@@ -263,7 +263,7 @@ const Observability = () => {
     }
   };
 
-  const getEventIcon = (type: string) => {
+  const getEventIcon = (type: string): JSX.Element => {
     switch (type) {
       case 'success':
         return <CheckCircle className="h-4 w-4 text-green-500" />;

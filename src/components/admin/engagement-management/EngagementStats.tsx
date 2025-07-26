@@ -30,7 +30,7 @@ export const EngagementStats: React.FC<EngagementStatsProps> = ({ engagements })
     return acc;
   }, {} as Record<string, number>);
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number): any => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -39,7 +39,7 @@ export const EngagementStats: React.FC<EngagementStatsProps> = ({ engagements })
     }).format(amount);
   };
 
-  const getPhaseLabel = (phase: string) => {
+  const getPhaseLabel = (phase: string): JSX.Element => {
     const labels: Record<string, string> = {
       'planning': 'Planning',
       'discovery': 'Discovery',
@@ -51,7 +51,7 @@ export const EngagementStats: React.FC<EngagementStatsProps> = ({ engagements })
     return labels[phase] || phase;
   };
 
-  const getProviderLabel = (provider: string) => {
+  const getProviderLabel = (provider: string): JSX.Element => {
     const labels: Record<string, string> = {
       'aws': 'AWS',
       'azure': 'Azure',

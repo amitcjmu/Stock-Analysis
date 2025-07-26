@@ -48,7 +48,7 @@ export interface DataRetentionData {
   retentionSteps: RetentionStep[];
 }
 
-export const useDataRetention = () => {
+export const useDataRetention = (): JSX.Element => {
   const { getAuthHeaders } = useAuth();
 
   return useQuery<DataRetentionData>({
@@ -61,7 +61,7 @@ export const useDataRetention = () => {
   });
 };
 
-export const useCreateArchiveJob = () => {
+export const useCreateArchiveJob = (): JSX.Element => {
   const { getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
 
@@ -81,7 +81,7 @@ export const useCreateArchiveJob = () => {
   });
 };
 
-export const useUpdateRetentionPolicy = () => {
+export const useUpdateRetentionPolicy = (): JSX.Element => {
   const { getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
 

@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-const Timeline = () => {
+const Timeline = (): JSX.Element => {
   const { data, isLoading, isError, error } = useTimeline();
 
   if (isLoading) {
@@ -44,7 +44,7 @@ const Timeline = () => {
     );
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): any => {
     const colors = {
       'Not Started': 'bg-gray-100 text-gray-800',
       'In Progress': 'bg-blue-100 text-blue-800',
@@ -57,7 +57,7 @@ const Timeline = () => {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const getImpactColor = (impact: string) => {
+  const getImpactColor = (impact: string): any => {
     const colors = {
       'High': 'bg-red-100 text-red-800',
       'Medium': 'bg-yellow-100 text-yellow-800',

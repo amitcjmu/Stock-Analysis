@@ -51,7 +51,7 @@ interface ObservabilityContextValue {
 
 const ObservabilityContext = createContext<ObservabilityContextValue | undefined>(undefined);
 
-export const useObservability = () => {
+export const useObservability = (): any => {
   const context = useContext(ObservabilityContext);
   if (!context) {
     throw new Error('useObservability must be used within ObservabilityProvider');
@@ -157,7 +157,7 @@ export const ObservabilityProvider: React.FC<ObservabilityProviderProps> = ({
 };
 
 // Convenience hooks for specific parts of the context
-export const useAgentSelection = () => {
+export const useAgentSelection = (): any => {
   const context = useObservability();
   return {
     selectedAgents: context.selectedAgents,
@@ -168,7 +168,7 @@ export const useAgentSelection = () => {
   };
 };
 
-export const useViewPreferences = () => {
+export const useViewPreferences = (): any => {
   const context = useObservability();
   return {
     viewMode: context.viewMode,

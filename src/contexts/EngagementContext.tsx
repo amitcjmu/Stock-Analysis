@@ -52,7 +52,7 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return;
     }
 
-    const initializeEngagement = async () => {
+    const initializeEngagement = async (): Promise<any> => {
       try {
         const engagementId = sessionStorage.getItem(ENGAGEMENT_KEY);
         if (!engagementId || !currentClient) {
@@ -113,7 +113,7 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
-  const clearEngagement = () => {
+  const clearEngagement = (): any => {
     sessionStorage.removeItem(ENGAGEMENT_KEY);
     setCurrentEngagement(null);
   };
@@ -122,7 +122,7 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return sessionStorage.getItem(ENGAGEMENT_KEY);
   };
 
-  const setDemoEngagement = (engagement: Engagement) => {
+  const setDemoEngagement = (engagement: Engagement): any => {
     setCurrentEngagement(engagement);
     setIsLoading(false);
     setError(null);
@@ -141,7 +141,7 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   return <EngagementContext.Provider value={value}>{children}</EngagementContext.Provider>;
 };
 
-export const useEngagement = () => {
+export const useEngagement = (): any => {
   const context = useContext(EngagementContext);
   if (context === undefined) {
     throw new Error('useEngagement must be used within an EngagementProvider');

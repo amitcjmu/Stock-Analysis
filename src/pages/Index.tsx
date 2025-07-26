@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import { Building2, BarChart3, Eye, Search, FileText, Wrench, Archive, Sparkles } from 'lucide-react';
 
-const Index = () => {
+const Index = (): JSX.Element => {
   const phases = [
     {
       title: 'Discovery',

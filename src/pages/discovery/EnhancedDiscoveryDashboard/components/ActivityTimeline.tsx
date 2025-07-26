@@ -12,7 +12,7 @@ interface ActivityTimelineProps {
 export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
   alerts
 }) => {
-  const getAlertIcon = (type: string) => {
+  const getAlertIcon = (type: string): JSX.Element => {
     switch (type) {
       case 'success':
         return <CheckCircle2 className="h-4 w-4 text-green-600" />;
@@ -26,7 +26,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
     }
   };
 
-  const getAlertColor = (type: string) => {
+  const getAlertColor = (type: string): any => {
     switch (type) {
       case 'success':
         return 'bg-green-100 text-green-800 border-green-200';
@@ -40,7 +40,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
     }
   };
 
-  const formatTimestamp = (timestamp: string) => {
+  const formatTimestamp = (timestamp: string): any => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();

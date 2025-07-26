@@ -43,7 +43,7 @@ export const JobQueue: React.FC<JobQueueProps> = ({
   onDeleteJob,
   onViewResults
 }) => {
-  const getActionButtons = (job: BulkAnalysisJob) => {
+  const getActionButtons = (job: BulkAnalysisJob): JSX.Element => {
     const buttons = [];
 
     switch (job.status) {

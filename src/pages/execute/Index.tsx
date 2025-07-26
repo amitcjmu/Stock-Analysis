@@ -5,7 +5,7 @@ import { Server, Cloud, Activity, Calendar } from 'lucide-react'
 import { Wrench, Sparkles, RefreshCw, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom';
 
-const ExecuteIndex = () => {
+const ExecuteIndex = (): JSX.Element => {
   const executionMetrics = [
     { label: 'Total Executions', value: '32', color: 'text-blue-600' },
     { label: 'Rehost Projects', value: '18', color: 'text-green-600' },

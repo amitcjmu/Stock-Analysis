@@ -22,7 +22,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
   onEditClient,
   onDeleteClient
 }) => {
-  const getStatusBadge = (isActive: boolean) => {
+  const getStatusBadge = (isActive: boolean): JSX.Element => {
     return isActive ? (
       <Badge className="bg-green-100 text-green-800">Active</Badge>
     ) : (
@@ -30,7 +30,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
     );
   };
 
-  const getTierBadge = (tier: string) => {
+  const getTierBadge = (tier: string): JSX.Element => {
     const tierStyles: Record<string, string> = {
       'Enterprise': 'bg-purple-100 text-purple-800',
       'Professional': 'bg-blue-100 text-blue-800',

@@ -21,12 +21,12 @@ const BulkActions: React.FC<BulkActionsProps> = ({
     return null;
   }
 
-  const handleBulkApprove = () => {
+  const handleBulkApprove = (): void => {
     const mappingIds = buckets.autoMapped.map(m => m.id);
     onBulkApprove(mappingIds);
   };
 
-  const handleBulkReject = () => {
+  const handleBulkReject = (): void => {
     const mappingIds = buckets.autoMapped.map(m => m.id);
     onBulkReject(mappingIds);
   };
@@ -35,7 +35,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
                     buckets.autoMapped.some(m => processingMappings.has(m.id)) ||
                     (Date.now() - lastBulkOperationTime < 5000);
 
-  const getButtonText = (action: 'approve' | 'reject') => {
+  const getButtonText = (action: 'approve' | 'reject'): JSX.Element => {
     if (!client?.id || !engagement?.id) return 'Login Required';
     if (buckets.autoMapped.some(m => processingMappings.has(m.id))) return 'Processing...';
     if (Date.now() - lastBulkOperationTime < 5000) return 'Cooldown...';

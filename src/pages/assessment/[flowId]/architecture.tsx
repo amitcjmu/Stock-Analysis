@@ -31,7 +31,7 @@ const ArchitecturePage: React.FC = () => {
     setOverrides(state.applicationOverrides);
   }, [state.engagementStandards, state.applicationOverrides]);
 
-  const handleSaveDraft = async () => {
+  const handleSaveDraft = async (): void => {
     setIsDraft(true);
     try {
       await updateArchitectureStandards(standards, overrides);
@@ -42,7 +42,7 @@ const ArchitecturePage: React.FC = () => {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): void => {
     setIsSubmitting(true);
     try {
       await updateArchitectureStandards(standards, overrides);
@@ -54,7 +54,7 @@ const ArchitecturePage: React.FC = () => {
     }
   };
 
-  const hasChanges = () => {
+  const hasChanges = (): any => {
     return JSON.stringify(standards) !== JSON.stringify(state.engagementStandards) ||
            JSON.stringify(overrides) !== JSON.stringify(state.applicationOverrides);
   };

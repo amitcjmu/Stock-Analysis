@@ -188,7 +188,7 @@ const DataIntegration: React.FC = () => {
     }
   ];
 
-  const handleConflictResolve = (conflictId: string, resolution: ConflictResolution) => {
+  const handleConflictResolve = (conflictId: string, resolution: ConflictResolution): void => {
     setResolvedConflicts(prev => [...prev, conflictId]);
 
     // Update conflicts list
@@ -211,7 +211,7 @@ const DataIntegration: React.FC = () => {
     }
   };
 
-  const handleRefreshData = async () => {
+  const handleRefreshData = async (): void => {
     setIsLoading(true);
     try {
       // Simulate API call to refresh data
@@ -232,7 +232,7 @@ const DataIntegration: React.FC = () => {
     }
   };
 
-  const handleProceedToDiscovery = async () => {
+  const handleProceedToDiscovery = async (): void => {
     if (!validation?.isValid) {
       toast({
         title: 'Validation Required',
@@ -264,7 +264,7 @@ const DataIntegration: React.FC = () => {
     }
   };
 
-  const getConflictStatusCounts = () => {
+  const getConflictStatusCounts = (): any => {
     const total = conflicts.length + resolvedConflicts.length;
     const resolved = resolvedConflicts.length;
     const pending = conflicts.length;

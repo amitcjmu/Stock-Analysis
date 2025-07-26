@@ -56,7 +56,7 @@ export function PollingControls({
 
   // Monitor polling status
   useEffect(() => {
-    const checkPollingStatus = () => {
+    const checkPollingStatus = (): any => {
       // Get query cache and analyze error patterns
       const queryCache = queryClient.getQueryCache();
       const queries = queryCache.getAll();
@@ -104,7 +104,7 @@ export function PollingControls({
     return () => {};
   }, [queryClient]);
 
-  const handleEmergencyStop = async () => {
+  const handleEmergencyStop = async (): void => {
     try {
       setIsEmergencyActive(true);
 
@@ -134,7 +134,7 @@ export function PollingControls({
     }
   };
 
-  const handleRefreshAll = async () => {
+  const handleRefreshAll = async (): void => {
     try {
       // Invalidate all queries to trigger fresh fetches
       await queryClient.invalidateQueries();
@@ -155,7 +155,7 @@ export function PollingControls({
     }
   };
 
-  const handleResetErrorState = async () => {
+  const handleResetErrorState = async (): void => {
     try {
       // Clear error states in React Query
       queryClient.resetQueries({ type: 'all' });
@@ -177,7 +177,7 @@ export function PollingControls({
     }
   };
 
-  const handleStopFlowPolling = async () => {
+  const handleStopFlowPolling = async (): void => {
     if (!flowId) return;
 
     try {
@@ -213,14 +213,14 @@ export function PollingControls({
     }
   };
 
-  const getStatusColor = () => {
+  const getStatusColor = (): any => {
     if (isEmergencyActive) return 'destructive';
     if (pollingStatus.consecutiveErrors > 3) return 'destructive';
     if (pollingStatus.errorRate > 25) return 'secondary';
     return 'default';
   };
 
-  const getStatusIcon = () => {
+  const getStatusIcon = (): JSX.Element => {
     if (isEmergencyActive) return <StopCircle className="h-4 w-4" />;
     if (pollingStatus.consecutiveErrors > 3) return <XCircle className="h-4 w-4" />;
     if (pollingStatus.errorRate > 25) return <AlertTriangle className="h-4 w-4" />;
@@ -363,7 +363,7 @@ export function PollingStatusIndicator({ flowId }: { flowId?: string }) {
     checkErrors();
   }, [checkErrors]);
 
-  const handleQuickStop = async () => {
+  const handleQuickStop = async (): void => {
     try {
       // Stop all frontend polling
       if (typeof window !== 'undefined' && window.stopAllPolling) {

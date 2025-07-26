@@ -69,7 +69,7 @@ const stepIcons = {
   validation: <CheckSquare className="h-4 w-4" />
 };
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: string): any => {
   switch (status) {
     case 'completed': return 'text-green-600 bg-green-50 border-green-200';
     case 'in_progress': return 'text-blue-600 bg-blue-50 border-blue-200';
@@ -81,7 +81,7 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const getStatusIcon = (status: string) => {
+const getStatusIcon = (status: string): JSX.Element => {
   switch (status) {
     case 'completed': return <CheckCircle className="h-4 w-4 text-green-600" />;
     case 'in_progress': return <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />;
@@ -127,7 +127,7 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
 
   useEffect(() => {
     if (progress.estimatedCompletion && progress.status === 'in_progress') {
-      const updateTimeRemaining = () => {
+      const updateTimeRemaining = (): any => {
         setTimeRemaining(formatTimeRemaining(progress.estimatedCompletion));
       };
 
@@ -138,7 +138,7 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
     }
   }, [progress.estimatedCompletion, progress.status]);
 
-  const toggleStepDetails = (stepId: string) => {
+  const toggleStepDetails = (stepId: string): any => {
     const newExpanded = new Set(expandedSteps);
     if (newExpanded.has(stepId)) {
       newExpanded.delete(stepId);
@@ -153,7 +153,7 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
   const currentStepIndex = progress.steps.findIndex(step => step.status === 'in_progress');
   const currentStep = currentStepIndex >= 0 ? progress.steps[currentStepIndex] : null;
 
-  const renderStepItem = (step: AnalysisStep, index: number) => {
+  const renderStepItem = (step: AnalysisStep, index: number): JSX.Element => {
     const isExpanded = expandedSteps.has(step.id);
     const stepIcon = stepIcons[step.id as keyof typeof stepIcons] || <Clock className="h-4 w-4" />;
 

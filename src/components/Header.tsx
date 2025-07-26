@@ -33,7 +33,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ user, currentClient, availableClients, onClientSwitch }) => {
   const { logout } = useAuth();
 
-  const handleLogout = () => {
+  const handleLogout = (): void => {
     logout();
   };
 

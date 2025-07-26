@@ -22,7 +22,7 @@ const InitializeAssessmentFlow: React.FC = () => {
     asset => asset.type === 'Application' && asset.ready_for_assessment
   ) || [];
 
-  const handleSelectApp = (appId: string) => {
+  const handleSelectApp = (appId: string): void => {
     setSelectedApps(prev =>
       prev.includes(appId)
         ? prev.filter(id => id !== appId)
@@ -30,7 +30,7 @@ const InitializeAssessmentFlow: React.FC = () => {
     );
   };
 
-  const handleSelectAll = () => {
+  const handleSelectAll = (): void => {
     if (selectedApps.length === readyApplications.length) {
       setSelectedApps([]);
     } else {
@@ -38,7 +38,7 @@ const InitializeAssessmentFlow: React.FC = () => {
     }
   };
 
-  const handleInitialize = async () => {
+  const handleInitialize = async (): void => {
     if (selectedApps.length === 0) return;
 
     setInitializing(true);

@@ -19,7 +19,7 @@ import {
   Play
 } from 'lucide-react';
 
-const DependencyAnalysisPage = () => {
+const DependencyAnalysisPage = (): JSX.Element => {
   // Use the new auto-detection hook for consistent flow detection
   const {
     urlFlowId,
@@ -73,7 +73,7 @@ const DependencyAnalysisPage = () => {
   const isDependencyAnalysisComplete = completedPhases.includes('dependency_analysis') || completedPhases.includes('dependencies_completed');
 
   // Handle dependency analysis execution
-  const handleExecuteDependencyAnalysis = async () => {
+  const handleExecuteDependencyAnalysis = async (): void => {
     try {
       await analyzeDependencies();
     } catch (error) {
@@ -82,11 +82,11 @@ const DependencyAnalysisPage = () => {
   };
 
   // Navigation handlers
-  const handleBackToInventory = () => {
+  const handleBackToInventory = (): void => {
     window.history.back();
   };
 
-  const handleContinueToTechDebt = () => {
+  const handleContinueToTechDebt = (): void => {
     window.location.href = '/discovery/tech-debt';
   };
 

@@ -55,7 +55,7 @@ export const TechDebtAnalysisGrid: React.FC<TechDebtAnalysisGridProps> = ({
     tech_debt_score: 0
   });
 
-  const addTechDebtItem = () => {
+  const addTechDebtItem = (): void => {
     if (!newItem.category || !newItem.description) return;
 
     const item: TechDebtItem = {
@@ -78,22 +78,22 @@ export const TechDebtAnalysisGrid: React.FC<TechDebtAnalysisGridProps> = ({
     });
   };
 
-  const updateTechDebtItem = (oldCategory: string, updatedItem: TechDebtItem) => {
+  const updateTechDebtItem = (oldCategory: string, updatedItem: TechDebtItem): any => {
     const updatedItems = techDebtItems.map(item =>
       item.category === oldCategory ? updatedItem : item
     );
     onTechDebtChange(updatedItems);
   };
 
-  const removeTechDebtItem = (category: string) => {
+  const removeTechDebtItem = (category: string): any => {
     onTechDebtChange(techDebtItems.filter(item => item.category !== category));
   };
 
-  const getSeverityInfo = (severity: string) => {
+  const getSeverityInfo = (severity: string): any => {
     return SEVERITY_LEVELS.find(sl => sl.value === severity) || SEVERITY_LEVELS[2];
   };
 
-  const getTechDebtScoreColor = (score: number) => {
+  const getTechDebtScoreColor = (score: number): any => {
     if (score >= 80) return 'text-red-600';
     if (score >= 60) return 'text-orange-600';
     if (score >= 40) return 'text-yellow-600';
@@ -268,11 +268,11 @@ const TechDebtCard: React.FC<TechDebtCardProps> = ({
 }) => {
   const [editData, setEditData] = useState<TechDebtItem>(item);
 
-  const getSeverityInfo = (severity: string) => {
+  const getSeverityInfo = (severity: string): any => {
     return SEVERITY_LEVELS.find(sl => sl.value === severity) || SEVERITY_LEVELS[2];
   };
 
-  const getTechDebtScoreColor = (score: number) => {
+  const getTechDebtScoreColor = (score: number): any => {
     if (score >= 80) return 'text-red-600';
     if (score >= 60) return 'text-orange-600';
     if (score >= 40) return 'text-yellow-600';

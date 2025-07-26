@@ -33,7 +33,7 @@ export interface FlowListSidebarProps {
 /**
  * Get status badge for flow status
  */
-const getStatusBadge = (status: CollectionFlow['status']) => {
+const getStatusBadge = (status: CollectionFlow['status']): JSX.Element => {
   switch (status) {
     case 'running':
       return <Badge variant="default">Running</Badge>;

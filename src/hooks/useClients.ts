@@ -12,7 +12,7 @@ export interface Client {
   metadata: Record<string, unknown>;
 }
 
-export const useClients = () => {
+export const useClients = (): JSX.Element => {
   const { user, isDemoMode } = useAuth();
 
   return useQuery<Client[]>({

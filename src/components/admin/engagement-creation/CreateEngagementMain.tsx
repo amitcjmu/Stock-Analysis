@@ -141,7 +141,7 @@ export const CreateEngagementMain: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Simple form handler - no useCallback to prevent re-renders
-  const handleFormChange = (field: keyof CreateEngagementData, value: string | number | boolean | string[]) => {
+  const handleFormChange = (field: keyof CreateEngagementData, value: string | number | boolean | string[]): void => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -151,7 +151,7 @@ export const CreateEngagementMain: React.FC = () => {
     }
   };
 
-  const validateForm = () => {
+  const validateForm = (): JSX.Element => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.engagement_name) newErrors.engagement_name = 'Engagement name is required';
@@ -170,7 +170,7 @@ export const CreateEngagementMain: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (): JSX.Element => {
     if (!validateForm()) {
       toast({
         title: "Validation Error",
@@ -217,7 +217,7 @@ export const CreateEngagementMain: React.FC = () => {
     createEngagementMutation.mutate(submissionData);
   };
 
-  const handleCancel = () => {
+  const handleCancel = (): void => {
     navigate('/admin/engagements');
   };
 

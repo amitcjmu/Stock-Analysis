@@ -106,7 +106,7 @@ import AdminLayout from './components/admin/AdminLayout';
 import AdminRoute from './components/admin/AdminRoute';
 
 // Component to handle authenticated routes
-const AuthenticatedApp = () => {
+const AuthenticatedApp = (): JSX.Element => {
   const { isLoading, isAuthenticated } = useAuth();
   const [appInitialized, setAppInitialized] = useState(false);
 

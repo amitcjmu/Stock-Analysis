@@ -28,7 +28,7 @@ export interface WavePlanningData {
   summary: WaveSummary;
 }
 
-export const useWavePlanning = () => {
+export const useWavePlanning = (): JSX.Element => {
   const { isAuthenticated, client, engagement } = useAuth();
 
   return useQuery<WavePlanningData>({
@@ -58,7 +58,7 @@ export const useWavePlanning = () => {
   });
 };
 
-export const useUpdateWavePlanning = () => {
+export const useUpdateWavePlanning = (): any => {
   const queryClient = useQueryClient();
 
   return useMutation({

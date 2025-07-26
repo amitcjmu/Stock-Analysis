@@ -194,7 +194,7 @@ const Phase2CrewMonitor: React.FC = () => {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string): JSX.Element => {
     switch (status) {
       case 'healthy':
       case 'ready':

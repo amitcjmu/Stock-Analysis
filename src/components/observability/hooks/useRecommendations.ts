@@ -15,7 +15,7 @@ export interface UseRecommendationsOptions {
   period?: number;
 }
 
-export const useRecommendations = (options: UseRecommendationsOptions) => {
+export const useRecommendations = (options: UseRecommendationsOptions): JSX.Element => {
   const { agentName, showAllAgents = false, maxRecommendations = 10, period = 7 } = options;
 
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);

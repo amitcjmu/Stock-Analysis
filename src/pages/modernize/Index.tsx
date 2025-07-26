@@ -5,7 +5,7 @@ import { Code, Layers, Zap, Activity } from 'lucide-react'
 import { Sparkles, TrendingUp, RefreshCw, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom';
 
-const ModernizeIndex = () => {
+const ModernizeIndex = (): JSX.Element => {
   const modernizationMetrics = [
     { label: 'Applications to Modernize', value: '45', color: 'text-blue-600' },
     { label: 'Refactor Projects', value: '18', color: 'text-green-600' },

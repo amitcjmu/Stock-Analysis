@@ -79,7 +79,7 @@ const AssessmentReadiness: React.FC = () => {
   });
 
   // Handle signoff generation
-  const handleGenerateSignoff = () => {
+  const handleGenerateSignoff = (): void => {
     if (!readinessAssessment) return;
     generateSignoff({
       assessmentId: readinessAssessment.id,
@@ -89,7 +89,7 @@ const AssessmentReadiness: React.FC = () => {
   };
 
   // Handle submission for approval
-  const handleSubmitForApproval = () => {
+  const handleSubmitForApproval = (): void => {
     if (!readinessAssessment?.signoffPackage) return;
 
     submitApproval({

@@ -5,8 +5,8 @@
 import type { ErrorInfo } from 'react';
 import { toast } from 'sonner';
 
-export const useErrorHandler = () => {
-  const handleError = (error: Error | ErrorInfo, context?: string) => {
+export const useErrorHandler = (): any => {
+  const handleError = (error: Error | ErrorInfo, context?: string): void => {
     const errorInfo: ErrorInfo = error instanceof Error ? {
       message: error.message,
       timestamp: new Date(),

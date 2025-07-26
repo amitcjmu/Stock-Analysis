@@ -84,7 +84,7 @@ const ClientManagementMain: React.FC = () => {
   }, []);
 
   // Client operations
-  const handleCreateClient = async () => {
+  const handleCreateClient = async (): void => {
     const newClient = await createClient(formData);
     if (newClient) {
       setClients(prev => [newClient, ...prev]);
@@ -93,7 +93,7 @@ const ClientManagementMain: React.FC = () => {
     }
   };
 
-  const handleUpdateClient = async () => {
+  const handleUpdateClient = async (): void => {
     if (!editingClient) return;
 
     const updatedClient = await updateClient(editingClient, formData);
@@ -106,14 +106,14 @@ const ClientManagementMain: React.FC = () => {
     }
   };
 
-  const handleDeleteClient = async (clientId: string, clientName: string) => {
+  const handleDeleteClient = async (clientId: string, clientName: string): void => {
     const success = await deleteClient(clientId, clientName);
     if (success) {
       setClients(prev => prev.filter(client => client.id !== clientId));
     }
   };
 
-  const handleEditClient = (client: Client) => {
+  const handleEditClient = (client: Client): void => {
     setEditingClient(client);
     setFormData({
       account_name: client.account_name,
@@ -139,7 +139,7 @@ const ClientManagementMain: React.FC = () => {
     });
   };
 
-  const exportClients = () => {
+  const exportClients = (): any => {
     const dataStr = JSON.stringify(clients, null, 2);
     const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
     const exportFileDefaultName = `clients_export_${new Date().toISOString().split('T')[0]}.json`;

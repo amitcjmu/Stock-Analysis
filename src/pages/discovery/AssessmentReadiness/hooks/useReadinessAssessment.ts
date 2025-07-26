@@ -7,7 +7,7 @@ import type { ReadinessAssessment,  } from '../types'
 export const useReadinessAssessment = ({
   clientAccountId,
   engagementId,
-}: UseReadinessAssessmentOptions) => {
+}: UseReadinessAssessmentOptions): JSX.Element => {
   return useQuery<ReadinessAssessment, Error>({
     queryKey: ['readinessAssessment', { clientAccountId, engagementId }],
     queryFn: async () => {
@@ -21,7 +21,7 @@ export const useReadinessAssessment = ({
   });
 };
 
-export const useGenerateSignoffPackage = () => {
+export const useGenerateSignoffPackage = (): JSX.Element => {
   const queryClient = useQueryClient();
 
   return useMutation<ReadinessAssessment, Error, GenerateSignoffPackageParams>({
@@ -44,7 +44,7 @@ export const useGenerateSignoffPackage = () => {
   });
 };
 
-export const useSubmitForApproval = () => {
+export const useSubmitForApproval = (): JSX.Element => {
   const queryClient = useQueryClient();
 
   return useMutation<ReadinessAssessment, Error, SubmitForApprovalParams>({

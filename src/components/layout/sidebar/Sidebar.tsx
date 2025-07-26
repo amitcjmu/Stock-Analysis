@@ -204,7 +204,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     },
   ];
 
-  const handleToggleExpanded = (sectionName: string) => {
+  const handleToggleExpanded = (sectionName: string): void => {
     const key = sectionName.toLowerCase() as keyof ExpandedStates;
     setExpandedStates(prev => ({
       ...prev,
@@ -212,14 +212,14 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     }));
   };
 
-  const handleVersionClick = () => {
+  const handleVersionClick = (): void => {
     console.log('🔍 Version clicked - navigating to feedback-view');
     console.log('Current location:', location.pathname);
     console.log('Version info:', versionInfo);
     navigate('/feedback-view');
   };
 
-  const handleAuthClick = () => {
+  const handleAuthClick = (): void => {
     if (isAuthenticated) {
       // User is logged in, show logout confirmation or logout directly
       logout();

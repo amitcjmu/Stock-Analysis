@@ -201,7 +201,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
       return;
     }
 
-    const validateForm = () => {
+    const validateForm = (): JSX.Element => {
       const fieldResults: Record<string, FieldValidationResult> = {};
       let totalValid = 0;
       let totalFields = 0;

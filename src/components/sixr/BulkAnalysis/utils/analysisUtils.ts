@@ -128,7 +128,7 @@ export const filterJobs = (
     priority?: string;
     search?: string;
   }
-) => {
+): boolean => {
   return jobs.filter(job => {
     if (filters.status && filters.status !== 'all' && job.status !== filters.status) {
       return false;

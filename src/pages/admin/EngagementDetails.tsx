@@ -93,7 +93,7 @@ const EngagementDetails: React.FC = () => {
   // Use engagement data or fallback to demo data
   const displayEngagement = engagement || (isError ? demoEngagement : null);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): any => {
     if (!dateString) return 'Not set';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return 'Invalid Date';
@@ -104,7 +104,7 @@ const EngagementDetails: React.FC = () => {
     });
   };
 
-  const calculateDurationMonths = (startDate: string, endDate: string) => {
+  const calculateDurationMonths = (startDate: string, endDate: string): any => {
     if (!startDate || !endDate) return 'Not calculated';
 
     const start = new Date(startDate);
@@ -120,7 +120,7 @@ const EngagementDetails: React.FC = () => {
     return diffMonths > 0 ? `${diffMonths} months` : 'Invalid duration';
   };
 
-  const formatCurrency = (amount: number, currency: string) => {
+  const formatCurrency = (amount: number, currency: string): any => {
     // Handle NaN and invalid amounts
     if (isNaN(amount) || amount === null || amount === undefined) {
       return 'N/A';
@@ -148,7 +148,7 @@ const EngagementDetails: React.FC = () => {
     }
   };
 
-  const getPhaseColor = (phase: string) => {
+  const getPhaseColor = (phase: string): any => {
     if (!phase) return 'bg-gray-100 text-gray-800';
 
     switch (phase) {
@@ -161,7 +161,7 @@ const EngagementDetails: React.FC = () => {
     }
   };
 
-  const getProviderLabel = (provider: string) => {
+  const getProviderLabel = (provider: string): JSX.Element => {
     const providerMap: Record<string, string> = {
       'aws': 'Amazon Web Services (AWS)',
       'azure': 'Microsoft Azure',
@@ -172,7 +172,7 @@ const EngagementDetails: React.FC = () => {
     return providerMap[provider] || provider;
   };
 
-  const getScopeLabel = (scope: string) => {
+  const getScopeLabel = (scope: string): JSX.Element => {
     const scopeMap: Record<string, string> = {
       'single_application': 'Single Application',
       'application_group': 'Application Group',

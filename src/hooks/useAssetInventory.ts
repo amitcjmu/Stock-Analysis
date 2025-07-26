@@ -166,7 +166,7 @@ const defaultAssetInventoryData: Partial<AssetInventoryData> = {
   }
 };
 
-export const useAssetInventoryAnalysis = () => {
+export const useAssetInventoryAnalysis = (): JSX.Element => {
   const { getContextHeaders } = useAuth();
 
   return useQuery<AssetInventoryData>({
@@ -184,7 +184,7 @@ export const useAssetInventoryAnalysis = () => {
   });
 };
 
-export const useRefreshAssetInventory = () => {
+export const useRefreshAssetInventory = (): any => {
   const queryClient = useQueryClient();
   const { getContextHeaders } = useAuth();
 

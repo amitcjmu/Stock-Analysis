@@ -15,7 +15,7 @@ const TargetFieldSelector: React.FC<TargetFieldSelectorProps> = ({
   onCategoryChange,
   onSearchTermChange
 }) => {
-  const getCategories = () => {
+  const getCategories = (): any => {
     if (!Array.isArray(availableFields) || availableFields.length === 0) {
       return ['all'];
     }
@@ -23,7 +23,7 @@ const TargetFieldSelector: React.FC<TargetFieldSelectorProps> = ({
     return ['all', ...categories];
   };
 
-  const getFilteredFields = () => {
+  const getFilteredFields = (): any[] => {
     if (!Array.isArray(availableFields) || availableFields.length === 0) {
       return [];
     }
@@ -51,11 +51,11 @@ const TargetFieldSelector: React.FC<TargetFieldSelectorProps> = ({
     });
   };
 
-  const getCategoryColor = (category: string) => {
+  const getCategoryColor = (category: string): any => {
     return CATEGORY_COLORS[category] || 'bg-gray-100 text-gray-700';
   };
 
-  const getButtonStyle = () => {
+  const getButtonStyle = (): any => {
     if (mapping.status === 'pending' || mapping.status === 'suggested' || !mapping.status) {
       return 'bg-white border-gray-300 hover:border-blue-500 cursor-pointer';
     } else if (mapping.status === 'approved') {
@@ -65,7 +65,7 @@ const TargetFieldSelector: React.FC<TargetFieldSelectorProps> = ({
     }
   };
 
-  const getTextColor = () => {
+  const getTextColor = (): any => {
     if (mapping.status === 'pending') return 'text-blue-600';
     if (mapping.status === 'approved') return 'text-green-700';
     return 'text-red-700';

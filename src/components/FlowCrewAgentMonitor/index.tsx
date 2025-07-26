@@ -44,7 +44,7 @@ const FlowCrewAgentMonitorContainer: React.FC = () => {
     startFlow
   } = useAgentMonitor();
 
-  const handleAgentSelect = (agent: Agent) => {
+  const handleAgentSelect = (agent: Agent): void => {
     setSelectedAgent(agent);
     setActiveTab('detail');
   };

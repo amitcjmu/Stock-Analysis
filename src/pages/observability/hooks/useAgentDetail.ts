@@ -26,7 +26,7 @@ export const useAgentDetail = (agentName: string | undefined, taskHistoryPage: n
 
   const { getAgentRole, getAgentSpecialization, getAgentCapabilities, getAgentEndpoints } = getAgentMetadataHelpers();
 
-  const loadAgentData = async () => {
+  const loadAgentData = async (): Promise<any> => {
     if (!agentName) return;
 
     try {
@@ -118,7 +118,7 @@ export const useAgentDetail = (agentName: string | undefined, taskHistoryPage: n
     }
   };
 
-  const handleRefresh = async () => {
+  const handleRefresh = async (): void => {
     setRefreshing(true);
     await loadAgentData();
   };

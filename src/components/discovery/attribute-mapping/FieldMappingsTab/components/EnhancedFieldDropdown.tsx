@@ -33,7 +33,7 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent): void => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
@@ -64,7 +64,7 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
     }
   });
 
-  const handleFieldSelect = (fieldName: string) => {
+  const handleFieldSelect = (fieldName: string): void => {
     try {
       onChange(fieldName);
       setIsOpen(false);

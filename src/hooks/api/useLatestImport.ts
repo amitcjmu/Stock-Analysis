@@ -7,7 +7,7 @@ import type { ApiError } from '../../types/shared/api-types';
  * Unified hook for fetching latest import data
  * Provides centralized caching and prevents duplicate API calls
  */
-export const useLatestImport = (enabled = true) => {
+export const useLatestImport = (enabled = true): JSX.Element => {
   const { user, getAuthHeaders } = useAuth();
 
   return useQuery({

@@ -23,7 +23,7 @@ export const RejectionDialog: React.FC<RejectionDialogProps> = ({
     'Custom field needed'
   ];
 
-  const handleConfirm = () => {
+  const handleConfirm = (): void => {
     const finalReason = selectedReason || reason || 'User rejected this mapping';
     onConfirm(finalReason);
     setReason('');

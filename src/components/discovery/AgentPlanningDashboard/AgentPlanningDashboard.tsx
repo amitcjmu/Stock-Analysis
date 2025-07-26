@@ -54,7 +54,7 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
     }
   }, [pageContext, modalOpen]);
 
-  const fetchAgentPlan = async () => {
+  const fetchAgentPlan = async (): Promise<any> => {
     try {
       setLoading(true);
       setError(null);
@@ -68,7 +68,7 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
     }
   };
 
-  const handleTaskApproval = async (taskId: string, approved: boolean) => {
+  const handleTaskApproval = async (taskId: string, approved: boolean): void => {
     try {
       await api.submitTaskApproval(taskId, approved, pageContext);
 
@@ -83,7 +83,7 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
     }
   };
 
-  const handleHumanInputSubmission = async (taskId: string, input: TaskInput) => {
+  const handleHumanInputSubmission = async (taskId: string, input: TaskInput): void => {
     try {
       await api.submitHumanInput(taskId, input, pageContext);
 
@@ -98,7 +98,7 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
     }
   };
 
-  const handlePlanSuggestionSubmit = async () => {
+  const handlePlanSuggestionSubmit = async (): void => {
     if (!planSuggestion.trim() || !agentPlan) return;
 
     try {
@@ -115,7 +115,7 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
     }
   };
 
-  const handleCloseModal = () => {
+  const handleCloseModal = (): void => {
     setModalOpen(false);
     if (onClose) {
       onClose();
