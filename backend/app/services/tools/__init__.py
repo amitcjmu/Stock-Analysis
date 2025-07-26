@@ -10,22 +10,11 @@ from .field_mapping_tool import field_mapping_tool
 from .registry import ToolMetadata, tool_registry
 
 # Auto-discover tools on import
+# Note: Tools are auto-discovered and registered via registry
+# Individual tool imports removed to avoid unused import warnings
 try:
-    from .field_matcher_tool import FieldMatcherTool
-
-    # Gap Analysis Tools
-    from .gap_analysis_tools import (
-        AttributeMapperTool,
-        CollectionPlannerTool,
-        CompletenessAnalyzerTool,
-        EffortEstimatorTool,
-        GapIdentifierTool,
-        ImpactCalculatorTool,
-        PriorityRankerTool,
-        QualityScorerTool,
-    )
-    from .pii_scanner_tool import PIIScannerTool
-    from .schema_analyzer_tool import SchemaAnalyzerTool
+    # Tools will be discovered automatically via registry
+    pass
 except ImportError:
     pass  # Tools will be discovered automatically
 
