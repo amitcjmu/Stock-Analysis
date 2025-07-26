@@ -43,7 +43,7 @@ export function PollingControls({
   onEmergencyStop,
   onRefresh,
   showDetailedStatus = false
-}: PollingControlsProps) {
+}: PollingControlsProps): JSX.Element {
   const queryClient = useQueryClient();
   const [pollingStatus, setPollingStatus] = useState<PollingStatus>({
     totalActivePollers: 0,

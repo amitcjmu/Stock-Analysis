@@ -19,7 +19,13 @@ export const useAdminData = <T>(
   endpoint: string,
   demoData: T,
   options: UseAdminDataOptions = {}
-) => {
+): {
+  data: T;
+  loading: boolean;
+  error: string | null;
+  isUsingDemoData: boolean;
+  refetch: () => Promise<void>;
+} => {
   const { isAuthenticated, user, getAuthHeaders } = useAuth();
   const { showDemoDataWarningToast } = useAdminToasts();
   const [data, setData] = useState<T | null>(null);

@@ -150,7 +150,7 @@ class BaseDiscoveryCrew(ABC):
             if not self.context:
                 try:
                     self.context = get_current_context()
-                except:
+                except Exception:
                     raise ValueError("No context available for multi-tenant execution")
 
             logger.info(

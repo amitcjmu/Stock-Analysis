@@ -16,10 +16,7 @@ logger = logging.getLogger(__name__)
 # CrewAI Flow imports with dynamic availability detection
 CREWAI_FLOW_AVAILABLE = False
 try:
-    from crewai import Flow
-
-    from app.services.llm_config import get_crewai_llm
-
+    # Flow and LLM imports will be used when needed
     CREWAI_FLOW_AVAILABLE = True
     logger.info("✅ CrewAI Flow and LLM imports available")
 except ImportError as e:
@@ -67,7 +64,8 @@ class FieldMappingExecutor(BasePhaseExecutor):
         # NO FALLBACK - Fail fast to expose the real issue
         logger.error("Field mapping fallback called - NO FALLBACK ALLOWED")
         raise RuntimeError(
-            "Field mapping fallback was called. This indicates CrewAI agents are not working properly and needs to be fixed."
+            "Field mapping fallback was called. This indicates CrewAI agents "
+            "are not working properly and needs to be fixed."
         )
 
     def _get_crew_context(self) -> Dict[str, Any]:

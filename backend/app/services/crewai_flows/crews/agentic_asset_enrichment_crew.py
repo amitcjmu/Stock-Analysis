@@ -20,7 +20,6 @@ from typing import Any, Dict, List, Optional
 
 try:
     from crewai import Agent, Crew, Process, Task
-    from crewai.memory import LongTermMemory
 
     CREWAI_AVAILABLE = True
 except ImportError:
@@ -94,7 +93,8 @@ class AgenticAssetEnrichmentCrew:
         # Asset Intelligence Agent - Uses patterns and memory for business value assessment
         asset_intelligence_agent = Agent(
             role="Asset Intelligence Specialist",
-            goal="Analyze assets using discovered patterns and memory to determine business value, risk, and modernization potential",
+            goal="Analyze assets using discovered patterns and memory to determine "
+            "business value, risk, and modernization potential",
             backstory="""You are an expert asset intelligence specialist who uses pattern recognition
             and institutional memory to assess business value and migration readiness. You learn from
             previous enrichment decisions and discover new patterns during analysis. Your intelligence

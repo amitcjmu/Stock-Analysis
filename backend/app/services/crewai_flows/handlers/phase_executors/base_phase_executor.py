@@ -13,8 +13,7 @@ logger = logging.getLogger(__name__)
 # CrewAI Flow imports with graceful fallback
 CREWAI_FLOW_AVAILABLE = False
 try:
-    from crewai import Flow
-
+    # Flow import will be used when needed
     CREWAI_FLOW_AVAILABLE = True
 except ImportError:
     logger.warning("CrewAI Flow not available")
@@ -257,30 +256,3 @@ class BasePhaseExecutor(ABC):
         else:
             return {"raw_result": str(crew_result), "processed": False}
 
-    # Make execute_with_crew and execute_fallback async
-    async def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute phase using CrewAI crew - now async"""
-        # Default implementation - override in subclasses
-        return {"status": "not_implemented", "phase": self.get_phase_name()}
-
-    async def execute_fallback(self) -> Dict[str, Any]:
-        """Execute phase using fallback logic - now async"""
-        phase_name = self.get_phase_name()
-
-        # 🚀 DATA VALIDATION: Check if we have data to process
-        # Check for data in order of processing: cleaned_data -> raw_data
-        data_to_process = getattr(self.state, "cleaned_data", None) or getattr(
-            self.state, "raw_data", []
-        )
-        if not data_to_process:
-            logger.error(f"❌ No data available for {phase_name} - skipping")
-            return {"status": "skipped", "reason": "no_data", "phase": phase_name}
-
-        logger.info(f"✅ Processing {len(data_to_process)} assets in {phase_name}")
-
-        # Default implementation - override in subclasses
-        return {
-            "status": "fallback_executed",
-            "phase": phase_name,
-            "assets_processed": len(data_to_process),
-        }

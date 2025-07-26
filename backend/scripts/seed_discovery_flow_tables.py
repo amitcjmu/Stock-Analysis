@@ -22,15 +22,9 @@ from datetime import datetime, timezone
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 try:
-    from sqlalchemy import select, text
-    from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy import text
 
     from app.core.database import AsyncSessionLocal
-    from app.models.asset import Asset as DiscoveryAsset
-    from app.models.client_account import ClientAccount, Engagement, User
-    from app.models.data_import.core import DataImport
-    from app.models.data_import_session import DataImportSession
-    from app.models.discovery_flow import DiscoveryFlow
 
     DEPENDENCIES_AVAILABLE = True
 except ImportError as e:

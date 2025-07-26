@@ -209,7 +209,7 @@ export const createCompleteFlowView = (activeFlows: DiscoveryFlow[], agentRegist
   return [defaultFlow];
 };
 
-export const getStatusIcon = (status: string) => {
+export const getStatusIcon = (status: string): string => {
   switch (status) {
     case 'active':
     case 'running':
@@ -229,7 +229,7 @@ export const getStatusIcon = (status: string) => {
   }
 };
 
-export const getStatusColor = (status: string) => {
+export const getStatusColor = (status: string): string => {
   switch (status) {
     case 'active':
     case 'running':
@@ -249,7 +249,7 @@ export const getStatusColor = (status: string) => {
   }
 };
 
-export const formatDuration = (timestamp: string) => {
+export const formatDuration = (timestamp: string): string => {
   const now = new Date();
   const start = new Date(timestamp);
   const diffMs = now.getTime() - start.getTime();
@@ -263,7 +263,7 @@ export const formatDuration = (timestamp: string) => {
   return `${minutes}m`;
 };
 
-export const calculateAverageMetrics = (crews: Crew[]) => {
+export const calculateAverageMetrics = (crews: Crew[]): { avgEfficiency: number; avgCollaboration: number; avgMemoryUtilization: number; totalAgents: number; activeAgents: number } => {
   if (crews.length === 0) {
     return {
       avgEfficiency: 0,

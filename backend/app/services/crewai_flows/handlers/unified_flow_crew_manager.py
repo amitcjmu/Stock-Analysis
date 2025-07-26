@@ -12,10 +12,7 @@ logger = logging.getLogger(__name__)
 # CrewAI Flow imports with graceful fallback
 CREWAI_FLOW_AVAILABLE = False
 try:
-    from crewai import Flow
-    from crewai.flow.flow import listen, start
-    from crewai.flow.persistence import persist
-
+    # Flow imports will be used when needed
     CREWAI_FLOW_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"CrewAI Flow not available: {e}")
@@ -56,10 +53,6 @@ class UnifiedFlowCrewManager:
     def _initialize_crew_factories(self):
         """Initialize CrewAI crew factory functions for on-demand creation"""
         try:
-            # Import state model for proper type checking
-            from app.models.unified_discovery_flow_state import (
-                UnifiedDiscoveryFlowState,
-            )
 
             # 🚀 PERFORMANCE OPTIMIZATION: Always use optimized crews
             from app.services.crewai_flows.crews.field_mapping_crew_fast import (

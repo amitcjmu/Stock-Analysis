@@ -49,7 +49,21 @@ const initialFilters: FilterState = {
   confidence_min: ''
 };
 
-export const useApplicationFilters = (applications: Application[]) => {
+export const useApplicationFilters = (applications: Application[]): {
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  filters: FilterState;
+  setFilters: (filters: FilterState) => void;
+  showFilters: boolean;
+  setShowFilters: (show: boolean) => void;
+  filteredApplications: Application[];
+  clearFilters: () => void;
+  filterOptions: {
+    environments: string[];
+    criticalities: string[];
+    technologies: string[];
+  };
+} => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<FilterState>(initialFilters);
   const [showFilters, setShowFilters] = useState(false);

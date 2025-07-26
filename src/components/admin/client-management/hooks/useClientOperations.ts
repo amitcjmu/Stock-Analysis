@@ -6,7 +6,12 @@ import { apiCall } from '@/config/api';
 import type { ClientFormData } from '../types'
 import type { Client } from '../types'
 
-export const useClientOperations = () => {
+export const useClientOperations = (): {
+  actionLoading: string | null;
+  createClient: (formData: ClientFormData) => Promise<Client | null>;
+  updateClient: (id: string, formData: ClientFormData) => Promise<Client | null>;
+  deleteClient: (id: string) => Promise<boolean>;
+} => {
   const { toast } = useToast();
   const dialog = useDialog();
   const [actionLoading, setActionLoading] = useState<string | null>(null);

@@ -8,7 +8,6 @@ import asyncio
 from playwright.async_api import async_playwright
 import json
 import time
-import os
 import re
 
 async def test_complete_demo_flow():

@@ -127,14 +127,19 @@ def check_crewai_installation():
 
         logger.info(f"✅ CrewAI version: {crewai.__version__}")
 
-        from crewai import Agent, Crew, Process, Task
-
-        logger.info("✅ CrewAI core classes imported successfully")
+        # Test core class imports without actually importing them
+        try:
+            __import__("crewai.Agent")
+            __import__("crewai.Crew")
+            __import__("crewai.Process")
+            __import__("crewai.Task")
+            logger.info("✅ CrewAI core classes available")
+        except ImportError:
+            logger.warning("⚠️ CrewAI core classes not available")
 
         try:
-            from crewai.knowledge.knowledge import Knowledge
-            from crewai.memory import LongTermMemory
-
+            __import__("crewai.knowledge.knowledge")
+            __import__("crewai.memory")
             logger.info("✅ CrewAI advanced features available")
         except ImportError as e:
             logger.warning(f"⚠️ CrewAI advanced features not available: {e}")
@@ -149,20 +154,18 @@ def check_crewai_installation():
 def check_discovery_flow_imports():
     """Check if discovery flow modules can be imported"""
     try:
-        from app.services.crewai_flows.discovery_flow import (
-            DiscoveryFlow,
-            create_discovery_flow,
-        )
+        # Test discovery flow availability
+        __import__("app.services.crewai_flows.discovery_flow")
 
         logger.info("✅ DiscoveryFlow imported successfully")
 
-        from app.services.crewai_flows.crews.inventory_building_crew import (
-            create_inventory_building_crew,
-        )
+        # Test inventory building crew availability
+        __import__("app.services.crewai_flows.crews.inventory_building_crew")
 
         logger.info("✅ inventory_building_crew imported successfully")
 
-        from app.services.crewai_flow_service import CrewAIFlowService
+        # Test CrewAI flow service availability
+        __import__("app.services.crewai_flow_service")
 
         logger.info("✅ CrewAIFlowService imported successfully")
 

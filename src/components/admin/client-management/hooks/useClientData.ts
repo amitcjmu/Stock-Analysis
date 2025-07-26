@@ -8,7 +8,12 @@ interface UseClientDataProps {
   filterIndustry?: string;
 }
 
-export const useClientData = ({ searchTerm = '', filterIndustry = 'all' }: UseClientDataProps = {}) => {
+export const useClientData = ({ searchTerm = '', filterIndustry = 'all' }: UseClientDataProps = {}): {
+  clients: Client[];
+  setClients: (clients: Client[]) => void;
+  loading: boolean;
+  refetch: () => Promise<void>;
+} => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
 
