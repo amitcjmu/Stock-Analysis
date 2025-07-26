@@ -13,9 +13,10 @@ from uuid import uuid4
 import pytest
 
 try:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
     from app.core.database import AsyncSessionLocal
     from app.core.flow_context import FlowContext
-    from sqlalchemy.ext.asyncio import AsyncSession
 
     SQLALCHEMY_AVAILABLE = True
 except ImportError:

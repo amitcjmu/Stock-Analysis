@@ -6,12 +6,13 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
-from app.models.client_account import Engagement
-from app.schemas.admin_schemas import AdminSuccessResponse, EngagementResponse
 from dateutil import parser as date_parser
 from fastapi import HTTPException
 from sqlalchemy import and_, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.client_account import Engagement
+from app.schemas.admin_schemas import AdminSuccessResponse, EngagementResponse
 
 logger = logging.getLogger(__name__)
 
@@ -321,8 +322,7 @@ class EngagementCRUDHandler:
         try:
             query = select(Engagement).where(
                 Engagement.id == engagement_id,
-                Engagement.is_active
-                == True,  # noqa: E712  # Only return active engagements
+                Engagement.is_active,  # noqa: E712  # Only return active engagements
             )
             result = await db.execute(query)
             engagement = result.scalar_one_or_none()
@@ -353,8 +353,7 @@ class EngagementCRUDHandler:
         try:
             query = select(Engagement).where(
                 Engagement.id == engagement_id,
-                Engagement.is_active
-                == True,  # noqa: E712  # Only allow updating active engagements
+                Engagement.is_active,  # noqa: E712  # Only allow updating active engagements
             )
             result = await db.execute(query)
             engagement = result.scalar_one_or_none()

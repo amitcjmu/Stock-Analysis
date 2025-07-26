@@ -5,6 +5,8 @@ This validates the complete database setup after all fixes have been applied.
 
 import asyncio
 
+from sqlalchemy import func, select
+
 from app.core.database import AsyncSessionLocal
 from app.models import (
     Asset,
@@ -19,7 +21,6 @@ from app.models import (
     UserAccountAssociation,
 )
 from app.models.asset import AssetStatus, AssetType, MigrationWave, SixRStrategy
-from sqlalchemy import func, select
 
 
 class Colors:
@@ -284,7 +285,7 @@ async def validate_demo_scenarios():
         # Scenario 1: Complete discovery flow exists
         result = await session.execute(
             select(DiscoveryFlow).where(
-                DiscoveryFlow.assessment_ready == True,
+                DiscoveryFlow.assessment_ready,
                 DiscoveryFlow.status == "complete",
             )
         )

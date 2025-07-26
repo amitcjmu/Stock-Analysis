@@ -23,10 +23,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import hashlib
 
+from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models import User
 from app.models.rbac import UserProfile
-from sqlalchemy import select
 
 
 def get_password_hash(password: str) -> str:

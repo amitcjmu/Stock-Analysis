@@ -16,6 +16,8 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.core.exceptions import FlowError, InvalidFlowStateError
 from app.core.logging import get_logger
@@ -38,7 +40,6 @@ from app.services.handler_registry import handler_registry
 # Import Master Flow Orchestrator for integration
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.services.validator_registry import validator_registry
-from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import Collection Phase Engine
 from .collection_phase_engine import AutomationTier, CollectionPhaseExecutionEngine

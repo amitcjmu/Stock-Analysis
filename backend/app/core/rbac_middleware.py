@@ -6,10 +6,11 @@ Middleware for validating user access to API endpoints based on RBAC system.
 import logging
 from typing import Any, Dict, Optional
 
-from app.core.context import get_current_context
-from app.core.database import AsyncSessionLocal
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
+
+from app.core.context import get_current_context
+from app.core.database import AsyncSessionLocal
 
 # Import RBAC service with fallback
 try:

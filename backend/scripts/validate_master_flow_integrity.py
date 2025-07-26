@@ -11,8 +11,9 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 
-from app.core.database import AsyncSessionLocal
 from sqlalchemy import text
+
+from app.core.database import AsyncSessionLocal
 
 
 async def validate_master_flow_integrity():

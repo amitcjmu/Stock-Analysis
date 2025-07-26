@@ -15,10 +15,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "backend"))
 
 async def main():
     try:
+        from sqlalchemy import select
+
         from app.core.database import AsyncSessionLocal
         from app.models.asset import Asset
         from app.models.data_import import RawImportRecord
-        from sqlalchemy import select
 
         print("🚀 Starting manual asset creation for Marathon Petroleum...")
 

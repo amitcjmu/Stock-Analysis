@@ -6,6 +6,7 @@ import asyncio
 import time
 
 import pytest
+
 from app.middleware.adaptive_rate_limiter import (
     AdaptiveRateLimiter,
     TokenBucket,

@@ -11,8 +11,9 @@ Handles response formatting including:
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from app.core.logging import get_logger
 from pydantic import BaseModel
+
+from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 

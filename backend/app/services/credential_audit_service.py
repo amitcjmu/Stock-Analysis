@@ -9,10 +9,11 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from app.models.platform_credentials import CredentialAccessLog
-from app.models.security_audit import SecurityAuditLog
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.platform_credentials import CredentialAccessLog
+from app.models.security_audit import SecurityAuditLog
 
 logger = logging.getLogger(__name__)
 
@@ -172,7 +173,7 @@ class CredentialAuditService:
                 and_(
                     CredentialAccessLog.accessed_by == user_id,
                     CredentialAccessLog.accessed_at >= cutoff_time,
-                    CredentialAccessLog.success == False,
+                    not CredentialAccessLog.success,
                 )
             )
         )
@@ -252,7 +253,7 @@ class CredentialAuditService:
         )
 
         if not include_failed:
-            query = query.where(CredentialAccessLog.success == True)
+            query = query.where(CredentialAccessLog.success)
 
         query = query.order_by(desc(CredentialAccessLog.accessed_at))
 

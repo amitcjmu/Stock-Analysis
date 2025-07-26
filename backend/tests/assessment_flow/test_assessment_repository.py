@@ -10,10 +10,11 @@ from datetime import datetime, timezone
 import pytest
 
 try:
-    from app.models.assessment_flow import AssessmentFlowState, AssessmentPhase
-    from app.repositories.assessment_flow_repository import AssessmentFlowRepository
     from sqlalchemy import text
     from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.models.assessment_flow import AssessmentFlowState, AssessmentPhase
+    from app.repositories.assessment_flow_repository import AssessmentFlowRepository
 
     REPOSITORY_AVAILABLE = True
 except ImportError:

@@ -7,9 +7,10 @@ import logging
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from app.services.multi_model_service import TaskComplexity, multi_model_service
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
+from app.services.multi_model_service import TaskComplexity, multi_model_service
 
 logger = logging.getLogger(__name__)
 

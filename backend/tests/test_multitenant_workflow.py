@@ -23,11 +23,12 @@ import aiohttp
 # Add the backend directory to the path
 sys.path.append("/app")
 
+from sqlalchemy import and_, func, select
+
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
 from app.models.client_account import ClientAccount
 from app.models.data_import import DataImport
-from sqlalchemy import and_, func, select
 
 
 class MultiTenantWorkflowTester:

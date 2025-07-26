@@ -9,12 +9,13 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models import User
 from app.models.client_account import ClientAccount, Engagement
 from app.models.rbac import ClientAccess, UserRole
 from app.schemas.context import ClientBase, EngagementBase, SessionBase, UserContext
-from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.context_schemas import ClientResponse, ClientsListResponse
 

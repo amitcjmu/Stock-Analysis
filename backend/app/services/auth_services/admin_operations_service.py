@@ -7,13 +7,14 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+from fastapi import HTTPException
+from sqlalchemy import and_, desc, func, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.client_account import User
 from app.models.rbac import UserProfile, UserRole
 from app.schemas.auth_schemas import UserRegistrationResponse
 from app.services.rbac_service import create_rbac_service
-from fastapi import HTTPException
-from sqlalchemy import and_, desc, func, select, text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

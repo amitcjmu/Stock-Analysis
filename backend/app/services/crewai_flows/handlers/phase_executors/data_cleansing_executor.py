@@ -227,9 +227,10 @@ class DataCleansingExecutor(BasePhaseExecutor):
 
     async def _get_raw_import_records_with_ids(self) -> List[Dict[str, Any]]:
         """Get raw import records from database with their IDs preserved"""
+        from sqlalchemy import select
+
         from app.core.database import AsyncSessionLocal
         from app.models.data_import.core import RawImportRecord
-        from sqlalchemy import select
 
         records = []
         try:

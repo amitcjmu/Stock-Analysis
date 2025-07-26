@@ -21,11 +21,12 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 async def main():
     try:
+        from sqlalchemy import select
+
         from app.core.database import AsyncSessionLocal
         from app.models.asset import Asset, AssetStatus
         from app.models.data_import import RawImportRecord
         from app.models.data_import.mapping import ImportFieldMapping
-        from sqlalchemy import select
 
         print("🚀 Starting Manual Asset Creation from Raw Import Records...")
 

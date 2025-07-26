@@ -43,8 +43,9 @@ async def test_asset_inventory_api():
 async def test_database_cmdb_assets():
     """Test direct database access to cmdb_assets table."""
     try:
-        from app.core.database import AsyncSessionLocal
         from sqlalchemy import text
+
+        from app.core.database import AsyncSessionLocal
 
         print("\n🔍 Testing direct database access to cmdb_assets...")
 

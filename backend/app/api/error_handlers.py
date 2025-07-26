@@ -8,6 +8,12 @@ Provides centralized error handling for FastAPI endpoints with:
 - Request tracking and logging
 """
 
+from fastapi import Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
 from app.core.exceptions import (
     AuthenticationError,
     AuthorizationError,
@@ -20,11 +26,6 @@ from app.core.exceptions import (
     ValidationError,
 )
 from app.core.logging import get_logger, trace_id_context
-from fastapi import Request, status
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from starlette.exceptions import HTTPException as StarletteHTTPException
 
 logger = get_logger(__name__)
 

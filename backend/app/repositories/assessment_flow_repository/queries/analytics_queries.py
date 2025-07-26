@@ -5,14 +5,15 @@ Analytics Queries - Analytics and reporting queries
 import logging
 from typing import Any, Dict
 
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.assessment_flow import (
     ApplicationComponent,
     AssessmentFlow,
     SixRDecision,
     TechDebtAnalysis,
 )
-from sqlalchemy import and_, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

@@ -10,6 +10,8 @@ import logging
 from datetime import datetime
 from typing import Any, Dict
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.core.exceptions import FlowNotFoundError
 from app.repositories.assessment_flow_repository import AssessmentFlowRepository
@@ -17,7 +19,6 @@ from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -202,9 +203,10 @@ class MFOSyncAgent:
     async def _verify_discovery_db_state(self, flow_id: str) -> bool:
         """Verify discovery flow database state completion"""
         try:
+            from sqlalchemy import func, select
+
             from app.models.asset import Asset
             from app.models.discovery_flow import DiscoveryFlow
-            from sqlalchemy import func, select
 
             # Check if discovery flow exists and has completed phases
             discovery_query = select(DiscoveryFlow).where(
@@ -247,8 +249,9 @@ class MFOSyncAgent:
     async def _verify_assessment_db_state(self, flow_id: str) -> bool:
         """Verify assessment flow database state completion"""
         try:
-            from app.models.assessment_flow import AssessmentFlow
             from sqlalchemy import select
+
+            from app.models.assessment_flow import AssessmentFlow
 
             # Check if assessment flow exists and has completed phases
             assessment_query = select(AssessmentFlow).where(
@@ -300,10 +303,11 @@ class MFOSyncAgent:
 
         try:
             # Get all active master flows
+            from sqlalchemy import select
+
             from app.models.crewai_flow_state_extensions import (
                 CrewAIFlowStateExtensions,
             )
-            from sqlalchemy import select
 
             master_flows_query = select(CrewAIFlowStateExtensions).where(
                 CrewAIFlowStateExtensions.client_account_id

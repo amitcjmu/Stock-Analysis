@@ -5,11 +5,12 @@ Service for analyzing and managing asset dependencies with CrewAI integration.
 import logging
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.exceptions import ValidationError
 from app.models.asset import AssetDependency
 from app.repositories.dependency_repository import DependencyRepository
 from app.services.crewai_flow_service import CrewAIFlowService
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

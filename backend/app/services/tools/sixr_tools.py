@@ -8,14 +8,15 @@ import logging
 from typing import Any, Dict, List, Optional
 
 try:
+    from crewai.tools import BaseTool
+    from pydantic import BaseModel, Field
+
     from app.schemas.sixr_analysis import SixRParameterBase, SixRStrategy
     from app.services.field_mapper_modular import FieldMapperService
     from app.services.sixr_engine_modular import SixRDecisionEngine
     from app.services.tech_debt_analysis_service import (
         TechDebtAnalysisService as TechDebtService,
     )
-    from crewai.tools import BaseTool
-    from pydantic import BaseModel, Field
 
     SIXR_AVAILABLE = True
 except ImportError as e:

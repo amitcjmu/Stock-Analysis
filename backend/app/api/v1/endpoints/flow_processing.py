@@ -6,11 +6,12 @@ Handles flow continuation and routing decisions using intelligent agents
 import logging
 from typing import Any, Dict, List, Optional
 
-from app.core.context import RequestContext, get_request_context
-from app.core.database import get_db
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext, get_request_context
+from app.core.database import get_db
 
 # Import the REAL single intelligent CrewAI agent
 try:

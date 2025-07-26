@@ -20,10 +20,12 @@ os.environ[
 async def test_user_update():
     """Test user update functionality"""
     try:
+        import uuid
+
         from sqlalchemy import select
+
         from app.core.database import AsyncSessionLocal
         from app.models import User
-        import uuid
 
         async with AsyncSessionLocal() as db:
             # Get a user to test with

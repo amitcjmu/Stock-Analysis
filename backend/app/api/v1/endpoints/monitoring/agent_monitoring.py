@@ -7,10 +7,11 @@ Provides real-time observability into agent status, task execution, and registry
 from datetime import datetime
 from typing import Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+
 from app.core.logging import get_logger as enhanced_get_logger
 from app.services.agent_monitor import agent_monitor
 from app.services.agent_registry import AgentPhase, AgentStatus, agent_registry
-from fastapi import APIRouter, Depends, HTTPException, Query
 
 from .base import get_monitoring_context
 

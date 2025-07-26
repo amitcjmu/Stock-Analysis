@@ -7,10 +7,11 @@ Provides emergency controls for stopping runaway processes.
 import logging
 from typing import Any, Dict
 
+from fastapi import APIRouter, Depends, HTTPException
+
 from app.api.v1.auth.auth_utils import get_current_active_user
 from app.models.client_account import User
 from app.utils.circuit_breaker import circuit_breaker_manager
-from fastapi import APIRouter, Depends, HTTPException
 
 logger = logging.getLogger(__name__)
 

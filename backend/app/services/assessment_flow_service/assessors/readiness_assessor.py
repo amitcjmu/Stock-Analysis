@@ -5,10 +5,11 @@ Readiness assessment module for migration readiness analysis.
 import logging
 from typing import Any, Dict, List
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.models.asset import Asset as DiscoveryAsset
 from app.models.discovery_flow import DiscoveryFlow
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

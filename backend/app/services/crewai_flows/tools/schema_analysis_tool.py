@@ -55,7 +55,7 @@ class SchemaAnalysisTool(BaseTool):
             )
 
             # Generate analysis report
-            analysis_report = {
+            {
                 "field_analysis": fields_analysis,
                 "data_patterns": patterns,
                 "semantic_insights": semantic_analysis,

@@ -6,8 +6,9 @@ import logging
 from datetime import datetime
 from typing import Any, Dict
 
-from app.core.database import db_manager
 from fastapi import APIRouter
+
+from app.core.database import db_manager
 
 logger = logging.getLogger(__name__)
 

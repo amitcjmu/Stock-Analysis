@@ -7,8 +7,9 @@ Create Date: 2025-06-30 23:45:00.000000
 This migration renames source_filename to filename to match the model definition.
 """
 
-from alembic import op
 from sqlalchemy import text
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "rename_source_filename"

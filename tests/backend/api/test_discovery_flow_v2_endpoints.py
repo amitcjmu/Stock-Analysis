@@ -222,7 +222,7 @@ class TestDiscoveryFlowV2Endpoints:
 
         response_data = response.json()
         assert response_data["flow_id"] == flow_id
-        assert response_data["phase_completion"]["inventory"] == True
+        assert response_data["phase_completion"]["inventory"]
         assert response_data["progress_percentage"] > 0
 
     def test_complete_discovery_flow(
@@ -254,7 +254,7 @@ class TestDiscoveryFlowV2Endpoints:
         response_data = response.json()
         assert response_data["flow_id"] == flow_id
         assert response_data["status"] == "completed"
-        assert response_data["assessment_ready"] == True
+        assert response_data["assessment_ready"]
 
     def test_get_flow_summary(
         self,

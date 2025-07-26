@@ -73,8 +73,9 @@ async def check_tables():
     print("\n📋 Checking Database Tables...")
 
     try:
-        from app.core.database import engine
         from sqlalchemy import text
+
+        from app.core.database import engine
 
         async with engine.begin() as conn:
             # Query for table existence
@@ -123,8 +124,9 @@ async def test_data_operations():
     print("\n🧪 Testing Data Operations...")
 
     try:
-        from app.core.database import AsyncSessionLocal
         from sqlalchemy import text
+
+        from app.core.database import AsyncSessionLocal
 
         async with AsyncSessionLocal() as session:
             # Test a simple query
@@ -146,8 +148,9 @@ async def test_data_operations():
 async def test_table_access():
     """Test access to application tables."""
     try:
-        from app.core.database import AsyncSessionLocal
         from sqlalchemy import text
+
+        from app.core.database import AsyncSessionLocal
 
         async with AsyncSessionLocal() as session:
             # Try to access feedback table (if it exists)

@@ -48,8 +48,9 @@ SAMPLE_CSV_DATA = [
 
 async def check_db_state(phase_name: str):
     """Check database state at a specific phase"""
-    from app.core.database import AsyncSessionLocal
     from sqlalchemy import text
+
+    from app.core.database import AsyncSessionLocal
 
     logger.info(f"\n📊 Database State - {phase_name}:")
 
@@ -79,6 +80,8 @@ async def test_discovery_flow_simple():
     logger.info("🚀 Starting Simplified Discovery Flow E2E Test")
 
     try:
+        from sqlalchemy import text
+
         from app.core.context import RequestContext
         from app.core.database import AsyncSessionLocal
         from app.services.crewai_flow_service import CrewAIFlowService
@@ -89,7 +92,6 @@ async def test_discovery_flow_simple():
             FlowPhase,
             PhaseController,
         )
-        from sqlalchemy import text
 
         # Test context - use proper demo UUIDs
         test_context = RequestContext(

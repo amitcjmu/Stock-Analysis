@@ -14,12 +14,13 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from app.core.context import RequestContext, get_current_context
-from app.core.database import get_db
-from app.services.user_context_service import UserContextService
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext, get_current_context
+from app.core.database import get_db
+from app.services.user_context_service import UserContextService
 
 from .response_mappers import (
     DiscoveryFlowResponse,

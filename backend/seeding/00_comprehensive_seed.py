@@ -27,7 +27,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db_session
 from app.core.demo_constants import TEST_TENANT_1, TEST_TENANT_2
 
-
 # Multi-tenant test data configuration
 TENANT_CONFIG = {
     TEST_TENANT_1: {
@@ -174,7 +173,7 @@ async def cleanup_existing_data(session: AsyncSession):
             # Safe to use string formatting after validation
             await session.execute(
                 text(
-                    f"DELETE FROM migration.{table} WHERE client_account_id = ANY(:tenant_ids)"
+                    f"DELETE FROM migration.{table} WHERE client_account_id = ANY(:tenant_ids)"  # nosec B608
                 ),
                 {"tenant_ids": [str(tid) for tid in TENANT_CONFIG.keys()]},
             )
@@ -184,7 +183,7 @@ async def cleanup_existing_data(session: AsyncSession):
             try:
                 if table in ["users", "engagements", "client_accounts"]:
                     await session.execute(
-                        text(f"DELETE FROM migration.{table} WHERE id = ANY(:ids)"),
+                        text(f"DELETE FROM migration.{table} WHERE id = ANY(:ids)"),  # nosec B608
                         {
                             "ids": [
                                 str(config["users"]["admin"])
@@ -435,9 +434,11 @@ async def seed_agent_data(session: AsyncSession):
                     "status": status,
                     "duration": duration,
                     "input": {"items": random.randint(10, 100)},
-                    "output": {"processed": random.randint(5, 95)}
-                    if status == "completed"
-                    else {},
+                    "output": (
+                        {"processed": random.randint(5, 95)}
+                        if status == "completed"
+                        else {}
+                    ),
                     "error": "Task timeout" if status == "failed" else None,
                 },
             )

@@ -9,10 +9,11 @@ import random
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from app.models import Assessment, Asset, AssetDependency, DataImport, DiscoveryFlow
-from app.models.asset import AssetStatus, AssetType, MigrationWave
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models import Assessment, Asset, AssetDependency, DataImport, DiscoveryFlow
+from app.models.asset import AssetStatus, AssetType, MigrationWave
 
 logger = logging.getLogger(__name__)
 

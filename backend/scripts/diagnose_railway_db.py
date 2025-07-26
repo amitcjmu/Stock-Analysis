@@ -20,8 +20,9 @@ logger = logging.getLogger(__name__)
 async def check_migration_state():
     """Check current migration state"""
     try:
-        from app.core.config import get_settings
         from sqlalchemy import create_engine, text
+
+        from app.core.config import get_settings
 
         settings = get_settings()
         engine = create_engine(settings.DATABASE_URL.replace("+asyncpg", ""))

@@ -6,12 +6,13 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from pydantic import BaseModel, Field, validator
+
 from app.models.platform_credentials import (
     CredentialStatus,
     CredentialType,
     VaultProvider,
 )
-from pydantic import BaseModel, Field, validator
 
 
 class CredentialBase(BaseModel):

@@ -3,8 +3,9 @@
 Test CORS configuration on Railway deployment
 """
 
-import requests
 import sys
+
+import requests
 
 
 def test_cors_on_railway():

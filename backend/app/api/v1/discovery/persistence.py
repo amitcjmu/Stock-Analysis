@@ -49,7 +49,6 @@ def backup_processed_assets() -> bool:
 
 def initialize_persistence() -> None:
     """Initialize persistent stores and load existing data."""
-    global processed_assets_store
 
     # Load processed assets from backup on startup
     saved_assets = load_from_file("processed_assets_backup", [])
@@ -65,7 +64,6 @@ def get_processed_assets() -> List[Dict[str, Any]]:
 
 def add_processed_asset(asset: Dict[str, Any]) -> None:
     """Add an asset to the processed assets store with deduplication."""
-    global processed_assets_store
 
     # Generate a unique identifier based on hostname and name
     asset_hostname = asset.get("hostname", "").strip().lower()
@@ -316,8 +314,6 @@ def cleanup_duplicates() -> int:
 
 def clear_processed_assets() -> None:
     """Clear the processed assets store."""
-    global processed_assets_store
-    processed_assets_store = []
 
 
 def update_asset_by_id(asset_id: str, updated_data: Dict[str, Any]) -> bool:

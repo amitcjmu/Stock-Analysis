@@ -20,12 +20,14 @@ os.environ[
 async def fix_admin_access():
     """Fix admin access for chocka@gmail.com"""
     try:
-        from sqlalchemy import select, update
+        import uuid
+        from datetime import datetime
+
+        from sqlalchemy import select
+
         from app.core.database import AsyncSessionLocal
         from app.models import User
         from app.models.rbac import UserRole
-        from datetime import datetime
-        import uuid
 
         async with AsyncSessionLocal() as db:
             # Find user by email
@@ -35,7 +37,7 @@ async def fix_admin_access():
             user = result.scalar_one_or_none()
 
             if not user:
-                print(f"❌ User chocka@gmail.com not found")
+                print("❌ User chocka@gmail.com not found")
                 return
 
             print(f"✅ Found user: {user.email} (ID: {user.id})")
@@ -60,14 +62,14 @@ async def fix_admin_access():
                     updated_at=datetime.utcnow(),
                 )
                 db.add(platform_role)
-                print(f"✅ Created platform_admin role")
+                print("✅ Created platform_admin role")
             else:
                 # Ensure it's active
                 platform_role.is_active = True
-                print(f"✅ Platform admin role already exists and is active")
+                print("✅ Platform admin role already exists and is active")
 
             await db.commit()
-            print(f"✅ Successfully fixed admin access for chocka@gmail.com")
+            print("✅ Successfully fixed admin access for chocka@gmail.com")
 
     except Exception as e:
         print(f"❌ Error: {e}")

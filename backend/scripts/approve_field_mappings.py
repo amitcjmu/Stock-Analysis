@@ -9,11 +9,12 @@ import logging
 from datetime import datetime
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
 from app.models.data_import.mapping import ImportFieldMapping
 from app.models.discovery_flow import DiscoveryFlow
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 # Configure logging
 logging.basicConfig(

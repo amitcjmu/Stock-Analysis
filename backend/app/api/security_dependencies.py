@@ -7,10 +7,11 @@ All API endpoints should use these dependencies instead of raw context extractio
 
 import logging
 
-from app.core.context import RequestContext, extract_context_from_request
-from app.core.database import get_db
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext, extract_context_from_request
+from app.core.database import get_db
 
 logger = logging.getLogger(__name__)
 

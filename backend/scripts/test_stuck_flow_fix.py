@@ -7,10 +7,11 @@ import logging
 import uuid
 from datetime import datetime, timedelta
 
+from sqlalchemy import update
+
 from app.core.database import AsyncSessionLocal
 from app.models.discovery_flow import DiscoveryFlow
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from sqlalchemy import update
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

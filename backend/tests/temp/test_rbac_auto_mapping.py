@@ -9,15 +9,16 @@ import asyncio
 import json
 from datetime import datetime
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+
 from app.core.seed_data_config import DemoDataConfig
 
 # Import models and services
 from app.models import ClientAccount, Engagement, User
 from app.models.rbac import AccessLevel, ClientAccess, EngagementAccess
 from app.services.rbac_service import RBACService
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
 
 
 async def test_rbac_auto_mapping():

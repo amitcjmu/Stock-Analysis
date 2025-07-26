@@ -6,10 +6,11 @@ This model represents the collected data inventory for Collection Flows.
 
 import uuid
 
-from app.models.base import Base, TimestampMixin
 from sqlalchemy import UUID, Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
+
+from app.models.base import Base, TimestampMixin
 
 
 class CollectedDataInventory(Base, TimestampMixin):

@@ -20,6 +20,9 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+# CrewAI imports
+from crewai import Agent, Crew, Process, Task
+
 # Internal imports
 from app.services.agentic_intelligence.agent_reasoning_patterns import (
     AgentReasoning,
@@ -29,9 +32,6 @@ from app.services.agentic_memory import ThreeTierMemoryManager
 from app.services.agentic_memory.agent_tools_functional import (
     create_functional_agent_tools,
 )
-
-# CrewAI imports
-from crewai import Agent, Crew, Process, Task
 
 logger = logging.getLogger(__name__)
 
@@ -151,7 +151,7 @@ class ModernizationAgent:
         }
 
         task = Task(
-            description=f"""
+            description=f"""  # nosec B608 - This is not SQL, it's a task description for an AI agent
             Conduct a comprehensive modernization assessment for this asset using your cloud architecture intelligence and memory tools:
 
             Asset Details:

@@ -9,9 +9,10 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from app.models.discovery_flow import DiscoveryFlow
 from sqlalchemy import and_, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.discovery_flow import DiscoveryFlow
 
 from ..queries.flow_queries import FlowQueries
 

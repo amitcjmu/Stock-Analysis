@@ -95,10 +95,11 @@ class DiscoveryIntegrationExecutor(CrewExecutionBase):
 
     async def _async_persist_discovery_data(self, state) -> Dict[str, Any]:
         """Async method to persist discovery data to database"""
+        from sqlalchemy.exc import SQLAlchemyError
+
         from app.core.database import AsyncSessionLocal
         from app.models.data_import import DataImport, ImportStatus, RawImportRecord
         from app.models.data_import.mapping import ImportFieldMapping
-        from sqlalchemy.exc import SQLAlchemyError
 
         assets_created = 0
         imports_created = 0

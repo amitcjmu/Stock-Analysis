@@ -20,7 +20,8 @@ os.environ[
 async def test_engagement_stats():
     """Test engagement stats query directly"""
     try:
-        from sqlalchemy import select, func
+        from sqlalchemy import func, select
+
         from app.core.database import AsyncSessionLocal
         from app.models import Engagement
 

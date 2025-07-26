@@ -95,8 +95,9 @@ async def test_database_connection():
 
         try:
             # Fall back to async connection
-            from app.core.database import engine
             from sqlalchemy import text
+
+            from app.core.database import engine
 
             async with engine.begin() as conn:
                 result = await conn.execute(text("SELECT version()"))
@@ -301,9 +302,10 @@ async def test_feedback_functionality():
     logger.info("🧪 Testing Feedback System...")
 
     try:
+        from sqlalchemy import text
+
         from app.core.database import AsyncSessionLocal
         from app.models.feedback import Feedback
-        from sqlalchemy import text
 
         async with AsyncSessionLocal() as session:
             # Test table exists

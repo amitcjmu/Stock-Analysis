@@ -9,9 +9,10 @@ import statistics
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.services.collection_flow.data_transformation import DataType
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from .constants import DIMENSION_WEIGHTS, REQUIRED_FIELDS, VALIDATION_RULES
 from .enums import QualityDimension

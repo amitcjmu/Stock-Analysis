@@ -12,6 +12,8 @@ from datetime import datetime
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import delete
+
 from app.core.database import AsyncSessionLocal
 from app.models import ClientAccount, Engagement, User
 from app.models.assessment_flow import AssessmentFlow
@@ -23,7 +25,6 @@ from app.services.integration.smart_workflow_orchestrator import (
     SmartWorkflowOrchestrator,
 )
 from app.services.integration.state_synchronizer import StateSynchronizer
-from sqlalchemy import delete
 
 
 class SmartWorkflowIntegrationTests:

@@ -14,13 +14,14 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.services.collection_flow.adapters import (
     AdapterRegistry,
     BaseAdapter,
     CollectionRequest,
     CollectionResponse,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class OrchestrationStatus(str, Enum):

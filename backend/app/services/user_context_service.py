@@ -12,11 +12,12 @@ import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
-from app.models.client_account import Engagement, User
-from app.models.discovery_flow import DiscoveryFlow
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+from app.models.client_account import Engagement, User
+from app.models.discovery_flow import DiscoveryFlow
 
 logger = logging.getLogger(__name__)
 

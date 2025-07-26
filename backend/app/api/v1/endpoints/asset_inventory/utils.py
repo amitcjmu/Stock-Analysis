@@ -5,8 +5,9 @@ Utility functions for Asset Inventory operations.
 import logging
 from typing import Any, Dict, List, Optional
 
-from app.core.context import RequestContext
 from sqlalchemy.orm import Session
+
+from app.core.context import RequestContext
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +23,10 @@ async def get_asset_data(
         # IMPORTANT: Enforce multitenancy - if context is available, filter by it
         if context and context.client_account_id and context.engagement_id:
             # Use database query with context filtering
+            from sqlalchemy import select
+
             from app.core.database import get_db
             from app.models.asset import Asset
-            from sqlalchemy import select
 
             # If no db session provided, get one
             if db is None:

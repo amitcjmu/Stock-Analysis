@@ -5,11 +5,12 @@ Schema Analyzer Tool for data structure analysis
 import json
 from typing import Any, Dict
 
+from sqlalchemy import select
+
 from app.core.database_context import get_context_db
 from app.models import RawImportRecord
 from app.services.tools.base_tool import AsyncBaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
-from sqlalchemy import select
 
 
 class SchemaAnalyzerTool(AsyncBaseDiscoveryTool):

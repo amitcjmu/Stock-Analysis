@@ -6,6 +6,9 @@ Handles user registration, approvals, profile management, and user status operat
 import logging
 from typing import Any, Dict
 
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.database import get_db
 from app.models.client_account import User
@@ -25,8 +28,6 @@ from app.schemas.auth_schemas import (
     UserRejectionResponse,
 )
 from app.services.auth_services.user_management_service import UserManagementService
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

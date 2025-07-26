@@ -19,8 +19,9 @@ logger = logging.getLogger(__name__)
 async def check_database_connection():
     """Check database connection and migration state"""
     try:
-        from app.core.config import settings
         from sqlalchemy import create_engine, text
+
+        from app.core.config import settings
 
         # Use the Docker internal database URL
         db_url = settings.DATABASE_URL.replace("+asyncpg", "")
@@ -49,8 +50,9 @@ async def check_database_connection():
 async def check_table_structure():
     """Check critical table structure"""
     try:
-        from app.core.config import settings
         from sqlalchemy import create_engine, text
+
+        from app.core.config import settings
 
         db_url = settings.DATABASE_URL.replace("+asyncpg", "")
         engine = create_engine(db_url)

@@ -7,6 +7,7 @@ import asyncio
 from datetime import datetime
 
 import pytest
+
 from app.models.collection_flow import (
     AutomationTier,
     CollectionFlowState,

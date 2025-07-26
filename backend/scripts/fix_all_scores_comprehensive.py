@@ -3,9 +3,10 @@
 import asyncio
 import json
 
+from sqlalchemy import select, text
+
 from app.core.database import AsyncSessionLocal
 from app.models.sixr_analysis import SixRRecommendation as SixRRecommendationModel
-from sqlalchemy import select, text
 
 
 def fix_scores_recursively(data, path="", changes=None):

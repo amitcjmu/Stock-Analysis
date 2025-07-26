@@ -8,6 +8,8 @@ import asyncio
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.core.logging import get_logger
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
@@ -17,7 +19,6 @@ from app.repositories.crewai_flow_state_extensions_repository import (
 from app.services.flow_type_registry import FlowTypeRegistry
 from app.services.handler_registry import HandlerRegistry
 from app.services.validator_registry import ValidatorRegistry
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger(__name__)
 

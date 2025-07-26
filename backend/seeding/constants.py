@@ -189,8 +189,12 @@ AGENT_LEARNING_CONFIG = {
 BASE_TIMESTAMP = datetime(2024, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
 
 # Default password for demo users (should be hashed in actual seeding)
-DEFAULT_PASSWORD = "DemoPassword123!"
+DEFAULT_PASSWORD = "DemoPassword123!"  # nosec B105 - Demo/test password for seeding
 
 # API Keys and Tokens (for demo purposes)
-DEMO_API_KEY = "demo_api_key_" + str(DEMO_CLIENT_ID)
-DEMO_ACCESS_TOKEN = "demo_token_" + str(DEMO_ENGAGEMENT_ID)
+DEMO_API_KEY = "demo_api_key_" + str(
+    DEMO_CLIENT_ID
+)  # nosec B105 - Demo/test API key for seeding
+DEMO_ACCESS_TOKEN = "demo_token_" + str(
+    DEMO_ENGAGEMENT_ID
+)  # nosec B105 - Demo/test token for seeding

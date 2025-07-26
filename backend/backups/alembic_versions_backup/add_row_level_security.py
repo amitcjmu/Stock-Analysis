@@ -7,6 +7,7 @@ Create Date: 2024-06-30 00:00:00.000000
 """
 
 import sqlalchemy as sa
+
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -63,7 +64,7 @@ def upgrade():
             op.get_bind()
             .execute(
                 sa.text(
-                    f"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = '{table}')"
+                    f"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = '{table}')"  # nosec B608
                 )
             )
             .scalar()

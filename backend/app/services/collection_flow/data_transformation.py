@@ -12,8 +12,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
-from app.core.context import RequestContext
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext
 
 logger = logging.getLogger(__name__)
 

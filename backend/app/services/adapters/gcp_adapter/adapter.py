@@ -7,12 +7,13 @@ Main GCP adapter class that orchestrates all modular components.
 import time
 from typing import Any, Dict, List, Set
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.services.collection_flow.adapters import (
     BaseAdapter,
     CollectionRequest,
     CollectionResponse,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from .assets import GCPAssetCollector
 from .auth import GCPAuthManager

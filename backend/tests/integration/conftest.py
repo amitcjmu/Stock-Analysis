@@ -12,10 +12,11 @@ from typing import Any, AsyncGenerator, Dict
 from uuid import uuid4
 
 import pytest
-from app.models import ClientAccount, Engagement, User
-from app.models.base import Base
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+
+from app.models import ClientAccount, Engagement, User
+from app.models.base import Base
 
 
 @pytest.fixture(scope="session")

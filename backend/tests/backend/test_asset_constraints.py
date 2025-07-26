@@ -6,9 +6,10 @@ import asyncio
 import uuid
 from datetime import datetime
 
+from sqlalchemy.exc import IntegrityError
+
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
-from sqlalchemy.exc import IntegrityError
 
 
 async def test_duplicate_hostname_constraint():

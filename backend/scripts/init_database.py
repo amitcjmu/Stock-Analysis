@@ -31,9 +31,10 @@ from pathlib import Path
 from typing import Any, Dict
 
 import asyncpg
+from sqlalchemy import text
+
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import text
 
 # Add the app directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))

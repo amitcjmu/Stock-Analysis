@@ -7,8 +7,9 @@ import asyncio
 
 import pytest
 import pytest_asyncio
-from app.main import app
 from httpx import AsyncClient
+
+from app.main import app
 
 # Configure pytest to use asyncio
 pytestmark = pytest.mark.asyncio

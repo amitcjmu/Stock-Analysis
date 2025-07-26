@@ -9,10 +9,11 @@ This script fixes the missing master_flow_id population in:
 
 import asyncio
 
+from sqlalchemy import text, update
+
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
 from app.models.data_import.mapping import ImportFieldMapping
-from sqlalchemy import text, update
 
 
 async def fix_asset_master_flow_links():

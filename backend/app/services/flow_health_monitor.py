@@ -9,11 +9,12 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.discovery_flow import DiscoveryFlow
-from sqlalchemy import and_, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

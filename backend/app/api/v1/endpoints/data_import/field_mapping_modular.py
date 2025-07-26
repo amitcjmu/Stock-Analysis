@@ -3,10 +3,11 @@ Modular field mapping router that combines all field mapping functionality.
 This replaces the monolithic field_mapping.py file.
 """
 
-from app.core.context import RequestContext, get_current_context
-from app.core.database import get_db
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext, get_current_context
+from app.core.database import get_db
 
 from .field_mapping.routes.approval_routes import router as approval_router
 

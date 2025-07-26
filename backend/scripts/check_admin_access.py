@@ -11,11 +11,11 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
-from app.models.user import User
-from app.models.user_profile import UserProfile
-from app.models.user_role import UserRole
 from app.models.platform_admin import PlatformAdmin
+from app.models.user import User
+from app.models.user_role import UserRole
 from app.services.rbac_service import create_rbac_service
 
 
@@ -49,7 +49,7 @@ async def check_admin_access():
             )
             roles = roles.scalars().all()
             if roles:
-                print(f"  User Roles:")
+                print("  User Roles:")
                 for role in roles:
                     print(f"    - {role.role} (Client: {role.client_account_id})")
 

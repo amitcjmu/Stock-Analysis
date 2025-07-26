@@ -12,6 +12,9 @@ sys.path.append("/app")
 import uuid
 from datetime import datetime
 
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
 from app.core.demo_constants import (
     DEMO_CLIENT_ID,
@@ -26,8 +29,6 @@ from app.core.demo_constants import (
 from app.models.client_account import ClientAccount, Engagement, User
 from app.models.data_import_session import DataImportSession
 from app.models.rbac import UserProfile
-from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def create_demo_users(db: AsyncSession):
@@ -297,8 +298,9 @@ async def create_user_roles(db: AsyncSession, demo_user):
 
     import uuid
 
-    from app.models.rbac import RoleType, UserRole
     from sqlalchemy import select
+
+    from app.models.rbac import RoleType, UserRole
 
     # SECURITY: Only create demo user role - no admin@democorp role
     # Demo user role (Analyst - SECURE)

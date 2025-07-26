@@ -8,10 +8,11 @@ from datetime import datetime
 
 import bcrypt
 import pytest
-from app.models import User
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models import User
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
 
 def get_password_hash(password: str) -> str:

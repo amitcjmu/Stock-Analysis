@@ -11,10 +11,11 @@ from typing import Any, Dict, List
 
 sys.path.append("/app")
 
+from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models.client_account import User
 from app.models.rbac import UserRole
-from sqlalchemy import select
 
 # SECURITY: Whitelist of legitimate accounts
 LEGITIMATE_ACCOUNTS = {

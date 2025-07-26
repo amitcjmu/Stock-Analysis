@@ -9,13 +9,14 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 from uuid import UUID
 
+from sqlalchemy import and_, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models import User
 from app.models.client_account import ClientAccount, Engagement
 from app.models.rbac import ClientAccess, UserRole
 from app.schemas.context import ClientBase, EngagementBase, SessionBase, UserContext
 from app.schemas.flow import FlowBase
-from sqlalchemy import and_, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from .client_service import (
     DEMO_CLIENT_ID,
@@ -188,7 +189,7 @@ class UserService:
         """Get user admin status and role"""
         role_query = (
             select(UserRole)
-            .where(and_(UserRole.user_id == user_id, UserRole.is_active == True))
+            .where(and_(UserRole.user_id == user_id, UserRole.is_active))
             .limit(1)
         )
 

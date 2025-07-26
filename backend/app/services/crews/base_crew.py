@@ -7,9 +7,10 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
+from crewai import Crew, Process, Task
+
 from app.core.context import get_current_context
 from app.services.llm_config import get_crewai_llm
-from crewai import Crew, Process, Task
 
 logger = logging.getLogger(__name__)
 

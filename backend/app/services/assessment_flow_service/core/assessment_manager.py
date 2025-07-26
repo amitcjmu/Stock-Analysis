@@ -7,12 +7,13 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.models.asset import Asset as DiscoveryAsset
 from app.repositories.asset_repository import AssetRepository
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..assessors.complexity_assessor import ComplexityAssessor
 from ..assessors.readiness_assessor import ReadinessAssessor

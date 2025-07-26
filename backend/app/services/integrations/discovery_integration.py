@@ -6,10 +6,11 @@ Handles integration points with Discovery Flow for application metadata and read
 import logging
 from typing import Any, Dict, List, Optional
 
-from app.models.asset import Asset
-from app.models.discovery_flow import DiscoveryFlow
 from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.asset import Asset
+from app.models.discovery_flow import DiscoveryFlow
 
 logger = logging.getLogger(__name__)
 

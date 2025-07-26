@@ -10,9 +10,10 @@ Enhanced implementation with CrewAI best practices:
 import logging
 from typing import Any, Dict, List, Optional
 
+from crewai import Agent, Crew, Process, Task
+
 # Import state model for type hints
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
-from crewai import Agent, Crew, Process, Task
 
 # Import advanced CrewAI features with fallbacks
 try:

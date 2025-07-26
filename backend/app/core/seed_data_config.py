@@ -41,7 +41,7 @@ class PlatformAdminConfig:
     """Platform admin configuration - NEVER CHANGE THESE"""
 
     EMAIL = "chocka@gmail.com"
-    PASSWORD = "Password123!"
+    PASSWORD = "Password123!"  # nosec B105 - Platform admin password for initial setup
     FIRST_NAME = "Platform"
     LAST_NAME = "Admin"
     ORGANIZATION = "Platform"
@@ -99,7 +99,7 @@ class DemoUserConfig:
     """Demo user configurations - NO CLIENT ADMINS!"""
 
     # Common password for all demo users
-    PASSWORD = "Demo123!"
+    PASSWORD = "Demo123!"  # nosec B105 - Demo user password for testing
 
     # Demo users list with their roles
     USERS = [

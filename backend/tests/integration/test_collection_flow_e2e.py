@@ -24,6 +24,9 @@ from datetime import datetime
 from typing import Any, Dict
 
 import pytest
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
 from app.models import ClientAccount, Engagement, User
@@ -40,8 +43,6 @@ from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.platform_credentials import PlatformCredential
 from app.services.crewai_flows.unified_collection_flow import UnifiedCollectionFlow
 from app.services.crewai_service import CrewAIService
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

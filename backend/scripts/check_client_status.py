@@ -20,17 +20,19 @@ os.environ[
 async def check_client_status():
     """Check client status"""
     try:
+        from datetime import datetime, timedelta
+
         from sqlalchemy import select
+
         from app.core.database import AsyncSessionLocal
         from app.models import ClientAccount
-        from datetime import datetime, timedelta
 
         async with AsyncSessionLocal() as db:
             # Get all clients
             result = await db.execute(select(ClientAccount))
             clients = result.scalars().all()
 
-            print(f"=== CLIENT STATUS ===")
+            print("=== CLIENT STATUS ===")
             print(f"Total clients: {len(clients)}")
 
             ninety_days_ago = datetime.utcnow() - timedelta(days=90)
@@ -47,7 +49,7 @@ async def check_client_status():
                         f"  Updated within 90 days: {client.updated_at > ninety_days_ago}"
                     )
                 else:
-                    print(f"  Updated within 90 days: False (never updated)")
+                    print("  Updated within 90 days: False (never updated)")
 
     except Exception as e:
         print(f"❌ Error: {e}")

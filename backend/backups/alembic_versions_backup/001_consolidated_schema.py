@@ -13,8 +13,9 @@ This migration creates the entire database schema from scratch with:
 """
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "001_consolidated_schema"

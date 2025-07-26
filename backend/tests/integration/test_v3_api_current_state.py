@@ -8,12 +8,13 @@ import uuid
 
 import pytest
 import pytest_asyncio
+from sqlalchemy import select, text
+
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
 from app.models.data_import.core import DataImport
 from app.models.data_import.mapping import ImportFieldMapping
 from app.models.discovery_flow import DiscoveryFlow
-from sqlalchemy import select, text
 
 # Configure pytest to use asyncio
 pytestmark = pytest.mark.asyncio

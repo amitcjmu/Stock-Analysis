@@ -15,9 +15,8 @@ from app.core.exceptions import (
     InvalidFlowStateError,
 )
 from app.core.logging import get_logger
-from app.services.flow_error_handler import ErrorContext
+from app.services.flow_error_handler import ErrorContext, RetryConfig
 from app.services.flow_error_handler import FlowErrorHandler as BaseFlowErrorHandler
-from app.services.flow_error_handler import RetryConfig
 
 logger = get_logger(__name__)
 

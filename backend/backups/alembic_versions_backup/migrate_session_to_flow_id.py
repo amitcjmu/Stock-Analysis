@@ -17,9 +17,10 @@ Create Date: 2025-06-29 08:30:00.000000
 import uuid
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy import text
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers
 revision = "migrate_session_to_flow_id"

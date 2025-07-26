@@ -21,6 +21,7 @@ async def add_is_admin_column():
     """Add is_admin column to users table"""
     try:
         from sqlalchemy import text
+
         from app.core.database import AsyncSessionLocal
 
         async with AsyncSessionLocal() as db:

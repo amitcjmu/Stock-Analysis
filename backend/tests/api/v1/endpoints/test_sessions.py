@@ -6,11 +6,11 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
-from app.models.client_account import ClientAccount, Engagement, User
-from app.models.data_import_session import DataImportSession, SessionStatus, SessionType
 from fastapi import status
 from fastapi.testclient import TestClient
 
+from app.models.client_account import ClientAccount, Engagement, User
+from app.models.data_import_session import DataImportSession, SessionStatus, SessionType
 from backend.main import app
 
 # Test client

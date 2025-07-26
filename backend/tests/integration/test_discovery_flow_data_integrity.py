@@ -19,6 +19,11 @@ import uuid
 from datetime import datetime
 
 import pytest
+from sqlalchemy import func, select, text
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
@@ -30,10 +35,6 @@ from app.repositories.crewai_flow_state_extensions_repository import (
 )
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-from sqlalchemy import func, select, text
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 # Configure logging for tests
 logging.basicConfig(level=logging.INFO)

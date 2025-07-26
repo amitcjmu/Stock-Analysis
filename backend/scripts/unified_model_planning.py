@@ -13,8 +13,9 @@ import sys
 # Add the backend directory to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from app.core.database import AsyncSessionLocal
 from sqlalchemy import text
+
+from app.core.database import AsyncSessionLocal
 
 
 async def analyze_model_differences():
@@ -55,7 +56,7 @@ async def analyze_model_differences():
                 WHERE table_schema = 'migration'
                 AND column_name = '{col_name}'
                 AND table_name IN ('assets', 'cmdb_assets')
-            """
+            """  # nosec B608
                 )
             )
 

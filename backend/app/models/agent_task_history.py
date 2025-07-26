@@ -7,7 +7,6 @@ Part of the Agent Observability Enhancement
 import uuid
 from typing import Any, Dict
 
-from app.core.database import Base
 from sqlalchemy import (
     DECIMAL,
     Boolean,
@@ -23,6 +22,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
+
+from app.core.database import Base
 
 
 class AgentTaskHistory(Base):

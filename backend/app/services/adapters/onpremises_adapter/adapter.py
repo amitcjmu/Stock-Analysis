@@ -6,13 +6,14 @@ import time
 from ipaddress import AddressValueError, IPv4Network
 from typing import Any, Dict, List
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.services.collection_flow.adapters import (
     AdapterMetadata,
     BaseAdapter,
     CollectionRequest,
     CollectionResponse,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from .data_transformer import DataTransformer
 from .models import DiscoveredHost, OnPremisesCredentials

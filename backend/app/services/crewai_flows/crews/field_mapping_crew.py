@@ -27,8 +27,9 @@ class AssetSchemaAnalysisTool(BaseTool):
 
     def _run(self) -> str:
         """Return complete Asset model schema"""
-        from app.models.asset import Asset
         from sqlalchemy import inspect
+
+        from app.models.asset import Asset
 
         mapper = inspect(Asset)
         schema_info = []

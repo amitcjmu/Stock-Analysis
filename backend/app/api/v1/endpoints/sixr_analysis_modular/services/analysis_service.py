@@ -8,15 +8,15 @@ import asyncio
 import logging
 from typing import Any, Dict, List
 
+from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
-from app.models.sixr_analysis import SixRAnalysis
+from app.models.sixr_analysis import SixRAnalysis, SixRQuestionResponse
 from app.models.sixr_analysis import SixRAnalysisParameters as SixRParametersModel
-from app.models.sixr_analysis import SixRQuestionResponse
 from app.models.sixr_analysis import SixRRecommendation as SixRRecommendationModel
 from app.schemas.sixr_analysis import AnalysisStatus, SixRParameterBase
 from app.services.sixr_engine_modular import SixRDecisionEngine
-from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 

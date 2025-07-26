@@ -6,10 +6,10 @@ Creating AI-suggested field mappings with varied confidence scores for all impor
 import asyncio
 from datetime import datetime, timezone
 
+from constants import DEMO_CLIENT_ID, IMPORT_IDS
+
 from app.core.database import AsyncSessionLocal
 from app.models.data_import.mapping import ImportFieldMapping
-
-from constants import DEMO_CLIENT_ID, IMPORT_IDS
 
 # Field mappings for each import type
 CSV_SERVER_MAPPINGS = [

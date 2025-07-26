@@ -26,12 +26,10 @@ from app.services.manual_collection import (
     BulkDataService,
     DataIntegrationService,
     ProgressTrackingService,
+    TemplateService,
 )
 from app.services.manual_collection import (
     QuestionnaireValidationService as ValidationService,
-)
-from app.services.manual_collection import (
-    TemplateService,
 )
 
 logger = logging.getLogger(__name__)

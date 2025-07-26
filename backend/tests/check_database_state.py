@@ -8,9 +8,10 @@ import sys
 
 sys.path.append("/app")
 
+from sqlalchemy import func, select
+
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
-from sqlalchemy import func, select
 
 
 async def check_database_state():

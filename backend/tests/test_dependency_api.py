@@ -7,6 +7,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "backend"))
 
 
 import requests
+
 from app.api.v1.discovery.persistence import get_processed_assets
 
 

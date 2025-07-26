@@ -23,11 +23,12 @@ import uuid
 from datetime import datetime, timezone
 from typing import Dict
 
+from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models import ClientAccount, Engagement, User
 from app.models.client_account import UserAccountAssociation
 from app.models.rbac import RoleType, UserProfile, UserRole, UserStatus
-from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,9 @@ class PlatformRequirements:
 
     # Platform admin configuration
     PLATFORM_ADMIN_EMAIL = "chocka@gmail.com"
-    PLATFORM_ADMIN_PASSWORD = "Password123!"
+    PLATFORM_ADMIN_PASSWORD = (
+        "Password123!"  # nosec B105 - Platform admin password for initial setup
+    )
     PLATFORM_ADMIN_FIRST_NAME = "Platform"
     PLATFORM_ADMIN_LAST_NAME = "Admin"
 
@@ -59,7 +62,7 @@ class PlatformRequirements:
     DEMO_ENGAGEMENT_NAME = "Demo Cloud Migration Project"
     DEMO_USER_ID = uuid.UUID("33333333-3333-3333-3333-333333333333")
     DEMO_USER_EMAIL = "demo@demo-corp.com"
-    DEMO_USER_PASSWORD = "Demo123!"
+    DEMO_USER_PASSWORD = "Demo123!"  # nosec B105 - Demo user password for testing
 
     # Demo users (NO CLIENT ADMINS!)
     DEMO_USERS = [

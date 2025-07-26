@@ -28,6 +28,8 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from sqlalchemy import func, select
+
 from app.core.database import AsyncSessionLocal
 from app.models import (
     ClientAccount,
@@ -38,7 +40,6 @@ from app.models import (
     UserRole,
 )
 from app.models.rbac import UserProfile, UserStatus
-from sqlalchemy import func, select
 
 
 def get_password_hash(password: str) -> str:

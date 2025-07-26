@@ -6,10 +6,11 @@ Simple test to verify RBAC auto-mapping works with proper database connection
 import asyncio
 import os
 
+from sqlalchemy import String, cast, select
+
 from app.core.database import AsyncSessionLocal
 from app.models import ClientAccount, Engagement, User
 from app.models.rbac import ClientAccess, EngagementAccess
-from sqlalchemy import String, cast, select
 
 
 async def test_rbac():

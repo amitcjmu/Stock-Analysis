@@ -146,7 +146,7 @@ class TestDiscoveryFlowErrorHandling:
 
         # Assert
         assert result['status'] == 'completed', "Crew should eventually succeed after retries"
-        assert result['recovered'] == True, "Should indicate recovery occurred"
+        assert result['recovered'], "Should indicate recovery occurred"
         assert result['attempt_count'] == 3, "Should succeed on third attempt"
         assert 'crew_operation' in recovery_manager.recovery_attempts, "Recovery attempts should be tracked"
 
@@ -257,8 +257,8 @@ class TestDiscoveryFlowErrorHandling:
 
         # Assert
         assert result['status'] == 'completed_with_fallback', "Should complete with fallback"
-        assert result['fallback_used'] == True, "Should indicate fallback was used"
-        assert result['reduced_scope'] == True, "Should indicate reduced scope operation"
+        assert result['fallback_used'], "Should indicate fallback was used"
+        assert result['reduced_scope'], "Should indicate reduced scope operation"
         assert result['processed_assets'] == 500, "Should process reduced dataset"
 
     @pytest.mark.asyncio
@@ -361,7 +361,7 @@ class TestDiscoveryFlowErrorHandling:
         assert "crew_2" in errors, "Failing crew should be recorded in errors"
         assert results['crew_1']['status'] == 'completed', "Non-failing crews should succeed"
         assert results['crew_3']['status'] == 'completed', "Non-failing crews should succeed"
-        assert results['crew_2']['isolated'] == True, "Failed crew should be marked as isolated"
+        assert results['crew_2']['isolated'], "Failed crew should be marked as isolated"
 
     @pytest.mark.asyncio
     async def test_resource_cleanup_after_failures(
@@ -396,7 +396,7 @@ class TestDiscoveryFlowErrorHandling:
                 error_simulator.simulate_memory_error()
 
         # Verify cleanup occurred despite error
-        assert resource_manager.cleanup_performed == True, "Cleanup should occur despite errors"
+        assert resource_manager.cleanup_performed, "Cleanup should occur despite errors"
         assert len(resource_manager.allocated_resources) == 0, "All resources should be cleaned up"
 
     @pytest.mark.asyncio
@@ -443,7 +443,7 @@ class TestDiscoveryFlowErrorHandling:
         # Assert
         assert len(error_monitor.error_log) == 4, "All errors should be logged"
         assert error_monitor.error_counts["test_crew:ConnectionError"] == 4, "Error count should be tracked"
-        assert error_monitor.should_alert("test_crew", "ConnectionError") == True, "Should trigger alert"
+        assert error_monitor.should_alert("test_crew", "ConnectionError"), "Should trigger alert"
 
         # Verify error log structure
         first_error = error_monitor.error_log[0]

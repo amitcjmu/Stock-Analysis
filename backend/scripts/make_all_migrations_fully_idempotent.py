@@ -9,7 +9,6 @@ Make all migration files fully idempotent by adding proper checks for:
 - add_column
 """
 
-import re
 from pathlib import Path
 
 
@@ -124,7 +123,7 @@ def process_migration_file(file_path: Path):
             "constraint_exists",
         ]
     ):
-        print(f"  ✓ Already fully idempotent (skipping)")
+        print("  ✓ Already fully idempotent (skipping)")
         return
 
     # Add helper functions
@@ -133,9 +132,9 @@ def process_migration_file(file_path: Path):
     # Only write if changed
     if content != original_content:
         file_path.write_text(content)
-        print(f"  ✓ Added idempotent helper functions")
+        print("  ✓ Added idempotent helper functions")
     else:
-        print(f"  ✓ No changes needed")
+        print("  ✓ No changes needed")
 
 
 def main():

@@ -6,9 +6,10 @@ import asyncio
 import logging
 from datetime import datetime, timedelta
 
+from sqlalchemy import and_, func, select
+
 from app.core.database import AsyncSessionLocal
 from app.models.discovery_flow import DiscoveryFlow
-from sqlalchemy import and_, func, select
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

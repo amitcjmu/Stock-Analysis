@@ -17,9 +17,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import uuid
 
+from sqlalchemy import select, update
+
 from app.core.database import AsyncSessionLocal
 from app.models.data_import.core import DataImport, RawImportRecord
-from sqlalchemy import select, update
 
 
 async def fix_engagement_data_association():

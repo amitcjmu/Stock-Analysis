@@ -27,7 +27,6 @@ class AssetCRUDHandler:
                 backup_processed_assets,
                 bulk_delete_assets,
                 bulk_update_assets,
-                cleanup_duplicates,
                 find_duplicate_assets,
                 get_processed_assets,
                 initialize_persistence,

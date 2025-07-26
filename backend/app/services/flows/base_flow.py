@@ -45,9 +45,10 @@ except ImportError as e:
         return decorator
 
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class BaseFlowState(BaseModel):

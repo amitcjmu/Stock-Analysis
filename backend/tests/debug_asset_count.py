@@ -7,9 +7,10 @@ sys.path.append("backend")
 
 async def check_asset_count():
     try:
+        from sqlalchemy import func, select
+
         from app.core.database import AsyncSessionLocal
         from app.models.asset import Asset
-        from sqlalchemy import func, select
 
         print("🔍 Checking asset count in database...")
 

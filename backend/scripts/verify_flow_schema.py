@@ -8,12 +8,13 @@ tables has been completed successfully.
 
 import asyncio
 
+from sqlalchemy import text
+
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.user_active_flows import UserActiveFlow
-from sqlalchemy import text
 
 
 async def verify_flow_schema():

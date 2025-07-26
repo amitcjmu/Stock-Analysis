@@ -12,6 +12,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from datetime import datetime, timezone
 
+from sqlalchemy import func, select, text
+
 from app.core.database import AsyncSessionLocal
 from app.models import (
     Asset,
@@ -31,7 +33,6 @@ from seeding.demo_multi_tenant_setup import (
     clean_demo_data,
     create_demo_multi_tenant_data,
 )
-from sqlalchemy import func, select, text
 
 
 class DeploymentSeeder:

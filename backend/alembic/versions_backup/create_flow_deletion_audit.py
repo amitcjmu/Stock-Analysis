@@ -7,8 +7,9 @@ Create Date: 2025-01-27 21:46:00.000000
 """
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "create_flow_deletion_audit"

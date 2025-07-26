@@ -13,13 +13,14 @@ These endpoints are exempt from the global engagement requirement middleware.
 import logging
 from typing import List, Optional
 
-from app.api.v1.auth.auth_utils import get_current_user
-from app.core.database import get_db
-from app.models import User
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.v1.auth.auth_utils import get_current_user
+from app.core.database import get_db
+from app.models import User
 
 # Make client_account import conditional to avoid deployment failures
 try:
@@ -100,7 +101,7 @@ async def get_context_clients(
             and_(
                 UserRole.user_id == current_user.id,
                 UserRole.role_type == "platform_admin",
-                UserRole.is_active == True,
+                UserRole.is_active,
             )
         )
         role_result = await db.execute(role_query)
@@ -110,7 +111,7 @@ async def get_context_clients(
             # Platform admins: Get all active clients
             clients_query = (
                 select(ClientAccount)
-                .where(ClientAccount.is_active == True)
+                .where(ClientAccount.is_active)
                 .order_by(ClientAccount.name)
             )
 
@@ -142,8 +143,8 @@ async def get_context_clients(
                 .where(
                     and_(
                         ClientAccess.user_profile_id == str(current_user.id),
-                        ClientAccess.is_active == True,
-                        ClientAccount.is_active == True,
+                        ClientAccess.is_active,
+                        ClientAccount.is_active,
                     )
                 )
             )
@@ -212,7 +213,7 @@ async def get_context_clients(
                 demo_client_query = select(ClientAccount).where(
                     and_(
                         ClientAccount.id == DEMO_CLIENT_ID,
-                        ClientAccount.is_active == True,
+                        ClientAccount.is_active,
                     )
                 )
                 demo_result = await db.execute(demo_client_query)
@@ -291,7 +292,7 @@ async def get_context_engagements(
             and_(
                 UserRole.user_id == current_user.id,
                 UserRole.role_type == "platform_admin",
-                UserRole.is_active == True,
+                UserRole.is_active,
             )
         )
         role_result = await db.execute(role_query)
@@ -313,7 +314,7 @@ async def get_context_engagements(
         client_query = select(ClientAccount).where(
             and_(
                 ClientAccount.id == client_id,
-                or_(ClientAccount.is_active == True, ClientAccount.is_active.is_(None)),
+                or_(ClientAccount.is_active, ClientAccount.is_active.is_(None)),
             )
         )
         client_result = await db.execute(client_query)
@@ -359,7 +360,7 @@ async def get_context_engagements(
             .where(
                 and_(
                     Engagement.client_account_id == client_id,
-                    or_(Engagement.is_active == True, Engagement.is_active.is_(None)),
+                    or_(Engagement.is_active, Engagement.is_active.is_(None)),
                 )
             )
             .order_by(Engagement.name)

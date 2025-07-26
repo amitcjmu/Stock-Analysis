@@ -271,8 +271,8 @@ except Exception as e:
 
 # Try to import database components
 try:
-    from app.core.database import SQLALCHEMY_AVAILABLE, Base, engine
     import app.models.data_import  # noqa: F401
+    from app.core.database import SQLALCHEMY_AVAILABLE, Base, engine
 
     DATABASE_ENABLED = SQLALCHEMY_AVAILABLE
     logger.info("✅ Database components loaded")
@@ -396,6 +396,8 @@ ENABLE_MIDDLEWARE = True  # Production setting
 if ENABLE_MIDDLEWARE:
     try:
         # Import request tracking middleware
+        from starlette.middleware.base import BaseHTTPMiddleware
+
         from app.core.context import RequestContext, get_current_context_dependency
         from app.core.middleware import ContextMiddleware, RequestLoggingMiddleware
         from app.middleware.adaptive_rate_limit_middleware import (
@@ -405,7 +407,6 @@ if ENABLE_MIDDLEWARE:
             SecurityAuditMiddleware,
             SecurityHeadersMiddleware,
         )
-        from starlette.middleware.base import BaseHTTPMiddleware
 
         class TraceIDMiddleware(BaseHTTPMiddleware):
             """Middleware to add trace ID to all requests"""

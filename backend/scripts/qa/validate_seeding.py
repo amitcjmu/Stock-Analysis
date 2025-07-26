@@ -21,6 +21,9 @@ from typing import Any, Dict, List, Optional
 # Add app path
 sys.path.append("/app")
 
+from sqlalchemy import and_, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
 from app.models import (
     Assessment,
@@ -37,8 +40,6 @@ from app.models import (
     UserRole,
     WavePlan,
 )
-from sqlalchemy import and_, func, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass

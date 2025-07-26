@@ -7,6 +7,9 @@ import logging
 import uuid
 from typing import Any, Dict
 
+from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.schemas.auth_schemas import (
     AccessValidationRequest,
     AccessValidationResponse,
@@ -23,8 +26,6 @@ from app.schemas.auth_schemas import (
     UserRejectionResponse,
 )
 from app.services.rbac_service import create_rbac_service
-from fastapi import HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

@@ -12,13 +12,14 @@ from pathlib import Path
 # Add the backend directory to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models.assessment_flow import AssessmentFlow
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
-from sqlalchemy import select
 
 # Configure logging
 logging.basicConfig(

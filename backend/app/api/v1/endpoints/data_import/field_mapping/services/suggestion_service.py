@@ -5,10 +5,11 @@ AI-powered field mapping suggestion service.
 import logging
 from typing import Any, Dict, List, Optional
 
-from app.core.context import RequestContext
-from app.models.data_import import DataImport, RawImportRecord
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext
+from app.models.data_import import DataImport, RawImportRecord
 
 from ..models.mapping_schemas import FieldMappingAnalysis, FieldMappingSuggestion
 

@@ -5,8 +5,9 @@ Final schema validation test.
 
 import asyncio
 
-from app.core.database import AsyncSessionLocal
 from sqlalchemy import text
+
+from app.core.database import AsyncSessionLocal
 
 
 async def test_final_schema():

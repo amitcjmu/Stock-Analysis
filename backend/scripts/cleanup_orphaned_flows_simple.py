@@ -5,8 +5,9 @@ Simple cleanup of orphaned discovery flows - no backup needed since we have full
 
 import asyncio
 
-from app.core.database import AsyncSessionLocal
 from sqlalchemy import text
+
+from app.core.database import AsyncSessionLocal
 
 
 async def cleanup_orphaned_discovery_flows():

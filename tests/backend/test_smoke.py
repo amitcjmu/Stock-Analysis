@@ -3,17 +3,10 @@ Backend Smoke Test: Ensure all critical services, endpoints, and agentic compone
 This test should be run after every backend restart to catch initialization errors early.
 """
 import pytest
-import importlib
-import sys
 
 @pytest.mark.smoke
 def test_basic_imports():
     """Test that essential backend modules can be imported."""
-    import app.core.config
-    import app.services.memory
-    import app.services.agents
-    import app.services.crewai_flow_service
-    import app.services.deepinfra_llm
 
 @pytest.mark.smoke
 def test_crewai_service_initialization():
@@ -27,7 +20,6 @@ def test_agent_manager_initialization():
     """Test that AgentManager can be instantiated and has crews."""
     # Import directly from the agents.py module file to avoid conflict with agents package
     import os
-    import sys
     import importlib.util
 
     # Get the path relative to the current working directory

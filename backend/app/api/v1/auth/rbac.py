@@ -8,14 +8,15 @@ the same API interface as the original monolithic implementation.
 
 import logging
 
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.auth.handlers.admin_handlers import admin_router
 from app.api.v1.auth.handlers.authentication_handlers import authentication_router
 from app.api.v1.auth.handlers.demo_handlers import demo_router
 from app.api.v1.auth.handlers.user_management_handlers import user_management_router
 from app.core.database import get_db
 from app.services.auth_services.rbac_core_service import RBACCoreService
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
