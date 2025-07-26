@@ -4,13 +4,13 @@
 repos:
   # Secret Detection - Fast, runs only on staged files
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.18.0
+    rev: v8.28.0
     hooks:
       - id: gitleaks
 
   # Python Security Linting - Only on staged Python files
   - repo: https://github.com/pycqa/bandit
-    rev: 1.7.5
+    rev: 1.8.6
     hooks:
       - id: bandit
         args: ['-ll']  # Removed '-r backend/' to scan only staged files
@@ -26,7 +26,7 @@ repos:
 
   # Python Code Formatting - Only on staged files
   - repo: https://github.com/psf/black
-    rev: 23.11.0
+    rev: 25.1.0
     hooks:
       - id: black
         language_version: python3.9
@@ -34,7 +34,7 @@ repos:
 
   # Python Linting - Only on staged files
   - repo: https://github.com/pycqa/flake8
-    rev: 6.1.0
+    rev: 7.3.0
     hooks:
       - id: flake8
         args: ['--max-line-length=120', '--extend-ignore=E203,W503']
@@ -52,14 +52,14 @@ repos:
 
   # Dockerfile Security
   - repo: https://github.com/hadolint/hadolint
-    rev: v2.12.0
+    rev: v2.13.1-beta
     hooks:
       - id: hadolint
         args: ['--ignore', 'DL3008', '--ignore', 'DL3009']
 
   # Basic file checks - Very fast
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
       - id: check-yaml
         args: ['--unsafe']
@@ -76,7 +76,7 @@ repos:
 
   # SQL checks - Only on staged SQL files (not Python files)
   - repo: https://github.com/sqlfluff/sqlfluff
-    rev: 2.3.5
+    rev: 3.4.2  # Updated to fix deprecated option error
     hooks:
       - id: sqlfluff-lint
         files: \.sql$  # Only actual SQL files, not Python
@@ -95,7 +95,7 @@ repos:
       # Check for AWS/cloud service keys in staged files only
       - id: check-cloud-keys-staged
         name: Check for exposed cloud service keys in staged files
-        entry: sh -c 'git diff --staged --name-only | grep -E "\.(py|yml|yaml|json|env)$" | xargs -I {} grep -lE "(AKIA[0-9A-Z]{16}|aws_access_key_id|aws_secret_access_key|ASCP[A-Za-z0-9/+=]{8,})" {} 2>/dev/null && echo "Found cloud service keys!" && exit 1 || exit 0'
+        entry: scripts/check-cloud-keys.sh
         language: system
         pass_filenames: false
 
