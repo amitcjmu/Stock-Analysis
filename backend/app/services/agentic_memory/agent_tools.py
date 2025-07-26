@@ -31,10 +31,7 @@ except ImportError:
 try:
     from app.core.database import AsyncSessionLocal
     from app.models.agent_memory import (
-        AgentDiscoveredPattern,
         PatternType,
-        create_asset_enrichment_pattern,
-        get_patterns_for_agent_reasoning,
     )
     from app.models.asset import Asset
     from app.services.agentic_memory import MemoryQuery, ThreeTierMemoryManager
@@ -69,7 +66,8 @@ Input should be a JSON object with:
 - min_confidence: minimum confidence threshold (0.0 to 1.0, default 0.6)
 - validated_only: whether to only search human-validated patterns (default false)
 
-Example: {"query": "database business value indicators", "pattern_types": ["business_value_indicator"], "min_confidence": 0.7}""",
+Example: {"query": "database business value indicators",
+                "pattern_types": ["business_value_indicator"], "min_confidence": 0.7}""",
         )
 
         # Store context after super init

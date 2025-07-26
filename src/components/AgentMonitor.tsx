@@ -59,7 +59,7 @@ interface AgentMonitorResponse {
   message: string;
 }
 
-const AgentMonitor = () => {
+const AgentMonitor = (): JSX.Element => {
   const { data, isLoading, isError, error } = useAgentMonitor({
     enabled: true,
     polling: false // Disable aggressive polling

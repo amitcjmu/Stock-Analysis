@@ -459,7 +459,7 @@ const AuthenticatedApp = () => {
   );
 };
 
-const App = () => (
+const App = (): JSX.Element => (
   <ErrorBoundary>
     <TooltipProvider>
       <Toaster />

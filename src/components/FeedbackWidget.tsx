@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
-const FeedbackWidget = () => {
+const FeedbackWidget = (): JSX.Element => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFeedback, setNewFeedback] = useState({
     type: 'Feature' as const,

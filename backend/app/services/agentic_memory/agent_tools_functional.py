@@ -29,10 +29,7 @@ except ImportError:
 try:
     from app.core.database import AsyncSessionLocal
     from app.models.agent_memory import (
-        AgentDiscoveredPattern,
         PatternType,
-        create_asset_enrichment_pattern,
-        get_patterns_for_agent_reasoning,
     )
     from app.models.asset import Asset
     from app.services.agentic_memory import MemoryQuery, ThreeTierMemoryManager

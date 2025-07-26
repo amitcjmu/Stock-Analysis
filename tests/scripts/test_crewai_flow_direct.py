@@ -6,9 +6,6 @@ Tests the CrewAI Flow service directly without pytest dependencies.
 
 import sys
 import asyncio
-import json
-from datetime import datetime
-from typing import Dict, Any
 
 
 def test_service_import():
@@ -355,7 +352,7 @@ def run_all_tests():
     print(f"Failed: {failed_tests} ❌")
     print(f"Success Rate: {success_rate:.1f}%")
 
-    print(f"\nDETAILED RESULTS:")
+    print("\nDETAILED RESULTS:")
     print("-" * 40)
     for test_name, success in results:
         status = "✅" if success else "❌"
