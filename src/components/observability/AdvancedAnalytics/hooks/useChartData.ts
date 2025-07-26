@@ -16,7 +16,7 @@ export const useChartData = ({
   analyticsData,
   agentNames,
   selectedMetrics
-}: UseChartDataProps) => {
+}: UseChartDataProps): any[] => {
   const chartData = useMemo(() => {
     if (!analyticsData?.timeSeriesData) return [];
 

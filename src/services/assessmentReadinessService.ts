@@ -148,7 +148,7 @@ const submitForApproval = async (clientAccountId: string, engagementId: string, 
 };
 
 // React Query Hooks
-export const useReadinessAssessment = (clientAccountId: string, engagementId: string) => {
+export const useReadinessAssessment = (clientAccountId: string, engagementId: string): ReturnType<typeof useQuery> => {
   return useQuery({
     queryKey: ['readinessAssessment', clientAccountId, engagementId],
     queryFn: () => fetchReadinessAssessment(clientAccountId, engagementId),
@@ -157,7 +157,7 @@ export const useReadinessAssessment = (clientAccountId: string, engagementId: st
   });
 };
 
-export const useGenerateSignoffPackage = () => {
+export const useGenerateSignoffPackage = (): ReturnType<typeof useMutation> => {
   const { clientAccountId, engagementId } = useAuth();
   const queryClient = useQueryClient();
 
@@ -169,7 +169,7 @@ export const useGenerateSignoffPackage = () => {
   });
 };
 
-export const useSubmitForApproval = () => {
+export const useSubmitForApproval = (): ReturnType<typeof useMutation> => {
   const { clientAccountId, engagementId } = useAuth();
   const queryClient = useQueryClient();
 

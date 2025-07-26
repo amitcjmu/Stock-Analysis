@@ -19,7 +19,13 @@ export const useAnalyticsData = ({
   agentNames,
   timeRange,
   refreshInterval
-}: UseAnalyticsDataProps) => {
+}: UseAnalyticsDataProps): {
+  analyticsData: AnalyticsData | null;
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+  dateRange: { from: Date; to: Date };
+} => {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

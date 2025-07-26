@@ -27,7 +27,7 @@ export interface QualityFixData {
 /**
  * Fetches the latest import data for data cleansing
  */
-export const fetchLatestImport = async () => {
+export const fetchLatestImport = async (): Promise<any[]> => {
   try {
     const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT, {
       headers: getAuthHeaders()
@@ -47,7 +47,7 @@ export const fetchLatestImport = async () => {
 /**
  * Fetches assets from the backend
  */
-export const fetchAssets = async (page = 1, pageSize = 1000) => {
+export const fetchAssets = async (page = 1, pageSize = 1000): Promise<any[]> => {
   try {
     const response = await apiCall(
       `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=${page}&page_size=${pageSize}`,
@@ -68,7 +68,7 @@ export const fetchAssets = async (page = 1, pageSize = 1000) => {
 /**
  * Performs agent quality analysis on the provided data
  */
-export const performAgentAnalysis = async (data: AssetData[]) => {
+export const performAgentAnalysis = async (data: AssetData[]): Promise<any> => {
   try {
     const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.ANALYZE_QUALITY, {
       method: 'POST',
@@ -93,7 +93,7 @@ export const performAgentAnalysis = async (data: AssetData[]) => {
 /**
  * Applies a fix to a specific issue
  */
-export const applyFix = async (issueId: string, fixData: QualityFixData) => {
+export const applyFix = async (issueId: string, fixData: QualityFixData): Promise<any> => {
   try {
     const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.APPLY_FIX}/${issueId}`, {
       method: 'POST',

@@ -2,7 +2,14 @@ import { useState } from 'react'
 import { useMemo } from 'react'
 import type { AssetInventory, AssetFilters } from '../types/inventory.types';
 
-export const useAssetFilters = (assets: AssetInventory[]) => {
+export const useAssetFilters = (assets: AssetInventory[]): {
+  filters: AssetFilters;
+  updateFilter: (key: keyof AssetFilters, value: any) => void;
+  resetFilters: () => void;
+  filteredAssets: AssetInventory[];
+  uniqueEnvironments: string[];
+  uniqueAssetTypes: string[];
+} => {
   const [filters, setFilters] = useState<AssetFilters>({
     searchTerm: '',
     selectedAssetType: 'all',
