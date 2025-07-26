@@ -48,7 +48,10 @@ class AdminOperationsService:
 
             # Active users
             active_users_query = select(func.count()).where(
-                and_(User.is_active == True  # noqa: E712, User.is_verified == True  # noqa: E712)
+                and_(
+                    User.is_active == True,  # noqa: E712
+                    User.is_verified == True,  # noqa: E712
+                )
             )
             active_users = (await self.db.execute(active_users_query)).scalar_one()
 
@@ -92,9 +95,9 @@ class AdminOperationsService:
                     .join(UserProfile, User.id == UserProfile.user_id)
                     .where(
                         and_(
-                            User.is_active == True  # noqa: E712,
-                            User.is_verified == True  # noqa: E712,
-                            UserProfile.status == "active",  # noqa: E712
+                            User.is_active == True,  # noqa: E712
+                            User.is_verified == True,  # noqa: E712
+                            UserProfile.status == "active",
                         )
                     )
                     .order_by(desc(UserProfile.last_login_at))
@@ -107,7 +110,10 @@ class AdminOperationsService:
                 for user, profile in users_with_profiles:
                     # Get user roles
                     user_roles_query = select(UserRole).where(
-                        and_(UserRole.user_id == user.id, UserRole.is_active == True)  # noqa: E712
+                        and_(
+                            UserRole.user_id == user.id,
+                            UserRole.is_active == True  # noqa: E712
+                        )
                     )
                     roles_result = await self.db.execute(user_roles_query)
                     user_roles = roles_result.scalars().all()
