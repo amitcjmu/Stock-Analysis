@@ -29,7 +29,7 @@ async def get_asset(asset_id: int):
 @router.put("/{asset_id}")
 async def update_asset(asset_id: int):
     """Update asset - placeholder endpoint."""
-    return {"message": f"Update asset {asset_id} - coming in Sprint 2"}
+    return {"message": f"Update asset {asset_id} - coming in Sprint 2"}  # nosec B608
 
 
 @router.delete("/{asset_id}")

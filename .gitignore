@@ -123,3 +123,5 @@ CLAUDE.md
 
 # Generated Documentation
 /docs/database/
+# Temporary validation data
+backend/backend/data/validation_sessions/

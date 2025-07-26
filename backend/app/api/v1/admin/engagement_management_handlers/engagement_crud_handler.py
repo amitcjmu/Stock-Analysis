@@ -151,7 +151,7 @@ class EngagementCRUDHandler:
                             and_(
                                 UserRole.user_id == user_id,
                                 UserRole.role_type == RoleType.PLATFORM_ADMIN,
-                                UserRole.is_active == True,
+                                UserRole.is_active == True,  # noqa: E712
                             )
                         )
                     )
@@ -224,14 +224,14 @@ class EngagementCRUDHandler:
         try:
             # Total engagements (only active ones)
             total_query = select(func.count()).where(
-                Engagement.is_active == True
-            )  # noqa: E712
+                Engagement.is_active == True  # noqa: E712
+            )
             total_engagements = (await db.execute(total_query)).scalar_one()
 
             # Active engagements (redundant now since we only count active ones)
             active_query = select(func.count()).where(
-                Engagement.is_active == True
-            )  # noqa: E712
+                Engagement.is_active == True  # noqa: E712
+            )
             active_engagements = (await db.execute(active_query)).scalar_one()
 
             # Engagements by type (only active ones)
@@ -549,12 +549,14 @@ class EngagementCRUDHandler:
                                 f"""
                             DELETE FROM {table}
                             WHERE engagement_id = :engagement_id
-                        """
+                        """  # nosec B608 - table names are hardcoded, not user input
                             ),
                             {"engagement_id": engagement_id},
                         )
                     except Exception as table_error:
-                        logger.warning(f"Could not delete from {table}: {table_error}")
+                        logger.warning(
+                            f"Could not delete from {table}: {table_error}"  # nosec B608
+                        )
                         # Continue with other tables
 
                 # 4. Handle user-related references (set to NULL instead of delete)

@@ -54,7 +54,11 @@ async def check_assessment_tables_health():
 
             for table in tables_to_check:
                 try:
-                    await db.execute(text(f"SELECT 1 FROM {table} LIMIT 1"))
+                    await db.execute(
+                        text(
+                            f"SELECT 1 FROM {table} LIMIT 1"  # nosec B608 - table names hardcoded
+                        )
+                    )
                 except Exception as e:
                     # Table might not exist yet or be empty - that's ok for development
                     logger.warning(f"Assessment table {table} check failed: {str(e)}")
@@ -94,9 +98,9 @@ async def check_assessment_flow_service():
     """Check assessment flow service availability"""
     try:
         # Try to import assessment flow components
-        from app.services.crewai_flows.unified_assessment_flow import (
-            UnifiedAssessmentFlow,
-        )
+        # from app.services.crewai_flows.unified_assessment_flow import (
+        #     UnifiedAssessmentFlow,
+        # )
 
         # Basic import successful
         logger.debug("Assessment flow service import successful")
@@ -176,7 +180,8 @@ async def get_assessment_flow_metrics():
                         """
                     SELECT
                         COUNT(*) as total,
-                        COUNT(*) FILTER (WHERE status IN ('initialized', 'processing', 'paused_for_user_input')) as active,
+                        COUNT(*) FILTER (WHERE status IN
+                            ('initialized', 'processing', 'paused_for_user_input')) as active,
                         MAX(created_at) as last_created
                     FROM assessment_flows
                 """

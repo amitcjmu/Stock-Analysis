@@ -112,7 +112,7 @@ class AdminOperationsService:
                     user_roles_query = select(UserRole).where(
                         and_(
                             UserRole.user_id == user.id,
-                            UserRole.is_active == True  # noqa: E712
+                            UserRole.is_active == True,  # noqa: E712
                         )
                     )
                     roles_result = await self.db.execute(user_roles_query)

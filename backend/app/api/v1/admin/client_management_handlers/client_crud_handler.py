@@ -337,7 +337,8 @@ class ClientCRUDHandler:
                     # If there are active engagements, suggest deactivation instead
                     raise HTTPException(
                         status_code=409,
-                        detail=f"Cannot delete client account with {active_engagements} active engagements. Please complete or archive engagements first.",
+                        detail=f"Cannot delete client account with {active_engagements} active engagements. "
+                        "Please complete or archive engagements first.",
                     )
 
                 # Delete related records in proper order to avoid foreign key constraints
@@ -434,7 +435,8 @@ class ClientCRUDHandler:
                     )
                     raise HTTPException(
                         status_code=500,
-                        detail="Failed to delete client account: Unable to delete due to data dependencies. Please contact administrator.",
+                        detail="Failed to delete client account: Unable to delete due to data dependencies. "
+                        "Please contact administrator.",
                     )
 
         except HTTPException:
@@ -653,7 +655,7 @@ class ClientCRUDHandler:
             .where(
                 and_(
                     Engagement.client_account_id == client.id,
-                    Engagement.is_active == True,
+                    Engagement.is_active == True,  # noqa: E712
                 )
             )
         )
