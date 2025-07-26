@@ -28,7 +28,7 @@ export const strategyColors = {
 };
 
 // Utility functions for job management
-export const sortJobs = (jobs: BulkAnalysisJob[]) => {
+export const sortJobs = (jobs: BulkAnalysisJob[]): BulkAnalysisJob[] => {
   return [...jobs].sort((a, b) => {
     // Running jobs first, then by priority, then by creation date
     if (a.status === 'running' && b.status !== 'running') return -1;
@@ -42,7 +42,7 @@ export const sortJobs = (jobs: BulkAnalysisJob[]) => {
   });
 };
 
-export const calculateQueueStats = (jobs: BulkAnalysisJob[], maxConcurrentJobs: number) => {
+export const calculateQueueStats = (jobs: BulkAnalysisJob[], maxConcurrentJobs: number): { runningJobs: number; pendingJobs: number; availableSlots: number; totalApplicationsInQueue: number; estimatedTimeRemaining: number } => {
   const runningJobs = jobs.filter(j => j.status === 'running').length;
   const pendingJobs = jobs.filter(j => j.status === 'pending').length;
   const totalApplicationsInQueue = jobs
@@ -76,7 +76,7 @@ export const formatDuration = (minutes: number): string => {
   return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
 };
 
-export const getStatusIcon = (status: string) => {
+export const getStatusIcon = (status: string): string => {
   switch (status) {
     case 'pending':
       return '⏳';
@@ -95,7 +95,7 @@ export const getStatusIcon = (status: string) => {
   }
 };
 
-export const getPriorityIcon = (priority: string) => {
+export const getPriorityIcon = (priority: string): string => {
   switch (priority) {
     case 'urgent':
       return '🔴';
@@ -144,7 +144,7 @@ export const filterJobs = (
   });
 };
 
-export const exportJobResults = (jobId: string, results: BulkAnalysisResult[], format: 'csv' | 'json' | 'excel') => {
+export const exportJobResults = (jobId: string, results: BulkAnalysisResult[], format: 'csv' | 'json' | 'excel'): void => {
   const jobResults = results.filter(r => r.job_id === jobId);
 
   switch (format) {
