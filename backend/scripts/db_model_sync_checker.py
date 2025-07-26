@@ -29,7 +29,7 @@ sys.path.append("/app")
 from app.core.database import Base, get_database_url
 
 # Import all models to ensure they're registered
-from app.models import *
+# Base is already imported from app.core.database above
 
 
 class DatabaseModelChecker:

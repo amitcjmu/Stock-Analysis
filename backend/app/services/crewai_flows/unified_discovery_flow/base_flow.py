@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 try:
     from crewai import Flow
     from crewai.flow.flow import listen, start
-    from crewai.flow.persistence import persist
 
     CREWAI_FLOW_AVAILABLE = True
     logger.info("✅ CrewAI Flow imports successful - REAL AGENTS ENABLED")

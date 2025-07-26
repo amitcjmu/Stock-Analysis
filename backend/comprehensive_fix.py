@@ -7,7 +7,7 @@ import ast
 import os
 import re
 
-import autopep8
+# autopep8 import removed - not used
 
 
 def fix_python_file(filepath) -> bool | None:
@@ -82,10 +82,7 @@ def manual_fix(content):
 def main() -> None:
     """Process all Python files."""
     # First install autopep8 if not available
-    try:
-        import autopep8
-    except ImportError:
-        os.system("pip install autopep8")
+    # autopep8 was removed as it's not used in this script
 
     fixed_count = 0
 
