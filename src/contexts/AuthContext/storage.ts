@@ -14,7 +14,7 @@ export interface ExternalSessionData {
 
 // Token storage - using localStorage for now (httpOnly cookies not yet implemented)
 export const tokenStorage: TokenStorage = {
-  getToken: (): void => {
+  getToken: () => {
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) return null;
@@ -44,7 +44,7 @@ export const tokenStorage: TokenStorage = {
       return null;
     }
   },
-  setToken: (token): void => {
+  setToken: (token) => {
     try {
       if (token) {
         localStorage.setItem('auth_token', token);
@@ -55,7 +55,7 @@ export const tokenStorage: TokenStorage = {
       console.error("Failed to set token in localStorage", error);
     }
   },
-  getUser: (): void => {
+  getUser: () => {
     try {
       const userData = localStorage.getItem('auth_user');
       return userData ? JSON.parse(userData) : null;
@@ -64,7 +64,7 @@ export const tokenStorage: TokenStorage = {
       return null;
     }
   },
-  setUser: (user): void => {
+  setUser: (user) => {
     try {
       if (user) {
         localStorage.setItem('auth_user', JSON.stringify(user));

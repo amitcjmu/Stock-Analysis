@@ -184,7 +184,7 @@ const apiRequest = async <T>(endpoint: string, options?: RequestInit): Promise<T
 };
 
 // Hook for fetching demo assets
-export const useDemoAssets = (filters?: AssetFilters): JSX.Element => {
+export const useDemoAssets = (filters?: AssetFilters) => {
   const [assets, setAssets] = useState<DemoAsset[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -225,7 +225,7 @@ export const useDemoAssets = (filters?: AssetFilters): JSX.Element => {
 };
 
 // Hook for fetching a single demo asset
-export const useDemoAsset = (assetId: string | null): JSX.Element => {
+export const useDemoAsset = (assetId: string | null) => {
   const [asset, setAsset] = useState<DemoAsset | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -255,7 +255,7 @@ export const useDemoAsset = (assetId: string | null): JSX.Element => {
 };
 
 // Hook for fetching demo assets summary
-export const useDemoAssetsSummary = (): JSX.Element => {
+export const useDemoAssetsSummary = () => {
   const [summary, setSummary] = useState<DemoAssetSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -283,7 +283,7 @@ export const useDemoAssetsSummary = (): JSX.Element => {
 };
 
 // Hook for fetching 6R analyses
-export const useDemoSixRAnalyses = (limit?: number): JSX.Element => {
+export const useDemoSixRAnalyses = (limit?: number) => {
   const [analyses, setAnalyses] = useState<DemoSixRAnalysis[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -317,7 +317,7 @@ export const useDemoSixRAnalyses = (limit?: number): JSX.Element => {
 };
 
 // Hook for fetching migration waves
-export const useDemoMigrationWaves = (status?: string): JSX.Element => {
+export const useDemoMigrationWaves = (status?: string) => {
   const [waves, setWaves] = useState<DemoMigrationWave[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -351,7 +351,7 @@ export const useDemoMigrationWaves = (status?: string): JSX.Element => {
 };
 
 // Hook for fetching tags
-export const useDemoTags = (category?: string): JSX.Element => {
+export const useDemoTags = (category?: string) => {
   const [tags, setTags] = useState<DemoTag[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

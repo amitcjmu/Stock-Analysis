@@ -15,12 +15,30 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Add gen_random_uuid() default to raw_import_records.id column
+    # Check if table and column exist before altering
     op.execute(
-        "ALTER TABLE raw_import_records ALTER COLUMN id SET DEFAULT gen_random_uuid()"
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM information_schema.columns
+                      WHERE table_name = 'raw_import_records' AND column_name = 'id') THEN
+                ALTER TABLE raw_import_records ALTER COLUMN id SET DEFAULT gen_random_uuid();
+            END IF;
+        END $$;
+    """
     )
 
 
 def downgrade() -> None:
-    # Remove the UUID default from raw_import_records.id column
-    op.execute("ALTER TABLE raw_import_records ALTER COLUMN id DROP DEFAULT")
+    # Check if table and column exist before altering
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM information_schema.columns
+                      WHERE table_name = 'raw_import_records' AND column_name = 'id') THEN
+                ALTER TABLE raw_import_records ALTER COLUMN id DROP DEFAULT;
+            END IF;
+        END $$;
+    """
+    )
