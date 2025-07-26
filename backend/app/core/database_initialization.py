@@ -19,6 +19,7 @@ Run this module manually when:
 
 import asyncio
 import logging
+import os
 import uuid
 from datetime import datetime, timezone
 from typing import Dict
@@ -48,12 +49,12 @@ class PlatformRequirements:
     """Core platform requirements that must be enforced"""
 
     # Platform admin configuration
-    PLATFORM_ADMIN_EMAIL = "chocka@gmail.com"
-    PLATFORM_ADMIN_PASSWORD = (
-        "Password123!"  # nosec B105 - Platform admin password for initial setup
-    )
-    PLATFORM_ADMIN_FIRST_NAME = "Platform"
-    PLATFORM_ADMIN_LAST_NAME = "Admin"
+    PLATFORM_ADMIN_EMAIL = os.getenv("PLATFORM_ADMIN_EMAIL", "chocka@gmail.com")
+    PLATFORM_ADMIN_PASSWORD = os.getenv(
+        "PLATFORM_ADMIN_PASSWORD", "Password123!"
+    )  # nosec B105 - Default only for development
+    PLATFORM_ADMIN_FIRST_NAME = os.getenv("PLATFORM_ADMIN_FIRST_NAME", "Platform")
+    PLATFORM_ADMIN_LAST_NAME = os.getenv("PLATFORM_ADMIN_LAST_NAME", "Admin")
 
     # Demo data configuration - Fixed UUIDs for frontend fallback
     DEMO_CLIENT_ID = uuid.UUID("11111111-1111-1111-1111-111111111111")
@@ -62,7 +63,9 @@ class PlatformRequirements:
     DEMO_ENGAGEMENT_NAME = "Demo Cloud Migration Project"
     DEMO_USER_ID = uuid.UUID("33333333-3333-3333-3333-333333333333")
     DEMO_USER_EMAIL = "demo@demo-corp.com"
-    DEMO_USER_PASSWORD = "Demo123!"  # nosec B105 - Demo user password for testing
+    DEMO_USER_PASSWORD = os.getenv(
+        "DEMO_USER_PASSWORD", "Demo123!"
+    )  # nosec B105 - Default only for development
 
     # Demo users (NO CLIENT ADMINS!)
     DEMO_USERS = [

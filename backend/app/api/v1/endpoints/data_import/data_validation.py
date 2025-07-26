@@ -141,9 +141,11 @@ async def validate_file_upload(
 
         # Create validation session
         validation_session = {
-            "file_id": hashlib.md5(
+            "file_id": hashlib.sha256(
                 f"{file.filename}-{datetime.now().isoformat()}".encode()
-            ).hexdigest(),
+            ).hexdigest()[
+                :16
+            ],  # Use first 16 chars for shorter ID
             "filename": file.filename,
             "size_mb": file_size_mb,
             "content_type": file.content_type,

@@ -31,6 +31,9 @@ from app.models.data_import import DataImport, RawImportRecord
 APPLICATION_AVAILABLE = False
 Application = None
 
+# Engagement model availability
+ENGAGEMENT_AVAILABLE = True
+
 
 class DiscoveryWorkflowDebugger:
     """Debug the complete discovery workflow from CSV to dashboard."""

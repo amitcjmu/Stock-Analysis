@@ -145,12 +145,13 @@ async def verify_tenant_access(
     # Verify ownership through direct query
     from sqlalchemy import text
 
+    # Table names are validated from resource_map dictionary above
     query = text(
         f"""
         SELECT 1 FROM {table_name}
         WHERE id = :resource_id
         AND {tenant_field} = :client_id
-    """
+    """  # nosec B608 - table_name is from hardcoded dictionary
     )
 
     result = await db.execute(

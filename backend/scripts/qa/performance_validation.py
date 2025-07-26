@@ -37,6 +37,17 @@ from app.models import (
     User,
 )
 
+# Try to import Assessment if available
+try:
+    from app.models import Assessment
+except ImportError:
+    # Create a dummy Assessment class for when the model is not available
+    class Assessment:
+        assessment_type = None
+        confidence_level = None
+        asset_id = None
+        id = None
+
 
 @dataclass
 class PerformanceResult:

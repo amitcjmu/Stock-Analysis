@@ -53,7 +53,6 @@ class UnifiedFlowCrewManager:
     def _initialize_crew_factories(self):
         """Initialize CrewAI crew factory functions for on-demand creation"""
         try:
-
             # 🚀 PERFORMANCE OPTIMIZATION: Always use optimized crews
             from app.services.crewai_flows.crews.field_mapping_crew_fast import (
                 create_fast_field_mapping_crew,
