@@ -4,8 +4,9 @@ Saves flow state at major steps to allow resuming from checkpoints
 """
 
 import base64
+import json
 import logging
-import pickle
+import pickle  # nosec B403 - Used only for backward compatibility
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -279,15 +280,26 @@ class CheckpointManager:
                     ):
                         state_dict[attr] = value
                     else:
-                        # Serialize complex objects as base64
+                        # Serialize complex objects as JSON
                         try:
-                            serialized = base64.b64encode(pickle.dumps(value)).decode(
-                                "utf-8"
-                            )
-                            state_dict[attr] = {"_serialized": True, "data": serialized}
+                            # Try JSON first for safety
+                            json_data = json.dumps(value, default=str)
+                            state_dict[attr] = {
+                                "_serialized": True,
+                                "format": "json",
+                                "data": json_data,
+                            }
                         except Exception:
-                            # Skip if can't serialize
-                            logger.warning(f"Could not serialize attribute: {attr}")
+                            # Fall back to string representation
+                            try:
+                                state_dict[attr] = {
+                                    "_serialized": True,
+                                    "format": "str",
+                                    "data": str(value),
+                                }
+                            except Exception:
+                                # Skip if can't serialize
+                                logger.warning(f"Could not serialize attribute: {attr}")
 
             return state_dict
 
@@ -307,8 +319,23 @@ class CheckpointManager:
                 if isinstance(value, dict) and value.get("_serialized"):
                     # Deserialize complex object
                     try:
-                        deserialized = pickle.loads(base64.b64decode(value["data"]))
-                        setattr(state, key, deserialized)
+                        format_type = value.get(
+                            "format", "pickle"
+                        )  # Default to pickle for backward compatibility
+
+                        if format_type == "json":
+                            # New JSON format
+                            deserialized = json.loads(value["data"])
+                            setattr(state, key, deserialized)
+                        elif format_type == "str":
+                            # String representation
+                            setattr(state, key, value["data"])
+                        else:
+                            # Legacy pickle format - only for backward compatibility
+                            deserialized = pickle.loads(
+                                base64.b64decode(value["data"])
+                            )  # nosec B301
+                            setattr(state, key, deserialized)
                     except Exception:
                         logger.warning(f"Could not deserialize attribute: {key}")
                         setattr(state, key, None)

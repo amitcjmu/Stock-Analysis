@@ -137,7 +137,8 @@ class BusinessValueAgent:
             "business_criticality": asset_data.get("business_criticality"),
         }
 
-        task = Task(
+        # This is not SQL - it's a task description for CrewAI agent
+        task = Task(  # nosec B608
             description=f"""
             Analyze the business value of this asset using your agentic intelligence and memory tools:
 
