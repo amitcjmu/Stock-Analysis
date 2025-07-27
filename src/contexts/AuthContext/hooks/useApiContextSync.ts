@@ -8,7 +8,7 @@ export const useApiContextSync = (
   client: Client | null,
   engagement: Engagement | null,
   flow: Flow | null
-) => {
+): JSX.Element => {
   const lastContextRef = useRef<string>('');
 
   useEffect(() => {

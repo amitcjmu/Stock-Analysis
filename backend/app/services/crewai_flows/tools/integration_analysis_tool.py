@@ -306,9 +306,7 @@ class APIAnalysisTool(BaseTool):
                 api_type = (
                     "REST"
                     if "rest" in app_info
-                    else "SOAP"
-                    if "soap" in app_info
-                    else "Unknown"
+                    else "SOAP" if "soap" in app_info else "Unknown"
                 )
 
                 api_inventory.append(

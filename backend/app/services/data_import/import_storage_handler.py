@@ -9,11 +9,12 @@ while providing a clean, modular architecture.
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.core.exceptions import ValidationError as AppValidationError
 from app.core.logging import get_logger
 from app.schemas.data_import_schemas import StoreImportRequest
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from .background_execution_service import BackgroundExecutionService
 from .flow_trigger_service import FlowTriggerService
@@ -167,7 +168,9 @@ class ImportStorageHandler:
 
                     if flow_id:
                         flow_success = True
-                        logger.info(f"✅ Discovery flow created successfully: {flow_id}")
+                        logger.info(
+                            f"✅ Discovery flow created successfully: {flow_id}"
+                        )
                     else:
                         flow_error_message = "Discovery Flow initialization failed"
                         logger.error(

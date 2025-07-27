@@ -29,7 +29,7 @@ const TestObservabilityPhase4B: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState('overview');
 
-  const testComponent = (componentName: string) => {
+  const testComponent = (componentName: string): unknown => {
     setTestResults(prev => ({ ...prev, [componentName]: 'pending' }));
 
     // Simulate test
@@ -38,7 +38,7 @@ const TestObservabilityPhase4B: React.FC = () => {
     }, 1000);
   };
 
-  const getStatusIcon = (status: 'pass' | 'fail' | 'pending') => {
+  const getStatusIcon = (status: 'pass' | 'fail' | 'pending'): JSX.Element => {
     switch (status) {
       case 'pass':
         return <CheckCircle className="w-4 h-4 text-green-500" />;
@@ -49,7 +49,7 @@ const TestObservabilityPhase4B: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: 'pass' | 'fail' | 'pending') => {
+  const getStatusColor = (status: 'pass' | 'fail' | 'pending'): unknown => {
     switch (status) {
       case 'pass':
         return 'text-green-600 bg-green-100';

@@ -42,7 +42,7 @@ export interface AgentMonitorData {
   }>;
 }
 
-export const useAgentMonitor = (options: { enabled?: boolean; polling?: boolean } = {}) => {
+export const useAgentMonitor = (options: { enabled?: boolean; polling?: boolean } = {}): JSX.Element => {
   const { getAuthHeaders } = useAuth();
   const { enabled = true, polling = false } = options;
 

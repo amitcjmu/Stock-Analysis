@@ -121,7 +121,7 @@ const parseCSVFile = (file: File): Promise<{ headers: string[]; sample_data: Arr
 };
 
 // Main hook for initiating discovery workflow
-export const useDiscoveryFlow = () => {
+export const useDiscoveryFlow = (): JSX.Element => {
   const queryClient = useQueryClient();
   const { flowId } = useAuth(); // Get flow ID from AuthContext
 
@@ -185,7 +185,7 @@ export const useDiscoveryFlow = () => {
 };
 
 // Hook for polling workflow status
-export const useDiscoveryFlowStatus = (flowId: string | null) => {
+export const useDiscoveryFlowStatus = (flowId: string | null): JSX.Element => {
   return useQuery<AnalysisStatusResponse, Error>({
     queryKey: ['discoveryFlowStatus', flowId],
     queryFn: async () => {
@@ -251,7 +251,7 @@ export const useDiscoveryFlowStatus = (flowId: string | null) => {
  * Get discovery flow status with authentication
  * Uses the authenticated endpoint for better security and more detailed status
  */
-export const useAuthenticatedDiscoveryStatus = (flowId: string | null) => {
+export const useAuthenticatedDiscoveryStatus = (flowId: string | null): JSX.Element => {
   const { user, client, engagement } = useAuth();
 
   return useQuery<AnalysisStatusResponse, Error>({
@@ -379,7 +379,7 @@ export const useAuthenticatedDiscoveryStatus = (flowId: string | null) => {
   });
 };
 
-export const useFileUpload = () => {
+export const useFileUpload = (): JSX.Element => {
   const queryClient = useQueryClient();
   const discoveryFlow = useDiscoveryFlow();
 

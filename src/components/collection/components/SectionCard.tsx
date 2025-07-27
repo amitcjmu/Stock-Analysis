@@ -24,7 +24,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
   children,
   className
 }) => {
-  const getStatusIcon = () => {
+  const getStatusIcon = (): JSX.Element => {
     switch (validationStatus) {
       case 'valid':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
@@ -38,7 +38,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
     }
   };
 
-  const getStatusBadge = () => {
+  const getStatusBadge = (): JSX.Element => {
     const isComplete = completionPercentage >= 100;
     const hasIssues = validationStatus === 'invalid';
     const hasWarnings = validationStatus === 'warning';

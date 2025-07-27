@@ -35,10 +35,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from app.core.database import AsyncSessionLocal
-    from app.models.asset import Asset
-    from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
     from app.models.data_import.core import DataImport, RawImportRecord
-    from app.models.discovery_flow import DiscoveryFlow
 except ImportError as e:
     logger.error(f"Failed to import application modules: {e}")
     logger.error("Make sure to run this script from the backend directory")

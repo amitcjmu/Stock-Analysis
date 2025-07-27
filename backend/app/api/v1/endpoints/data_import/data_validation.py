@@ -7,11 +7,12 @@ import hashlib
 from datetime import datetime
 from typing import Any, Dict, List
 
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.database import get_db as get_async_db
 from app.models.client_account import User
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -140,9 +141,11 @@ async def validate_file_upload(
 
         # Create validation session
         validation_session = {
-            "file_id": hashlib.md5(
+            "file_id": hashlib.sha256(
                 f"{file.filename}-{datetime.now().isoformat()}".encode()
-            ).hexdigest(),
+            ).hexdigest()[
+                :16
+            ],  # Use first 16 chars for shorter ID
             "filename": file.filename,
             "size_mb": file_size_mb,
             "content_type": file.content_type,

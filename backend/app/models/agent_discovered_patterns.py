@@ -8,7 +8,6 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from app.core.database import Base
 from sqlalchemy import (
     DECIMAL,
     Boolean,
@@ -25,6 +24,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
+
+from app.core.database import Base
 
 
 class AgentDiscoveredPatterns(Base):

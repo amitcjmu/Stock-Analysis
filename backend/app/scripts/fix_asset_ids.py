@@ -73,7 +73,9 @@ async def fix_null_asset_ids():
                     update_query,
                     {"new_id": new_id, "hostname": hostname, "created_at": created_at},
                 )
-                print(f"✅ Assigned new UUID {new_id} to asset with hostname {hostname}")
+                print(
+                    f"✅ Assigned new UUID {new_id} to asset with hostname {hostname}"
+                )
                 fixed_count += 1
 
             await session.commit()

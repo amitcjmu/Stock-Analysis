@@ -78,14 +78,14 @@ const ApplicationDiscoveryPanel: React.FC<ApplicationDiscoveryPanelProps> = ({
   const paginatedApplications = filteredApplications.slice(startIndex, endIndex);
   const totalPages = Math.ceil(filteredApplications.length / itemsPerPage);
 
-  const handleApplicationSelect = (application: Application) => {
+  const handleApplicationSelect = (application: Application): void => {
     setSelectedApplication(application);
     if (onApplicationSelect) {
       onApplicationSelect(application);
     }
   };
 
-  const handleValidation = async (validationType: string) => {
+  const handleValidation = async (validationType: string): void => {
     if (!selectedApplication) return;
 
     const success = await validateApplication(selectedApplication.id, validationType);
@@ -94,11 +94,11 @@ const ApplicationDiscoveryPanel: React.FC<ApplicationDiscoveryPanelProps> = ({
     }
   };
 
-  const handlePageChange = (page: number) => {
+  const handlePageChange = (page: number): void => {
     setCurrentPage(page);
   };
 
-  const handleItemsPerPageChange = (items: number) => {
+  const handleItemsPerPageChange = (items: number): void => {
     setItemsPerPage(items);
     setCurrentPage(1);
   };

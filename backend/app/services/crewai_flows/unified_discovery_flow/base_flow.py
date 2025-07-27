@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 try:
     from crewai import Flow
     from crewai.flow.flow import listen, start
-    from crewai.flow.persistence import persist
 
     CREWAI_FLOW_AVAILABLE = True
     logger.info("✅ CrewAI Flow imports successful - REAL AGENTS ENABLED")
@@ -161,7 +160,9 @@ class UnifiedDiscoveryFlow(Flow):
         self.state.flow_id = self._flow_id
 
         if old_flow_id != self._flow_id:
-            logger.info(f"🔧 Flow ID updated in state: {old_flow_id} -> {self._flow_id}")
+            logger.info(
+                f"🔧 Flow ID updated in state: {old_flow_id} -> {self._flow_id}"
+            )
 
         if self.context:
             self.state.client_account_id = (
@@ -436,7 +437,9 @@ class UnifiedDiscoveryFlow(Flow):
     @listen(apply_approved_field_mappings)
     async def execute_data_cleansing_agent(self, mapping_application_result):
         """Execute data cleansing phase"""
-        logger.info(f"🧹 [ECHO] Data cleansing phase triggered for flow {self._flow_id}")
+        logger.info(
+            f"🧹 [ECHO] Data cleansing phase triggered for flow {self._flow_id}"
+        )
 
         try:
             # Ensure state IDs are correct

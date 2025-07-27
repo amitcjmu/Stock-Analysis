@@ -9,10 +9,11 @@ import uuid
 from datetime import datetime
 
 import pytest
-from alembic import command
-from alembic.config import Config
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
+
+from alembic import command
+from alembic.config import Config
 
 # Test database URL (using SQLite for fast testing)
 TEST_DATABASE_URL = "sqlite:///:memory:"

@@ -12,15 +12,16 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 # Set database URL - use Docker network hostname
-os.environ[
-    "DATABASE_URL"
-] = "postgresql+asyncpg://postgres:postgres@postgres:5432/migration_db"
+os.environ["DATABASE_URL"] = (
+    "postgresql+asyncpg://postgres:postgres@postgres:5432/migration_db"
+)
 
 
 async def check_engagements():
     """Check engagements in the database"""
     try:
         from sqlalchemy import select, text
+
         from app.core.database import AsyncSessionLocal
         from app.models import Engagement
 
@@ -46,7 +47,7 @@ async def check_engagements():
             result = await db.execute(select(Engagement))
             engagements = result.scalars().all()
 
-            print(f"\n=== ENGAGEMENT DETAILS ===")
+            print("\n=== ENGAGEMENT DETAILS ===")
             for eng in engagements:
                 print(f"\nEngagement: {eng.name}")
                 print(f"  ID: {eng.id}")
@@ -57,7 +58,7 @@ async def check_engagements():
                 print(f"  Created: {eng.created_at}")
 
             # Check for demo engagement specifically
-            print(f"\n=== CHECKING FOR DEMO ENGAGEMENT ===")
+            print("\n=== CHECKING FOR DEMO ENGAGEMENT ===")
             result = await db.execute(
                 select(Engagement).where(
                     Engagement.id == "22222222-2222-2222-2222-222222222222"

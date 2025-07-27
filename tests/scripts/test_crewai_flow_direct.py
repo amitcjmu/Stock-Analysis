@@ -6,9 +6,6 @@ Tests the CrewAI Flow service directly without pytest dependencies.
 
 import sys
 import asyncio
-import json
-from datetime import datetime
-from typing import Dict, Any
 
 
 def test_service_import():
@@ -210,44 +207,44 @@ async def test_workflow_initiation():
         # WorkflowStateService removed - using V2 Discovery Flow architecture
         service = CrewAIFlowService(mock_db)
 
-            # Create context
-            context = RequestContext(
-                client_account_id="test-client",
-                engagement_id="test-engagement",
-                user_id="test-user",
-                session_id="test-session"
-            )
+        # Create context
+        context = RequestContext(
+            client_account_id="test-client",
+            engagement_id="test-engagement",
+            user_id="test-user",
+            session_id="test-session"
+        )
 
-            # Sample data source
-            data_source = {
-                "file_data": [
-                    {"name": "test-server", "type": "server", "environment": "prod"}
-                ],
-                "metadata": {"source": "test"}
-            }
+        # Sample data source
+        data_source = {
+            "file_data": [
+                {"name": "test-server", "type": "server", "environment": "prod"}
+            ],
+            "metadata": {"source": "test"}
+        }
 
-            # Mock the create_discovery_flow function
-            with patch('app.services.crewai_flow_service.create_discovery_flow') as mock_create:
-                mock_flow = Mock()
-                mock_flow.state = Mock()
-                mock_flow.state.session_id = "test-session"
-                mock_flow.state.status = "running"
-                mock_flow.state.current_phase = "initialization"
-                mock_create.return_value = mock_flow
+        # Mock the create_discovery_flow function
+        with patch('app.services.crewai_flow_service.create_discovery_flow') as mock_create:
+            mock_flow = Mock()
+            mock_flow.state = Mock()
+            mock_flow.state.session_id = "test-session"
+            mock_flow.state.status = "running"
+            mock_flow.state.current_phase = "initialization"
+            mock_create.return_value = mock_flow
 
-                # Mock asyncio.create_task to avoid actual background execution
-                with patch('asyncio.create_task'):
-                    result = await service.initiate_discovery_workflow(data_source, context)
+            # Mock asyncio.create_task to avoid actual background execution
+            with patch('asyncio.create_task'):
+                result = await service.initiate_discovery_workflow(data_source, context)
 
-                # Verify result structure
-                assert isinstance(result, dict)
-                assert "session_id" in result or "status" in result
+            # Verify result structure
+            assert isinstance(result, dict)
+            assert "session_id" in result or "status" in result
 
-                # Verify flow was created
-                mock_create.assert_called_once()
+            # Verify flow was created
+            mock_create.assert_called_once()
 
-                print("✅ Workflow initiation test successful")
-                return True
+            print("✅ Workflow initiation test successful")
+            return True
     except Exception as e:
         print(f"❌ Workflow initiation test failed: {e}")
         return False
@@ -355,7 +352,7 @@ def run_all_tests():
     print(f"Failed: {failed_tests} ❌")
     print(f"Success Rate: {success_rate:.1f}%")
 
-    print(f"\nDETAILED RESULTS:")
+    print("\nDETAILED RESULTS:")
     print("-" * 40)
     for test_name, success in results:
         status = "✅" if success else "❌"

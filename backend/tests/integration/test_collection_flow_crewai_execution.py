@@ -8,10 +8,11 @@ import logging
 from unittest.mock import Mock
 
 import pytest
+from crewai import Task
+
 from app.services.agents.gap_prioritization_agent_crewai import GapPrioritizationAgent
 from app.services.agents.platform_detection_agent_crewai import PlatformDetectionAgent
 from app.services.llm_config import get_crewai_llm
-from crewai import Task
 
 # Set up logging to see CrewAI calls
 logging.basicConfig(level=logging.INFO)

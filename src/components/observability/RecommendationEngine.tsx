@@ -54,7 +54,7 @@ const RecommendationEngine: React.FC<RecommendationEngineProps> = ({
     maxRecommendations
   });
 
-  const handleRecommendationApply = async (recommendation: Recommendation) => {
+  const handleRecommendationApply = async (recommendation: Recommendation): void => {
     console.log('Applying recommendation:', recommendation.id);
 
     if (onRecommendationApply) {
@@ -65,7 +65,7 @@ const RecommendationEngine: React.FC<RecommendationEngineProps> = ({
     await new Promise(resolve => setTimeout(resolve, 1000));
   };
 
-  const handleRecommendationFeedback = (recommendationId: string, helpful: boolean) => {
+  const handleRecommendationFeedback = (recommendationId: string, helpful: boolean): void => {
     updateFeedback(recommendationId, helpful);
   };
 

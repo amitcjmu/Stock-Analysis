@@ -15,13 +15,14 @@ from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.schemas import RequestContext
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.services.master_flow_orchestrator import (
     FlowOperationType,
     MasterFlowOrchestrator,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.fixture
@@ -368,8 +369,8 @@ class TestMasterFlowOrchestrator:
             orchestrator.error_handler, "handle_error"
         ) as mock_error_handler:
             mock_error_handler.return_value = AsyncMock(
-                should_retry=True, retry_delay=0.01  # Short delay for testing
-            )
+                should_retry=True, retry_delay=0.01
+            )  # Short delay for testing
 
             # Act
             flow_id, flow_details = await orchestrator.create_flow(

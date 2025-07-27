@@ -7,11 +7,12 @@ import logging
 import re
 from typing import Any, Dict, List
 
+from sqlalchemy import select
+
 from app.core.database_context import get_context_db
 from app.models import RawImportRecord
 from app.services.tools.base_tool import AsyncBaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
-from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -727,9 +728,7 @@ class DataQualityAnalyzerTool(AsyncBaseDiscoveryTool):
                 else (
                     "Good"
                     if analysis["overall_score"] >= 75
-                    else "Fair"
-                    if analysis["overall_score"] >= 60
-                    else "Poor"
+                    else "Fair" if analysis["overall_score"] >= 60 else "Poor"
                 )
             ),
             "records_analyzed": analysis["record_count"],

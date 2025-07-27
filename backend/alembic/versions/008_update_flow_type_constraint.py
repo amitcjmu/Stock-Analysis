@@ -6,8 +6,9 @@ Create Date: 2025-01-20
 
 """
 
-from alembic import op
 from sqlalchemy import text
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "008_update_flow_type_constraint"

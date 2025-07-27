@@ -6,6 +6,9 @@ Provides access to persistent mock data for demonstration and development purpos
 import logging
 from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import get_db
 from app.repositories.demo_repository import DemoRepository
 from app.schemas.demo import (
@@ -19,8 +22,6 @@ from app.schemas.demo import (
     DemoWaveResponse,
 )
 from app.services.embedding_service import EmbeddingService
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

@@ -117,7 +117,7 @@ export const useDiscoveryFlowStatus = ({
  * Hook specifically for components that need more frequent updates
  * (e.g., visual progress indicators)
  */
-export const useDiscoveryFlowStatusVisual = (flowId: string | null) => {
+export const useDiscoveryFlowStatusVisual = (flowId: string | null): unknown => {
   return useDiscoveryFlowStatus({
     flowId,
     pollingInterval: 5000, // 5 seconds for visual updates
@@ -127,7 +127,7 @@ export const useDiscoveryFlowStatusVisual = (flowId: string | null) => {
 /**
  * Hook for dashboard views that need less frequent updates
  */
-export const useDiscoveryFlowStatusDashboard = (flowId: string | null) => {
+export const useDiscoveryFlowStatusDashboard = (flowId: string | null): unknown => {
   return useDiscoveryFlowStatus({
     flowId,
     pollingInterval: 60000, // 1 minute for dashboard

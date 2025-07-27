@@ -1,5 +1,6 @@
 """
-Backend Smoke Test: Ensure all critical services, endpoints, and agentic components initialize and basic health checks pass.
+Backend Smoke Test: Ensure all critical services, endpoints, and agentic components initialize and
+basic health checks pass.
 This test should be run after every backend restart to catch initialization errors early.
 """
 
@@ -29,7 +30,6 @@ def test_agent_manager_initialization():
     # Import directly from the agents.py module file to avoid conflict with agents package
     import importlib.util
     import os
-    import sys
 
     # Get the path to agents.py
     agents_module_path = os.path.join("app/services/agents.py")

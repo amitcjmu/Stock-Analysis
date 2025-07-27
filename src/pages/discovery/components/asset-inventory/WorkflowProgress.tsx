@@ -72,7 +72,7 @@ const WorkflowProgress: React.FC<WorkflowProgressProps> = ({
     },
   ];
 
-  const getStatusIcon = (status: WorkflowStep['status']) => {
+  const getStatusIcon = (status: WorkflowStep['status']): JSX.Element => {
     switch (status) {
       case 'completed':
         return <CheckCircle className="h-5 w-5 text-green-500" />;
@@ -85,7 +85,7 @@ const WorkflowProgress: React.FC<WorkflowProgressProps> = ({
     }
   };
 
-  const getStatusColor = (status: WorkflowStep['status']) => {
+  const getStatusColor = (status: WorkflowStep['status']): unknown => {
     switch (status) {
       case 'completed':
         return 'bg-green-100 text-green-800';
@@ -98,7 +98,7 @@ const WorkflowProgress: React.FC<WorkflowProgressProps> = ({
     }
   };
 
-  const getProgressBarColor = (status: WorkflowStep['status']) => {
+  const getProgressBarColor = (status: WorkflowStep['status']): unknown => {
     switch (status) {
       case 'completed':
         return 'bg-green-500';

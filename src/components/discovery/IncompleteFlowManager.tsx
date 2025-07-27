@@ -31,7 +31,7 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
 
-  const getPhaseIcon = (phase: string) => {
+  const getPhaseIcon = (phase: string): unknown => {
     const icons = {
       'field_mapping': MapPin,
       'data_cleansing': Zap,
@@ -42,7 +42,7 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
     return icons[phase] || Activity;
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): unknown => {
     switch (status) {
       case 'running': return 'bg-blue-100 text-blue-800';
       case 'active': return 'bg-green-100 text-green-800';
@@ -52,7 +52,7 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
     }
   };
 
-  const getPhaseDisplayName = (phase: string) => {
+  const getPhaseDisplayName = (phase: string): unknown => {
     const names = {
       'field_mapping': 'Field Mapping',
       'data_cleansing': 'Data Cleansing',
@@ -63,7 +63,7 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
     return names[phase] || phase?.replace('_', ' ').toUpperCase() || 'Unknown Phase';
   };
 
-  const handleSelectFlow = (flowId: string, checked: boolean) => {
+  const handleSelectFlow = (flowId: string, checked: boolean): void => {
     setSelectedFlows(prev =>
       checked
         ? [...prev, flowId]
@@ -71,16 +71,16 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
     );
   };
 
-  const handleSelectAll = (checked: boolean) => {
+  const handleSelectAll = (checked: boolean): void => {
     setSelectedFlows(checked ? flows.map(f => f.flow_id) : []);
   };
 
-  const handleDeleteConfirm = (flowId: string) => {
+  const handleDeleteConfirm = (flowId: string): void => {
     onDeleteFlow(flowId);
     setShowDeleteConfirm(null);
   };
 
-  const handleBatchDeleteConfirm = () => {
+  const handleBatchDeleteConfirm = (): void => {
     onBatchDelete(selectedFlows);
     setShowBatchDeleteConfirm(false);
     setSelectedFlows([]);

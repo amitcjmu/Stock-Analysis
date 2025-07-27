@@ -10,10 +10,11 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
+from sqlalchemy import text
+
 from app.core.database import AsyncSessionLocal
 from app.repositories.asset_repository import AssetRepository
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from sqlalchemy import text
 
 
 async def test_asset_repository_master_flow_methods():

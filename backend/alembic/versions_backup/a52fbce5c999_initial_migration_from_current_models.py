@@ -8,8 +8,9 @@ Create Date: 2025-06-13 02:19:50.829409
 
 import pgvector.sqlalchemy
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "a52fbce5c999"

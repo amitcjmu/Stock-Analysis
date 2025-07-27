@@ -6,6 +6,7 @@ Tests to ensure all flow configurations are properly set up and working.
 """
 
 import pytest
+
 from app.services.flow_configs import (
     get_flow_summary,
     initialize_all_flows,

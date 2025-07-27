@@ -23,10 +23,11 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models import User
 from app.models.rbac import UserProfile
-from sqlalchemy import select
 
 
 async def test_login(email: str, password: str):

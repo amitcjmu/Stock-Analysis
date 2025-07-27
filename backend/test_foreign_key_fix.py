@@ -11,6 +11,8 @@ import logging
 import uuid as uuid_pkg
 from datetime import datetime
 
+from sqlalchemy import text
+
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
 from app.schemas.data_import_schemas import (
@@ -19,7 +21,6 @@ from app.schemas.data_import_schemas import (
     UploadContext,
 )
 from app.services.data_import.import_storage_handler import ImportStorageHandler
-from sqlalchemy import text
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -162,7 +163,9 @@ async def main():
     success = await test_foreign_key_fix()
 
     if success:
-        logger.info("✅ All tests passed! Foreign key constraints are working properly.")
+        logger.info(
+            "✅ All tests passed! Foreign key constraints are working properly."
+        )
     else:
         logger.error("❌ Test failed! Foreign key constraint issue persists.")
         exit(1)

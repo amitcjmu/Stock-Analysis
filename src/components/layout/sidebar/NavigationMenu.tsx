@@ -10,7 +10,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
   expandedStates,
   onToggleExpanded
 }) => {
-  const checkIfParentActive = (item: NavigationItemType) => {
+  const checkIfParentActive = (item: NavigationItemType): boolean => {
     if (currentPath === item.path) return true;
     if (item.submenu) {
       return item.submenu.some((subItem: NavigationItemType) => currentPath === subItem.path);
@@ -18,7 +18,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
     return false;
   };
 
-  const getExpandedState = (itemName: string) => {
+  const getExpandedState = (itemName: string): unknown => {
     const key = itemName.toLowerCase();
     return expandedStates[key] || false;
   };

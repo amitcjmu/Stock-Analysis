@@ -46,7 +46,7 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
 
-  const getPhaseIcon = (phase: string) => {
+  const getPhaseIcon = (phase: string): unknown => {
     const icons = {
       'initialization': Activity,
       'platform_detection': Server,
@@ -60,7 +60,7 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
     return icons[phase] || Activity;
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): unknown => {
     switch (status) {
       case 'initialized': return 'bg-blue-100 text-blue-800';
       case 'platform_detection': return 'bg-purple-100 text-purple-800';
@@ -72,7 +72,7 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
     }
   };
 
-  const getAutomationTierColor = (tier: string) => {
+  const getAutomationTierColor = (tier: string): unknown => {
     switch (tier) {
       case 'tier_1': return 'bg-gray-100 text-gray-800';
       case 'tier_2': return 'bg-blue-100 text-blue-800';
@@ -82,7 +82,7 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
     }
   };
 
-  const getPhaseDisplayName = (phase: string) => {
+  const getPhaseDisplayName = (phase: string): unknown => {
     const names = {
       'initialization': 'Initialization',
       'platform_detection': 'Platform Detection',
@@ -96,7 +96,7 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
     return names[phase] || phase?.replace('_', ' ').toUpperCase() || 'Unknown Phase';
   };
 
-  const getAutomationTierDisplay = (tier: string) => {
+  const getAutomationTierDisplay = (tier: string): unknown => {
     const displays = {
       'tier_1': 'Tier 1 - Manual',
       'tier_2': 'Tier 2 - Script-Assisted',
@@ -106,7 +106,7 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
     return displays[tier] || tier;
   };
 
-  const handleSelectFlow = (flowId: string, checked: boolean) => {
+  const handleSelectFlow = (flowId: string, checked: boolean): void => {
     setSelectedFlows(prev =>
       checked
         ? [...prev, flowId]
@@ -114,16 +114,16 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
     );
   };
 
-  const handleSelectAll = (checked: boolean) => {
+  const handleSelectAll = (checked: boolean): void => {
     setSelectedFlows(checked ? flows.map(f => f.id) : []);
   };
 
-  const handleDeleteConfirm = (flowId: string) => {
+  const handleDeleteConfirm = (flowId: string): void => {
     onDeleteFlow(flowId);
     setShowDeleteConfirm(null);
   };
 
-  const handleBatchDeleteConfirm = () => {
+  const handleBatchDeleteConfirm = (): void => {
     onBatchDelete(selectedFlows);
     setShowBatchDeleteConfirm(false);
     setSelectedFlows([]);

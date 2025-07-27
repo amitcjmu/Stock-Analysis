@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error, errorInfo: null };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error('Error boundary caught:', error, errorInfo);
     this.setState({ errorInfo });
 
@@ -33,12 +33,12 @@ export class ErrorBoundary extends Component<Props, State> {
     // logErrorToService(error, errorInfo);
   }
 
-  handleReset = () => {
+  handleReset = (): void => {
     this.setState({ hasError: false, error: null, errorInfo: null });
     window.location.reload();
   };
 
-  render() {
+  render(): JSX.Element {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return <>{this.props.fallback}</>;
@@ -104,8 +104,8 @@ export class ErrorBoundary extends Component<Props, State> {
 }
 
 // Hook version for functional components
-export function useErrorHandler() {
-  return (error: Error, errorInfo?: { componentStack?: string }) => {
+export function useErrorHandler(): (error: Error, errorInfo?: { componentStack?: string }) => void {
+  return (error: Error, errorInfo?: { componentStack?: string }): void => {
     console.error('Error caught by hook:', error, errorInfo);
     // You can trigger toast notifications or other error handling here
   };

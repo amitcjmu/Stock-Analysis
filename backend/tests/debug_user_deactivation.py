@@ -2,10 +2,11 @@
 
 import asyncio
 
+from sqlalchemy import and_, select
+
 from app.core.database import AsyncSessionLocal
 from app.models.user_profile import UserProfile
 from app.schemas.auth_schemas import UserStatus
-from sqlalchemy import and_, select
 
 
 async def test_user_lookup():

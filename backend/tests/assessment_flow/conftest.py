@@ -13,15 +13,16 @@ import pytest
 
 # Test environment setup
 os.environ["ENVIRONMENT"] = "test"
-os.environ[
-    "DATABASE_URL"
-] = "postgresql://test_user:test_pass@localhost:5434/test_assessment_db"
+os.environ["DATABASE_URL"] = (
+    "postgresql://test_user:test_pass@localhost:5434/test_assessment_db"
+)
 
 try:
-    from app.core.database import Base, get_db
-    from app.core.flow_context import FlowContext
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
     from sqlalchemy.orm import sessionmaker
+
+    from app.core.database import Base
+    from app.core.flow_context import FlowContext
 
     SQLALCHEMY_AVAILABLE = True
 except ImportError:

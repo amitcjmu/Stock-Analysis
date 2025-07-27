@@ -113,7 +113,7 @@ const CreateClient: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Simple form handler - no useCallback to prevent re-renders
-  const handleFormChange = (field: keyof CreateClientData, value: CreateClientData[keyof CreateClientData]) => {
+  const handleFormChange = (field: keyof CreateClientData, value: CreateClientData[keyof CreateClientData]): void => {
     // Debug logging
     console.log(`handleFormChange: field=${field}, value=`, value, `type=${typeof value}`);
 
@@ -126,7 +126,7 @@ const CreateClient: React.FC = () => {
     }
   };
 
-  const validateForm = () => {
+  const validateForm = (): JSX.Element => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.account_name) newErrors.account_name = 'Account name is required';
@@ -144,7 +144,7 @@ const CreateClient: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault();
     if (!validateForm()) {
       toast({

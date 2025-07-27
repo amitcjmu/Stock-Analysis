@@ -29,7 +29,7 @@ export const BatchDeletionConfirmDialog: React.FC<BatchDeletionConfirmDialogProp
   onConfirm,
   onCancel
 }) => {
-  const getPhaseDisplayName = (phase: string) => {
+  const getPhaseDisplayName = (phase: string): unknown => {
     const names = {
       'field_mapping': 'Field Mapping',
       'data_cleansing': 'Data Cleansing',
@@ -40,7 +40,7 @@ export const BatchDeletionConfirmDialog: React.FC<BatchDeletionConfirmDialogProp
     return names[phase as keyof typeof names] || phase.replace('_', ' ').toUpperCase();
   };
 
-  const getAggregatedImpact = () => {
+  const getAggregatedImpact = (): JSX.Element => {
     const aggregated: Record<string, number> = {};
     let totalInsights = 0;
     let estimatedTotalTime = 0;
@@ -79,7 +79,7 @@ export const BatchDeletionConfirmDialog: React.FC<BatchDeletionConfirmDialogProp
   const { aggregatedData, totalInsights, estimatedTotalTime } = getAggregatedImpact();
   const totalDataRecords = Object.values(aggregatedData).reduce((sum, count) => sum + count, 0);
 
-  const getPhaseDistribution = () => {
+  const getPhaseDistribution = (): JSX.Element => {
     const distribution: Record<string, number> = {};
     flows.forEach(flow => {
       distribution[flow.current_phase] = (distribution[flow.current_phase] || 0) + 1;
@@ -87,7 +87,7 @@ export const BatchDeletionConfirmDialog: React.FC<BatchDeletionConfirmDialogProp
     return distribution;
   };
 
-  const getStatusDistribution = () => {
+  const getStatusDistribution = (): JSX.Element => {
     const distribution: Record<string, number> = {};
     flows.forEach(flow => {
       distribution[flow.status] = (distribution[flow.status] || 0) + 1;

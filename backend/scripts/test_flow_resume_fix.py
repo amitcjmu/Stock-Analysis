@@ -8,11 +8,12 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from sqlalchemy import select
+
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
 from app.models.discovery_flow import DiscoveryFlow
 from app.services.crewai_flow_service import CrewAIFlowService
-from sqlalchemy import select
 
 
 async def test_flow_resume():

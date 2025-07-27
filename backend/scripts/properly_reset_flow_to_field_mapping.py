@@ -9,10 +9,11 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+from sqlalchemy import select, update
+
 from app.core.database import AsyncSessionLocal
 from app.models import CrewAIFlowStateExtensions
 from app.models.discovery_flow import DiscoveryFlow
-from sqlalchemy import select, update
 
 
 async def reset_flow():

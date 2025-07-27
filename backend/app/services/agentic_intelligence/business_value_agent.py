@@ -20,6 +20,9 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+# CrewAI imports
+from crewai import Agent, Crew, Process, Task
+
 # Internal imports
 from app.services.agentic_intelligence.agent_reasoning_patterns import (
     AgentReasoning,
@@ -29,9 +32,6 @@ from app.services.agentic_memory import ThreeTierMemoryManager
 from app.services.agentic_memory.agent_tools_functional import (
     create_functional_agent_tools,
 )
-
-# CrewAI imports
-from crewai import Agent, Crew, Process, Task
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +137,8 @@ class BusinessValueAgent:
             "business_criticality": asset_data.get("business_criticality"),
         }
 
-        task = Task(
+        # This is not SQL - it's a task description for CrewAI agent
+        task = Task(  # nosec B608
             description=f"""
             Analyze the business value of this asset using your agentic intelligence and memory tools:
 
@@ -312,9 +313,9 @@ class BusinessValueAgent:
             if reasoning_match:
                 result["reasoning"] = reasoning_match.group(1).strip()
             else:
-                result[
-                    "reasoning"
-                ] = "Business value determined through agentic analysis"
+                result["reasoning"] = (
+                    "Business value determined through agentic analysis"
+                )
 
             # Extract recommendations
             recommendations_match = re.search(
@@ -347,9 +348,7 @@ class BusinessValueAgent:
             "confidence_level": (
                 "high"
                 if reasoning.confidence >= 0.7
-                else "medium"
-                if reasoning.confidence >= 0.4
-                else "low"
+                else "medium" if reasoning.confidence >= 0.4 else "low"
             ),
             "reasoning": reasoning.reasoning_summary,
             "evidence_count": len(reasoning.evidence_pieces),

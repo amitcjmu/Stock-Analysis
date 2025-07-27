@@ -397,7 +397,7 @@ export const useAssessmentFlow = (
   }, [state.flowId, clientAccountId]);
 
   // Load current flow state
-  const loadFlowState = async () => {
+  const loadFlowState = async (): Promise<void> => {
     if (!state.flowId) return;
 
     try {
@@ -431,7 +431,7 @@ export const useAssessmentFlow = (
   };
 
   // Load phase-specific data
-  const loadPhaseData = async (phase: AssessmentPhase) => {
+  const loadPhaseData = async (phase: AssessmentPhase): JSX.Element => {
     if (!state.flowId) return;
 
     try {

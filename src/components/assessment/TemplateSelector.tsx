@@ -160,7 +160,7 @@ const ARCHITECTURE_TEMPLATES: Template[] = [
   }
 ];
 
-const getCategoryIcon = (category: Template['category']) => {
+const getCategoryIcon = (category: Template['category']): unknown => {
   switch (category) {
     case 'enterprise': return Building2;
     case 'cloud-native': return Cloud;
@@ -170,7 +170,7 @@ const getCategoryIcon = (category: Template['category']) => {
   }
 };
 
-const getCategoryColor = (category: Template['category']) => {
+const getCategoryColor = (category: Template['category']): unknown => {
   switch (category) {
     case 'enterprise': return 'bg-blue-100 text-blue-700 border-blue-200';
     case 'cloud-native': return 'bg-green-100 text-green-700 border-green-200';
@@ -183,7 +183,7 @@ const getCategoryColor = (category: Template['category']) => {
 export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onTemplateSelect }) => {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
 
-  const handleTemplateSelect = (templateId: string) => {
+  const handleTemplateSelect = (templateId: string): void => {
     setSelectedTemplate(templateId);
     const template = ARCHITECTURE_TEMPLATES.find(t => t.id === templateId);
     if (template) {

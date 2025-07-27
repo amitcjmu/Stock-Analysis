@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 import jwt
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)

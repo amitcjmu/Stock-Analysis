@@ -16,16 +16,17 @@ import asyncio
 import logging
 import random
 import sys
-from typing import List
 
 # Add the parent directory to sys.path so we can import app modules
 from pathlib import Path
+from typing import List
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from app.core.database import get_db_session  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
+
+from app.core.database import get_db_session  # noqa: E402
 
 # Configure logging
 logging.basicConfig(

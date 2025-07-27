@@ -44,7 +44,7 @@ export class ObservabilityErrorBoundary extends Component<Props, State> {
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({
       error,
       errorInfo
@@ -59,7 +59,7 @@ export class ObservabilityErrorBoundary extends Component<Props, State> {
     }
   }
 
-  handleRetry = () => {
+  handleRetry = (): void => {
     this.setState(prevState => ({
       hasError: false,
       error: null,
@@ -68,7 +68,7 @@ export class ObservabilityErrorBoundary extends Component<Props, State> {
     }));
   };
 
-  render() {
+  render(): unknown {
     if (this.state.hasError) {
       // Custom fallback if provided
       if (this.props.fallback) {

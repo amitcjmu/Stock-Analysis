@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import Sidebar from '../../components/Sidebar';
 
-const Compliance = () => {
+const Compliance = (): JSX.Element => {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
 
@@ -62,7 +62,7 @@ const Compliance = () => {
     audits: []
   };
 
-  const handleStartAudit = (requirementId: string) => {
+  const handleStartAudit = (requirementId: string): void => {
     startAudit(requirementId, {
       onSuccess: () => {
         toast({
@@ -80,7 +80,7 @@ const Compliance = () => {
     });
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string): JSX.Element => {
     switch (status) {
       case 'compliant':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -93,7 +93,7 @@ const Compliance = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): unknown => {
     switch (status) {
       case 'compliant':
         return 'bg-green-100 text-green-800';

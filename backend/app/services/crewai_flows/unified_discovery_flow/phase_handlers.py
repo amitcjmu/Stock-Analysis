@@ -401,7 +401,9 @@ class PhaseHandlers:
                 flow_id=self.flow._flow_id,
             )
 
-            self.logger.info(f"📡 [ECHO] Sent {phase} phase insight via agent-ui-bridge")
+            self.logger.info(
+                f"📡 [ECHO] Sent {phase} phase insight via agent-ui-bridge"
+            )
 
         except Exception as e:
             self.logger.warning(f"⚠️ [ECHO] Failed to send {phase} phase insight: {e}")

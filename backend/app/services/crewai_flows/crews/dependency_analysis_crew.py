@@ -116,9 +116,7 @@ class NetworkTopologyTool(BaseTool):
             complexity_level = (
                 "high"
                 if complexity_score >= 6
-                else "medium"
-                if complexity_score >= 3
-                else "low"
+                else "medium" if complexity_score >= 3 else "low"
             )
 
             return {
@@ -345,9 +343,7 @@ class DependencyAnalysisCrew:
             "analysis_quality": (
                 "high"
                 if avg_confidence > 0.8
-                else "medium"
-                if avg_confidence > 0.6
-                else "low"
+                else "medium" if avg_confidence > 0.6 else "low"
             ),
             "recommendations": [
                 f"Average analysis confidence of {avg_confidence:.1%} indicates good dependency mapping",

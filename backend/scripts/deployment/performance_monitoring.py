@@ -136,10 +136,10 @@ class PerformanceMonitor:
                 benchmark_results["summary"] = self._generate_benchmark_summary(
                     benchmark_results["tests"]
                 )
-                benchmark_results[
-                    "recommendations"
-                ] = self._generate_performance_recommendations(
-                    benchmark_results["tests"]
+                benchmark_results["recommendations"] = (
+                    self._generate_performance_recommendations(
+                        benchmark_results["tests"]
+                    )
                 )
 
                 total_duration = (datetime.now() - start_time).total_seconds()

@@ -9,6 +9,10 @@ from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
+
 from app.core.database import Base
 from app.models.discovery_models import DiscoveryFlow
 from app.models.master_flow import MasterFlow
@@ -17,9 +21,6 @@ from app.services.crewai_flows.unified_discovery_flow.unified_discovery_flow imp
 )
 from app.services.flow_orchestration.status_manager import FlowStatusManager
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import NullPool
 
 
 # Test database setup

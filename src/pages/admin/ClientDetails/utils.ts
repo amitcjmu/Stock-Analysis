@@ -3,7 +3,7 @@
  * Generated with CC for UI modularization
  */
 
-export const formatDate = (dateString: string) => {
+export const formatDate = (dateString: string): string => {
   return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -13,7 +13,7 @@ export const formatDate = (dateString: string) => {
   });
 };
 
-export const getProviderLabel = (provider: string) => {
+export const getProviderLabel = (provider: string): string => {
   const providerMap: Record<string, string> = {
     'aws': 'Amazon Web Services (AWS)',
     'azure': 'Microsoft Azure',
@@ -25,7 +25,7 @@ export const getProviderLabel = (provider: string) => {
   return providerMap[provider] || provider;
 };
 
-export const getPriorityLabel = (priority: string) => {
+export const getPriorityLabel = (priority: string): string => {
   const priorityMap: Record<string, string> = {
     'cost_reduction': 'Cost Reduction',
     'agility_speed': 'Agility & Speed',

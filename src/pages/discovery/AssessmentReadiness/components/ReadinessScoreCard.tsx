@@ -16,7 +16,7 @@ export const ReadinessScoreCard = ({
   assessment,
   onRefresh,
   isLoading = false,
-}: ReadinessScoreCardProps) => {
+}: ReadinessScoreCardProps): JSX.Element => {
   const { overall_readiness, handoff_metadata, outstanding_questions } = assessment;
   const readinessPercentage = Math.round(overall_readiness.readiness_score * 100);
 

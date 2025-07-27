@@ -62,7 +62,7 @@ export const ReadinessTabs = ({
   onDownloadSignoff,
   onSubmitForApproval,
   children,
-}: ReadinessTabsProps) => {
+}: ReadinessTabsProps): JSX.Element => {
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-4">
       <TabsList className="grid w-full grid-cols-5">

@@ -60,9 +60,9 @@ class ImpactCalculatorTool(AsyncBaseDiscoveryTool):
                 "retire",
                 "retain",
             ]:
-                impact_results["migration_confidence_impact"][
-                    strategy
-                ] = self._calculate_strategy_confidence(gaps, strategy)
+                impact_results["migration_confidence_impact"][strategy] = (
+                    self._calculate_strategy_confidence(gaps, strategy)
+                )
 
             # Calculate timeline impact
             impact_results["timeline_impact"] = self._calculate_timeline_impact(
@@ -148,9 +148,7 @@ class ImpactCalculatorTool(AsyncBaseDiscoveryTool):
             "timeline_risk": (
                 "high"
                 if blocking_gaps
-                else "medium"
-                if estimated_delay_weeks > 2
-                else "low"
+                else "medium" if estimated_delay_weeks > 2 else "low"
             ),
             "mitigation": (
                 "Parallel collection activities recommended"
@@ -251,9 +249,7 @@ class ImpactCalculatorTool(AsyncBaseDiscoveryTool):
         overall_risk = (
             "high"
             if high_severity_risks > 2
-            else "medium"
-            if total_risks > 5
-            else "low"
+            else "medium" if total_risks > 5 else "low"
         )
 
         return {

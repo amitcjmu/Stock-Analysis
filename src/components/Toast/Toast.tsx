@@ -36,14 +36,14 @@ interface ToastItemProps {
 const ToastItem: React.FC<ToastItemProps> = ({ toast }) => {
   const [isExiting, setIsExiting] = useState(false);
 
-  const handleDismiss = () => {
+  const handleDismiss = (): void => {
     setIsExiting(true);
     setTimeout(() => {
       toastStore.dismiss(toast.id);
     }, 300);
   };
 
-  const getIcon = () => {
+  const getIcon = (): JSX.Element => {
     switch (toast.type) {
       case 'success':
         return (

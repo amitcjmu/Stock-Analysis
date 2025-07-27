@@ -14,9 +14,19 @@ except ImportError:
     class LearningScope:
         DISABLED = "disabled"
 
+    class MemoryIsolationLevel:
+        """Fallback definition for MemoryIsolationLevel"""
+
+        pass
+
     class TenantMemoryManager:
         def __init__(self, *args, **kwargs):
             pass
 
 
-__all__ = ["TenantMemoryManager", "LearningScope", "MEMORY_MANAGEMENT_AVAILABLE"]
+__all__ = [
+    "TenantMemoryManager",
+    "LearningScope",
+    "MemoryIsolationLevel",
+    "MEMORY_MANAGEMENT_AVAILABLE",
+]

@@ -13,8 +13,9 @@ This migration fixes field name mismatches in raw_import_records table:
 import logging
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy import text
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "raw_records_fix_20250101"

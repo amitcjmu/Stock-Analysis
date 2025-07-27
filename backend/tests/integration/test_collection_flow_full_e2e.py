@@ -11,7 +11,7 @@ from httpx import AsyncClient
 
 # Test credentials
 TEST_EMAIL = "demo@demo-corp.com"
-TEST_PASSWORD = "Demo123!"
+TEST_PASSWORD = "Demo123!"  # nosec B105 - Test password for integration tests
 
 
 @pytest.mark.asyncio

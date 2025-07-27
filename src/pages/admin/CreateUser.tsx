@@ -148,7 +148,7 @@ const CreateUser: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleFormChange = (field: keyof CreateUserData, value: string | boolean) => {
+  const handleFormChange = (field: keyof CreateUserData, value: string | boolean): void => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -158,11 +158,11 @@ const CreateUser: React.FC = () => {
     }
   };
 
-  const handleCheckboxChange = (checked: boolean) => {
+  const handleCheckboxChange = (checked: boolean): void => {
     setFormData(prev => ({ ...prev, is_active: checked }));
   };
 
-  const validateForm = () => {
+  const validateForm = (): JSX.Element => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.email) {
@@ -186,7 +186,7 @@ const CreateUser: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault();
     if (!validateForm()) {
       toast({

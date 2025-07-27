@@ -25,13 +25,13 @@ export const useApplicationSelection = ({
   maxSelections
 }: UseApplicationSelectionProps): UseApplicationSelectionResult => {
 
-  const handleSelectAll = (filteredApplications: Application[]) => {
+  const handleSelectAll = (filteredApplications: Application[]): void => {
     const allIds = filteredApplications.map(app => app.id);
     const newSelection = selectedApplications.length === allIds.length ? [] : allIds;
     onSelectionChange(newSelection.slice(0, maxSelections));
   };
 
-  const handleSelectApplication = (appId: number) => {
+  const handleSelectApplication = (appId: number): void => {
     const newSelection = selectedApplications.includes(appId)
       ? selectedApplications.filter(id => id !== appId)
       : [...selectedApplications, appId].slice(0, maxSelections);
@@ -39,7 +39,7 @@ export const useApplicationSelection = ({
     onSelectionChange(newSelection);
   };
 
-  const handleStartAnalysis = (queueName?: string) => {
+  const handleStartAnalysis = (queueName?: string): void => {
     if (selectedApplications.length === 0) {
       throw new Error('Please select at least one application');
     }

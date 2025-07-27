@@ -75,7 +75,7 @@ const filterAgents = (agents: AgentCardData[], filters: AgentListFilters): Agent
 };
 
 // Custom hook for agent data management
-const useAgentData = (refreshInterval?: number) => {
+const useAgentData = (refreshInterval?: number): JSX.Element => {
   const [state, setState] = useState<AgentListState>({
     agents: [],
     filteredAgents: [],
@@ -221,14 +221,14 @@ export const AgentListOverview: React.FC<AgentListOverviewProps> = ({
     retryFetch
   } = useAgentData(refreshInterval);
 
-  const handleAgentSelect = (agent: AgentCardData) => {
+  const handleAgentSelect = (agent: AgentCardData): void => {
     selectAgent(agent.id);
     if (onAgentSelect) {
       onAgentSelect(agent.name);
     }
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = (): void => {
     fetchAgents(true);
   };
 

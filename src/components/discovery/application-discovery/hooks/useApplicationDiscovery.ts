@@ -50,7 +50,13 @@ interface ApplicationPortfolio {
   };
 }
 
-export const useApplicationDiscovery = () => {
+export const useApplicationDiscovery = (): {
+  portfolio: ApplicationPortfolio | null;
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+  validateApplication: (appId: string, validationData: unknown) => Promise<void>;
+} => {
   const [portfolio, setPortfolio] = useState<ApplicationPortfolio | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

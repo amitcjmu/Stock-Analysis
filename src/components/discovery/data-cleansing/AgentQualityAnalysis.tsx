@@ -58,7 +58,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
   const [editingIssue, setEditingIssue] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
 
-  const toggleIssueExpansion = (issueId: string) => {
+  const toggleIssueExpansion = (issueId: string): unknown => {
     const newExpanded = new Set(expandedIssues);
     if (newExpanded.has(issueId)) {
       newExpanded.delete(issueId);
@@ -68,7 +68,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
     setExpandedIssues(newExpanded);
   };
 
-  const toggleRecommendationExpansion = (recId: string) => {
+  const toggleRecommendationExpansion = (recId: string): unknown => {
     const newExpanded = new Set(expandedRecommendations);
     if (newExpanded.has(recId)) {
       newExpanded.delete(recId);
@@ -78,17 +78,17 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
     setExpandedRecommendations(newExpanded);
   };
 
-  const startEditing = (issueId: string, currentValue: string) => {
+  const startEditing = (issueId: string, currentValue: string): unknown => {
     setEditingIssue(issueId);
     setEditValues({ ...editValues, [issueId]: currentValue });
   };
 
-  const cancelEditing = () => {
+  const cancelEditing = (): unknown => {
     setEditingIssue(null);
     setEditValues({});
   };
 
-  const saveEdit = (issueId: string) => {
+  const saveEdit = (issueId: string): unknown => {
     const newValue = editValues[issueId];
     if (newValue !== undefined) {
       onFixIssue(issueId, newValue);
@@ -97,7 +97,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
     }
   };
 
-  const getSeverityColor = (severity: string) => {
+  const getSeverityColor = (severity: string): unknown => {
     switch (severity) {
       case 'critical': return 'text-red-600 bg-red-100 border-red-200';
       case 'high': return 'text-orange-600 bg-orange-100 border-orange-200';
@@ -107,7 +107,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
     }
   };
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = (priority: string): unknown => {
     switch (priority) {
       case 'high': return 'text-red-600 bg-red-100';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
@@ -116,7 +116,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
     }
   };
 
-  const getConfidenceColor = (confidence: number) => {
+  const getConfidenceColor = (confidence: number): unknown => {
     if (confidence >= 0.8) return 'text-green-600 bg-green-100';
     if (confidence >= 0.6) return 'text-yellow-600 bg-yellow-100';
     return 'text-red-600 bg-red-100';
@@ -133,7 +133,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
     );
   }
 
-  const analysisDisplay = (() => {
+  const analysisDisplay = ((): unknown => {
     switch (analysisType) {
       case 'agent_driven':
         return { text: 'Agent Intelligence Active', color: 'text-green-600 bg-green-100', icon: Brain };

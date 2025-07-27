@@ -11,12 +11,11 @@ from pathlib import Path
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
-from app.models import User, UserRole, UserProfile
 from app.core.logging import get_logger
+from app.models import User, UserProfile, UserRole
 
 logger = get_logger(__name__)
 

@@ -18,9 +18,10 @@ from datetime import datetime
 # Add the backend directory to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from app.core.database import AsyncSessionLocal
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import AsyncSessionLocal
 
 
 class CMDBToAssetsDataMigrator:
@@ -341,9 +342,7 @@ class CMDBToAssetsDataMigrator:
         print(
             f"   🧠 Asset Embeddings Updated: {self.migration_stats['asset_embeddings_updated']}"
         )
-        print(
-            f"   🏷️  Asset Tags Updated: {self.migration_stats['asset_tags_updated']}"
-        )
+        print(f"   🏷️  Asset Tags Updated: {self.migration_stats['asset_tags_updated']}")
         print(f"   ❌ Errors: {len(self.migration_stats['errors'])}")
 
         if self.migration_stats["errors"]:

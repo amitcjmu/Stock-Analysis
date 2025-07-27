@@ -12,15 +12,16 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 # Set database URL - use Docker network hostname
-os.environ[
-    "DATABASE_URL"
-] = "postgresql+asyncpg://postgres:postgres@postgres:5432/migration_db"
+os.environ["DATABASE_URL"] = (
+    "postgresql+asyncpg://postgres:postgres@postgres:5432/migration_db"
+)
 
 
 async def test_engagement_stats():
     """Test engagement stats query directly"""
     try:
-        from sqlalchemy import select, func
+        from sqlalchemy import func, select
+
         from app.core.database import AsyncSessionLocal
         from app.models import Engagement
 

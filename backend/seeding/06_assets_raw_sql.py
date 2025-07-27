@@ -8,11 +8,11 @@ import json
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from app.core.database import AsyncSessionLocal
+from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, FLOW_IDS, USER_IDS
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, FLOW_IDS, USER_IDS
+from app.core.database import AsyncSessionLocal
 
 
 # Asset data generators (same as before)

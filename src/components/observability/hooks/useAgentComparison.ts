@@ -39,7 +39,12 @@ export interface UseAgentComparisonOptions {
   autoRefresh?: boolean;
 }
 
-export const useAgentComparison = (options: UseAgentComparisonOptions) => {
+export const useAgentComparison = (options: UseAgentComparisonOptions): {
+  comparisonData: AgentComparisonData[];
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+} => {
   const { selectedAgents, period = 7, autoRefresh = false } = options;
 
   const [comparisonData, setComparisonData] = useState<AgentComparisonData[]>([]);

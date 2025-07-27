@@ -12,20 +12,22 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 import os
 
-os.environ[
-    "DATABASE_URL"
-] = "postgresql://postgres:password@localhost:5432/migration_db"
+os.environ["DATABASE_URL"] = (
+    "postgresql://postgres:password@localhost:5432/migration_db"
+)
 
 
 async def grant_admin_access(email: str):
     """Grant admin access to a user"""
     try:
-        from sqlalchemy import select
-        from app.core.database import AsyncSessionLocal
-        from app.models.user import User
-        from app.models.platform_admin import PlatformAdmin
-        from datetime import datetime
         import uuid
+        from datetime import datetime
+
+        from sqlalchemy import select
+
+        from app.core.database import AsyncSessionLocal
+        from app.models.platform_admin import PlatformAdmin
+        from app.models.user import User
 
         async with AsyncSessionLocal() as db:
             # Find user by email
@@ -50,7 +52,7 @@ async def grant_admin_access(email: str):
             platform_admin = result.scalar_one_or_none()
 
             if platform_admin:
-                print(f"✅ User is already a platform admin")
+                print("✅ User is already a platform admin")
                 platform_admin.is_super_admin = True
             else:
                 # Create platform admin entry
@@ -62,7 +64,7 @@ async def grant_admin_access(email: str):
                     updated_at=datetime.utcnow(),
                 )
                 db.add(platform_admin)
-                print(f"✅ Created platform admin entry")
+                print("✅ Created platform admin entry")
 
             await db.commit()
             print(f"✅ Successfully granted admin access to {email}")

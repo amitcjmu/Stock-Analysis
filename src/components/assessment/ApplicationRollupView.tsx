@@ -28,7 +28,7 @@ export const ApplicationRollupView: React.FC<ApplicationRollupViewProps> = ({
   selectedApplicationIds,
   onApplicationSelect
 }) => {
-  const getStrategyInfo = (strategy: string) => {
+  const getStrategyInfo = (strategy: string): unknown => {
     return SIX_R_STRATEGIES.find(s => s.value === strategy) || {
       value: strategy,
       label: strategy,
@@ -36,7 +36,7 @@ export const ApplicationRollupView: React.FC<ApplicationRollupViewProps> = ({
     };
   };
 
-  const getModernizationLevel = (strategy: string) => {
+  const getModernizationLevel = (strategy: string): JSX.Element => {
     const levels: Record<string, { level: number; label: string }> = {
       'retain': { level: 1, label: 'No Change' },
       'retire': { level: 1, label: 'No Change' },
@@ -116,7 +116,7 @@ const ApplicationRollupCard: React.FC<ApplicationRollupCardProps> = ({
   hasDecision,
   onSelect
 }) => {
-  const getStrategyInfo = (strategy: string) => {
+  const getStrategyInfo = (strategy: string): unknown => {
     return SIX_R_STRATEGIES.find(s => s.value === strategy) || {
       value: strategy,
       label: strategy,
@@ -124,7 +124,7 @@ const ApplicationRollupCard: React.FC<ApplicationRollupCardProps> = ({
     };
   };
 
-  const getModernizationLevel = (strategy: string) => {
+  const getModernizationLevel = (strategy: string): JSX.Element => {
     const levels: Record<string, { level: number; label: string; color: string }> = {
       'retain': { level: 1, label: 'No Change', color: 'text-gray-600' },
       'retire': { level: 1, label: 'No Change', color: 'text-gray-600' },

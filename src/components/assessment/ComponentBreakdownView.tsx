@@ -16,11 +16,11 @@ export const ComponentBreakdownView: React.FC<ComponentBreakdownViewProps> = ({
   treatments,
   printMode = false
 }) => {
-  const getComponentTreatment = (componentName: string) => {
+  const getComponentTreatment = (componentName: string): unknown => {
     return treatments.find(t => t.component_name === componentName);
   };
 
-  const getStrategyColor = (strategy: string) => {
+  const getStrategyColor = (strategy: string): JSX.Element => {
     const strategyColors: Record<string, string> = {
       'rehost': 'bg-green-100 text-green-700',
       'replatform': 'bg-blue-100 text-blue-700',

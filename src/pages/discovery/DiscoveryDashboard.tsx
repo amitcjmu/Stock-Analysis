@@ -154,7 +154,7 @@ const DiscoveryDashboard: React.FC = () => {
   } = useInfrastructureLandscape();
 
   // Handle refresh of all data
-  const handleRefresh = async () => {
+  const handleRefresh = async (): void => {
     try {
       await Promise.all([
         refetchMetrics(),

@@ -34,7 +34,7 @@ export const JobResults: React.FC<JobResultsProps> = ({
     ? results.filter(r => r.job_id === selectedJobId)
     : results;
 
-  const getResultIcon = (status: string) => {
+  const getResultIcon = (status: string): JSX.Element => {
     switch (status) {
       case 'completed':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
@@ -47,7 +47,7 @@ export const JobResults: React.FC<JobResultsProps> = ({
     }
   };
 
-  const getConfidenceColor = (score: number) => {
+  const getConfidenceColor = (score: number): unknown => {
     if (score >= 0.8) return 'text-green-600';
     if (score >= 0.6) return 'text-yellow-600';
     return 'text-red-600';

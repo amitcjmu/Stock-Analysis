@@ -9,9 +9,8 @@ handles registration of all flow types with the registry.
 import logging
 from typing import Any, Dict, List
 
-from app.services.flow_type_registry import FlowTypeRegistry
-from app.services.handler_registry import HandlerRegistry
-from app.services.validator_registry import ValidatorRegistry
+# Registry imports - removing unused imports
+# These were previously imported but not used in this module
 
 from .additional_flow_configs import (
     get_decommission_flow_config,
@@ -21,7 +20,7 @@ from .additional_flow_configs import (
     get_observability_flow_config,
     get_planning_flow_config,
 )
-from .additional_handlers import (  # Decommission handlers; Execution handlers; FinOps handlers; Modernize handlers; Observability handlers; Planning handlers
+from .additional_handlers import (  # Multiple handlers: Decommission, Execution, FinOps, etc.
     cost_data_collection,
     decommission_completion,
     decommission_error_handler,
@@ -54,7 +53,7 @@ from .additional_handlers import (  # Decommission handlers; Execution handlers;
     wave_analysis,
     wave_optimization,
 )
-from .additional_validators import (  # FinOps validators; Decommission validators; Common validators; Modernize validators; Observability validators; Execution validators; Planning validators
+from .additional_validators import (  # Multiple validators for various flow types
     alerting_validation,
     architecture_validation,
     budget_validation,
@@ -136,27 +135,23 @@ from .discovery_flow_config import get_discovery_flow_config
 from .discovery_handlers import (
     asset_creation_completion,
     data_import_preparation,
-)
-from .discovery_handlers import data_import_validation as data_import_validation_handler
-from .discovery_handlers import (
     discovery_error_handler,
     discovery_finalization,
     discovery_initialization,
 )
+from .discovery_handlers import data_import_validation as data_import_validation_handler
 
 # Import validators
 from .discovery_validators import (
     asset_validation,
     circular_dependency_check,
     cleansing_validation,
-)
-from .discovery_validators import (
-    dependency_validation as discovery_dependency_validation,
-)
-from .discovery_validators import (
     field_mapping_validation,
     inventory_validation,
     mapping_completeness,
+)
+from .discovery_validators import (
+    dependency_validation as discovery_dependency_validation,
 )
 
 logger = logging.getLogger(__name__)

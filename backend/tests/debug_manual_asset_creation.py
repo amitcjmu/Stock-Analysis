@@ -15,10 +15,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "backend"))
 
 async def main():
     try:
+        from sqlalchemy import select
+
         from app.core.database import AsyncSessionLocal
         from app.models.asset import Asset
         from app.models.data_import import RawImportRecord
-        from sqlalchemy import select
 
         print("🚀 Starting manual asset creation for Marathon Petroleum...")
 
@@ -96,7 +97,9 @@ async def main():
                     continue
 
             await session.commit()
-            print(f"🎉 Successfully processed {processed_count} raw records into assets")
+            print(
+                f"🎉 Successfully processed {processed_count} raw records into assets"
+            )
 
             # Verify the assets were created with correct client context
             asset_query = select(Asset).where(

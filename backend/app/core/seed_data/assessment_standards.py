@@ -6,9 +6,10 @@ Industry-standard templates for common technology stacks and engagement initiali
 import logging
 from typing import Any, Dict, List
 
-from app.models.assessment_flow import EngagementArchitectureStandard
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.assessment_flow import EngagementArchitectureStandard
 
 logger = logging.getLogger(__name__)
 

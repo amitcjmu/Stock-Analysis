@@ -16,9 +16,10 @@ This migration consolidates the database schema by:
 import logging
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy import text
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "database_consolidation_20250101"

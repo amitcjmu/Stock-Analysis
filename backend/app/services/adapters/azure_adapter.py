@@ -35,6 +35,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.collection_flow import AutomationTier
 from app.services.collection_flow.adapters import (
     AdapterCapability,
@@ -43,7 +45,6 @@ from app.services.collection_flow.adapters import (
     CollectionRequest,
     CollectionResponse,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass

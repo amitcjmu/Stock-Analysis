@@ -21,6 +21,9 @@ from typing import Any, Dict, List, Optional
 # Add app path
 sys.path.append("/app")
 
+from sqlalchemy import and_, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
 from app.models import (
     Assessment,
@@ -37,8 +40,6 @@ from app.models import (
     UserRole,
     WavePlan,
 )
-from sqlalchemy import and_, func, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass
@@ -262,7 +263,9 @@ class DatabaseValidator:
                 f"Found {len(duplicates)} duplicate email addresses",
             )
         else:
-            self._add_result("users_email_unique", True, "✅ All user emails are unique")
+            self._add_result(
+                "users_email_unique", True, "✅ All user emails are unique"
+            )
 
         # Required fields check
         result = await session.execute(
@@ -284,7 +287,9 @@ class DatabaseValidator:
                 f"Found {len(incomplete_users)} users with missing required fields",
             )
         else:
-            self._add_result("users_complete", True, "✅ All users have required fields")
+            self._add_result(
+                "users_complete", True, "✅ All users have required fields"
+            )
 
     async def _validate_user_roles(self, session: AsyncSession):
         """Validate user role assignments."""

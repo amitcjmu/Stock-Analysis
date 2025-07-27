@@ -8,7 +8,7 @@ interface FlowAutoDetectionOptions {
   fallbackToAnyRunning?: boolean;
 }
 
-export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions = {}) => {
+export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions = {}): JSX.Element => {
   const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
   const { data: flowList, isLoading: isFlowListLoading, error: flowListError } = useDiscoveryFlowList();
 
@@ -187,7 +187,7 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
 };
 
 // Specific hooks for each Discovery page
-export const useDataImportFlowDetection = () => {
+export const useDataImportFlowDetection = (): unknown => {
   return useDiscoveryFlowAutoDetection({
     currentPhase: 'data_import',
     preferredStatuses: ['running', 'active', 'pending'],
@@ -195,7 +195,7 @@ export const useDataImportFlowDetection = () => {
   });
 };
 
-export const useAttributeMappingFlowDetection = () => {
+export const useAttributeMappingFlowDetection = (): unknown => {
   return useDiscoveryFlowAutoDetection({
     currentPhase: 'attribute_mapping',
     preferredStatuses: ['initialized', 'running', 'active', 'initializing', 'processing', 'paused', 'waiting_for_user_approval', 'waiting_for_approval'],
@@ -203,7 +203,7 @@ export const useAttributeMappingFlowDetection = () => {
   });
 };
 
-export const useDataCleansingFlowDetection = () => {
+export const useDataCleansingFlowDetection = (): unknown => {
   return useDiscoveryFlowAutoDetection({
     currentPhase: 'data_cleansing',
     preferredStatuses: ['running', 'active'],
@@ -211,7 +211,7 @@ export const useDataCleansingFlowDetection = () => {
   });
 };
 
-export const useInventoryFlowDetection = () => {
+export const useInventoryFlowDetection = (): unknown => {
   return useDiscoveryFlowAutoDetection({
     currentPhase: 'inventory',
     preferredStatuses: ['running', 'active'],
@@ -219,7 +219,7 @@ export const useInventoryFlowDetection = () => {
   });
 };
 
-export const useDependenciesFlowDetection = () => {
+export const useDependenciesFlowDetection = (): unknown => {
   return useDiscoveryFlowAutoDetection({
     currentPhase: 'dependencies',
     preferredStatuses: ['running', 'active'],
@@ -227,7 +227,7 @@ export const useDependenciesFlowDetection = () => {
   });
 };
 
-export const useTechDebtFlowDetection = () => {
+export const useTechDebtFlowDetection = (): unknown => {
   return useDiscoveryFlowAutoDetection({
     currentPhase: 'tech_debt',
     preferredStatuses: ['running', 'active'],

@@ -14,6 +14,9 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
+from sqlalchemy import select, update
+from sqlalchemy.orm import selectinload
+
 from app.core.database import AsyncSessionLocal
 from app.core.logging import get_logger
 from app.models.assessment_flow import AssessmentFlow
@@ -21,8 +24,6 @@ from app.models.asset import Asset
 from app.models.collection_flow import CollectionFlow
 from app.models.discovery_flow import DiscoveryFlow
 from app.monitoring.metrics import track_performance
-from sqlalchemy import select, update
-from sqlalchemy.orm import selectinload
 
 logger = get_logger(__name__)
 

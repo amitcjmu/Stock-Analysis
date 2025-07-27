@@ -12,6 +12,10 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
 from app.core.logging import get_logger
@@ -24,9 +28,6 @@ from app.services.ai_analysis.confidence_scoring import ConfidenceScorer
 from app.services.ai_analysis.gap_analysis_agent import GapAnalysisAgent
 from app.services.assessment_flow_service import AssessmentManager
 from app.services.discovery_flow_service import DiscoveryFlowService
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 logger = get_logger(__name__)
 

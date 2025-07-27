@@ -58,7 +58,7 @@ def process_migration_file(file_path: Path):
 
     # Skip if already has idempotent checks
     if "information_schema.columns" in content:
-        print(f"  ✓ Already idempotent (skipping)")
+        print("  ✓ Already idempotent (skipping)")
         return
 
     # Make modifications
@@ -67,9 +67,9 @@ def process_migration_file(file_path: Path):
     # Only write if changed
     if content != original_content:
         file_path.write_text(content)
-        print(f"  ✓ Made idempotent")
+        print("  ✓ Made idempotent")
     else:
-        print(f"  ✓ No changes needed")
+        print("  ✓ No changes needed")
 
 
 def main():

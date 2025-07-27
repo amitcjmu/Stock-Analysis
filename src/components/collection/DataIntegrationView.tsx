@@ -64,7 +64,7 @@ export const DataIntegrationView: React.FC<DataIntegrationViewProps> = ({
   const sourceCount = Object.keys(dataSources).length;
   const attributeCount = Object.keys(integratedData).length;
 
-  const getQualityBadge = (score: number) => {
+  const getQualityBadge = (score: number): JSX.Element => {
     if (score >= 0.9) return <Badge className="bg-green-100 text-green-800">Excellent</Badge>;
     if (score >= 0.7) return <Badge className="bg-blue-100 text-blue-800">Good</Badge>;
     if (score >= 0.5) return <Badge className="bg-amber-100 text-amber-800">Fair</Badge>;

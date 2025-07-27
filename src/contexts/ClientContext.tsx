@@ -43,7 +43,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Don't hardcode client for demo user - let them choose from available demo clients
     // The -def0-def0-def0- pattern identifies demo data
 
-    const initializeClient = async () => {
+    const initializeClient = async (): Promise<void> => {
       try {
         // Skip client initialization for admin routes
         if (user?.role === 'admin' && window.location.pathname.startsWith('/admin')) {
@@ -103,7 +103,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // The auth context depends on ClientContext, so we can't wait for it
     if (user && !authLoading) {
       console.log('🔄 ClientContext: User available, fetching clients');
-      const fetchClients = async () => {
+      const fetchClients = async (): Promise<void> => {
         setIsLoading(true);
         try {
           // Skip default client fetch - endpoint doesn't exist
@@ -179,7 +179,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const clearClient = () => {
+  const clearClient = (): unknown => {
     sessionStorage.removeItem(CLIENT_KEY);
     setCurrentClient(null);
   };
@@ -188,7 +188,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return sessionStorage.getItem(CLIENT_KEY);
   };
 
-  const setDemoClient = (client: Client) => {
+  const setDemoClient = (client: Client): unknown => {
     setCurrentClient(client);
     setIsLoading(false);
     setError(null);
@@ -209,7 +209,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   return <ClientContext.Provider value={value}>{children}</ClientContext.Provider>;
 };
 
-export const useClient = () => {
+export const useClient = (): unknown => {
   const context = useContext(ClientContext);
   if (context === undefined) {
     throw new Error('useClient must be used within a ClientProvider');
@@ -221,7 +221,7 @@ export const withClient = <P extends object>(
   WrappedComponent: React.ComponentType<P>,
   requireClient: boolean = true
 ) => {
-  return function WithClientComponent(props: P) {
+  return function WithClientComponent(props: P): React.ReactElement | null {
     const { currentClient, isLoading } = useClient();
     const { user } = useAuth();
     const navigate = useNavigate();

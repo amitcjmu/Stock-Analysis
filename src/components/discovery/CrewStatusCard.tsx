@@ -91,7 +91,7 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
     return () => clearInterval(interval);
   }, [refreshInterval]);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string): JSX.Element => {
     switch (status) {
       case 'completed':
         return <CheckCircle2 className="h-4 w-4 text-green-500" />;
@@ -106,7 +106,7 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string): JSX.Element => {
     const variants = {
       pending: 'secondary',
       running: 'default',
@@ -144,7 +144,7 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
     return formatDuration(Math.floor((end.getTime() - start.getTime()) / 1000));
   };
 
-  const handleAction = (action: string) => {
+  const handleAction = (action: string): void => {
     if (onAction) {
       onAction(action, crewData.name);
     }

@@ -49,7 +49,7 @@ export interface RewriteData {
   };
 }
 
-export const useRewrite = (filter?: string) => {
+export const useRewrite = (filter?: string): JSX.Element => {
   const { getContextHeaders } = useAuth();
 
   return useQuery<RewriteData>({

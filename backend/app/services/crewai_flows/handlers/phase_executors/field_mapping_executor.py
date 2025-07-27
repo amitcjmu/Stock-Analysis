@@ -16,9 +16,7 @@ logger = logging.getLogger(__name__)
 # CrewAI Flow imports with dynamic availability detection
 CREWAI_FLOW_AVAILABLE = False
 try:
-    from app.services.llm_config import get_crewai_llm
-    from crewai import Flow
-
+    # Flow and LLM imports will be used when needed
     CREWAI_FLOW_AVAILABLE = True
     logger.info("✅ CrewAI Flow and LLM imports available")
 except ImportError as e:
@@ -66,7 +64,8 @@ class FieldMappingExecutor(BasePhaseExecutor):
         # NO FALLBACK - Fail fast to expose the real issue
         logger.error("Field mapping fallback called - NO FALLBACK ALLOWED")
         raise RuntimeError(
-            "Field mapping fallback was called. This indicates CrewAI agents are not working properly and needs to be fixed."
+            "Field mapping fallback was called. This indicates CrewAI agents "
+            "are not working properly and needs to be fixed."
         )
 
     def _get_crew_context(self) -> Dict[str, Any]:
@@ -260,9 +259,10 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 try:
                     import uuid as uuid_pkg
 
+                    from sqlalchemy import select
+
                     from app.core.database import AsyncSessionLocal
                     from app.models.data_import import ImportFieldMapping
-                    from sqlalchemy import select
 
                     async with AsyncSessionLocal() as db:
                         # Convert data_import_id to UUID if needed
@@ -658,9 +658,10 @@ class FieldMappingExecutor(BasePhaseExecutor):
     ) -> List[Dict[str, Any]]:
         """Fetch raw data directly from database using data_import_id"""
         try:
+            from sqlalchemy import select
+
             from app.core.database import AsyncSessionLocal
             from app.models.data_import import RawImportRecord
-            from sqlalchemy import select
 
             async with AsyncSessionLocal() as db:
                 # Query raw import records

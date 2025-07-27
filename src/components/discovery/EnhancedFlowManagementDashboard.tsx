@@ -90,7 +90,7 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
   } | null>(null);
 
   // Handlers
-  const handleValidateFlow = async () => {
+  const handleValidateFlow = async (): void => {
     if (!selectedFlowId) {
       toast({
         title: "Flow Required",
@@ -120,7 +120,7 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
     }
   };
 
-  const handleRecoverFlow = async (strategy: 'postgresql' | 'hybrid' = 'postgresql') => {
+  const handleRecoverFlow = async (strategy: 'postgresql' | 'hybrid' = 'postgresql'): void => {
     if (!selectedFlowId) {
       toast({
         title: "Flow Required",
@@ -150,7 +150,7 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
     }
   };
 
-  const handleCleanupFlows = async () => {
+  const handleCleanupFlows = async (): void => {
     try {
       const result = await performFlowCleanup(cleanupOptions);
       setCleanupResult(result);
@@ -171,7 +171,7 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
     }
   };
 
-  const handleBulkValidation = async () => {
+  const handleBulkValidation = async (): void => {
     if (flowIds.length === 0) {
       toast({
         title: "No Flows",
@@ -199,7 +199,7 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
   };
 
   // Render status badge
-  const renderStatusBadge = (status: string, valid?: boolean) => {
+  const renderStatusBadge = (status: string, valid?: boolean): JSX.Element => {
     if (valid === true) {
       return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Healthy</Badge>;
     } else if (valid === false) {

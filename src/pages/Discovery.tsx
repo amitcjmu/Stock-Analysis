@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import { Database, Network, Activity, Download, Filter } from 'lucide-react';
 
-const Discovery = () => {
+const Discovery = (): JSX.Element => {
   const [selectedFilter, setSelectedFilter] = useState('all');
 
   const discoveredAssets = [

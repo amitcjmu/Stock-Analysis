@@ -1,5 +1,3 @@
-{"strategies":{"rehost":"lift_and_shift","replatform":"platform_change","refactor":"code_modernization"}}
-
 six_r_strategies:
   rehost:
     name: "Rehost (Lift and Shift)"

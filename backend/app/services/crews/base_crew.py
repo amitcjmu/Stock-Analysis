@@ -7,9 +7,10 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
+from crewai import Crew, Process, Task
+
 from app.core.context import get_current_context
 from app.services.llm_config import get_crewai_llm
-from crewai import Crew, Process, Task
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +150,7 @@ class BaseDiscoveryCrew(ABC):
             if not self.context:
                 try:
                     self.context = get_current_context()
-                except:
+                except Exception:
                     raise ValueError("No context available for multi-tenant execution")
 
             logger.info(

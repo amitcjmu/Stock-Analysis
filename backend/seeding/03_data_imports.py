@@ -116,8 +116,9 @@ async def create_data_imports(db: AsyncSession) -> list[DataImport]:
     print("Creating data imports...")
 
     # Get CrewAI state extension IDs for the flow_ids
-    from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
     from sqlalchemy import select
+
+    from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
     flow_id_to_crewai_id = {}
     for import_data in IMPORTS:

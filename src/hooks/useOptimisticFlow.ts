@@ -27,7 +27,7 @@ export interface UseOptimisticFlowOptions extends UseFlowOptions {
 /**
  * Enhanced flow hook with optimistic updates (MFO-082)
  */
-export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}) {
+export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}): [AssessmentFlowState, OptimisticActions] {
   const {
     enableOptimistic = true,
     rollbackOnError = true,
@@ -69,7 +69,7 @@ export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}) {
     };
 
     // Apply optimistic update
-    const rollback = () => {
+    const rollback = (): unknown => {
       // Remove optimistic flow from state
       if (state.flow?.flow_id === optimisticFlow.flow_id) {
         actions.reset();
@@ -130,7 +130,7 @@ export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}) {
     // Temporarily update state
     // Note: This is a simplified example. In a real app, you'd update the state directly
 
-    const rollback = () => {
+    const rollback = (): unknown => {
       // Restore original state
       if (originalPhase && state.flow) {
         // Restore phase status
@@ -180,7 +180,7 @@ export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}) {
       can_resume: true
     };
 
-    const rollback = () => {
+    const rollback = (): unknown => {
       // Restore original status
       if (state.flow) {
         const restoredFlow: FlowStatus = {
@@ -219,7 +219,7 @@ export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}) {
       can_resume: false
     };
 
-    const rollback = () => {
+    const rollback = (): unknown => {
       // Restore original status
       if (state.flow) {
         const restoredFlow: FlowStatus = {
@@ -253,7 +253,7 @@ export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}) {
     const wasCurrentFlow = state.flow?.flow_id === flowId;
 
     // Apply optimistic update (remove from list immediately)
-    const rollback = () => {
+    const rollback = (): unknown => {
       // Restore deleted flow
       if (flowToDelete) {
         // Add flow back to state
@@ -288,7 +288,7 @@ export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}) {
 /**
  * Specialized hooks with optimistic updates
  */
-export function useOptimisticDiscoveryFlow(options?: UseOptimisticFlowOptions) {
+export function useOptimisticDiscoveryFlow(options?: UseOptimisticFlowOptions): [AssessmentFlowState, OptimisticActions] {
   const [state, actions] = useOptimisticFlow(options);
 
   const createDiscoveryFlow = useCallback(async (config: Omit<CreateFlowRequest, 'flow_type'>) => {
@@ -307,7 +307,7 @@ export function useOptimisticDiscoveryFlow(options?: UseOptimisticFlowOptions) {
   ] as const;
 }
 
-export function useOptimisticAssessmentFlow(options?: UseOptimisticFlowOptions) {
+export function useOptimisticAssessmentFlow(options?: UseOptimisticFlowOptions): [AssessmentFlowState, OptimisticActions] {
   const [state, actions] = useOptimisticFlow(options);
 
   const createAssessmentFlow = useCallback(async (config: Omit<CreateFlowRequest, 'flow_type'>) => {

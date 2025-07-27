@@ -161,7 +161,7 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
   });
 
   // Handle client selection
-  const handleClientChange = async (clientId: string) => {
+  const handleClientChange = async (clientId: string): void => {
     setSelectedClientId(clientId);
     setSelectedEngagementId(''); // Reset engagement when client changes
 
@@ -201,7 +201,7 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
   };
 
   // Handle engagement selection
-  const handleEngagementChange = async (engagementId: string) => {
+  const handleEngagementChange = async (engagementId: string): void => {
     setSelectedEngagementId(engagementId);
 
     try {
@@ -237,7 +237,7 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
   };
 
   // Apply context changes and close popover
-  const handleApplyContext = () => {
+  const handleApplyContext = (): void => {
     setIsContextSelectorOpen(false);
 
     // Invalidate all queries to refresh data with new context

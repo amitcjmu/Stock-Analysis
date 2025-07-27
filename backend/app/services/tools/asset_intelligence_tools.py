@@ -38,7 +38,9 @@ if CREWAI_TOOLS_AVAILABLE:
         """
 
         name: str = "asset_analysis_tool"
-        description: str = "Analyze asset patterns and provide intelligent insights for inventory management"
+        description: str = (
+            "Analyze asset patterns and provide intelligent insights for inventory management"
+        )
         args_schema: type[BaseModel] = AssetAnalysisInput
         # Declare field_mapper as a Pydantic field to avoid validation errors
         field_mapper: Optional[Any] = Field(

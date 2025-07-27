@@ -46,7 +46,7 @@ export const ValidationDisplay: React.FC<ValidationDisplayProps> = ({
     };
   }, [validation]);
 
-  const getOverallStatus = () => {
+  const getOverallStatus = (): JSX.Element => {
     if (validation.is_valid && stats.errorCount === 0) {
       return {
         icon: <CheckCircle className="h-5 w-5 text-green-600" />,
@@ -88,8 +88,8 @@ export const ValidationDisplay: React.FC<ValidationDisplayProps> = ({
 
   const status = getOverallStatus();
 
-  const renderValidationIssue = (issue: ValidationError, index: number) => {
-    const getIssueIcon = () => {
+  const renderValidationIssue = (issue: ValidationError, index: number): JSX.Element => {
+    const getIssueIcon = (): JSX.Element => {
       switch (issue.severity) {
         case 'error':
           return <AlertCircle className="h-4 w-4 text-red-600" />;

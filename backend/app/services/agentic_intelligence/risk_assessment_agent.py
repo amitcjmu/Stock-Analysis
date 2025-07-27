@@ -20,6 +20,9 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+# CrewAI imports
+from crewai import Agent, Crew, Process, Task
+
 # Internal imports
 from app.services.agentic_intelligence.agent_reasoning_patterns import (
     AgentReasoning,
@@ -29,9 +32,6 @@ from app.services.agentic_memory import ThreeTierMemoryManager
 from app.services.agentic_memory.agent_tools_functional import (
     create_functional_agent_tools,
 )
-
-# CrewAI imports
-from crewai import Agent, Crew, Process, Task
 
 logger = logging.getLogger(__name__)
 
@@ -381,9 +381,9 @@ class RiskAssessmentAgent:
             if threats_match:
                 result["primary_threats"] = threats_match.group(1).strip()
             else:
-                result[
-                    "primary_threats"
-                ] = "Standard security and operational risks assessed"
+                result["primary_threats"] = (
+                    "Standard security and operational risks assessed"
+                )
 
             # Extract vulnerability summary
             vuln_match = re.search(
@@ -394,9 +394,9 @@ class RiskAssessmentAgent:
             if vuln_match:
                 result["vulnerability_summary"] = vuln_match.group(1).strip()
             else:
-                result[
-                    "vulnerability_summary"
-                ] = "Technology stack and configuration assessed for vulnerabilities"
+                result["vulnerability_summary"] = (
+                    "Technology stack and configuration assessed for vulnerabilities"
+                )
 
             # Extract immediate actions
             actions_match = re.search(
@@ -463,9 +463,7 @@ class RiskAssessmentAgent:
             "confidence_level": (
                 "high"
                 if reasoning.confidence >= 0.7
-                else "medium"
-                if reasoning.confidence >= 0.4
-                else "low"
+                else "medium" if reasoning.confidence >= 0.4 else "low"
             ),
             "primary_threats": reasoning.reasoning_summary,
             "vulnerability_summary": f"Analysis identified {len(reasoning.evidence_pieces)} risk factors",

@@ -53,7 +53,7 @@ const AgentLearningInsights: React.FC = () => {
   const [testField, setTestField] = useState('server_name');
   const [fieldSuggestion, setFieldSuggestion] = useState<FieldMappingSuggestion | null>(null);
 
-  const fetchLearningData = async () => {
+  const fetchLearningData = async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
 
@@ -100,7 +100,7 @@ const AgentLearningInsights: React.FC = () => {
     }
   };
 
-  const testFieldMapping = async () => {
+  const testFieldMapping = async (): Promise<void> => {
     if (!testField.trim()) return;
 
     console.log('🧪 Testing field mapping for:', testField);
@@ -139,7 +139,7 @@ const AgentLearningInsights: React.FC = () => {
     }
   };
 
-  const learnFieldMapping = async () => {
+  const learnFieldMapping = async (): Promise<void> => {
     console.log('🎓 Learning field mapping...');
 
     try {

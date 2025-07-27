@@ -3,7 +3,7 @@ import { authApi } from '@/lib/api/auth';
 import type { updateApiContext } from '@/config/api'
 import { apiCall } from '@/config/api'
 import { updateUserDefaults } from '@/lib/api/context';
-import type { User, Client, Engagement, Flow } from '../types';
+import type { User, Client, Engagement, Flow, UserRegistrationResponse } from '../types';
 
 // CC: Registration and API response interfaces
 interface UserRegistrationData {
@@ -42,10 +42,10 @@ export const useAuthService = (
   setError: (error: string | null) => void,
   setIsLoginInProgress: (loading: boolean) => void,
   getAuthHeaders: () => Record<string, string>
-) => {
+): AuthActions => {
   const navigate = useNavigate();
 
-  const logout = () => {
+  const logout = (): unknown => {
     tokenStorage.removeToken();
     tokenStorage.setUser(null);
     contextStorage.clearContext();
@@ -64,7 +64,7 @@ export const useAuthService = (
     navigate('/login');
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<User> => {
     try {
       setIsLoading(true);
       setIsLoginInProgress(true);
@@ -159,7 +159,7 @@ export const useAuthService = (
     }
   };
 
-  const register = async (userData: UserRegistrationData) => {
+  const register = async (userData: UserRegistrationData): Promise<UserRegistrationResponse> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -179,7 +179,7 @@ export const useAuthService = (
     }
   };
 
-  const switchClient = async (clientId: string, clientData?: ClientSwitchData) => {
+  const switchClient = async (clientId: string, clientData?: ClientSwitchData): Promise<void> => {
     try {
       console.log('🔍 switchClient - Starting with:', { clientId, hasClientData: !!clientData });
 
@@ -247,7 +247,7 @@ export const useAuthService = (
     }
   };
 
-  const switchEngagement = async (engagementId: string, engagementData?: EngagementSwitchData) => {
+  const switchEngagement = async (engagementId: string, engagementData?: EngagementSwitchData): Promise<void> => {
     try {
       console.log('🔍 switchEngagement - Starting with:', { engagementId, hasEngagementData: !!engagementData });
 
@@ -326,7 +326,7 @@ export const useAuthService = (
     }
   };
 
-  const switchFlow = async (flowId: string, flowData?: Flow) => {
+  const switchFlow = async (flowId: string, flowData?: Flow) =>  {
     try {
       console.log('🔄 Switching to flow:', flowId, flowData);
 
@@ -360,7 +360,7 @@ export const useAuthService = (
   let lastFetchDefaultContextTime = 0;
   const FETCH_DEFAULT_CONTEXT_DEBOUNCE = 1000; // 1 second debounce
 
-  const fetchDefaultContext = async () => {
+  const fetchDefaultContext = async (): JSX.Element => {
     try {
       console.log('🔍 fetchDefaultContext - Starting with current context:', { client, engagement });
 
@@ -482,7 +482,7 @@ export const useAuthService = (
   };
 
   // Debounced version of fetchDefaultContext for use in hooks that need delayed execution
-  const debouncedFetchDefaultContext = () => {
+  const debouncedFetchDefaultContext = (): unknown => {
     if (fetchDefaultContextTimer) {
       clearTimeout(fetchDefaultContextTimer);
     }

@@ -77,7 +77,7 @@ const EnhancedObservabilityDashboard: React.FC = () => {
     }
   }, [state.realTimeEnabled, state.refreshInterval]);
 
-  const loadDashboardStats = async () => {
+  const loadDashboardStats = async (): JSX.Element => {
     setLoading(true);
     try {
       const summary = await agentObservabilityService.getAllAgentsSummary(1);
@@ -118,20 +118,20 @@ const EnhancedObservabilityDashboard: React.FC = () => {
     }
   };
 
-  const handleAgentSelect = (agentName: string) => {
+  const handleAgentSelect = (agentName: string): void => {
     // Navigate to agent detail page
     navigate(`/observability/agent/${encodeURIComponent(agentName)}`);
   };
 
-  const handleAgentSelectionChange = (agents: string[]) => {
+  const handleAgentSelectionChange = (agents: string[]): void => {
     setState(prev => ({ ...prev, selectedAgents: agents }));
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = (): void => {
     loadDashboardStats();
   };
 
-  const handleExportDashboard = () => {
+  const handleExportDashboard = (): void => {
     const exportData = {
       timestamp: new Date().toISOString(),
       stats: dashboardStats,
@@ -149,7 +149,7 @@ const EnhancedObservabilityDashboard: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleToggleRealTime = () => {
+  const handleToggleRealTime = (): void => {
     setState(prev => ({ ...prev, realTimeEnabled: !prev.realTimeEnabled }));
   };
 

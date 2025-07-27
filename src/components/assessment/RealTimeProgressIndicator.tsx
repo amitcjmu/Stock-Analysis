@@ -24,7 +24,7 @@ export const RealTimeProgressIndicator: React.FC<RealTimeProgressIndicatorProps>
   const recentUpdates = agentUpdates.slice(-5);
   const latestUpdate = agentUpdates[agentUpdates.length - 1];
 
-  const getPhaseDisplayName = (phase: string) => {
+  const getPhaseDisplayName = (phase: string): JSX.Element => {
     const phaseNames: Record<string, string> = {
       'tech_debt_analysis': 'Technical Debt Analysis',
       'component_identification': 'Component Identification',
@@ -36,7 +36,7 @@ export const RealTimeProgressIndicator: React.FC<RealTimeProgressIndicatorProps>
     return phaseNames[phase] || phase;
   };
 
-  const getUpdateIcon = (message: string) => {
+  const getUpdateIcon = (message: string): JSX.Element => {
     if (message.includes('completed') || message.includes('finished')) {
       return <CheckCircle className="h-4 w-4 text-green-600" />;
     }
@@ -46,7 +46,7 @@ export const RealTimeProgressIndicator: React.FC<RealTimeProgressIndicatorProps>
     return <Activity className="h-4 w-4 text-orange-600" />;
   };
 
-  const formatTime = (timestamp: Date) => {
+  const formatTime = (timestamp: Date): unknown => {
     return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 

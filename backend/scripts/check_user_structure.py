@@ -12,15 +12,16 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 # Set database URL - use Docker network hostname
-os.environ[
-    "DATABASE_URL"
-] = "postgresql+asyncpg://postgres:postgres@postgres:5432/migration_db"
+os.environ["DATABASE_URL"] = (
+    "postgresql+asyncpg://postgres:postgres@postgres:5432/migration_db"
+)
 
 
 async def check_user_structure():
     """Check the User table structure"""
     try:
         from sqlalchemy import select, text
+
         from app.core.database import AsyncSessionLocal
         from app.models import User
         from app.models.rbac import UserRole
@@ -45,14 +46,14 @@ async def check_user_structure():
             user = result.scalar_one_or_none()
 
             if user:
-                print(f"\n=== USER DETAILS ===")
+                print("\n=== USER DETAILS ===")
                 print(f"  ID: {user.id}")
                 print(f"  Email: {user.email}")
                 print(f"  Is Active: {user.is_active}")
                 print(f"  Is Verified: {user.is_verified}")
 
             # Check UserRole entries
-            print(f"\n=== USER ROLES ===")
+            print("\n=== USER ROLES ===")
             result = await db.execute(
                 select(UserRole).where(UserRole.user_id == user.id)
             )

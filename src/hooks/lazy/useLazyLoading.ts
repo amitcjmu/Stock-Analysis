@@ -5,7 +5,7 @@
 import { useContext } from 'react';
 import { LazyLoadingContext } from '@/components/lazy/LazyLoadingProvider';
 
-export const useLazyLoading = () => {
+export const useLazyLoading = (): unknown => {
   const context = useContext(LazyLoadingContext);
   if (!context) {
     throw new Error('useLazyLoading must be used within a LazyLoadingProvider');

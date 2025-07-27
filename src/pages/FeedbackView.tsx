@@ -45,7 +45,7 @@ const FeedbackView: React.FC = () => {
     applyFilters();
   }, [feedback, selectedPage, selectedRating, selectedStatus, selectedCategory, searchTerm]);
 
-  const fetchFeedback = async () => {
+  const fetchFeedback = async (): JSX.Element => {
     try {
       setIsLoading(true);
       setError(null);
@@ -150,7 +150,7 @@ const FeedbackView: React.FC = () => {
     }
   };
 
-  const generateDemoFeedback = () => {
+  const generateDemoFeedback = (): JSX.Element => {
     const demoFeedback: FeedbackItem[] = [
       {
         id: '1',
@@ -258,7 +258,7 @@ const FeedbackView: React.FC = () => {
     });
   };
 
-  const applyFilters = () => {
+  const applyFilters = (): unknown => {
     let filtered = feedback;
 
     if (selectedPage !== 'all') {
@@ -287,7 +287,7 @@ const FeedbackView: React.FC = () => {
     setFilteredFeedback(filtered);
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): unknown => {
     switch (status) {
       case 'new': return 'bg-blue-100 text-blue-800';
       case 'reviewed': return 'bg-yellow-100 text-yellow-800';
@@ -296,7 +296,7 @@ const FeedbackView: React.FC = () => {
     }
   };
 
-  const getCategoryIcon = (category: string) => {
+  const getCategoryIcon = (category: string): JSX.Element => {
     switch (category) {
       case 'ui': return <User className="h-4 w-4" />;
       case 'performance': return <Clock className="h-4 w-4" />;
@@ -306,7 +306,7 @@ const FeedbackView: React.FC = () => {
     }
   };
 
-  const renderStars = (rating: number) => {
+  const renderStars = (rating: number): JSX.Element => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
@@ -315,7 +315,7 @@ const FeedbackView: React.FC = () => {
     ));
   };
 
-  const getUniqueValues = (field: keyof FeedbackItem) => {
+  const getUniqueValues = (field: keyof FeedbackItem): unknown => {
     const values = Array.from(new Set(feedback.map(f => f[field])));
     return values.filter(v => v !== undefined && v !== null);
   };

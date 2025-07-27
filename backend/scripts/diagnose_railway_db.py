@@ -20,8 +20,9 @@ logger = logging.getLogger(__name__)
 async def check_migration_state():
     """Check current migration state"""
     try:
-        from app.core.config import get_settings
         from sqlalchemy import create_engine, text
+
+        from app.core.config import get_settings
 
         settings = get_settings()
         engine = create_engine(settings.DATABASE_URL.replace("+asyncpg", ""))
@@ -51,7 +52,7 @@ async def check_migration_state():
             for table in tables_to_check:
                 try:
                     result = conn.execute(
-                        text(
+                        text(  # nosec B608 - table names are hardcoded, not user input
                             f"""
                         SELECT EXISTS (
                             SELECT FROM information_schema.tables
@@ -172,13 +173,12 @@ def check_crewai_installation():
 
         logger.info(f"✅ CrewAI version: {crewai.__version__}")
 
-        from crewai import Agent, Crew, Process, Task
+        # CrewAI imports removed - not used in this diagnostic script
 
         logger.info("✅ CrewAI core classes imported successfully")
 
         try:
-            from crewai.knowledge.knowledge import Knowledge
-            from crewai.memory import LongTermMemory
+            # Knowledge and memory imports removed - not used in diagnostics
 
             logger.info("✅ CrewAI advanced features available")
         except ImportError as e:

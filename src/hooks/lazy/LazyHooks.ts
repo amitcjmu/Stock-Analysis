@@ -23,7 +23,7 @@ export const useLazyAttributeMappingLogic = (immediate = false): ReturnType<type
 };
 
 // Lazy load data cleansing logic - Currently not implemented
-// export const useLazyDataCleansingLogic = (immediate = false) => {
+// export const useLazyDataCleansingLogic = (immediate = false): JSX.Element => {
 //   return useLazyHook(
 //     'data-cleansing-logic',
 //     () => import('@/hooks/discovery/data-cleansing/useDataCleansingLogic'),
@@ -83,7 +83,7 @@ export const useLazyAssessmentFlow = (immediate = false): ReturnType<typeof useL
  */
 
 // Lazy load admin management hooks - Currently not implemented
-// export const useLazyAdminManagement = (userIsAdmin: boolean, immediate = false) => {
+// export const useLazyAdminManagement = (userIsAdmin: boolean, immediate = false): JSX.Element => {
 //   return useConditionalLazyHook(
 //     'admin-management',
 //     () => import('@/hooks/admin/useAdminManagement'),
@@ -97,7 +97,7 @@ export const useLazyAssessmentFlow = (immediate = false): ReturnType<typeof useL
 // };
 
 // Lazy load user management hooks - Currently not implemented
-// export const useLazyUserManagement = (userIsAdmin: boolean, immediate = false) => {
+// export const useLazyUserManagement = (userIsAdmin: boolean, immediate = false): JSX.Element => {
 //   return useConditionalLazyHook(
 //     'user-management',
 //     () => import('@/hooks/admin/useUserManagement'),
@@ -115,7 +115,7 @@ export const useLazyAssessmentFlow = (immediate = false): ReturnType<typeof useL
  */
 
 // Lazy load API hooks - Currently not implemented
-// export const useLazyAPIHooks = (immediate = false) => {
+// export const useLazyAPIHooks = (immediate = false): JSX.Element => {
 //   return useLazyHook(
 //     'api-hooks',
 //     () => import('@/hooks/api/useApiHooks'),
@@ -128,7 +128,7 @@ export const useLazyAssessmentFlow = (immediate = false): ReturnType<typeof useL
 // };
 
 // Lazy load form validation hooks - Currently not implemented
-// export const useLazyFormValidation = (immediate = false) => {
+// export const useLazyFormValidation = (immediate = false): JSX.Element => {
 //   return useLazyHook(
 //     'form-validation',
 //     () => import('@/hooks/validation/useFormValidation'),
@@ -141,7 +141,7 @@ export const useLazyAssessmentFlow = (immediate = false): ReturnType<typeof useL
 // };
 
 // Lazy load performance monitoring hooks - Currently not implemented
-// export const useLazyPerformanceMonitoring = (immediate = false) => {
+// export const useLazyPerformanceMonitoring = (immediate = false): JSX.Element => {
 //   return useLazyHook(
 //     'performance-monitoring',
 //     () => import('@/hooks/monitoring/usePerformanceMonitoring'),

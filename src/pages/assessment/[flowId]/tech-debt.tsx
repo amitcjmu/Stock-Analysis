@@ -79,7 +79,7 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
     return stats;
   }, [currentAppTechDebt]);
 
-  const handleSaveDraft = async () => {
+  const handleSaveDraft = async (): void => {
     if (!selectedApp) return;
 
     setIsDraft(true);
@@ -93,7 +93,7 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): void => {
     setIsSubmitting(true);
     try {
       // Save all application data
@@ -116,17 +116,17 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
     }
   };
 
-  const updateComponents = (components: ApplicationComponent[]) => {
+  const updateComponents = (components: ApplicationComponent[]): void => {
     if (!selectedApp) return;
     updateApplicationComponents(selectedApp, components);
   };
 
-  const updateTechDebt = (techDebt: TechDebtItem[]) => {
+  const updateTechDebt = (techDebt: TechDebtItem[]): void => {
     if (!selectedApp) return;
     updateTechDebtAnalysis(selectedApp, techDebt);
   };
 
-  const getSeverityColor = (severity: SeverityLevel) => {
+  const getSeverityColor = (severity: SeverityLevel): unknown => {
     switch (severity) {
       case 'critical': return 'bg-red-100 text-red-700 border-red-200';
       case 'high': return 'bg-orange-100 text-orange-700 border-orange-200';

@@ -51,7 +51,7 @@ How can I assist you with your migration today?`,
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = (): unknown => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -60,7 +60,7 @@ How can I assist you with your migration today?`,
   }, [messages]);
 
   // Restrictive system prompt for Gemma chatbot
-  const getRestrictiveSystemPrompt = () => {
+  const getRestrictiveSystemPrompt = (): unknown => {
     return `You are a specialized AI assistant for IT infrastructure migration and cloud transformation. You MUST follow these strict guidelines:
 
 ALLOWED TOPICS ONLY:
@@ -100,7 +100,7 @@ SECURITY:
 If a question is outside these bounds, respond: "I'm specialized in IT migration and infrastructure topics. How can I help you with your cloud migration, asset inventory, or infrastructure modernization instead?"`;
   };
 
-  const sendMessage = async () => {
+  const sendMessage = async (): Promise<void> => {
     if (!inputMessage.trim() || isLoading) return;
 
     const userMessage: ChatMessage = {
@@ -150,7 +150,7 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
     }
   };
 
-  const submitFeedback = async () => {
+  const submitFeedback = async (): Promise<void> => {
     if (!feedback.trim() || rating === 0) return;
 
     setIsSubmittingFeedback(true);
@@ -185,7 +185,7 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent): void => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (activeTab === 'chat') {

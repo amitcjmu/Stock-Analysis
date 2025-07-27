@@ -29,7 +29,7 @@ const QualityIssuesSummary: React.FC<QualityIssuesSummaryProps> = ({
   onFixIssue
 }) => {
   // Safe click handlers with error boundaries
-  const handleIssueClick = (issueId: string) => {
+  const handleIssueClick = (issueId: string): void => {
     try {
       console.log('🔍 Issue selected:', issueId);
       if (onIssueSelect) {
@@ -40,7 +40,7 @@ const QualityIssuesSummary: React.FC<QualityIssuesSummaryProps> = ({
     }
   };
 
-  const handleFixIssue = (issueId: string, event: React.MouseEvent) => {
+  const handleFixIssue = (issueId: string, event: React.MouseEvent): void => {
     try {
       event.stopPropagation();
       console.log('🔧 Fixing issue:', issueId);
@@ -52,7 +52,7 @@ const QualityIssuesSummary: React.FC<QualityIssuesSummaryProps> = ({
     }
   };
 
-  const handleCloseIssue = (event: React.MouseEvent) => {
+  const handleCloseIssue = (event: React.MouseEvent): void => {
     try {
       event.stopPropagation();
       console.log('❌ Closing issue selection');

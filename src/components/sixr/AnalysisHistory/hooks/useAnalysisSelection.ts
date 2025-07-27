@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useCallback } from 'react'
 
-export const useAnalysisSelection = () => {
+export const useAnalysisSelection = (): JSX.Element => {
   const [selectedAnalyses, setSelectedAnalyses] = useState<number[]>([]);
 
   const handleSelectAnalysis = useCallback((analysisId: number) => {

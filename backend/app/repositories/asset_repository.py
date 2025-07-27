@@ -6,6 +6,10 @@ Provides asset-specific query methods with automatic client account scoping.
 import logging
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy import and_, func, or_
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
 from app.models.asset import (
     Asset,
     AssetDependency,
@@ -14,9 +18,6 @@ from app.models.asset import (
     WorkflowProgress,
 )
 from app.repositories.context_aware_repository import ContextAwareRepository
-from sqlalchemy import and_, func, or_
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
 logger = logging.getLogger(__name__)
 
@@ -355,9 +356,9 @@ class AssetRepository(ContextAwareRepository[Asset]):
             analytics["quality_by_phase"][row.current_phase]["avg_quality"] = float(
                 row.avg_quality or 0
             )
-            analytics["quality_by_phase"][row.current_phase][
-                "avg_completeness"
-            ] = float(row.avg_completeness or 0)
+            analytics["quality_by_phase"][row.current_phase]["avg_completeness"] = (
+                float(row.avg_completeness or 0)
+            )
             analytics["quality_by_phase"][row.current_phase][
                 "asset_count"
             ] += row.asset_count

@@ -95,7 +95,7 @@ export const ApplicationOverrides: React.FC<ApplicationOverridesProps> = ({
     appId => !overrides[appId]
   );
 
-  const addOverride = () => {
+  const addOverride = (): void => {
     if (!newOverride.application_id || !newOverride.exception_type || !newOverride.rationale) return;
 
     const updatedOverrides = {
@@ -127,7 +127,7 @@ export const ApplicationOverrides: React.FC<ApplicationOverridesProps> = ({
     });
   };
 
-  const updateOverride = (appId: string, updates: Partial<ApplicationOverride>) => {
+  const updateOverride = (appId: string, updates: Partial<ApplicationOverride>): unknown => {
     const updatedOverrides = {
       ...overrides,
       [appId]: { ...overrides[appId], ...updates }
@@ -135,22 +135,22 @@ export const ApplicationOverrides: React.FC<ApplicationOverridesProps> = ({
     onChange(updatedOverrides);
   };
 
-  const removeOverride = (appId: string) => {
+  const removeOverride = (appId: string): unknown => {
     const { [appId]: removed, ...remaining } = overrides;
     onChange(remaining);
   };
 
-  const getExceptionTypeColor = (type: string) => {
+  const getExceptionTypeColor = (type: string): unknown => {
     const exceptionType = EXCEPTION_TYPES.find(et => et.value === type);
     return exceptionType?.color || 'bg-gray-100 text-gray-700';
   };
 
-  const getRiskLevelColor = (level: string) => {
+  const getRiskLevelColor = (level: string): unknown => {
     const riskLevel = RISK_LEVELS.find(rl => rl.value === level);
     return riskLevel?.color || 'bg-gray-100 text-gray-700 border-gray-200';
   };
 
-  const getApprovalStatusColor = (status: string) => {
+  const getApprovalStatusColor = (status: string): unknown => {
     const approvalStatus = APPROVAL_STATUS.find(as => as.value === status);
     return approvalStatus?.color || 'bg-gray-100 text-gray-700';
   };
@@ -412,17 +412,17 @@ const OverrideCard: React.FC<OverrideCardProps> = ({
 }) => {
   const [editData, setEditData] = useState<Partial<ApplicationOverride>>(override);
 
-  const getExceptionTypeColor = (type: string) => {
+  const getExceptionTypeColor = (type: string): unknown => {
     const exceptionType = EXCEPTION_TYPES.find(et => et.value === type);
     return exceptionType?.color || 'bg-gray-100 text-gray-700';
   };
 
-  const getRiskLevelColor = (level: string) => {
+  const getRiskLevelColor = (level: string): unknown => {
     const riskLevel = RISK_LEVELS.find(rl => rl.value === level);
     return riskLevel?.color || 'bg-gray-100 text-gray-700 border-gray-200';
   };
 
-  const getApprovalStatusColor = (status: string) => {
+  const getApprovalStatusColor = (status: string): unknown => {
     const approvalStatus = APPROVAL_STATUS.find(as => as.value === status);
     return approvalStatus?.color || 'bg-gray-100 text-gray-700';
   };

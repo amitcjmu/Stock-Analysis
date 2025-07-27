@@ -10,10 +10,11 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, Optional, Set
 
+from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.discovery_flow import DiscoveryFlow
-from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 

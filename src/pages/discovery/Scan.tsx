@@ -3,7 +3,7 @@ import type React from 'react';
 import Sidebar from '../../components/Sidebar';
 import { Activity, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
-const Scan = () => {
+const Scan = (): JSX.Element => {
   const scanProgress = 75;
   const scannedApps = 200;
   const totalApps = 250;
@@ -23,7 +23,7 @@ const Scan = () => {
     { id: 8, message: 'Database inventory scan completed for Finance dept', status: 'success', timestamp: '25 minutes ago' }
   ];
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status): JSX.Element => {
     switch (status) {
       case 'success': return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'progress': return <Clock className="h-4 w-4 text-blue-500" />;

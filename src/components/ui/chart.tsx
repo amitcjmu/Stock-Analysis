@@ -22,7 +22,7 @@ interface ChartContextProps {
 
 const ChartContext = React.createContext<ChartContextProps | null>(null)
 
-function useChart() {
+function useChart(): JSX.Element {
   const context = React.useContext(ChartContext)
 
   if (!context) {
@@ -65,7 +65,7 @@ const ChartContainer = React.forwardRef<
 })
 ChartContainer.displayName = "Chart"
 
-const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
+const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }): JSX.Element => {
   const colorConfig = Object.entries(config).filter(
     ([_, config]) => config.theme || config.color
   )

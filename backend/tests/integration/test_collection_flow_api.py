@@ -7,9 +7,10 @@ import asyncio
 import json
 
 import pytest
+from httpx import AsyncClient
+
 from app.core.database import AsyncSessionLocal
 from app.models.collection_flow import CollectionFlow
-from httpx import AsyncClient
 
 
 @pytest.mark.asyncio

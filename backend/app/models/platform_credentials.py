@@ -6,7 +6,6 @@ import uuid
 from datetime import datetime
 from enum import Enum as PyEnum
 
-from app.core.database import Base
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -21,6 +20,8 @@ from sqlalchemy.dialects.postgresql import ENUM, JSONB
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+
+from app.core.database import Base
 
 
 class CredentialStatus(str, PyEnum):

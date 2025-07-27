@@ -5,9 +5,10 @@ Complexity assessment module for migration complexity analysis.
 import logging
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.models.asset import Asset as DiscoveryAsset
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -151,9 +152,9 @@ class ComplexityAssessor:
 
             # Add flow-specific metrics
             complexity_assessment["flow_id"] = flow_id
-            complexity_assessment[
-                "flow_complexity_factors"
-            ] = self._assess_flow_specific_complexity(assets)
+            complexity_assessment["flow_complexity_factors"] = (
+                self._assess_flow_specific_complexity(assets)
+            )
 
             return complexity_assessment
 

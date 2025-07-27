@@ -1,9 +1,10 @@
 from typing import Optional
 
-from app.core.database import get_db
-from app.services.auth_services.authentication_service import AuthenticationService
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.services.auth_services.authentication_service import AuthenticationService
 
 
 async def get_current_user_id(

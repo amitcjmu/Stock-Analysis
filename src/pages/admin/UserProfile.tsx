@@ -65,7 +65,7 @@ const UserProfile: React.FC = () => {
     }
   });
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
+  const handlePasswordChange = async (e: React.FormEvent): JSX.Element => {
     e.preventDefault();
     if (passwordData.new_password !== passwordData.confirm_password) {
       toast({

@@ -5,9 +5,10 @@ Delegates to specialized handlers following the modular handler pattern.
 
 import logging
 
-from app.core.database import get_db
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
 
 # Import modular handlers
 from .handlers.clean_api_handler import router as clean_api_router

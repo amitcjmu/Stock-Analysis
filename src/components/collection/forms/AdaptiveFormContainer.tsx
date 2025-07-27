@@ -56,7 +56,7 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
   onCancel,
   className = ''
 }) => {
-  const handleFormSubmit = () => {
+  const handleFormSubmit = (): void => {
     onSubmit(formValues);
   };
 

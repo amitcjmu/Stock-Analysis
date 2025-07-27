@@ -26,7 +26,7 @@ const ProjectDialog: React.FC<ProjectDialogProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const handleInputChange = (field: keyof ProjectInfo, value: string | boolean) => {
+  const handleInputChange = (field: keyof ProjectInfo, value: string | boolean): void => {
     onProjectInfoChange({
       ...projectInfo,
       [field]: value

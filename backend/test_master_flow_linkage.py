@@ -13,12 +13,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
 import uuid
 
+from sqlalchemy import and_, func, select
+
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
 from app.models.data_import import DataImport, ImportFieldMapping, RawImportRecord
 from app.services.data_import.storage_manager import ImportStorageManager
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-from sqlalchemy import and_, func, select
 
 # Test configuration using real orphaned data
 TEST_FLOW_ID = "914ebf01-5174-4efa-9a81-5deb968dac60"  # Known orphaned flow
@@ -72,7 +73,9 @@ async def test_orphaned_data_discovery():
                 )
                 if smart_status:
                     print("✅ Smart discovery succeeded!")
-                    print(f"📊 Discovery method: {smart_status.get('discovery_method')}")
+                    print(
+                        f"📊 Discovery method: {smart_status.get('discovery_method')}"
+                    )
                     print(f"🎯 Confidence: {smart_status.get('confidence')}")
 
                     if "repair_options" in smart_status:

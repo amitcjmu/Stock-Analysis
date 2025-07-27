@@ -8,14 +8,12 @@ import logging
 from typing import Any, Dict, List, Optional
 
 try:
+    from crewai.tools import BaseTool
+    from pydantic import BaseModel, Field
+
     from app.schemas.sixr_analysis import SixRParameterBase, SixRStrategy
     from app.services.field_mapper_modular import FieldMapperService
     from app.services.sixr_engine_modular import SixRDecisionEngine
-    from app.services.tech_debt_analysis_service import (
-        TechDebtAnalysisService as TechDebtService,
-    )
-    from crewai.tools import BaseTool
-    from pydantic import BaseModel, Field
 
     SIXR_AVAILABLE = True
 except ImportError as e:
@@ -52,7 +50,9 @@ class CMDBAnalysisTool(BaseTool):
     """Tool for analyzing CMDB data to extract 6R-relevant insights."""
 
     name: str = "cmdb_analysis_tool"
-    description: str = "Analyze CMDB application data to extract insights for 6R migration strategy analysis"
+    description: str = (
+        "Analyze CMDB application data to extract insights for 6R migration strategy analysis"
+    )
     args_schema: type[BaseModel] = CMDBAnalysisInput
 
     def __init__(self):

@@ -5,12 +5,12 @@ Creating realistic asset inventory with raw import records for 3 data imports.
 
 import asyncio
 
+from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, IMPORT_IDS
+from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models.data_import import DataImport
 from app.models.data_import.core import RawImportRecord
-from sqlalchemy import select
-
-from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, IMPORT_IDS
 
 # Asset distributions for raw records
 ASSET_DISTRIBUTIONS = {

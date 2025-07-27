@@ -13,7 +13,7 @@ import { useFlowDeletion } from '@/hooks/useFlowDeletion';
 import type { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
 import { apiCall } from '@/config/api';
 
-export const useCMDBImport = () => {
+export const useCMDBImport = (): JSX.Element => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, client, engagement, getAuthHeaders } = useAuth();
@@ -174,7 +174,7 @@ export const useCMDBImport = () => {
 
   // Poll for flow status updates
   useEffect(() => {
-    const pollFlowStatus = async () => {
+    const pollFlowStatus = async (): Promise<void> => {
       const processingFiles = uploadedFiles.filter(f =>
         f.flow_id &&
         (f.status === 'processing' || f.flow_status === 'running' || f.flow_status === 'active')

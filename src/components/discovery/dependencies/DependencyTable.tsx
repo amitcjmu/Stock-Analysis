@@ -9,7 +9,7 @@ interface DependencyTableProps {
   onAddDependency: () => void;
 }
 
-const getStrengthColor = (strength: string) => {
+const getStrengthColor = (strength: string): unknown => {
   switch (strength?.toLowerCase()) {
     case 'critical':
       return 'bg-red-100 text-red-800';

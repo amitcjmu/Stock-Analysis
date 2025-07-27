@@ -11,7 +11,7 @@ interface TechDebtItemCardProps {
   showCheckbox?: boolean;
 }
 
-const getRiskColor = (risk: string) => {
+const getRiskColor = (risk: string): unknown => {
   switch (risk) {
     case 'critical':
       return 'bg-red-100 text-red-800 border-red-200';
@@ -24,7 +24,7 @@ const getRiskColor = (risk: string) => {
   }
 };
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: string): unknown => {
   switch (status) {
     case 'end_of_life':
       return 'bg-red-100 text-red-800 border-red-200';
@@ -37,7 +37,7 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const getEffortValue = (effort: string) => {
+const getEffortValue = (effort: string): unknown => {
   switch (effort) {
     case 'low':
       return 25;
@@ -58,7 +58,7 @@ export const TechDebtItemCard: React.FC<TechDebtItemCardProps> = ({
   onSelect,
   showCheckbox = true,
 }) => {
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     if (onSelect) {
       onSelect(item.id);
     }

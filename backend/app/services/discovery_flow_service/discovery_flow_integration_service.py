@@ -6,9 +6,10 @@ Provides backward compatibility with the original DiscoveryFlowIntegrationServic
 import logging
 from typing import Any, Dict, List
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.models.discovery_flow import DiscoveryFlow
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from .discovery_flow_service import DiscoveryFlowService
 from .integrations.crewai_integration import CrewAIIntegrationService

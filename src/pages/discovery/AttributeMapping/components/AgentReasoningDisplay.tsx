@@ -139,7 +139,7 @@ export const AgentReasoningDisplay: React.FC<AgentReasoningDisplayProps> = ({
     return agentDecisions.filter(decision => decision.agentType === selectedAgentType);
   }, [agentDecisions, selectedAgentType]);
 
-  const toggleDecisionExpansion = (decisionId: string) => {
+  const toggleDecisionExpansion = (decisionId: string): unknown => {
     setExpandedDecisions(prev => {
       const newSet = new Set(prev);
       if (newSet.has(decisionId)) {
@@ -151,7 +151,7 @@ export const AgentReasoningDisplay: React.FC<AgentReasoningDisplayProps> = ({
     });
   };
 
-  const getAgentTypeIcon = (type: AgentDecision['agentType']) => {
+  const getAgentTypeIcon = (type: AgentDecision['agentType']): JSX.Element => {
     switch (type) {
       case 'semantic': return <Brain className="w-4 h-4" />;
       case 'pattern': return <Target className="w-4 h-4" />;
@@ -161,7 +161,7 @@ export const AgentReasoningDisplay: React.FC<AgentReasoningDisplayProps> = ({
     }
   };
 
-  const getAgentTypeColor = (type: AgentDecision['agentType']) => {
+  const getAgentTypeColor = (type: AgentDecision['agentType']): unknown => {
     switch (type) {
       case 'semantic': return 'text-blue-600 bg-blue-50 border-blue-200';
       case 'pattern': return 'text-green-600 bg-green-50 border-green-200';
@@ -171,14 +171,14 @@ export const AgentReasoningDisplay: React.FC<AgentReasoningDisplayProps> = ({
     }
   };
 
-  const getConfidenceColor = (confidence: number) => {
+  const getConfidenceColor = (confidence: number): unknown => {
     if (confidence >= 0.8) return 'text-green-700 bg-green-100';
     if (confidence >= 0.6) return 'text-yellow-700 bg-yellow-100';
     if (confidence >= 0.4) return 'text-orange-700 bg-orange-100';
     return 'text-red-700 bg-red-100';
   };
 
-  const getStatusIcon = (status: AgentDecision['status']) => {
+  const getStatusIcon = (status: AgentDecision['status']): JSX.Element => {
     switch (status) {
       case 'approved': return <CheckCircle className="w-4 h-4 text-green-600" />;
       case 'rejected': return <AlertCircle className="w-4 h-4 text-red-600" />;

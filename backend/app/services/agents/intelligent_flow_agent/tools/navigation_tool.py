@@ -41,7 +41,9 @@ class NavigationDecisionTool(BaseTool):
     """Tool for making intelligent navigation and routing decisions"""
 
     name: str = "navigation_decision_maker"
-    description: str = "Makes intelligent routing decisions based on flow analysis and validation results, providing specific actionable guidance"
+    description: str = (
+        "Makes intelligent routing decisions based on flow analysis and validation results, providing specific actionable guidance"
+    )
 
     def _run(self, flow_status: str, validation_results: str, flow_type: str) -> str:
         """Make intelligent navigation decision with actionable guidance"""

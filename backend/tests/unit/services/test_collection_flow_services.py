@@ -8,6 +8,7 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from app.services.flow_configs.collection_handlers import (
     _get_question_template,
     _normalize_platform_data,

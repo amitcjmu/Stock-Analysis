@@ -5,9 +5,10 @@ Combines robust error handling with clean modular architecture.
 
 import logging
 
-from app.core.database import get_db
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
 
 from .sixr_handlers import (
     AnalysisEndpointsHandler,

@@ -8,12 +8,12 @@ import {
   ToastViewport,
 } from "@/components/ui/toast"
 
-export function Toaster() {
+export function Toaster(): JSX.Element {
   const { toasts } = useToast()
 
-  return (
+  return(
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
+      {toasts.map(function ({ id, title, description, action, ...props }): unknown {
         return (
           <Toast key={id} {...props}>
             <div className="grid gap-1">

@@ -8,11 +8,11 @@ import json
 import uuid
 from datetime import datetime, timezone
 
-from app.core.database import AsyncSessionLocal
+from constants import DEMO_CLIENT_ID
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from constants import DEMO_CLIENT_ID
+from app.core.database import AsyncSessionLocal
 
 
 async def get_assets_by_type_raw(session: AsyncSession, asset_type: str) -> list:

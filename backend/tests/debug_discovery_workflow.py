@@ -20,15 +20,19 @@ import aiohttp
 # Add the backend directory to the path
 sys.path.append("/app")
 
+from sqlalchemy import func, select
+
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
 from app.models.client_account import ClientAccount, Engagement
 from app.models.data_import import DataImport, RawImportRecord
-from sqlalchemy import func, select
 
 # Application model is not used - Asset model handles all assets
 APPLICATION_AVAILABLE = False
 Application = None
+
+# Engagement model availability
+ENGAGEMENT_AVAILABLE = True
 
 
 class DiscoveryWorkflowDebugger:

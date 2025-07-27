@@ -52,7 +52,7 @@ const ChatInterface: React.FC = () => {
     }
   });
 
-  const handleFeedbackSubmit = () => {
+  const handleFeedbackSubmit = (): void => {
     if (rating === 0 || !feedbackText.trim()) return;
 
     submitFeedback.mutate({

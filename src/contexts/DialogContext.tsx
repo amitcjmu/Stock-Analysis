@@ -76,7 +76,7 @@ interface DialogContextValue {
 
 const DialogContext = createContext<DialogContextValue | undefined>(undefined);
 
-export const useDialog = () => {
+export const useDialog = (): unknown => {
   const context = useContext(DialogContext);
   if (!context) {
     throw new Error('useDialog must be used within a DialogProvider');
@@ -98,7 +98,7 @@ const PromptDialogComponent: React.FC<{
   const [value, setValue] = useState(options.defaultValue || '');
   const [error, setError] = useState<string | null>(null);
 
-  const handleConfirm = () => {
+  const handleConfirm = (): void => {
     if (options.validation) {
       const validationError = options.validation(value);
       if (validationError) {
@@ -267,7 +267,7 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({ children }) => {
     [closeDialog]
   );
 
-  const getIcon = (iconType?: string) => {
+  const getIcon = (iconType?: string): JSX.Element => {
     switch (iconType) {
       case 'warning':
         return <AlertTriangle className="h-5 w-5 text-yellow-600" />;

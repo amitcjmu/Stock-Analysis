@@ -46,7 +46,7 @@ export interface ModernizationProgress {
   };
 }
 
-export const useModernizationProgress = (timeframe: 'week' | 'month' | 'quarter') => {
+export const useModernizationProgress = (timeframe: 'week' | 'month' | 'quarter'): JSX.Element => {
   const { getContextHeaders } = useAuth();
 
   return useQuery<ModernizationProgress>({

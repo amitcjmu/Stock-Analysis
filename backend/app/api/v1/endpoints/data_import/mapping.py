@@ -1,9 +1,10 @@
 from typing import List
 
-from app.api.v1.dependencies import get_db
-from app.services.workflow_state_service import workflow_state_service
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
+from app.api.v1.dependencies import get_db
+from app.services.workflow_state_service import workflow_state_service
 
 router = APIRouter()
 
@@ -16,8 +17,12 @@ def get_field_mappings(flow_id: str, db: Session = Depends(get_db)):
             status_code=404, detail="No active data import found for this flow."
         )
 
-    data_import_id = workflow_state.state_details["data_import_id"]
-    # ... (rest of the function uses data_import_id)
+    data_import_id = workflow_state.state_details["data_import_id"]  # noqa: F841
+    # TODO: Implement field mapping retrieval using data_import_id
+    return {
+        "message": "Field mappings retrieval not yet implemented",
+        "data_import_id": data_import_id,
+    }
 
 
 @router.post("/")
@@ -30,5 +35,10 @@ def update_field_mappings(
             status_code=404, detail="No active data import found for this flow."
         )
 
-    data_import_id = workflow_state.state_details["data_import_id"]
-    # ... (rest of the function uses data_import_id)
+    data_import_id = workflow_state.state_details["data_import_id"]  # noqa: F841
+    # TODO: Implement field mapping update using data_import_id
+    return {
+        "message": "Field mappings update not yet implemented",
+        "data_import_id": data_import_id,
+        "mappings_count": len(mappings),
+    }

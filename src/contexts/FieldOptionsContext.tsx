@@ -25,34 +25,29 @@ const FieldOptionsContext = createContext<FieldOptionsContextType | undefined>(u
 // Complete asset fields list based on backend Asset model
 // This eliminates the need for API calls on every app start
 const ASSET_TARGET_FIELDS: TargetField[] = [
-  // Identity fields (Critical for migration)
-  { name: 'name', type: 'string', required: true, description: 'Asset name', category: 'identification' },
+  // Identity fields(Critical for migration): any { name: 'name', type: 'string', required: true, description: 'Asset name', category: 'identification' },
   { name: 'asset_name', type: 'string', required: false, description: 'Asset display name', category: 'identification' },
   { name: 'hostname', type: 'string', required: false, description: 'Network hostname', category: 'identification' },
   { name: 'fqdn', type: 'string', required: false, description: 'Fully qualified domain name', category: 'identification' },
   { name: 'asset_type', type: 'string', required: true, description: 'Type of asset (server, database, application, etc.)', category: 'identification' },
   { name: 'description', type: 'string', required: false, description: 'Asset description', category: 'identification' },
 
-  // Network fields (Critical for migration)
-  { name: 'ip_address', type: 'string', required: false, description: 'IP address (supports IPv6)', category: 'network' },
+  // Network fields(Critical for migration): any { name: 'ip_address', type: 'string', required: false, description: 'IP address (supports IPv6)', category: 'network' },
   { name: 'mac_address', type: 'string', required: false, description: 'MAC address', category: 'network' },
 
-  // Location and Environment fields (Critical for migration)
-  { name: 'environment', type: 'string', required: false, description: 'Environment (prod, dev, test)', category: 'environment' },
+  // Location and Environment fields(Critical for migration): any { name: 'environment', type: 'string', required: false, description: 'Environment (prod, dev, test)', category: 'environment' },
   { name: 'location', type: 'string', required: false, description: 'Physical location', category: 'environment' },
   { name: 'datacenter', type: 'string', required: false, description: 'Data center', category: 'environment' },
   { name: 'rack_location', type: 'string', required: false, description: 'Rack location', category: 'environment' },
   { name: 'availability_zone', type: 'string', required: false, description: 'Availability zone', category: 'environment' },
 
-  // Technical specifications (from Azure Migrate)
-  { name: 'operating_system', type: 'string', required: false, description: 'Operating system', category: 'technical' },
+  // Technical specifications(from Azure Migrate): any { name: 'operating_system', type: 'string', required: false, description: 'Operating system', category: 'technical' },
   { name: 'os_version', type: 'string', required: false, description: 'OS version', category: 'technical' },
   { name: 'cpu_cores', type: 'number', required: false, description: 'Number of CPU cores', category: 'technical' },
   { name: 'memory_gb', type: 'number', required: false, description: 'Memory in GB', category: 'technical' },
   { name: 'storage_gb', type: 'number', required: false, description: 'Storage in GB', category: 'technical' },
 
-  // Business information (Critical for migration)
-  { name: 'business_owner', type: 'string', required: false, description: 'Business owner', category: 'business' },
+  // Business information(Critical for migration): any { name: 'business_owner', type: 'string', required: false, description: 'Business owner', category: 'business' },
   { name: 'technical_owner', type: 'string', required: false, description: 'Technical owner', category: 'business' },
   { name: 'department', type: 'string', required: false, description: 'Department', category: 'business' },
   { name: 'application_name', type: 'string', required: false, description: 'Application name', category: 'application' },
@@ -61,8 +56,7 @@ const ASSET_TARGET_FIELDS: TargetField[] = [
   { name: 'business_criticality', type: 'string', required: false, description: 'Business criticality level', category: 'business' },
   { name: 'custom_attributes', type: 'string', required: false, description: 'Custom attributes captured during import', category: 'business' },
 
-  // Migration assessment (Critical for migration)
-  { name: 'six_r_strategy', type: 'string', required: false, description: '6R migration strategy', category: 'migration' },
+  // Migration assessment(Critical for migration): any { name: 'six_r_strategy', type: 'string', required: false, description: '6R migration strategy', category: 'migration' },
   { name: 'mapping_status', type: 'string', required: false, description: 'Mapping status (pending, in_progress, completed)', category: 'migration' },
   { name: 'migration_priority', type: 'number', required: false, description: 'Migration priority (1-10 scale)', category: 'migration' },
   { name: 'migration_complexity', type: 'string', required: false, description: 'Migration complexity (low, medium, high)', category: 'migration' },
@@ -73,8 +67,7 @@ const ASSET_TARGET_FIELDS: TargetField[] = [
   { name: 'status', type: 'string', required: false, description: 'Operational status', category: 'status' },
   { name: 'migration_status', type: 'string', required: false, description: 'Migration status', category: 'status' },
 
-  // Dependencies and relationships (Critical for migration)
-  { name: 'dependencies', type: 'string', required: false, description: 'List of dependent asset IDs or names', category: 'dependencies' },
+  // Dependencies and relationships(Critical for migration): any { name: 'dependencies', type: 'string', required: false, description: 'List of dependent asset IDs or names', category: 'dependencies' },
   { name: 'related_assets', type: 'string', required: false, description: 'Related CI items', category: 'dependencies' },
 
   // Discovery metadata
@@ -82,8 +75,7 @@ const ASSET_TARGET_FIELDS: TargetField[] = [
   { name: 'discovery_source', type: 'string', required: false, description: 'Tool or system that discovered the asset', category: 'discovery' },
   { name: 'discovery_timestamp', type: 'string', required: false, description: 'Discovery timestamp', category: 'discovery' },
 
-  // Performance and utilization (from Azure Migrate)
-  { name: 'cpu_utilization_percent', type: 'number', required: false, description: 'CPU utilization percentage', category: 'performance' },
+  // Performance and utilization(from Azure Migrate): any { name: 'cpu_utilization_percent', type: 'number', required: false, description: 'CPU utilization percentage', category: 'performance' },
   { name: 'memory_utilization_percent', type: 'number', required: false, description: 'Memory utilization percentage', category: 'performance' },
   { name: 'disk_iops', type: 'number', required: false, description: 'Disk IOPS', category: 'performance' },
   { name: 'network_throughput_mbps', type: 'number', required: false, description: 'Network throughput in Mbps', category: 'performance' },
@@ -101,8 +93,7 @@ const ASSET_TARGET_FIELDS: TargetField[] = [
   { name: 'raw_data', type: 'string', required: false, description: 'Original imported data', category: 'metadata' },
   { name: 'field_mappings_used', type: 'string', required: false, description: 'Field mappings applied during import', category: 'metadata' },
 
-  // Multi-tenant and flow tracking (typically not user-mapped)
-  { name: 'client_account_id', type: 'string', required: false, description: 'Client account ID', category: 'system' },
+  // Multi-tenant and flow tracking(typically not user-mapped): any { name: 'client_account_id', type: 'string', required: false, description: 'Client account ID', category: 'system' },
   { name: 'engagement_id', type: 'string', required: false, description: 'Engagement ID', category: 'system' },
   { name: 'flow_id', type: 'string', required: false, description: 'Discovery flow ID', category: 'system' },
   { name: 'master_flow_id', type: 'string', required: false, description: 'Master flow ID', category: 'system' },
@@ -110,8 +101,7 @@ const ASSET_TARGET_FIELDS: TargetField[] = [
   { name: 'current_phase', type: 'string', required: false, description: 'Current phase', category: 'system' },
   { name: 'phase_context', type: 'string', required: false, description: 'Phase context', category: 'system' },
 
-  // Audit fields (typically not user-mapped)
-  { name: 'created_at', type: 'string', required: false, description: 'Creation timestamp', category: 'system' },
+  // Audit fields(typically not user-mapped): any { name: 'created_at', type: 'string', required: false, description: 'Creation timestamp', category: 'system' },
   { name: 'updated_at', type: 'string', required: false, description: 'Update timestamp', category: 'system' },
   { name: 'imported_by', type: 'string', required: false, description: 'User who imported the asset', category: 'system' },
   { name: 'imported_at', type: 'string', required: false, description: 'Import timestamp', category: 'system' },
@@ -132,7 +122,7 @@ export const FieldOptionsProvider: React.FC<FieldOptionsProviderProps> = ({ chil
 
   console.log('✅ FieldOptionsProvider - Using hardcoded asset fields list with', ASSET_TARGET_FIELDS.length, 'fields');
 
-  const refetchFields = async () => {
+  const refetchFields = async () =>  {
     console.log('🔄 FieldOptionsProvider - Refetch requested but using hardcoded fields');
     // No-op since we're using hardcoded fields
   };

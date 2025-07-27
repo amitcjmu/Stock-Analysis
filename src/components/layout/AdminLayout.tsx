@@ -18,7 +18,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     return null;
   }
 
-  const handleClientSwitch = (clientId: string) => {
+  const handleClientSwitch = (clientId: string): void => {
     if(switchClient) switchClient(clientId);
   };
 

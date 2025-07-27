@@ -78,14 +78,14 @@ export const tokenStorage: TokenStorage = {
   getRedirectPath: () => localStorage.getItem('redirect_path'),
   setRedirectPath: (path) => localStorage.setItem('redirect_path', path),
   clearRedirectPath: () => localStorage.removeItem('redirect_path'),
-  removeToken: () => {
+  removeToken: (): void => {
     try {
       localStorage.removeItem('auth_token');
     } catch (error) {
       console.error("Failed to remove token from localStorage", error);
     }
   },
-  removeUser: () => {
+  removeUser: (): void => {
     try {
       localStorage.removeItem('auth_user');
     } catch (error) {
@@ -106,24 +106,24 @@ export const contextStorage = {
       return null;
     }
   },
-  setContext: (context: ContextData) => {
+  setContext: (context: ContextData): void => {
     localStorage.setItem(CONTEXT_STORAGE_KEY, JSON.stringify(context));
   },
-  clearContext: () => {
+  clearContext: (): void => {
     localStorage.removeItem(CONTEXT_STORAGE_KEY);
   }
 };
 
-export const persistClientData = (client: Client) => {
+export const persistClientData = (client: Client): unknown => {
   localStorage.setItem('auth_client', JSON.stringify(client));
   localStorage.setItem('auth_client_id', client.id);
 };
 
-export const persistEngagementData = (engagement: Engagement) => {
+export const persistEngagementData = (engagement: Engagement): unknown => {
   localStorage.setItem('auth_engagement', JSON.stringify(engagement));
 };
 
-export const persistSessionData = (session: ExternalSessionData) => {
+export const persistSessionData = (session: ExternalSessionData): unknown => {
   localStorage.setItem('auth_session', JSON.stringify(session));
 };
 
@@ -166,7 +166,7 @@ export const getStoredSessionData = (): ExternalSessionData | null => {
   return null;
 };
 
-export const clearInvalidContextData = () => {
+export const clearInvalidContextData = (): unknown => {
   console.log('🧹 Clearing invalid context data from localStorage');
   localStorage.removeItem('auth_client');
   localStorage.removeItem('auth_engagement');
@@ -174,7 +174,7 @@ export const clearInvalidContextData = () => {
   localStorage.removeItem('user_context_selection');
 };
 
-export const clearAllStoredData = () => {
+export const clearAllStoredData = (): unknown => {
   localStorage.removeItem('auth_token');
   localStorage.removeItem('auth_user');
   localStorage.removeItem('auth_client');

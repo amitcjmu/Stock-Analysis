@@ -13,8 +13,7 @@ logger = logging.getLogger(__name__)
 # CrewAI Flow imports with graceful fallback
 CREWAI_FLOW_AVAILABLE = False
 try:
-    from crewai import Flow
-
+    # Flow import will be used when needed
     CREWAI_FLOW_AVAILABLE = True
 except ImportError:
     logger.warning("CrewAI Flow not available")

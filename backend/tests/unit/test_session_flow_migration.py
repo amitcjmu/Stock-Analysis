@@ -8,8 +8,25 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from sqlalchemy.orm import Session
 
-# Mock the services and models since they may not exist yet
-# These tests validate the session to flow migration pattern
+from app.models.data_import.core import DataImport, RawImportRecord
+
+# Note: SessionFlowCompatibilityService needs to be implemented
+# For now, we'll create a mock implementation for testing
+
+
+class SessionFlowCompatibilityService:
+    """Mock implementation of SessionFlowCompatibilityService for testing"""
+
+    def __init__(self, db_session):
+        self.db = db_session
+
+    async def ensure_flow_id(self, data_import_id: int) -> str:
+        """Mock implementation"""
+        pass
+
+    async def migrate_session_references(self, session_id: str, flow_id: str) -> int:
+        """Mock implementation"""
+        pass
 
 
 @pytest.fixture

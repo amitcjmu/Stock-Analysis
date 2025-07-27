@@ -70,7 +70,7 @@ class HttpClient implements ApiClient {
     this.addDefaultInterceptors();
   }
 
-  private addDefaultInterceptors() {
+  private addDefaultInterceptors(): unknown {
     // Request logging interceptor
     if (this.config.enableLogging) {
       this.addRequestInterceptor({

@@ -12,10 +12,10 @@ Asset Distribution:
 import asyncio
 from datetime import datetime, timedelta, timezone
 
+from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, FLOW_IDS, USER_IDS
+
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
-
-from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, FLOW_IDS, USER_IDS
 
 # Asset distribution across flows
 FLOW_ASSET_DISTRIBUTION = {

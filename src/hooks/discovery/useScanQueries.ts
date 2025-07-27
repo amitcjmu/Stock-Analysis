@@ -11,7 +11,7 @@ const SCAN_QUERY_KEYS = {
   SCAN_LOGS: ['scan', 'logs'],
 } as const;
 
-export const useScanProgress = () => {
+export const useScanProgress = (): JSX.Element => {
   const { isAuthenticated } = useAuth();
 
   return useQuery<ScanProgress, Error>({
@@ -27,7 +27,7 @@ export const useScanProgress = () => {
   });
 };
 
-export const useScanLogs = (options = {}) => {
+export const useScanLogs = (options = {}): JSX.Element => {
   const { isAuthenticated } = useAuth();
   const { enabled = true, ...queryOptions } = options;
 
@@ -45,12 +45,12 @@ export const useScanLogs = (options = {}) => {
   });
 };
 
-export const useScanMutations = () => {
+export const useScanMutations = (): unknown => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
 
-  const invalidateScanQueries = () => {
+  const invalidateScanQueries = (): unknown => {
     queryClient.invalidateQueries({ queryKey: SCAN_QUERY_KEYS.SCAN_PROGRESS });
     queryClient.invalidateQueries({ queryKey: SCAN_QUERY_KEYS.SCAN_LOGS });
   };
@@ -148,7 +148,7 @@ export const useScanMutations = () => {
   };
 };
 
-export const useScanControls = () => {
+export const useScanControls = (): unknown => {
   const { data: scanProgress, isLoading: isLoadingProgress } = useScanProgress();
   const { data: scanLogs, isLoading: isLoadingLogs } = useScanLogs();
   const {
@@ -168,19 +168,19 @@ export const useScanControls = () => {
   const isIdle = scanState === 'idle' || !scanState;
 
   // Handle scan actions
-  const handleStartScan = (scanType: 'full' | 'incremental' | 'targeted' = 'full') => {
+  const handleStartScan = (scanType: 'full' | 'incremental' | 'targeted' = 'full'): void => {
     return startScan({ scanType });
   };
 
-  const handlePauseScan = (scanId: string) => {
+  const handlePauseScan = (scanId: string): void => {
     return pauseScan(scanId);
   };
 
-  const handleResumeScan = (scanId: string) => {
+  const handleResumeScan = (scanId: string): void => {
     return resumeScan(scanId);
   };
 
-  const handleStopScan = (scanId: string) => {
+  const handleStopScan = (scanId: string): void => {
     return stopScan(scanId);
   };
 

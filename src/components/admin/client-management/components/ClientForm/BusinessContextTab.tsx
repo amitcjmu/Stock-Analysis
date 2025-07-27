@@ -11,7 +11,7 @@ interface BusinessContextTabProps {
 }
 
 export const BusinessContextTab: React.FC<BusinessContextTabProps> = ({ formData, onFormChange }) => {
-  const handleMultiSelect = (field: keyof ClientFormData, value: string, checked: boolean) => {
+  const handleMultiSelect = (field: keyof ClientFormData, value: string, checked: boolean): void => {
     const currentValues = (formData[field] as string[]) || [];
     if (checked) {
       onFormChange(field, [...currentValues, value]);

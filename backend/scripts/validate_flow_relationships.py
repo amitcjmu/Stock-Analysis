@@ -37,9 +37,10 @@ from typing import Any, Dict, List, NamedTuple, Optional
 # Add the backend directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.core.database import AsyncSessionLocal
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+
+from app.core.database import AsyncSessionLocal
 
 
 class ValidationResult(NamedTuple):
@@ -816,9 +817,7 @@ class FlowRelationshipValidator:
             status = (
                 "✅"
                 if result.health_score >= 95
-                else "🟡"
-                if result.health_score >= 85
-                else "🔴"
+                else "🟡" if result.health_score >= 85 else "🔴"
             )
             print(f"{status} {result.check_name} ({result.table_name})")
             print(f"    Total Records: {result.total_records:,}")

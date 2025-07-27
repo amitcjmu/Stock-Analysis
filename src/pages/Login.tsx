@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 // Demo credentials that match the database seed
 const DEMO_EMAIL = "demo@democorp.com";
-const DEMO_PASSWORD = "password"; // This matches the database seed
+const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD || ""; // Demo password from environment
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -52,7 +52,7 @@ const Login: React.FC = () => {
 
   const from = location.state?.from?.pathname || '/';
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent): void => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -70,7 +70,7 @@ const Login: React.FC = () => {
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent): void => {
     e.preventDefault();
 
     if (registerData.password !== registerData.confirmPassword) {

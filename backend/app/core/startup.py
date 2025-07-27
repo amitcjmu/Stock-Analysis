@@ -6,9 +6,10 @@ Handles initialization tasks when the application starts.
 import logging
 from contextlib import asynccontextmanager
 
+from fastapi import FastAPI
+
 from app.core.database import AsyncSessionLocal
 from app.core.database_initialization import initialize_database
-from fastapi import FastAPI
 
 logger = logging.getLogger(__name__)
 

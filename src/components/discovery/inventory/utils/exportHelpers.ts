@@ -1,6 +1,6 @@
 import type { AssetInventory } from '../types/inventory.types';
 
-export const exportAssets = (assets: AssetInventory[], selectedColumns: string[]) => {
+export const exportAssets = (assets: AssetInventory[], selectedColumns: string[]): void => {
   const csvHeaders = selectedColumns.join(',');
   const csvRows = assets.map(asset =>
     selectedColumns.map(col => {

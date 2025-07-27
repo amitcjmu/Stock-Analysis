@@ -59,7 +59,7 @@ interface AgentMonitorResponse {
   message: string;
 }
 
-const AgentMonitor = () => {
+const AgentMonitor = (): JSX.Element => {
   const { data, isLoading, isError, error } = useAgentMonitor({
     enabled: true,
     polling: false // Disable aggressive polling
@@ -115,12 +115,12 @@ const AgentMonitor = () => {
     return colors[status.toLowerCase()] || 'bg-gray-100 text-gray-800';
   };
 
-  const formatTime = (timestamp: string | null) => {
+  const formatTime = (timestamp: string | null): unknown => {
     if (!timestamp) return 'Never';
     return new Date(timestamp).toLocaleTimeString();
   };
 
-  const formatPercentage = (value: number) => {
+  const formatPercentage = (value: number): unknown => {
     return Math.round(value * 100);
   };
 

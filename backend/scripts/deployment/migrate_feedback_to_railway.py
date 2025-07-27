@@ -28,9 +28,10 @@ async def export_local_feedback():
 
     try:
         # Connect to local database
+        from sqlalchemy import select
+
         from app.core.database import AsyncSessionLocal
         from app.models.feedback import Feedback
-        from sqlalchemy import select
 
         feedback_data = []
 

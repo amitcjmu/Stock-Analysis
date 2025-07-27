@@ -20,7 +20,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   onPageChange,
   onItemsPerPageChange
 }) => {
-  const getPageNumbers = () => {
+  const getPageNumbers = (): JSX.Element => {
     const pages = [];
     const maxPagesToShow = 5;
 

@@ -13,7 +13,7 @@ export const ExportAndSharingControls: React.FC<ExportAndSharingControlsProps> =
 }) => {
   const [isExporting, setIsExporting] = useState(false);
 
-  const handleExport = async (format: string) => {
+  const handleExport = async (format: string): void => {
     setIsExporting(true);
     try {
       // In real implementation, call export API
@@ -31,7 +31,7 @@ export const ExportAndSharingControls: React.FC<ExportAndSharingControlsProps> =
     }
   };
 
-  const handleShare = (method: string) => {
+  const handleShare = (method: string): void => {
     console.log(`Sharing assessment via ${method}`, assessmentData);
     alert(`Sharing functionality for ${method} would be implemented here`);
   };

@@ -8,8 +8,9 @@ This migration adds the missing source_system column to data_imports table.
 """
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy import text
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "add_source_system_column"

@@ -24,7 +24,7 @@ const AssetCard: React.FC<AssetCardProps> = ({
   isExpanded,
   onToggleExpanded
 }) => {
-  const getAssetIcon = () => {
+  const getAssetIcon = (): JSX.Element => {
     switch (asset.asset_type?.toLowerCase()) {
       case 'server': return <Server className="w-4 h-4 text-blue-600" />;
       case 'database': return <Database className="w-4 h-4 text-green-600" />;

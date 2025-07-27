@@ -37,7 +37,7 @@ export interface VerificationData {
   reports: VerificationReport[];
 }
 
-export const useVerification = () => {
+export const useVerification = (): JSX.Element => {
   const { getAuthHeaders } = useAuth();
 
   return useQuery<VerificationData>({
@@ -50,7 +50,7 @@ export const useVerification = () => {
   });
 };
 
-export const useRunVerification = () => {
+export const useRunVerification = (): unknown => {
   const { getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
 
@@ -69,7 +69,7 @@ export const useRunVerification = () => {
   });
 };
 
-export const useGenerateReport = () => {
+export const useGenerateReport = (): unknown => {
   const { getAuthHeaders } = useAuth();
 
   return useMutation({

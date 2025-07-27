@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import Sidebar from '../components/Sidebar';
 import { Building2, Calendar, Users, Target, Clock, Layers, Download, Plus } from 'lucide-react';
 
-const Plan = () => {
+const Plan = (): JSX.Element => {
   const [selectedWave, setSelectedWave] = useState('W1');
 
   const migrationWaves = [

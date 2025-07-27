@@ -22,7 +22,7 @@ let isAuthInitializing = false;
 
 // Add session storage to persist initialization state across page refreshes
 const AUTH_INIT_KEY = 'auth_initialization_complete';
-const getInitializationState = () => {
+const getInitializationState = (): boolean => {
   try {
     return sessionStorage.getItem(AUTH_INIT_KEY) === 'true';
   } catch {
@@ -30,7 +30,7 @@ const getInitializationState = () => {
   }
 };
 
-const setInitializationState = (completed: boolean) => {
+const setInitializationState = (completed: boolean): unknown => {
   try {
     if (completed) {
       sessionStorage.setItem(AUTH_INIT_KEY, 'true');
@@ -51,7 +51,7 @@ export const useAuthInitialization = ({
   setIsLoading,
   switchClient,
   fetchDefaultContext
-}: UseAuthInitializationProps) => {
+}: UseAuthInitializationProps): JSX.Element => {
   const navigate = useNavigate();
   const initRef = useRef(false);
 
@@ -59,7 +59,7 @@ export const useAuthInitialization = ({
     let isMounted = true;
 
 
-    const initializeAuth = async () => {
+    const initializeAuth = async (): JSX.Element => {
       // Check token and user first
       const token = tokenStorage.getToken();
       const storedUser = tokenStorage.getUser();

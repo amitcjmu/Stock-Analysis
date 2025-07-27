@@ -7,8 +7,9 @@ Create Date: 2025-06-27 17:30:00.000000
 """
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "enhanced_client_accounts"

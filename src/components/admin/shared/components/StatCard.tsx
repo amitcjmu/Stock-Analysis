@@ -30,7 +30,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   change,
   className = ''
 }) => {
-  const getChangeColor = (type: 'increase' | 'decrease' | 'neutral') => {
+  const getChangeColor = (type: 'increase' | 'decrease' | 'neutral'): unknown => {
     switch (type) {
       case 'increase': return 'text-green-600';
       case 'decrease': return 'text-red-600';
@@ -38,7 +38,7 @@ export const StatCard: React.FC<StatCardProps> = ({
     }
   };
 
-  const getChangeIcon = (type: 'increase' | 'decrease' | 'neutral') => {
+  const getChangeIcon = (type: 'increase' | 'decrease' | 'neutral'): unknown => {
     switch (type) {
       case 'increase': return '↗';
       case 'decrease': return '↘';

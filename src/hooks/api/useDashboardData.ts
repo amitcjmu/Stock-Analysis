@@ -53,7 +53,7 @@ export interface DashboardData {
  * Unified hook for fetching dashboard data with React Query
  * Replaces the dashboardService to prevent duplicate API calls
  */
-export const useDashboardData = () => {
+export const useDashboardData = (): JSX.Element => {
   const { user, client, engagement, getAuthHeaders } = useAuth();
 
   return useQuery({

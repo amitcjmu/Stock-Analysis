@@ -83,7 +83,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
   const lastRequestTime = useRef(0);
   const REQUEST_DEBOUNCE_MS = 1000; // Prevent requests within 1 second of each other
 
-  const fetchFlowAnalysis = async () => {
+  const fetchFlowAnalysis = async (): JSX.Element => {
     if (!flowId) {
       console.warn('FlowStatusWidget: No flowId provided');
       return;
@@ -144,7 +144,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
     return () => clearTimeout(timer);
   }, [flowId]); // Only depend on flowId, not client/engagement which may change frequently
 
-  const handleNavigateToRecommendedPage = () => {
+  const handleNavigateToRecommendedPage = (): void => {
     if (!analysis?.routing_context?.target_page) {
       toast.error('Navigation Error', {
         description: 'No target page available. Please try refreshing.',
@@ -175,14 +175,14 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
     }
   };
 
-  const handleRetryAnalysis = () => {
+  const handleRetryAnalysis = (): void => {
     // Reset state and retry
     setError(null);
     setAnalysis(null);
     fetchFlowAnalysis();
   };
 
-  const getPhaseStatusIcon = (status: string, confidence: number) => {
+  const getPhaseStatusIcon = (status: string, confidence: number): JSX.Element => {
     if (status === 'completed' && confidence >= 0.8) {
       return <CheckCircle className="h-4 w-4 text-green-500" />;
     } else if (status === 'completed' && confidence >= 0.6) {
@@ -194,7 +194,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
     }
   };
 
-  const getTaskStatusColor = (status: string) => {
+  const getTaskStatusColor = (status: string): unknown => {
     switch (status) {
       case 'completed': return 'default';
       case 'pending': return 'secondary';

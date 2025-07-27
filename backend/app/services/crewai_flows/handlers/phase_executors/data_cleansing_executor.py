@@ -114,7 +114,9 @@ class DataCleansingExecutor(BasePhaseExecutor):
 
     async def execute_fallback(self) -> Dict[str, Any]:
         """NO FALLBACK ALLOWED - FAIL FAST TO EXPOSE REAL ISSUES"""
-        logger.error("❌ execute_fallback called for data_cleansing - FALLBACK DISABLED")
+        logger.error(
+            "❌ execute_fallback called for data_cleansing - FALLBACK DISABLED"
+        )
         logger.error(
             "❌ If you see this error, fix the actual agentic intelligence execution issues"
         )
@@ -227,9 +229,10 @@ class DataCleansingExecutor(BasePhaseExecutor):
 
     async def _get_raw_import_records_with_ids(self) -> List[Dict[str, Any]]:
         """Get raw import records from database with their IDs preserved"""
+        from sqlalchemy import select
+
         from app.core.database import AsyncSessionLocal
         from app.models.data_import.core import RawImportRecord
-        from sqlalchemy import select
 
         records = []
         try:

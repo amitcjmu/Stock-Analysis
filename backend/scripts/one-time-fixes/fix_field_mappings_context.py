@@ -6,9 +6,10 @@ import asyncio
 import uuid
 from datetime import datetime
 
+from sqlalchemy import select, update
+
 from app.core.database import get_db
 from app.models.data_import import DataImport, ImportFieldMapping, RawImportRecord
-from sqlalchemy import select, update
 
 
 async def fix_field_mappings_context():

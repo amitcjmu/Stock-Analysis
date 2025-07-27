@@ -5,7 +5,7 @@ import type { CollaborationData, PlanningData } from '../types'
 import type { CrewProgress, MemoryAnalytics } from '../types'
 import type { INITIAL_CREWS } from '../constants';
 
-export const useEnhancedMonitoring = (flowId: string, flowState: unknown) => {
+export const useEnhancedMonitoring = (flowId: string, flowState: unknown): JSX.Element => {
   const [crews, setCrews] = useState<CrewProgress[]>(INITIAL_CREWS);
   const [collaborationData, setCollaborationData] = useState<CollaborationData | null>(null);
   const [planningData, setPlanningData] = useState<PlanningData | null>(null);

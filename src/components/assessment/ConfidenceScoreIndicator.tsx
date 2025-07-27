@@ -19,7 +19,7 @@ export const ConfidenceScoreIndicator: React.FC<ConfidenceScoreIndicatorProps> =
   showLabel = true,
   breakdown
 }) => {
-  const getConfidenceLevel = (score: number) => {
+  const getConfidenceLevel = (score: number): unknown => {
     if (score >= 0.9) return { level: 'excellent', color: 'text-green-600', bgColor: 'bg-green-100', icon: CheckCircle };
     if (score >= 0.8) return { level: 'good', color: 'text-green-600', bgColor: 'bg-green-100', icon: CheckCircle };
     if (score >= 0.7) return { level: 'moderate', color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: AlertTriangle };

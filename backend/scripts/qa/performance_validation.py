@@ -22,6 +22,9 @@ from typing import Any, Dict, List, Optional
 # Add app path
 sys.path.append("/app")
 
+from sqlalchemy import and_, distinct, func, or_, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
 from app.models import (
     Asset,
@@ -33,8 +36,17 @@ from app.models import (
     Migration,
     User,
 )
-from sqlalchemy import and_, distinct, func, or_, select, text
-from sqlalchemy.ext.asyncio import AsyncSession
+
+# Try to import Assessment if available
+try:
+    from app.models import Assessment
+except ImportError:
+    # Create a dummy Assessment class for when the model is not available
+    class Assessment:
+        assessment_type = None
+        confidence_level = None
+        asset_id = None
+        id = None
 
 
 @dataclass

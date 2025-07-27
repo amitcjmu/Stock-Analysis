@@ -62,9 +62,9 @@ class CrewManager:
         try:
             # Set up proper environment for CrewAI with local embeddings
             if not os.getenv("CHROMA_OPENAI_API_KEY"):
-                os.environ[
-                    "CHROMA_OPENAI_API_KEY"
-                ] = "not_needed_using_local_embeddings"
+                os.environ["CHROMA_OPENAI_API_KEY"] = (
+                    "not_needed_using_local_embeddings"
+                )
 
             # Configure Chroma to use local embeddings
             os.environ["CHROMA_CLIENT_TYPE"] = "local"
@@ -84,9 +84,9 @@ class CrewManager:
                 os.environ["OPENAI_API_BASE"] = "https://api.deepinfra.com/v1/openai"
                 os.environ["OPENAI_BASE_URL"] = "https://api.deepinfra.com/v1/openai"
                 # Set model name to prevent gpt-4o-mini fallback
-                os.environ[
-                    "OPENAI_MODEL_NAME"
-                ] = "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+                os.environ["OPENAI_MODEL_NAME"] = (
+                    "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+                )
 
             logger.info("CrewAI environment configured")
         except Exception as e:

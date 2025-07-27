@@ -317,11 +317,14 @@ def cleanup_duplicates() -> int:
 def clear_processed_assets() -> None:
     """Clear the processed assets store."""
     global processed_assets_store
-    processed_assets_store = []
+    processed_assets_store.clear()
+    backup_processed_assets()  # Save the cleared state
 
 
 def update_asset_by_id(asset_id: str, updated_data: Dict[str, Any]) -> bool:
     """Update an asset in the store by ID."""
+    global processed_assets_store
+
     for i, asset in enumerate(processed_assets_store):
         if asset.get("id") == asset_id:
             processed_assets_store[i].update(updated_data)

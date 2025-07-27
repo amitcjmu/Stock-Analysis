@@ -240,7 +240,8 @@ class OptimizedAgentConfigurator:
                 config.max_execution_time = int(config.max_execution_time * 1.2)
 
                 logger.info(
-                    f"Applied reliability optimizations for {operation_type} (error rate: {current_metrics.error_rate:.2f})"
+                    f"Applied reliability optimizations for {operation_type} "
+                    f"(error rate: {current_metrics.error_rate:.2f})"
                 )
 
             # Optimize based on cache hit rate
@@ -373,13 +374,11 @@ class OptimizedAgentConfigurator:
     ) -> Dict[str, Any]:
         """Get optimized crew configuration"""
         # Determine best process type based on operation and configs
-        enable_parallel = any(
-            config.enable_parallel_execution for config in agent_configs
-        )
+        any(config.enable_parallel_execution for config in agent_configs)
         enable_collaboration = any(
             config.enable_collaboration for config in agent_configs
         )
-        allow_delegation = any(config.allow_delegation for config in agent_configs)
+        any(config.allow_delegation for config in agent_configs)
 
         # Calculate optimal crew settings
         max_rpm = self._calculate_optimal_rpm(operation_type, agent_configs)

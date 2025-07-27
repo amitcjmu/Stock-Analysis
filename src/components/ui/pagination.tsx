@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import type { ButtonProps } from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button'
 
-const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => (
+const Pagination = ({ className, ...props }: React.ComponentProps<"nav">): React.ReactElement => (
   <nav
     role="navigation"
     aria-label="pagination"
@@ -45,7 +45,7 @@ const PaginationLink = ({
   isActive,
   size = "icon",
   ...props
-}: PaginationLinkProps) => (
+}: PaginationLinkProps): React.ReactElement => (
   <a
     aria-current={isActive ? "page" : undefined}
     className={cn(
@@ -63,7 +63,7 @@ PaginationLink.displayName = "PaginationLink"
 const PaginationPrevious = ({
   className,
   ...props
-}: React.ComponentProps<typeof PaginationLink>) => (
+}: React.ComponentProps<typeof PaginationLink>): React.ReactElement => (
   <PaginationLink
     aria-label="Go to previous page"
     size="default"
@@ -79,7 +79,7 @@ PaginationPrevious.displayName = "PaginationPrevious"
 const PaginationNext = ({
   className,
   ...props
-}: React.ComponentProps<typeof PaginationLink>) => (
+}: React.ComponentProps<typeof PaginationLink>): React.ReactElement => (
   <PaginationLink
     aria-label="Go to next page"
     size="default"
@@ -95,7 +95,7 @@ PaginationNext.displayName = "PaginationNext"
 const PaginationEllipsis = ({
   className,
   ...props
-}: React.ComponentProps<"span">) => (
+}: React.ComponentProps<"span">): React.ReactElement => (
   <span
     aria-hidden
     className={cn("flex h-9 w-9 items-center justify-center", className)}

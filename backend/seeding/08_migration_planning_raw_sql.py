@@ -6,11 +6,11 @@ Creating migration waves and updating 6R strategies using raw SQL.
 import asyncio
 from datetime import datetime, timezone
 
-from app.core.database import AsyncSessionLocal
+from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, USER_IDS
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, USER_IDS
+from app.core.database import AsyncSessionLocal
 
 # Migration wave definitions
 MIGRATION_WAVES = [

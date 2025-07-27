@@ -9,11 +9,12 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy import desc, func
+from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 from app.models.agent_discovered_patterns import AgentDiscoveredPatterns
 from app.models.agent_task_history import AgentTaskHistory
-from sqlalchemy import desc, func
-from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 

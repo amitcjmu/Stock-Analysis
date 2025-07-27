@@ -453,9 +453,7 @@ def print_final_report(report: Dict[str, Any]):
         status_emoji = (
             "✅"
             if results["status"] == "PASS"
-            else "❌"
-            if results["status"] == "FAIL"
-            else "⚠️"
+            else "❌" if results["status"] == "FAIL" else "⚠️"
         )
         print(
             f"{status_emoji} {component.replace('_', ' ').title()}: {results['status']}"

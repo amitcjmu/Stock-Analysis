@@ -106,7 +106,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
     fetchClassifications();
   }, [refreshTrigger, fetchClassifications]);
 
-  const updateClassification = async (itemId: string, newClassification: 'good_data' | 'needs_clarification' | 'unusable') => {
+  const updateClassification = async (itemId: string, newClassification: 'good_data' | 'needs_clarification' | 'unusable'): Promise<void> => {
     try {
       const result = await apiCall('/api/v1/agents/discovery/learning/agent-learning', {
         method: 'POST',
@@ -147,7 +147,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
     }
   };
 
-  const toggleItemExpansion = (itemId: string) => {
+  const toggleItemExpansion = (itemId: string): unknown => {
     const newExpanded = new Set(expandedItems);
     if (newExpanded.has(itemId)) {
       newExpanded.delete(itemId);
@@ -157,7 +157,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
     setExpandedItems(newExpanded);
   };
 
-  const getClassificationConfig = (classification: string) => {
+  const getClassificationConfig = (classification: string): unknown => {
     switch (classification) {
       case 'good_data':
         return {
@@ -198,7 +198,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
     }
   };
 
-  const getConfidenceColor = (confidence: string) => {
+  const getConfidenceColor = (confidence: string): unknown => {
     switch (confidence) {
       case 'high': return 'text-green-600';
       case 'medium': return 'text-yellow-600';

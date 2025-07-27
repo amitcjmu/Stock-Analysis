@@ -38,7 +38,7 @@ export const PendingItemsList: React.FC<PendingItemsListProps> = ({
   onReject,
   className = ''
 }) => {
-  const getItemTypeIcon = (itemType: string) => {
+  const getItemTypeIcon = (itemType: string): JSX.Element => {
     switch (itemType) {
       case 'client_account':
         return <Building2 className="w-4 h-4" />;

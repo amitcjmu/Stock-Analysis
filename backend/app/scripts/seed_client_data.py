@@ -14,9 +14,10 @@ sys.path.insert(0, str(backend_path))
 
 import uuid
 
+from sqlalchemy import select, update
+
 from app.core.database import AsyncSessionLocal
 from app.models.client_account import ClientAccount
-from sqlalchemy import select, update
 
 
 async def seed_client_data():

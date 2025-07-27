@@ -4,9 +4,10 @@ Verifies V3 tables are removed and schema is properly consolidated
 """
 
 import pytest
+from sqlalchemy import text
+
 from app.core.database import AsyncSessionLocal
 from app.models import DataImport
-from sqlalchemy import text
 
 
 class TestDatabaseConsolidation:

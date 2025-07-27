@@ -62,7 +62,9 @@ class FlowStateBridge:
                 )
                 await db.commit()
 
-            logger.info(f"✅ PostgreSQL flow state initialized: Flow ID={state.flow_id}")
+            logger.info(
+                f"✅ PostgreSQL flow state initialized: Flow ID={state.flow_id}"
+            )
 
             return {
                 "status": "success",
@@ -144,9 +146,7 @@ class FlowStateBridge:
             return result
 
         except Exception as e:
-            logger.warning(
-                f"⚠️ Flow state update delegation failed (non-critical): {e}"
-            )
+            logger.warning(f"⚠️ Flow state update delegation failed (non-critical): {e}")
             # Don't fail the flow - state coordination continues through MFO
             return {
                 "status": "delegation_failed",
@@ -168,8 +168,9 @@ class FlowStateBridge:
             # Try to restore from PostgreSQL using postgres store
             async with AsyncSessionLocal() as db:
                 # First check DiscoveryFlow table for current phase and progress
-                from app.models.discovery_flow import DiscoveryFlow
                 from sqlalchemy import select
+
+                from app.models.discovery_flow import DiscoveryFlow
 
                 flow_result = await db.execute(
                     select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
@@ -183,15 +184,13 @@ class FlowStateBridge:
                 if state_data:
                     # If we have a discovery flow record, use its phase and progress
                     if discovery_flow:
-                        state_data[
-                            "current_phase"
-                        ] = discovery_flow.current_phase or state_data.get(
-                            "current_phase", "initialized"
+                        state_data["current_phase"] = (
+                            discovery_flow.current_phase
+                            or state_data.get("current_phase", "initialized")
                         )
-                        state_data[
-                            "progress_percentage"
-                        ] = discovery_flow.progress_percentage or state_data.get(
-                            "progress_percentage", 0.0
+                        state_data["progress_percentage"] = (
+                            discovery_flow.progress_percentage
+                            or state_data.get("progress_percentage", 0.0)
                         )
                         state_data["status"] = discovery_flow.status or state_data.get(
                             "status", "initialized"

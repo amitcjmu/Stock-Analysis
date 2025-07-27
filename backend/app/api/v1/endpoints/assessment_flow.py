@@ -8,6 +8,9 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.context_helpers import (
     verify_client_access,
@@ -30,8 +33,6 @@ from app.schemas.assessment_flow import (
     SixRDecisionUpdate,
     TechDebtUpdates,
 )
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import integration services
 try:
@@ -42,7 +43,8 @@ except ImportError:
     DISCOVERY_INTEGRATION_AVAILABLE = False
 
 try:
-    from app.services.crewai_flows.unified_assessment_flow import UnifiedAssessmentFlow
+    # UnifiedAssessmentFlow import removed - currently not used (see lines 858, 880)
+    # from app.services.crewai_flows.unified_assessment_flow import UnifiedAssessmentFlow
 
     ASSESSMENT_FLOW_SERVICE_AVAILABLE = True
 except ImportError:

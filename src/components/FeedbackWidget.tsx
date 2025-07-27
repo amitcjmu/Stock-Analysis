@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
-const FeedbackWidget = () => {
+const FeedbackWidget = (): JSX.Element => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFeedback, setNewFeedback] = useState({
     type: 'Feature' as const,
@@ -60,14 +60,14 @@ const FeedbackWidget = () => {
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault();
     createFeedback(newFeedback);
     setIsCreateOpen(false);
     setNewFeedback({ type: 'Feature', title: '', description: '' });
   };
 
-  const handleComment = (feedbackId: string) => {
+  const handleComment = (feedbackId: string): void => {
     if (newComment.trim()) {
       commentFeedback({ feedbackId, text: newComment });
       setNewComment('');
@@ -75,7 +75,7 @@ const FeedbackWidget = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): unknown => {
     const colors = {
       'New': 'bg-blue-100 text-blue-800',
       'In Review': 'bg-yellow-100 text-yellow-800',
@@ -86,7 +86,7 @@ const FeedbackWidget = () => {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const getTypeColor = (type: string) => {
+  const getTypeColor = (type: string): unknown => {
     const colors = {
       'Bug': 'bg-red-100 text-red-800',
       'Feature': 'bg-blue-100 text-blue-800',

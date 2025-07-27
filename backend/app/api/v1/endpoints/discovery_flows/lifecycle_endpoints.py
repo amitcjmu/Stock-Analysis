@@ -12,11 +12,12 @@ import time
 from datetime import datetime
 from typing import Any, Dict
 
-from app.core.context import RequestContext, get_current_context
-from app.core.database import get_db
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext, get_current_context
+from app.core.database import get_db
 
 from .response_mappers import (
     FlowInitializeResponse,
@@ -285,9 +286,9 @@ async def delete_discovery_flow(
                 if not master_flow.flow_persistence_data:
                     master_flow.flow_persistence_data = {}
                 master_flow.flow_persistence_data["discovery_flow_deleted"] = True
-                master_flow.flow_persistence_data[
-                    "deletion_timestamp"
-                ] = datetime.utcnow().isoformat()
+                master_flow.flow_persistence_data["deletion_timestamp"] = (
+                    datetime.utcnow().isoformat()
+                )
                 master_flow.flow_persistence_data["deleted_by"] = context.user_id
 
         # Create audit record

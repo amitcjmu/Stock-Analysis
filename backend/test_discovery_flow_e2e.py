@@ -235,7 +235,9 @@ async def test_discovery_flow():
                     )
 
             else:
-                logger.error("\n❌ ERROR: Flow did not pause at field mapping approval!")
+                logger.error(
+                    "\n❌ ERROR: Flow did not pause at field mapping approval!"
+                )
                 logger.error(f"  - Current phase: {result.phase.value}")
                 logger.error(f"  - Requires user input: {result.requires_user_input}")
 

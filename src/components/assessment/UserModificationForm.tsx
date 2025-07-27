@@ -25,7 +25,7 @@ export const UserModificationForm: React.FC<UserModificationFormProps> = ({
 }) => {
   const [editData, setEditData] = useState<ApplicationComponent | TechDebtItem>(item || {} as ApplicationComponent | TechDebtItem);
 
-  const handleSave = () => {
+  const handleSave = (): void => {
     onSave(editData);
   };
 

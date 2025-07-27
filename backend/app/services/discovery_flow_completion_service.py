@@ -8,13 +8,14 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy import and_, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.models.asset import Asset as DiscoveryAsset
 from app.models.discovery_flow import DiscoveryFlow
 from app.repositories.asset_repository import AssetRepository
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from sqlalchemy import and_, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -572,9 +573,9 @@ class DiscoveryFlowCompletionService:
 
             # Calculate averages
             if len(discovery_assets) > 0:
-                assessment_package["summary"][
-                    "average_confidence"
-                ] = total_confidence / len(discovery_assets)
+                assessment_package["summary"]["average_confidence"] = (
+                    total_confidence / len(discovery_assets)
+                )
 
             # Generate migration waves based on dependencies and complexity
             assessment_package["migration_waves"] = self._generate_migration_waves(
@@ -651,7 +652,9 @@ class DiscoveryFlowCompletionService:
                 },
             }
 
-            logger.info(f"✅ Discovery flow completed successfully: {discovery_flow_id}")
+            logger.info(
+                f"✅ Discovery flow completed successfully: {discovery_flow_id}"
+            )
             return completion_result
 
         except Exception as e:

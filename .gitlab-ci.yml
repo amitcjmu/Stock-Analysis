@@ -262,15 +262,16 @@ compliance_check:
     - |
       # Check if report exists and parse it
       if [ -f final-reports/security-report.json ]; then
-        python -c "
-import json
-with open('final-reports/security-report.json') as f:
-    data = json.load(f)
-    risk_score = data.get('risk_score', 0)
-    if risk_score < 70:
-        print(f'❌ Security compliance failed. Risk score: {risk_score}/100')
-        exit(1)
-    else:
-        print(f'✅ Security compliance passed. Risk score: {risk_score}/100')
-        "
+        cat > check_security.py << 'EOF'
+        import json
+        with open('final-reports/security-report.json') as f:
+            data = json.load(f)
+            risk_score = data.get('risk_score', 0)
+            if risk_score < 70:
+                print(f'❌ Security compliance failed. Risk score: {risk_score}/100')
+                exit(1)
+            else:
+                print(f'✅ Security compliance passed. Risk score: {risk_score}/100')
+        EOF
+        python check_security.py
       fi

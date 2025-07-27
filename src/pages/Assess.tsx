@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar';
 import { Filter } from 'lucide-react'
 import { Download, Calendar, BarChart3 } from 'lucide-react'
 
-const Assess = () => {
+const Assess = (): JSX.Element => {
   const [filterDept, setFilterDept] = useState('All');
   const [filterTreatment, setFilterTreatment] = useState('All');
 
@@ -102,7 +102,7 @@ const Assess = () => {
            (filterTreatment === 'All' || app.treatment === filterTreatment);
   });
 
-  const getTreatmentColor = (treatment) => {
+  const getTreatmentColor = (treatment): unknown => {
     const colors = {
       'Rehost': 'bg-blue-100 text-blue-800',
       'Replatform': 'bg-green-100 text-green-800',
@@ -114,7 +114,7 @@ const Assess = () => {
     return colors[treatment] || 'bg-gray-100 text-gray-800';
   };
 
-  const getCriticalityColor = (criticality) => {
+  const getCriticalityColor = (criticality): unknown => {
     const colors = {
       'High': 'bg-red-100 text-red-800',
       'Medium': 'bg-yellow-100 text-yellow-800',

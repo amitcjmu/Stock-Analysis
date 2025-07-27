@@ -15,7 +15,7 @@ export const getReadinessColor = (value: number): string => {
  * @param state - The readiness state
  * @returns Tailwind CSS variant class
  */
-export const getReadinessBadgeVariant = (state: string) => {
+export const getReadinessBadgeVariant = (state: string): unknown => {
   switch (state?.toLowerCase()) {
     case 'ready':
       return 'bg-green-100 text-green-800';

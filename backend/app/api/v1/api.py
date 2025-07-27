@@ -38,9 +38,8 @@ try:
     from app.api.v1.admin.security_monitoring_handlers.security_audit_handler import (
         router as security_audit_router,
     )
-    from app.api.v1.admin.user_management_handlers.user_approval_handler import (
-        router as user_approval_router,
-    )
+
+    # user_approval_router removed - not used in this file
 
     ADMIN_ENDPOINTS_AVAILABLE = True
 except ImportError as e:
@@ -49,7 +48,8 @@ except ImportError as e:
 
 # Legacy Discovery Flow Management - DISABLED (replaced by V2 Discovery Flow API)
 # from app.api.v1.endpoints.discovery_flow_management import router as discovery_flow_management_router
-# from app.api.v1.endpoints.discovery_flow_management_enhanced import router as discovery_flow_management_enhanced_router
+# from app.api.v1.endpoints.discovery_flow_management_enhanced import \
+#     router as discovery_flow_management_enhanced_router
 
 # V2 Discovery Flow API - MOVED TO /api/v2/ for proper versioning
 # try:
@@ -158,12 +158,8 @@ except ImportError as e:
     AGENT_EVENTS_AVAILABLE = False
     logger.warning(f"Agent Events router not available: {e}")
 
-try:
-    from app.api.v1.endpoints.observability import router as observability_router
-
-    OBSERVABILITY_AVAILABLE = True
-except ImportError:
-    OBSERVABILITY_AVAILABLE = False
+# Observability router already imported above at line 146
+# Removed duplicate import
 
 # Admin Routers
 try:
@@ -182,12 +178,9 @@ try:
 except ImportError:
     ENGAGEMENT_MANAGEMENT_AVAILABLE = False
 
-try:
-    from app.api.v1.admin.platform_admin_handlers import router as platform_admin_router
-
-    PLATFORM_ADMIN_AVAILABLE = True
-except ImportError:
-    PLATFORM_ADMIN_AVAILABLE = False
+# platform_admin_router already imported above at line 37
+# Check if it was successfully imported
+PLATFORM_ADMIN_AVAILABLE = ADMIN_ENDPOINTS_AVAILABLE
 
 try:
     from app.api.v1.admin.session_comparison import router as flow_comparison_router
@@ -226,12 +219,9 @@ try:
 except ImportError:
     SIMPLE_ADMIN_AVAILABLE = False
 
-try:
-    from app.api.v1.auth.handlers.admin_handlers import admin_router
-
-    ADMIN_HANDLERS_AVAILABLE = True
-except ImportError:
-    ADMIN_HANDLERS_AVAILABLE = False
+# admin_router import removed - see comment at line 555
+# No need to include admin_router separately - it would create duplicate routes
+ADMIN_HANDLERS_AVAILABLE = True
 
 try:
     from app.api.v1.endpoints.flow_health import router as flow_health_router
@@ -598,7 +588,11 @@ except ImportError:
 
 # Legacy Discovery Flow Management - DISABLED (replaced by V2 Discovery Flow API at /api/v2/discovery-flows/)
 # api_router.include_router(discovery_flow_management_router, prefix="/discovery", tags=["Discovery Flow Management"])
-# api_router.include_router(discovery_flow_management_enhanced_router, prefix="/discovery/enhanced", tags=["Enhanced Flow Management"])
+# api_router.include_router(
+#     discovery_flow_management_enhanced_router,
+#     prefix="/discovery/enhanced",
+#     tags=["Enhanced Flow Management"]
+# )
 
 
 # Debug endpoint to list all routes

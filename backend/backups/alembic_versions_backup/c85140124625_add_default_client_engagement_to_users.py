@@ -7,8 +7,9 @@ Create Date: 2025-06-27 17:55:02.257647
 """
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # Import pgvector for vector columns
 try:

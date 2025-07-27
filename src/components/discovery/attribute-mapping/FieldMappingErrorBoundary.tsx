@@ -37,7 +37,7 @@ export class FieldMappingErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({ error, errorInfo });
     console.error('Field mapping error:', error, errorInfo);
 
@@ -51,15 +51,15 @@ export class FieldMappingErrorBoundary extends Component<Props, State> {
     }
   }
 
-  handleReload = () => {
+  handleReload = (): void => {
     window.location.reload();
   };
 
-  handleRetry = () => {
+  handleRetry = (): void => {
     this.setState({ hasError: false, error: undefined, errorInfo: undefined });
   };
 
-  render() {
+  render(): unknown {
     if (this.state.hasError) {
       return (
         <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-red-200">

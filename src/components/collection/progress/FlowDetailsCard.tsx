@@ -38,11 +38,11 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  const handleAction = async (action: 'pause' | 'resume' | 'stop') => {
+  const handleAction = async (action: 'pause' | 'resume' | 'stop'): void => {
     await onFlowAction(flow.id, action);
   };
 
-  const handleContinue = () => {
+  const handleContinue = (): void => {
     // Navigate to adaptive forms page with the flow ID
     navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
   };

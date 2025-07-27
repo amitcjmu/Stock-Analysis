@@ -19,7 +19,13 @@ export const useAdminData = <T>(
   endpoint: string,
   demoData: T,
   options: UseAdminDataOptions = {}
-) => {
+): {
+  data: T;
+  loading: boolean;
+  error: string | null;
+  isUsingDemoData: boolean;
+  refetch: () => Promise<void>;
+} => {
   const { isAuthenticated, user, getAuthHeaders } = useAuth();
   const { showDemoDataWarningToast } = useAdminToasts();
   const [data, setData] = useState<T | null>(null);
@@ -87,7 +93,7 @@ export const useAdminData = <T>(
  */
 
 // Dashboard stats hook
-export const useAdminDashboardStats = () => {
+export const useAdminDashboardStats = (): unknown => {
   const demoStats = {
     clients: {
       total: 12,
@@ -119,7 +125,7 @@ export const useAdminDashboardStats = () => {
 };
 
 // Pending purge items hook
-export const usePendingPurgeItems = () => {
+export const usePendingPurgeItems = (): unknown => {
   const demoItems = [
     {
       id: 'item_001',

@@ -7,8 +7,9 @@ Create Date: 2025-07-19
 """
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "002_add_security_audit_tables"

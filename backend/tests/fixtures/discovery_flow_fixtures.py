@@ -325,14 +325,10 @@ FLOW_STATES = {
 def get_mock_file_content(file_type: str = "csv") -> bytes:
     """Generate mock file content for testing file uploads."""
     if file_type == "csv":
-        csv_content = (
-            "server_name,ip_address,operating_system,cpu_cores,memory_gb,environment\n"
-        )
+        csv_content = "server_name,ip_address,operating_system,cpu_cores,memory_gb,environment\n"
         for server in MOCK_CMDB_DATA["servers"]:
             csv_content += f"{server['server_name']},{server['ip_address']},{server['operating_system']},"
-            csv_content += (
-                f"{server['cpu_cores']},{server['memory_gb']},{server['environment']}\n"
-            )
+            csv_content += f"{server['cpu_cores']},{server['memory_gb']},{server['environment']}\n"
         return csv_content.encode("utf-8")
     elif file_type == "json":
         return json.dumps(MOCK_CMDB_DATA, indent=2).encode("utf-8")
@@ -435,9 +431,7 @@ PERFORMANCE_TEST_DATA = {
             {
                 "server_name": f"SERVER-{i:04d}",
                 "ip_address": f"10.0.{i // 256}.{i % 256}",
-                "operating_system": ["Windows Server 2019", "Ubuntu 20.04", "RHEL 8"][
-                    i % 3
-                ],
+                "operating_system": ["Windows Server 2019", "Ubuntu 20.04", "RHEL 8"][i % 3],
                 "cpu_cores": [4, 8, 16, 32][i % 4],
                 "memory_gb": [16, 32, 64, 128][i % 4],
                 "environment": ["Production", "Development", "Testing"][i % 3],

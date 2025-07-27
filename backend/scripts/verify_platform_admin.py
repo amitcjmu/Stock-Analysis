@@ -23,10 +23,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import hashlib
 
+from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models import User
 from app.models.rbac import UserProfile
-from sqlalchemy import select
 
 
 def get_password_hash(password: str) -> str:
@@ -92,7 +93,9 @@ async def verify_platform_admin():
             # Since we're using SHA256, just compare hashes
             test_hash = get_password_hash(test_password)
             is_valid = test_hash == new_hash
-            print(f"   Password verification: {'✅ Valid' if is_valid else '❌ Invalid'}")
+            print(
+                f"   Password verification: {'✅ Valid' if is_valid else '❌ Invalid'}"
+            )
         except Exception as e:
             print(f"   ❌ Password verification error: {e}")
 

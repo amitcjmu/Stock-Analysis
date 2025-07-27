@@ -6,10 +6,11 @@ Thin controllers that delegate to service layer.
 import logging
 from typing import Optional
 
-from app.core.context import RequestContext, get_current_context
-from app.core.database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext, get_current_context
+from app.core.database import get_db
 
 from ..models.attribute_schemas import (
     AttributeAnalysisRequest,
@@ -95,8 +96,9 @@ async def trigger_field_mapping_crew_analysis(
         # Get the import data
         from uuid import UUID
 
-        from app.models.data_import import DataImport
         from sqlalchemy import and_, select
+
+        from app.models.data_import import DataImport
 
         # Convert string UUID to UUID object if needed
         try:

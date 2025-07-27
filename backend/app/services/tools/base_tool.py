@@ -5,9 +5,10 @@ Base tool classes for CrewAI integration
 import logging
 from typing import Any
 
+from pydantic import Field
+
 from app.core.context_aware import ContextAwareTool
 from app.services.tools.registry import ToolMetadata
-from pydantic import Field
 
 # Optional CrewAI import
 try:

@@ -180,7 +180,7 @@ export function useFlowDeletion(
  * Hook for flow cleanup recommendations
  * Provides cleanup recommendations without automatic execution
  */
-export function useFlowCleanup() {
+export function useFlowCleanup(): JSX.Element {
   const [recommendations, setRecommendations] = useState<FlowDeletionCandidate[]>([]);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
   const [isExecutingCleanup, setIsExecutingCleanup] = useState(false);

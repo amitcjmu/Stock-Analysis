@@ -53,7 +53,7 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
   onEdit,
   onDelete
 }) => {
-  const getConfidenceColor = (confidence: number) => {
+  const getConfidenceColor = (confidence: number): unknown => {
     if (confidence >= 0.8) return 'text-green-600';
     if (confidence >= 0.6) return 'text-yellow-600';
     return 'text-red-600';
@@ -68,7 +68,7 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
     }
   };
 
-  const getCriticalityColor = (criticality: string) => {
+  const getCriticalityColor = (criticality: string): unknown => {
     switch (criticality.toLowerCase()) {
       case 'critical': return 'text-red-600';
       case 'high': return 'text-orange-600';
@@ -78,7 +78,7 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
     }
   };
 
-  const getAssetIcon = (assetType: string) => {
+  const getAssetIcon = (assetType: string): JSX.Element => {
     switch (assetType.toLowerCase()) {
       case 'server':
       case 'vm':
@@ -93,7 +93,7 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
     }
   };
 
-  const formatConfidenceLabel = (status: string) => {
+  const formatConfidenceLabel = (status: string): unknown => {
     return status.split('_').map(word =>
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');

@@ -207,7 +207,9 @@ if CREWAI_TOOLS_AVAILABLE:
         def _run(self, task_name: str) -> Dict[str, Any]:
             """Check if task was recently completed"""
             try:
-                logger.info(f"🔍 Agent checking completion status for task: {task_name}")
+                logger.info(
+                    f"🔍 Agent checking completion status for task: {task_name}"
+                )
 
                 # Check agent insights for recent completion
                 import json

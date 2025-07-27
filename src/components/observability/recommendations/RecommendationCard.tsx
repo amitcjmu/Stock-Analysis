@@ -72,7 +72,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [applying, setApplying] = useState(false);
 
-  const handleApply = async () => {
+  const handleApply = async (): void => {
     if (!onApply) return;
 
     setApplying(true);
@@ -83,7 +83,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
     }
   };
 
-  const handleFeedback = (helpful: boolean) => {
+  const handleFeedback = (helpful: boolean): void => {
     if (onFeedback) {
       onFeedback(recommendation.id, helpful);
     }

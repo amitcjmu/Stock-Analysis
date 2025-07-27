@@ -80,7 +80,7 @@ def draw_graph(graph, output_filename):
     Draws the graph using pygraphviz or falls back to matplotlib.
     """
     try:
-        import pygraphviz as pgv
+        # pygraphviz import removed - not used
 
         logging.info("Using pygraphviz to draw the graph.")
         agn = nx.nx_agraph.to_agraph(graph)

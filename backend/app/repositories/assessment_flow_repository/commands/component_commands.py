@@ -5,6 +5,9 @@ Component Commands - Application components and tech debt management
 import logging
 from typing import List
 
+from sqlalchemy import and_, delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.assessment_flow import (
     ApplicationComponent,
     ComponentTreatment,
@@ -19,8 +22,6 @@ from app.models.assessment_flow_state import (
 from app.models.assessment_flow_state import (
     TechDebtItem,
 )
-from sqlalchemy import and_, delete, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

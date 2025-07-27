@@ -27,7 +27,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db_session
 from app.core.demo_constants import TEST_TENANT_1, TEST_TENANT_2
 
-
 # Multi-tenant test data configuration
 TENANT_CONFIG = {
     TEST_TENANT_1: {
@@ -161,40 +160,50 @@ async def cleanup_existing_data(session: AsyncSession):
         "client_accounts",
     ]
 
-    # Validate table names are from our known list
-    allowed_tables = set(tables_to_clean)
+    # Create a mapping of table names to their delete queries to avoid dynamic SQL
+    table_delete_queries = {
+        # Tables with client_account_id
+        **{
+            table: "DELETE FROM migration.{} WHERE client_account_id = ANY(:tenant_ids)".format(
+                table
+            )
+            for table in tables_to_clean
+            if table not in ["users", "engagements", "client_accounts"]
+        },
+        # Tables with id field for specific entities
+        "users": "DELETE FROM migration.users WHERE id = ANY(:ids)",
+        "engagements": "DELETE FROM migration.engagements WHERE id = ANY(:ids)",
+        "client_accounts": "DELETE FROM migration.client_accounts WHERE id = ANY(:ids)",
+    }
 
     for table in tables_to_clean:
-        # Validate table name against whitelist
-        if table not in allowed_tables:
-            print(f"  ❌ Invalid table name: {table}")
+        # Get the predefined query for this table
+        query_template = table_delete_queries.get(table)
+        if not query_template:
+            print(f"  ❌ No delete query defined for table: {table}")
             continue
 
         try:
-            # Safe to use string formatting after validation
-            await session.execute(
-                text(
-                    f"DELETE FROM migration.{table} WHERE client_account_id = ANY(:tenant_ids)"
-                ),
-                {"tenant_ids": [str(tid) for tid in TENANT_CONFIG.keys()]},
-            )
+            if table in ["users", "engagements", "client_accounts"]:
+                # Use specific IDs for these tables
+                await session.execute(
+                    text(query_template),
+                    {
+                        "ids": [
+                            str(config["users"]["admin"])
+                            for config in TENANT_CONFIG.values()
+                        ]
+                    },
+                )
+            else:
+                # Use tenant IDs for other tables
+                await session.execute(
+                    text(query_template),
+                    {"tenant_ids": [str(tid) for tid in TENANT_CONFIG.keys()]},
+                )
             print(f"  ✓ Cleaned {table}")
-        except Exception:
-            # Some tables might not have client_account_id
-            try:
-                if table in ["users", "engagements", "client_accounts"]:
-                    await session.execute(
-                        text(f"DELETE FROM migration.{table} WHERE id = ANY(:ids)"),
-                        {
-                            "ids": [
-                                str(config["users"]["admin"])
-                                for config in TENANT_CONFIG.values()
-                            ]
-                        },
-                    )
-                    print(f"  ✓ Cleaned {table}")
-            except Exception as e2:
-                print(f"  ⚠️  Skipped {table}: {str(e2)}")
+        except Exception as e:
+            print(f"  ⚠️  Skipped {table}: {str(e)}")
 
     await session.commit()
     print("✅ Cleanup completed\n")
@@ -435,9 +444,11 @@ async def seed_agent_data(session: AsyncSession):
                     "status": status,
                     "duration": duration,
                     "input": {"items": random.randint(10, 100)},
-                    "output": {"processed": random.randint(5, 95)}
-                    if status == "completed"
-                    else {},
+                    "output": (
+                        {"processed": random.randint(5, 95)}
+                        if status == "completed"
+                        else {}
+                    ),
                     "error": "Task timeout" if status == "failed" else None,
                 },
             )
@@ -695,16 +706,17 @@ async def seed_comprehensive_data(cleanup: bool = False, num_tenants: int = 2):
 
             # Final statistics
             print("\n📊 Seeding Statistics:")
-            for table in [
-                "client_accounts",
-                "users",
-                "discovery_flows",
-                "assets",
-                "agent_discovered_patterns",
-            ]:
-                result = await session.execute(
-                    text(f"SELECT COUNT(*) FROM migration.{table}")
-                )
+            # Define count queries for each table to avoid dynamic SQL
+            count_queries = {
+                "client_accounts": "SELECT COUNT(*) FROM migration.client_accounts",
+                "users": "SELECT COUNT(*) FROM migration.users",
+                "discovery_flows": "SELECT COUNT(*) FROM migration.discovery_flows",
+                "assets": "SELECT COUNT(*) FROM migration.assets",
+                "agent_discovered_patterns": "SELECT COUNT(*) FROM migration.agent_discovered_patterns",
+            }
+
+            for table, query in count_queries.items():
+                result = await session.execute(text(query))
                 count = result.scalar()
                 print(f"  - {table}: {count} records")
 

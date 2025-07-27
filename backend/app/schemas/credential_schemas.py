@@ -6,12 +6,13 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from pydantic import BaseModel, Field, validator
+
 from app.models.platform_credentials import (
     CredentialStatus,
     CredentialType,
     VaultProvider,
 )
-from pydantic import BaseModel, Field, validator
 
 
 class CredentialBase(BaseModel):
@@ -59,9 +60,9 @@ class CredentialResponse(CredentialBase):
     validation_errors: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
-    decrypted_data: Optional[
-        Dict[str, Any]
-    ] = None  # Only included when explicitly requested
+    decrypted_data: Optional[Dict[str, Any]] = (
+        None  # Only included when explicitly requested
+    )
 
     class Config:
         orm_mode = True

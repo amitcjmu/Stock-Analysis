@@ -20,11 +20,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error('Uncaught error:', error, errorInfo);
   }
 
-  public render() {
+  public render(): unknown {
     if (this.state.hasError) {
       return this.props.fallback || (
         <div className="p-4 bg-red-50 border border-red-200 rounded-md">

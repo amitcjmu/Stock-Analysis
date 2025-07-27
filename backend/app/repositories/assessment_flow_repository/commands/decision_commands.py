@@ -6,11 +6,12 @@ import logging
 from datetime import datetime
 from typing import List
 
-from app.models.assessment_flow import AssessmentFlow, SixRDecision
-from app.models.assessment_flow_state import SixRDecision as SixRDecisionState
 from sqlalchemy import and_, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.assessment_flow import AssessmentFlow, SixRDecision
+from app.models.assessment_flow_state import SixRDecision as SixRDecisionState
 
 logger = logging.getLogger(__name__)
 

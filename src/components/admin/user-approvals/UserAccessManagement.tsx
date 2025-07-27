@@ -195,7 +195,7 @@ export const UserAccessManagement: React.FC = () => {
     }
   }, []);
 
-  const handleGrantAccess = async () => {
+  const handleGrantAccess = async (): void => {
     if (!selectedUser || !selectedResource || !selectedAccessLevel) {
       toast({
         title: "Validation Error",
@@ -248,7 +248,7 @@ export const UserAccessManagement: React.FC = () => {
     }
   };
 
-  const handleRevokeAccess = async (grantId: string) => {
+  const handleRevokeAccess = async (grantId: string): void => {
     try {
       // In production, this would be a real API call
       setAccessGrants(prev => prev.filter(grant => grant.id !== grantId));
@@ -268,7 +268,7 @@ export const UserAccessManagement: React.FC = () => {
     }
   };
 
-  const getAccessLevelIcon = (level: string) => {
+  const getAccessLevelIcon = (level: string): JSX.Element => {
     switch (level) {
       case 'admin':
         return <Crown className="h-3 w-3" />;
@@ -281,7 +281,7 @@ export const UserAccessManagement: React.FC = () => {
     }
   };
 
-  const getAccessLevelColor = (level: string) => {
+  const getAccessLevelColor = (level: string): unknown => {
     switch (level) {
       case 'admin':
         return 'bg-red-100 text-red-800 border-red-200';
@@ -301,7 +301,7 @@ export const UserAccessManagement: React.FC = () => {
   );
 
   // Filter resources based on type and selected client
-  const getAvailableResources = () => {
+  const getAvailableResources = (): unknown => {
     if (selectedResourceType === 'client') {
       return clients;
     } else {

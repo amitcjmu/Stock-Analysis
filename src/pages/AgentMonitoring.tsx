@@ -3,7 +3,7 @@ import Sidebar from '../components/Sidebar';
 import FlowCrewAgentMonitor from '../components/FlowCrewAgentMonitor';
 import { Network } from 'lucide-react';
 
-const AgentMonitoring = () => {
+const AgentMonitoring = (): JSX.Element => {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar />

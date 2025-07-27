@@ -61,7 +61,7 @@ export interface ExecutionMetrics {
 }
 
 // Hooks
-export const useRehostProjects = () => {
+export const useRehostProjects = (): JSX.Element => {
   return useQuery({
     queryKey: ['rehostProjects'],
     queryFn: async () => {
@@ -87,7 +87,7 @@ export const useRehostProjects = () => {
   });
 };
 
-export const useReplatformProjects = () => {
+export const useReplatformProjects = (): JSX.Element => {
   return useQuery({
     queryKey: ['replatformProjects'],
     queryFn: async () => {
@@ -113,7 +113,7 @@ export const useReplatformProjects = () => {
   });
 };
 
-export const useCutoverEvents = () => {
+export const useCutoverEvents = (): JSX.Element => {
   return useQuery({
     queryKey: ['cutoverEvents'],
     queryFn: async () => {
@@ -139,7 +139,7 @@ export const useCutoverEvents = () => {
   });
 };
 
-export const useLessonsLearned = () => {
+export const useLessonsLearned = (): JSX.Element => {
   return useQuery({
     queryKey: ['lessonsLearned'],
     queryFn: async () => {
@@ -165,7 +165,7 @@ export const useLessonsLearned = () => {
   });
 };
 
-export const useExecutionMetrics = () => {
+export const useExecutionMetrics = (): JSX.Element => {
   return useQuery({
     queryKey: ['executionMetrics'],
     queryFn: async () => {
@@ -199,7 +199,7 @@ export const useExecutionMetrics = () => {
   });
 };
 
-export const useExecutionReports = () => {
+export const useExecutionReports = (): JSX.Element => {
   return useQuery({
     queryKey: ['executionReports'],
     queryFn: async () => {
@@ -235,7 +235,7 @@ export const useExecutionReports = () => {
 };
 
 // Mutations
-export const useUpdateRehostProject = () => {
+export const useUpdateRehostProject = (): JSX.Element => {
   const queryClient = useQueryClient();
   const { getAuthHeaders } = useAuth();
 
@@ -258,7 +258,7 @@ export const useUpdateRehostProject = () => {
   });
 };
 
-export const useUpdateReplatformProject = () => {
+export const useUpdateReplatformProject = (): JSX.Element => {
   const queryClient = useQueryClient();
   const { getAuthHeaders } = useAuth();
 
@@ -281,7 +281,7 @@ export const useUpdateReplatformProject = () => {
   });
 };
 
-export const useUpdateCutoverEvent = () => {
+export const useUpdateCutoverEvent = (): JSX.Element => {
   const queryClient = useQueryClient();
   const { getAuthHeaders } = useAuth();
 

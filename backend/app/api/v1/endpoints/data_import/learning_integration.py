@@ -6,11 +6,12 @@ Handles user feedback learning, pattern creation, and learning statistics.
 import logging
 from datetime import datetime
 
-from app.core.database import get_db
-from app.models.data_import import CustomTargetField, ImportFieldMapping
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.models.data_import import CustomTargetField, ImportFieldMapping
 
 # Note: Field analysis functions have been replaced by CrewAI Field Mapping Crew
 # infer_field_type and generate_format_regex are now handled by AI agents

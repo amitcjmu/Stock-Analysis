@@ -29,7 +29,7 @@ export const ConflictResolver: React.FC<ConflictResolverProps> = ({
   const [selectedResolutions, setSelectedResolutions] = useState<Record<string, ConflictResolution>>({});
   const [justifications, setJustifications] = useState<Record<string, string>>({});
 
-  const getSourceIcon = (source: ConflictingValue['source']) => {
+  const getSourceIcon = (source: ConflictingValue['source']): JSX.Element => {
     switch (source) {
       case 'automated':
         return <Database className="h-4 w-4 text-blue-600" />;
@@ -44,7 +44,7 @@ export const ConflictResolver: React.FC<ConflictResolverProps> = ({
     }
   };
 
-  const getSourceBadge = (source: ConflictingValue['source']) => {
+  const getSourceBadge = (source: ConflictingValue['source']): JSX.Element => {
     const config = {
       automated: { label: 'Automated', className: 'bg-blue-100 text-blue-800' },
       manual: { label: 'Manual Form', className: 'bg-green-100 text-green-800' },
@@ -61,7 +61,7 @@ export const ConflictResolver: React.FC<ConflictResolverProps> = ({
     );
   };
 
-  const handleValueSelection = (conflictId: string, value: ConflictingValue) => {
+  const handleValueSelection = (conflictId: string, value: ConflictingValue): void => {
     setSelectedResolutions(prev => ({
       ...prev,
       [conflictId]: {
@@ -72,7 +72,7 @@ export const ConflictResolver: React.FC<ConflictResolverProps> = ({
     }));
   };
 
-  const handleJustificationChange = (conflictId: string, justification: string) => {
+  const handleJustificationChange = (conflictId: string, justification: string): void => {
     setJustifications(prev => ({
       ...prev,
       [conflictId]: justification
@@ -90,14 +90,14 @@ export const ConflictResolver: React.FC<ConflictResolverProps> = ({
     }
   };
 
-  const handleResolveConflict = (conflictId: string) => {
+  const handleResolveConflict = (conflictId: string): void => {
     const resolution = selectedResolutions[conflictId];
     if (resolution) {
       onResolve(conflictId, resolution);
     }
   };
 
-  const formatTimestamp = (timestamp: string) => {
+  const formatTimestamp = (timestamp: string): unknown => {
     return new Date(timestamp).toLocaleString();
   };
 

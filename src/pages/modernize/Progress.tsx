@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 
-const ModernizationProgress = () => {
+const ModernizationProgress = (): JSX.Element => {
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'quarter'>('month');
   const { data, isLoading, isError, error } = useModernizationProgress(timeframe);
 
@@ -41,7 +41,7 @@ const ModernizationProgress = () => {
     );
   }
 
-  const getActivityIcon = (type: string) => {
+  const getActivityIcon = (type: string): JSX.Element => {
     switch (type) {
       case 'completion':
         return <CheckCircle className="h-5 w-5 text-green-600" />;
@@ -52,7 +52,7 @@ const ModernizationProgress = () => {
     }
   };
 
-  const getActivityColor = (status: string) => {
+  const getActivityColor = (status: string): unknown => {
     switch (status) {
       case 'success':
         return 'border-green-200 bg-green-50';

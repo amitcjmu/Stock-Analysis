@@ -42,7 +42,7 @@ import { useDialog as useDialogContext } from '@/contexts/DialogContext';
  * loader.close();
  * ```
  */
-export const useDialog = () => {
+export const useDialog = (): JSX.Element => {
   const context = useDialogContext();
 
   return {

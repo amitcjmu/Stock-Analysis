@@ -6,10 +6,11 @@ import logging
 import uuid
 from typing import Any, Dict, List
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.models.asset import Asset
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

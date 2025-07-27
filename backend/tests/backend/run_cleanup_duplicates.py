@@ -10,7 +10,6 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from app.core.database import AsyncSessionLocal
-
 from tests.backend.cleanup_duplicate_assets import (
     analyze_duplicates_by_flow,
     cleanup_duplicate_assets,
@@ -49,7 +48,7 @@ async def main():
 
 if __name__ == "__main__":
     # Set the DATABASE_URL
-    os.environ[
-        "DATABASE_URL"
-    ] = "postgresql+asyncpg://postgres:postgres@localhost:5433/migration_db"
+    os.environ["DATABASE_URL"] = (
+        "postgresql+asyncpg://postgres:postgres@localhost:5433/migration_db"
+    )
     asyncio.run(main())

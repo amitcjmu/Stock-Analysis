@@ -39,7 +39,7 @@ interface SupportTimeline {
   replacementOptions: string[];
 }
 
-const TechDebtAnalysis = () => {
+const TechDebtAnalysis = (): JSX.Element => {
   const { client, engagement } = useAuth();
   const { toast } = useToast();
 
@@ -124,7 +124,7 @@ const TechDebtAnalysis = () => {
   };
 
   // Handle tech debt analysis execution
-  const handleExecuteTechDebtAnalysis = async () => {
+  const handleExecuteTechDebtAnalysis = async (): void => {
     try {
       await updatePhase('tech_debt', { action: 'start_analysis' });
       toast({
@@ -142,7 +142,7 @@ const TechDebtAnalysis = () => {
   };
 
   // Handle refresh
-  const handleRefresh = async () => {
+  const handleRefresh = async (): void => {
     try {
       // Refresh by re-fetching flow data
       await updatePhase(currentPhase, { action: 'refresh' });
@@ -176,7 +176,7 @@ const TechDebtAnalysis = () => {
     return matchesCategory && matchesRisk;
   });
 
-  const getComponentIcon = (component: string) => {
+  const getComponentIcon = (component: string): JSX.Element => {
     switch (component) {
       case 'web': return <Globe className="h-5 w-5" />;
       case 'app': return <Code className="h-5 w-5" />;
@@ -187,7 +187,7 @@ const TechDebtAnalysis = () => {
     }
   };
 
-  const getSupportStatusColor = (status: string) => {
+  const getSupportStatusColor = (status: string): unknown => {
     switch (status) {
       case 'supported': return 'text-green-600 bg-green-100';
       case 'extended': return 'text-yellow-600 bg-yellow-100';
@@ -197,7 +197,7 @@ const TechDebtAnalysis = () => {
     }
   };
 
-  const getRiskColor = (risk: string) => {
+  const getRiskColor = (risk: string): unknown => {
     switch (risk) {
       case 'low': return 'text-green-600 bg-green-100';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
@@ -207,7 +207,7 @@ const TechDebtAnalysis = () => {
     }
   };
 
-  const getRiskIcon = (risk: string) => {
+  const getRiskIcon = (risk: string): JSX.Element => {
     switch (risk) {
       case 'low': return <CheckCircle className="h-4 w-4" />;
       case 'medium': return <Info className="h-4 w-4" />;
@@ -217,7 +217,7 @@ const TechDebtAnalysis = () => {
     }
   };
 
-  const calculateDaysUntilEOL = (eolDate: string) => {
+  const calculateDaysUntilEOL = (eolDate: string): unknown => {
     const today = new Date();
     const eol = new Date(eolDate);
     const diffTime = eol.getTime() - today.getTime();

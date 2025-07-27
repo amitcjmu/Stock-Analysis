@@ -43,7 +43,7 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
   const thinkMutation = useAgentThink();
   const ponderMutation = useAgentPonderMore();
 
-  const toggleSection = (section: string) => {
+  const toggleSection = (section: string): unknown => {
     setExpandedSections(prev => {
       const next = new Set(prev);
       if (next.has(section)) {
@@ -55,14 +55,14 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
     });
   };
 
-  const handleAnswerSelect = (questionId: string, answer: string) => {
+  const handleAnswerSelect = (questionId: string, answer: string): void => {
     setSelectedAnswers(prev => ({
       ...prev,
       [questionId]: answer
     }));
   };
 
-  const handleSubmitAnswer = async (questionId: string) => {
+  const handleSubmitAnswer = async (questionId: string): void => {
     const answer = selectedAnswers[questionId];
     if (!answer) return;
 
@@ -83,7 +83,7 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
     }
   };
 
-  const handleThink = async (agentId: string) => {
+  const handleThink = async (agentId: string): void => {
     try {
       await thinkMutation.mutateAsync({
         agent_id: agentId,
@@ -95,7 +95,7 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
     }
   };
 
-  const handlePonderMore = async (agentId: string) => {
+  const handlePonderMore = async (agentId: string): void => {
     try {
       await ponderMutation.mutateAsync({
         agent_id: agentId,

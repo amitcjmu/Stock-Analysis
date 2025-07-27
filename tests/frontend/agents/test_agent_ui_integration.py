@@ -123,7 +123,7 @@ class TestAgentUIIntegration:
             result = await agent_ui_bridge.analyze_with_agents(analysis_request)
 
             # Verify clarifications were generated
-            assert result["success"] == True
+            assert result["success"]
             assert "clarifications" in result
             assert len(result["clarifications"]) > 0
 
@@ -193,10 +193,10 @@ class TestAgentUIIntegration:
         response_result = agent_ui_bridge.answer_agent_question(question_id, user_response)
 
         # Verify response processing
-        assert response_result["success"] == True
-        assert response_result["learning_stored"] == True
+        assert response_result["success"]
+        assert response_result["learning_stored"]
         assert response_result["question"]["user_response"] == user_response
-        assert response_result["question"]["is_resolved"] == True
+        assert response_result["question"]["is_resolved"]
 
         # Verify learning experience was stored
         recent_experiences = agent_ui_bridge.get_recent_learning_experiences(limit=1)
@@ -303,7 +303,7 @@ class TestAgentUIIntegration:
         for exp in classification_experiences[-len(learning_scenarios):]:
             assert "user_correction" in exp
             assert "original_analysis" in exp
-            assert exp.get("learning_applied") == True
+            assert exp.get("learning_applied")
 
         print("✅ Agent learning effectiveness test passed")
 

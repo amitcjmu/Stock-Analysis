@@ -7,8 +7,9 @@ import logging
 import re
 from typing import Any, Dict, List
 
-from app.services.crews.base_crew import BaseDiscoveryCrew
 from crewai import Process, Task
+
+from app.services.crews.base_crew import BaseDiscoveryCrew
 
 logger = logging.getLogger(__name__)
 

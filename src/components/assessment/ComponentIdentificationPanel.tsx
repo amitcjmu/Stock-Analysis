@@ -43,7 +43,7 @@ export const ComponentIdentificationPanel: React.FC<ComponentIdentificationPanel
     dependencies: []
   });
 
-  const addComponent = () => {
+  const addComponent = (): void => {
     if (!newComponent.component_name || !newComponent.component_type) return;
 
     const component: ApplicationComponent = {
@@ -62,18 +62,18 @@ export const ComponentIdentificationPanel: React.FC<ComponentIdentificationPanel
     });
   };
 
-  const updateComponent = (oldName: string, updatedComponent: ApplicationComponent) => {
+  const updateComponent = (oldName: string, updatedComponent: ApplicationComponent): unknown => {
     const updatedComponents = components.map(comp =>
       comp.component_name === oldName ? updatedComponent : comp
     );
     onComponentsChange(updatedComponents);
   };
 
-  const removeComponent = (componentName: string) => {
+  const removeComponent = (componentName: string): unknown => {
     onComponentsChange(components.filter(comp => comp.component_name !== componentName));
   };
 
-  const getComponentTypeInfo = (type: string) => {
+  const getComponentTypeInfo = (type: string): unknown => {
     return COMPONENT_TYPES.find(ct => ct.value === type) || {
       value: type,
       label: type,
@@ -193,7 +193,7 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
 }) => {
   const [editData, setEditData] = useState<ApplicationComponent>(component);
 
-  const getComponentTypeInfo = (type: string) => {
+  const getComponentTypeInfo = (type: string): unknown => {
     return COMPONENT_TYPES.find(ct => ct.value === type) || {
       value: type,
       label: type,

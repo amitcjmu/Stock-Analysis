@@ -147,7 +147,7 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
     loadComparisonHistory();
   }, [engagementId]);
 
-  const loadSessionsForComparison = async () => {
+  const loadSessionsForComparison = async () =>  {
     setIsLoadingSessions(true);
     try {
       // Demo data for sessions
@@ -189,7 +189,7 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
     }
   };
 
-  const loadComparisonHistory = async () => {
+  const loadComparisonHistory = async () =>  {
     try {
       // Demo comparison history
       setComparisonHistory([
@@ -206,7 +206,7 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
     }
   };
 
-  const performComparison = async () => {
+  const performComparison = async (): void => {
     if (!selectedSourceSession || !selectedTargetSession) {
       toast({
         title: "Selection Required",
@@ -280,7 +280,7 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
     }
   };
 
-  const renderMetricChange = (metric: string, diff: MetricDiff) => {
+  const renderMetricChange = (metric: string, diff: MetricDiff): JSX.Element => {
     const isImprovement = diff.improvement;
     const Icon = isImprovement ? TrendingUp : TrendingDown;
     const colorClass = isImprovement ? 'text-green-600' : 'text-red-600';
@@ -313,7 +313,7 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
     );
   };
 
-  const renderComparisonSummary = () => {
+  const renderComparisonSummary = (): JSX.Element => {
     if (!comparison) return null;
 
     return (
@@ -387,7 +387,7 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
     );
   };
 
-  const renderKeyMetrics = () => {
+  const renderKeyMetrics = (): JSX.Element => {
     if (!comparison) return null;
 
     return (

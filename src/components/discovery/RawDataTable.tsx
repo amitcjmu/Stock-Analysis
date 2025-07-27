@@ -20,7 +20,7 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
 
   // Get all unique column names from the data
-  const getAllColumns = () => {
+  const getAllColumns = (): JSX.Element => {
     if (data.length === 0) return [];
 
     const allColumns = new Set<string>();
@@ -43,7 +43,7 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
     return sortedColumns;
   };
 
-  const formatColumnName = (columnName: string) => {
+  const formatColumnName = (columnName: string): unknown => {
     return columnName
       .replace(/([A-Z])/g, ' $1') // Add space before capital letters
       .replace(/_/g, ' ') // Replace underscores with spaces
@@ -51,7 +51,7 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
       .trim();
   };
 
-  const getCellValue = (row: unknown, column: string) => {
+  const getCellValue = (row: unknown, column: string): JSX.Element => {
     const value = row[column];
     if (value === null || value === undefined || value === '') {
       return '<empty>';
@@ -59,19 +59,19 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
     return String(value);
   };
 
-  const getCurrentPageData = () => {
+  const getCurrentPageData = (): unknown => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     return data.slice(startIndex, endIndex);
   };
 
   // Get asset identifier for highlighting
-  const getAssetIdentifier = (row: unknown) => {
+  const getAssetIdentifier = (row: unknown): unknown => {
     return row.id || row.ID || row.asset_name || row.hostname || row.name || row.NAME || 'unknown';
   };
 
   // Get unique row key that combines asset identifier with row index to prevent duplicates
-  const getRowKey = (row: unknown, index: number) => {
+  const getRowKey = (row: unknown, index: number): unknown => {
     const assetId = getAssetIdentifier(row);
     // Ensure uniqueness even if multiple rows have 'unknown' identifier
     return assetId === 'unknown' ? `unknown-${index}` : assetId;

@@ -7,10 +7,11 @@ import logging
 from datetime import datetime
 from typing import Any, Dict
 
+from fastapi import APIRouter, Depends, HTTPException, Request
+
 from app.api.v1.dependencies import get_crewai_flow_service
 from app.core.context import extract_context_from_request
 from app.services.crewai_flow_service import CrewAIFlowService
-from fastapi import APIRouter, Depends, HTTPException, Request
 
 logger = logging.getLogger(__name__)
 

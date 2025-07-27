@@ -10,7 +10,7 @@ export const handleExportData = (
   analyticsData: AnalyticsData | null,
   timeRange: number,
   agentNames: string[]
-) => {
+): void => {
   if (!analyticsData) return;
 
   const exportData = {

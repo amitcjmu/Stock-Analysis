@@ -53,7 +53,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
 
-  const handleLogout = () => {
+  const handleLogout = (): void => {
     logout();
     window.location.href = '/login';
   };

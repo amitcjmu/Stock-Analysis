@@ -3,7 +3,7 @@ import { apiCall } from '@/config/api';
 
 export class MappingService {
 
-  static async approveMapping(mappingId: string, flowId: string) {
+  static async approveMapping(mappingId: string, flowId: string): Promise<unknown> {
     try {
       const response = await apiCall(`/field-mapping/approve/${mappingId}`, {
         method: 'POST',
@@ -17,7 +17,7 @@ export class MappingService {
     }
   }
 
-  static async rejectMapping(mappingId: string, flowId: string, reason?: string) {
+  static async rejectMapping(mappingId: string, flowId: string, reason?: string): Promise<unknown> {
     try {
       const response = await apiCall(`/field-mapping/reject/${mappingId}`, {
         method: 'POST',
@@ -31,7 +31,7 @@ export class MappingService {
     }
   }
 
-  static async updateMapping(mappingId: string, updates: unknown, flowId: string) {
+  static async updateMapping(mappingId: string, updates: unknown, flowId: string): Promise<unknown> {
     try {
       const response = await apiCall(`/field-mapping/update/${mappingId}`, {
         method: 'PUT',
@@ -45,7 +45,7 @@ export class MappingService {
     }
   }
 
-  static async updateAttribute(attributeId: string, updates: unknown, flowId: string) {
+  static async updateAttribute(attributeId: string, updates: unknown, flowId: string): Promise<unknown> {
     try {
       const response = await apiCall(`/attribute-mapping/update/${attributeId}`, {
         method: 'PUT',
@@ -59,7 +59,7 @@ export class MappingService {
     }
   }
 
-  static async triggerFieldMappingAnalysis(flowId: string) {
+  static async triggerFieldMappingAnalysis(flowId: string): Promise<unknown> {
     try {
       const response = await apiCall(`/field-mapping/trigger/${flowId}`, {
         method: 'POST'
@@ -72,7 +72,7 @@ export class MappingService {
     }
   }
 
-  static async getMappingProgress(flowId: string) {
+  static async getMappingProgress(flowId: string): Promise<unknown> {
     try {
       const response = await apiCall(`/field-mapping/progress/${flowId}`);
 
@@ -83,7 +83,7 @@ export class MappingService {
     }
   }
 
-  static async getFieldMappings(importId: string) {
+  static async getFieldMappings(importId: string): Promise<unknown> {
     try {
       const response = await apiCall(`/data-import/field-mapping/imports/${importId}/field-mappings`);
 
@@ -94,7 +94,7 @@ export class MappingService {
     }
   }
 
-  static async getCriticalAttributes(flowId: string) {
+  static async getCriticalAttributes(flowId: string): Promise<unknown> {
     try {
       const response = await apiCall(`/attribute-mapping/critical/${flowId}`);
 

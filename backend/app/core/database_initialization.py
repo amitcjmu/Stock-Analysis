@@ -19,15 +19,17 @@ Run this module manually when:
 
 import asyncio
 import logging
+import os
 import uuid
 from datetime import datetime, timezone
 from typing import Dict
 
+from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models import ClientAccount, Engagement, User
 from app.models.client_account import UserAccountAssociation
 from app.models.rbac import RoleType, UserProfile, UserRole, UserStatus
-from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -47,10 +49,12 @@ class PlatformRequirements:
     """Core platform requirements that must be enforced"""
 
     # Platform admin configuration
-    PLATFORM_ADMIN_EMAIL = "chocka@gmail.com"
-    PLATFORM_ADMIN_PASSWORD = "Password123!"
-    PLATFORM_ADMIN_FIRST_NAME = "Platform"
-    PLATFORM_ADMIN_LAST_NAME = "Admin"
+    PLATFORM_ADMIN_EMAIL = os.getenv("PLATFORM_ADMIN_EMAIL", "chocka@gmail.com")
+    PLATFORM_ADMIN_PASSWORD = os.getenv(
+        "PLATFORM_ADMIN_PASSWORD", "Password123!"
+    )  # nosec B105 - Default only for development
+    PLATFORM_ADMIN_FIRST_NAME = os.getenv("PLATFORM_ADMIN_FIRST_NAME", "Platform")
+    PLATFORM_ADMIN_LAST_NAME = os.getenv("PLATFORM_ADMIN_LAST_NAME", "Admin")
 
     # Demo data configuration - Fixed UUIDs for frontend fallback
     DEMO_CLIENT_ID = uuid.UUID("11111111-1111-1111-1111-111111111111")
@@ -59,7 +63,9 @@ class PlatformRequirements:
     DEMO_ENGAGEMENT_NAME = "Demo Cloud Migration Project"
     DEMO_USER_ID = uuid.UUID("33333333-3333-3333-3333-333333333333")
     DEMO_USER_EMAIL = "demo@demo-corp.com"
-    DEMO_USER_PASSWORD = "Demo123!"
+    DEMO_USER_PASSWORD = os.getenv(
+        "DEMO_USER_PASSWORD", "Demo123!"
+    )  # nosec B105 - Default only for development
 
     # Demo users (NO CLIENT ADMINS!)
     DEMO_USERS = [
@@ -318,7 +324,9 @@ class DatabaseInitializer:
                 # First clear user default references
                 await self.db.execute(
                     text(
-                        "UPDATE users SET default_engagement_id = NULL WHERE default_engagement_id IN (SELECT id FROM engagements WHERE client_account_id = :client_id)"
+                        "UPDATE users SET default_engagement_id = NULL "
+                        "WHERE default_engagement_id IN "
+                        "(SELECT id FROM engagements WHERE client_account_id = :client_id)"
                     ),
                     {"client_id": existing_client.id},
                 )
@@ -331,7 +339,9 @@ class DatabaseInitializer:
                 # Then delete all references
                 await self.db.execute(
                     text(
-                        "DELETE FROM engagement_access WHERE engagement_id IN (SELECT id FROM engagements WHERE client_account_id = :client_id)"
+                        "DELETE FROM engagement_access "
+                        "WHERE engagement_id IN "
+                        "(SELECT id FROM engagements WHERE client_account_id = :client_id)"
                     ),
                     {"client_id": existing_client.id},
                 )
@@ -343,7 +353,9 @@ class DatabaseInitializer:
                 )
                 await self.db.execute(
                     text(
-                        "DELETE FROM user_roles WHERE scope_engagement_id IN (SELECT id FROM engagements WHERE client_account_id = :client_id)"
+                        "DELETE FROM user_roles "
+                        "WHERE scope_engagement_id IN "
+                        "(SELECT id FROM engagements WHERE client_account_id = :client_id)"
                     ),
                     {"client_id": existing_client.id},
                 )
@@ -922,7 +934,8 @@ class DatabaseInitializer:
 
         if missing_tables:
             logger.warning(
-                f"Missing assessment flow tables: {', '.join(missing_tables)}. These tables have schema mismatches and will be addressed in future migration."
+                f"Missing assessment flow tables: {', '.join(missing_tables)}. "
+                f"These tables have schema mismatches and will be addressed in future migration."
             )
             logger.info(
                 "Continuing with initialization without assessment flow tables."
@@ -1023,8 +1036,7 @@ async def initialize_database(db: AsyncSession):
 
 # Make this available as a CLI command
 if __name__ == "__main__":
-    import asyncio
-
+    # asyncio already imported at the top of the file
     from app.core.database import AsyncSessionLocal
 
     async def main():

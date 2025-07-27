@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
 
-const Replatform = () => {
+const Replatform = (): JSX.Element => {
   const [activeTab, setActiveTab] = useState('planning');
   const { isAuthenticated } = useAuth();
 

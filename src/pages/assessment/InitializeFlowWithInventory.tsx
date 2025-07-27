@@ -129,7 +129,7 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
   // Only show applications ready for assessment
   const readyApplications = filteredApplications.filter(app => app.ready_for_assessment);
 
-  const handleSelectApp = (appId: string) => {
+  const handleSelectApp = (appId: string): void => {
     setSelectedApps(prev =>
       prev.includes(appId)
         ? prev.filter(id => id !== appId)
@@ -137,7 +137,7 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
     );
   };
 
-  const handleSelectAll = () => {
+  const handleSelectAll = (): void => {
     if (selectedApps.length === readyApplications.length) {
       setSelectedApps([]);
     } else {
@@ -145,7 +145,7 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
     }
   };
 
-  const handleInitialize = async () => {
+  const handleInitialize = async (): void => {
     if (selectedApps.length === 0) return;
 
     setInitializing(true);
@@ -188,7 +188,7 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
     }
   };
 
-  const getCriticalityColor = (criticality: string) => {
+  const getCriticalityColor = (criticality: string): unknown => {
     switch (criticality?.toLowerCase()) {
       case 'high':
       case 'critical':

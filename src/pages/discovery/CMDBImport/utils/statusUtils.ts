@@ -8,7 +8,7 @@ import {
   FileCheck
 } from 'lucide-react';
 
-export const getStatusIcon = (status: string) => {
+export const getStatusIcon = (status: string): React.ComponentType => {
   switch (status) {
     case 'uploading': return Loader2;
     case 'validating': return Brain;
@@ -21,7 +21,7 @@ export const getStatusIcon = (status: string) => {
   }
 };
 
-export const getStatusColor = (status: string) => {
+export const getStatusColor = (status: string): string => {
   switch (status) {
     case 'uploading': return 'bg-blue-100 text-blue-800';
     case 'validating': return 'bg-orange-100 text-orange-800';
@@ -34,7 +34,7 @@ export const getStatusColor = (status: string) => {
   }
 };
 
-export const getStatusStyling = (status: string) => {
+export const getStatusStyling = (status: string): { bg: string; icon: string; text: string } => {
   switch (status) {
     case 'passed':
       return {

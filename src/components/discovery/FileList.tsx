@@ -44,7 +44,7 @@ const FileList: React.FC<FileListProps> = ({
   onViewAnalysis,
   onEditData
 }) => {
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string): JSX.Element => {
     switch (status) {
       case 'uploaded':
         return <FileText className="h-5 w-5 text-gray-500" />;
@@ -59,7 +59,7 @@ const FileList: React.FC<FileListProps> = ({
     }
   };
 
-  const getQualityColor = (score: number) => {
+  const getQualityColor = (score: number): unknown => {
     if (score >= 80) return 'bg-green-100 text-green-800';
     if (score >= 60) return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';

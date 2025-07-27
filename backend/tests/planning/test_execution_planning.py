@@ -20,13 +20,14 @@ import pytest
 
 # Import planning components
 try:
+    from crewai.planning import PlanningMixin
+
     from app.services.crewai_flows.discovery_flow_redesigned import (
         DiscoveryFlowRedesigned,
         DiscoveryFlowState,
     )
     from app.services.crewai_flows.planning_coordinator import PlanningCoordinator
     from app.services.observability.plan_analytics import PlanAnalytics
-    from crewai.planning import PlanningMixin
 
     PLANNING_COMPONENTS_AVAILABLE = True
 except ImportError:

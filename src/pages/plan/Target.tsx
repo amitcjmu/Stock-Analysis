@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
-const Target = () => {
+const Target = (): JSX.Element => {
   const { data, isLoading, isError, error } = useTarget();
 
   if (isLoading) {
@@ -44,7 +44,7 @@ const Target = () => {
     );
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): unknown => {
     const colors = {
       'Planning': 'bg-blue-100 text-blue-800',
       'In Progress': 'bg-yellow-100 text-yellow-800',
@@ -58,7 +58,7 @@ const Target = () => {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number): unknown => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'

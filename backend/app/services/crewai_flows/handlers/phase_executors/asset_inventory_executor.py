@@ -304,8 +304,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 asset_manager = AssetManager(db, context)
 
                 # Get existing asset identifiers to prevent duplicates
-                from app.models.asset import Asset
                 from sqlalchemy import select
+
+                from app.models.asset import Asset
 
                 existing_assets_query = select(
                     Asset.name, Asset.hostname, Asset.ip_address
@@ -491,9 +492,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                     self.state.asset_inventory["created_asset_ids"] = asset_ids
                     self.state.asset_inventory["total_assets"] = len(created_assets)
                     self.state.asset_inventory["status"] = "completed"
-                    self.state.asset_inventory[
-                        "created_at"
-                    ] = datetime.utcnow().isoformat()
+                    self.state.asset_inventory["created_at"] = (
+                        datetime.utcnow().isoformat()
+                    )
                     logger.info(
                         f"✅ Updated asset_inventory: {self.state.asset_inventory}"
                     )
@@ -753,9 +754,10 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         """Link created assets back to their raw import records for full traceability"""
         from datetime import datetime
 
+        from sqlalchemy import update
+
         from app.core.database import AsyncSessionLocal
         from app.models.data_import.core import RawImportRecord
-        from sqlalchemy import update
 
         try:
             async with AsyncSessionLocal() as session:

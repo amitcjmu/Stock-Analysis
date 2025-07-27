@@ -7,6 +7,10 @@ Now uses modular service architecture for better maintainability.
 import os
 from typing import Any, Dict
 
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import (
     RequestContext,
     extract_context_from_request,
@@ -19,9 +23,6 @@ from app.schemas.data_import_schemas import StoreImportRequest
 
 # Import the new modular service
 from app.services.data_import import ImportStorageHandler
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -74,8 +75,8 @@ async def store_import_data(
                 )
             elif "validation_error" in response.get("error", ""):
                 raise HTTPException(
-                    status_code=400, detail=response.get("message", "")  # Bad Request
-                )
+                    status_code=400, detail=response.get("message", "")
+                )  # Bad Request
             else:
                 raise HTTPException(
                     status_code=500,  # Internal Server Error

@@ -8,6 +8,8 @@ Maintains backward compatibility with the original AssessmentFlowRepository inte
 import logging
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.assessment_flow import AssessmentFlow
 from app.models.assessment_flow_state import (
     ApplicationArchitectureOverride as ApplicationArchitectureOverrideState,
@@ -18,6 +20,7 @@ from app.models.assessment_flow_state import (
 from app.models.assessment_flow_state import (
     ArchitectureRequirement,
     AssessmentFlowState,
+    TechDebtItem,
 )
 from app.models.assessment_flow_state import (
     AssessmentLearningFeedback as AssessmentLearningFeedbackState,
@@ -26,11 +29,7 @@ from app.models.assessment_flow_state import (
     ComponentTreatment as ComponentTreatmentState,
 )
 from app.models.assessment_flow_state import SixRDecision as SixRDecisionState
-from app.models.assessment_flow_state import (
-    TechDebtItem,
-)
 from app.repositories.base import ContextAwareRepository
-from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import command handlers
 from .commands import (

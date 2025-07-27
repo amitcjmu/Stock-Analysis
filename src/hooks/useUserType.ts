@@ -17,13 +17,13 @@ interface UserTypeResponse {
   user_type: UserType;
 }
 
-export const useUserType = () => {
+export const useUserType = (): JSX.Element => {
   const [userType, setUserType] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { getAuthHeaders, isAuthenticated } = useAuth();
 
-  const fetchUserType = async () => {
+  const fetchUserType = async (): Promise<void> => {
     if (!isAuthenticated) {
       setLoading(false);
       return;

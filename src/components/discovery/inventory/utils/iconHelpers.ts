@@ -1,6 +1,6 @@
 import { Server, Database, Cpu, Router, Shield } from 'lucide-react';
 
-export const getTypeIcon = (type: string) => {
+export const getTypeIcon = (type: string): React.ComponentType => {
   const typeStr = type?.toLowerCase() || '';
   if (typeStr.includes('server')) return Server;
   if (typeStr.includes('database')) return Database;
@@ -9,7 +9,7 @@ export const getTypeIcon = (type: string) => {
   return Shield;
 };
 
-export const getReadinessColor = (readiness: number | undefined) => {
+export const getReadinessColor = (readiness: number | undefined): string => {
   if (!readiness) return 'gray';
   if (readiness >= 80) return 'green';
   if (readiness >= 60) return 'yellow';

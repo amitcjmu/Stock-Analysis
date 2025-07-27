@@ -5,10 +5,23 @@
 
 import { useToast } from '@/components/ui/use-toast';
 
-export const useAdminToasts = () => {
+export const useAdminToasts = (): {
+  showSuccessToast: (title: string, description?: string) => void;
+  showErrorToast: (title: string, description?: string) => void;
+  showWarningToast: (title: string, description?: string) => void;
+  showUserApprovedToast: (userName: string) => void;
+  showUserRejectedToast: (userName: string) => void;
+  showUserDeactivatedToast: (userName: string) => void;
+  showUserActivatedToast: (userName: string) => void;
+  showPurgeApprovedToast: (message?: string) => void;
+  showPurgeRejectedToast: (message?: string) => void;
+  showDataFetchErrorToast: () => void;
+  showGenericErrorToast: (operation: string) => void;
+  showDemoDataWarningToast: (errorMessage?: string) => void;
+} => {
   const { toast } = useToast();
 
-  const showSuccessToast = (title: string, description?: string) => {
+  const showSuccessToast = (title: string, description?: string): unknown => {
     toast({
       title,
       description,
@@ -16,7 +29,7 @@ export const useAdminToasts = () => {
     });
   };
 
-  const showErrorToast = (title: string, description?: string) => {
+  const showErrorToast = (title: string, description?: string): unknown => {
     toast({
       title,
       description,
@@ -24,7 +37,7 @@ export const useAdminToasts = () => {
     });
   };
 
-  const showWarningToast = (title: string, description?: string) => {
+  const showWarningToast = (title: string, description?: string): unknown => {
     toast({
       title,
       description,
@@ -33,63 +46,63 @@ export const useAdminToasts = () => {
   };
 
   // Specific admin operation toasts
-  const showUserApprovedToast = (userName: string) => {
+  const showUserApprovedToast = (userName: string): unknown => {
     showSuccessToast(
       "User Approved",
       `${userName} has been approved and granted access`
     );
   };
 
-  const showUserRejectedToast = (userName: string) => {
+  const showUserRejectedToast = (userName: string): unknown => {
     showSuccessToast(
       "User Rejected",
       `${userName}'s request has been rejected`
     );
   };
 
-  const showUserDeactivatedToast = (userName: string) => {
+  const showUserDeactivatedToast = (userName: string): unknown => {
     showSuccessToast(
       "User Deactivated",
       `${userName} has been deactivated`
     );
   };
 
-  const showUserActivatedToast = (userName: string) => {
+  const showUserActivatedToast = (userName: string): unknown => {
     showSuccessToast(
       "User Activated",
       `${userName} has been activated`
     );
   };
 
-  const showPurgeApprovedToast = (message?: string) => {
+  const showPurgeApprovedToast = (message?: string): unknown => {
     showSuccessToast(
       "Purge Approved",
       message || "Purge request has been approved"
     );
   };
 
-  const showPurgeRejectedToast = (message?: string) => {
+  const showPurgeRejectedToast = (message?: string): unknown => {
     showSuccessToast(
       "Purge Rejected",
       message || "Purge request has been rejected"
     );
   };
 
-  const showDataFetchErrorToast = () => {
+  const showDataFetchErrorToast = (): unknown => {
     showErrorToast(
       "Error",
       "Failed to fetch data. Please try again."
     );
   };
 
-  const showGenericErrorToast = (operation: string) => {
+  const showGenericErrorToast = (operation: string): unknown => {
     showErrorToast(
       "Error",
       `Failed to ${operation}. Please try again.`
     );
   };
 
-  const showDemoDataWarningToast = (errorMessage?: string) => {
+  const showDemoDataWarningToast = (errorMessage?: string): unknown => {
     showWarningToast(
       "Using Demo Data",
       `There was an issue fetching live data. Showing demo statistics. ${errorMessage ? `Error: ${errorMessage}` : ''}`

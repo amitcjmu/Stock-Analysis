@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
-const Resource = () => {
+const Resource = (): JSX.Element => {
   const { data, isLoading, isError, error } = useResource();
 
   if (isLoading) {
@@ -44,13 +44,13 @@ const Resource = () => {
     );
   }
 
-  const getUtilizationColor = (utilization: number) => {
+  const getUtilizationColor = (utilization: number): unknown => {
     if (utilization > 90) return 'text-red-600';
     if (utilization > 75) return 'text-yellow-600';
     return 'text-green-600';
   };
 
-  const getImpactColor = (impact: string) => {
+  const getImpactColor = (impact: string): unknown => {
     const colors = {
       'High': 'bg-red-100 text-red-800',
       'Medium': 'bg-yellow-100 text-yellow-800',

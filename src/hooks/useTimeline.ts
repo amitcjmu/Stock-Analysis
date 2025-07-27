@@ -43,7 +43,7 @@ export interface TimelineData {
   };
 }
 
-export const useTimeline = () => {
+export const useTimeline = (): JSX.Element => {
   const { isAuthenticated, client, engagement } = useAuth();
 
   return useQuery<TimelineData>({

@@ -133,7 +133,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
 
   // Close dropdowns when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent): void => {
       const target = event.target as Element;
       if (!target.closest('.dropdown-container')) {
         setOpenDropdowns({});
@@ -194,14 +194,14 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     rejected: editableFieldMappings.filter(m => m.status === 'rejected').length
   };
 
-  const handleTargetFieldChange = (mappingId: string, newTarget: string) => {
+  const handleTargetFieldChange = (mappingId: string, newTarget: string): void => {
     setOpenDropdowns(prev => ({ ...prev, [mappingId]: false }));
     if (onMappingChange) {
       onMappingChange(mappingId, newTarget);
     }
   };
 
-  const toggleDropdown = (mappingId: string) => {
+  const toggleDropdown = (mappingId: string): unknown => {
     setOpenDropdowns(prev => ({
       ...prev,
       [mappingId]: !prev[mappingId]
@@ -213,7 +213,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     }
   };
 
-  const handleApproveMapping = async (mappingId: string) => {
+  const handleApproveMapping = async (mappingId: string): void => {
     setApprovingMappings(prev => new Set(prev).add(mappingId));
     try {
       await onMappingAction(mappingId, 'approve');
@@ -228,7 +228,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     }
   };
 
-  const handleRejectMapping = async (mappingId: string, reason?: string) => {
+  const handleRejectMapping = async (mappingId: string, reason?: string): void => {
     setRejectingMappings(prev => new Set(prev).add(mappingId));
     try {
       await onMappingAction(mappingId, 'reject', reason);
@@ -249,7 +249,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     }
   };
 
-  const handleRejectMappingDialog = (mappingId: string, sourceField: string, targetField: string) => {
+  const handleRejectMappingDialog = (mappingId: string, sourceField: string, targetField: string): void => {
     setRejectionDialog({
       isOpen: true,
       mappingId,
@@ -258,11 +258,11 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     });
   };
 
-  const handleRejectionConfirm = (reason: string) => {
+  const handleRejectionConfirm = (reason: string): void => {
     handleRejectMapping(rejectionDialog.mappingId, reason);
   };
 
-  const handleRejectionCancel = () => {
+  const handleRejectionCancel = (): void => {
     setRejectionDialog({
       isOpen: false,
       mappingId: '',
@@ -271,7 +271,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     });
   };
 
-  const getCategories = () => {
+  const getCategories = (): unknown => {
     if (!Array.isArray(availableFields) || availableFields.length === 0) {
       return ['all'];
     }

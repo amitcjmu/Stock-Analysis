@@ -52,7 +52,7 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return;
     }
 
-    const initializeEngagement = async () => {
+    const initializeEngagement = async (): Promise<void> => {
       try {
         const engagementId = sessionStorage.getItem(ENGAGEMENT_KEY);
         if (!engagementId || !currentClient) {
@@ -113,7 +113,7 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
-  const clearEngagement = () => {
+  const clearEngagement = (): unknown => {
     sessionStorage.removeItem(ENGAGEMENT_KEY);
     setCurrentEngagement(null);
   };
@@ -122,7 +122,7 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return sessionStorage.getItem(ENGAGEMENT_KEY);
   };
 
-  const setDemoEngagement = (engagement: Engagement) => {
+  const setDemoEngagement = (engagement: Engagement): unknown => {
     setCurrentEngagement(engagement);
     setIsLoading(false);
     setError(null);
@@ -141,7 +141,7 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   return <EngagementContext.Provider value={value}>{children}</EngagementContext.Provider>;
 };
 
-export const useEngagement = () => {
+export const useEngagement = (): unknown => {
   const context = useContext(EngagementContext);
   if (context === undefined) {
     throw new Error('useEngagement must be used within an EngagementProvider');
@@ -153,7 +153,7 @@ export const withEngagement = <P extends object>(
   WrappedComponent: React.ComponentType<P>,
   requireEngagement: boolean = true
 ) => {
-  return function WithEngagementComponent(props: P) {
+  return function WithEngagementComponent(props: P): React.ReactElement | null {
     const { currentEngagement, isLoading } = useEngagement();
     const navigate = useNavigate();
 

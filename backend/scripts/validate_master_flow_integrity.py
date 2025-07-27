@@ -11,8 +11,9 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 
-from app.core.database import AsyncSessionLocal
 from sqlalchemy import text
+
+from app.core.database import AsyncSessionLocal
 
 
 async def validate_master_flow_integrity():
@@ -94,7 +95,9 @@ async def validate_master_flow_integrity():
             f"   ✅ Assets with Discovery Flow: {assets_stats.assets_with_discovery_flow}"
         )
         print(f"   ✅ Discovery Phase Assets: {assets_stats.discovery_phase_assets}")
-        print(f"   ✅ Current Discovery Assets: {assets_stats.current_discovery_assets}")
+        print(
+            f"   ✅ Current Discovery Assets: {assets_stats.current_discovery_assets}"
+        )
 
         # 4. Verify Cross-Phase Relationship Integrity
         print("\n4️⃣ Validating Cross-Phase Relationship Integrity...")

@@ -100,7 +100,12 @@ export const useAgentData = (options: UseAgentDataOptions = {}): UseAgentDataRet
   };
 };
 
-export const useAgentPerformance = (agentName: string, period: number = 7) => {
+export const useAgentPerformance = (agentName: string, period: number = 7): {
+  data: AgentMetricsData | null;
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+} => {
   const [data, setData] = useState<AgentMetricsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -134,7 +139,12 @@ export const useAgentPerformance = (agentName: string, period: number = 7) => {
   return { data, loading, error, refresh: fetchPerformance };
 };
 
-export const useAgentAnalytics = (agentName: string, period: number = 7) => {
+export const useAgentAnalytics = (agentName: string, period: number = 7): {
+  data: AgentMetricsData | null;
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+} => {
   const [data, setData] = useState<AgentMetricsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -14,11 +14,12 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.exceptions import DatabaseError
 from app.core.logging import get_logger
 from app.models.data_import import DataImport, ImportFieldMapping, RawImportRecord
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger(__name__)
 
@@ -396,10 +397,11 @@ class ImportStorageManager:
         try:
             # First, get the database record ID for the CrewAI flow_id
             # The foreign key constraint references crewai_flow_state_extensions.id, not flow_id
+            from sqlalchemy import select
+
             from app.models.crewai_flow_state_extensions import (
                 CrewAIFlowStateExtensions,
             )
-            from sqlalchemy import select
 
             result = await self.db.execute(
                 select(CrewAIFlowStateExtensions.id).where(

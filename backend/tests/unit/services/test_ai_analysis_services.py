@@ -9,6 +9,7 @@ from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
+
 from app.api.v1.endpoints.sixr_analysis_modular.services.analysis_service import (
     AnalysisService,
 )

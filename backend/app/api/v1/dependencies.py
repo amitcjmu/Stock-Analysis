@@ -2,10 +2,11 @@
 Shared dependencies for API endpoints.
 """
 
-from app.core.database import get_db
-from app.services.crewai_flow_service import CrewAIFlowService
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.services.crewai_flow_service import CrewAIFlowService
 
 
 def get_crewai_flow_service(db: AsyncSession = Depends(get_db)) -> CrewAIFlowService:

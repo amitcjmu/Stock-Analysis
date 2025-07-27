@@ -8,8 +8,9 @@ crew status, available crews, and flow information.
 from datetime import datetime
 from typing import Any, Dict
 
-from app.core.logging import get_logger as enhanced_get_logger
 from fastapi import APIRouter, Depends, HTTPException
+
+from app.core.logging import get_logger as enhanced_get_logger
 
 from .base import get_monitoring_context
 

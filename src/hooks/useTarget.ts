@@ -42,7 +42,7 @@ export interface TargetData {
   }>;
 }
 
-export const useTarget = () => {
+export const useTarget = (): JSX.Element => {
   const { isAuthenticated, client, engagement } = useAuth();
 
   return useQuery<TargetData>({

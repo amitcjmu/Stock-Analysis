@@ -11,9 +11,10 @@ This migration ensures all required tables exist, handling cases where:
 """
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy import text
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "fix_database_state"

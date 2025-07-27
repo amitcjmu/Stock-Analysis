@@ -127,7 +127,7 @@ const DataCleansing: React.FC = () => {
   });
 
   // Handle data cleansing execution - Now actually triggers analysis
-  const handleTriggerDataCleansingCrew = async () => {
+  const handleTriggerDataCleansingCrew = async (): void => {
     if (!effectiveFlowId) {
       console.error('No flow ID available for triggering analysis');
       return;
@@ -158,12 +158,12 @@ const DataCleansing: React.FC = () => {
   };
 
   // Navigation handlers
-  const handleBackToAttributeMapping = () => {
+  const handleBackToAttributeMapping = (): void => {
     // Navigate back to attribute mapping
     window.history.back();
   };
 
-  const handleContinueToInventory = async () => {
+  const handleContinueToInventory = async (): void => {
     try {
       // First, mark the data cleansing phase as complete
       if (flow && !flow.phase_completion?.data_cleansing) {
@@ -223,7 +223,7 @@ const DataCleansing: React.FC = () => {
 
   // Check for pending agent questions (disabled polling for now as endpoint returns empty array)
   useEffect(() => {
-    const checkPendingQuestions = async () => {
+    const checkPendingQuestions = async (): Promise<void> => {
       if (!client?.id || !engagement?.id) return;
 
       try {

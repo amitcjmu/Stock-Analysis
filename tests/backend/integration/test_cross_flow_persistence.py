@@ -252,8 +252,8 @@ class TestCrossFlowPersistence:
             assert retrieved_state["status"] == "running"
             assert retrieved_state["current_phase"] == "field_mapping"
             assert retrieved_state["progress_percentage"] == 25.0
-            assert retrieved_state["phase_completion"]["data_import"] == True
-            assert retrieved_state["phase_completion"]["field_mapping"] == False
+            assert retrieved_state["phase_completion"]["data_import"]
+            assert not retrieved_state["phase_completion"]["field_mapping"]
 
             print("✅ Flow state consistency verified via FlowStateManager")
 
@@ -276,7 +276,7 @@ class TestCrossFlowPersistence:
 
             assert final_state["current_phase"] == "data_cleansing"
             assert final_state["progress_percentage"] == 50.0
-            assert final_state["phase_completion"]["field_mapping"] == True
+            assert final_state["phase_completion"]["field_mapping"]
 
             print("✅ Flow state updates maintained consistency")
 
@@ -429,8 +429,8 @@ class TestCrossFlowPersistence:
             await session.commit()
 
             # Verify partial completion state
-            assert flow_record.phase_completion["data_cleansing"] == True
-            assert flow_record.phase_completion["dependency_analysis"] == False
+            assert flow_record.phase_completion["data_cleansing"]
+            assert not flow_record.phase_completion["dependency_analysis"]
             assert flow_record.progress_percentage == 75.0
 
             print("✅ Partial completion recovery verified")
@@ -508,7 +508,7 @@ class TestCrossFlowPersistence:
                     assert "assessment_metadata" in asset.metadata_
                     assessment_meta = asset.metadata_["assessment_metadata"]
                     assert assessment_meta["assessment_flow_id"] == assessment_flow_id
-                    assert assessment_meta["selected_for_assessment"] == True
+                    assert assessment_meta["selected_for_assessment"]
 
                 print(f"✅ Data integrity verified for asset {asset.name}")
 

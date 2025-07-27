@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useCallback } from 'react'
 import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 
-export const useTechDebtLogic = (flowId?: string) => {
+export const useTechDebtLogic = (flowId?: string): JSX.Element => {
   // Use the unified discovery flow
   const {
     flowState: flow,

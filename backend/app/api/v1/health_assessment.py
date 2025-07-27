@@ -8,10 +8,11 @@ import logging
 from datetime import datetime
 
 try:
-    from app.core.database import AsyncSessionLocal
     from fastapi import APIRouter, Response
     from sqlalchemy import text
     from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.core.database import AsyncSessionLocal
 
     FASTAPI_AVAILABLE = True
 except ImportError:
@@ -55,10 +56,8 @@ async def check_assessment_tables_health():
             for table in tables_to_check:
                 try:
                     await db.execute(
-                        text(
-                            f"SELECT 1 FROM {table} LIMIT 1"  # nosec B608 - table names hardcoded
-                        )
-                    )
+                        text(f"SELECT 1 FROM {table} LIMIT 1")
+                    )  # nosec B608 - table names hardcoded
                 except Exception as e:
                     # Table might not exist yet or be empty - that's ok for development
                     logger.warning(f"Assessment table {table} check failed: {str(e)}")

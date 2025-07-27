@@ -32,9 +32,10 @@ from typing import List, Optional, Tuple
 # Add the backend directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.core.database import AsyncSessionLocal
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+
+from app.core.database import AsyncSessionLocal
 
 
 @dataclass

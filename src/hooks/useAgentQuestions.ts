@@ -34,7 +34,7 @@ interface AgentQuestionResponse {
   confidence?: number;
 }
 
-export const useAgentQuestions = (page: string = "dependencies") => {
+export const useAgentQuestions = (page: string = "dependencies"): JSX.Element => {
   const consecutiveErrors = useRef<number>(0);
   const maxConsecutiveErrors = 3;
   const { isAuthenticated, client, engagement } = useAuth();
@@ -88,7 +88,7 @@ export const useAgentQuestions = (page: string = "dependencies") => {
   });
 };
 
-export const useAnswerAgentQuestion = () => {
+export const useAnswerAgentQuestion = (): unknown => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -109,7 +109,7 @@ export const useAnswerAgentQuestion = () => {
 };
 
 // Hook for agent insights
-export const useAgentInsights = (page: string = "dependencies") => {
+export const useAgentInsights = (page: string = "dependencies"): JSX.Element => {
   const consecutiveErrors = useRef<number>(0);
   const maxConsecutiveErrors = 3;
   const { isAuthenticated, client, engagement } = useAuth();
@@ -164,7 +164,7 @@ export const useAgentInsights = (page: string = "dependencies") => {
 };
 
 // Hook for agent status
-export const useAgentStatus = () => {
+export const useAgentStatus = (): JSX.Element => {
   const consecutiveErrors = useRef<number>(0);
   const maxConsecutiveErrors = 3;
   const { isAuthenticated, client, engagement } = useAuth();
@@ -219,7 +219,7 @@ export const useAgentStatus = () => {
 };
 
 // Hook for confidence scores
-export const useConfidenceScores = (page: string = "dependencies") => {
+export const useConfidenceScores = (page: string = "dependencies"): JSX.Element => {
   const consecutiveErrors = useRef<number>(0);
   const maxConsecutiveErrors = 3;
   const { isAuthenticated, client, engagement } = useAuth();
@@ -268,7 +268,7 @@ export const useConfidenceScores = (page: string = "dependencies") => {
 };
 
 // Hook for triggering agent thinking
-export const useAgentThink = () => {
+export const useAgentThink = (): JSX.Element => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -288,7 +288,7 @@ export const useAgentThink = () => {
 };
 
 // Hook for triggering crew collaboration
-export const useAgentPonderMore = () => {
+export const useAgentPonderMore = (): JSX.Element => {
   const queryClient = useQueryClient();
 
   return useMutation({

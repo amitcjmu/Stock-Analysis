@@ -6,8 +6,9 @@ import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
-from app.core.context import RequestContext
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext
 
 from ..repositories.assessment_repository import AssessmentRepository
 from .assessment_manager import AssessmentManager

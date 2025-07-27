@@ -20,10 +20,11 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from alembic import command
-from alembic.config import Config
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
+
+from alembic import command
+from alembic.config import Config
 
 # Add the app directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

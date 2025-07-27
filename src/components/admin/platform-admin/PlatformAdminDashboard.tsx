@@ -108,11 +108,11 @@ export const PlatformAdminDashboard: React.FC = () => {
 
   // fetchPendingItems moved above with useCallback
 
-  const handleViewDetails = (item: SoftDeletedItem) => {
+  const handleViewDetails = (item: SoftDeletedItem): void => {
     setSelectedItem(item);
   };
 
-  const handleApprovePurge = (item: SoftDeletedItem) => {
+  const handleApprovePurge = (item: SoftDeletedItem): void => {
     setPurgeAction({
       action: 'approve',
       item: item,
@@ -121,7 +121,7 @@ export const PlatformAdminDashboard: React.FC = () => {
     setShowPurgeDialog(true);
   };
 
-  const handleRejectPurge = (item: SoftDeletedItem) => {
+  const handleRejectPurge = (item: SoftDeletedItem): void => {
     setPurgeAction({
       action: 'reject',
       item: item,
@@ -130,7 +130,7 @@ export const PlatformAdminDashboard: React.FC = () => {
     setShowPurgeDialog(true);
   };
 
-  const executePurgeAction = async () => {
+  const executePurgeAction = async (): Promise<void> => {
     if (!purgeAction) return;
 
     try {

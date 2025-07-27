@@ -6,8 +6,9 @@ Provides health status and testing for all configured LLM models.
 import logging
 from typing import Any, Dict
 
-from app.services.llm_config import llm_config, test_all_llm_connections
 from fastapi import APIRouter, HTTPException
+
+from app.services.llm_config import llm_config, test_all_llm_connections
 
 logger = logging.getLogger(__name__)
 

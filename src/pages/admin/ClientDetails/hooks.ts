@@ -11,7 +11,7 @@ import { apiCallWithFallback } from '@/config/api';
 import type { ClientFormData } from './types'
 import type { Client } from './types'
 
-export const useClient = (clientId: string | undefined) => {
+export const useClient = (clientId: string | undefined): JSX.Element => {
   const { toast } = useToast();
   const { getAuthHeaders } = useAuth();
 
@@ -67,7 +67,7 @@ export const useClient = (clientId: string | undefined) => {
   };
 };
 
-export const useClientForm = (client: Client | null, clientId: string | undefined) => {
+export const useClientForm = (client: Client | null, clientId: string | undefined): JSX.Element => {
   const { toast } = useToast();
   const { getAuthHeaders } = useAuth();
 
@@ -89,7 +89,7 @@ export const useClientForm = (client: Client | null, clientId: string | undefine
     compliance_requirements: []
   });
 
-  const handleEdit = () => {
+  const handleEdit = (): void => {
     if (client) {
       setFormData({
         account_name: client.account_name,
@@ -111,7 +111,7 @@ export const useClientForm = (client: Client | null, clientId: string | undefine
     }
   };
 
-  const handleUpdate = async () => {
+  const handleUpdate = async (): void => {
     try {
       const response = await apiCallWithFallback(`/admin/clients/${clientId}`, {
         method: 'PUT',

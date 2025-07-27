@@ -124,7 +124,7 @@ const checkPersistenceHealth = async (): Promise<Record<string, unknown>> => {
 // MAIN HOOK
 // ========================================
 
-export const useEnhancedFlowManagement = () => {
+export const useEnhancedFlowManagement = (): unknown => {
   const [isValidating, setIsValidating] = useState(false);
   const [isRecovering, setIsRecovering] = useState(false);
   const [isCleaning, setIsCleaning] = useState(false);
@@ -173,7 +173,7 @@ export const useEnhancedFlowManagement = () => {
   });
 
   // Persistence Status Query
-  const usePersistenceStatus = (flowId: string, enabled: boolean = true) => {
+  const usePersistenceStatus = (flowId: string, enabled: boolean = true): unknown => {
     return useQuery({
       queryKey: ['flow-persistence-status', flowId],
       queryFn: () => getFlowPersistenceStatus(flowId),
@@ -183,7 +183,7 @@ export const useEnhancedFlowManagement = () => {
   };
 
   // Persistence Health Query
-  const usePersistenceHealth = () => {
+  const usePersistenceHealth = (): unknown => {
     return useQuery({
       queryKey: ['persistence-health'],
       queryFn: checkPersistenceHealth,
@@ -318,7 +318,7 @@ export const useEnhancedFlowManagement = () => {
 /**
  * Hook for monitoring multiple flows' health
  */
-export const useFlowHealthMonitor = (flowIds: string[], enabled: boolean = true) => {
+export const useFlowHealthMonitor = (flowIds: string[], enabled: boolean = true): unknown => {
   const { performBulkValidation } = useEnhancedFlowManagement();
 
   return useQuery({
@@ -334,7 +334,7 @@ export const useFlowHealthMonitor = (flowIds: string[], enabled: boolean = true)
  * Hook for cleanup recommendations only (NO automatic cleanup)
  * @deprecated Use useFlowCleanupRecommendations from useFlowDeletion instead
  */
-export const useAutomaticCleanup = (enabled: boolean = false) => {
+export const useAutomaticCleanup = (enabled: boolean = false): unknown => {
   console.warn('⚠️ useAutomaticCleanup is deprecated. Automatic cleanup is disabled for user safety. Use useFlowCleanupRecommendations instead.');
 
   // Always return disabled state - no automatic cleanup allowed

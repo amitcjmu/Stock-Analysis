@@ -8,10 +8,11 @@ import asyncio
 import logging
 from typing import Dict, List
 
-from app.core.database import AsyncSessionLocal
-from app.models.asset import Asset
 from sqlalchemy import and_, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import AsyncSessionLocal
+from app.models.asset import Asset
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

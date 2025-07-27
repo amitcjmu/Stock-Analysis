@@ -6,15 +6,16 @@ import logging
 import uuid
 from typing import List, Optional
 
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
 from app.models.assessment_flow import AssessmentFlow
 from app.models.assessment_flow_state import (
     AssessmentFlowState,
     AssessmentFlowStatus,
     AssessmentPhase,
 )
-from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 logger = logging.getLogger(__name__)
 

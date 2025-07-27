@@ -47,7 +47,7 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
   const currentAppComponents = selectedApp ? state.applicationComponents[selectedApp] || [] : [];
   const currentAppTechDebt = selectedApp ? state.techDebtAnalysis[selectedApp] || [] : [];
 
-  const handleFinalize = async () => {
+  const handleFinalize = async (): void => {
     setIsSubmitting(true);
     try {
       await finalizeAssessment();
@@ -58,7 +58,7 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
     }
   };
 
-  const handlePrint = () => {
+  const handlePrint = (): void => {
     setPrintMode(true);
     window.print();
     setTimeout(() => setPrintMode(false), 1000);

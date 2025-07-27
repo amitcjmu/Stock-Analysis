@@ -11,7 +11,7 @@ const MainLayout: React.FC = () => {
   const { user } = useAuth();
   const { currentClient, availableClients, switchClient } = useClient();
 
-  const handleClientSwitch = (clientId: string) => {
+  const handleClientSwitch = (clientId: string): void => {
     if (switchClient) {
       switchClient(clientId);
     }

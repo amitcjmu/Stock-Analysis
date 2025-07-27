@@ -7,8 +7,9 @@ Create Date: 2025-07-20
 """
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "005_add_gap_analysis_and_questionnaire_tables"

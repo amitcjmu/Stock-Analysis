@@ -108,9 +108,7 @@ Message: {error_info['message'][:200]}...
 
                         # Check for specific critical patterns
                         if "UUID is not JSON serializable" in error["message"]:
-                            print(
-                                "⚠️  ISSUE: UUID serialization error in flow creation"
-                            )
+                            print("⚠️  ISSUE: UUID serialization error in flow creation")
                             print("📍 LOCATION: Flow Execution Engine")
                             print(
                                 "🔧 LIKELY FIX: Convert UUID to string before JSON serialization"

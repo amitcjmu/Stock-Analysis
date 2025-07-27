@@ -1,15 +1,15 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-export const useDataCleansingNavigation = (flowState: unknown, cleansingProgress: unknown) => {
+export const useDataCleansingNavigation = (flowState: unknown, cleansingProgress: unknown): unknown => {
   const navigate = useNavigate();
   const { user, client, engagement } = useAuth();
 
-  const handleBackToAttributeMapping = () => {
+  const handleBackToAttributeMapping = (): void => {
     navigate('/discovery/attribute-mapping');
   };
 
-  const handleContinueToInventory = () => {
+  const handleContinueToInventory = (): void => {
     navigate('/discovery/inventory', {
       replace: true,
       state: {

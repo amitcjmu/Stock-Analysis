@@ -8,8 +8,9 @@ This migration adds the missing error_message and error_details columns to data_
 """
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy import text
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "add_error_handling_columns"

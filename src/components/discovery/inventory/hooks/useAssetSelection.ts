@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import { useCallback } from 'react'
 
-export const useAssetSelection = () => {
+export const useAssetSelection = (): {
+  selectedAssets: string[];
+  handleSelectAsset: (assetId: string) => void;
+  handleSelectAll: (assetIds: string[]) => void;
+  clearSelection: () => void;
+  isSelected: (assetId: string) => boolean;
+  isAllSelected: (assetIds: string[]) => boolean;
+} => {
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
 
   const handleSelectAsset = useCallback((assetId: string) => {

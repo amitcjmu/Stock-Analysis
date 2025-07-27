@@ -8,7 +8,6 @@ import asyncio
 from playwright.async_api import async_playwright
 import json
 import time
-import os
 import re
 
 async def test_complete_demo_flow():
@@ -240,19 +239,19 @@ async def test_complete_demo_flow():
                             .catch(error => {{ return {{ success: false, error: error.message }}; }});
                         """)
 
-                        print(f"API call result: {result}")
+                    print(f"API call result: {result}")
 
-                        if result.get("success"):
-                            print("✅ Flow continuation successful via API")
+                    if result.get("success"):
+                        print("✅ Flow continuation successful via API")
 
-                            # Wait and take screenshot
-                            await page.wait_for_timeout(3000)
-                            await page.screenshot(path="demo_after_api_continue.png")
-                            print("📸 Screenshot saved: demo_after_api_continue.png")
-                        else:
-                            print(f"❌ Flow continuation failed: {result.get('error', 'Unknown error')}")
+                        # Wait and take screenshot
+                        await page.wait_for_timeout(3000)
+                        await page.screenshot(path="demo_after_api_continue.png")
+                        print("📸 Screenshot saved: demo_after_api_continue.png")
                     else:
-                        print("⚠️ Could not extract flow ID from page")
+                        print(f"❌ Flow continuation failed: {result.get('error', 'Unknown error')}")
+                else:
+                    print("⚠️ Could not extract flow ID from page")
 
             else:
                 print("❌ No Continue Flow button found")

@@ -9,6 +9,10 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 import bcrypt
+from fastapi import HTTPException
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.client_account import User
 from app.models.rbac import UserProfile, UserRole
 from app.schemas.auth_schemas import (
@@ -18,9 +22,6 @@ from app.schemas.auth_schemas import (
     PasswordChangeResponse,
     Token,
 )
-from fastapi import HTTPException
-from sqlalchemy import and_, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +73,7 @@ class AuthenticationService:
 
             # Get user roles
             user_roles_query = select(UserRole).where(
-                and_(UserRole.user_id == user.id, UserRole.is_active == True)
+                and_(UserRole.user_id == user.id, UserRole.is_active)
             )
             roles_result = await self.db.execute(user_roles_query)
             user_roles = roles_result.scalars().all()
@@ -296,7 +297,7 @@ class AuthenticationService:
 
             # Active users
             active_users_query = (
-                select(func.count()).select_from(User).where(User.is_active == True)
+                select(func.count()).select_from(User).where(User.is_active)
             )
             active_users_result = await self.db.execute(active_users_query)
             active_users = active_users_result.scalar_one()

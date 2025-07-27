@@ -7,12 +7,13 @@ This script tests if discovery flows are properly linked to master flows.
 import asyncio
 import logging
 
+from sqlalchemy import select
+
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.discovery_flow import DiscoveryFlow
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-from sqlalchemy import select
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

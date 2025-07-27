@@ -7,10 +7,11 @@ All API endpoints should use these dependencies instead of raw context extractio
 
 import logging
 
-from app.core.context import RequestContext, extract_context_from_request
-from app.core.database import get_db
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext, extract_context_from_request
+from app.core.database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -144,12 +145,13 @@ async def verify_tenant_access(
     # Verify ownership through direct query
     from sqlalchemy import text
 
+    # Table names are validated from resource_map dictionary above
     query = text(
         f"""
         SELECT 1 FROM {table_name}
         WHERE id = :resource_id
         AND {tenant_field} = :client_id
-    """
+    """  # nosec B608 - table_name is from hardcoded dictionary
     )
 
     result = await db.execute(

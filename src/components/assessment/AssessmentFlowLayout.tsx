@@ -80,7 +80,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
   const navigate = useNavigate();
   const { state, navigateToPhase } = useAssessmentFlow(flowId);
 
-  const getPhaseStatus = (phaseId: AssessmentPhase) => {
+  const getPhaseStatus = (phaseId: AssessmentPhase): JSX.Element => {
     if (state.error) return 'error';
     if (state.currentPhase === phaseId) {
       return state.status === 'processing' ? 'processing' : 'active';
@@ -95,16 +95,16 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
     return 'disabled';
   };
 
-  const isPhaseComplete = (phaseId: AssessmentPhase) => {
+  const isPhaseComplete = (phaseId: AssessmentPhase): unknown => {
     return getPhaseStatus(phaseId) === 'completed';
   };
 
-  const canNavigateToPhase = (phaseId: AssessmentPhase) => {
+  const canNavigateToPhase = (phaseId: AssessmentPhase): unknown => {
     const status = getPhaseStatus(phaseId);
     return status === 'completed' || status === 'active' || status === 'processing';
   };
 
-  const getPhaseIcon = (phaseId: AssessmentPhase, status: string) => {
+  const getPhaseIcon = (phaseId: AssessmentPhase, status: string): JSX.Element => {
     if (status === 'completed') return <CheckCircle2 className="h-4 w-4" />;
     if (status === 'processing') return <Loader2 className="h-4 w-4 animate-spin" />;
     if (status === 'error') return <AlertCircle className="h-4 w-4" />;
@@ -114,7 +114,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
     return <IconComponent className="h-4 w-4" />;
   };
 
-  const handlePhaseNavigation = async (phase: AssessmentPhase, route: string) => {
+  const handlePhaseNavigation = async (phase: AssessmentPhase, route: string): void => {
     if (!canNavigateToPhase(phase)) return;
 
     try {

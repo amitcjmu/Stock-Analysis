@@ -216,7 +216,7 @@ class UserManagementHandler(BaseRBACHandler):
                     select(ClientAccess).where(
                         and_(
                             ClientAccess.user_profile_id == user_id,
-                            ClientAccess.is_active == False,
+                            not ClientAccess.is_active,
                         )
                     )
                 )
@@ -233,7 +233,7 @@ class UserManagementHandler(BaseRBACHandler):
                     select(EngagementAccess).where(
                         and_(
                             EngagementAccess.user_profile_id == user_id,
-                            EngagementAccess.is_active == False,
+                            not EngagementAccess.is_active,
                         )
                     )
                 )
@@ -723,7 +723,7 @@ class UserManagementHandler(BaseRBACHandler):
                         and_(
                             ClientAccess.user_profile_id == user_id,
                             ClientAccess.client_account_id == new_client_id,
-                            ClientAccess.is_active == True,
+                            ClientAccess.is_active,
                         )
                     )
                 )
@@ -757,7 +757,7 @@ class UserManagementHandler(BaseRBACHandler):
                         and_(
                             EngagementAccess.user_profile_id == user_id,
                             EngagementAccess.engagement_id == new_engagement_id,
-                            EngagementAccess.is_active == True,
+                            EngagementAccess.is_active,
                         )
                     )
                 )

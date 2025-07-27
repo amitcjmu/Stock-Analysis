@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
 
-const Overview = () => {
+const Overview = (): JSX.Element => {
   const { isAuthenticated } = useAuth();
 
   // Queries

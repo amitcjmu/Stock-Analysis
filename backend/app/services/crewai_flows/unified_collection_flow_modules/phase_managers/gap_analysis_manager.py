@@ -69,7 +69,9 @@ class GapAnalysisManager:
             Dict containing phase execution results
         """
         try:
-            logger.info(f"🔎 Starting gap analysis for flow {self.flow_context.flow_id}")
+            logger.info(
+                f"🔎 Starting gap analysis for flow {self.flow_context.flow_id}"
+            )
 
             # Update state to indicate phase start
             flow_state.status = CollectionStatus.ANALYZING_GAPS

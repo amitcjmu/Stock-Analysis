@@ -105,7 +105,7 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
   };
 
   // Handle flow navigation
-  const handleFlowClick = (flow: FlowStatus) => {
+  const handleFlowClick = (flow: FlowStatus): void => {
     const route = getFlowPhaseRoute(
       flow.flow_type,
       flow.current_phase || flow.status,
@@ -115,7 +115,7 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
   };
 
   // Handle flow actions
-  const handlePauseFlow = async (flow: FlowStatus) => {
+  const handlePauseFlow = async (flow: FlowStatus): void => {
     try {
       await actions.pauseFlow(flow.flow_id);
       await actions.refreshFlows();
@@ -124,7 +124,7 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
     }
   };
 
-  const handleResumeFlow = async (flow: FlowStatus) => {
+  const handleResumeFlow = async (flow: FlowStatus): void => {
     try {
       await actions.resumeFlow(flow.flow_id);
       await actions.refreshFlows();
@@ -133,7 +133,7 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
     }
   };
 
-  const handleDeleteFlow = async (flow: FlowStatus) => {
+  const handleDeleteFlow = async (flow: FlowStatus): void => {
     if (!client?.id) {
       flowToast.error(new Error('Client context is required for flow deletion'));
       return;

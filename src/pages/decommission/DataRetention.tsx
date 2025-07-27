@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
 
-const DataRetention = () => {
+const DataRetention = (): JSX.Element => {
   const { isAuthenticated } = useAuth();
   const [selectedPolicy, setSelectedPolicy] = useState('all');
 
@@ -59,7 +59,7 @@ const DataRetention = () => {
     retentionSteps: []
   };
 
-  const handleCreateArchiveJob = () => {
+  const handleCreateArchiveJob = (): void => {
     // Implementation for creating a new archive job
     createArchiveJob({
       systemName: 'New System',

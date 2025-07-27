@@ -6,9 +6,10 @@ import asyncio
 import logging
 from collections import defaultdict
 
+from sqlalchemy import and_, func, select
+
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
-from sqlalchemy import and_, func, select
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

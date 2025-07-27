@@ -20,13 +20,7 @@ from .business_context_analyzer.domain_configurations import DomainConfiguration
 
 # Import all components from the modularized package subdirectory
 # Use relative import to avoid circular import issue
-from .business_context_analyzer.enums import (
-    BusinessDomain,
-    MigrationDriverType,
-    OrganizationSize,
-    StakeholderRole,
-)
-from .business_context_analyzer.models import BusinessContext, QuestionnaireTarget
+from .business_context_analyzer.models import BusinessContext
 from .business_context_analyzer.optimization import QuestionnaireOptimizer
 from .business_context_analyzer.utilities import BusinessContextUtilities
 

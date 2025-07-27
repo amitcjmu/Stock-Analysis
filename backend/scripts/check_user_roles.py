@@ -11,12 +11,11 @@ from pathlib import Path
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import and_, select
 
 from app.core.database import AsyncSessionLocal
-from app.models import User, UserRole
 from app.core.logging import get_logger
+from app.models import User, UserRole
 
 logger = get_logger(__name__)
 
@@ -66,7 +65,7 @@ async def check_user_roles():
 
             # Simulate the exact query from user_service.py
             logger.info(f"\nChecking with user_id as string: {str(user.id)}")
-            logger.info(f"Checking with UserRole.is_active is True")
+            logger.info("Checking with UserRole.is_active is True")
 
             limited_result = await db.execute(
                 select(UserRole)
@@ -78,10 +77,10 @@ async def check_user_roles():
             limited_role = limited_result.scalar_one_or_none()
 
             # Also try without string conversion
-            logger.info(f"\nAlso checking without string conversion...")
+            logger.info("\nAlso checking without string conversion...")
             direct_result = await db.execute(
                 select(UserRole)
-                .where(and_(UserRole.user_id == user.id, UserRole.is_active == True))
+                .where(and_(UserRole.user_id == user.id, UserRole.is_active))
                 .limit(1)
             )
             direct_role = direct_result.scalar_one_or_none()

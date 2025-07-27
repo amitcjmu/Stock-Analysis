@@ -1,9 +1,10 @@
 import asyncio
 import logging
 
+from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models.data_import.core import DataImport
-from sqlalchemy import select
 
 logging.basicConfig(level=logging.INFO)
 

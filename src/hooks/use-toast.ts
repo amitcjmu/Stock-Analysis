@@ -24,7 +24,7 @@ const actionTypes = {
 
 let count = 0
 
-function genId() {
+function genId(): unknown {
   count = (count + 1) % Number.MAX_SAFE_INTEGER
   return count.toString()
 }
@@ -55,7 +55,7 @@ interface State {
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
-const addToRemoveQueue = (toastId: string) => {
+const addToRemoveQueue = (toastId: string): unknown => {
   if (toastTimeouts.has(toastId)) {
     return
   }
@@ -139,7 +139,7 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
-function toast({ ...props }: Toast) {
+function toast({ ...props }: Toast): object {
   const id = genId()
 
   const update = (props: ToasterToast) =>
@@ -155,7 +155,7 @@ function toast({ ...props }: Toast) {
       ...props,
       id,
       open: true,
-      onOpenChange: (open) => {
+      onOpenChange: (open): void => {
         if (!open) dismiss()
       },
     },
@@ -168,7 +168,7 @@ function toast({ ...props }: Toast) {
   }
 }
 
-function useToast() {
+function useToast(): JSX.Element {
   const [state, setState] = React.useState<State>(memoryState)
 
   React.useEffect(() => {

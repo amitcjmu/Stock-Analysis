@@ -14,7 +14,13 @@ export interface AgentFilters {
   sortOrder?: 'asc' | 'desc';
 }
 
-export const useAgentFilters = (agents: AgentCardData[]) => {
+export const useAgentFilters = (agents: AgentCardData[]): {
+  filters: AgentFilters;
+  filteredAgents: AgentCardData[];
+  updateFilters: (newFilters: Partial<AgentFilters>) => void;
+  clearFilters: () => void;
+  statusDistribution: Record<string, number>;
+} => {
   const [filters, setFilters] = useState<AgentFilters>({
     sortBy: 'name',
     sortOrder: 'asc'

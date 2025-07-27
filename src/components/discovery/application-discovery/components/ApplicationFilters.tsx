@@ -36,14 +36,14 @@ export const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
   criticalityOptions,
   technologyOptions
 }) => {
-  const handleFilterChange = (field: keyof FilterState, value: string) => {
+  const handleFilterChange = (field: keyof FilterState, value: string): void => {
     onFilterChange({
       ...filters,
       [field]: value
     });
   };
 
-  const hasActiveFilters = () => {
+  const hasActiveFilters = (): unknown => {
     return Object.entries(filters).some(([key, value]) => {
       if (key.includes('_min') || key.includes('_max')) return value !== '';
       return value !== 'all';

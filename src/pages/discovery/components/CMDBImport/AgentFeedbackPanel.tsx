@@ -86,7 +86,7 @@ const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
     hasCmdbData: !!cmdbData.file_data
   });
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string): JSX.Element => {
     switch (status) {
       case 'running':
       case 'in_progress':
@@ -102,7 +102,7 @@ const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): unknown => {
     switch (status) {
       case 'running':
       case 'in_progress':

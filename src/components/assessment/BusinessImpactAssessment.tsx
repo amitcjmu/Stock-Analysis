@@ -23,7 +23,7 @@ export const BusinessImpactAssessment: React.FC<BusinessImpactAssessmentProps> =
     techDebt.reduce((sum, t) => sum + (t.tech_debt_score || 0), 0) / techDebt.length : 0;
 
   // Estimate business impact based on strategy and tech debt
-  const getBusinessImpact = () => {
+  const getBusinessImpact = (): JSX.Element => {
     const strategyImpact: Record<string, { effort: string; risk: string; value: string }> = {
       'rehost': { effort: 'Low', risk: 'Low', value: 'Medium' },
       'replatform': { effort: 'Medium', risk: 'Medium', value: 'High' },
@@ -38,7 +38,7 @@ export const BusinessImpactAssessment: React.FC<BusinessImpactAssessmentProps> =
 
   const businessImpact = getBusinessImpact();
 
-  const getImpactColor = (impact: string) => {
+  const getImpactColor = (impact: string): JSX.Element => {
     const colors: Record<string, string> = {
       'Very Low': 'text-green-600',
       'Low': 'text-green-600',

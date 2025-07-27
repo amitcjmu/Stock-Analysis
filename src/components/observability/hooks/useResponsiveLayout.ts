@@ -33,7 +33,7 @@ const defaultBreakpoints: ResponsiveBreakpoints = {
   '2xl': 1536
 };
 
-export const useResponsiveLayout = (customBreakpoints?: Partial<ResponsiveBreakpoints>) => {
+export const useResponsiveLayout = (customBreakpoints?: Partial<ResponsiveBreakpoints>): JSX.Element => {
   const breakpoints = { ...defaultBreakpoints, ...customBreakpoints };
 
   const [responsiveState, setResponsiveState] = useState<ResponsiveState>(() => {
@@ -66,7 +66,7 @@ export const useResponsiveLayout = (customBreakpoints?: Partial<ResponsiveBreakp
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const handleResize = () => {
+    const handleResize = (): JSX.Element => {
       const width = window.innerWidth;
       const height = window.innerHeight;
 
@@ -97,17 +97,17 @@ function getBreakpoint(width: number, breakpoints: ResponsiveBreakpoints): Respo
 }
 
 // Grid layout utilities
-export const useGridLayout = (baseColumns: number = 4) => {
+export const useGridLayout = (baseColumns: number = 4): unknown => {
   const { isMobile, isTablet, isDesktop, isLargeDesktop } = useResponsiveLayout();
 
-  const getGridColumns = () => {
+  const getGridColumns = (): unknown => {
     if (isMobile) return 1;
     if (isTablet) return Math.min(2, baseColumns);
     if (isDesktop) return Math.min(3, baseColumns);
     return baseColumns;
   };
 
-  const getGridClass = () => {
+  const getGridClass = (): unknown => {
     const columns = getGridColumns();
     return `grid grid-cols-1 md:grid-cols-${Math.min(2, columns)} lg:grid-cols-${Math.min(3, columns)} xl:grid-cols-${columns}`;
   };
@@ -123,7 +123,7 @@ export const useGridLayout = (baseColumns: number = 4) => {
 };
 
 // Component visibility utilities
-export const useComponentVisibility = () => {
+export const useComponentVisibility = (): unknown => {
   const { isMobile, isTablet } = useResponsiveLayout();
 
   return {

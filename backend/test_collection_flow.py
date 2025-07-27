@@ -47,7 +47,9 @@ async def test_collection_flow():
         logger.info(
             f"✅ Validators registered: {len(init_result['validators_registered'])}"
         )
-        logger.info(f"✅ Handlers registered: {len(init_result['handlers_registered'])}")
+        logger.info(
+            f"✅ Handlers registered: {len(init_result['handlers_registered'])}"
+        )
 
         # Step 2: Verify Collection Flow is registered
         logger.info("\n2. Verifying Collection Flow registration...")

@@ -149,7 +149,9 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
         # Initialize state management components
         self._initialize_components()
 
-        logger.info(f"✅ Unified Assessment Flow initialized - Flow ID: {self._flow_id}")
+        logger.info(
+            f"✅ Unified Assessment Flow initialized - Flow ID: {self._flow_id}"
+        )
 
     @property
     def flow_id(self):

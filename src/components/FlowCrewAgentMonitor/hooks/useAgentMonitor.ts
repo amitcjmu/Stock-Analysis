@@ -12,7 +12,14 @@ import type {
 import type { transformCrewData } from '../utils/agentDataProcessor'
 import { createAllAvailableCrews, createCompleteFlowView } from '../utils/agentDataProcessor'
 
-export const useAgentMonitor = () => {
+export const useAgentMonitor = (): AgentMonitorState & {
+  fetchMonitoringData: () => Promise<void>;
+  updateState: (updates: Partial<AgentMonitorState>) => void;
+  setActiveTab: (tab: string) => void;
+  setSelectedFlow: (flowId: string | null) => void;
+  togglePhase2Monitor: () => void;
+  startFlow: (flowType: string) => Promise<void>;
+} => {
   const [state, setState] = useState<AgentMonitorState>({
     data: null,
     isLoading: true,

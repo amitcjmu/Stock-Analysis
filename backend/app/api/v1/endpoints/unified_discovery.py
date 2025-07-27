@@ -12,13 +12,14 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.services.flow_configs import initialize_all_flows
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -164,8 +165,9 @@ async def get_discovery_flow_status(
         )
 
         # ADR-012: Get child flow status directly from discovery_flows table
-        from app.models.discovery_flow import DiscoveryFlow
         from sqlalchemy import and_, select
+
+        from app.models.discovery_flow import DiscoveryFlow
 
         # Query discovery flow with tenant context
         stmt = select(DiscoveryFlow).where(
@@ -406,5 +408,7 @@ async def get_flow_data_cleansing(
 
         return result
     except Exception as e:
-        logger.error(f"❌ Failed to get data cleansing analysis for flow {flow_id}: {e}")
+        logger.error(
+            f"❌ Failed to get data cleansing analysis for flow {flow_id}: {e}"
+        )
         raise HTTPException(status_code=500, detail=str(e))

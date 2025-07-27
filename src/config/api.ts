@@ -25,7 +25,7 @@ let currentContext: AppContextType = {
 
 // Export a function to update the context
 // This will be called by the AppContextProvider when the context changes
-export const updateApiContext = (context: AppContextType) => {
+export const updateApiContext = (context: AppContextType): unknown => {
   currentContext = { ...context };
 };
 
@@ -92,7 +92,7 @@ const getBaseUrl = (): string => {
 };
 
 export const API_CONFIG = {
-  get BASE_URL() {
+  get BASE_URL(): JSX.Element {
     return getBaseUrl();
   },
   ENDPOINTS: {
@@ -378,7 +378,7 @@ export const apiCall = async (
   console.log('Current Context:', currentContext);
 
   // Create the request promise and store it
-  const requestPromise = (async () => {
+  const requestPromise = (async (): Promise<unknown> => {
     try {
       // Add headers - start with defaults, then merge user headers
       const headers: HeadersInit = {

@@ -164,7 +164,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
     setCrews(updatedCrews);
   }, [flowId, flowState]);
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string): JSX.Element => {
     const baseClasses = "px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1";
     switch (status) {
       case 'completed': return (
@@ -194,7 +194,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
     }
   };
 
-  const getOverallProgress = () => {
+  const getOverallProgress = (): unknown => {
     if (crews.length === 0) return 0;
     const totalProgress = crews.reduce((sum, crew) => sum + crew.progress, 0);
     return Math.round(totalProgress / crews.length);

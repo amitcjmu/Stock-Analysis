@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiCall } from '../../config/api';
 import { Filter, Route, BarChart3, Calendar, Download, ClipboardList, Edit, ArrowRight } from 'lucide-react'
 
-const AssessIndex = () => {
+const AssessIndex = (): JSX.Element => {
   const { getAuthHeaders } = useAuth();
 
   interface Metrics {

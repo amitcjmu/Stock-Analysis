@@ -52,7 +52,7 @@ export const ApplicationSelector: React.FC<ApplicationSelectorProps> = ({
     maxSelections
   });
 
-  const handleAnalysisStart = () => {
+  const handleAnalysisStart = (): void => {
     try {
       handleStartAnalysis(queueName);
       setQueueName('');

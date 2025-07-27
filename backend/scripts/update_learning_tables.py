@@ -10,8 +10,9 @@ import sys
 # Add the backend directory to the path
 sys.path.append("/app")
 
-from app.core.database import AsyncSessionLocal
 from sqlalchemy import text
+
+from app.core.database import AsyncSessionLocal
 
 
 async def update_learning_tables():

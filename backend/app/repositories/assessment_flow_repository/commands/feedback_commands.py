@@ -4,11 +4,12 @@ Feedback Commands - Learning feedback management
 
 import logging
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.assessment_flow import AssessmentLearningFeedback
 from app.models.assessment_flow_state import (
     AssessmentLearningFeedback as AssessmentLearningFeedbackState,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

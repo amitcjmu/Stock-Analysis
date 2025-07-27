@@ -4,7 +4,7 @@ import Sidebar from '../../components/Sidebar';
 import { Database, Server } from 'lucide-react'
 import { Trash2, AlertTriangle, CheckCircle, Clock, Pause, Play, Settings, Shield } from 'lucide-react'
 
-const DecommissionExecution = () => {
+const DecommissionExecution = (): JSX.Element => {
   const [selectedExecution, setSelectedExecution] = useState('all');
 
   const executionMetrics = [

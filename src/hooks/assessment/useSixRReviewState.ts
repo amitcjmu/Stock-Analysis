@@ -19,7 +19,7 @@ export const useSixRReviewState = ({
   selectedApplicationIds,
   sixrDecisions,
   updateSixRDecision
-}: UseSixRReviewStateProps) => {
+}: UseSixRReviewStateProps): JSX.Element => {
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [editingComponent, setEditingComponent] = useState<string | null>(null);
   const [bulkEditMode, setBulkEditMode] = useState(false);
@@ -36,12 +36,12 @@ export const useSixRReviewState = ({
   const currentAppDecision = selectedApp ? sixrDecisions[selectedApp] : null;
 
   // Helper functions for updating decisions and treatments
-  const updateAppDecision = (updates: Partial<SixRDecision>) => {
+  const updateAppDecision = (updates: Partial<SixRDecision>): void => {
     if (!selectedApp) return;
     updateSixRDecision(selectedApp, updates);
   };
 
-  const updateComponentTreatment = (componentName: string, treatment: Partial<ComponentTreatment>) => {
+  const updateComponentTreatment = (componentName: string, treatment: Partial<ComponentTreatment>): void => {
     if (!selectedApp || !currentAppDecision) return;
 
     const updatedTreatments = currentAppDecision.component_treatments.map(ct =>
@@ -55,7 +55,7 @@ export const useSixRReviewState = ({
   };
 
   // Reset selections when switching apps
-  const handleAppSelect = (appId: string) => {
+  const handleAppSelect = (appId: string): void => {
     setSelectedApp(appId);
     setEditingComponent(null);
     setBulkEditMode(false);
@@ -63,7 +63,7 @@ export const useSixRReviewState = ({
   };
 
   // Handle bulk component updates
-  const handleBulkComponentUpdate = (updates: Partial<ComponentTreatment>) => {
+  const handleBulkComponentUpdate = (updates: Partial<ComponentTreatment>): void => {
     selectedComponents.forEach(componentName => {
       updateComponentTreatment(componentName, updates);
     });

@@ -8,7 +8,7 @@ interface TechDebtSummaryCardsProps {
   onFilter: (filter: string, value: string) => void;
 }
 
-export function TechDebtSummaryCards({ summary, onFilter }: TechDebtSummaryCardsProps) {
+export function TechDebtSummaryCards({ summary, onFilter }: TechDebtSummaryCardsProps): React.ReactElement {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card className="border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-900/20">

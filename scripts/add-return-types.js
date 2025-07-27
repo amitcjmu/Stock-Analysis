@@ -1,6 +1,10 @@
-const fs = require('fs');
-const path = require('path');
-const glob = require('glob');
+import fs from 'fs';
+import path from 'path';
+import { glob } from 'glob';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configuration
 const config = {
@@ -190,7 +194,7 @@ function processFile(filePath) {
 }
 
 // Main function
-function main() {
+async function main() {
   console.log('🔧 Adding return types to TypeScript files...\n');
 
   if (config.dryRun) {
@@ -199,7 +203,7 @@ function main() {
 
   // Find all TypeScript files
   const pattern = `${config.srcDir}/**/*.{ts,tsx}`;
-  const files = glob.sync(pattern, {
+  const files = await glob(pattern, {
     ignore: [
       '**/node_modules/**',
       '**/*.test.{ts,tsx}',
@@ -234,4 +238,4 @@ function main() {
 }
 
 // Run the script
-main();
+main().catch(console.error);

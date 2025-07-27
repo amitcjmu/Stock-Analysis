@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { dashboardService } from '../services/dashboardService';
 import type { DashboardState } from '../types';
 
-export const useDashboard = () => {
+export const useDashboard = (): JSX.Element => {
   const { user, client, engagement } = useAuth();
 
   const [state, setState] = useState<DashboardState>({

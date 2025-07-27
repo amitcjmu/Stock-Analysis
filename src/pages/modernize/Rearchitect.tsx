@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const Rearchitect = () => {
+const Rearchitect = (): JSX.Element => {
   const [activeTab, setActiveTab] = useState('design');
   const { data, isLoading, isError, error } = useRearchitect();
 

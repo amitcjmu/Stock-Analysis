@@ -23,12 +23,15 @@ class AssetSchemaAnalysisTool(BaseTool):
     """Tool to analyze the Asset model schema"""
 
     name: str = "asset_schema_analyzer"
-    description: str = "Analyzes the complete Asset model schema to understand all available fields and their types"
+    description: str = (
+        "Analyzes the complete Asset model schema to understand all available fields and their types"
+    )
 
     def _run(self) -> str:
         """Return complete Asset model schema"""
-        from app.models.asset import Asset
         from sqlalchemy import inspect
+
+        from app.models.asset import Asset
 
         mapper = inspect(Asset)
         schema_info = []
@@ -314,9 +317,9 @@ class FieldMappingCrew:
                 logger.info(
                     f"⚠️ Limiting field mapping to first 10 fields out of {len(headers)} to prevent rate limits"
                 )
-                sample_values[
-                    "...more_fields"
-                ] = f"({len(headers) - 10} additional fields not shown)"
+                sample_values["...more_fields"] = (
+                    f"({len(headers) - 10} additional fields not shown)"
+                )
 
         # Task 1: Analyze Data Patterns (OPTIMIZED for rate limits)
         data_analysis_task = Task(

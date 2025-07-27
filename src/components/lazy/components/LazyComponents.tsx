@@ -16,7 +16,7 @@ const createLazyComponent = <P extends Record<string, unknown> = Record<string, 
 ) => {
   const LazyComponent = lazy(importFn);
 
-  const getFallback = () => {
+  const getFallback = (): JSX.Element => {
     switch (fallbackType) {
       case 'skeleton':
         return <SkeletonFallback type="card" />;

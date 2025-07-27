@@ -25,10 +25,11 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models import ClientAccount, Engagement, User, UserAccountAssociation, UserRole
 from app.models.rbac import RoleType, UserProfile, UserStatus
-from sqlalchemy import select
 
 
 def get_password_hash(password: str) -> str:
@@ -314,7 +315,9 @@ async def create_minimal_demo_data():
             )
             session.add(association)
 
-            print(f"   ✅ Created demo user: {user_data['email']} ({user_data['role']})")
+            print(
+                f"   ✅ Created demo user: {user_data['email']} ({user_data['role']})"
+            )
 
         await session.commit()
         print("\n✅ Demo data created")

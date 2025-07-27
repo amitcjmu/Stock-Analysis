@@ -7,11 +7,12 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
+
 from app.api.v1.dependencies import get_crewai_flow_service
 from app.services.agent_learning_system import LearningContext, agent_learning_system
 from app.services.agent_ui_bridge import agent_ui_bridge
 from app.services.crewai_flow_service import CrewAIFlowService
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
 
 # Try to import client context manager
 try:

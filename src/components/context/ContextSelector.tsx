@@ -114,20 +114,20 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
   }, [currentClient, currentEngagement, currentSession, viewMode]);
 
   // Staging handlers
-  const handleStagedClientChange = (clientId: string) => {
+  const handleStagedClientChange = (clientId: string): void => {
     const selectedClient = clients.find(c => c.id === clientId);
     setStagedClient(selectedClient || null);
     setStagedEngagement(null);
     setStagedSession(null);
   };
 
-  const handleStagedEngagementChange = (engagementId: string) => {
+  const handleStagedEngagementChange = (engagementId: string): void => {
     const selectedEngagement = engagements.find(e => e.id === engagementId);
     setStagedEngagement(selectedEngagement || null);
     setStagedSession(null);
   };
 
-  const handleStagedSessionChange = (sessionId: string) => {
+  const handleStagedSessionChange = (sessionId: string): void => {
     if (sessionId === 'no-session') {
       setStagedSession(null);
       setStagedViewMode('engagement_view');
@@ -140,12 +140,12 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
     }
   };
 
-  const handleStagedViewModeChange = (mode: 'session_view' | 'engagement_view') => {
+  const handleStagedViewModeChange = (mode: 'session_view' | 'engagement_view'): void => {
     setStagedViewMode(mode);
   };
 
   // Confirm the staged selections and apply to global context
-  const handleConfirmSelection = async () => {
+  const handleConfirmSelection = async (): void => {
     try {
       // Switch client first and wait for completion
       if (stagedClient && stagedClient.id !== auth.client?.id) {
@@ -198,7 +198,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
   };
 
   // Cancel staged selections and revert to current context
-  const handleCancelSelection = () => {
+  const handleCancelSelection = (): void => {
     setStagedClient(currentClient);
     setStagedEngagement(currentEngagement);
     setStagedSession(currentSession);
@@ -207,7 +207,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
   };
 
   // Check if there are changes to confirm
-  const hasChanges = () => {
+  const hasChanges = (): unknown => {
     return (
       stagedClient?.id !== currentClient?.id ||
       stagedEngagement?.id !== currentEngagement?.id ||
@@ -216,7 +216,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
     );
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = (): void => {
     queryClient.invalidateQueries({ queryKey: ['clients'] });
     if (stagedClient?.id) {
       queryClient.invalidateQueries({ queryKey: ['engagements', stagedClient.id] });
@@ -230,7 +230,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
     });
   };
 
-  const handleReset = () => {
+  const handleReset = (): void => {
     setCurrentClient(null);
     setCurrentEngagement(null);
     setCurrentSession(null);

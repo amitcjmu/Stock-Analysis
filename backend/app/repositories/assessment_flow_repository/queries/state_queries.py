@@ -6,6 +6,9 @@ import logging
 import uuid
 from typing import Any, Dict, List
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.assessment_flow import (
     ApplicationArchitectureOverride,
     ApplicationComponent,
@@ -22,17 +25,13 @@ from app.models.assessment_flow_state import (
 )
 from app.models.assessment_flow_state import (
     ArchitectureRequirement,
+    SixRStrategy,
+    TechDebtItem,
 )
 from app.models.assessment_flow_state import (
     ComponentTreatment as ComponentTreatmentState,
 )
 from app.models.assessment_flow_state import SixRDecision as SixRDecisionState
-from app.models.assessment_flow_state import (
-    SixRStrategy,
-    TechDebtItem,
-)
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

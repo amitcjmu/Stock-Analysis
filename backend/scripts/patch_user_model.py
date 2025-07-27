@@ -12,15 +12,16 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 # Set database URL - use Docker network hostname
-os.environ[
-    "DATABASE_URL"
-] = "postgresql+asyncpg://postgres:postgres@postgres:5432/migration_db"
+os.environ["DATABASE_URL"] = (
+    "postgresql+asyncpg://postgres:postgres@postgres:5432/migration_db"
+)
 
 
 async def add_is_admin_column():
     """Add is_admin column to users table"""
     try:
         from sqlalchemy import text
+
         from app.core.database import AsyncSessionLocal
 
         async with AsyncSessionLocal() as db:

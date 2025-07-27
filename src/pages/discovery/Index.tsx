@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import type Sidebar from '../../components/Sidebar';
 import { Database, Server, HardDrive, Activity, ArrowRight, Sparkles, BarChart3, LayoutDashboard, Settings } from 'lucide-react';
 
-const DiscoveryIndex = () => {
+const DiscoveryIndex = (): JSX.Element => {
   const navigate = useNavigate();
 
   useEffect(() => {

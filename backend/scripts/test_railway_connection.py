@@ -97,7 +97,9 @@ async def test_database_connection(db_url: str, label: str):
                 if missing:
                     logger.error(f"❌ {label} missing key columns: {missing}")
                 else:
-                    logger.info(f"✅ {label} has all key unified discovery flow columns")
+                    logger.info(
+                        f"✅ {label} has all key unified discovery flow columns"
+                    )
 
             except Exception as e:
                 logger.error(f"❌ {label} table check error: {e}")

@@ -47,9 +47,9 @@ def check_environment():
     # Check if Vercel domain is included
     vercel_domain = "https://aiforce-assess.vercel.app"
     if vercel_domain in cors_origins:
-        print(f"\n✅ Vercel domain IS included in CORS origins")
+        print("\n✅ Vercel domain IS included in CORS origins")
     else:
-        print(f"\n❌ Vercel domain NOT included in CORS origins")
+        print("\n❌ Vercel domain NOT included in CORS origins")
 
     print("\n" + "=" * 50)
 

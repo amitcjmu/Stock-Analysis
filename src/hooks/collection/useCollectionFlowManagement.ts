@@ -75,7 +75,7 @@ export interface FlowContinueResult {
 }
 
 // Hook for detecting incomplete collection flows
-export const useIncompleteCollectionFlows = (enabled: boolean = true) => {
+export const useIncompleteCollectionFlows = (enabled: boolean = true): JSX.Element => {
   console.log('🔍 useIncompleteCollectionFlows hook called with enabled:', enabled);
 
   const queryResult = useQuery({
@@ -144,7 +144,7 @@ export const useIncompleteCollectionFlows = (enabled: boolean = true) => {
   return queryResult;
 };
 
-export const useCollectionFlowManagement = () => {
+export const useCollectionFlowManagement = (): unknown => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isOperationPending, setIsOperationPending] = useState(false);
@@ -256,19 +256,19 @@ export const useCollectionFlowManagement = () => {
   });
 
   // Helper functions
-  const continueFlow = async (flowId: string, resumeContext?: ResumeContext) => {
+  const continueFlow = async (flowId: string, resumeContext?: ResumeContext) =>  {
     return continueFlowMutation.mutateAsync({ flowId, resumeContext });
   };
 
-  const deleteFlow = async (flowId: string, force: boolean = false) => {
+  const deleteFlow = async (flowId: string, force: boolean = false) =>  {
     return deleteFlowMutation.mutateAsync({ flowId, force });
   };
 
-  const batchDeleteFlows = async (flowIds: string[], force: boolean = false) => {
+  const batchDeleteFlows = async (flowIds: string[], force: boolean = false) =>  {
     return batchDeleteMutation.mutateAsync({ flowIds, force });
   };
 
-  const cleanupFlows = async (options: CleanupOptions) => {
+  const cleanupFlows = async (options: CleanupOptions) =>  {
     return cleanupFlowsMutation.mutateAsync(options);
   };
 
@@ -294,7 +294,7 @@ export const useCollectionFlowManagement = () => {
   };
 };
 
-export const useCollectionFlowStatus = (flowId?: string, enabled: boolean = true) => {
+export const useCollectionFlowStatus = (flowId?: string, enabled: boolean = true): unknown => {
   return useQuery({
     queryKey: ['collection-flows', 'status', flowId],
     queryFn: () => collectionFlowApi.getFlowStatus(),
@@ -317,7 +317,7 @@ export const useCollectionFlowStatus = (flowId?: string, enabled: boolean = true
   });
 };
 
-export const useCollectionFlowDetails = (flowId: string, enabled: boolean = true) => {
+export const useCollectionFlowDetails = (flowId: string, enabled: boolean = true): unknown => {
   return useQuery({
     queryKey: ['collection-flows', 'details', flowId],
     queryFn: () => collectionFlowApi.getFlowDetails(flowId),
@@ -326,7 +326,7 @@ export const useCollectionFlowDetails = (flowId: string, enabled: boolean = true
   });
 };
 
-export const useCollectionFlowGaps = (flowId: string, enabled: boolean = true) => {
+export const useCollectionFlowGaps = (flowId: string, enabled: boolean = true): unknown => {
   return useQuery({
     queryKey: ['collection-flows', 'gaps', flowId],
     queryFn: () => collectionFlowApi.getFlowGaps(flowId),
@@ -335,7 +335,7 @@ export const useCollectionFlowGaps = (flowId: string, enabled: boolean = true) =
   });
 };
 
-export const useCollectionFlowQuestionnaires = (flowId: string, enabled: boolean = true) => {
+export const useCollectionFlowQuestionnaires = (flowId: string, enabled: boolean = true): unknown => {
   return useQuery({
     queryKey: ['collection-flows', 'questionnaires', flowId],
     queryFn: () => collectionFlowApi.getFlowQuestionnaires(flowId),

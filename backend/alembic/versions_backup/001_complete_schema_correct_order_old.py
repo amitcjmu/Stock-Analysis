@@ -12,8 +12,9 @@ Tables are created in dependency order to avoid foreign key constraint errors.
 import uuid
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "001_complete_schema_correct_order"

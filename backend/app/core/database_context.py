@@ -5,9 +5,10 @@ Context-aware database session management
 import logging
 from contextlib import asynccontextmanager
 
+from sqlalchemy import text
+
 from app.core.context import get_current_context
 from app.core.database import AsyncSessionLocal
-from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 

@@ -97,7 +97,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
   });
 
   // 🔄 Refresh function that clears both React Query and SQLAlchemy caches
-  const handleRefresh = async () => {
+  const handleRefresh = async (): void => {
     setIsRefreshing(true);
     try {
       // 1. Clear React Query cache for imported data with context
@@ -204,7 +204,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
 
   const allColumns = importData.length > 0 ? Object.keys(importData[0].raw_data) : [];
 
-  const toggleColumn = (column: string) => {
+  const toggleColumn = (column: string): unknown => {
     setSelectedColumns(prev =>
       prev.includes(column)
         ? prev.filter(col => col !== column)
@@ -212,7 +212,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
     );
   };
 
-  const exportData = () => {
+  const exportData = (): void => {
     if (filteredData.length === 0) return;
 
     const csvContent = [

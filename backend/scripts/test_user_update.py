@@ -12,18 +12,20 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 # Set database URL - use Docker network hostname
-os.environ[
-    "DATABASE_URL"
-] = "postgresql+asyncpg://postgres:postgres@postgres:5432/migration_db"
+os.environ["DATABASE_URL"] = (
+    "postgresql+asyncpg://postgres:postgres@postgres:5432/migration_db"
+)
 
 
 async def test_user_update():
     """Test user update functionality"""
     try:
+        import uuid
+
         from sqlalchemy import select
+
         from app.core.database import AsyncSessionLocal
         from app.models import User
-        import uuid
 
         async with AsyncSessionLocal() as db:
             # Get a user to test with

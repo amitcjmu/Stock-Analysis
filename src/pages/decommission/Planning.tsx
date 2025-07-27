@@ -4,7 +4,7 @@ import Sidebar from '../../components/Sidebar';
 import { Filter, AlertTriangle, Users } from 'lucide-react'
 import { FileText, Search, Download, CheckCircle, Clock } from 'lucide-react'
 
-const DecommissionPlanning = () => {
+const DecommissionPlanning = (): JSX.Element => {
   const [selectedFilter, setSelectedFilter] = useState('all');
 
   const planningMetrics = [

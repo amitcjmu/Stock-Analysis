@@ -67,7 +67,7 @@ const getErrorType = (error: ErrorInfo): 'network' | 'server' | 'client' | 'unkn
   return 'unknown';
 };
 
-const getErrorIcon = (type: string) => {
+const getErrorIcon = (type: string): JSX.Element => {
   switch (type) {
     case 'network': return <Wifi className="h-5 w-5" />;
     case 'server': return <Server className="h-5 w-5" />;
@@ -76,7 +76,7 @@ const getErrorIcon = (type: string) => {
   }
 };
 
-const getErrorColor = (type: string) => {
+const getErrorColor = (type: string): unknown => {
   switch (type) {
     case 'network': return 'text-orange-600 bg-orange-50 border-orange-200';
     case 'server': return 'text-red-600 bg-red-50 border-red-200';
@@ -149,7 +149,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     const enhancedError: ErrorInfo = {
       message: error.message,
       details: {
@@ -174,7 +174,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     }
   }
 
-  componentWillUnmount() {
+  componentWillUnmount(): unknown {
     if (this.retryTimeoutId) {
       clearTimeout(this.retryTimeoutId);
     }
@@ -267,7 +267,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     }));
   };
 
-  render() {
+  render(): unknown {
     if (this.state.hasError && this.state.error) {
       if (this.props.fallback) {
         return this.props.fallback;

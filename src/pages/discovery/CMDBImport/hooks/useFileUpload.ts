@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiCall } from '@/config/api';
 import type { UploadFile } from '../CMDBImport.types';
 
-export const useFileUpload = () => {
+export const useFileUpload = (): JSX.Element => {
   const { toast } = useToast();
   const { user, client, engagement, getAuthHeaders } = useAuth();
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);

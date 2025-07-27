@@ -41,7 +41,7 @@ export interface ResourceData {
   }>;
 }
 
-export const useResource = () => {
+export const useResource = (): JSX.Element => {
   const { isAuthenticated, client, engagement } = useAuth();
 
   return useQuery<ResourceData>({

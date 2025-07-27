@@ -9,10 +9,11 @@ import random
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from app.models import Assessment, Asset, AssetDependency, DataImport, DiscoveryFlow
-from app.models.asset import AssetStatus, AssetType, MigrationWave
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models import Assessment, Asset, AssetDependency, DataImport, DiscoveryFlow
+from app.models.asset import AssetStatus, AssetType, MigrationWave
 
 logger = logging.getLogger(__name__)
 
@@ -406,8 +407,7 @@ async def auto_seed_demo_data(db: AsyncSession) -> bool:
 
 # For testing
 if __name__ == "__main__":
-    import asyncio
-
+    # asyncio already imported at the top of the file
     from app.core.database import AsyncSessionLocal
 
     async def main():

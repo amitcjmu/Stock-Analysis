@@ -51,7 +51,7 @@ interface ReactionParams {
   reaction: string;
 }
 
-export const useChat = () => {
+export const useChat = (): JSX.Element => {
   const queryClient = useQueryClient();
   const [error, setError] = useState<Error | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);

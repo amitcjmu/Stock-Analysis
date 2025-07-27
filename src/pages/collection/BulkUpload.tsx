@@ -141,7 +141,7 @@ const BulkUpload: React.FC = () => {
     }
   ];
 
-  const handleBulkUpload = async (file: File) => {
+  const handleBulkUpload = async (file: File): JSX.Element => {
     setIsProcessing(true);
     setUploadProgress(0);
 
@@ -209,7 +209,7 @@ const BulkUpload: React.FC = () => {
     }
   };
 
-  const handleDataChange = (applicationId: string, fieldId: string, value: unknown) => {
+  const handleDataChange = (applicationId: string, fieldId: string, value: unknown): void => {
     setApplications(prev => prev.map(app =>
       app.id === applicationId
         ? { ...app, [fieldId]: value }
@@ -217,7 +217,7 @@ const BulkUpload: React.FC = () => {
     ));
   };
 
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = (): void => {
     // Create a mock CSV template
     const headers = bulkFields.map(field => field.label).join(',');
     const sampleRow = bulkFields.map(field => {

@@ -6,15 +6,16 @@ Implements intelligent rate limiting that adapts to user behavior.
 import logging
 from typing import Optional
 
+from fastapi import Request, status
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
+
 from app.middleware.adaptive_rate_limiter import (
     AdaptiveRateLimiter,
     get_adaptive_rate_limiter,
 )
 from app.services.auth_services.jwt_service import JWTService
-from fastapi import Request, status
-from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
 
 logger = logging.getLogger(__name__)
 
