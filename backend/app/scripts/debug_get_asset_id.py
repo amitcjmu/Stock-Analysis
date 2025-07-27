@@ -12,7 +12,9 @@ sys.path.append("/app")
 # Get the database URL directly from the environment variable the container uses
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
-    print("❌ FATAL: DATABASE_URL environment variable is not set inside the container.")
+    print(
+        "❌ FATAL: DATABASE_URL environment variable is not set inside the container."
+    )
     sys.exit(1)
 
 # Ensure the URL is in the asyncpg format required by asyncio

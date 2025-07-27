@@ -571,9 +571,9 @@ async def delete_master_flow(
         # Mark master flow as cancelled (soft delete)
         master_flow.flow_status = "cancelled"
         master_flow.flow_persistence_data = master_flow.flow_persistence_data or {}
-        master_flow.flow_persistence_data[
-            "deletion_timestamp"
-        ] = datetime.utcnow().isoformat()
+        master_flow.flow_persistence_data["deletion_timestamp"] = (
+            datetime.utcnow().isoformat()
+        )
         master_flow.flow_persistence_data["deleted_by"] = current_user.get("user_id")
 
         # Create comprehensive audit record

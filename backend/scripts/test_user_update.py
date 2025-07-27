@@ -12,9 +12,9 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 # Set database URL - use Docker network hostname
-os.environ[
-    "DATABASE_URL"
-] = "postgresql+asyncpg://postgres:postgres@postgres:5432/migration_db"
+os.environ["DATABASE_URL"] = (
+    "postgresql+asyncpg://postgres:postgres@postgres:5432/migration_db"
+)
 
 
 async def test_user_update():

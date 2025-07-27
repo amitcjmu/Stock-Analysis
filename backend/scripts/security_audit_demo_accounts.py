@@ -180,7 +180,9 @@ def generate_recommendations(violations: List[Dict], warnings: List[Dict]) -> Li
         recommendations.append(
             "🚨 IMMEDIATE ACTION: Disable all unauthorized demo accounts"
         )
-        recommendations.append("🔒 SECURITY: Remove admin privileges from demo accounts")
+        recommendations.append(
+            "🔒 SECURITY: Remove admin privileges from demo accounts"
+        )
         recommendations.append(
             "📋 AUDIT: Investigate how unauthorized accounts were created"
         )

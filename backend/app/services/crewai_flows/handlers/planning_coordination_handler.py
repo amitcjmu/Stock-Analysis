@@ -105,11 +105,11 @@ class PlanningCoordinationHandler:
             # Determine optimal coordination strategy
             if complexity_analysis["enables_parallel_execution"]:
                 coordination_plan["coordination_strategy"] = "adaptive"
-                coordination_plan[
-                    "parallel_opportunities"
-                ] = self.planning_coordination["coordination_metrics"][
-                    "parallel_opportunities"
-                ]
+                coordination_plan["parallel_opportunities"] = (
+                    self.planning_coordination["coordination_metrics"][
+                        "parallel_opportunities"
+                    ]
+                )
 
             # Build execution order based on dependency graph
             dependency_graph = self.planning_coordination["coordination_metrics"][
@@ -123,9 +123,9 @@ class PlanningCoordinationHandler:
             coordination_plan["resource_allocation"] = resource_allocation
 
             # Estimate total duration
-            coordination_plan[
-                "estimated_duration"
-            ] = self._estimate_coordination_duration(coordination_plan)
+            coordination_plan["estimated_duration"] = (
+                self._estimate_coordination_duration(coordination_plan)
+            )
 
             logger.info(
                 f"🎯 Crew planning coordination completed - Strategy: {coordination_plan['coordination_strategy']}"
@@ -151,23 +151,17 @@ class PlanningCoordinationHandler:
                     "data_size": (
                         "small"
                         if data_size < 1000
-                        else "medium"
-                        if data_size < 10000
-                        else "large"
+                        else "medium" if data_size < 10000 else "large"
                     ),
                     "field_complexity": (
                         "simple"
                         if field_count < 10
-                        else "moderate"
-                        if field_count < 50
-                        else "complex"
+                        else "moderate" if field_count < 50 else "complex"
                     ),
                     "data_quality": (
                         "high"
                         if data_quality > 0.8
-                        else "medium"
-                        if data_quality > 0.5
-                        else "low"
+                        else "medium" if data_quality > 0.5 else "low"
                     ),
                 },
                 "recommended_strategies": [],
@@ -496,9 +490,9 @@ class PlanningCoordinationHandler:
                     and overall_performance < config["threshold"]
                 ):
                     adaptation_result["adapted"] = True
-                    adaptation_result[
-                        "adaptation_reason"
-                    ] = "Performance below threshold"
+                    adaptation_result["adaptation_reason"] = (
+                        "Performance below threshold"
+                    )
                     adaptation_result["new_strategy"] = "hybrid"
                     adaptation_result["optimization_actions"].append(
                         "Enhanced validation enabled"
@@ -606,9 +600,9 @@ class PlanningCoordinationHandler:
             intelligence_result["recommendations"] = ai_recommendations
 
             # Calculate overall confidence
-            intelligence_result[
-                "confidence_score"
-            ] = self._calculate_intelligence_confidence(intelligence_result)
+            intelligence_result["confidence_score"] = (
+                self._calculate_intelligence_confidence(intelligence_result)
+            )
 
             logger.info(
                 f"🧠 Planning intelligence applied - Confidence: {intelligence_result['confidence_score']:.2f}"
@@ -889,11 +883,11 @@ class PlanningCoordinationHandler:
                 ):
                     optimization_result["optimized"] = True
                     if resource in self.resource_allocation["allocation_strategies"]:
-                        optimization_result["recommended_allocation"][
-                            resource
-                        ] = self.resource_allocation["allocation_strategies"][resource][
-                            "strategy"
-                        ]
+                        optimization_result["recommended_allocation"][resource] = (
+                            self.resource_allocation["allocation_strategies"][resource][
+                                "strategy"
+                            ]
+                        )
 
             # Calculate performance impact
             if optimization_result["recommended_allocation"]:

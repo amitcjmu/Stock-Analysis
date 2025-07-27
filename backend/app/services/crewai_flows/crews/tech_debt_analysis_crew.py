@@ -724,9 +724,7 @@ class TechDebtAnalysisCrew:
             "analysis_quality": (
                 "high"
                 if avg_confidence > 0.8
-                else "medium"
-                if avg_confidence > 0.6
-                else "low"
+                else "medium" if avg_confidence > 0.6 else "low"
             ),
             "recommendations": [
                 f"Portfolio requires ${total_investment:,} investment with ${total_benefits:,} expected benefits",

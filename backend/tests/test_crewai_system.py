@@ -291,7 +291,9 @@ class TestCrewAISystem:
 
         strategy_result = await self.service.analyze_asset_6r_strategy(asset_data)
         assert "recommended_strategy" in strategy_result
-        print(f"   ✅ 6R Strategy: {strategy_result.get('recommended_strategy', 'N/A')}")
+        print(
+            f"   ✅ 6R Strategy: {strategy_result.get('recommended_strategy', 'N/A')}"
+        )
 
         return True
 

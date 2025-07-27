@@ -313,9 +313,9 @@ class BusinessValueAgent:
             if reasoning_match:
                 result["reasoning"] = reasoning_match.group(1).strip()
             else:
-                result[
-                    "reasoning"
-                ] = "Business value determined through agentic analysis"
+                result["reasoning"] = (
+                    "Business value determined through agentic analysis"
+                )
 
             # Extract recommendations
             recommendations_match = re.search(
@@ -348,9 +348,7 @@ class BusinessValueAgent:
             "confidence_level": (
                 "high"
                 if reasoning.confidence >= 0.7
-                else "medium"
-                if reasoning.confidence >= 0.4
-                else "low"
+                else "medium" if reasoning.confidence >= 0.4 else "low"
             ),
             "reasoning": reasoning.reasoning_summary,
             "evidence_count": len(reasoning.evidence_pieces),

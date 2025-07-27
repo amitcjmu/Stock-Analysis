@@ -315,7 +315,9 @@ async def create_minimal_demo_data():
             )
             session.add(association)
 
-            print(f"   ✅ Created demo user: {user_data['email']} ({user_data['role']})")
+            print(
+                f"   ✅ Created demo user: {user_data['email']} ({user_data['role']})"
+            )
 
         await session.commit()
         print("\n✅ Demo data created")

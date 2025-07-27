@@ -168,7 +168,9 @@ class ImportStorageHandler:
 
                     if flow_id:
                         flow_success = True
-                        logger.info(f"✅ Discovery flow created successfully: {flow_id}")
+                        logger.info(
+                            f"✅ Discovery flow created successfully: {flow_id}"
+                        )
                     else:
                         flow_error_message = "Discovery Flow initialization failed"
                         logger.error(

@@ -48,7 +48,7 @@ async def main():
 
 if __name__ == "__main__":
     # Set the DATABASE_URL
-    os.environ[
-        "DATABASE_URL"
-    ] = "postgresql+asyncpg://postgres:postgres@localhost:5433/migration_db"
+    os.environ["DATABASE_URL"] = (
+        "postgresql+asyncpg://postgres:postgres@localhost:5433/migration_db"
+    )
     asyncio.run(main())

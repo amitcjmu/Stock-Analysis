@@ -230,10 +230,10 @@ class AssessmentManager:
 
             # Add recommendations if requested
             if include_recommendations:
-                assessment_package[
-                    "recommendations"
-                ] = await self._generate_recommendations(
-                    risk_assessment, complexity_assessment, assets_result
+                assessment_package["recommendations"] = (
+                    await self._generate_recommendations(
+                        risk_assessment, complexity_assessment, assets_result
+                    )
                 )
 
             logger.info(f"✅ Assessment package generated for {discovery_flow_id}")

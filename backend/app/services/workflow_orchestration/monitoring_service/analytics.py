@@ -72,9 +72,9 @@ class AnalyticsEngine:
 
             # Add predictive analytics if requested
             if include_predictions:
-                analytics[
-                    "predictive_analytics"
-                ] = await self._generate_predictive_analytics(analytics=analytics)
+                analytics["predictive_analytics"] = (
+                    await self._generate_predictive_analytics(analytics=analytics)
+                )
 
             return analytics
 

@@ -556,9 +556,9 @@ class TestMultiSprintAgentLearning:
             }
 
             agent_ui_bridge._store_learning_experience(learning_context)
-            self.field_mappings_learned[
-                f"{data_source}_{original_field}"
-            ] = corrected_field
+            self.field_mappings_learned[f"{data_source}_{original_field}"] = (
+                corrected_field
+            )
 
     async def _test_learned_pattern_application(self) -> Dict[str, Any]:
         """Test application of learned patterns to new data."""

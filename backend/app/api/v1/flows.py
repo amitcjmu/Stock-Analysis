@@ -243,8 +243,8 @@ async def list_flows(
     try:
         # Get flows filtered by type
         flows = await orchestrator.get_active_flows(
-            flow_type=flow_type, limit=100  # Get more flows for filtering
-        )
+            flow_type=flow_type, limit=100
+        )  # Get more flows for filtering
 
         # Filter by status if provided
         if status_filter:

@@ -78,10 +78,10 @@ class EffortEstimatorTool(AsyncBaseDiscoveryTool):
                 estimation_results["total_effort_hours"] += total_gap_effort
 
             # Calculate resource allocation
-            estimation_results[
-                "resource_allocation"
-            ] = self._calculate_resource_allocation(
-                gaps, resources, estimation_results["total_effort_hours"]
+            estimation_results["resource_allocation"] = (
+                self._calculate_resource_allocation(
+                    gaps, resources, estimation_results["total_effort_hours"]
+                )
             )
 
             # Estimate timeline
@@ -90,9 +90,9 @@ class EffortEstimatorTool(AsyncBaseDiscoveryTool):
             )
 
             # Identify optimization opportunities
-            estimation_results[
-                "optimization_opportunities"
-            ] = self._identify_optimizations(gaps)
+            estimation_results["optimization_opportunities"] = (
+                self._identify_optimizations(gaps)
+            )
 
             self.log_with_context(
                 "info",

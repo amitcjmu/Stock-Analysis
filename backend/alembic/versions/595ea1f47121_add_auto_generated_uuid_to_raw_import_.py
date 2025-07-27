@@ -5,6 +5,7 @@ Revises: 019_implement_row_level_security
 Create Date: 2025-07-26 01:30:36.687327
 
 """
+
 from alembic import op
 
 # revision identifiers, used by Alembic.

@@ -43,7 +43,8 @@ except ImportError:
     DISCOVERY_INTEGRATION_AVAILABLE = False
 
 try:
-    from app.services.crewai_flows.unified_assessment_flow import UnifiedAssessmentFlow
+    # UnifiedAssessmentFlow import removed - currently not used (see lines 858, 880)
+    # from app.services.crewai_flows.unified_assessment_flow import UnifiedAssessmentFlow
 
     ASSESSMENT_FLOW_SERVICE_AVAILABLE = True
 except ImportError:

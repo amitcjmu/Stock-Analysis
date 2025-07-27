@@ -155,14 +155,14 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
                 prioritization_result["priority_distribution"][priority_key] += 1
 
             # Generate collection strategy
-            prioritization_result[
-                "collection_strategy"
-            ] = self._generate_collection_strategy(scored_gaps, context)
+            prioritization_result["collection_strategy"] = (
+                self._generate_collection_strategy(scored_gaps, context)
+            )
 
             # Calculate resource requirements
-            prioritization_result[
-                "resource_requirements"
-            ] = self._calculate_resource_requirements(scored_gaps)
+            prioritization_result["resource_requirements"] = (
+                self._calculate_resource_requirements(scored_gaps)
+            )
 
             return prioritization_result
 

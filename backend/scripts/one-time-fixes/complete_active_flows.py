@@ -115,7 +115,9 @@ if __name__ == "__main__":
         success = await verify_no_active_flows()
 
         if success:
-            logger.info("🎉 Success! All flows completed. Frontend should stop polling.")
+            logger.info(
+                "🎉 Success! All flows completed. Frontend should stop polling."
+            )
         else:
             logger.error("❌ Some flows may still be active. Check the logs above.")
 

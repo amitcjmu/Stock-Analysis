@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 
 class MappingConfidenceTool(BaseTool):
     name: str = "mapping_confidence_tool"
-    description: str = "Analyzes field mappings and provides confidence scores based on pattern matching and semantic analysis"
+    description: str = (
+        "Analyzes field mappings and provides confidence scores based on pattern matching and semantic analysis"
+    )
 
     def _run(self, field_mappings: str) -> str:
         """

@@ -492,9 +492,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                     self.state.asset_inventory["created_asset_ids"] = asset_ids
                     self.state.asset_inventory["total_assets"] = len(created_assets)
                     self.state.asset_inventory["status"] = "completed"
-                    self.state.asset_inventory[
-                        "created_at"
-                    ] = datetime.utcnow().isoformat()
+                    self.state.asset_inventory["created_at"] = (
+                        datetime.utcnow().isoformat()
+                    )
                     logger.info(
                         f"✅ Updated asset_inventory: {self.state.asset_inventory}"
                     )

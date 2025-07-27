@@ -12,9 +12,9 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 import os
 
-os.environ[
-    "DATABASE_URL"
-] = "postgresql://postgres:password@localhost:5432/migration_db"
+os.environ["DATABASE_URL"] = (
+    "postgresql://postgres:password@localhost:5432/migration_db"
+)
 
 
 async def grant_admin_access(email: str):

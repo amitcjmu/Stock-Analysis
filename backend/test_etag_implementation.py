@@ -40,7 +40,9 @@ async def test_flow_status_etag(flow_id: str):
         )
 
         if response1.status_code == 200:
-            logger.info(f"✅ First request successful - Status: {response1.status_code}")
+            logger.info(
+                f"✅ First request successful - Status: {response1.status_code}"
+            )
             logger.info(f"   ETag: {response1.headers.get('ETag', 'Not present')}")
             logger.info(
                 f"   Cache-Control: {response1.headers.get('Cache-Control', 'Not present')}"
@@ -89,7 +91,9 @@ async def test_active_flows_etag():
         )
 
         if response1.status_code == 200:
-            logger.info(f"✅ First request successful - Status: {response1.status_code}")
+            logger.info(
+                f"✅ First request successful - Status: {response1.status_code}"
+            )
             logger.info(f"   ETag: {response1.headers.get('ETag', 'Not present')}")
             logger.info(
                 f"   X-Flow-Count: {response1.headers.get('X-Flow-Count', 'Not present')}"
@@ -129,7 +133,9 @@ async def test_processing_status_etag(flow_id: str):
         )
 
         if response1.status_code == 200:
-            logger.info(f"✅ First request successful - Status: {response1.status_code}")
+            logger.info(
+                f"✅ First request successful - Status: {response1.status_code}"
+            )
             logger.info(f"   ETag: {response1.headers.get('ETag', 'Not present')}")
 
             etag = response1.headers.get("ETag")

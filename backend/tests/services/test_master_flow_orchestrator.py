@@ -369,8 +369,8 @@ class TestMasterFlowOrchestrator:
             orchestrator.error_handler, "handle_error"
         ) as mock_error_handler:
             mock_error_handler.return_value = AsyncMock(
-                should_retry=True, retry_delay=0.01  # Short delay for testing
-            )
+                should_retry=True, retry_delay=0.01
+            )  # Short delay for testing
 
             # Act
             flow_id, flow_details = await orchestrator.create_flow(

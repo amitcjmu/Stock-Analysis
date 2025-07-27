@@ -161,12 +161,12 @@ class ClientAccountUpdate(BaseModel):
     agent_preferences: Optional[Dict[str, Any]] = None
 
     # Migration Context Updates - Accept strings to match frontend
-    target_cloud_providers: Optional[
-        List[str]
-    ] = None  # Changed from CloudProviderEnum to str
-    business_priorities: Optional[
-        List[str]
-    ] = None  # Changed from BusinessPriorityEnum to str
+    target_cloud_providers: Optional[List[str]] = (
+        None  # Changed from CloudProviderEnum to str
+    )
+    business_priorities: Optional[List[str]] = (
+        None  # Changed from BusinessPriorityEnum to str
+    )
     compliance_requirements: Optional[List[str]] = None
     budget_constraints: Optional[Dict[str, Any]] = None
     timeline_constraints: Optional[Dict[str, Any]] = None

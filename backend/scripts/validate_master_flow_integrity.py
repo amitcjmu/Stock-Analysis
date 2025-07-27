@@ -95,7 +95,9 @@ async def validate_master_flow_integrity():
             f"   ✅ Assets with Discovery Flow: {assets_stats.assets_with_discovery_flow}"
         )
         print(f"   ✅ Discovery Phase Assets: {assets_stats.discovery_phase_assets}")
-        print(f"   ✅ Current Discovery Assets: {assets_stats.current_discovery_assets}")
+        print(
+            f"   ✅ Current Discovery Assets: {assets_stats.current_discovery_assets}"
+        )
 
         # 4. Verify Cross-Phase Relationship Integrity
         print("\n4️⃣ Validating Cross-Phase Relationship Integrity...")

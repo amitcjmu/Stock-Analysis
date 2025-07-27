@@ -60,9 +60,9 @@ class CredentialResponse(CredentialBase):
     validation_errors: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
-    decrypted_data: Optional[
-        Dict[str, Any]
-    ] = None  # Only included when explicitly requested
+    decrypted_data: Optional[Dict[str, Any]] = (
+        None  # Only included when explicitly requested
+    )
 
     class Config:
         orm_mode = True

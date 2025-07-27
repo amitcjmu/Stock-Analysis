@@ -393,10 +393,10 @@ class AgenticAssetEnrichment:
         )
 
         # Generate comprehensive summary
-        enriched_asset[
-            "agentic_intelligence_summary"
-        ] = self._generate_intelligence_summary(
-            business_analysis, risk_analysis, modernization_analysis
+        enriched_asset["agentic_intelligence_summary"] = (
+            self._generate_intelligence_summary(
+                business_analysis, risk_analysis, modernization_analysis
+            )
         )
 
         return enriched_asset

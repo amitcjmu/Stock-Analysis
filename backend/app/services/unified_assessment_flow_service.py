@@ -94,7 +94,9 @@ class AssessmentFlowService:
                 try:
                     # Start with initialization
                     await assessment_flow.initialize_assessment()
-                    logger.info(f"✅ Assessment Flow {flow_id} initialized successfully")
+                    logger.info(
+                        f"✅ Assessment Flow {flow_id} initialized successfully"
+                    )
 
                 except Exception as e:
                     logger.error(f"❌ Assessment Flow {flow_id} execution failed: {e}")

@@ -342,9 +342,7 @@ class CMDBToAssetsDataMigrator:
         print(
             f"   🧠 Asset Embeddings Updated: {self.migration_stats['asset_embeddings_updated']}"
         )
-        print(
-            f"   🏷️  Asset Tags Updated: {self.migration_stats['asset_tags_updated']}"
-        )
+        print(f"   🏷️  Asset Tags Updated: {self.migration_stats['asset_tags_updated']}")
         print(f"   ❌ Errors: {len(self.migration_stats['errors'])}")
 
         if self.migration_stats["errors"]:

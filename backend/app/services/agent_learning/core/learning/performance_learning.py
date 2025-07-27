@@ -195,9 +195,7 @@ class PerformanceLearning:
             "performance_learning_grade": (
                 "excellent"
                 if avg_improvement > 2.0 and avg_success_rate > 0.8
-                else "good"
-                if avg_improvement > 1.5
-                else "needs_improvement"
+                else "good" if avg_improvement > 1.5 else "needs_improvement"
             ),
         }
 

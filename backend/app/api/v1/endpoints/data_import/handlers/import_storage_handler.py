@@ -75,8 +75,8 @@ async def store_import_data(
                 )
             elif "validation_error" in response.get("error", ""):
                 raise HTTPException(
-                    status_code=400, detail=response.get("message", "")  # Bad Request
-                )
+                    status_code=400, detail=response.get("message", "")
+                )  # Bad Request
             else:
                 raise HTTPException(
                     status_code=500,  # Internal Server Error

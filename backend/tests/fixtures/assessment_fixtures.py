@@ -414,9 +414,7 @@ class MockAssessmentRepository:
         """Mock save flow state"""
         self.flows[flow_state.flow_id] = flow_state
 
-    async def save_user_input(
-        self, flow_id: str, phase: str, user_input: Dict[str, Any]
-    ):
+    async def save_user_input(self, flow_id: str, phase: str, user_input: Dict[str, Any]):
         """Mock save user input"""
         if flow_id not in self.user_inputs:
             self.user_inputs[flow_id] = {}

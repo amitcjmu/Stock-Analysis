@@ -106,7 +106,9 @@ class BackgroundExecutionService:
                 )
 
             # Use new phase controller instead of flow.kickoff() to prevent automatic execution
-            logger.info(f"🚀 Starting controlled phase-by-phase execution for {flow_id}")
+            logger.info(
+                f"🚀 Starting controlled phase-by-phase execution for {flow_id}"
+            )
             from app.services.crewai_flows.unified_discovery_flow.phase_controller import (
                 PhaseController,
             )

@@ -231,13 +231,13 @@ class FlowHealthMonitor:
                         if not master.flow_metadata:
                             master.flow_metadata = {}
 
-                        master.flow_metadata[
-                            "discovery_progress"
-                        ] = discovery_flow.progress_percentage
+                        master.flow_metadata["discovery_progress"] = (
+                            discovery_flow.progress_percentage
+                        )
                         master.flow_metadata["discovery_status"] = discovery_flow.status
-                        master.flow_metadata[
-                            "discovery_phase"
-                        ] = discovery_flow.current_phase
+                        master.flow_metadata["discovery_phase"] = (
+                            discovery_flow.current_phase
+                        )
                         master.updated_at = datetime.now(timezone.utc)
 
                 await db.commit()

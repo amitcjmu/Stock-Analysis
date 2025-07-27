@@ -163,7 +163,9 @@ async def main():
     success = await test_foreign_key_fix()
 
     if success:
-        logger.info("✅ All tests passed! Foreign key constraints are working properly.")
+        logger.info(
+            "✅ All tests passed! Foreign key constraints are working properly."
+        )
     else:
         logger.error("❌ Test failed! Foreign key constraint issue persists.")
         exit(1)

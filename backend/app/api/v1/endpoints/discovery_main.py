@@ -512,7 +512,9 @@ async def advance_flow_phase(
         # Get updated flow
         updated_flow = await flow_service.get_flow(flow_id)
 
-        logger.info(f"✅ Flow phase advanced: {flow_id} -> {updated_flow.current_phase}")
+        logger.info(
+            f"✅ Flow phase advanced: {flow_id} -> {updated_flow.current_phase}"
+        )
 
         return {
             "success": True,

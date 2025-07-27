@@ -22,9 +22,9 @@ try:
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_AVAILABLE = False
-    Column = (
-        Integer
-    ) = String = DateTime = Text = JSON = Enum = Boolean = ForeignKey = Float = object
+    Column = Integer = String = DateTime = Text = JSON = Enum = Boolean = ForeignKey = (
+        Float
+    ) = object
 
     def relationship(*args, **kwargs):
         return None

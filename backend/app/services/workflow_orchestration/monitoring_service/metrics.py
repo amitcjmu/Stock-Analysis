@@ -235,9 +235,7 @@ class MetricsCollector:
                     "direction": (
                         "up"
                         if change_rate > 0
-                        else "down"
-                        if change_rate < 0
-                        else "stable"
+                        else "down" if change_rate < 0 else "stable"
                     ),
                 }
 

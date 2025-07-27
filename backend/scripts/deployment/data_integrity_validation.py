@@ -1449,9 +1449,7 @@ class DataIntegrityValidator:
             status_icon = (
                 "✅"
                 if status == "completed" and issue_count == 0
-                else "⚠️"
-                if issue_count > 0
-                else "❌"
+                else "⚠️" if issue_count > 0 else "❌"
             )
             logger.info(
                 f"  {check_name}: {status_icon} {status} ({issue_count} issues)"
@@ -1499,9 +1497,7 @@ class DataIntegrityValidator:
                 priority = (
                     "critical"
                     if issue_count > 5
-                    else "high"
-                    if issue_count > 2
-                    else "medium"
+                    else "high" if issue_count > 2 else "medium"
                 )
                 recommendations.append(
                     {

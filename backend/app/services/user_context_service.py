@@ -169,9 +169,9 @@ class UserContextService:
             try:
                 client_account_uuid = uuid.UUID(client_account_id)
             except ValueError:
-                result[
-                    "error"
-                ] = f"Invalid client_account_id format: {client_account_id}"
+                result["error"] = (
+                    f"Invalid client_account_id format: {client_account_id}"
+                )
                 return result
 
             if user.default_client_id == client_account_uuid:

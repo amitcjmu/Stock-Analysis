@@ -286,7 +286,9 @@ class PostgresFlowStateStore:
                 await self.db.execute(update_stmt)
                 await self.db.commit()
 
-                logger.info(f"✅ Checkpoint created for flow {flow_id}: {checkpoint_id}")
+                logger.info(
+                    f"✅ Checkpoint created for flow {flow_id}: {checkpoint_id}"
+                )
                 return checkpoint_id
             else:
                 raise StateRecoveryError(f"No state record found for flow {flow_id}")
@@ -312,7 +314,9 @@ class PostgresFlowStateStore:
 
                 for checkpoint in checkpoints:
                     if checkpoint.get("checkpoint_id") == checkpoint_id:
-                        logger.info(f"✅ Checkpoint found for recovery: {checkpoint_id}")
+                        logger.info(
+                            f"✅ Checkpoint found for recovery: {checkpoint_id}"
+                        )
                         return checkpoint.get("state_snapshot", {})
 
             raise StateRecoveryError(f"Checkpoint not found: {checkpoint_id}")
@@ -388,7 +392,9 @@ class PostgresFlowStateStore:
                 deleted_count += 1
 
             await self.db.commit()
-            logger.info(f"✅ Cleaned up {deleted_count} old versions for flow {flow_id}")
+            logger.info(
+                f"✅ Cleaned up {deleted_count} old versions for flow {flow_id}"
+            )
             return deleted_count
 
         except Exception as e:

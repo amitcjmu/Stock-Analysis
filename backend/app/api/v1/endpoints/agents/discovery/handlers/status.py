@@ -115,9 +115,7 @@ async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext)
             confidence_level = (
                 "high"
                 if confidence_score > 0.8
-                else "medium"
-                if confidence_score > 0.6
-                else "low"
+                else "medium" if confidence_score > 0.6 else "low"
             )
 
             insights.append(

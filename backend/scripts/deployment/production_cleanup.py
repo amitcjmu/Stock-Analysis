@@ -47,7 +47,9 @@ class ProductionCleanupManager:
         }
 
         try:
-            logger.info("🔄 Starting production cleanup for Master Flow Orchestrator...")
+            logger.info(
+                "🔄 Starting production cleanup for Master Flow Orchestrator..."
+            )
 
             # MFO-109: Remove deprecated Discovery flow code
             discovery_cleanup = await self._remove_deprecated_discovery_code()

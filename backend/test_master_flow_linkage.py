@@ -73,7 +73,9 @@ async def test_orphaned_data_discovery():
                 )
                 if smart_status:
                     print("✅ Smart discovery succeeded!")
-                    print(f"📊 Discovery method: {smart_status.get('discovery_method')}")
+                    print(
+                        f"📊 Discovery method: {smart_status.get('discovery_method')}"
+                    )
                     print(f"🎯 Confidence: {smart_status.get('confidence')}")
 
                     if "repair_options" in smart_status:

@@ -109,7 +109,9 @@ class ValidatorRegistry:
                 )
 
             self._phase_validators[flow_type][phase][name] = validator
-            logger.info(f"✅ Registered phase validator: {name} for {flow_type}.{phase}")
+            logger.info(
+                f"✅ Registered phase validator: {name} for {flow_type}.{phase}"
+            )
 
         elif flow_type:
             # Flow-type specific validator

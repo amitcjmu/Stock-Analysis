@@ -38,6 +38,7 @@ try:
     from app.api.v1.admin.security_monitoring_handlers.security_audit_handler import (
         router as security_audit_router,
     )
+
     # user_approval_router removed - not used in this file
 
     ADMIN_ENDPOINTS_AVAILABLE = True
@@ -588,8 +589,8 @@ except ImportError:
 # Legacy Discovery Flow Management - DISABLED (replaced by V2 Discovery Flow API at /api/v2/discovery-flows/)
 # api_router.include_router(discovery_flow_management_router, prefix="/discovery", tags=["Discovery Flow Management"])
 # api_router.include_router(
-#     discovery_flow_management_enhanced_router, 
-#     prefix="/discovery/enhanced", 
+#     discovery_flow_management_enhanced_router,
+#     prefix="/discovery/enhanced",
 #     tags=["Enhanced Flow Management"]
 # )
 

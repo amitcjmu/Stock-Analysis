@@ -542,7 +542,9 @@ async def _trigger_field_mapping_reanalysis(
         raw_records = raw_records_result.scalars().all()
 
         if not raw_records:
-            logger.error(f"❌ No raw records found for data_import_id: {data_import.id}")
+            logger.error(
+                f"❌ No raw records found for data_import_id: {data_import.id}"
+            )
             return
 
         # Extract raw data from records

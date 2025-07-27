@@ -167,8 +167,8 @@ class EngagementCRUDHandler:
                     logger.warning(f"Could not check admin status: {e}")
 
             query = select(Engagement).where(
-                Engagement.is_active == True  # noqa: E712
-            )  # Filter out soft-deleted
+                Engagement.is_active == True
+            )  # noqa: E712  # Filter out soft-deleted
             # Only filter by client_account_id if it's provided (not None) AND user is not platform admin
             if client_account_id is not None and not is_platform_admin:
                 query = query.where(Engagement.client_account_id == client_account_id)
@@ -177,8 +177,8 @@ class EngagementCRUDHandler:
             count_query = (
                 select(func.count())
                 .select_from(Engagement)
-                .where(Engagement.is_active == True)  # noqa: E712
-            )
+                .where(Engagement.is_active == True)
+            )  # noqa: E712
             if client_account_id is not None and not is_platform_admin:
                 count_query = count_query.where(
                     Engagement.client_account_id == client_account_id
@@ -225,14 +225,14 @@ class EngagementCRUDHandler:
         try:
             # Total engagements (only active ones)
             total_query = select(func.count()).where(
-                Engagement.is_active == True  # noqa: E712
-            )
+                Engagement.is_active == True
+            )  # noqa: E712
             total_engagements = (await db.execute(total_query)).scalar_one()
 
             # Active engagements (redundant now since we only count active ones)
             active_query = select(func.count()).where(
-                Engagement.is_active == True  # noqa: E712
-            )
+                Engagement.is_active == True
+            )  # noqa: E712
             active_engagements = (await db.execute(active_query)).scalar_one()
 
             # Engagements by type (only active ones)
@@ -554,8 +554,8 @@ class EngagementCRUDHandler:
                         )
                     except Exception as table_error:
                         logger.warning(
-                            f"Could not delete from {table}: {table_error}"  # nosec B608
-                        )
+                            f"Could not delete from {table}: {table_error}"
+                        )  # nosec B608
                         # Continue with other tables
 
                 # 4. Handle user-related references (set to NULL instead of delete)

@@ -356,9 +356,9 @@ class AssetRepository(ContextAwareRepository[Asset]):
             analytics["quality_by_phase"][row.current_phase]["avg_quality"] = float(
                 row.avg_quality or 0
             )
-            analytics["quality_by_phase"][row.current_phase][
-                "avg_completeness"
-            ] = float(row.avg_completeness or 0)
+            analytics["quality_by_phase"][row.current_phase]["avg_completeness"] = (
+                float(row.avg_completeness or 0)
+            )
             analytics["quality_by_phase"][row.current_phase][
                 "asset_count"
             ] += row.asset_count

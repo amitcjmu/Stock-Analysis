@@ -181,9 +181,9 @@ class AssetValidationHandler:
                     validation_result["suggested_value"] = self._clean_memory_value(
                         str(value)
                     )
-                    validation_result[
-                        "error_message"
-                    ] = "Memory should be numeric (GB only)"
+                    validation_result["error_message"] = (
+                        "Memory should be numeric (GB only)"
+                    )
 
             elif field_name == "hostname":
                 if not self._is_valid_hostname(str(value)):

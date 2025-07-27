@@ -41,7 +41,9 @@ class HealthMonitor:
             Comprehensive health status information
         """
         try:
-            logger.info(f"🏥 Getting health status for workflow: {workflow_id or 'all'}")
+            logger.info(
+                f"🏥 Getting health status for workflow: {workflow_id or 'all'}"
+            )
 
             # Get overall system health
             system_health = await self._assess_system_health()

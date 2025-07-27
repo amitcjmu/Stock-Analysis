@@ -97,7 +97,9 @@ async def main():
                     continue
 
             await session.commit()
-            print(f"🎉 Successfully processed {processed_count} raw records into assets")
+            print(
+                f"🎉 Successfully processed {processed_count} raw records into assets"
+            )
 
             # Verify the assets were created with correct client context
             asset_query = select(Asset).where(

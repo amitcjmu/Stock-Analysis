@@ -817,9 +817,7 @@ class FlowRelationshipValidator:
             status = (
                 "✅"
                 if result.health_score >= 95
-                else "🟡"
-                if result.health_score >= 85
-                else "🔴"
+                else "🟡" if result.health_score >= 85 else "🔴"
             )
             print(f"{status} {result.check_name} ({result.table_name})")
             print(f"    Total Records: {result.total_records:,}")

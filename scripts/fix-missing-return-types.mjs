@@ -26,23 +26,23 @@ console.log(`Found ${Object.keys(fileWarnings).length} files with missing return
 // Process each file
 Object.entries(fileWarnings).forEach(([filePath, positions]) => {
   console.log(`\nProcessing ${filePath} (${positions.length} warnings)...`);
-  
+
   try {
     let content = readFileSync(filePath, 'utf8');
     const lines = content.split('\n');
-    
+
     // Sort positions by line number in reverse order to avoid offset issues
     positions.sort((a, b) => b.line - a.line);
-    
+
     positions.forEach(({ line, col }) => {
       const lineIndex = line - 1;
       const currentLine = lines[lineIndex];
-      
+
       // Skip if already has a return type
       if (currentLine.includes(':') && currentLine.includes('=>')) {
         return;
       }
-      
+
       // Common patterns to fix
       if (currentLine.includes('function') && currentLine.includes('(') && currentLine.includes(')')) {
         // Named function declaration
@@ -72,7 +72,7 @@ Object.entries(fileWarnings).forEach(([filePath, positions]) => {
         }
       }
     });
-    
+
     // Write the fixed content back
     const newContent = lines.join('\n');
     if (newContent !== content) {
@@ -81,7 +81,7 @@ Object.entries(fileWarnings).forEach(([filePath, positions]) => {
     } else {
       console.log(`  No changes needed for ${filePath}`);
     }
-    
+
   } catch (err) {
     console.error(`  Error processing ${filePath}:`, err.message);
   }

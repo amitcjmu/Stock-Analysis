@@ -114,7 +114,9 @@ class DataCleansingExecutor(BasePhaseExecutor):
 
     async def execute_fallback(self) -> Dict[str, Any]:
         """NO FALLBACK ALLOWED - FAIL FAST TO EXPOSE REAL ISSUES"""
-        logger.error("❌ execute_fallback called for data_cleansing - FALLBACK DISABLED")
+        logger.error(
+            "❌ execute_fallback called for data_cleansing - FALLBACK DISABLED"
+        )
         logger.error(
             "❌ If you see this error, fix the actual agentic intelligence execution issues"
         )

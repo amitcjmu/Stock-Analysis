@@ -381,9 +381,9 @@ class RiskAssessmentAgent:
             if threats_match:
                 result["primary_threats"] = threats_match.group(1).strip()
             else:
-                result[
-                    "primary_threats"
-                ] = "Standard security and operational risks assessed"
+                result["primary_threats"] = (
+                    "Standard security and operational risks assessed"
+                )
 
             # Extract vulnerability summary
             vuln_match = re.search(
@@ -394,9 +394,9 @@ class RiskAssessmentAgent:
             if vuln_match:
                 result["vulnerability_summary"] = vuln_match.group(1).strip()
             else:
-                result[
-                    "vulnerability_summary"
-                ] = "Technology stack and configuration assessed for vulnerabilities"
+                result["vulnerability_summary"] = (
+                    "Technology stack and configuration assessed for vulnerabilities"
+                )
 
             # Extract immediate actions
             actions_match = re.search(
@@ -463,9 +463,7 @@ class RiskAssessmentAgent:
             "confidence_level": (
                 "high"
                 if reasoning.confidence >= 0.7
-                else "medium"
-                if reasoning.confidence >= 0.4
-                else "low"
+                else "medium" if reasoning.confidence >= 0.4 else "low"
             ),
             "primary_threats": reasoning.reasoning_summary,
             "vulnerability_summary": f"Analysis identified {len(reasoning.evidence_pieces)} risk factors",

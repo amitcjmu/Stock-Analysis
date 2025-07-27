@@ -288,7 +288,10 @@ class TierRoutingService:
         if (
             selected_tier == AutomationTier.TIER_1
             and tier_analysis.environment_complexity
-            in [EnvironmentComplexity.COMPLEX, EnvironmentComplexity.ENTERPRISE]
+            in [
+                EnvironmentComplexity.COMPLEX,
+                EnvironmentComplexity.ENTERPRISE,
+            ]
         ):
             risk_level = "high"
             risk_factors.append("High automation tier selected for complex environment")

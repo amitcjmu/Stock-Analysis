@@ -253,7 +253,9 @@ class StagingDeployment:
             )
 
             if result.returncode != 0:
-                logger.error(f"❌ Docker Compose configuration invalid: {result.stderr}")
+                logger.error(
+                    f"❌ Docker Compose configuration invalid: {result.stderr}"
+                )
                 return False
 
             logger.info("✅ Docker Compose configuration validated")

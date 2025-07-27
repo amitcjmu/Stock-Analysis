@@ -286,9 +286,9 @@ async def delete_discovery_flow(
                 if not master_flow.flow_persistence_data:
                     master_flow.flow_persistence_data = {}
                 master_flow.flow_persistence_data["discovery_flow_deleted"] = True
-                master_flow.flow_persistence_data[
-                    "deletion_timestamp"
-                ] = datetime.utcnow().isoformat()
+                master_flow.flow_persistence_data["deletion_timestamp"] = (
+                    datetime.utcnow().isoformat()
+                )
                 master_flow.flow_persistence_data["deleted_by"] = context.user_id
 
         # Create audit record

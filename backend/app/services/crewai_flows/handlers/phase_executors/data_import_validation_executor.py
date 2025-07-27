@@ -164,9 +164,9 @@ class DataImportValidationExecutor(BasePhaseExecutor):
                 parsed = json.loads(raw_result)
 
                 # Extract validation results from the parsed response
-                result[
-                    "is_valid"
-                ] = True  # If crew returned a result, validation passed
+                result["is_valid"] = (
+                    True  # If crew returned a result, validation passed
+                )
                 result["file_analysis"] = {
                     "detected_type": parsed.get("file_type", "unknown"),
                     "confidence": parsed.get("confidence", 0.5),
@@ -351,9 +351,9 @@ class DataImportValidationExecutor(BasePhaseExecutor):
             results["checks_performed"].append("security_scan")
             if security_check["threats_found"]:
                 results["is_valid"] = False
-                results[
-                    "reason"
-                ] = f"Security threats detected: {security_check['threat_types']}"
+                results["reason"] = (
+                    f"Security threats detected: {security_check['threat_types']}"
+                )
                 results["security_status"] = "threats_detected"
                 return results
 

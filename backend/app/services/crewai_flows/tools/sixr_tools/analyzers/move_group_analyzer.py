@@ -263,9 +263,9 @@ class MoveGroupAnalyzer:
 
             if high_risk_in_group and len(high_risk_in_group) < len(group_apps):
                 # Mixed risk group - flag for attention
-                group[
-                    "risk_warning"
-                ] = "Contains mix of high and lower risk applications"
+                group["risk_warning"] = (
+                    "Contains mix of high and lower risk applications"
+                )
 
         return move_groups
 

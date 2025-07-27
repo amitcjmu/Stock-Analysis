@@ -379,9 +379,9 @@ class ModernizationAgent:
             if arch_match:
                 result["architecture_assessment"] = arch_match.group(1).strip()
             else:
-                result[
-                    "architecture_assessment"
-                ] = "Architecture evaluated for cloud modernization compatibility"
+                result["architecture_assessment"] = (
+                    "Architecture evaluated for cloud modernization compatibility"
+                )
 
             # Extract technology compatibility
             tech_match = re.search(
@@ -392,9 +392,9 @@ class ModernizationAgent:
             if tech_match:
                 result["technology_compatibility"] = tech_match.group(1).strip()
             else:
-                result[
-                    "technology_compatibility"
-                ] = "Technology stack assessed for cloud services integration"
+                result["technology_compatibility"] = (
+                    "Technology stack assessed for cloud services integration"
+                )
 
             # Extract containerization readiness
             container_match = re.search(
@@ -405,9 +405,9 @@ class ModernizationAgent:
             if container_match:
                 result["containerization_readiness"] = container_match.group(1).strip()
             else:
-                result[
-                    "containerization_readiness"
-                ] = "Containerization potential evaluated"
+                result["containerization_readiness"] = (
+                    "Containerization potential evaluated"
+                )
 
             # Extract immediate modernization steps
             immediate_match = re.search(
@@ -436,9 +436,9 @@ class ModernizationAgent:
                 longterm_text = longterm_match.group(1).strip()
                 result["migration_strategy"] = longterm_text
             else:
-                result[
-                    "migration_strategy"
-                ] = "Develop comprehensive modernization roadmap with phased approach"
+                result["migration_strategy"] = (
+                    "Develop comprehensive modernization roadmap with phased approach"
+                )
 
             # Extract expected benefits
             benefits_match = re.search(
@@ -489,9 +489,7 @@ class ModernizationAgent:
             "technical_confidence": (
                 "high"
                 if reasoning.confidence >= 0.7
-                else "medium"
-                if reasoning.confidence >= 0.4
-                else "low"
+                else "medium" if reasoning.confidence >= 0.4 else "low"
             ),
             "architecture_assessment": reasoning.reasoning_summary,
             "evidence_count": len(reasoning.evidence_pieces),
@@ -660,5 +658,7 @@ async def enrich_assets_with_modernization_intelligence(
             )
             enriched_assets.append(enriched_asset)
 
-    logger.info(f"✅ Completed modernization analysis for {len(enriched_assets)} assets")
+    logger.info(
+        f"✅ Completed modernization analysis for {len(enriched_assets)} assets"
+    )
     return enriched_assets

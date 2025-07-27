@@ -245,7 +245,9 @@ async def validate_foreign_keys():
         orphaned_assets = result.scalars().all()
 
         if not orphaned_assets:
-            print(f"{Colors.GREEN}✅ All assets have valid flow references{Colors.ENDC}")
+            print(
+                f"{Colors.GREEN}✅ All assets have valid flow references{Colors.ENDC}"
+            )
         else:
             print(
                 f"{Colors.RED}❌ {len(orphaned_assets)} assets with invalid flow IDs{Colors.ENDC}"
@@ -321,7 +323,9 @@ async def validate_demo_scenarios():
         waves = result.scalars().all()
 
         if len(waves) >= 4:
-            print(f"{Colors.GREEN}✅ Migration waves defined: {len(waves)}{Colors.ENDC}")
+            print(
+                f"{Colors.GREEN}✅ Migration waves defined: {len(waves)}{Colors.ENDC}"
+            )
             for wave in waves:
                 print(
                     f"   - Wave {wave.wave_number}: {wave.name} ({wave.total_assets} assets)"
@@ -379,7 +383,9 @@ async def main():
             all_passed = False
 
     if all_passed:
-        print(f"\n{Colors.GREEN}{Colors.BOLD}🎉 ALL VALIDATIONS PASSED! 🎉{Colors.ENDC}")
+        print(
+            f"\n{Colors.GREEN}{Colors.BOLD}🎉 ALL VALIDATIONS PASSED! 🎉{Colors.ENDC}"
+        )
         print(f"{Colors.GREEN}The database is ready for demonstrations.{Colors.ENDC}")
     else:
         print(f"\n{Colors.RED}{Colors.BOLD}⚠️ SOME VALIDATIONS FAILED ⚠️{Colors.ENDC}")

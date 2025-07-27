@@ -6,6 +6,7 @@ This configuration ensures consistent demo data creation across the platform.
 All demo data uses recognizable UUID patterns for easy identification.
 """
 
+import os
 import random
 import uuid
 from datetime import datetime, timezone
@@ -40,8 +41,10 @@ class DemoDataConfig:
 class PlatformAdminConfig:
     """Platform admin configuration - NEVER CHANGE THESE"""
 
-    EMAIL = "chocka@gmail.com"
-    PASSWORD = "Password123!"  # nosec B105 - Platform admin password for initial setup
+    EMAIL = os.getenv("PLATFORM_ADMIN_EMAIL", "chocka@gmail.com")
+    PASSWORD = os.getenv(
+        "PLATFORM_ADMIN_PASSWORD", "Password123!"
+    )  # nosec B105 - Platform admin password from environment
     FIRST_NAME = "Platform"
     LAST_NAME = "Admin"
     ORGANIZATION = "Platform"
@@ -99,7 +102,9 @@ class DemoUserConfig:
     """Demo user configurations - NO CLIENT ADMINS!"""
 
     # Common password for all demo users
-    PASSWORD = "Demo123!"  # nosec B105 - Demo user password for testing
+    PASSWORD = os.getenv(
+        "DEMO_USER_PASSWORD", "Demo123!"
+    )  # nosec B105 - Demo user password from environment
 
     # Demo users list with their roles
     USERS = [

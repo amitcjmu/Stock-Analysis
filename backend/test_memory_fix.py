@@ -169,7 +169,9 @@ async def test_memory_components():
 
         return False
 
-    print("\n🎉 All memory tests passed! Memory system appears to be working correctly.")
+    print(
+        "\n🎉 All memory tests passed! Memory system appears to be working correctly."
+    )
     return True
 
 

@@ -547,8 +547,8 @@ class ClientCRUDHandler:
 
             # Active clients (based on is_active field)
             active_clients_query = select(func.count()).where(
-                ClientAccount.is_active == True  # noqa: E712
-            )
+                ClientAccount.is_active == True
+            )  # noqa: E712
             active_clients = (await db.execute(active_clients_query)).scalar_one()
 
             # Clients by industry (handle None values)

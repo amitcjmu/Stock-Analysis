@@ -2,6 +2,7 @@ import os
 
 # Import the modules we're testing
 import sys
+
 # datetime import removed - not used
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -774,10 +775,10 @@ class TestIntegrationScenarios:
         #     assert initial_analysis is not None
         pass  # Placeholder until orchestrator is implemented
 
-            # Generate final recommendation
-            recommendation = decision_engine.get_recommendation(parameters)
-            assert recommendation is not None
-            assert recommendation.recommended_strategy is not None
+        # Generate final recommendation
+        recommendation = decision_engine.get_recommendation(parameters)
+        assert recommendation is not None
+        assert recommendation.recommended_strategy is not None
 
     def test_performance_requirements(self):
         """Test that performance requirements are met"""

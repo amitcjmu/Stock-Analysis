@@ -152,9 +152,9 @@ class ComplexityAssessor:
 
             # Add flow-specific metrics
             complexity_assessment["flow_id"] = flow_id
-            complexity_assessment[
-                "flow_complexity_factors"
-            ] = self._assess_flow_specific_complexity(assets)
+            complexity_assessment["flow_complexity_factors"] = (
+                self._assess_flow_specific_complexity(assets)
+            )
 
             return complexity_assessment
 

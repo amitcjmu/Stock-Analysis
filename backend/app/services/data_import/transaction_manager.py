@@ -211,7 +211,9 @@ class ImportTransactionManager:
                     except Exception:
                         pass  # Ignore rollback errors during retry
                 else:
-                    logger.error(f"❌ Operation failed after {max_retries + 1} attempts")
+                    logger.error(
+                        f"❌ Operation failed after {max_retries + 1} attempts"
+                    )
                     break
 
         # All retries exhausted

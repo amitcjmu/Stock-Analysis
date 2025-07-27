@@ -126,9 +126,9 @@ class AnalysisToolsHandler:
             )
 
             # Generate recommendations
-            scoring_results[
-                "recommendations"
-            ] = self._generate_parameter_recommendations(parameters, strategy)
+            scoring_results["recommendations"] = (
+                self._generate_parameter_recommendations(parameters, strategy)
+            )
 
             return scoring_results
 
