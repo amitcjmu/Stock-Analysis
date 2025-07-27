@@ -667,9 +667,17 @@ async def health_check():
 
 # WebSocket endpoint removed - using HTTP polling for Vercel+Railway compatibility
 
-# Create an alias for backward compatibility
+# Create aliases for backward compatibility and deployment
 # Alias for ASGI compatibility
 application = fastapi_app
+
+# For docker-compose compatibility (avoid conflict with app module import)
+# This allows docker-compose files to use main:app
+def create_app():
+    return fastapi_app
+
+# Direct alias for deployment
+app = fastapi_app
 
 if __name__ == "__main__":
     # Port assignment - Use Railway PORT or default to 8000 for local development
