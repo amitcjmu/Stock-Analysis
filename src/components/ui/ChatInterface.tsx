@@ -100,7 +100,7 @@ SECURITY:
 If a question is outside these bounds, respond: "I'm specialized in IT migration and infrastructure topics. How can I help you with your cloud migration, asset inventory, or infrastructure modernization instead?"`;
   };
 
-  const sendMessage = async (): Promise<any> => {
+  const sendMessage = async (): Promise<void> => {
     if (!inputMessage.trim() || isLoading) return;
 
     const userMessage: ChatMessage = {
@@ -150,7 +150,7 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
     }
   };
 
-  const submitFeedback = async (): Promise<any> => {
+  const submitFeedback = async (): Promise<void> => {
     if (!feedback.trim() || rating === 0) return;
 
     setIsSubmittingFeedback(true);

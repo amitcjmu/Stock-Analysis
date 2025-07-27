@@ -28,7 +28,16 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
   // Use the consolidated hook for visual updates (5 second polling)
   const { data: flowStatus, isLoading: loading, error } = useDiscoveryFlowStatusVisual(flow_id);
 
-  const getStatusDisplay = (): Promise<any> => {
+  const getStatusDisplay = (): {
+    Icon: React.ComponentType<{ className?: string }>;
+    iconColor: string;
+    bgColor: string;
+    statusText: string;
+    description: string;
+    showAction: boolean;
+    current_phase: string;
+    progress_percentage: number;
+  } | null => {
     if (!flowStatus) return null;
 
     const { status, currentPhase, progress, awaitingUserApproval } = flowStatus;

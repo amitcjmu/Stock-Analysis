@@ -54,7 +54,7 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
     }
   }, [pageContext, modalOpen]);
 
-  const fetchAgentPlan = async (): Promise<any> => {
+  const fetchAgentPlan = async (): Promise<void> => {
     try {
       setLoading(true);
       setError(null);

@@ -223,7 +223,7 @@ const DataCleansing: React.FC = () => {
 
   // Check for pending agent questions (disabled polling for now as endpoint returns empty array)
   useEffect(() => {
-    const checkPendingQuestions = async (): Promise<any> => {
+    const checkPendingQuestions = async (): Promise<void> => {
       if (!client?.id || !engagement?.id) return;
 
       try {

@@ -397,7 +397,7 @@ export const useAssessmentFlow = (
   }, [state.flowId, clientAccountId]);
 
   // Load current flow state
-  const loadFlowState = async (): Promise<any> => {
+  const loadFlowState = async (): Promise<void> => {
     if (!state.flowId) return;
 
     try {

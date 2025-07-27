@@ -40,7 +40,7 @@ const Observability = (): JSX.Element => {
     fetchMonitoringData();
   }, []);
 
-  const fetchMonitoringData = async (): Promise<any> => {
+  const fetchMonitoringData = async (): Promise<void> => {
     try {
       setLoading(true);
       setError(null);

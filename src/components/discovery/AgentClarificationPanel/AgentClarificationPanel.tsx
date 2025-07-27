@@ -57,7 +57,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     };
   }, [isProcessing]);
 
-  const fetchQuestions = async (): Promise<any> => {
+  const fetchQuestions = async (): Promise<void> => {
     try {
       const fetchedQuestions = await api.fetchAgentQuestions(pageContext);
       setQuestions(fetchedQuestions);

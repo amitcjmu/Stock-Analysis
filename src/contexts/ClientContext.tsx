@@ -43,7 +43,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Don't hardcode client for demo user - let them choose from available demo clients
     // The -def0-def0-def0- pattern identifies demo data
 
-    const initializeClient = async (): Promise<any> => {
+    const initializeClient = async (): Promise<void> => {
       try {
         // Skip client initialization for admin routes
         if (user?.role === 'admin' && window.location.pathname.startsWith('/admin')) {
@@ -103,7 +103,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // The auth context depends on ClientContext, so we can't wait for it
     if (user && !authLoading) {
       console.log('🔄 ClientContext: User available, fetching clients');
-      const fetchClients = async (): Promise<any> => {
+      const fetchClients = async (): Promise<void> => {
         setIsLoading(true);
         try {
           // Skip default client fetch - endpoint doesn't exist

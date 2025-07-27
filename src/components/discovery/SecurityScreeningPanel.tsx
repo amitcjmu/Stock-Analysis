@@ -66,7 +66,7 @@ const SecurityScreeningPanel: React.FC<SecurityScreeningPanelProps> = ({
     }
   }, [dataImportId, flowId, refreshTrigger]);
 
-  const fetchSecurityScreening = async (): Promise<any> => {
+  const fetchSecurityScreening = async (): Promise<void> => {
     try {
       setIsLoading(true);
       setError(null);

@@ -26,7 +26,7 @@ export const useAgentDetail = (agentName: string | undefined, taskHistoryPage: n
 
   const { getAgentRole, getAgentSpecialization, getAgentCapabilities, getAgentEndpoints } = getAgentMetadataHelpers();
 
-  const loadAgentData = async (): Promise<any> => {
+  const loadAgentData = async (): Promise<void> => {
     if (!agentName) return;
 
     try {

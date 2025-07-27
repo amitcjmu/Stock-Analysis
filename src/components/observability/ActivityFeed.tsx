@@ -221,7 +221,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
     };
   }, [isPlaying, realTime, refreshInterval, filters.agent, filters.timeRange]);
 
-  const loadActivityData = async (): Promise<any> => {
+  const loadActivityData = async (): Promise<void> => {
     try {
       setError(null);
 

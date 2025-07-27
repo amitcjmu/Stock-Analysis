@@ -174,7 +174,7 @@ export const useCMDBImport = (): JSX.Element => {
 
   // Poll for flow status updates
   useEffect(() => {
-    const pollFlowStatus = async (): Promise<any> => {
+    const pollFlowStatus = async (): Promise<void> => {
       const processingFiles = uploadedFiles.filter(f =>
         f.flow_id &&
         (f.status === 'processing' || f.flow_status === 'running' || f.flow_status === 'active')

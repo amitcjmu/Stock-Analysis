@@ -81,7 +81,7 @@ const AgentComparison: React.FC<AgentComparisonProps> = ({
     }
   }, [selectedAgents, onComparisonChange]);
 
-  const loadAvailableAgents = async (): Promise<any> => {
+  const loadAvailableAgents = async (): Promise<void> => {
     try {
       const agents = await agentObservabilityService.getAgentNames();
       setAvailableAgents(agents);

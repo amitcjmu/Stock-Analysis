@@ -37,7 +37,13 @@ export interface TechDebtSummary {
   deprecated: number;
 }
 
-export const fetchTechDebtAnalysis = async (clientAccountId: string, engagementId: string): Promise<any> => {
+export interface TechDebtAnalysisResponse {
+  items: TechDebtItem[];
+  summary: TechDebtSummary;
+  timeline: SupportTimeline[];
+}
+
+export const fetchTechDebtAnalysis = async (clientAccountId: string, engagementId: string): Promise<TechDebtAnalysisResponse> => {
   try {
     const response = await apiCall(
       `${API_CONFIG.ENDPOINTS.DISCOVERY}/tech-debt-analysis?client_account_id=${clientAccountId}&engagement_id=${engagementId}`,
@@ -50,7 +56,21 @@ export const fetchTechDebtAnalysis = async (clientAccountId: string, engagementI
   }
 };
 
-export const generateMigrationPlan = async (clientAccountId: string, engagementId: string, items: string[]): Promise<any> => {
+export interface MigrationPlanResponse {
+  plan: {
+    phases: Array<{
+      name: string;
+      duration: string;
+      items: string[];
+      effort: string;
+    }>;
+    totalDuration: string;
+    totalEffort: string;
+    criticalPath: string[];
+  };
+}
+
+export const generateMigrationPlan = async (clientAccountId: string, engagementId: string, items: string[]): Promise<MigrationPlanResponse> => {
   try {
     const response = await apiCall(
       `${API_CONFIG.ENDPOINTS.DISCOVERY}/generate-migration-plan`,

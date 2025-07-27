@@ -40,13 +40,13 @@ export function useAnalysisQueue(): JSX.Element {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const createQueue = async (request: CreateQueueRequest): Promise<any> => {
+  const createQueue = async (request: CreateQueueRequest): Promise<AnalysisQueueItem> => {
     const response = await apiCall('/api/v1/analysis/queues', { method: 'POST', body: JSON.stringify(request) });
     await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
     return response.data;
   };
 
-  const addToQueue = async (queueId: string, applicationId: string): Promise<any> => {
+  const addToQueue = async (queueId: string, applicationId: string): Promise<void> => {
     await apiCall(`/api/v1/analysis/queues/${queueId}/items`, {
       method: 'POST',
       body: JSON.stringify({ applicationId })
@@ -54,32 +54,32 @@ export function useAnalysisQueue(): JSX.Element {
     await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
   };
 
-  const startQueue = async (id: string): Promise<any> => {
+  const startQueue = async (id: string): Promise<void> => {
     await apiCall(`/api/v1/analysis/queues/${id}/start`, { method: 'POST' });
     await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
   };
 
-  const pauseQueue = async (id: string): Promise<any> => {
+  const pauseQueue = async (id: string): Promise<void> => {
     await apiCall(`/api/v1/analysis/queues/${id}/pause`, { method: 'POST' });
     await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
   };
 
-  const cancelQueue = async (id: string): Promise<any> => {
+  const cancelQueue = async (id: string): Promise<void> => {
     await apiCall(`/api/v1/analysis/queues/${id}/cancel`, { method: 'POST' });
     await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
   };
 
-  const retryQueue = async (id: string): Promise<any> => {
+  const retryQueue = async (id: string): Promise<void> => {
     await apiCall(`/api/v1/analysis/queues/${id}/retry`, { method: 'POST' });
     await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
   };
 
-  const deleteQueue = async (queueId: string): Promise<any> => {
+  const deleteQueue = async (queueId: string): Promise<void> => {
     await apiCall(`/api/v1/analysis/queues/${queueId}`, { method: 'DELETE' });
     await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
   };
 
-  const exportQueue = async (id: string, format: 'csv' | 'json' = 'csv'): Promise<any> => {
+  const exportQueue = async (id: string, format: 'csv' | 'json' = 'csv'): Promise<unknown> => {
     const response = await apiCall(`/api/v1/analysis/queues/${id}/export?format=${format}`, {
       method: 'GET',
       headers: {

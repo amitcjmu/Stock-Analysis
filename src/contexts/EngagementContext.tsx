@@ -52,7 +52,7 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return;
     }
 
-    const initializeEngagement = async (): Promise<any> => {
+    const initializeEngagement = async (): Promise<void> => {
       try {
         const engagementId = sessionStorage.getItem(ENGAGEMENT_KEY);
         if (!engagementId || !currentClient) {

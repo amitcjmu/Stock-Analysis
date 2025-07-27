@@ -378,7 +378,7 @@ export const apiCall = async (
   console.log('Current Context:', currentContext);
 
   // Create the request promise and store it
-  const requestPromise = (async (): Promise<any> => {
+  const requestPromise = (async (): Promise<unknown> => {
     try {
       // Add headers - start with defaults, then merge user headers
       const headers: HeadersInit = {

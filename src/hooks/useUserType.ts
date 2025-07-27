@@ -23,7 +23,7 @@ export const useUserType = (): JSX.Element => {
   const [error, setError] = useState<string | null>(null);
   const { getAuthHeaders, isAuthenticated } = useAuth();
 
-  const fetchUserType = async (): Promise<any> => {
+  const fetchUserType = async (): Promise<void> => {
     if (!isAuthenticated) {
       setLoading(false);
       return;

@@ -3,7 +3,7 @@ import { authApi } from '@/lib/api/auth';
 import type { updateApiContext } from '@/config/api'
 import { apiCall } from '@/config/api'
 import { updateUserDefaults } from '@/lib/api/context';
-import type { User, Client, Engagement, Flow } from '../types';
+import type { User, Client, Engagement, Flow, UserRegistrationResponse } from '../types';
 
 // CC: Registration and API response interfaces
 interface UserRegistrationData {
@@ -64,7 +64,7 @@ export const useAuthService = (
     navigate('/login');
   };
 
-  const login = async (email: string, password: string): Promise<any> => {
+  const login = async (email: string, password: string): Promise<User> => {
     try {
       setIsLoading(true);
       setIsLoginInProgress(true);
@@ -159,7 +159,7 @@ export const useAuthService = (
     }
   };
 
-  const register = async (userData: UserRegistrationData): Promise<any> => {
+  const register = async (userData: UserRegistrationData): Promise<UserRegistrationResponse> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -179,7 +179,7 @@ export const useAuthService = (
     }
   };
 
-  const switchClient = async (clientId: string, clientData?: ClientSwitchData): Promise<any> => {
+  const switchClient = async (clientId: string, clientData?: ClientSwitchData): Promise<void> => {
     try {
       console.log('🔍 switchClient - Starting with:', { clientId, hasClientData: !!clientData });
 
@@ -247,7 +247,7 @@ export const useAuthService = (
     }
   };
 
-  const switchEngagement = async (engagementId: string, engagementData?: EngagementSwitchData): Promise<any> => {
+  const switchEngagement = async (engagementId: string, engagementData?: EngagementSwitchData): Promise<void> => {
     try {
       console.log('🔍 switchEngagement - Starting with:', { engagementId, hasEngagementData: !!engagementData });
 

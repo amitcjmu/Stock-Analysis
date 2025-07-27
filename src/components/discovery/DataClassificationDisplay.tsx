@@ -106,7 +106,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
     fetchClassifications();
   }, [refreshTrigger, fetchClassifications]);
 
-  const updateClassification = async (itemId: string, newClassification: 'good_data' | 'needs_clarification' | 'unusable'): Promise<any> => {
+  const updateClassification = async (itemId: string, newClassification: 'good_data' | 'needs_clarification' | 'unusable'): Promise<void> => {
     try {
       const result = await apiCall('/api/v1/agents/discovery/learning/agent-learning', {
         method: 'POST',

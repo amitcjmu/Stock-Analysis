@@ -130,7 +130,7 @@ export const useDiscoveryFlowList = (): JSX.Element => {
 export { useDiscoveryFlowList as useDiscoveryFlowListV2 };
 
 // Utility function to get flows (used by auto-detection)
-export const getFlows = async (clientId?: string, engagementId?: string): Promise<any> => {
+export const getFlows = async (clientId?: string, engagementId?: string): Promise<DiscoveryFlow[]> => {
   try {
     // Require auth context to be passed in
     if (!clientId || !engagementId) {

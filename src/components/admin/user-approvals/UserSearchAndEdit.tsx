@@ -96,7 +96,7 @@ export const UserSearchAndEdit: React.FC = () => {
     }
   }, [editForm.default_client_id, engagements]);
 
-  const loadUsers = async (): Promise<any> => {
+  const loadUsers = async (): Promise<void> => {
     try {
       setLoading(true);
       const response = await apiCall('/auth/active-users');

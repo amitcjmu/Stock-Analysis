@@ -27,7 +27,7 @@ export interface QualityFixData {
 /**
  * Fetches the latest import data for data cleansing
  */
-export const fetchLatestImport = async (): Promise<any[]> => {
+export const fetchLatestImport = async (): Promise<AssetData[]> => {
   try {
     const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT, {
       headers: getAuthHeaders()
@@ -47,7 +47,7 @@ export const fetchLatestImport = async (): Promise<any[]> => {
 /**
  * Fetches assets from the backend
  */
-export const fetchAssets = async (page = 1, pageSize = 1000): Promise<any[]> => {
+export const fetchAssets = async (page = 1, pageSize = 1000): Promise<AssetData[]> => {
   try {
     const response = await apiCall(
       `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=${page}&page_size=${pageSize}`,
@@ -68,7 +68,25 @@ export const fetchAssets = async (page = 1, pageSize = 1000): Promise<any[]> => 
 /**
  * Performs agent quality analysis on the provided data
  */
-export const performAgentAnalysis = async (data: AssetData[]): Promise<any> => {
+export const performAgentAnalysis = async (data: AssetData[]): Promise<{
+  success: boolean;
+  data: {
+    issues: Array<{
+      id: string;
+      type: string;
+      severity: string;
+      description: string;
+      affected_assets: string[];
+    }>;
+    summary: {
+      total_issues: number;
+      critical: number;
+      high: number;
+      medium: number;
+      low: number;
+    };
+  };
+}> => {
   try {
     const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.ANALYZE_QUALITY, {
       method: 'POST',
@@ -93,7 +111,14 @@ export const performAgentAnalysis = async (data: AssetData[]): Promise<any> => {
 /**
  * Applies a fix to a specific issue
  */
-export const applyFix = async (issueId: string, fixData: QualityFixData): Promise<any> => {
+export const applyFix = async (issueId: string, fixData: QualityFixData): Promise<{
+  success: boolean;
+  data: {
+    fixed: boolean;
+    message: string;
+    updated_assets: string[];
+  };
+}> => {
   try {
     const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.APPLY_FIX}/${issueId}`, {
       method: 'POST',

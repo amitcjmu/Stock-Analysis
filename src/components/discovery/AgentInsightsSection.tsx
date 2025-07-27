@@ -65,7 +65,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     };
   }, [isProcessing]);
 
-  const fetchInsights = async (): Promise<any> => {
+  const fetchInsights = async (): Promise<void> => {
     try {
       const result = await apiCall(`/api/v1/agents/discovery/agent-insights?page=${pageContext}`);
       if (result.success && result.insights) {

@@ -44,7 +44,7 @@ export const DebugContext: React.FC = () => {
     window.location.reload();
   };
 
-  const fetchClients = async (): Promise<any> => {
+  const fetchClients = async (): Promise<void> => {
     setLoading(true);
     try {
       const token = window.localStorage.getItem('auth_token');

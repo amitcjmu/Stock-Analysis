@@ -93,7 +93,7 @@ const CollectionIndex: React.FC = () => {
   /**
    * Start a collection workflow by creating a flow through CrewAI
    */
-  const startCollectionWorkflow = async (workflowId: string, workflowPath: string): Promise<any> => {
+  const startCollectionWorkflow = async (workflowId: string, workflowPath: string): Promise<void> => {
     console.log(`🚀 Frontend: Starting collection workflow: ${workflowId}`);
 
     // Check if user has permission to create collection flows

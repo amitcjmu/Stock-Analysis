@@ -71,7 +71,7 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
 
   // Load health status and recommendations on mount
   useEffect(() => {
-    const loadHealthData = async (): Promise<any> => {
+    const loadHealthData = async (): Promise<void> => {
       try {
         const [health, recommendations] = await Promise.all([
           collectionFlowApi.getFlowHealthStatus(),

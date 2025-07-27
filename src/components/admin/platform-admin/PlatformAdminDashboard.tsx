@@ -130,7 +130,7 @@ export const PlatformAdminDashboard: React.FC = () => {
     setShowPurgeDialog(true);
   };
 
-  const executePurgeAction = async (): Promise<any> => {
+  const executePurgeAction = async (): Promise<void> => {
     if (!purgeAction) return;
 
     try {
