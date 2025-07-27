@@ -59,7 +59,7 @@ export class ObservabilityErrorBoundary extends Component<Props, State> {
     }
   }
 
-  handleRetry = () => {
+  handleRetry = (): void => {
     this.setState(prevState => ({
       hasError: false,
       error: null,
