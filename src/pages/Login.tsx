@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 // Demo credentials that match the database seed
 const DEMO_EMAIL = "demo@democorp.com";
-const DEMO_PASSWORD = "password"; // This matches the database seed
+const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD || ""; // Demo password from environment
 
 const Login: React.FC = () => {
   const navigate = useNavigate();

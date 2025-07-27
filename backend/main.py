@@ -148,14 +148,10 @@ async def lifespan(fastapi_app: FastAPI):
                         logger.warning(f"Database initialization warning: {e}")
                         # Don't fail startup on initialization issues
             else:
-                logger.warning(
-                    "⚠️⚠️⚠️ Database connection test failed, but continuing..."
-                )
+                logger.warning("⚠️⚠️⚠️ Database connection test failed, but continuing...")
 
         except Exception as e:
-            logger.warning(
-                f"⚠️⚠️⚠️ Database connection test failed: {e}", exc_info=True
-            )
+            logger.warning(f"⚠️⚠️⚠️ Database connection test failed: {e}", exc_info=True)
             # Don't fail startup on database connection issues
 
     # Start flow health monitor
@@ -238,11 +234,13 @@ except Exception as e:
 
     # Create minimal settings
     class MinimalSettings:
-        FRONTEND_URL = "http://localhost:8081"
-        ENVIRONMENT = "production"
-        DEBUG = False
-        ALLOWED_ORIGINS = ["http://localhost:8081"]
-        DATABASE_URL = "postgresql://localhost:5432/migration_db"
+        FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:8081")
+        ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
+        DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+        ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8081")
+        DATABASE_URL = os.getenv(
+            "DATABASE_URL", "postgresql://localhost:5432/migration_db"
+        )
 
         @property
         def allowed_origins_list(self):
@@ -670,7 +668,8 @@ async def health_check():
 # WebSocket endpoint removed - using HTTP polling for Vercel+Railway compatibility
 
 # Create an alias for backward compatibility
-app = fastapi_app
+# Alias for ASGI compatibility
+application = fastapi_app
 
 if __name__ == "__main__":
     # Port assignment - Use Railway PORT or default to 8000 for local development

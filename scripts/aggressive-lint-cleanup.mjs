@@ -161,7 +161,7 @@ if (issuesByRule['@typescript-eslint/no-explicit-any']) {
 
   Object.keys(fileGroups).forEach(filePath => {
     try {
-      let content = readFileSync(filePath, 'utf8');
+      const content = readFileSync(filePath, 'utf8');
       let fileFixCount = 0;
 
       // Replace explicit any types with unknown (safer)
@@ -208,7 +208,7 @@ if (issuesByRule['@typescript-eslint/explicit-module-boundary-types']) {
 
   Object.keys(fileGroups).forEach(filePath => {
     try {
-      let content = readFileSync(filePath, 'utf8');
+      const content = readFileSync(filePath, 'utf8');
       let fileFixCount = 0;
 
       // Simple regex patterns for common missing return types

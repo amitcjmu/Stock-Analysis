@@ -166,7 +166,7 @@ export const createTypeGuard = <T>(
 
 // Enhanced Type Guards with Error Reporting
 export const createValidatingTypeGuard = <T>(
-  validator: (obj: unknown): void => { isValid: boolean; errors: string[] },
+  validator: (obj: unknown) => { isValid: boolean; errors: string[] },
   typeName: string
 ) => {
   return {

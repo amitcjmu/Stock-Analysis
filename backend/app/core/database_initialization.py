@@ -324,7 +324,9 @@ class DatabaseInitializer:
                 # First clear user default references
                 await self.db.execute(
                     text(
-                        "UPDATE users SET default_engagement_id = NULL WHERE default_engagement_id IN (SELECT id FROM engagements WHERE client_account_id = :client_id)"
+                        "UPDATE users SET default_engagement_id = NULL "
+                        "WHERE default_engagement_id IN "
+                        "(SELECT id FROM engagements WHERE client_account_id = :client_id)"
                     ),
                     {"client_id": existing_client.id},
                 )
@@ -337,7 +339,9 @@ class DatabaseInitializer:
                 # Then delete all references
                 await self.db.execute(
                     text(
-                        "DELETE FROM engagement_access WHERE engagement_id IN (SELECT id FROM engagements WHERE client_account_id = :client_id)"
+                        "DELETE FROM engagement_access "
+                        "WHERE engagement_id IN "
+                        "(SELECT id FROM engagements WHERE client_account_id = :client_id)"
                     ),
                     {"client_id": existing_client.id},
                 )
@@ -349,7 +353,9 @@ class DatabaseInitializer:
                 )
                 await self.db.execute(
                     text(
-                        "DELETE FROM user_roles WHERE scope_engagement_id IN (SELECT id FROM engagements WHERE client_account_id = :client_id)"
+                        "DELETE FROM user_roles "
+                        "WHERE scope_engagement_id IN "
+                        "(SELECT id FROM engagements WHERE client_account_id = :client_id)"
                     ),
                     {"client_id": existing_client.id},
                 )
@@ -928,7 +934,8 @@ class DatabaseInitializer:
 
         if missing_tables:
             logger.warning(
-                f"Missing assessment flow tables: {', '.join(missing_tables)}. These tables have schema mismatches and will be addressed in future migration."
+                f"Missing assessment flow tables: {', '.join(missing_tables)}. "
+                f"These tables have schema mismatches and will be addressed in future migration."
             )
             logger.info(
                 "Continuing with initialization without assessment flow tables."
@@ -1029,8 +1036,7 @@ async def initialize_database(db: AsyncSession):
 
 # Make this available as a CLI command
 if __name__ == "__main__":
-    import asyncio
-
+    # asyncio already imported at the top of the file
     from app.core.database import AsyncSessionLocal
 
     async def main():

@@ -407,8 +407,7 @@ async def auto_seed_demo_data(db: AsyncSession) -> bool:
 
 # For testing
 if __name__ == "__main__":
-    import asyncio
-
+    # asyncio already imported at the top of the file
     from app.core.database import AsyncSessionLocal
 
     async def main():
