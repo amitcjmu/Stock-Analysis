@@ -221,7 +221,7 @@ export const withClient = <P extends object>(
   WrappedComponent: React.ComponentType<P>,
   requireClient: boolean = true
 ) => {
-  return function WithClientComponent(props: P) {
+  return function WithClientComponent(props: P): React.ReactElement | null {
     const { currentClient, isLoading } = useClient();
     const { user } = useAuth();
     const navigate = useNavigate();

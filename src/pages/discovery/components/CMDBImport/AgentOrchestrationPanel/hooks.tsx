@@ -10,7 +10,20 @@ import {
 import type { CollaborationData, PlanningData } from './types'
 import type { CrewProgress } from './types'
 
-export const useAgentOrchestrationState = () => /* TODO: Add proper return type */ {
+export const useAgentOrchestrationState = (): {
+  activeTab: string;
+  setActiveTab: React.Dispatch<React.SetStateAction<string>>;
+  collaborationData: CollaborationData | null;
+  setCollaborationData: React.Dispatch<React.SetStateAction<CollaborationData | null>>;
+  planningData: PlanningData | null;
+  setPlanningData: React.Dispatch<React.SetStateAction<PlanningData | null>>;
+  crews: CrewProgress[];
+  setCrews: React.Dispatch<React.SetStateAction<CrewProgress[]>>;
+  overallProgress: number;
+  setOverallProgress: React.Dispatch<React.SetStateAction<number>>;
+  currentPhase: string;
+  setCurrentPhase: React.Dispatch<React.SetStateAction<string>>;
+} => {
   const [activeTab, setActiveTab] = useState('overview');
   const [collaborationData, setCollaborationData] = useState<CollaborationData | null>(null);
   const [planningData, setPlanningData] = useState<PlanningData | null>(null);

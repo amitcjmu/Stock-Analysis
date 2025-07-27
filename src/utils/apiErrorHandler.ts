@@ -4,7 +4,7 @@ import { tokenStorage } from '@/contexts/AuthContext/storage';
 import type { ApiError } from '@/types/shared/api-types';
 
 // Create a function to handle API errors globally
-export const handleApiError = (error: ApiError & { status?: number; isAuthError?: boolean }, navigate: (path: string) => void) => {
+export const handleApiError = (error: ApiError & { status?: number; isAuthError?: boolean }, navigate: (path: string) => void): boolean => {
   // Check if it's an authentication error
   if (error?.status === 401 || error?.isAuthError) {
     console.warn('🔐 Authentication error detected, redirecting to login');
@@ -37,7 +37,7 @@ export const handleApiError = (error: ApiError & { status?: number; isAuthError?
 };
 
 // Create query and mutation caches with global error handling
-export const createQueryClient = (navigate: (path: string) => void) => {
+export const createQueryClient = (navigate: (path: string) => void): { queryCache: QueryCache; mutationCache: MutationCache; defaultOptions: object } => {
   return {
     queryCache: new QueryCache({
       onError: (error: ApiError & { status?: number }): void => {
@@ -72,7 +72,7 @@ export const createQueryClient = (navigate: (path: string) => void) => {
     }),
     defaultOptions: {
       queries: {
-        retry: (failureCount: number, error: ApiError & { status?: number; isAuthError?: boolean }): void => {
+        retry: (failureCount: number, error: ApiError & { status?: number; isAuthError?: boolean }): boolean => {
           // Don't retry on authentication errors
           if (error?.status === 401 || error?.isAuthError) {
             return false;

@@ -28,7 +28,7 @@ export function TechDebtFilters({
   onRiskChange,
   onStatusChange,
   onResetFilters,
-}: TechDebtFiltersProps) {
+}: TechDebtFiltersProps): React.ReactElement {
   return (
     <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0 md:space-x-4">
       <div className="relative flex-1">

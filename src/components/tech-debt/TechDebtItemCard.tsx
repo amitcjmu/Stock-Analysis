@@ -21,7 +21,7 @@ export function TechDebtItemCard({
   onSelect,
   onViewDetails,
   showCheckbox = true
-}: TechDebtItemCardProps) {
+}: TechDebtItemCardProps): React.ReactElement {
   const getRiskBadgeVariant = (): unknown => {
     switch (item.securityRisk) {
       case 'critical':

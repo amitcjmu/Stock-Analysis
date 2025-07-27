@@ -17,7 +17,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // Assessment Flow API client
 export const assessmentFlowAPI = {
-  async initialize(data: { selected_application_ids: string[] }, headers: Record<string, string>) {
+  async initialize(data: { selected_application_ids: string[] }, headers: Record<string, string>): Promise<Response> {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/initialize`, {
       method: 'POST',
       headers: {
@@ -34,7 +34,7 @@ export const assessmentFlowAPI = {
     return response.json();
   },
 
-  async getStatus(flowId: string) {
+  async getStatus(flowId: string): Promise<AssessmentFlowStatus> {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/status`);
 
     if (!response.ok) {
@@ -44,7 +44,7 @@ export const assessmentFlowAPI = {
     return response.json();
   },
 
-  async resume(flowId: string, data: { user_input: UserInput; save_progress: boolean }) {
+  async resume(flowId: string, data: { user_input: UserInput; save_progress: boolean }): Promise<AssessmentFlowStatus> {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/resume`, {
       method: 'POST',
       headers: {
@@ -60,7 +60,7 @@ export const assessmentFlowAPI = {
     return response.json();
   },
 
-  async navigateToPhase(flowId: string, phase: AssessmentPhase) {
+  async navigateToPhase(flowId: string, phase: AssessmentPhase): Promise<AssessmentFlowStatus> {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/navigate`, {
       method: 'POST',
       headers: {
@@ -79,7 +79,7 @@ export const assessmentFlowAPI = {
   async updateArchitectureStandards(flowId: string, data: {
     engagement_standards: ArchitectureStandard[];
     application_overrides: Record<string, ArchitectureStandard>
-  }) {
+  }): Promise<Response> {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/architecture-standards`, {
       method: 'PUT',
       headers: {
@@ -95,7 +95,7 @@ export const assessmentFlowAPI = {
     return response.json();
   },
 
-  async updateApplicationComponents(flowId: string, appId: string, components: ApplicationComponent[]) {
+  async updateApplicationComponents(flowId: string, appId: string, components: ApplicationComponent[]): Promise<Response> {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/applications/${appId}/components`, {
       method: 'PUT',
       headers: {
@@ -111,7 +111,7 @@ export const assessmentFlowAPI = {
     return response.json();
   },
 
-  async updateSixRDecision(flowId: string, appId: string, decision: Partial<SixRDecision>) {
+  async updateSixRDecision(flowId: string, appId: string, decision: Partial<SixRDecision>): Promise<Response> {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/applications/${appId}/sixr-decision`, {
       method: 'PUT',
       headers: {
@@ -127,7 +127,7 @@ export const assessmentFlowAPI = {
     return response.json();
   },
 
-  async getArchitectureStandards(flowId: string) {
+  async getArchitectureStandards(flowId: string): Promise<Response> {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/architecture-standards`);
 
     if (!response.ok) {
@@ -137,7 +137,7 @@ export const assessmentFlowAPI = {
     return response.json();
   },
 
-  async getTechDebtAnalysis(flowId: string) {
+  async getTechDebtAnalysis(flowId: string): Promise<Response> {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/tech-debt-analysis`);
 
     if (!response.ok) {
@@ -147,7 +147,7 @@ export const assessmentFlowAPI = {
     return response.json();
   },
 
-  async getApplicationComponents(flowId: string) {
+  async getApplicationComponents(flowId: string): Promise<Response> {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/application-components`);
 
     if (!response.ok) {
@@ -157,7 +157,7 @@ export const assessmentFlowAPI = {
     return response.json();
   },
 
-  async getSixRDecisions(flowId: string) {
+  async getSixRDecisions(flowId: string): Promise<Response> {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/sixr-decisions`);
 
     if (!response.ok) {
@@ -167,7 +167,7 @@ export const assessmentFlowAPI = {
     return response.json();
   },
 
-  async finalize(flowId: string) {
+  async finalize(flowId: string): Promise<Response> {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/finalize`, {
       method: 'POST',
       headers: {

@@ -27,7 +27,7 @@ export interface UseOptimisticFlowOptions extends UseFlowOptions {
 /**
  * Enhanced flow hook with optimistic updates (MFO-082)
  */
-export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}) {
+export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}): [AssessmentFlowState, OptimisticActions] {
   const {
     enableOptimistic = true,
     rollbackOnError = true,
@@ -288,7 +288,7 @@ export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}) {
 /**
  * Specialized hooks with optimistic updates
  */
-export function useOptimisticDiscoveryFlow(options?: UseOptimisticFlowOptions) {
+export function useOptimisticDiscoveryFlow(options?: UseOptimisticFlowOptions): [AssessmentFlowState, OptimisticActions] {
   const [state, actions] = useOptimisticFlow(options);
 
   const createDiscoveryFlow = useCallback(async (config: Omit<CreateFlowRequest, 'flow_type'>) => {
@@ -307,7 +307,7 @@ export function useOptimisticDiscoveryFlow(options?: UseOptimisticFlowOptions) {
   ] as const;
 }
 
-export function useOptimisticAssessmentFlow(options?: UseOptimisticFlowOptions) {
+export function useOptimisticAssessmentFlow(options?: UseOptimisticFlowOptions): [AssessmentFlowState, OptimisticActions] {
   const [state, actions] = useOptimisticFlow(options);
 
   const createAssessmentFlow = useCallback(async (config: Omit<CreateFlowRequest, 'flow_type'>) => {

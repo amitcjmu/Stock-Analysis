@@ -216,7 +216,7 @@ const AssessmentReadiness: React.FC = () => {
   );
 };
 
-const AssessmentReadinessWithErrorBoundary = () => (
+const AssessmentReadinessWithErrorBoundary = (): React.ReactElement => (
   <ErrorBoundary>
     <AssessmentReadiness />
   </ErrorBoundary>

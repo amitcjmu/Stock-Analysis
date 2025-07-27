@@ -8,7 +8,7 @@ export const useDebugLogging = (
   isAdmin: boolean,
   isDemoMode: boolean,
   getAuthHeaders: () => Record<string, string>
-) => {
+): void => {
   useEffect(() => {
     // Only log authentication state changes, not every render
     if (process.env.NODE_ENV === 'development') {

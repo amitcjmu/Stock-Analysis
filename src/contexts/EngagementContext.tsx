@@ -153,7 +153,7 @@ export const withEngagement = <P extends object>(
   WrappedComponent: React.ComponentType<P>,
   requireEngagement: boolean = true
 ) => {
-  return function WithEngagementComponent(props: P) {
+  return function WithEngagementComponent(props: P): React.ReactElement | null {
     const { currentEngagement, isLoading } = useEngagement();
     const navigate = useNavigate();
 

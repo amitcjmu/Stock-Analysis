@@ -145,7 +145,7 @@ export const isValidationResultArray = (obj: unknown): obj is Array<import('./ap
 export const createTypeGuard = <T>(
   validator: (obj: unknown) => boolean,
   typeName: string
-) => {
+): (obj: unknown) => obj is T => {
   const guard = (obj: unknown): obj is T => {
     const isValid = validator(obj);
     if (!isValid && process.env.NODE_ENV === 'development') {
@@ -168,7 +168,7 @@ export const createTypeGuard = <T>(
 export const createValidatingTypeGuard = <T>(
   validator: (obj: unknown) => { isValid: boolean; errors: string[] },
   typeName: string
-) => {
+): { guard: (obj: unknown) => obj is T; validator: (obj: unknown) => { isValid: boolean; errors: string[] } } => {
   return {
     guard: (obj: unknown): obj is T => {
       const result = validator(obj);
@@ -288,7 +288,7 @@ export const COMMON_SCHEMAS: Record<string, ValidationSchema> = {
 };
 
 // Schema-based Type Guards
-export const createSchemaTypeGuard = <T>(schemaName: string) => {
+export const createSchemaTypeGuard = <T>(schemaName: string): { guard: (obj: unknown) => obj is T; validator: (obj: unknown) => { isValid: boolean; errors: string[] } } => {
   const schema = COMMON_SCHEMAS[schemaName];
   if (!schema) {
     throw new Error(`Schema '${schemaName}' not found`);

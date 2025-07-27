@@ -345,7 +345,7 @@ export function PollingControls({
  * Compact Polling Status Indicator
  * For use in headers or toolbars
  */
-export function PollingStatusIndicator({ flowId }: { flowId?: string }) {
+export function PollingStatusIndicator({ flowId }: { flowId?: string }): React.ReactElement {
   const queryClient = useQueryClient();
   const [errorCount, setErrorCount] = useState(0);
   const [lastChecked, setLastChecked] = useState(new Date());

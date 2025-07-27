@@ -84,7 +84,7 @@ export const renderMarkdown = (text: string): React.ReactElement => {
   return <div className="markdown-content">{elements}</div>;
 };
 
-const formatInlineMarkdown = (text: string): React.ReactNode => {
+const formatInlineMarkdown = (text: string): React.ReactElement => {
   // Handle inline code `code`
   text = text.replace(/`([^`]+)`/g, '<code class="bg-gray-200 px-1 rounded text-sm font-mono">$1</code>');
 

@@ -431,7 +431,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
  * Specialized hook for discovery flows
  * MFO-074: Flow type-specific hook
  */
-export function useDiscoveryFlow(options?: UseFlowOptions) {
+export function useDiscoveryFlow(options?: UseFlowOptions): [AssessmentFlowState, AssessmentFlowActions & { createDiscoveryFlow: (config: Omit<CreateFlowRequest, 'flow_type'>) => Promise<AssessmentFlow> }] {
   const [state, actions] = useFlow(options);
 
   const createDiscoveryFlow = useCallback(async (config: Omit<CreateFlowRequest, 'flow_type'>) => {
@@ -454,7 +454,7 @@ export function useDiscoveryFlow(options?: UseFlowOptions) {
  * Specialized hook for assessment flows
  * MFO-074: Flow type-specific hook
  */
-export function useAssessmentFlow(options?: UseFlowOptions) {
+export function useAssessmentFlow(options?: UseFlowOptions): [AssessmentFlowState, AssessmentFlowActions & { createAssessmentFlow: (config: Omit<CreateFlowRequest, 'flow_type'>) => Promise<AssessmentFlow> }] {
   const [state, actions] = useFlow(options);
 
   const createAssessmentFlow = useCallback(async (config: Omit<CreateFlowRequest, 'flow_type'>) => {
@@ -477,7 +477,7 @@ export function useAssessmentFlow(options?: UseFlowOptions) {
  * Hook for multiple flows management
  * MFO-074: Multi-flow management
  */
-export function useFlows(flowType?: FlowType, options?: UseFlowOptions) {
+export function useFlows(flowType?: FlowType, options?: UseFlowOptions): readonly [AssessmentFlowState & { flows: AssessmentFlow[]; isLoading: boolean }, AssessmentFlowActions & { loadFlows: () => Promise<void> }] {
   const [state, actions] = useFlow(options);
   const [isLoadingFlows, setIsLoadingFlows] = useState(false);
 

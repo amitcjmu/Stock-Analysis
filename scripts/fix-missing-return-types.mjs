@@ -28,7 +28,7 @@ Object.entries(fileWarnings).forEach(([filePath, positions]) => {
   console.log(`\nProcessing ${filePath} (${positions.length} warnings)...`);
 
   try {
-    let content = readFileSync(filePath, 'utf8');
+    const content = readFileSync(filePath, 'utf8');
     const lines = content.split('\n');
 
     // Sort positions by line number in reverse order to avoid offset issues

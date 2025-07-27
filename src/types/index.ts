@@ -138,7 +138,7 @@ export const getAvailableModules = <T extends ModuleBoundaryType>(
 // Type-safe module import utilities
 export const createModuleImporter = <T extends ModuleBoundaryType>(
   boundaryType: T
-) => {
+): { validate: (moduleName: string) => moduleName is ModuleName<T>; getAvailable: () => ReadonlyArray<ModuleName<T>>; importModule: (moduleName: ModuleName<T>) => Promise<unknown> } => {
   return {
     validate: (moduleName: string): moduleName is ModuleName<T> =>
       validateModuleBoundary(boundaryType, moduleName),

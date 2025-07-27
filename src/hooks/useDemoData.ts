@@ -184,7 +184,7 @@ const apiRequest = async <T>(endpoint: string, options?: RequestInit): Promise<T
 };
 
 // Hook for fetching demo assets
-export const useDemoAssets = (filters?: AssetFilters) => {
+export const useDemoAssets = (filters?: AssetFilters): { assets: DemoAsset[]; loading: boolean; error: string | null; fetchAssets: () => Promise<void> } => {
   const [assets, setAssets] = useState<DemoAsset[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -225,7 +225,7 @@ export const useDemoAssets = (filters?: AssetFilters) => {
 };
 
 // Hook for fetching a single demo asset
-export const useDemoAsset = (assetId: string | null) => {
+export const useDemoAsset = (assetId: string | null): { asset: DemoAsset | null; loading: boolean; error: string | null } => {
   const [asset, setAsset] = useState<DemoAsset | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -255,7 +255,7 @@ export const useDemoAsset = (assetId: string | null) => {
 };
 
 // Hook for fetching demo assets summary
-export const useDemoAssetsSummary = () => {
+export const useDemoAssetsSummary = (): { summary: AssetsSummary | null; loading: boolean; error: string | null } => {
   const [summary, setSummary] = useState<DemoAssetSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -283,7 +283,7 @@ export const useDemoAssetsSummary = () => {
 };
 
 // Hook for fetching 6R analyses
-export const useDemoSixRAnalyses = (limit?: number) => {
+export const useDemoSixRAnalyses = (limit?: number): { analyses: SixRAnalysis[]; loading: boolean; error: string | null } => {
   const [analyses, setAnalyses] = useState<DemoSixRAnalysis[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -317,7 +317,7 @@ export const useDemoSixRAnalyses = (limit?: number) => {
 };
 
 // Hook for fetching migration waves
-export const useDemoMigrationWaves = (status?: string) => {
+export const useDemoMigrationWaves = (status?: string): { waves: MigrationWave[]; loading: boolean; error: string | null } => {
   const [waves, setWaves] = useState<DemoMigrationWave[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -351,7 +351,7 @@ export const useDemoMigrationWaves = (status?: string) => {
 };
 
 // Hook for fetching tags
-export const useDemoTags = (category?: string) => {
+export const useDemoTags = (category?: string): { tags: DemoTag[]; loading: boolean; error: string | null } => {
   const [tags, setTags] = useState<DemoTag[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -385,7 +385,7 @@ export const useDemoTags = (category?: string) => {
 };
 
 // Hook for engagement information
-export const useDemoEngagement = (): JSX.Element => {
+export const useDemoEngagement = (): { engagementInfo: EngagementInfo | null; loading: boolean; error: string | null; refetch: () => Promise<void> } => {
   const [engagementInfo, setEngagementInfo] = useState<{
     client_account: DemoClientAccount | null;
     engagement: DemoEngagement | null;
@@ -421,7 +421,7 @@ export const useDemoEngagement = (): JSX.Element => {
 };
 
 // Hook for similarity search
-export const useSimilaritySearch = (): JSX.Element => {
+export const useSimilaritySearch = (): { searchSimilarAssets: (assetId: string, threshold?: number) => Promise<DemoAsset[]>; searchAssetsByText: (query: string, limit?: number) => Promise<DemoAsset[]>; autoTagAsset: (assetId: string) => Promise<{ existing_tags: DemoTag[]; suggested_tags: DemoTag[] }>; loading: boolean; error: string | null } => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -516,7 +516,7 @@ export const useSimilaritySearch = (): JSX.Element => {
 };
 
 // Combined hook for dashboard data
-export const useDemoDashboard = (): unknown => {
+export const useDemoDashboard = (): { assets: DemoAsset[]; summary: AssetsSummary | null; analyses: SixRAnalysis[]; waves: MigrationWave[]; engagementInfo: EngagementInfo | null; loading: boolean; error: string | null } => {
   const { assets, loading: assetsLoading, error: assetsError } = useDemoAssets({ limit: 10 });
   const { summary, loading: summaryLoading, error: summaryError } = useDemoAssetsSummary();
   const { analyses, loading: analysesLoading, error: analysesError } = useDemoSixRAnalyses(1);

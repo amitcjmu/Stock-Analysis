@@ -42,7 +42,7 @@ export const useAuthService = (
   setError: (error: string | null) => void,
   setIsLoginInProgress: (loading: boolean) => void,
   getAuthHeaders: () => Record<string, string>
-) => {
+): AuthActions => {
   const navigate = useNavigate();
 
   const logout = (): unknown => {
