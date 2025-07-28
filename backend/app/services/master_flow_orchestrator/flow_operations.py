@@ -70,6 +70,7 @@ class FlowOperations:
         configuration: Optional[Dict[str, Any]] = None,
         initial_state: Optional[Dict[str, Any]] = None,
         _retry_count: int = 0,
+        atomic: bool = False,
     ) -> Tuple[str, Dict[str, Any]]:
         """Create a new flow of any type"""
         logger.info(
@@ -97,12 +98,14 @@ class FlowOperations:
             flow_name = flow_name or flow_config.display_name
 
             # Create master flow record using lifecycle manager
+            # 🔧 CC FIX: Use atomic=False to prevent immediate commit in atomic transactions
             master_flow = await self.lifecycle_manager.create_flow_record(
                 flow_id=flow_id,
                 flow_type=flow_type,
                 flow_name=flow_name,
                 flow_configuration=configuration or flow_config.default_configuration,
                 initial_state=initial_state or {},
+                auto_commit=not atomic,  # Don't auto-commit if this is an atomic operation
             )
 
             # Initialize flow execution using execution engine

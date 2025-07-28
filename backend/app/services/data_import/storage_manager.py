@@ -404,19 +404,16 @@ class ImportStorageManager:
             )
 
             result = await self.db.execute(
-                select(CrewAIFlowStateExtensions.id).where(
+                select(CrewAIFlowStateExtensions.flow_id).where(
                     CrewAIFlowStateExtensions.flow_id == master_flow_id
                 )
             )
-            flow_record = result.scalar_one_or_none()
+            actual_master_flow_id = result.scalar_one_or_none()
 
-            if not flow_record:
+            if not actual_master_flow_id:
                 raise ValueError(
                     f"Master flow with flow_id {master_flow_id} not found in database"
                 )
-
-            # Use the database record ID for the foreign key
-            actual_master_flow_id = flow_record
 
             # Link the master flow to the main DataImport record
             stmt_data_import = (

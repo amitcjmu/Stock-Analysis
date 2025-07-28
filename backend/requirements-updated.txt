@@ -33,7 +33,7 @@ openpyxl==3.1.5
 pypdf==5.7.0
 
 # HTTP and requests - UPDATED FOR SECURITY
-aiohttp==3.12.13  # Updated from >=3.9.0, fixes security vulnerabilities
+aiohttp==3.12.14  # Updated from >=3.9.0, fixes CVE-2025-53643 HTTP Request/Response Smuggling
 requests==2.32.4  # Updated from >=2.31.0, latest security patches
 tenacity==9.1.2  # Updated from >=2.2.0
 

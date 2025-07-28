@@ -88,7 +88,7 @@ repos:
       # Only check staged files for credentials (expanded patterns)
       - id: check-credentials-staged
         name: Check for hardcoded credentials in staged files
-        entry: sh -c 'git diff --staged --name-only | grep -E "\.(py|yml|yaml|json|env)$" | xargs -I {} grep -lE "(password|secret|token|api_key|private_key)\s*[:=]\s*[\"'\''][^\"'\'']{8,}[\"'\'']" {} 2>/dev/null && echo "Found hardcoded credentials!" && exit 1 || exit 0'
+        entry: sh -c 'files=$(git diff --staged --name-only | grep -E "\.(py|yml|yaml|json|env|txt)$"); if [ -n "$files" ]; then echo "$files" | xargs -I {} grep -lE "(password|secret|token|api_key|private_key)\s*[:=]\s*[\"'\''][^\"'\'']{8,}[\"'\'']" {} 2>/dev/null && echo "Found hardcoded credentials!" && exit 1; fi; exit 0'
         language: system
         pass_filenames: false
 
