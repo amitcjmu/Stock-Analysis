@@ -1,0 +1,1701 @@
+{
+  "summary": {
+    "total_features": 71,
+    "total_releases": 1,
+    "total_significant_items": 44,
+    "development_period": {
+      "start": "2025-05-24",
+      "end": "2025-07-28"
+    }
+  },
+  "key_features_timeline": [
+    {
+      "date": "2025-05-24",
+      "hash": "3edc661",
+      "author": "gpt-engineer-app[bot]",
+      "category": "UI/Frontend",
+      "title": "Phase Page",
+      "original_message": "Rename platform and add phase pages",
+      "score": 4
+    },
+    {
+      "date": "2025-05-26",
+      "hash": "e24e469",
+      "author": "CryptoYogiLLC",
+      "category": "Core System",
+      "title": "Intelligent Asset Type Detection And User Feedback System - Implement Context-Aware Ai Analysis That Properly Distinguishes Applications, Servers, And Databases - Add Asset-Type-Specific Field Validation (Applications Don'T Need Os/Ip Fields) - Create User Feedback Interface For Correcting Ai Analysis And Asset Type Detection - Add Learning Mechanism That Processes User Corrections To Improve Future Analysis - Enhance Backend With Asset Type Context In Cmdb Analysis And Feedback Endpoint - Improve Frontend With Feedback Dialog And Asset Type Correction Capabilities - Fix Syntax Errors And Enhance Error Handling Throughout The System",
+      "original_message": "feat: Add intelligent asset type detection and user feedback system - Implement context-aware AI analysis that properly distinguishes applications, servers, and databases - Add asset-type-specific field validation (applications don't need OS/IP fields) - Create user feedback interface for correcting AI analysis and asset type detection - Add learning mechanism that processes user corrections to improve future analysis - Enhance backend with asset type context in CMDB analysis and feedback endpoint - Improve frontend with feedback dialog and asset type correction capabilities - Fix syntax errors and enhance error handling throughout the system - Reduce false positives in missing field detection based on asset type relevance",
+      "score": 5
+    },
+    {
+      "date": "2025-05-26",
+      "hash": "08bb166",
+      "author": "CryptoYogiLLC",
+      "category": "Workflow",
+      "title": "Interactive Data Table With Cell-Level Editing - Implement Missing Field Addition With One-Click Buttons - Create Project Management With Optional Database Storage - Add Functional Process Data With Real Backend Processing - Enhance Data Quality Improvement And Validation Pipeline",
+      "original_message": "feat: Enhanced CMDB Import with data editing and processing capabilities - Add interactive data table with cell-level editing - Implement missing field addition with one-click buttons - Create project management with optional database storage - Add functional Process Data with real backend processing - Enhance data quality improvement and validation pipeline - Implement dual-mode interface (analysis/editing) - Add comprehensive processing status and feedback - Create project creation dialog and metadata management - Enhance backend with CMDBProcessingRequest model - Add advanced data cleaning and quality scoring - Improve user experience with better loading states and visual feedback",
+      "score": 5
+    },
+    {
+      "date": "2025-05-26",
+      "hash": "7e87f67",
+      "author": "CryptoYogiLLC",
+      "category": "UI/Frontend",
+      "title": "Comprehensive Changelog.Md Documenting All Features And Improvements - Update Package.Json With Correct Project Name And V0.2.0 Version - Add Backend Version.Py With Release Information And Bui",
+      "original_message": "feat: Release v0.2.0 - Sprint 1 Complete with Comprehensive Changelog - Add comprehensive CHANGELOG.md documenting all features and improvements - Update package.json with correct project name and v0.2.0 version - Add backend version.py with release information and build metadata - Update FastAPI app to use version information from version.py - Document complete backend implementation, Docker containerization, and fixes - Mark Sprint 1 as COMPLETED with all objectives achieved - Ready for Sprint 2 development phase",
+      "score": 5
+    },
+    {
+      "date": "2025-05-26",
+      "version": "v0.2.0",
+      "title": "Release v0.2.0",
+      "message": "feat: Release v0.2.0 - Sprint 1 Complete with Comprehensive Changelog - Add comprehensive CHANGELOG.md documenting all features and improvements - Update package.json with correct project name and v0.2.0 version - Add backend version.py with release information and build metadata - Update FastAPI app to use version information from version.py - Document complete backend implementation, Docker containerization, and fixes - Mark Sprint 1 as COMPLETED with all objectives achieved - Ready for Sprint 2 development phase",
+      "hash": "7e87f67",
+      "category": "Release",
+      "score": 5
+    },
+    {
+      "date": "2025-05-27",
+      "hash": "929a206",
+      "author": "CryptoYogiLLC",
+      "category": "Core System",
+      "title": "Comprehensive Agentic Remediation Status Document - Documents 85% Completion Of Agentic Ai Framework",
+      "original_message": "Add comprehensive agentic remediation status document - Documents 85% completion of agentic AI framework - Details all completed phases and remaining work - Shows implementation metrics and achievements - Provides clear next steps for remaining tasks",
+      "score": 5
+    },
+    {
+      "date": "2025-05-29",
+      "hash": "5a5c157",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Complete Discovery Workflow Redesign With Real Data Integration - Major Release V0.3.0 With Reordered Workflow, Eliminated Dummy Data, Created Reusable Rawdatatable Component, Enhanced Attribute Mapping, Docker-First Development, And Proper Crewai Agent Integration At Each Step",
+      "original_message": "feat: Complete Discovery workflow redesign with real data integration - Major Release v0.3.0 with reordered workflow, eliminated dummy data, created reusable RawDataTable component, enhanced attribute mapping, Docker-first development, and proper CrewAI agent integration at each step",
+      "score": 4
+    },
+    {
+      "date": "2025-05-30",
+      "hash": "14e3ae2",
+      "author": "CryptoYogiLLC",
+      "category": "AI/Agent",
+      "title": "Discovery_Handlers Package With Separate Modules - Maintain All Robust Json Serialization Fixes - Reduce Discovery.Py From 428 Lines To 97 Lines - Improve Maintai",
+      "original_message": "\ud83d\udd27 Modularize discovery endpoints - Replace 3 discovery versions with single modular approach - Create discovery_handlers package with separate modules - Maintain all robust JSON serialization fixes - Reduce discovery.py from 428 lines to 97 lines - Improve maintainability and code organization",
+      "score": 4
+    },
+    {
+      "date": "2025-05-31",
+      "hash": "2b98328",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Comprehensive Cursor Development Rules For Agentic Migration",
+      "original_message": "\ud83c\udfaf Add comprehensive Cursor development rules for agentic migration platform - Docker-first, multi-tenant, CrewAI agents, no hard-coded heuristics",
+      "score": 5
+    },
+    {
+      "date": "2025-06-05",
+      "hash": "3900584",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Missing Client_Accounts Columns For Railway Production - Added Comprehensive Migration",
+      "original_message": "\ud83d\udc1b Fix: Add missing client_accounts columns for Railway production - Added comprehensive migration for missing client_accounts table columns - Includes headquarters_location, contact fields, and JSON settings columns - Conditional column creation prevents conflicts between dev/prod - Auto-population of default values for existing records",
+      "score": 5
+    },
+    {
+      "date": "2025-06-05",
+      "hash": "56daff2",
+      "author": "CryptoYogiLLC",
+      "category": "Core System",
+      "title": "Demo Admin Access Control - Added Clientcrudhandler Import With Conditional Availability Checks - Implemented User-Type Endpoint For Access Level Detection - Created Useusertype Hook For Frontend Integration - Complete Useraccessmanagement Component With Grant/Revoke Functionality - Zero Linter Errors And Comprehensive Access Control System",
+      "original_message": "\ud83d\udd27 Fix linter errors and implement demo admin access control - Added ClientCRUDHandler import with conditional availability checks - Implemented user-type endpoint for access level detection - Created useUserType hook for frontend integration - Complete UserAccessManagement component with grant/revoke functionality - Zero linter errors and comprehensive access control system",
+      "score": 5
+    },
+    {
+      "date": "2025-06-05",
+      "hash": "db90e4d",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Missing Database Columns For Production Railway Deployment - Added Migration To Create Missing Migration_Scope And Team_Preferences Columns - Conditional Column Creation Prevents Conflicts Between Dev/Prod Environments - Auto-Population Of Default Json Values For Existing Records - Production-Safe Migration",
+      "original_message": "\ud83d\udc1b Fix: Add missing database columns for production Railway deployment - Added migration to create missing migration_scope and team_preferences columns - Conditional column creation prevents conflicts between dev/prod environments - Auto-population of default JSON values for existing records - Production-safe migration with existence checks",
+      "score": 4
+    },
+    {
+      "date": "2025-06-13",
+      "hash": "82b8b29",
+      "author": "CryptoYogiLLC",
+      "category": "Backend/API",
+      "title": "Missing /Api/V1 Prefix To All Api",
+      "original_message": "\ud83d\ude80 [FIX] Add missing /api/v1 prefix to all API calls",
+      "score": 4
+    },
+    {
+      "date": "2025-06-18",
+      "hash": "a6885e3",
+      "author": "CryptoYogiLLC",
+      "category": "Workflow",
+      "title": "Crewai Fingerprinting For Flow Identification - Replaced Session Id Hardcoding With Proper Crewai Fingerprints As Primary Identifiers - Backend Now Stores Flow",
+      "original_message": "\ud83d\udd27 CRITICAL FIX: Implement CrewAI fingerprinting for flow identification - Replaced session ID hardcoding with proper CrewAI fingerprints as primary identifiers - Backend now stores flows by both fingerprint (primary) and session ID (compatibility) - Frontend manages dual identifiers with fingerprint priority - Fixed fundamental disconnect between frontend requests and backend responses",
+      "score": 4
+    },
+    {
+      "date": "2025-06-23",
+      "hash": "528e5f7",
+      "author": "CryptoYogiLLC",
+      "category": "Core System",
+      "title": "Hybrid Crewai + Postgresql Persistence Architecture",
+      "original_message": "\ud83d\ude80 MAJOR: Implement Hybrid CrewAI + PostgreSQL Persistence Architecture",
+      "score": 5
+    },
+    {
+      "date": "2025-06-24",
+      "hash": "0d185b6",
+      "author": "CryptoYogiLLC",
+      "category": "Workflow",
+      "title": "Real-Time Crewai Discovery Flow",
+      "original_message": "\ud83d\ude80 Implement real-time CrewAI Discovery Flow progress tracking",
+      "score": 5
+    },
+    {
+      "date": "2025-06-24",
+      "hash": "2a8e612",
+      "author": "CryptoYogiLLC",
+      "category": "Core System",
+      "title": "Proper V2 Api Architecture",
+      "original_message": "\ud83d\ude80 Implement proper V2 API architecture for discovery flows",
+      "score": 5
+    },
+    {
+      "date": "2025-06-24",
+      "hash": "8d31be4",
+      "author": "CryptoYogiLLC",
+      "category": "AI/Agent",
+      "title": "Native User Approval In Field Mapping Crew",
+      "original_message": "\ud83c\udfaf CrewAI Human Input Integration: Implement native user approval in field mapping crew",
+      "score": 4
+    },
+    {
+      "date": "2025-06-25",
+      "hash": "c88d678",
+      "author": "CryptoYogiLLC",
+      "category": "AI/Agent",
+      "title": "Missing Abstract Methods In Assetinventoryagent",
+      "original_message": "\ud83d\udc1b Fix: Implement missing abstract methods in AssetInventoryAgent",
+      "score": 4
+    },
+    {
+      "date": "2025-06-28",
+      "hash": "06607c2",
+      "author": "CryptoYogiLLC",
+      "category": "Core System",
+      "title": "Comprehensive Agentic Flow Management System",
+      "original_message": "\ud83e\udd16 Implement comprehensive agentic flow management system",
+      "score": 5
+    },
+    {
+      "date": "2025-06-29",
+      "hash": "ec3ef3c",
+      "author": "CryptoYogiLLC",
+      "category": "Core System",
+      "title": "Interactive Dropdown Approval System",
+      "original_message": "\ud83c\udfaf Field Mapping Enhancement: Implement Interactive Dropdown Approval System",
+      "score": 5
+    },
+    {
+      "date": "2025-06-30",
+      "hash": "553a1b8",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Complete Database Consolidation With Single Migration",
+      "original_message": "feat: Complete database consolidation with single migration",
+      "score": 4
+    },
+    {
+      "date": "2025-07-01",
+      "hash": "8679f8e",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Complete Agent 5 Frontend Sessionid Cleanup",
+      "original_message": "feat: Complete Agent 5 frontend sessionId cleanup",
+      "score": 4
+    },
+    {
+      "date": "2025-07-01",
+      "hash": "969f5b7",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Complete Frontend Component Modularization - Phase 2",
+      "original_message": "feat: Complete frontend component modularization - Phase 2",
+      "score": 4
+    },
+    {
+      "date": "2025-07-01",
+      "hash": "3df76c6",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Complete Backend Core Modularization - Phase 1",
+      "original_message": "feat: Complete backend core modularization - Phase 1",
+      "score": 4
+    },
+    {
+      "date": "2025-07-07",
+      "hash": "5cc1441",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Standardize Api Endpoints And Optimize Polling For Production Performance",
+      "original_message": "feat: Standardize API endpoints and optimize polling for production performance",
+      "score": 4
+    },
+    {
+      "date": "2025-07-17",
+      "hash": "c711135",
+      "author": "CryptoYogiLLC",
+      "category": "Workflow",
+      "title": "Crewai_Flow",
+      "original_message": "\ud83d\udea8 EMERGENCY FIX: Force create crewai_flow_state_extensions table on Railway",
+      "score": 4
+    },
+    {
+      "date": "2025-07-18",
+      "hash": "0450694",
+      "author": "CryptoYogiLLC",
+      "category": "Workflow",
+      "title": "Missing Discovery_Flow",
+      "original_message": "Add missing discovery_flows table to comprehensive migration",
+      "score": 5
+    },
+    {
+      "date": "2025-07-18",
+      "hash": "12ab5de",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Missing Migration_Waves Table To Comprehensive Migration",
+      "original_message": "Add missing migration_waves table to comprehensive migration",
+      "score": 4
+    },
+    {
+      "date": "2025-07-18",
+      "hash": "2168749",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Missing Engagement_Access Table To Comprehensive Migration",
+      "original_message": "Add missing engagement_access table to comprehensive migration",
+      "score": 4
+    },
+    {
+      "date": "2025-07-18",
+      "hash": "87fb4fa",
+      "author": "CryptoYogiLLC",
+      "category": "AI/Agent",
+      "title": "Database Initialization To Rai",
+      "original_message": "Add database initialization to Railway deployment process",
+      "score": 4
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "206434a",
+      "author": "CryptoYogiLLC",
+      "category": "Workflow",
+      "title": "Comprehensive Github Actions Workflow",
+      "original_message": "\ud83c\udfaf FEATURE: Add comprehensive GitHub Actions workflows for automated checks",
+      "score": 5
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "b6795f1",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Complete Phase 3 Workflow Orchestration (C1.5 & C1.6)",
+      "original_message": "\u2728 FEAT: Complete Phase 3 Workflow Orchestration (C1.5 & C1.6)",
+      "score": 5
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "246c04e",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "B1.7 - Complete Adapter Performance Monitoring And Optimization System",
+      "original_message": "\u2728 FEAT: B1.7 - Complete adapter performance monitoring and optimization system",
+      "score": 5
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "019c4ff",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Complete Adcs Manual Collection Framework (B3.1-B3.6)",
+      "original_message": "\u2728 FEAT: Complete ADCS Manual Collection Framework (B3.1-B3.6)",
+      "score": 5
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "fbfc7a6",
+      "author": "CryptoYogiLLC",
+      "category": "Core System",
+      "title": "Comprehensive Credential Management Framework",
+      "original_message": "feat(security): Implement comprehensive credential management framework for ADCS",
+      "score": 5
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "34ebc9c",
+      "author": "CryptoYogiLLC",
+      "category": "AI/Agent",
+      "title": "Missing Questionnai",
+      "original_message": "\ud83d\udc1b FIX: Add missing questionnaire_responses relationship to User model",
+      "score": 4
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "3886dae",
+      "author": "CryptoYogiLLC",
+      "category": "Workflow",
+      "title": "Missing Collection_Flow Relationship To Crewaiflow",
+      "original_message": "\ud83d\udc1b FIX: Add missing collection_flow relationship to CrewAIFlowStateExtensions",
+      "score": 4
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "b464d8c",
+      "author": "CryptoYogiLLC",
+      "category": "Workflow",
+      "title": "Missing Collection_Flow",
+      "original_message": "\ud83d\udc1b FIX: Add missing collection_flows relationships to SQLAlchemy models",
+      "score": 4
+    },
+    {
+      "date": "2025-07-23",
+      "hash": "a41b6f2",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Comprehensive Database Schema",
+      "original_message": "feat: Implement comprehensive database schema consolidation",
+      "score": 4
+    },
+    {
+      "date": "2025-07-24",
+      "hash": "670f13e",
+      "author": "CryptoYogiLLC",
+      "category": "AI/Agent",
+      "title": "Comprehensive Security Constrai",
+      "original_message": "\ud83d\udd12 Add comprehensive security constraints and data protection measures",
+      "score": 5
+    },
+    {
+      "date": "2025-07-24",
+      "hash": "8951777",
+      "author": "CryptoYogiLLC",
+      "category": "Infrastructure",
+      "title": "Row-Level Security",
+      "original_message": "feat: Implement Row-Level Security and comprehensive data seeding",
+      "score": 4
+    },
+    {
+      "date": "2025-07-24",
+      "hash": "e0c0447",
+      "author": "CryptoYogiLLC",
+      "category": "AI/Agent",
+      "title": "Database Constrai",
+      "original_message": "\ud83d\udd27 Apply Qodo feedback: Add database constraints and fix timestamp handling",
+      "score": 4
+    },
+    {
+      "date": "2025-07-24",
+      "hash": "e13fc6a",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Complete Migration To V2 Models And Fix Mypy Errors",
+      "original_message": "feat: Complete migration to V2 models and fix mypy errors",
+      "score": 4
+    }
+  ],
+  "monthly_timeline": {
+    "2025-05": [
+      {
+        "date": "2025-05-24",
+        "hash": "3edc661",
+        "author": "gpt-engineer-app[bot]",
+        "category": "UI/Frontend",
+        "title": "Phase Page",
+        "original_message": "Rename platform and add phase pages",
+        "score": 4
+      },
+      {
+        "date": "2025-05-24",
+        "hash": "b5a6108",
+        "author": "gpt-engineer-app[bot]",
+        "category": "UI/Frontend",
+        "title": "Discovery Phase Ui",
+        "original_message": "Add Discovery phase UI mockup",
+        "score": 3
+      },
+      {
+        "date": "2025-05-24",
+        "hash": "b00c3e2",
+        "author": "gpt-engineer-app[bot]",
+        "category": "UI/Frontend",
+        "title": "Multi-Page Dashboard",
+        "original_message": "feat: Implement multi-page dashboard mockup",
+        "score": 3
+      },
+      {
+        "date": "2025-05-25",
+        "hash": "a5866bc",
+        "author": "gpt-engineer-app[bot]",
+        "category": "UI/Frontend",
+        "title": "Assess Section Page",
+        "original_message": "Add Assess section pages and navigation",
+        "score": 3
+      },
+      {
+        "date": "2025-05-26",
+        "hash": "e24e469",
+        "author": "CryptoYogiLLC",
+        "category": "Core System",
+        "title": "Intelligent Asset Type Detection And User Feedback System - Implement Context-Aware Ai Analysis That Properly Distinguishes Applications, Servers, And Databases - Add Asset-Type-Specific Field Validation (Applications Don'T Need Os/Ip Fields) - Create User Feedback Interface For Correcting Ai Analysis And Asset Type Detection - Add Learning Mechanism That Processes User Corrections To Improve Future Analysis - Enhance Backend With Asset Type Context In Cmdb Analysis And Feedback Endpoint - Improve Frontend With Feedback Dialog And Asset Type Correction Capabilities - Fix Syntax Errors And Enhance Error Handling Throughout The System",
+        "original_message": "feat: Add intelligent asset type detection and user feedback system - Implement context-aware AI analysis that properly distinguishes applications, servers, and databases - Add asset-type-specific field validation (applications don't need OS/IP fields) - Create user feedback interface for correcting AI analysis and asset type detection - Add learning mechanism that processes user corrections to improve future analysis - Enhance backend with asset type context in CMDB analysis and feedback endpoint - Improve frontend with feedback dialog and asset type correction capabilities - Fix syntax errors and enhance error handling throughout the system - Reduce false positives in missing field detection based on asset type relevance",
+        "score": 5
+      },
+      {
+        "date": "2025-05-26",
+        "hash": "08bb166",
+        "author": "CryptoYogiLLC",
+        "category": "Workflow",
+        "title": "Interactive Data Table With Cell-Level Editing - Implement Missing Field Addition With One-Click Buttons - Create Project Management With Optional Database Storage - Add Functional Process Data With Real Backend Processing - Enhance Data Quality Improvement And Validation Pipeline",
+        "original_message": "feat: Enhanced CMDB Import with data editing and processing capabilities - Add interactive data table with cell-level editing - Implement missing field addition with one-click buttons - Create project management with optional database storage - Add functional Process Data with real backend processing - Enhance data quality improvement and validation pipeline - Implement dual-mode interface (analysis/editing) - Add comprehensive processing status and feedback - Create project creation dialog and metadata management - Enhance backend with CMDBProcessingRequest model - Add advanced data cleaning and quality scoring - Improve user experience with better loading states and visual feedback",
+        "score": 5
+      },
+      {
+        "date": "2025-05-26",
+        "hash": "7e87f67",
+        "author": "CryptoYogiLLC",
+        "category": "UI/Frontend",
+        "title": "Comprehensive Changelog.Md Documenting All Features And Improvements - Update Package.Json With Correct Project Name And V0.2.0 Version - Add Backend Version.Py With Release Information And Bui",
+        "original_message": "feat: Release v0.2.0 - Sprint 1 Complete with Comprehensive Changelog - Add comprehensive CHANGELOG.md documenting all features and improvements - Update package.json with correct project name and v0.2.0 version - Add backend version.py with release information and build metadata - Update FastAPI app to use version information from version.py - Document complete backend implementation, Docker containerization, and fixes - Mark Sprint 1 as COMPLETED with all objectives achieved - Ready for Sprint 2 development phase",
+        "score": 5
+      },
+      {
+        "date": "2025-05-26",
+        "hash": "c7f2791",
+        "author": "gpt-engineer-app[bot]",
+        "category": "UI/Frontend",
+        "title": "Finops Subpage",
+        "original_message": "Feat: Add FinOps subpages and sidebar links",
+        "score": 3
+      },
+      {
+        "date": "2025-05-26",
+        "hash": "27ec66d",
+        "author": "gpt-engineer-app[bot]",
+        "category": "UI/Frontend",
+        "title": "Finops Cost Analysis Page",
+        "original_message": "Add FinOps cost analysis pages",
+        "score": 3
+      },
+      {
+        "date": "2025-05-26",
+        "hash": "5b64b1f",
+        "author": "gpt-engineer-app[bot]",
+        "category": "Feature",
+        "title": "Expand Execute Phase With New Pages",
+        "original_message": "feat: Expand Execute phase with new pages",
+        "score": 3
+      },
+      {
+        "date": "2025-05-26",
+        "hash": "d7b61d2",
+        "author": "gpt-engineer-app[bot]",
+        "category": "UI/Frontend",
+        "title": "Modernize Phase Page",
+        "original_message": "feat: Implement Modernize phase pages",
+        "score": 3
+      },
+      {
+        "date": "2025-05-26",
+        "hash": "0f39ea8",
+        "author": "gpt-engineer-app[bot]",
+        "category": "UI/Frontend",
+        "title": "Decommission Phase Page",
+        "original_message": "Add Decommission phase pages",
+        "score": 3
+      },
+      {
+        "date": "2025-05-26",
+        "version": "v0.2.0",
+        "title": "Release v0.2.0",
+        "message": "feat: Release v0.2.0 - Sprint 1 Complete with Comprehensive Changelog - Add comprehensive CHANGELOG.md documenting all features and improvements - Update package.json with correct project name and v0.2.0 version - Add backend version.py with release information and build metadata - Update FastAPI app to use version information from version.py - Document complete backend implementation, Docker containerization, and fixes - Mark Sprint 1 as COMPLETED with all objectives achieved - Ready for Sprint 2 development phase",
+        "hash": "7e87f67",
+        "category": "Release",
+        "score": 5
+      },
+      {
+        "date": "2025-05-27",
+        "hash": "929a206",
+        "author": "CryptoYogiLLC",
+        "category": "Core System",
+        "title": "Comprehensive Agentic Remediation Status Document - Documents 85% Completion Of Agentic Ai Framework",
+        "original_message": "Add comprehensive agentic remediation status document - Documents 85% completion of agentic AI framework - Details all completed phases and remaining work - Shows implementation metrics and achievements - Provides clear next steps for remaining tasks",
+        "score": 5
+      },
+      {
+        "date": "2025-05-27",
+        "hash": "7564968",
+        "author": "CryptoYogiLLC",
+        "category": "Feature",
+        "title": "Dynamic Field Mapping System With Ai Learning - Revolutionary Field Mapping System That Learns From User Feedback To Eliminate False Missing Field Alerts. Fixed Ram_Gb Not Being Recognized As Memory (Gb) Equivalent. Enhanced Ai Learning Specialist With Field Equivalency Recognition And Cross-Session Learning Persistence.",
+        "original_message": "feat: Dynamic Field Mapping System with AI Learning - Revolutionary field mapping system that learns from user feedback to eliminate false missing field alerts. Fixed RAM_GB not being recognized as Memory (GB) equivalent. Enhanced AI Learning Specialist with field equivalency recognition and cross-session learning persistence.",
+        "score": 3
+      },
+      {
+        "date": "2025-05-29",
+        "hash": "5a5c157",
+        "author": "CryptoYogiLLC",
+        "category": "Feature",
+        "title": "Complete Discovery Workflow Redesign With Real Data Integration - Major Release V0.3.0 With Reordered Workflow, Eliminated Dummy Data, Created Reusable Rawdatatable Component, Enhanced Attribute Mapping, Docker-First Development, And Proper Crewai Agent Integration At Each Step",
+        "original_message": "feat: Complete Discovery workflow redesign with real data integration - Major Release v0.3.0 with reordered workflow, eliminated dummy data, created reusable RawDataTable component, enhanced attribute mapping, Docker-first development, and proper CrewAI agent integration at each step",
+        "score": 4
+      },
+      {
+        "date": "2025-05-30",
+        "hash": "14e3ae2",
+        "author": "CryptoYogiLLC",
+        "category": "AI/Agent",
+        "title": "Discovery_Handlers Package With Separate Modules - Maintain All Robust Json Serialization Fixes - Reduce Discovery.Py From 428 Lines To 97 Lines - Improve Maintai",
+        "original_message": "\ud83d\udd27 Modularize discovery endpoints - Replace 3 discovery versions with single modular approach - Create discovery_handlers package with separate modules - Maintain all robust JSON serialization fixes - Reduce discovery.py from 428 lines to 97 lines - Improve maintainability and code organization",
+        "score": 4
+      },
+      {
+        "date": "2025-05-30",
+        "hash": "6506b49",
+        "author": "CryptoYogiLLC",
+        "category": "Backend/API",
+        "title": "Missing Model Files That Were Ignored By Gitignore - This Was Preventing Railway Api",
+        "original_message": "CRITICAL FIX: Add missing model files that were ignored by gitignore - this was preventing Railway API deployment",
+        "score": 3
+      },
+      {
+        "date": "2025-05-30",
+        "hash": "f81014b",
+        "author": "CryptoYogiLLC",
+        "category": "Backend/API",
+        "title": "Detailed Error Reporting For Api",
+        "original_message": "Add detailed error reporting for API route loading failures to diagnose Railway deployment issue",
+        "score": 3
+      },
+      {
+        "date": "2025-05-30",
+        "hash": "7bf1d63",
+        "author": "CryptoYogiLLC",
+        "category": "Analysis",
+        "title": "Safe Division And Null Checks In Cmdb Analysis",
+        "original_message": "\ud83d\udd27 Fix JSON serialization error in discovery endpoints - Add safe division and null checks in CMDB analysis - Prevent NaN/Infinity values from breaking JSON serialization - Add data sanitization for JSON compliance",
+        "score": 3
+      },
+      {
+        "date": "2025-05-31",
+        "hash": "2b98328",
+        "author": "CryptoYogiLLC",
+        "category": "Database",
+        "title": "Comprehensive Cursor Development Rules For Agentic Migration",
+        "original_message": "\ud83c\udfaf Add comprehensive Cursor development rules for agentic migration platform - Docker-first, multi-tenant, CrewAI agents, no hard-coded heuristics",
+        "score": 5
+      }
+    ],
+    "2025-06": [
+      {
+        "date": "2025-06-04",
+        "hash": "4b72b32",
+        "author": "CryptoYogiLLC",
+        "category": "UI Enhancement",
+        "title": "Endpoint To Handle All Database Fields - Admin Interface",
+        "original_message": "\ud83c\udfaf Admin Interface Complete Resolution: Fixed all critical admin interface issues - Added complete edit functionality to ClientDetails view with modal dialog - Fixed missing Currencies array to eliminate console errors in EngagementManagement - Enhanced client contact information display for proper data visualization - Added email duplicate validation in admin user creation endpoint - Enhanced client update endpoint to handle all database fields - Admin interface now has complete CRUD functionality with zero console errors",
+        "score": 3
+      },
+      {
+        "date": "2025-06-05",
+        "hash": "3900584",
+        "author": "CryptoYogiLLC",
+        "category": "Database",
+        "title": "Missing Client_Accounts Columns For Railway Production - Added Comprehensive Migration",
+        "original_message": "\ud83d\udc1b Fix: Add missing client_accounts columns for Railway production - Added comprehensive migration for missing client_accounts table columns - Includes headquarters_location, contact fields, and JSON settings columns - Conditional column creation prevents conflicts between dev/prod - Auto-population of default values for existing records",
+        "score": 5
+      },
+      {
+        "date": "2025-06-05",
+        "hash": "56daff2",
+        "author": "CryptoYogiLLC",
+        "category": "Core System",
+        "title": "Demo Admin Access Control - Added Clientcrudhandler Import With Conditional Availability Checks - Implemented User-Type Endpoint For Access Level Detection - Created Useusertype Hook For Frontend Integration - Complete Useraccessmanagement Component With Grant/Revoke Functionality - Zero Linter Errors And Comprehensive Access Control System",
+        "original_message": "\ud83d\udd27 Fix linter errors and implement demo admin access control - Added ClientCRUDHandler import with conditional availability checks - Implemented user-type endpoint for access level detection - Created useUserType hook for frontend integration - Complete UserAccessManagement component with grant/revoke functionality - Zero linter errors and comprehensive access control system",
+        "score": 5
+      },
+      {
+        "date": "2025-06-05",
+        "hash": "db90e4d",
+        "author": "CryptoYogiLLC",
+        "category": "Database",
+        "title": "Missing Database Columns For Production Railway Deployment - Added Migration To Create Missing Migration_Scope And Team_Preferences Columns - Conditional Column Creation Prevents Conflicts Between Dev/Prod Environments - Auto-Population Of Default Json Values For Existing Records - Production-Safe Migration",
+        "original_message": "\ud83d\udc1b Fix: Add missing database columns for production Railway deployment - Added migration to create missing migration_scope and team_preferences columns - Conditional column creation prevents conflicts between dev/prod environments - Auto-population of default JSON values for existing records - Production-safe migration with existence checks",
+        "score": 4
+      },
+      {
+        "date": "2025-06-05",
+        "hash": "585c3f8",
+        "author": "CryptoYogiLLC",
+        "category": "Database",
+        "title": "Direct Railway Schema Fix Scripts - Created Fix_Railway_Schema.Sql For Manual Database Execution - Added Force_Railway_Migration.Py For Programmatic Schema",
+        "original_message": "\ud83d\ude91 Emergency Fix: Add direct Railway schema fix scripts - Created fix_railway_schema.sql for manual database execution - Added force_railway_migration.py for programmatic schema fix - Both scripts handle missing columns in client_accounts and engagements - Include verification queries to confirm successful fix",
+        "score": 3
+      },
+      {
+        "date": "2025-06-13",
+        "hash": "82b8b29",
+        "author": "CryptoYogiLLC",
+        "category": "Backend/API",
+        "title": "Missing /Api/V1 Prefix To All Api",
+        "original_message": "\ud83d\ude80 [FIX] Add missing /api/v1 prefix to all API calls",
+        "score": 4
+      },
+      {
+        "date": "2025-06-16",
+        "hash": "1a36ab3",
+        "author": "CryptoYogiLLC",
+        "category": "UI/Frontend",
+        "title": "Crewai Data-Import Route And Component",
+        "original_message": "Implement CrewAI data-import route and component",
+        "score": 3
+      },
+      {
+        "date": "2025-06-18",
+        "hash": "a6885e3",
+        "author": "CryptoYogiLLC",
+        "category": "Workflow",
+        "title": "Crewai Fingerprinting For Flow Identification - Replaced Session Id Hardcoding With Proper Crewai Fingerprints As Primary Identifiers - Backend Now Stores Flow",
+        "original_message": "\ud83d\udd27 CRITICAL FIX: Implement CrewAI fingerprinting for flow identification - Replaced session ID hardcoding with proper CrewAI fingerprints as primary identifiers - Backend now stores flows by both fingerprint (primary) and session ID (compatibility) - Frontend manages dual identifiers with fingerprint priority - Fixed fundamental disconnect between frontend requests and backend responses",
+        "score": 4
+      },
+      {
+        "date": "2025-06-23",
+        "hash": "528e5f7",
+        "author": "CryptoYogiLLC",
+        "category": "Core System",
+        "title": "Hybrid Crewai + Postgresql Persistence Architecture",
+        "original_message": "\ud83d\ude80 MAJOR: Implement Hybrid CrewAI + PostgreSQL Persistence Architecture",
+        "score": 5
+      },
+      {
+        "date": "2025-06-24",
+        "hash": "0d185b6",
+        "author": "CryptoYogiLLC",
+        "category": "Workflow",
+        "title": "Real-Time Crewai Discovery Flow",
+        "original_message": "\ud83d\ude80 Implement real-time CrewAI Discovery Flow progress tracking",
+        "score": 5
+      },
+      {
+        "date": "2025-06-24",
+        "hash": "2a8e612",
+        "author": "CryptoYogiLLC",
+        "category": "Core System",
+        "title": "Proper V2 Api Architecture",
+        "original_message": "\ud83d\ude80 Implement proper V2 API architecture for discovery flows",
+        "score": 5
+      },
+      {
+        "date": "2025-06-24",
+        "hash": "8d31be4",
+        "author": "CryptoYogiLLC",
+        "category": "AI/Agent",
+        "title": "Native User Approval In Field Mapping Crew",
+        "original_message": "\ud83c\udfaf CrewAI Human Input Integration: Implement native user approval in field mapping crew",
+        "score": 4
+      },
+      {
+        "date": "2025-06-25",
+        "hash": "c88d678",
+        "author": "CryptoYogiLLC",
+        "category": "AI/Agent",
+        "title": "Missing Abstract Methods In Assetinventoryagent",
+        "original_message": "\ud83d\udc1b Fix: Implement missing abstract methods in AssetInventoryAgent",
+        "score": 4
+      },
+      {
+        "date": "2025-06-26",
+        "hash": "000c927",
+        "author": "CryptoYogiLLC",
+        "category": "UI/Frontend",
+        "title": "Frontend Bui",
+        "original_message": "\ud83d\udcda Documentation: Add Frontend Build Fix to CHANGELOG",
+        "score": 3
+      },
+      {
+        "date": "2025-06-28",
+        "hash": "06607c2",
+        "author": "CryptoYogiLLC",
+        "category": "Core System",
+        "title": "Comprehensive Agentic Flow Management System",
+        "original_message": "\ud83e\udd16 Implement comprehensive agentic flow management system",
+        "score": 5
+      },
+      {
+        "date": "2025-06-29",
+        "hash": "ec3ef3c",
+        "author": "CryptoYogiLLC",
+        "category": "Core System",
+        "title": "Interactive Dropdown Approval System",
+        "original_message": "\ud83c\udfaf Field Mapping Enhancement: Implement Interactive Dropdown Approval System",
+        "score": 5
+      },
+      {
+        "date": "2025-06-30",
+        "hash": "553a1b8",
+        "author": "CryptoYogiLLC",
+        "category": "Feature",
+        "title": "Complete Database Consolidation With Single Migration",
+        "original_message": "feat: Complete database consolidation with single migration",
+        "score": 4
+      }
+    ],
+    "2025-07": [
+      {
+        "date": "2025-07-01",
+        "hash": "8679f8e",
+        "author": "CryptoYogiLLC",
+        "category": "Feature",
+        "title": "Complete Agent 5 Frontend Sessionid Cleanup",
+        "original_message": "feat: Complete Agent 5 frontend sessionId cleanup",
+        "score": 4
+      },
+      {
+        "date": "2025-07-01",
+        "hash": "969f5b7",
+        "author": "CryptoYogiLLC",
+        "category": "Feature",
+        "title": "Complete Frontend Component Modularization - Phase 2",
+        "original_message": "feat: Complete frontend component modularization - Phase 2",
+        "score": 4
+      },
+      {
+        "date": "2025-07-01",
+        "hash": "3df76c6",
+        "author": "CryptoYogiLLC",
+        "category": "Feature",
+        "title": "Complete Backend Core Modularization - Phase 1",
+        "original_message": "feat: Complete backend core modularization - Phase 1",
+        "score": 4
+      },
+      {
+        "date": "2025-07-07",
+        "hash": "5cc1441",
+        "author": "CryptoYogiLLC",
+        "category": "Feature",
+        "title": "Standardize Api Endpoints And Optimize Polling For Production Performance",
+        "original_message": "feat: Standardize API endpoints and optimize polling for production performance",
+        "score": 4
+      },
+      {
+        "date": "2025-07-17",
+        "hash": "c711135",
+        "author": "CryptoYogiLLC",
+        "category": "Workflow",
+        "title": "Crewai_Flow",
+        "original_message": "\ud83d\udea8 EMERGENCY FIX: Force create crewai_flow_state_extensions table on Railway",
+        "score": 4
+      },
+      {
+        "date": "2025-07-18",
+        "hash": "0450694",
+        "author": "CryptoYogiLLC",
+        "category": "Workflow",
+        "title": "Missing Discovery_Flow",
+        "original_message": "Add missing discovery_flows table to comprehensive migration",
+        "score": 5
+      },
+      {
+        "date": "2025-07-18",
+        "hash": "12ab5de",
+        "author": "CryptoYogiLLC",
+        "category": "Database",
+        "title": "Missing Migration_Waves Table To Comprehensive Migration",
+        "original_message": "Add missing migration_waves table to comprehensive migration",
+        "score": 4
+      },
+      {
+        "date": "2025-07-18",
+        "hash": "2168749",
+        "author": "CryptoYogiLLC",
+        "category": "Database",
+        "title": "Missing Engagement_Access Table To Comprehensive Migration",
+        "original_message": "Add missing engagement_access table to comprehensive migration",
+        "score": 4
+      },
+      {
+        "date": "2025-07-18",
+        "hash": "87fb4fa",
+        "author": "CryptoYogiLLC",
+        "category": "AI/Agent",
+        "title": "Database Initialization To Rai",
+        "original_message": "Add database initialization to Railway deployment process",
+        "score": 4
+      },
+      {
+        "date": "2025-07-18",
+        "hash": "80b25f4",
+        "author": "CryptoYogiLLC",
+        "category": "Database",
+        "title": "Migration History Reset To Handle Clean Schema",
+        "original_message": "Add migration history reset to handle clean schema deployment",
+        "score": 3
+      },
+      {
+        "date": "2025-07-18",
+        "hash": "3ca27c4",
+        "author": "CryptoYogiLLC",
+        "category": "Database",
+        "title": "Rbac Tables Migration",
+        "original_message": "Create new RBAC tables migration with unique revision ID",
+        "score": 3
+      },
+      {
+        "date": "2025-07-18",
+        "hash": "a39c04b",
+        "author": "CryptoYogiLLC",
+        "category": "Database",
+        "title": "Missing User_Roles Table Migration",
+        "original_message": "Add missing user_roles table migration",
+        "score": 3
+      },
+      {
+        "date": "2025-07-19",
+        "hash": "206434a",
+        "author": "CryptoYogiLLC",
+        "category": "Workflow",
+        "title": "Comprehensive Github Actions Workflow",
+        "original_message": "\ud83c\udfaf FEATURE: Add comprehensive GitHub Actions workflows for automated checks",
+        "score": 5
+      },
+      {
+        "date": "2025-07-19",
+        "hash": "b6795f1",
+        "author": "CryptoYogiLLC",
+        "category": "Feature",
+        "title": "Complete Phase 3 Workflow Orchestration (C1.5 & C1.6)",
+        "original_message": "\u2728 FEAT: Complete Phase 3 Workflow Orchestration (C1.5 & C1.6)",
+        "score": 5
+      },
+      {
+        "date": "2025-07-19",
+        "hash": "246c04e",
+        "author": "CryptoYogiLLC",
+        "category": "Feature",
+        "title": "B1.7 - Complete Adapter Performance Monitoring And Optimization System",
+        "original_message": "\u2728 FEAT: B1.7 - Complete adapter performance monitoring and optimization system",
+        "score": 5
+      },
+      {
+        "date": "2025-07-19",
+        "hash": "019c4ff",
+        "author": "CryptoYogiLLC",
+        "category": "Feature",
+        "title": "Complete Adcs Manual Collection Framework (B3.1-B3.6)",
+        "original_message": "\u2728 FEAT: Complete ADCS Manual Collection Framework (B3.1-B3.6)",
+        "score": 5
+      },
+      {
+        "date": "2025-07-19",
+        "hash": "fbfc7a6",
+        "author": "CryptoYogiLLC",
+        "category": "Core System",
+        "title": "Comprehensive Credential Management Framework",
+        "original_message": "feat(security): Implement comprehensive credential management framework for ADCS",
+        "score": 5
+      },
+      {
+        "date": "2025-07-19",
+        "hash": "34ebc9c",
+        "author": "CryptoYogiLLC",
+        "category": "AI/Agent",
+        "title": "Missing Questionnai",
+        "original_message": "\ud83d\udc1b FIX: Add missing questionnaire_responses relationship to User model",
+        "score": 4
+      },
+      {
+        "date": "2025-07-19",
+        "hash": "3886dae",
+        "author": "CryptoYogiLLC",
+        "category": "Workflow",
+        "title": "Missing Collection_Flow Relationship To Crewaiflow",
+        "original_message": "\ud83d\udc1b FIX: Add missing collection_flow relationship to CrewAIFlowStateExtensions",
+        "score": 4
+      },
+      {
+        "date": "2025-07-19",
+        "hash": "b464d8c",
+        "author": "CryptoYogiLLC",
+        "category": "Workflow",
+        "title": "Missing Collection_Flow",
+        "original_message": "\ud83d\udc1b FIX: Add missing collection_flows relationships to SQLAlchemy models",
+        "score": 4
+      },
+      {
+        "date": "2025-07-19",
+        "hash": "a9209cb",
+        "author": "CryptoYogiLLC",
+        "category": "UI/Frontend",
+        "title": "Missing Default Exports For Modular Component",
+        "original_message": "\ud83d\udc1b FIX: Add missing default exports for modular components",
+        "score": 3
+      },
+      {
+        "date": "2025-07-22",
+        "hash": "cf9be3b",
+        "author": "CryptoYogiLLC",
+        "category": "Database",
+        "title": "Missing Asset_Dependencies Table Migration",
+        "original_message": "Add missing asset_dependencies table migration",
+        "score": 3
+      },
+      {
+        "date": "2025-07-23",
+        "hash": "a41b6f2",
+        "author": "CryptoYogiLLC",
+        "category": "Database",
+        "title": "Comprehensive Database Schema",
+        "original_message": "feat: Implement comprehensive database schema consolidation",
+        "score": 4
+      },
+      {
+        "date": "2025-07-23",
+        "hash": "7129e28",
+        "author": "CryptoYogiLLC",
+        "category": "Infrastructure",
+        "title": "Code Quality And Security",
+        "original_message": "\ud83d\udee1\ufe0f Implement code quality and security recommendations from PR review",
+        "score": 3
+      },
+      {
+        "date": "2025-07-24",
+        "hash": "670f13e",
+        "author": "CryptoYogiLLC",
+        "category": "AI/Agent",
+        "title": "Comprehensive Security Constrai",
+        "original_message": "\ud83d\udd12 Add comprehensive security constraints and data protection measures",
+        "score": 5
+      },
+      {
+        "date": "2025-07-24",
+        "hash": "8951777",
+        "author": "CryptoYogiLLC",
+        "category": "Infrastructure",
+        "title": "Row-Level Security",
+        "original_message": "feat: Implement Row-Level Security and comprehensive data seeding",
+        "score": 4
+      },
+      {
+        "date": "2025-07-24",
+        "hash": "e0c0447",
+        "author": "CryptoYogiLLC",
+        "category": "AI/Agent",
+        "title": "Database Constrai",
+        "original_message": "\ud83d\udd27 Apply Qodo feedback: Add database constraints and fix timestamp handling",
+        "score": 4
+      },
+      {
+        "date": "2025-07-24",
+        "hash": "e13fc6a",
+        "author": "CryptoYogiLLC",
+        "category": "Feature",
+        "title": "Complete Migration To V2 Models And Fix Mypy Errors",
+        "original_message": "feat: Complete migration to V2 models and fix mypy errors",
+        "score": 4
+      },
+      {
+        "date": "2025-07-24",
+        "hash": "61f4a71",
+        "author": "CryptoYogiLLC",
+        "category": "Feature",
+        "title": "Optimize Pre-Commit Hooks For Faster Developer Workflow",
+        "original_message": "feat: Optimize pre-commit hooks for faster developer workflow",
+        "score": 3
+      },
+      {
+        "date": "2025-07-24",
+        "hash": "773370b",
+        "author": "CryptoYogiLLC",
+        "category": "Database",
+        "title": "V2 Models Aligned With Consolidated Schema",
+        "original_message": "feat: Create V2 models aligned with consolidated schema",
+        "score": 3
+      },
+      {
+        "date": "2025-07-28",
+        "hash": "153154e",
+        "author": "CryptoYogiLLC",
+        "category": "Database",
+        "title": "Missing Is_Admin Column Migration",
+        "original_message": "\ud83d\udc1b Add missing is_admin column migration",
+        "score": 3
+      }
+    ]
+  },
+  "all_features": [
+    {
+      "date": "2025-05-24",
+      "hash": "3edc661",
+      "author": "gpt-engineer-app[bot]",
+      "category": "UI/Frontend",
+      "title": "Phase Page",
+      "original_message": "Rename platform and add phase pages",
+      "score": 4
+    },
+    {
+      "date": "2025-05-24",
+      "hash": "b5a6108",
+      "author": "gpt-engineer-app[bot]",
+      "category": "UI/Frontend",
+      "title": "Discovery Phase Ui",
+      "original_message": "Add Discovery phase UI mockup",
+      "score": 3
+    },
+    {
+      "date": "2025-05-24",
+      "hash": "b00c3e2",
+      "author": "gpt-engineer-app[bot]",
+      "category": "UI/Frontend",
+      "title": "Multi-Page Dashboard",
+      "original_message": "feat: Implement multi-page dashboard mockup",
+      "score": 3
+    },
+    {
+      "date": "2025-05-25",
+      "hash": "a5866bc",
+      "author": "gpt-engineer-app[bot]",
+      "category": "UI/Frontend",
+      "title": "Assess Section Page",
+      "original_message": "Add Assess section pages and navigation",
+      "score": 3
+    },
+    {
+      "date": "2025-05-26",
+      "hash": "e24e469",
+      "author": "CryptoYogiLLC",
+      "category": "Core System",
+      "title": "Intelligent Asset Type Detection And User Feedback System - Implement Context-Aware Ai Analysis That Properly Distinguishes Applications, Servers, And Databases - Add Asset-Type-Specific Field Validation (Applications Don'T Need Os/Ip Fields) - Create User Feedback Interface For Correcting Ai Analysis And Asset Type Detection - Add Learning Mechanism That Processes User Corrections To Improve Future Analysis - Enhance Backend With Asset Type Context In Cmdb Analysis And Feedback Endpoint - Improve Frontend With Feedback Dialog And Asset Type Correction Capabilities - Fix Syntax Errors And Enhance Error Handling Throughout The System",
+      "original_message": "feat: Add intelligent asset type detection and user feedback system - Implement context-aware AI analysis that properly distinguishes applications, servers, and databases - Add asset-type-specific field validation (applications don't need OS/IP fields) - Create user feedback interface for correcting AI analysis and asset type detection - Add learning mechanism that processes user corrections to improve future analysis - Enhance backend with asset type context in CMDB analysis and feedback endpoint - Improve frontend with feedback dialog and asset type correction capabilities - Fix syntax errors and enhance error handling throughout the system - Reduce false positives in missing field detection based on asset type relevance",
+      "score": 5
+    },
+    {
+      "date": "2025-05-26",
+      "hash": "08bb166",
+      "author": "CryptoYogiLLC",
+      "category": "Workflow",
+      "title": "Interactive Data Table With Cell-Level Editing - Implement Missing Field Addition With One-Click Buttons - Create Project Management With Optional Database Storage - Add Functional Process Data With Real Backend Processing - Enhance Data Quality Improvement And Validation Pipeline",
+      "original_message": "feat: Enhanced CMDB Import with data editing and processing capabilities - Add interactive data table with cell-level editing - Implement missing field addition with one-click buttons - Create project management with optional database storage - Add functional Process Data with real backend processing - Enhance data quality improvement and validation pipeline - Implement dual-mode interface (analysis/editing) - Add comprehensive processing status and feedback - Create project creation dialog and metadata management - Enhance backend with CMDBProcessingRequest model - Add advanced data cleaning and quality scoring - Improve user experience with better loading states and visual feedback",
+      "score": 5
+    },
+    {
+      "date": "2025-05-26",
+      "hash": "7e87f67",
+      "author": "CryptoYogiLLC",
+      "category": "UI/Frontend",
+      "title": "Comprehensive Changelog.Md Documenting All Features And Improvements - Update Package.Json With Correct Project Name And V0.2.0 Version - Add Backend Version.Py With Release Information And Bui",
+      "original_message": "feat: Release v0.2.0 - Sprint 1 Complete with Comprehensive Changelog - Add comprehensive CHANGELOG.md documenting all features and improvements - Update package.json with correct project name and v0.2.0 version - Add backend version.py with release information and build metadata - Update FastAPI app to use version information from version.py - Document complete backend implementation, Docker containerization, and fixes - Mark Sprint 1 as COMPLETED with all objectives achieved - Ready for Sprint 2 development phase",
+      "score": 5
+    },
+    {
+      "date": "2025-05-26",
+      "hash": "c7f2791",
+      "author": "gpt-engineer-app[bot]",
+      "category": "UI/Frontend",
+      "title": "Finops Subpage",
+      "original_message": "Feat: Add FinOps subpages and sidebar links",
+      "score": 3
+    },
+    {
+      "date": "2025-05-26",
+      "hash": "27ec66d",
+      "author": "gpt-engineer-app[bot]",
+      "category": "UI/Frontend",
+      "title": "Finops Cost Analysis Page",
+      "original_message": "Add FinOps cost analysis pages",
+      "score": 3
+    },
+    {
+      "date": "2025-05-26",
+      "hash": "5b64b1f",
+      "author": "gpt-engineer-app[bot]",
+      "category": "Feature",
+      "title": "Expand Execute Phase With New Pages",
+      "original_message": "feat: Expand Execute phase with new pages",
+      "score": 3
+    },
+    {
+      "date": "2025-05-26",
+      "hash": "d7b61d2",
+      "author": "gpt-engineer-app[bot]",
+      "category": "UI/Frontend",
+      "title": "Modernize Phase Page",
+      "original_message": "feat: Implement Modernize phase pages",
+      "score": 3
+    },
+    {
+      "date": "2025-05-26",
+      "hash": "0f39ea8",
+      "author": "gpt-engineer-app[bot]",
+      "category": "UI/Frontend",
+      "title": "Decommission Phase Page",
+      "original_message": "Add Decommission phase pages",
+      "score": 3
+    },
+    {
+      "date": "2025-05-26",
+      "version": "v0.2.0",
+      "title": "Release v0.2.0",
+      "message": "feat: Release v0.2.0 - Sprint 1 Complete with Comprehensive Changelog - Add comprehensive CHANGELOG.md documenting all features and improvements - Update package.json with correct project name and v0.2.0 version - Add backend version.py with release information and build metadata - Update FastAPI app to use version information from version.py - Document complete backend implementation, Docker containerization, and fixes - Mark Sprint 1 as COMPLETED with all objectives achieved - Ready for Sprint 2 development phase",
+      "hash": "7e87f67",
+      "category": "Release",
+      "score": 5
+    },
+    {
+      "date": "2025-05-27",
+      "hash": "929a206",
+      "author": "CryptoYogiLLC",
+      "category": "Core System",
+      "title": "Comprehensive Agentic Remediation Status Document - Documents 85% Completion Of Agentic Ai Framework",
+      "original_message": "Add comprehensive agentic remediation status document - Documents 85% completion of agentic AI framework - Details all completed phases and remaining work - Shows implementation metrics and achievements - Provides clear next steps for remaining tasks",
+      "score": 5
+    },
+    {
+      "date": "2025-05-27",
+      "hash": "7564968",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Dynamic Field Mapping System With Ai Learning - Revolutionary Field Mapping System That Learns From User Feedback To Eliminate False Missing Field Alerts. Fixed Ram_Gb Not Being Recognized As Memory (Gb) Equivalent. Enhanced Ai Learning Specialist With Field Equivalency Recognition And Cross-Session Learning Persistence.",
+      "original_message": "feat: Dynamic Field Mapping System with AI Learning - Revolutionary field mapping system that learns from user feedback to eliminate false missing field alerts. Fixed RAM_GB not being recognized as Memory (GB) equivalent. Enhanced AI Learning Specialist with field equivalency recognition and cross-session learning persistence.",
+      "score": 3
+    },
+    {
+      "date": "2025-05-29",
+      "hash": "5a5c157",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Complete Discovery Workflow Redesign With Real Data Integration - Major Release V0.3.0 With Reordered Workflow, Eliminated Dummy Data, Created Reusable Rawdatatable Component, Enhanced Attribute Mapping, Docker-First Development, And Proper Crewai Agent Integration At Each Step",
+      "original_message": "feat: Complete Discovery workflow redesign with real data integration - Major Release v0.3.0 with reordered workflow, eliminated dummy data, created reusable RawDataTable component, enhanced attribute mapping, Docker-first development, and proper CrewAI agent integration at each step",
+      "score": 4
+    },
+    {
+      "date": "2025-05-30",
+      "hash": "14e3ae2",
+      "author": "CryptoYogiLLC",
+      "category": "AI/Agent",
+      "title": "Discovery_Handlers Package With Separate Modules - Maintain All Robust Json Serialization Fixes - Reduce Discovery.Py From 428 Lines To 97 Lines - Improve Maintai",
+      "original_message": "\ud83d\udd27 Modularize discovery endpoints - Replace 3 discovery versions with single modular approach - Create discovery_handlers package with separate modules - Maintain all robust JSON serialization fixes - Reduce discovery.py from 428 lines to 97 lines - Improve maintainability and code organization",
+      "score": 4
+    },
+    {
+      "date": "2025-05-30",
+      "hash": "6506b49",
+      "author": "CryptoYogiLLC",
+      "category": "Backend/API",
+      "title": "Missing Model Files That Were Ignored By Gitignore - This Was Preventing Railway Api",
+      "original_message": "CRITICAL FIX: Add missing model files that were ignored by gitignore - this was preventing Railway API deployment",
+      "score": 3
+    },
+    {
+      "date": "2025-05-30",
+      "hash": "f81014b",
+      "author": "CryptoYogiLLC",
+      "category": "Backend/API",
+      "title": "Detailed Error Reporting For Api",
+      "original_message": "Add detailed error reporting for API route loading failures to diagnose Railway deployment issue",
+      "score": 3
+    },
+    {
+      "date": "2025-05-30",
+      "hash": "7bf1d63",
+      "author": "CryptoYogiLLC",
+      "category": "Analysis",
+      "title": "Safe Division And Null Checks In Cmdb Analysis",
+      "original_message": "\ud83d\udd27 Fix JSON serialization error in discovery endpoints - Add safe division and null checks in CMDB analysis - Prevent NaN/Infinity values from breaking JSON serialization - Add data sanitization for JSON compliance",
+      "score": 3
+    },
+    {
+      "date": "2025-05-31",
+      "hash": "2b98328",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Comprehensive Cursor Development Rules For Agentic Migration",
+      "original_message": "\ud83c\udfaf Add comprehensive Cursor development rules for agentic migration platform - Docker-first, multi-tenant, CrewAI agents, no hard-coded heuristics",
+      "score": 5
+    },
+    {
+      "date": "2025-06-04",
+      "hash": "4b72b32",
+      "author": "CryptoYogiLLC",
+      "category": "UI Enhancement",
+      "title": "Endpoint To Handle All Database Fields - Admin Interface",
+      "original_message": "\ud83c\udfaf Admin Interface Complete Resolution: Fixed all critical admin interface issues - Added complete edit functionality to ClientDetails view with modal dialog - Fixed missing Currencies array to eliminate console errors in EngagementManagement - Enhanced client contact information display for proper data visualization - Added email duplicate validation in admin user creation endpoint - Enhanced client update endpoint to handle all database fields - Admin interface now has complete CRUD functionality with zero console errors",
+      "score": 3
+    },
+    {
+      "date": "2025-06-05",
+      "hash": "3900584",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Missing Client_Accounts Columns For Railway Production - Added Comprehensive Migration",
+      "original_message": "\ud83d\udc1b Fix: Add missing client_accounts columns for Railway production - Added comprehensive migration for missing client_accounts table columns - Includes headquarters_location, contact fields, and JSON settings columns - Conditional column creation prevents conflicts between dev/prod - Auto-population of default values for existing records",
+      "score": 5
+    },
+    {
+      "date": "2025-06-05",
+      "hash": "56daff2",
+      "author": "CryptoYogiLLC",
+      "category": "Core System",
+      "title": "Demo Admin Access Control - Added Clientcrudhandler Import With Conditional Availability Checks - Implemented User-Type Endpoint For Access Level Detection - Created Useusertype Hook For Frontend Integration - Complete Useraccessmanagement Component With Grant/Revoke Functionality - Zero Linter Errors And Comprehensive Access Control System",
+      "original_message": "\ud83d\udd27 Fix linter errors and implement demo admin access control - Added ClientCRUDHandler import with conditional availability checks - Implemented user-type endpoint for access level detection - Created useUserType hook for frontend integration - Complete UserAccessManagement component with grant/revoke functionality - Zero linter errors and comprehensive access control system",
+      "score": 5
+    },
+    {
+      "date": "2025-06-05",
+      "hash": "db90e4d",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Missing Database Columns For Production Railway Deployment - Added Migration To Create Missing Migration_Scope And Team_Preferences Columns - Conditional Column Creation Prevents Conflicts Between Dev/Prod Environments - Auto-Population Of Default Json Values For Existing Records - Production-Safe Migration",
+      "original_message": "\ud83d\udc1b Fix: Add missing database columns for production Railway deployment - Added migration to create missing migration_scope and team_preferences columns - Conditional column creation prevents conflicts between dev/prod environments - Auto-population of default JSON values for existing records - Production-safe migration with existence checks",
+      "score": 4
+    },
+    {
+      "date": "2025-06-05",
+      "hash": "585c3f8",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Direct Railway Schema Fix Scripts - Created Fix_Railway_Schema.Sql For Manual Database Execution - Added Force_Railway_Migration.Py For Programmatic Schema",
+      "original_message": "\ud83d\ude91 Emergency Fix: Add direct Railway schema fix scripts - Created fix_railway_schema.sql for manual database execution - Added force_railway_migration.py for programmatic schema fix - Both scripts handle missing columns in client_accounts and engagements - Include verification queries to confirm successful fix",
+      "score": 3
+    },
+    {
+      "date": "2025-06-13",
+      "hash": "82b8b29",
+      "author": "CryptoYogiLLC",
+      "category": "Backend/API",
+      "title": "Missing /Api/V1 Prefix To All Api",
+      "original_message": "\ud83d\ude80 [FIX] Add missing /api/v1 prefix to all API calls",
+      "score": 4
+    },
+    {
+      "date": "2025-06-16",
+      "hash": "1a36ab3",
+      "author": "CryptoYogiLLC",
+      "category": "UI/Frontend",
+      "title": "Crewai Data-Import Route And Component",
+      "original_message": "Implement CrewAI data-import route and component",
+      "score": 3
+    },
+    {
+      "date": "2025-06-17",
+      "hash": "633413b",
+      "author": "CryptoYogiLLC",
+      "category": "UI Enhancement",
+      "title": "- Frontend Handlers Implemented Correctly, Deduplication Logic Exists, But Backend Missing Pending_Questions And Data Classifications For Agent Ui",
+      "original_message": "\ud83d\udc1b Fix attribute mapping issues: backend agent status endpoint needs data structure update - Frontend handlers implemented correctly, deduplication logic exists, but backend missing pending_questions and data classifications for agent UI manager",
+      "score": 2
+    },
+    {
+      "date": "2025-06-18",
+      "hash": "a6885e3",
+      "author": "CryptoYogiLLC",
+      "category": "Workflow",
+      "title": "Crewai Fingerprinting For Flow Identification - Replaced Session Id Hardcoding With Proper Crewai Fingerprints As Primary Identifiers - Backend Now Stores Flow",
+      "original_message": "\ud83d\udd27 CRITICAL FIX: Implement CrewAI fingerprinting for flow identification - Replaced session ID hardcoding with proper CrewAI fingerprints as primary identifiers - Backend now stores flows by both fingerprint (primary) and session ID (compatibility) - Frontend manages dual identifiers with fingerprint priority - Fixed fundamental disconnect between frontend requests and backend responses",
+      "score": 4
+    },
+    {
+      "date": "2025-06-23",
+      "hash": "528e5f7",
+      "author": "CryptoYogiLLC",
+      "category": "Core System",
+      "title": "Hybrid Crewai + Postgresql Persistence Architecture",
+      "original_message": "\ud83d\ude80 MAJOR: Implement Hybrid CrewAI + PostgreSQL Persistence Architecture",
+      "score": 5
+    },
+    {
+      "date": "2025-06-24",
+      "hash": "0d185b6",
+      "author": "CryptoYogiLLC",
+      "category": "Workflow",
+      "title": "Real-Time Crewai Discovery Flow",
+      "original_message": "\ud83d\ude80 Implement real-time CrewAI Discovery Flow progress tracking",
+      "score": 5
+    },
+    {
+      "date": "2025-06-24",
+      "hash": "2a8e612",
+      "author": "CryptoYogiLLC",
+      "category": "Core System",
+      "title": "Proper V2 Api Architecture",
+      "original_message": "\ud83d\ude80 Implement proper V2 API architecture for discovery flows",
+      "score": 5
+    },
+    {
+      "date": "2025-06-24",
+      "hash": "8d31be4",
+      "author": "CryptoYogiLLC",
+      "category": "AI/Agent",
+      "title": "Native User Approval In Field Mapping Crew",
+      "original_message": "\ud83c\udfaf CrewAI Human Input Integration: Implement native user approval in field mapping crew",
+      "score": 4
+    },
+    {
+      "date": "2025-06-25",
+      "hash": "c88d678",
+      "author": "CryptoYogiLLC",
+      "category": "AI/Agent",
+      "title": "Missing Abstract Methods In Assetinventoryagent",
+      "original_message": "\ud83d\udc1b Fix: Implement missing abstract methods in AssetInventoryAgent",
+      "score": 4
+    },
+    {
+      "date": "2025-06-26",
+      "hash": "000c927",
+      "author": "CryptoYogiLLC",
+      "category": "UI/Frontend",
+      "title": "Frontend Bui",
+      "original_message": "\ud83d\udcda Documentation: Add Frontend Build Fix to CHANGELOG",
+      "score": 3
+    },
+    {
+      "date": "2025-06-28",
+      "hash": "06607c2",
+      "author": "CryptoYogiLLC",
+      "category": "Core System",
+      "title": "Comprehensive Agentic Flow Management System",
+      "original_message": "\ud83e\udd16 Implement comprehensive agentic flow management system",
+      "score": 5
+    },
+    {
+      "date": "2025-06-29",
+      "hash": "ec3ef3c",
+      "author": "CryptoYogiLLC",
+      "category": "Core System",
+      "title": "Interactive Dropdown Approval System",
+      "original_message": "\ud83c\udfaf Field Mapping Enhancement: Implement Interactive Dropdown Approval System",
+      "score": 5
+    },
+    {
+      "date": "2025-06-29",
+      "hash": "bf1f197",
+      "author": "CryptoYogiLLC",
+      "category": "UI Enhancement",
+      "title": "Discovery Flow Troubleshooting Gui",
+      "original_message": "\ud83d\udcda Update Discovery Flow Troubleshooting Guide",
+      "score": 2
+    },
+    {
+      "date": "2025-06-30",
+      "hash": "553a1b8",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Complete Database Consolidation With Single Migration",
+      "original_message": "feat: Complete database consolidation with single migration",
+      "score": 4
+    },
+    {
+      "date": "2025-07-01",
+      "hash": "8679f8e",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Complete Agent 5 Frontend Sessionid Cleanup",
+      "original_message": "feat: Complete Agent 5 frontend sessionId cleanup",
+      "score": 4
+    },
+    {
+      "date": "2025-07-01",
+      "hash": "969f5b7",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Complete Frontend Component Modularization - Phase 2",
+      "original_message": "feat: Complete frontend component modularization - Phase 2",
+      "score": 4
+    },
+    {
+      "date": "2025-07-01",
+      "hash": "3df76c6",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Complete Backend Core Modularization - Phase 1",
+      "original_message": "feat: Complete backend core modularization - Phase 1",
+      "score": 4
+    },
+    {
+      "date": "2025-07-07",
+      "hash": "5cc1441",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Standardize Api Endpoints And Optimize Polling For Production Performance",
+      "original_message": "feat: Standardize API endpoints and optimize polling for production performance",
+      "score": 4
+    },
+    {
+      "date": "2025-07-17",
+      "hash": "c711135",
+      "author": "CryptoYogiLLC",
+      "category": "Workflow",
+      "title": "Crewai_Flow",
+      "original_message": "\ud83d\udea8 EMERGENCY FIX: Force create crewai_flow_state_extensions table on Railway",
+      "score": 4
+    },
+    {
+      "date": "2025-07-18",
+      "hash": "0450694",
+      "author": "CryptoYogiLLC",
+      "category": "Workflow",
+      "title": "Missing Discovery_Flow",
+      "original_message": "Add missing discovery_flows table to comprehensive migration",
+      "score": 5
+    },
+    {
+      "date": "2025-07-18",
+      "hash": "12ab5de",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Missing Migration_Waves Table To Comprehensive Migration",
+      "original_message": "Add missing migration_waves table to comprehensive migration",
+      "score": 4
+    },
+    {
+      "date": "2025-07-18",
+      "hash": "2168749",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Missing Engagement_Access Table To Comprehensive Migration",
+      "original_message": "Add missing engagement_access table to comprehensive migration",
+      "score": 4
+    },
+    {
+      "date": "2025-07-18",
+      "hash": "87fb4fa",
+      "author": "CryptoYogiLLC",
+      "category": "AI/Agent",
+      "title": "Database Initialization To Rai",
+      "original_message": "Add database initialization to Railway deployment process",
+      "score": 4
+    },
+    {
+      "date": "2025-07-18",
+      "hash": "80b25f4",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Migration History Reset To Handle Clean Schema",
+      "original_message": "Add migration history reset to handle clean schema deployment",
+      "score": 3
+    },
+    {
+      "date": "2025-07-18",
+      "hash": "3ca27c4",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Rbac Tables Migration",
+      "original_message": "Create new RBAC tables migration with unique revision ID",
+      "score": 3
+    },
+    {
+      "date": "2025-07-18",
+      "hash": "a39c04b",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Missing User_Roles Table Migration",
+      "original_message": "Add missing user_roles table migration",
+      "score": 3
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "206434a",
+      "author": "CryptoYogiLLC",
+      "category": "Workflow",
+      "title": "Comprehensive Github Actions Workflow",
+      "original_message": "\ud83c\udfaf FEATURE: Add comprehensive GitHub Actions workflows for automated checks",
+      "score": 5
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "b6795f1",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Complete Phase 3 Workflow Orchestration (C1.5 & C1.6)",
+      "original_message": "\u2728 FEAT: Complete Phase 3 Workflow Orchestration (C1.5 & C1.6)",
+      "score": 5
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "246c04e",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "B1.7 - Complete Adapter Performance Monitoring And Optimization System",
+      "original_message": "\u2728 FEAT: B1.7 - Complete adapter performance monitoring and optimization system",
+      "score": 5
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "019c4ff",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Complete Adcs Manual Collection Framework (B3.1-B3.6)",
+      "original_message": "\u2728 FEAT: Complete ADCS Manual Collection Framework (B3.1-B3.6)",
+      "score": 5
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "fbfc7a6",
+      "author": "CryptoYogiLLC",
+      "category": "Core System",
+      "title": "Comprehensive Credential Management Framework",
+      "original_message": "feat(security): Implement comprehensive credential management framework for ADCS",
+      "score": 5
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "34ebc9c",
+      "author": "CryptoYogiLLC",
+      "category": "AI/Agent",
+      "title": "Missing Questionnai",
+      "original_message": "\ud83d\udc1b FIX: Add missing questionnaire_responses relationship to User model",
+      "score": 4
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "3886dae",
+      "author": "CryptoYogiLLC",
+      "category": "Workflow",
+      "title": "Missing Collection_Flow Relationship To Crewaiflow",
+      "original_message": "\ud83d\udc1b FIX: Add missing collection_flow relationship to CrewAIFlowStateExtensions",
+      "score": 4
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "b464d8c",
+      "author": "CryptoYogiLLC",
+      "category": "Workflow",
+      "title": "Missing Collection_Flow",
+      "original_message": "\ud83d\udc1b FIX: Add missing collection_flows relationships to SQLAlchemy models",
+      "score": 4
+    },
+    {
+      "date": "2025-07-19",
+      "hash": "a9209cb",
+      "author": "CryptoYogiLLC",
+      "category": "UI/Frontend",
+      "title": "Missing Default Exports For Modular Component",
+      "original_message": "\ud83d\udc1b FIX: Add missing default exports for modular components",
+      "score": 3
+    },
+    {
+      "date": "2025-07-22",
+      "hash": "cf9be3b",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Missing Asset_Dependencies Table Migration",
+      "original_message": "Add missing asset_dependencies table migration",
+      "score": 3
+    },
+    {
+      "date": "2025-07-23",
+      "hash": "a41b6f2",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Comprehensive Database Schema",
+      "original_message": "feat: Implement comprehensive database schema consolidation",
+      "score": 4
+    },
+    {
+      "date": "2025-07-23",
+      "hash": "7129e28",
+      "author": "CryptoYogiLLC",
+      "category": "Infrastructure",
+      "title": "Code Quality And Security",
+      "original_message": "\ud83d\udee1\ufe0f Implement code quality and security recommendations from PR review",
+      "score": 3
+    },
+    {
+      "date": "2025-07-24",
+      "hash": "670f13e",
+      "author": "CryptoYogiLLC",
+      "category": "AI/Agent",
+      "title": "Comprehensive Security Constrai",
+      "original_message": "\ud83d\udd12 Add comprehensive security constraints and data protection measures",
+      "score": 5
+    },
+    {
+      "date": "2025-07-24",
+      "hash": "8951777",
+      "author": "CryptoYogiLLC",
+      "category": "Infrastructure",
+      "title": "Row-Level Security",
+      "original_message": "feat: Implement Row-Level Security and comprehensive data seeding",
+      "score": 4
+    },
+    {
+      "date": "2025-07-24",
+      "hash": "e0c0447",
+      "author": "CryptoYogiLLC",
+      "category": "AI/Agent",
+      "title": "Database Constrai",
+      "original_message": "\ud83d\udd27 Apply Qodo feedback: Add database constraints and fix timestamp handling",
+      "score": 4
+    },
+    {
+      "date": "2025-07-24",
+      "hash": "e13fc6a",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Complete Migration To V2 Models And Fix Mypy Errors",
+      "original_message": "feat: Complete migration to V2 models and fix mypy errors",
+      "score": 4
+    },
+    {
+      "date": "2025-07-24",
+      "hash": "61f4a71",
+      "author": "CryptoYogiLLC",
+      "category": "Feature",
+      "title": "Optimize Pre-Commit Hooks For Faster Developer Workflow",
+      "original_message": "feat: Optimize pre-commit hooks for faster developer workflow",
+      "score": 3
+    },
+    {
+      "date": "2025-07-24",
+      "hash": "773370b",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "V2 Models Aligned With Consolidated Schema",
+      "original_message": "feat: Create V2 models aligned with consolidated schema",
+      "score": 3
+    },
+    {
+      "date": "2025-07-25",
+      "hash": "d29c6ef",
+      "author": "CryptoYogiLLC",
+      "category": "UI Enhancement",
+      "title": "Functionality And Dashboard",
+      "original_message": "\ud83d\udc1b Admin Panel: Fix user update functionality and dashboard statistics",
+      "score": 2
+    },
+    {
+      "date": "2025-07-28",
+      "hash": "153154e",
+      "author": "CryptoYogiLLC",
+      "category": "Database",
+      "title": "Missing Is_Admin Column Migration",
+      "original_message": "\ud83d\udc1b Add missing is_admin column migration",
+      "score": 3
+    }
+  ],
+  "category_breakdown": {
+    "UI/Frontend": 12,
+    "Core System": 8,
+    "Workflow": 8,
+    "Feature": 13,
+    "Release": 1,
+    "AI/Agent": 7,
+    "Backend/API": 3,
+    "Analysis": 1,
+    "Database": 13,
+    "UI Enhancement": 4,
+    "Infrastructure": 2
+  }
+}

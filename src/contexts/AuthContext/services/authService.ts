@@ -364,6 +364,13 @@ export const useAuthService = (
     try {
       console.log('🔍 fetchDefaultContext - Starting with current context:', { client, engagement });
 
+      // Verify we have authentication before making API calls
+      const token = tokenStorage.getToken();
+      if (!token || !user) {
+        console.warn('⚠️ fetchDefaultContext - No token or user available, skipping context fetch');
+        return;
+      }
+
       // Debouncing logic
       const now = Date.now();
       if (now - lastFetchDefaultContextTime < FETCH_DEFAULT_CONTEXT_DEBOUNCE) {

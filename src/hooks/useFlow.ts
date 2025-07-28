@@ -365,7 +365,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
         }
       }
     }, refreshInterval);
-  }, [refreshFlow, refreshInterval]);
+  }, [refreshFlow, refreshInterval, stopPolling]);
 
   const stopPolling = useCallback((): void => {
     if (pollIntervalRef.current) {

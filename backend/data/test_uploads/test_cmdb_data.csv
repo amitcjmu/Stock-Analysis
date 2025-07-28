@@ -1,0 +1,7 @@
+Name,Type,IP Address,Status,Location,Department
+Server-001,Physical Server,192.168.1.100,Active,Data Center A,IT Operations
+Server-002,Virtual Machine,192.168.1.101,Active,Data Center A,Development
+App-001,Application,N/A,Active,Cloud,Sales
+Database-001,Database Server,192.168.1.102,Active,Data Center B,IT Operations
+Network-Switch-01,Network Device,192.168.1.1,Active,Data Center A,Network Team
+EOF < /dev/null

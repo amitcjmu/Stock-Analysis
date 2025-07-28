@@ -60,6 +60,9 @@ export const useAuthInitialization = ({
 
 
     const initializeAuth = async (): JSX.Element => {
+      // Add a small delay to ensure React has fully mounted
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Check token and user first
       const token = tokenStorage.getToken();
       const storedUser = tokenStorage.getUser();
@@ -184,6 +187,14 @@ export const useAuthInitialization = ({
         // Try to get user context from the modern API
         try {
           console.log('🔍 Starting getUserContext API call...');
+
+          // First verify we have a valid token before making API calls
+          const currentToken = tokenStorage.getToken();
+          if (!currentToken) {
+            console.warn('⚠️ No token available, skipping getUserContext');
+            throw new Error('No authentication token');
+          }
+
           const userContext = await getUserContext();
           console.log('🔍 getUserContext API call completed:', userContext);
           console.log('🔍 Auth Init - Detailed context analysis:', {

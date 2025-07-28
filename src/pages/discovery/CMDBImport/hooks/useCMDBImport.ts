@@ -52,7 +52,7 @@ export const useCMDBImport = (): JSX.Element => {
     pollingStatus,
   } = useUnifiedDiscoveryFlow(activeFlowId);
 
-  // Flow Management hooks
+  // Flow Management hooks - only run when we have proper authentication context
   const { data: incompleteFlowsData, isLoading: checkingFlows, refetch: refetchIncompleteFlows } = useIncompleteFlowDetectionV2();
   const flowResumption = useFlowResumptionV2();
   const [deletionState, deletionActions] = useFlowDeletion(

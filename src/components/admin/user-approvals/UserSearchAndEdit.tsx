@@ -1,6 +1,5 @@
 import React from 'react'
-import { useState } from 'react'
-import { useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,28 +74,7 @@ export const UserSearchAndEdit: React.FC = () => {
     is_active: true
   });
 
-  // Load initial data
-  useEffect(() => {
-    loadUsers();
-    loadClients();
-    loadEngagements();
-  }, []);
-
-  // Reset engagement selection when client changes
-  useEffect(() => {
-    if (editForm.default_client_id === 'none') {
-      setEditForm(prev => ({ ...prev, default_engagement_id: 'none' }));
-    } else {
-      // Check if current engagement still belongs to selected client
-      const availableEngagements = getFilteredEngagements();
-      const currentEngagementValid = availableEngagements.some(e => e.id === editForm.default_engagement_id);
-      if (!currentEngagementValid) {
-        setEditForm(prev => ({ ...prev, default_engagement_id: 'none' }));
-      }
-    }
-  }, [editForm.default_client_id, engagements]);
-
-  const loadUsers = async (): Promise<void> => {
+  const loadUsers = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
       const response = await apiCall('/auth/active-users');
@@ -116,9 +94,9 @@ export const UserSearchAndEdit: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const loadClients = async (): JSX.Element => {
+  const loadClients = useCallback(async (): Promise<void> => {
     try {
       const response = await apiCall('/admin/clients/?page_size=100');
       if (response.items) {
@@ -132,9 +110,9 @@ export const UserSearchAndEdit: React.FC = () => {
     } catch (error) {
       console.error('Error loading clients:', error);
     }
-  };
+  }, []);
 
-  const loadEngagements = async (): JSX.Element => {
+  const loadEngagements = useCallback(async (): Promise<void> => {
     try {
       const response = await apiCall('/admin/engagements/?page_size=100');
       if (response.items) {
@@ -148,15 +126,36 @@ export const UserSearchAndEdit: React.FC = () => {
     } catch (error) {
       console.error('Error loading engagements:', error);
     }
-  };
+  }, []);
 
   // Filter engagements based on selected client
-  const getFilteredEngagements = (): unknown[] => {
+  const getFilteredEngagements = useCallback((): Engagement[] => {
     if (editForm.default_client_id === 'none') {
       return [];
     }
     return engagements.filter(engagement => engagement.client_account_id === editForm.default_client_id);
-  };
+  }, [editForm.default_client_id, engagements]);
+
+  // Load initial data
+  useEffect(() => {
+    loadUsers();
+    loadClients();
+    loadEngagements();
+  }, [loadUsers, loadClients, loadEngagements]);
+
+  // Reset engagement selection when client changes
+  useEffect(() => {
+    if (editForm.default_client_id === 'none') {
+      setEditForm(prev => ({ ...prev, default_engagement_id: 'none' }));
+    } else {
+      // Check if current engagement still belongs to selected client
+      const availableEngagements = getFilteredEngagements();
+      const currentEngagementValid = availableEngagements.some(e => e.id === editForm.default_engagement_id);
+      if (!currentEngagementValid) {
+        setEditForm(prev => ({ ...prev, default_engagement_id: 'none' }));
+      }
+    }
+  }, [editForm.default_client_id, editForm.default_engagement_id, getFilteredEngagements]);
 
   const handleEditUser = (user: User): void => {
     setSelectedUser(user);

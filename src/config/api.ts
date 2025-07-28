@@ -316,6 +316,30 @@ export const apiCall = async (
   // Log API call parameters for debugging
   console.log(`🔍 API Call [${requestId}] - endpoint="${endpoint}", includeContext=${includeContext}`);
 
+  // Guard against premature context-establishment API calls
+  const contextEstablishmentEndpoints = [
+    '/context-establishment/clients',
+    '/api/v1/context-establishment/clients',
+    '/context-establishment/engagements',
+    '/api/v1/context-establishment/engagements'
+  ];
+
+  // Check if this is a context establishment call without proper authentication
+  if (contextEstablishmentEndpoints.some(ep => endpoint.includes(ep))) {
+    const token = tokenStorage.getToken();
+    const user = tokenStorage.getUser();
+
+    if (!token || !user) {
+      console.warn(`⚠️ API Call [${requestId}] - Blocking premature context-establishment call to ${endpoint} - no auth`);
+      const authError = new Error('Authentication required for context establishment') as EnhancedApiError;
+      authError.status = 401;
+      authError.isAuthError = true;
+      authError.isApiError = true;
+      authError.code = 'AUTH_REQUIRED';
+      throw authError;
+    }
+  }
+
   // Normalize endpoint - NO double prefixes
   let normalizedEndpoint: string;
   if (endpoint.startsWith('/api/v1') || endpoint.startsWith('/api/v2')) {

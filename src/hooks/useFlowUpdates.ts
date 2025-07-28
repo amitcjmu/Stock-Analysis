@@ -197,7 +197,7 @@ export function useFlowUpdates(
         startPollingRef.current();
       }
     }
-  }, [flowId, token, mergedOptions, getHeaders, safeSetState, updateFlowData]);
+  }, [flowId, token, mergedOptions, safeSetState, updateFlowData]);
 
   // Smart Polling with ETag support
   const pollStatus = useCallback(async () => {

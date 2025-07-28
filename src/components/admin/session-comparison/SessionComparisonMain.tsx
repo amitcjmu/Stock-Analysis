@@ -4,8 +4,7 @@
  */
 
 import React from 'react'
-import { useState } from 'react'
-import { useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -141,13 +140,7 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const { toast } = useToast();
 
-  // Load available sessions for comparison
-  useEffect(() => {
-    loadSessionsForComparison();
-    loadComparisonHistory();
-  }, [engagementId]);
-
-  const loadSessionsForComparison = async () =>  {
+  const loadSessionsForComparison = useCallback(async () => {
     setIsLoadingSessions(true);
     try {
       // Demo data for sessions
@@ -187,9 +180,9 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
     } finally {
       setIsLoadingSessions(false);
     }
-  };
+  }, [toast]);
 
-  const loadComparisonHistory = async () =>  {
+  const loadComparisonHistory = useCallback(async () => {
     try {
       // Demo comparison history
       setComparisonHistory([
@@ -204,7 +197,13 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
     } catch (error) {
       console.error('Error loading comparison history:', error);
     }
-  };
+  }, []);
+
+  // Load available sessions for comparison
+  useEffect(() => {
+    loadSessionsForComparison();
+    loadComparisonHistory();
+  }, [engagementId, loadSessionsForComparison, loadComparisonHistory]);
 
   const performComparison = async (): void => {
     if (!selectedSourceSession || !selectedTargetSession) {

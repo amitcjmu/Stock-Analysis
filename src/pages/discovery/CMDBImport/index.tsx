@@ -8,9 +8,9 @@ import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 import { UploadBlocker } from '@/components/discovery/UploadBlocker';
 import { IncompleteFlowManager } from '@/components/discovery/IncompleteFlowManager';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { SimplifiedFlowStatus } from '@/components/discovery/SimplifiedFlowStatus';
-import { PollingStatusIndicator } from '@/components/common/PollingControls';
-import { AgentActivityViewer } from '@/components/discovery/AgentActivityViewer';
+// import { SimplifiedFlowStatus } from '@/components/discovery/SimplifiedFlowStatus';
+// import { PollingStatusIndicator } from '@/components/common/PollingControls';
+// import { AgentActivityViewer } from '@/components/discovery/AgentActivityViewer';
 import { FlowDeletionModal } from '@/components/flows/FlowDeletionModal';
 
 // Custom hooks and components
@@ -23,7 +23,7 @@ import { CMDBDataTable } from './components/CMDBDataTable';
 import { useAuth } from '@/contexts/AuthContext';
 
 const CMDBImportContainer: React.FC = () => {
-  const { user, client, engagement } = useAuth();
+  const { user, client, engagement, isLoading: isAuthLoading } = useAuth();
 
   const {
     // File upload state
@@ -66,6 +66,25 @@ const CMDBImportContainer: React.FC = () => {
     deletionActions,
   } = useCMDBImport();
 
+  // Show loading state while authentication context is being established
+  if (isAuthLoading || !user) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <div className="hidden lg:block w-64 border-r bg-white">
+          <Sidebar />
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-6xl">
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              <span className="ml-3 text-gray-600">Loading authentication context...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
@@ -105,7 +124,7 @@ const CMDBImportContainer: React.FC = () => {
                     <span>{user.full_name}</span>
                   </div>
                 )}
-                <PollingStatusIndicator />
+                {/* <PollingStatusIndicator /> */}
               </div>
             </div>
             <p className="mt-2 text-gray-600 max-w-3xl">
@@ -168,7 +187,7 @@ const CMDBImportContainer: React.FC = () => {
             onStartDiscoveryFlow={startDiscoveryFlow}
           />
 
-          {/* Simplified Flow Status */}
+          {/* Discovery Flow Status - Commented out until SimplifiedFlowStatus component is available */}
           {uploadedFiles.length > 0 && uploadedFiles.some(f => f.flow_id) && (
             <div className="space-y-6 mt-8">
               <h2 className="text-xl font-semibold text-gray-900">Discovery Flow Status</h2>
@@ -179,11 +198,12 @@ const CMDBImportContainer: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-purple-600" />
                         <span className="font-medium text-purple-900">{file.name}</span>
+                        <span className="text-sm text-purple-700">Flow ID: {file.flow_id}</span>
                       </div>
                       <span className="text-sm text-purple-700">{file.size}</span>
                     </div>
                   </div>
-                  <SimplifiedFlowStatus
+                  {/* <SimplifiedFlowStatus
                     flow_id={file.flow_id}
                     onNavigateToMapping={() => {
                       // Use consistent navigation logic - get the route and navigate properly
@@ -198,7 +218,7 @@ const CMDBImportContainer: React.FC = () => {
                         console.error('❌ SimplifiedFlowStatus Navigation: No flow ID available');
                       }
                     }}
-                  />
+                  /> */}
                 </div>
               ))}
             </div>

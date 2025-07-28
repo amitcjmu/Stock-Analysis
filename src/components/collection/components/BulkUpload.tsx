@@ -56,16 +56,16 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({
     if (file) {
       await handleFileUpload(file);
     }
-  }, []);
+  }, [handleFileUpload]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       await handleFileUpload(file);
     }
-  }, []);
+  }, [handleFileUpload]);
 
-  const handleFileUpload = async (file: File): void => {
+  const handleFileUpload = useCallback(async (file: File): Promise<void> => {
     // Validate file type
     const allowedTypes = ['.csv', '.xlsx', '.xls', '.json'];
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -102,7 +102,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({
     } finally {
       setIsUploading(false);
     }
-  };
+  }, [onUpload]);
 
   const generateTemplate = (): unknown => {
     // Generate CSV template with field headers

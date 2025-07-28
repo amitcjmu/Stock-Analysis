@@ -224,7 +224,7 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
 
     // DISABLED: No automatic polling - use manual refresh only
     console.log('🔇 DISABLED: 6R Analysis polling disabled - use manual refresh instead');
-  }, [state.currentAnalysisId, state.analysisStatus, loadAnalysis]);
+  }, []);
 
   const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {

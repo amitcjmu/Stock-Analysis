@@ -3,6 +3,7 @@ Core flow manager for discovery flow operations.
 """
 
 import logging
+import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -17,6 +18,20 @@ from app.repositories.crewai_flow_state_extensions_repository import (
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 logger = logging.getLogger(__name__)
+
+
+def convert_uuids_to_str(obj: Any) -> Any:
+    """
+    Recursively convert UUID objects to strings for JSON serialization.
+    🔧 CC FIX: Prevents 'Object of type UUID is not JSON serializable' errors
+    """
+    if isinstance(obj, uuid.UUID):
+        return str(obj)
+    elif isinstance(obj, dict):
+        return {k: convert_uuids_to_str(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_uuids_to_str(item) for item in obj]
+    return obj
 
 
 class FlowManager:
@@ -48,6 +63,7 @@ class FlowManager:
         metadata: Dict[str, Any] = None,
         data_import_id: str = None,
         user_id: str = None,
+        master_flow_id: str = None,  # 🔧 CC FIX: Optional existing master flow to link to
     ) -> DiscoveryFlow:
         """
         Create a new discovery flow and ensure corresponding crewai_flow_state_extensions record.
@@ -78,25 +94,52 @@ class FlowManager:
             # Step 1: Create discovery flow in discovery_flows table
             logger.info(f"🔧 Creating discovery flow: {flow_id}")
 
+            # 🔧 CC FIX: Convert UUIDs to strings in metadata to prevent JSON serialization errors
+            safe_metadata = convert_uuids_to_str(metadata or {})
+
             discovery_flow = await self.flow_repo.create_discovery_flow(
                 flow_id=flow_id,
                 data_import_id=data_import_id,
                 user_id=user_id
                 or (str(self.context.user_id) if self.context.user_id else "system"),
                 raw_data=raw_data,
-                metadata=metadata or {},
+                metadata=safe_metadata,
             )
 
-            # Step 2: Create corresponding crewai_flow_state_extensions record
-            await self._create_extensions_record(
-                flow_id, data_import_id, user_id, raw_data, metadata
-            )
+            # Step 2: Handle master flow (either use existing or create new)
+            if master_flow_id:
+                # 🔧 CC FIX: If master_flow_id is provided, verify it exists
+                logger.info(f"🔧 Using existing master flow: {master_flow_id}")
+                # Check if master flow exists
+                master_flow_check = await self.master_flow_repo.get_master_flow_by_id(
+                    master_flow_id
+                )
+                if not master_flow_check:
+                    logger.warning(
+                        f"⚠️ Provided master_flow_id {master_flow_id} not found, creating new one"
+                    )
+                    await self._create_extensions_record(
+                        flow_id, data_import_id, user_id, raw_data, metadata
+                    )
+                else:
+                    logger.info(
+                        f"✅ Master flow {master_flow_id} verified and will be used"
+                    )
+                    # No need to create new extensions record, using existing master flow
+            else:
+                # Create new crewai_flow_state_extensions record
+                await self._create_extensions_record(
+                    flow_id, data_import_id, user_id, raw_data, metadata
+                )
 
             logger.info(f"✅ Discovery flow created successfully: {flow_id}")
             logger.info(f"   Discovery flow: discovery_flows.flow_id = {flow_id}")
-            logger.info(
-                f"   Extensions: crewai_flow_state_extensions.flow_id = {flow_id}"
-            )
+            if master_flow_id:
+                logger.info(f"   Using existing master flow: {master_flow_id}")
+            else:
+                logger.info(
+                    f"   Extensions: crewai_flow_state_extensions.flow_id = {flow_id}"
+                )
 
             return discovery_flow
 
@@ -111,6 +154,7 @@ class FlowManager:
         metadata: Dict[str, Any] = None,
         data_import_id: str = None,
         user_id: str = None,
+        master_flow_id: str = None,  # 🔧 CC FIX: Pass through master_flow_id
     ) -> DiscoveryFlow:
         """
         Create a new discovery flow or return existing one if it already exists.
@@ -122,6 +166,7 @@ class FlowManager:
             metadata=metadata,
             data_import_id=data_import_id,
             user_id=user_id,
+            master_flow_id=master_flow_id,
         )
 
     async def get_flow_by_id(self, flow_id: str) -> Optional[DiscoveryFlow]:
@@ -268,22 +313,31 @@ class FlowManager:
         logger.info(f"🔧 Creating crewai_flow_state_extensions record: {flow_id}")
 
         try:
+            # 🔧 CC FIX: Convert UUIDs to strings to prevent JSON serialization errors
+            flow_configuration = convert_uuids_to_str(
+                {
+                    "data_import_id": data_import_id,
+                    "raw_data_count": len(raw_data),
+                    "metadata": metadata or {},
+                }
+            )
+
+            initial_state = convert_uuids_to_str(
+                {
+                    "created_from": "discovery_flow_service",
+                    "raw_data_sample": raw_data[:2] if raw_data else [],
+                    "creation_timestamp": datetime.utcnow().isoformat(),
+                }
+            )
+
             extensions_record = await self.master_flow_repo.create_master_flow(
                 flow_id=flow_id,  # Same flow_id as discovery flow
                 flow_type="discovery",
                 user_id=user_id
                 or (str(self.context.user_id) if self.context.user_id else "system"),
                 flow_name=f"Discovery Flow {flow_id[:8]}",
-                flow_configuration={
-                    "data_import_id": data_import_id,
-                    "raw_data_count": len(raw_data),
-                    "metadata": metadata or {},
-                },
-                initial_state={
-                    "created_from": "discovery_flow_service",
-                    "raw_data_sample": raw_data[:2] if raw_data else [],
-                    "creation_timestamp": datetime.utcnow().isoformat(),
-                },
+                flow_configuration=flow_configuration,
+                initial_state=initial_state,
             )
             logger.info(f"✅ Extensions record created: {extensions_record.flow_id}")
         except Exception as ext_error:

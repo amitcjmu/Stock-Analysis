@@ -54,6 +54,36 @@ export function PollingControls({
   });
   const [isEmergencyActive, setIsEmergencyActive] = useState(false);
 
+  const handleEmergencyStop = useCallback(async (): Promise<void> => {
+    try {
+      setIsEmergencyActive(true);
+
+      // Stop all frontend polling
+      if (typeof window !== 'undefined' && window.stopAllPolling) {
+        window.stopAllPolling();
+      }
+
+      // Clear all query cache to stop React Query polling
+      queryClient.clear();
+
+      // Stop backend polling
+      await apiCall('/api/v1/observability/polling/emergency-stop', {
+        method: 'POST',
+        body: JSON.stringify({
+          reason: 'User triggered emergency stop',
+          flow_id: flowId
+        })
+      });
+
+      onEmergencyStop?.();
+      console.log('🚨 EMERGENCY STOP: All polling operations halted');
+      toast.success('Emergency stop activated - all polling stopped');
+    } catch (error) {
+      console.error('Failed to execute emergency stop:', error);
+      toast.error('Failed to stop all polling operations');
+    }
+  }, [queryClient, flowId, onEmergencyStop]);
+
   // Monitor polling status
   useEffect(() => {
     const checkPollingStatus = (): unknown => {
@@ -102,37 +132,7 @@ export function PollingControls({
 
     // No auto-polling - user must manually refresh
     return () => {};
-  }, [queryClient]);
-
-  const handleEmergencyStop = async (): void => {
-    try {
-      setIsEmergencyActive(true);
-
-      // Stop all frontend polling
-      if (typeof window !== 'undefined' && window.stopAllPolling) {
-        window.stopAllPolling();
-      }
-
-      // Clear all query cache to stop React Query polling
-      queryClient.clear();
-
-      // Stop backend polling
-      await apiCall('/api/v1/observability/polling/emergency-stop', {
-        method: 'POST',
-        body: JSON.stringify({
-          reason: 'User triggered emergency stop',
-          flow_id: flowId
-        })
-      });
-
-      onEmergencyStop?.();
-      console.log('🚨 EMERGENCY STOP: All polling operations halted');
-      toast.success('Emergency stop activated - all polling stopped');
-    } catch (error) {
-      console.error('Failed to execute emergency stop:', error);
-      toast.error('Failed to stop all polling operations');
-    }
-  };
+  }, [queryClient, handleEmergencyStop]);
 
   const handleRefreshAll = async (): void => {
     try {

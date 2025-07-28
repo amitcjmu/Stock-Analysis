@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Lightbulb, CheckCircle, AlertTriangle, Cpu, Clock } from 'lucide-react';
 
-const InsightIcon = ({ type }): JSX.Element => {
+const InsightIcon = ({ type }: { type: string }): JSX.Element => {
   switch (type) {
     case 'processing':
       return <Cpu className="h-5 w-5 text-blue-500" />;
@@ -17,7 +17,7 @@ const InsightIcon = ({ type }): JSX.Element => {
   }
 };
 
-const InsightBadge = ({ type }): JSX.Element => {
+const InsightBadge = ({ type }: { type: string }): JSX.Element => {
     switch (type) {
         case 'processing':
           return <Badge variant="secondary">Processing</Badge>;
@@ -32,7 +32,14 @@ const InsightBadge = ({ type }): JSX.Element => {
       }
 }
 
-export const AgentActivityViewer = ({ insights }): JSX.Element => {
+interface Insight {
+  id: string;
+  type: string;
+  message: string;
+  timestamp: string;
+}
+
+export const AgentActivityViewer = ({ insights }: { insights: Insight[] }): JSX.Element => {
   if (!insights || insights.length === 0) {
     return null;
   }

@@ -244,6 +244,7 @@ export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}): JSX.Ele
     state.reconnectAttempts,
     getWebSocketUrl,
     startHeartbeat,
+    clearHeartbeat,
     onConnect,
     onMessage,
     onError,
@@ -308,7 +309,7 @@ export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}): JSX.Ele
     return () => {
       disconnect();
     };
-  }, [analysisId, jobId]); // Only reconnect when IDs change
+  }, [analysisId, jobId, connect, disconnect]); // Only reconnect when IDs change
 
   // Cleanup on unmount
   useEffect(() => {

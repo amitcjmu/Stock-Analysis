@@ -188,7 +188,8 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 engagement_uuid = uuid.UUID(self.engagement_id)
             except (ValueError, TypeError) as e:
                 logger.error(
-                    f"❌ Invalid context UUID - client: {self.client_account_id}, engagement: {self.engagement_id}, error: {e}"
+                    f"❌ Invalid context UUID - client: {self.client_account_id}, "
+                    f"engagement: {self.engagement_id}, error: {e}"
                 )
                 return None
 
@@ -263,7 +264,8 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             # SECURITY: Only allow global query for system operations
             # In production, this should check for system/admin privileges
             logger.warning(
-                f"🔒 SECURITY: Denying global query for master flow {flow_id} - does not belong to client {self.client_account_id}"
+                f"🔒 SECURITY: Denying global query for master flow {flow_id} - "
+                f"does not belong to client {self.client_account_id}"
             )
             return None
 
@@ -457,6 +459,49 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
         except Exception as e:
             logger.error(f"❌ Failed to delete master flow {flow_id}: {e}")
             return False
+
+    async def get_master_flow_by_id(
+        self, flow_id: str
+    ) -> Optional[CrewAIFlowStateExtensions]:
+        """Get master flow by ID (with multi-tenant security)"""
+        try:
+            # Validate and parse flow_id
+            if isinstance(flow_id, uuid.UUID):
+                parsed_flow_id = flow_id
+            else:
+                parsed_flow_id = uuid.UUID(flow_id)
+
+            query = select(CrewAIFlowStateExtensions).where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == parsed_flow_id,
+                    (
+                        CrewAIFlowStateExtensions.client_account_id
+                        == uuid.UUID(self.client_account_id)
+                        if self.client_account_id
+                        else None
+                    ),
+                    (
+                        CrewAIFlowStateExtensions.engagement_id
+                        == uuid.UUID(self.engagement_id)
+                        if self.engagement_id
+                        else None
+                    ),
+                )
+            )
+
+            result = await self.db.execute(query)
+            master_flow = result.scalar_one_or_none()
+
+            if master_flow:
+                logger.info(f"✅ Found master flow: {flow_id}")
+            else:
+                logger.warning(f"⚠️ Master flow not found: {flow_id}")
+
+            return master_flow
+
+        except Exception as e:
+            logger.error(f"❌ Error getting master flow by ID: {e}")
+            raise
 
     async def get_master_flow_summary(self) -> Dict[str, Any]:
         """Get summary of master flow coordination status"""

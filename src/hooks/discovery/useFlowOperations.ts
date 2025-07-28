@@ -112,7 +112,9 @@ export const useIncompleteFlowDetectionV2 = (): unknown => {
     },
     staleTime: 30000,
     refetchInterval: false,
-    enabled: !!client?.id && !!engagement?.id // Only run query when we have proper context
+    enabled: !!client?.id && !!engagement?.id, // Only run query when we have proper context
+    retry: false, // Don't retry failed requests to avoid console spam
+    refetchOnWindowFocus: false // Don't refetch when window gains focus
   });
 };
 

@@ -12,6 +12,12 @@ export const useApiContextSync = (
   const lastContextRef = useRef<string>('');
 
   useEffect(() => {
+    // Don't sync context if we don't have a user yet
+    if (!user) {
+      console.log('🔄 API Context sync - skipping, no user available');
+      return;
+    }
+
     // Create a hash of the current context to avoid unnecessary updates
     const contextHash = JSON.stringify({
       userId: user?.id,

@@ -5,8 +5,7 @@
  */
 
 import React from 'react'
-import { useState } from 'react'
-import { useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { AssetDetails, AgentClarificationPanelProps } from './types'
 import type { AgentQuestion } from './types'
 import * as api from './api';
@@ -33,31 +32,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [assetDetails, setAssetDetails] = useState<Record<string, AssetDetails>>({});
 
-  useEffect(() => {
-    fetchQuestions();
-  }, [pageContext]);
-
-  // Refresh when refreshTrigger changes
-  useEffect(() => {
-    if (refreshTrigger !== undefined) {
-      fetchQuestions();
-    }
-  }, [refreshTrigger]);
-
-  // Set up polling only when processing is active
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-
-    if (isProcessing) {
-      interval = setInterval(fetchQuestions, 30000); // Poll every 30 seconds only when processing
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isProcessing]);
-
-  const fetchQuestions = async (): Promise<void> => {
+  const fetchQuestions = useCallback(async (): Promise<void> => {
     try {
       const fetchedQuestions = await api.fetchAgentQuestions(pageContext);
       setQuestions(fetchedQuestions);
@@ -70,9 +45,9 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [pageContext, fetchAssetDetailsForQuestions]);
 
-  const fetchAssetDetailsForQuestions = async (questions: AgentQuestion[]): JSX.Element => {
+  const fetchAssetDetailsForQuestions = useCallback(async (questions: AgentQuestion[]): Promise<void> => {
     const assetDetailsMap: Record<string, AssetDetails> = {};
 
     for (const question of questions) {
@@ -92,7 +67,31 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     }
 
     setAssetDetails(assetDetailsMap);
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchQuestions();
+  }, [fetchQuestions]);
+
+  // Refresh when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger !== undefined) {
+      fetchQuestions();
+    }
+  }, [refreshTrigger, fetchQuestions]);
+
+  // Set up polling only when processing is active
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    if (isProcessing) {
+      interval = setInterval(fetchQuestions, 30000); // Poll every 30 seconds only when processing
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isProcessing, fetchQuestions]);
 
   const handleResponseSubmit = async (questionId: string): void => {
     const response = responses[questionId];

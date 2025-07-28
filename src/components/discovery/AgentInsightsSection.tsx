@@ -1,6 +1,5 @@
 import React from 'react'
-import { useState } from 'react'
-import { useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { TrendingUp, CheckCircle, Zap, Target, Star, Eye } from 'lucide-react'
 import { Lightbulb, Brain, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ArrowRight, Loader2, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { API_CONFIG } from '../../config/api'
@@ -41,31 +40,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'actionable' | 'high_confidence'>('all');
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchInsights();
-  }, [pageContext]);
-
-  // Refresh when refreshTrigger changes
-  useEffect(() => {
-    if (refreshTrigger !== undefined) {
-      fetchInsights();
-    }
-  }, [refreshTrigger]);
-
-  // Set up polling only when processing is active
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-
-    if (isProcessing) {
-      interval = setInterval(fetchInsights, 30000); // Poll every 30 seconds only when processing
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isProcessing]);
-
-  const fetchInsights = async (): Promise<void> => {
+  const fetchInsights = useCallback(async (): Promise<void> => {
     try {
       const result = await apiCall(`/api/v1/agents/discovery/agent-insights?page=${pageContext}`);
       if (result.success && result.insights) {
@@ -85,7 +60,31 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [pageContext]);
+
+  useEffect(() => {
+    fetchInsights();
+  }, [fetchInsights]);
+
+  // Refresh when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger !== undefined) {
+      fetchInsights();
+    }
+  }, [refreshTrigger, fetchInsights]);
+
+  // Set up polling only when processing is active
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    if (isProcessing) {
+      interval = setInterval(fetchInsights, 30000); // Poll every 30 seconds only when processing
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isProcessing, fetchInsights]);
 
   const toggleInsightExpansion = (insightId: string): unknown => {
     const newExpanded = new Set(expandedInsights);

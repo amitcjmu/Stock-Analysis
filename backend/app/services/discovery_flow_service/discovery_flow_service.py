@@ -45,6 +45,7 @@ class DiscoveryFlowService:
         metadata: Dict[str, Any] = None,
         data_import_id: str = None,
         user_id: str = None,
+        master_flow_id: str = None,  # 🔧 CC FIX: Optional existing master flow to link to
     ) -> DiscoveryFlow:
         """
         Create a new discovery flow and ensure corresponding crewai_flow_state_extensions record.
@@ -55,6 +56,7 @@ class DiscoveryFlowService:
             metadata=metadata,
             data_import_id=data_import_id,
             user_id=user_id,
+            master_flow_id=master_flow_id,
         )
 
     async def create_or_get_discovery_flow(

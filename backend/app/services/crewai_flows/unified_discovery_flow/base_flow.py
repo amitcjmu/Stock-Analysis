@@ -32,21 +32,21 @@ if not CREWAI_FLOW_AVAILABLE:
     )
 
 # Import state and configuration
-from app.core.context import RequestContext
-from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+from app.core.context import RequestContext  # noqa: E402
+from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState  # noqa: E402
 
 # Import enhanced error handling and monitoring
 # Import handlers for flow management
-from .crew_coordination import CrewCoordinator
-from .data_utilities import DataUtilities
-from .flow_finalization import FlowFinalizer
-from .flow_initialization import FlowInitializer
-from .flow_management import FlowManager
-from .notification_utilities import NotificationUtilities
+from .crew_coordination import CrewCoordinator  # noqa: E402
+from .data_utilities import DataUtilities  # noqa: E402
+from .flow_finalization import FlowFinalizer  # noqa: E402
+from .flow_initialization import FlowInitializer  # noqa: E402
+from .flow_management import FlowManager  # noqa: E402
+from .notification_utilities import NotificationUtilities  # noqa: E402
 
 # Import modular utilities
-from .phase_handlers import PhaseHandlers
-from .state_management import StateManager
+from .phase_handlers import PhaseHandlers  # noqa: E402
+from .state_management import StateManager  # noqa: E402
 
 
 class UnifiedDiscoveryFlow(Flow):
@@ -194,7 +194,7 @@ class UnifiedDiscoveryFlow(Flow):
         self.finalizer = FlowFinalizer(self.state, self.state_manager)
 
         # Initialize bridge for flow-specific database operations
-        from ..bridges.flow_state_bridge import FlowStateBridge
+        from ..flow_state_bridge import FlowStateBridge
 
         self.flow_bridge = FlowStateBridge(self.context)
 
