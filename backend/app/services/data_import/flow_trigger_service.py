@@ -30,8 +30,8 @@ def convert_uuids_to_str(obj: Any) -> Any:
         return str(obj)
     elif isinstance(obj, dict):
         return {k: convert_uuids_to_str(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [convert_uuids_to_str(item) for item in obj]
+    elif isinstance(obj, (list, tuple, set)):
+        return type(obj)(convert_uuids_to_str(item) for item in obj)
     return obj
 
 
