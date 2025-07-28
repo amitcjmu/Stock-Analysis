@@ -27,6 +27,7 @@ class BackgroundExecutionService:
     """
 
     def __init__(self, db: AsyncSession, client_account_id: str):
+        # Note: We store db for potential future use, but background tasks should use fresh sessions
         self.db = db
         self.client_account_id = client_account_id
 

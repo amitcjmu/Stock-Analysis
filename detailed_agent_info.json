@@ -1,0 +1,341 @@
+{
+  "total_agents": 49,
+  "agents_by_crew": {
+    "data_cleansing_crew": [
+      "Data Quality Specialist",
+      "Agentic Asset Intelligence Orchestrator",
+      "Data Processor"
+    ],
+    "field_mapping_crew": [
+      "CMDB Field Mapping Specialist"
+    ],
+    "asset_inventory_crew": [
+      "Asset Inventory Specialist"
+    ],
+    "inventory_building_crew": [
+      "IT Asset Inventory Coordination Manager",
+      "Enterprise Server & Infrastructure Classification Expert",
+      "Application Discovery Expert",
+      "Device Classification Expert"
+    ],
+    "app_app_dependency_crew": [
+      "Integration Analysis Manager",
+      "Integration Pattern Expert",
+      "Business Flow Analyst"
+    ],
+    "component_analysis_crew": [
+      "Component Architecture Analyst",
+      "Technical Debt Assessment Specialist",
+      "Dependency Analysis Expert"
+    ],
+    "agentic_asset_enrichment_crew": [
+      "Asset Intelligence Specialist",
+      "Pattern Discovery Specialist"
+    ],
+    "architecture_standards_crew": [
+      "Architecture Standards Specialist",
+      "Technology Stack Analyst",
+      "Business Constraint Analyst"
+    ],
+    "field_mapping_crew_fast": [
+      "Field Mapping Specialist",
+      "Field Mapper"
+    ],
+    "data_import_validation_crew": [
+      "Data Import Validation Specialist"
+    ],
+    "technical_debt_crew": [
+      "Enterprise Technical Debt Assessment Manager",
+      "Legacy Systems Analyst",
+      "Modernization Expert",
+      "Risk Assessment Specialist"
+    ],
+    "sixr_strategy_crew": [
+      "Component Modernization Strategist",
+      "Architecture Compatibility Validator",
+      "Migration Wave Planning Advisor"
+    ],
+    "tech_debt_analysis_crew": [
+      "Legacy Systems Modernization Expert",
+      "Cloud Migration Strategist"
+    ],
+    "app_server_dependency_crew": [
+      "Dependency Analysis Manager",
+      "Hosting Relationship Expert",
+      "Migration Impact Analyst",
+      "Dependency Manager"
+    ],
+    "dependency_analysis_crew": [
+      "Network Architecture Specialist"
+    ],
+    "asset_intelligence_crew": [
+      "Asset Classification Expert"
+    ],
+    "platform_detection_crew": [
+      "Platform Detection Specialist",
+      "Automation Tier Assessment Expert"
+    ],
+    "automated_collection_crew": [
+      "Collection Orchestration Specialist",
+      "Collection Quality Assurance Expert",
+      "Collection Progress Analytics Expert"
+    ],
+    "gap_analysis_crew": [
+      "Data Gap Analysis Specialist",
+      "6R Strategy Impact Assessment Expert",
+      "Gap Prioritization and Resolution Expert"
+    ],
+    "manual_collection_crew": [
+      "Dynamic Questionnaire Generation Expert",
+      "Data Validation and Quality Assurance Specialist",
+      "Manual Collection Coordination Expert"
+    ]
+  },
+  "all_agents": [
+    {
+      "role": "Data Quality Specialist",
+      "file": "backend/app/services/crews/data_cleansing_crew.py",
+      "crew_type": "data_cleansing_crew"
+    },
+    {
+      "role": "CMDB Field Mapping Specialist",
+      "file": "backend/app/services/crews/field_mapping_crew.py",
+      "crew_type": "field_mapping_crew"
+    },
+    {
+      "role": "Asset Inventory Specialist",
+      "file": "backend/app/services/crews/asset_inventory_crew.py",
+      "crew_type": "asset_inventory_crew"
+    },
+    {
+      "role": "IT Asset Inventory Coordination Manager",
+      "file": "backend/app/services/crewai_flows/crews/inventory_building_crew.py",
+      "crew_type": "inventory_building_crew"
+    },
+    {
+      "role": "Enterprise Server & Infrastructure Classification Expert",
+      "file": "backend/app/services/crewai_flows/crews/inventory_building_crew.py",
+      "crew_type": "inventory_building_crew"
+    },
+    {
+      "role": "Application Discovery Expert",
+      "file": "backend/app/services/crewai_flows/crews/inventory_building_crew.py",
+      "crew_type": "inventory_building_crew"
+    },
+    {
+      "role": "Device Classification Expert",
+      "file": "backend/app/services/crewai_flows/crews/inventory_building_crew.py",
+      "crew_type": "inventory_building_crew"
+    },
+    {
+      "role": "Integration Analysis Manager",
+      "file": "backend/app/services/crewai_flows/crews/app_app_dependency_crew.py",
+      "crew_type": "app_app_dependency_crew"
+    },
+    {
+      "role": "Integration Pattern Expert",
+      "file": "backend/app/services/crewai_flows/crews/app_app_dependency_crew.py",
+      "crew_type": "app_app_dependency_crew"
+    },
+    {
+      "role": "Business Flow Analyst",
+      "file": "backend/app/services/crewai_flows/crews/app_app_dependency_crew.py",
+      "crew_type": "app_app_dependency_crew"
+    },
+    {
+      "role": "Component Architecture Analyst",
+      "file": "backend/app/services/crewai_flows/crews/component_analysis_crew.py",
+      "crew_type": "component_analysis_crew"
+    },
+    {
+      "role": "Technical Debt Assessment Specialist",
+      "file": "backend/app/services/crewai_flows/crews/component_analysis_crew.py",
+      "crew_type": "component_analysis_crew"
+    },
+    {
+      "role": "Dependency Analysis Expert",
+      "file": "backend/app/services/crewai_flows/crews/component_analysis_crew.py",
+      "crew_type": "component_analysis_crew"
+    },
+    {
+      "role": "Asset Intelligence Specialist",
+      "file": "backend/app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+      "crew_type": "agentic_asset_enrichment_crew"
+    },
+    {
+      "role": "Pattern Discovery Specialist",
+      "file": "backend/app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+      "crew_type": "agentic_asset_enrichment_crew"
+    },
+    {
+      "role": "Architecture Standards Specialist",
+      "file": "backend/app/services/crewai_flows/crews/architecture_standards_crew.py",
+      "crew_type": "architecture_standards_crew"
+    },
+    {
+      "role": "Technology Stack Analyst",
+      "file": "backend/app/services/crewai_flows/crews/architecture_standards_crew.py",
+      "crew_type": "architecture_standards_crew"
+    },
+    {
+      "role": "Business Constraint Analyst",
+      "file": "backend/app/services/crewai_flows/crews/architecture_standards_crew.py",
+      "crew_type": "architecture_standards_crew"
+    },
+    {
+      "role": "Field Mapping Specialist",
+      "file": "backend/app/services/crewai_flows/crews/field_mapping_crew_fast.py",
+      "crew_type": "field_mapping_crew_fast"
+    },
+    {
+      "role": "Field Mapper",
+      "file": "backend/app/services/crewai_flows/crews/field_mapping_crew_fast.py",
+      "crew_type": "field_mapping_crew_fast"
+    },
+    {
+      "role": "Agentic Asset Intelligence Orchestrator",
+      "file": "backend/app/services/crewai_flows/crews/data_cleansing_crew.py",
+      "crew_type": "data_cleansing_crew"
+    },
+    {
+      "role": "Data Processor",
+      "file": "backend/app/services/crewai_flows/crews/data_cleansing_crew.py",
+      "crew_type": "data_cleansing_crew"
+    },
+    {
+      "role": "Data Import Validation Specialist",
+      "file": "backend/app/services/crewai_flows/crews/data_import_validation_crew.py",
+      "crew_type": "data_import_validation_crew"
+    },
+    {
+      "role": "Enterprise Technical Debt Assessment Manager",
+      "file": "backend/app/services/crewai_flows/crews/technical_debt_crew.py",
+      "crew_type": "technical_debt_crew"
+    },
+    {
+      "role": "Legacy Systems Analyst",
+      "file": "backend/app/services/crewai_flows/crews/technical_debt_crew.py",
+      "crew_type": "technical_debt_crew"
+    },
+    {
+      "role": "Modernization Expert",
+      "file": "backend/app/services/crewai_flows/crews/technical_debt_crew.py",
+      "crew_type": "technical_debt_crew"
+    },
+    {
+      "role": "Risk Assessment Specialist",
+      "file": "backend/app/services/crewai_flows/crews/technical_debt_crew.py",
+      "crew_type": "technical_debt_crew"
+    },
+    {
+      "role": "Component Modernization Strategist",
+      "file": "backend/app/services/crewai_flows/crews/sixr_strategy_crew.py",
+      "crew_type": "sixr_strategy_crew"
+    },
+    {
+      "role": "Architecture Compatibility Validator",
+      "file": "backend/app/services/crewai_flows/crews/sixr_strategy_crew.py",
+      "crew_type": "sixr_strategy_crew"
+    },
+    {
+      "role": "Migration Wave Planning Advisor",
+      "file": "backend/app/services/crewai_flows/crews/sixr_strategy_crew.py",
+      "crew_type": "sixr_strategy_crew"
+    },
+    {
+      "role": "Legacy Systems Modernization Expert",
+      "file": "backend/app/services/crewai_flows/crews/tech_debt_analysis_crew.py",
+      "crew_type": "tech_debt_analysis_crew"
+    },
+    {
+      "role": "Cloud Migration Strategist",
+      "file": "backend/app/services/crewai_flows/crews/tech_debt_analysis_crew.py",
+      "crew_type": "tech_debt_analysis_crew"
+    },
+    {
+      "role": "Dependency Analysis Manager",
+      "file": "backend/app/services/crewai_flows/crews/app_server_dependency_crew.py",
+      "crew_type": "app_server_dependency_crew"
+    },
+    {
+      "role": "Hosting Relationship Expert",
+      "file": "backend/app/services/crewai_flows/crews/app_server_dependency_crew.py",
+      "crew_type": "app_server_dependency_crew"
+    },
+    {
+      "role": "Migration Impact Analyst",
+      "file": "backend/app/services/crewai_flows/crews/app_server_dependency_crew.py",
+      "crew_type": "app_server_dependency_crew"
+    },
+    {
+      "role": "Dependency Manager",
+      "file": "backend/app/services/crewai_flows/crews/app_server_dependency_crew.py",
+      "crew_type": "app_server_dependency_crew"
+    },
+    {
+      "role": "Network Architecture Specialist",
+      "file": "backend/app/services/crewai_flows/crews/dependency_analysis_crew.py",
+      "crew_type": "dependency_analysis_crew"
+    },
+    {
+      "role": "Asset Classification Expert",
+      "file": "backend/app/services/crewai_flows/crews/asset_intelligence_crew.py",
+      "crew_type": "asset_intelligence_crew"
+    },
+    {
+      "role": "Platform Detection Specialist",
+      "file": "backend/app/services/crewai_flows/crews/collection/platform_detection_crew.py",
+      "crew_type": "platform_detection_crew"
+    },
+    {
+      "role": "Automation Tier Assessment Expert",
+      "file": "backend/app/services/crewai_flows/crews/collection/platform_detection_crew.py",
+      "crew_type": "platform_detection_crew"
+    },
+    {
+      "role": "Collection Orchestration Specialist",
+      "file": "backend/app/services/crewai_flows/crews/collection/automated_collection_crew.py",
+      "crew_type": "automated_collection_crew"
+    },
+    {
+      "role": "Collection Quality Assurance Expert",
+      "file": "backend/app/services/crewai_flows/crews/collection/automated_collection_crew.py",
+      "crew_type": "automated_collection_crew"
+    },
+    {
+      "role": "Collection Progress Analytics Expert",
+      "file": "backend/app/services/crewai_flows/crews/collection/automated_collection_crew.py",
+      "crew_type": "automated_collection_crew"
+    },
+    {
+      "role": "Data Gap Analysis Specialist",
+      "file": "backend/app/services/crewai_flows/crews/collection/gap_analysis_crew.py",
+      "crew_type": "gap_analysis_crew"
+    },
+    {
+      "role": "6R Strategy Impact Assessment Expert",
+      "file": "backend/app/services/crewai_flows/crews/collection/gap_analysis_crew.py",
+      "crew_type": "gap_analysis_crew"
+    },
+    {
+      "role": "Gap Prioritization and Resolution Expert",
+      "file": "backend/app/services/crewai_flows/crews/collection/gap_analysis_crew.py",
+      "crew_type": "gap_analysis_crew"
+    },
+    {
+      "role": "Dynamic Questionnaire Generation Expert",
+      "file": "backend/app/services/crewai_flows/crews/collection/manual_collection_crew.py",
+      "crew_type": "manual_collection_crew"
+    },
+    {
+      "role": "Data Validation and Quality Assurance Specialist",
+      "file": "backend/app/services/crewai_flows/crews/collection/manual_collection_crew.py",
+      "crew_type": "manual_collection_crew"
+    },
+    {
+      "role": "Manual Collection Coordination Expert",
+      "file": "backend/app/services/crewai_flows/crews/collection/manual_collection_crew.py",
+      "crew_type": "manual_collection_crew"
+    }
+  ]
+}

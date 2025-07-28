@@ -32,7 +32,7 @@ def upgrade() -> None:
             SELECT 1 FROM information_schema.table_constraints
             WHERE table_schema = 'migration'
             AND table_name = 'data_imports'
-            AND constraint_name = 'fk_data_imports_master_flow_id_crewai_flow_state_extensions'  # noqa
+            AND constraint_name = 'fk_data_imports_master_flow_id_crewai_flow_state_extensions'
         )
     """
             )
@@ -102,7 +102,7 @@ def downgrade() -> None:
             SELECT 1 FROM information_schema.table_constraints
             WHERE table_schema = 'migration'
             AND table_name = 'data_imports'
-            AND constraint_name = 'fk_data_imports_master_flow_id_crewai_flow_state_extensions'  # noqa
+            AND constraint_name = 'fk_data_imports_master_flow_id_crewai_flow_state_extensions'
         )
     """
             )

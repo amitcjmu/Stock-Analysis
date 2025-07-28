@@ -1,0 +1,625 @@
+{
+  "current_crewai_agents": {
+    "count": 99,
+    "agents": {
+      "agent_1": {
+        "role": "UI Testing & Validation",
+        "file": "./temp/discovery-e2e/multi-agent-orchestrator.py",
+        "type": "crewai_agent"
+      },
+      "agent_2": {
+        "role": "Backend Monitoring & Validation",
+        "file": "./temp/discovery-e2e/multi-agent-orchestrator.py",
+        "type": "crewai_agent"
+      },
+      "agent_3": {
+        "role": "Database Validation",
+        "file": "./temp/discovery-e2e/multi-agent-orchestrator.py",
+        "type": "crewai_agent"
+      },
+      "agent_4": {
+        "role": "Solution Architecture",
+        "file": "./temp/discovery-e2e/multi-agent-orchestrator.py",
+        "type": "crewai_agent"
+      },
+      "agent_5": {
+        "role": "Historical Review",
+        "file": "./temp/discovery-e2e/multi-agent-orchestrator.py",
+        "type": "crewai_agent"
+      },
+      "agent_6": {
+        "role": "Implementation Verification",
+        "file": "./temp/discovery-e2e/multi-agent-orchestrator.py",
+        "type": "crewai_agent"
+      },
+      "agent_7": {
+        "role": "Implementation",
+        "file": "./temp/discovery-e2e/multi-agent-orchestrator.py",
+        "type": "crewai_agent"
+      },
+      "agent_8": {
+        "role": "Quick Math Assistant",
+        "file": "./tests/backend/test_crewai_no_thinking.py",
+        "type": "crewai_agent"
+      },
+      "agent_9": {
+        "role": "CMDB Data Analyst",
+        "file": "./tests/backend/test_crewai_no_thinking.py",
+        "type": "crewai_agent"
+      },
+      "agent_10": {
+        "role": "Math Assistant",
+        "file": "./tests/backend/test_crewai_with_litellm.py",
+        "type": "crewai_agent"
+      },
+      "agent_11": {
+        "role": "Field Mapping Manager",
+        "file": "./tests/backend/crews/test_field_mapping_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_12": {
+        "role": "Schema Analysis Expert",
+        "file": "./tests/backend/crews/test_field_mapping_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_13": {
+        "role": "Attribute Mapping Specialist",
+        "file": "./tests/backend/crews/test_field_mapping_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_14": {
+        "role": "Data Schema Analyst",
+        "file": "./backend/app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "type": "crewai_agent"
+      },
+      "agent_15": {
+        "role": "Migration Field Mapper",
+        "file": "./backend/app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "type": "crewai_agent"
+      },
+      "agent_16": {
+        "role": "Field Mapping Coordinator",
+        "file": "./backend/app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "type": "crewai_agent"
+      },
+      "agent_17": {
+        "role": "Data Quality Specialist",
+        "file": "./backend/app/services/crews/data_cleansing_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_18": {
+        "role": "CMDB Field Mapping Specialist",
+        "file": "./backend/app/services/crews/field_mapping_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_19": {
+        "role": "Asset Inventory Specialist",
+        "file": "./backend/app/services/crews/asset_inventory_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_20": {
+        "role": "Migration Strategy Expert",
+        "file": "./backend/app/services/agent_registry/phase_agents.py",
+        "type": "crewai_agent"
+      },
+      "agent_21": {
+        "role": "Risk Assessment Specialist",
+        "file": "./backend/app/services/agent_registry/phase_agents.py",
+        "type": "crewai_agent"
+      },
+      "agent_22": {
+        "role": "Wave Planning Coordinator",
+        "file": "./backend/app/services/agent_registry/phase_agents.py",
+        "type": "crewai_agent"
+      },
+      "agent_23": {
+        "role": "Migration Execution Coordinator",
+        "file": "./backend/app/services/agent_registry/phase_agents.py",
+        "type": "crewai_agent"
+      },
+      "agent_24": {
+        "role": "Containerization Specialist",
+        "file": "./backend/app/services/agent_registry/phase_agents.py",
+        "type": "crewai_agent"
+      },
+      "agent_25": {
+        "role": "Decommission Coordinator",
+        "file": "./backend/app/services/agent_registry/phase_agents.py",
+        "type": "crewai_agent"
+      },
+      "agent_26": {
+        "role": "Cost Optimization Specialist",
+        "file": "./backend/app/services/agent_registry/phase_agents.py",
+        "type": "crewai_agent"
+      },
+      "agent_27": {
+        "role": "Platform-Wide Learning Infrastructure",
+        "file": "./backend/app/services/agent_registry/phase_agents.py",
+        "type": "crewai_agent"
+      },
+      "agent_28": {
+        "role": "Client/Engagement-Specific Context Management",
+        "file": "./backend/app/services/agent_registry/phase_agents.py",
+        "type": "crewai_agent"
+      },
+      "agent_29": {
+        "role": "Asset Inventory Intelligence Specialist",
+        "file": "./backend/app/services/agent_registry/phase_agents.py",
+        "type": "crewai_agent"
+      },
+      "agent_30": {
+        "role": "Agent Health Monitor",
+        "file": "./backend/app/services/agent_registry/phase_agents.py",
+        "type": "crewai_agent"
+      },
+      "agent_31": {
+        "role": "Performance Analytics Specialist",
+        "file": "./backend/app/services/agent_registry/phase_agents.py",
+        "type": "crewai_agent"
+      },
+      "agent_32": {
+        "role": "IT Asset Inventory Coordination Manager",
+        "file": "./backend/app/services/crewai_flows/crews/inventory_building_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_33": {
+        "role": "Enterprise Server & Infrastructure Classification Expert",
+        "file": "./backend/app/services/crewai_flows/crews/inventory_building_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_34": {
+        "role": "Application Discovery Expert",
+        "file": "./backend/app/services/crewai_flows/crews/inventory_building_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_35": {
+        "role": "Device Classification Expert",
+        "file": "./backend/app/services/crewai_flows/crews/inventory_building_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_36": {
+        "role": "Integration Analysis Manager",
+        "file": "./backend/app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_37": {
+        "role": "Integration Pattern Expert",
+        "file": "./backend/app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_38": {
+        "role": "Business Flow Analyst",
+        "file": "./backend/app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_39": {
+        "role": "Component Architecture Analyst",
+        "file": "./backend/app/services/crewai_flows/crews/component_analysis_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_40": {
+        "role": "Technical Debt Assessment Specialist",
+        "file": "./backend/app/services/crewai_flows/crews/component_analysis_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_41": {
+        "role": "Dependency Analysis Expert",
+        "file": "./backend/app/services/crewai_flows/crews/component_analysis_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_42": {
+        "role": "Asset Intelligence Specialist",
+        "file": "./backend/app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_43": {
+        "role": "Pattern Discovery Specialist",
+        "file": "./backend/app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_44": {
+        "role": "Architecture Standards Specialist",
+        "file": "./backend/app/services/crewai_flows/crews/architecture_standards_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_45": {
+        "role": "Technology Stack Analyst",
+        "file": "./backend/app/services/crewai_flows/crews/architecture_standards_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_46": {
+        "role": "Business Constraint Analyst",
+        "file": "./backend/app/services/crewai_flows/crews/architecture_standards_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_47": {
+        "role": "Field Mapping Specialist",
+        "file": "./backend/app/services/crewai_flows/crews/field_mapping_crew_fast.py",
+        "type": "crewai_agent"
+      },
+      "agent_48": {
+        "role": "Field Mapper",
+        "file": "./backend/app/services/crewai_flows/crews/field_mapping_crew_fast.py",
+        "type": "crewai_agent"
+      },
+      "agent_49": {
+        "role": "Enhanced CMDB Field Mapping Specialist",
+        "file": "./backend/app/services/crewai_flows/crews/optimized_field_mapping_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_50": {
+        "role": "Agentic Asset Intelligence Orchestrator",
+        "file": "./backend/app/services/crewai_flows/crews/data_cleansing_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_51": {
+        "role": "Data Processor",
+        "file": "./backend/app/services/crewai_flows/crews/data_cleansing_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_52": {
+        "role": "Data Import Validation Specialist",
+        "file": "./backend/app/services/crewai_flows/crews/data_import_validation_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_53": {
+        "role": "Enterprise Technical Debt Assessment Manager",
+        "file": "./backend/app/services/crewai_flows/crews/technical_debt_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_54": {
+        "role": "Legacy Systems Analyst",
+        "file": "./backend/app/services/crewai_flows/crews/technical_debt_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_55": {
+        "role": "Modernization Expert",
+        "file": "./backend/app/services/crewai_flows/crews/technical_debt_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_56": {
+        "role": "Component Modernization Strategist",
+        "file": "./backend/app/services/crewai_flows/crews/sixr_strategy_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_57": {
+        "role": "Architecture Compatibility Validator",
+        "file": "./backend/app/services/crewai_flows/crews/sixr_strategy_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_58": {
+        "role": "Migration Wave Planning Advisor",
+        "file": "./backend/app/services/crewai_flows/crews/sixr_strategy_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_59": {
+        "role": "Legacy Systems Modernization Expert",
+        "file": "./backend/app/services/crewai_flows/crews/tech_debt_analysis_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_60": {
+        "role": "Cloud Migration Strategist",
+        "file": "./backend/app/services/crewai_flows/crews/tech_debt_analysis_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_61": {
+        "role": "Dependency Analysis Manager",
+        "file": "./backend/app/services/crewai_flows/crews/app_server_dependency_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_62": {
+        "role": "Hosting Relationship Expert",
+        "file": "./backend/app/services/crewai_flows/crews/app_server_dependency_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_63": {
+        "role": "Migration Impact Analyst",
+        "file": "./backend/app/services/crewai_flows/crews/app_server_dependency_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_64": {
+        "role": "Dependency Manager",
+        "file": "./backend/app/services/crewai_flows/crews/app_server_dependency_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_65": {
+        "role": "Network Architecture Specialist",
+        "file": "./backend/app/services/crewai_flows/crews/dependency_analysis_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_66": {
+        "role": "Asset Classification Expert",
+        "file": "./backend/app/services/crewai_flows/crews/asset_intelligence_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_67": {
+        "role": "Platform Detection Specialist",
+        "file": "./backend/app/services/crewai_flows/crews/collection/platform_detection_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_68": {
+        "role": "Automation Tier Assessment Expert",
+        "file": "./backend/app/services/crewai_flows/crews/collection/platform_detection_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_69": {
+        "role": "Collection Orchestration Specialist",
+        "file": "./backend/app/services/crewai_flows/crews/collection/automated_collection_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_70": {
+        "role": "Collection Quality Assurance Expert",
+        "file": "./backend/app/services/crewai_flows/crews/collection/automated_collection_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_71": {
+        "role": "Collection Progress Analytics Expert",
+        "file": "./backend/app/services/crewai_flows/crews/collection/automated_collection_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_72": {
+        "role": "Data Gap Analysis Specialist",
+        "file": "./backend/app/services/crewai_flows/crews/collection/gap_analysis_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_73": {
+        "role": "6R Strategy Impact Assessment Expert",
+        "file": "./backend/app/services/crewai_flows/crews/collection/gap_analysis_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_74": {
+        "role": "Gap Prioritization and Resolution Expert",
+        "file": "./backend/app/services/crewai_flows/crews/collection/gap_analysis_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_75": {
+        "role": "Dynamic Questionnaire Generation Expert",
+        "file": "./backend/app/services/crewai_flows/crews/collection/manual_collection_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_76": {
+        "role": "Data Validation and Quality Assurance Specialist",
+        "file": "./backend/app/services/crewai_flows/crews/collection/manual_collection_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_77": {
+        "role": "Manual Collection Coordination Expert",
+        "file": "./backend/app/services/crewai_flows/crews/collection/manual_collection_crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_78": {
+        "role": "Critical Attribute Assessment Specialist",
+        "file": "./backend/app/services/agents/critical_attribute_assessor_crewai.py",
+        "type": "crewai_agent"
+      },
+      "agent_79": {
+        "role": "Questionnaire Dynamics Specialist",
+        "file": "./backend/app/services/agents/questionnaire_dynamics_agent_crewai.py",
+        "type": "crewai_agent"
+      },
+      "agent_80": {
+        "role": "Collection Strategy Orchestrator",
+        "file": "./backend/app/services/agents/collection_orchestrator_agent_crewai.py",
+        "type": "crewai_agent"
+      },
+      "agent_81": {
+        "role": "Collection Progress Analyst",
+        "file": "./backend/app/services/agents/progress_tracking_agent_crewai.py",
+        "type": "crewai_agent"
+      },
+      "agent_82": {
+        "role": "Data Cleansing Specialist",
+        "file": "./backend/app/services/agents/data_cleansing_agent_crewai.py",
+        "type": "crewai_agent"
+      },
+      "agent_83": {
+        "role": "Validation Workflow Architect",
+        "file": "./backend/app/services/agents/validation_workflow_agent_crewai.py",
+        "type": "crewai_agent"
+      },
+      "agent_84": {
+        "role": "Automation Tier Recommendation Specialist",
+        "file": "./backend/app/services/agents/tier_recommendation_agent_crewai.py",
+        "type": "crewai_agent"
+      },
+      "agent_85": {
+        "role": "Data Gap Prioritization Strategist",
+        "file": "./backend/app/services/agents/gap_prioritization_agent_crewai.py",
+        "type": "crewai_agent"
+      },
+      "agent_86": {
+        "role": "Credential Validation Specialist",
+        "file": "./backend/app/services/agents/credential_validation_agent_crewai.py",
+        "type": "crewai_agent"
+      },
+      "agent_87": {
+        "role": "Flow State Analyst",
+        "file": "./backend/app/services/agents/flow_processing/crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_88": {
+        "role": "Phase Completion Validator",
+        "file": "./backend/app/services/agents/flow_processing/crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_89": {
+        "role": "Flow Navigation Strategist",
+        "file": "./backend/app/services/agents/flow_processing/crew.py",
+        "type": "crewai_agent"
+      },
+      "agent_90": {
+        "role": "Flow Intelligence Specialist",
+        "file": "./backend/app/services/agents/intelligent_flow_agent/agent.py",
+        "type": "crewai_agent"
+      },
+      "agent_91": {
+        "role": "Security and Risk Intelligence Analyst",
+        "file": "./backend/app/services/agentic_intelligence/risk_assessment_agent.py",
+        "type": "crewai_agent"
+      },
+      "agent_92": {
+        "role": "Business Value Intelligence Analyst",
+        "file": "./backend/app/services/agentic_intelligence/business_value_agent.py",
+        "type": "crewai_agent"
+      },
+      "agent_93": {
+        "role": "Cloud Modernization and Architecture Specialist",
+        "file": "./backend/app/services/agentic_intelligence/modernization_agent.py",
+        "type": "crewai_agent"
+      },
+      "agent_94": {
+        "role": "Business Impact Assessment Agent",
+        "file": "./backend/app/services/ai_analysis/gap_analysis_agent.py",
+        "type": "crewai_agent"
+      },
+      "agent_95": {
+        "role": "Data Quality Validation Expert",
+        "file": "./backend/app/services/ai_analysis/gap_analysis_agent.py",
+        "type": "crewai_agent"
+      },
+      "agent_96": {
+        "role": "Gap Analysis Agent",
+        "file": "./backend/app/services/ai_analysis/gap_analysis_agent.py",
+        "type": "crewai_agent"
+      },
+      "agent_97": {
+        "role": "assistant",
+        "file": "./backend/venv/lib/python3.11/site-packages/crewai/lite_agent.py",
+        "type": "crewai_agent"
+      },
+      "agent_98": {
+        "role": "system",
+        "file": "./backend/venv/lib/python3.11/site-packages/crewai/agents/crew_agent_executor.py",
+        "type": "crewai_agent"
+      },
+      "agent_99": {
+        "role": "Task Execution Evaluator",
+        "file": "./backend/venv/lib/python3.11/site-packages/crewai/utilities/evaluators/crew_evaluator_handler.py",
+        "type": "crewai_agent"
+      }
+    }
+  },
+  "pie_chart_data": {
+    "releases": 26,
+    "features": 222,
+    "agents": 261,
+    "other": 626
+  },
+  "commits_by_week": {
+    "2025-05-19": 8,
+    "2025-05-26": 129,
+    "2025-06-02": 134,
+    "2025-06-09": 61,
+    "2025-06-16": 210,
+    "2025-06-23": 186,
+    "2025-06-30": 64,
+    "2025-07-07": 59,
+    "2025-07-14": 128,
+    "2025-07-21": 151,
+    "2025-07-28": 5
+  },
+  "loc_breakdown": {
+    "frontend": 467501,
+    "backend": 384531,
+    "scripts": 462603,
+    "tests": 127469,
+    "documentation": 1235357,
+    "other": 0
+  },
+  "agent_growth_timeline": {
+    "2025-05-27": 85,
+    "2025-05-29": 82,
+    "2025-05-30": 78,
+    "2025-05-31": 76,
+    "2025-06-01": 69,
+    "2025-06-02": 60,
+    "2025-06-03": 53,
+    "2025-06-05": 51,
+    "2025-06-06": 49,
+    "2025-06-07": 41,
+    "2025-06-15": 39,
+    "2025-06-16": 34,
+    "2025-06-17": 30,
+    "2025-06-18": 24,
+    "2025-06-19": 16,
+    "2025-06-25": 7,
+    "2025-06-28": 5,
+    "2025-07-07": 3,
+    "2025-07-12": 2,
+    "2025-07-24": 1
+  },
+  "bot_commits": [
+    {
+      "date": "2025-05-26 04:03:23 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Feat: Add FinOps subpages and sidebar links",
+      "hash": "c7f2791"
+    },
+    {
+      "date": "2025-05-26 03:39:11 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Add FinOps cost analysis pages",
+      "hash": "27ec66d"
+    },
+    {
+      "date": "2025-05-26 03:28:14 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Fix: Resolve build errors in App.tsx",
+      "hash": "504fff2"
+    },
+    {
+      "date": "2025-05-26 03:07:11 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "feat: Expand Execute phase with new pages",
+      "hash": "5b64b1f"
+    },
+    {
+      "date": "2025-05-26 02:54:26 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "feat: Implement Modernize phase pages",
+      "hash": "d7b61d2"
+    },
+    {
+      "date": "2025-05-26 02:41:00 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Add Decommission phase pages",
+      "hash": "0f39ea8"
+    },
+    {
+      "date": "2025-05-25 00:45:23 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Enhance UI with Agentic AI and Plan phase",
+      "hash": "698f844"
+    },
+    {
+      "date": "2025-05-25 00:25:24 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Add Assess section pages and navigation",
+      "hash": "a5866bc"
+    },
+    {
+      "date": "2025-05-24 22:24:31 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Add Discovery phase UI mockup",
+      "hash": "b5a6108"
+    },
+    {
+      "date": "2025-05-24 22:02:58 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Rename platform and add phase pages",
+      "hash": "3edc661"
+    },
+    {
+      "date": "2025-05-24 21:52:45 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "feat: Implement multi-page dashboard mockup",
+      "hash": "b00c3e2"
+    },
+    {
+      "date": "2025-05-24 21:48:52 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Use tech stack vite_react_shadcn_ts",
+      "hash": "093a18b"
+    }
+  ]
+}

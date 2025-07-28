@@ -8,6 +8,7 @@ Handles flow creation and triggering including:
 - Flow configuration management
 """
 
+import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -18,6 +19,20 @@ from app.core.exceptions import FlowError
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
+
+
+def convert_uuids_to_str(obj: Any) -> Any:
+    """
+    Recursively convert UUID objects to strings for JSON serialization.
+    🔧 CC FIX: Prevents 'Object of type UUID is not JSON serializable' errors
+    """
+    if isinstance(obj, uuid.UUID):
+        return str(obj)
+    elif isinstance(obj, dict):
+        return {k: convert_uuids_to_str(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_uuids_to_str(item) for item in obj]
+    return obj
 
 
 class FlowTriggerService:
@@ -66,21 +81,31 @@ class FlowTriggerService:
 
             logger.info("🔍 Creating discovery flow through orchestrator...")
             logger.info(
-                f"🔍 Parameters - import_id: {data_import_id}, client: {self.client_account_id}, engagement: {engagement_id}, user: {user_id}"
+                f"🔍 Parameters - import_id: {data_import_id}, client: {self.client_account_id}, "
+                f"engagement: {engagement_id}, user: {user_id}"
             )
             logger.info(f"🔍 Raw data count: {len(file_data) if file_data else 0}")
 
             # Create flow through orchestrator (no commit - transaction stays open)
-            flow_result = await orchestrator.create_flow(
-                flow_type="discovery",
-                flow_name=f"Discovery Import {data_import_id}",
-                configuration={
+            # 🔧 CC FIX: Convert UUIDs to strings to prevent JSON serialization errors
+            configuration = convert_uuids_to_str(
+                {
                     "source": "data_import",
                     "import_id": data_import_id,
                     "filename": f"import_{data_import_id}",
                     "import_timestamp": datetime.utcnow().isoformat(),
-                },
-                initial_state={"raw_data": file_data, "data_import_id": data_import_id},
+                }
+            )
+
+            initial_state = convert_uuids_to_str(
+                {"raw_data": file_data, "data_import_id": data_import_id}
+            )
+
+            flow_result = await orchestrator.create_flow(
+                flow_type="discovery",
+                flow_name=f"Discovery Import {data_import_id}",
+                configuration=configuration,
+                initial_state=initial_state,
             )
 
             # Extract flow_id from result tuple
@@ -102,15 +127,20 @@ class FlowTriggerService:
                     discovery_service = DiscoveryFlowService(self.db, context)
 
                     # Create the discovery flow linked to the master flow
-                    await discovery_service.create_discovery_flow(
-                        flow_id=discovery_flow_id,
-                        raw_data=file_data,
-                        metadata={
+                    # 🔧 CC FIX: Convert UUIDs to strings to prevent JSON serialization errors
+                    metadata = convert_uuids_to_str(
+                        {
                             "source": "data_import",
                             "import_id": data_import_id,
                             "master_flow_id": master_flow_id,
                             "import_timestamp": datetime.utcnow().isoformat(),
-                        },
+                        }
+                    )
+
+                    await discovery_service.create_discovery_flow(
+                        flow_id=discovery_flow_id,
+                        raw_data=file_data,
+                        metadata=metadata,
                         data_import_id=data_import_id,
                         user_id=user_id,
                         master_flow_id=master_flow_id,  # 🔧 CC FIX: Pass existing master flow ID
@@ -122,17 +152,18 @@ class FlowTriggerService:
                     logger.info(f"   Master Flow ID: {master_flow_id}")
                     logger.info(f"   Discovery Flow ID: {discovery_flow_id}")
 
-                    # Return the discovery flow ID since that's what the rest of the system expects
-                    return discovery_flow_id
+                    # Return the master flow ID for foreign key linkage in storage manager
+                    # 🔧 CC FIX: Storage manager needs master_flow_id for foreign key constraint
+                    return master_flow_id
 
                 except Exception as discovery_error:
                     logger.error(
                         f"❌ Failed to create discovery flow after master flow: {discovery_error}"
                     )
                     # Don't fail the entire import - master flow exists
-                    # But log this as a critical issue
+                    # Return the master flow ID so at least the import can be linked
                     logger.error(
-                        "❌ CRITICAL: Master flow created but discovery flow failed - assets will not link properly"
+                        "❌ CRITICAL: Master flow created but discovery flow failed - continuing with master flow only"
                     )
                     return master_flow_id
 
@@ -184,7 +215,8 @@ class FlowTriggerService:
 
                 logger.info("🔍 Creating discovery flow through orchestrator...")
                 logger.info(
-                    f"🔍 Parameters - import_id: {data_import_id}, client: {self.client_account_id}, engagement: {engagement_id}, user: {user_id}"
+                    f"🔍 Parameters - import_id: {data_import_id}, client: {self.client_account_id}, "
+                    f"engagement: {engagement_id}, user: {user_id}"
                 )
                 logger.info(f"🔍 Raw data count: {len(file_data) if file_data else 0}")
 
