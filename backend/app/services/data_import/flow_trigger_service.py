@@ -144,7 +144,7 @@ class FlowTriggerService:
                         metadata=metadata,
                         data_import_id=data_import_id,
                         user_id=user_id,
-                        master_flow_id=master_flow_id,  # 🔧 CC FIX: Pass existing master flow ID
+                        # 🔧 CC FIX: master_flow_id is passed in metadata, not as parameter
                     )
 
                     logger.info(
