@@ -1,6 +1,6 @@
 # Core dependencies with security patches
 aiofiles==24.1.0
-aiohttp>=3.10.0  # CVE fixes
+aiohttp>=3.12.14  # CVE-2025-53643 HTTP Request/Response Smuggling fix
 alembic>=1.16.2
 asyncpg>=0.30.0
 bcrypt>=4.3.0  # Latest security patches

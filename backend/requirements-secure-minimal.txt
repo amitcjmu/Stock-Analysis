@@ -36,7 +36,7 @@ openpyxl
 pypdf
 
 # HTTP and requests
-aiohttp==3.12.13  # Security fix
+aiohttp==3.12.14  # CVE-2025-53643 HTTP Request/Response Smuggling fix
 requests==2.32.4  # Security fix
 tenacity>=2.2.0
 

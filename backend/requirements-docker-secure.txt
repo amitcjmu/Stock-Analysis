@@ -31,7 +31,7 @@ openpyxl==3.1.5
 pypdf==5.7.0
 
 # HTTP and Networking
-aiohttp==3.12.13
+aiohttp==3.12.14  # CVE-2025-53643 HTTP Request/Response Smuggling fix
 requests==2.32.4
 urllib3==2.5.0
 httpx==0.28.1
