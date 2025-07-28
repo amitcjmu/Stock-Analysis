@@ -521,6 +521,7 @@ fastapi_app.add_middleware(
         "X-Trace-ID",
         "X-Request-ID",
         "X-User-ID",
+        "X-User-Role",
         "X-Flow-ID",
         "Cache-Control",
         "Pragma",
@@ -671,10 +672,12 @@ async def health_check():
 # Alias for ASGI compatibility
 application = fastapi_app
 
+
 # For docker-compose compatibility (avoid conflict with app module import)
 # This allows docker-compose files to use main:app
 def create_app():
     return fastapi_app
+
 
 # Direct alias for deployment
 app = fastapi_app
