@@ -16,7 +16,8 @@ def patch_litellm_response_parsing():
     try:
         # Import the specific module that does response parsing
         from litellm.types.utils import ChoiceLogprobs
-
+        from typing import List, Optional, Any
+        
         # Store the original ChoiceLogprobs class
         _OriginalChoiceLogprobs = ChoiceLogprobs
 
@@ -26,11 +27,12 @@ def patch_litellm_response_parsing():
                 # Fix content if it has null top_logprobs
                 if "content" in data and isinstance(data["content"], list):
                     fixed_content = []
-                    for item in data["content"]:
+                    for i, item in enumerate(data["content"]):
                         if isinstance(item, dict):
                             # Create a copy to avoid modifying original
                             item_copy = item.copy()
-                            if item_copy.get("top_logprobs") is None:
+                            # Fix None top_logprobs
+                            if "top_logprobs" in item_copy and item_copy["top_logprobs"] is None:
                                 item_copy["top_logprobs"] = []
                             fixed_content.append(item_copy)
                         else:
@@ -44,11 +46,30 @@ def patch_litellm_response_parsing():
                     logger.warning(
                         f"ChoiceLogprobs init error (attempting recovery): {e}"
                     )
-                    # If it still fails, try without content
-                    data_without_content = {
-                        k: v for k, v in data.items() if k != "content"
-                    }
-                    super().__init__(**data_without_content)
+                    # If it still fails, try creating a minimal valid object
+                    try:
+                        # Create minimal valid data
+                        minimal_data = {}
+                        if "content" in data:
+                            # Try to extract just the text content
+                            content_items = []
+                            for item in (data.get("content") or []):
+                                if isinstance(item, dict):
+                                    # Keep only essential fields
+                                    clean_item = {
+                                        "token": item.get("token", ""),
+                                        "logprob": item.get("logprob", 0.0),
+                                        "top_logprobs": []  # Always use empty list
+                                    }
+                                    if "bytes" in item:
+                                        clean_item["bytes"] = item["bytes"]
+                                    content_items.append(clean_item)
+                            minimal_data["content"] = content_items
+                        super().__init__(**minimal_data)
+                    except Exception as e2:
+                        logger.error(f"Failed to create even minimal ChoiceLogprobs: {e2}")
+                        # Last resort - create without content
+                        super().__init__()
 
         # Replace in the types module
         import litellm.types.utils as types_module
@@ -76,22 +97,35 @@ def apply_alternative_fix():
     Alternative fix: Patch the specific validation that's failing
     """
     try:
-        # Try to patch pydantic's validation for this specific case
-        from litellm.types.utils import ChatCompletionTokenLogprob
-        from pydantic import validator
+        # Import all the types that might have top_logprobs
+        from litellm.types.utils import ChatCompletionTokenLogprob, TopLogprob
+        
+        # Try different patching approaches
+        
+        # Approach 1: Monkey-patch the __init__ method
+        original_init = ChatCompletionTokenLogprob.__init__
+        
+        def patched_init(self, **data):
+            # Fix top_logprobs before calling original init
+            if "top_logprobs" in data and data["top_logprobs"] is None:
+                data["top_logprobs"] = []
+            original_init(self, **data)
+        
+        ChatCompletionTokenLogprob.__init__ = patched_init
+        
+        # Approach 2: Also patch field validation if possible
+        try:
+            # Try to modify the field directly
+            if hasattr(ChatCompletionTokenLogprob, "__fields__"):
+                for field_name, field in ChatCompletionTokenLogprob.__fields__.items():
+                    if field_name == "top_logprobs":
+                        # Make the field optional and default to empty list
+                        field.required = False
+                        field.default = []
+        except Exception:
+            pass
 
-        # Create a custom validator that handles None
-        def fix_top_logprobs(cls, v):
-            if v is None:
-                return []
-            return v
-
-        # Add the validator to the class
-        ChatCompletionTokenLogprob.__validator_top_logprobs = validator(
-            "top_logprobs", pre=True, allow_reuse=True
-        )(fix_top_logprobs)
-
-        logger.info("Applied alternative pydantic validator fix")
+        logger.info("Applied alternative ChatCompletionTokenLogprob fix")
         return True
 
     except Exception as e:

@@ -16,6 +16,13 @@ import os
 from functools import lru_cache
 from typing import Any, Dict
 
+# Import and apply DeepInfra response fix BEFORE importing litellm
+try:
+    from . import deepinfra_response_fixer
+    logging.info("✅ DeepInfra response fixer applied to litellm")
+except ImportError as e:
+    logging.warning(f"Could not apply DeepInfra response fixer: {e}")
+
 import litellm
 from litellm.caching import Cache
 

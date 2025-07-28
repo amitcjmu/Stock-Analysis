@@ -33,7 +33,9 @@ if not CREWAI_FLOW_AVAILABLE:
 
 # Import state and configuration
 from app.core.context import RequestContext  # noqa: E402
-from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState  # noqa: E402
+from app.models.unified_discovery_flow_state import (
+    UnifiedDiscoveryFlowState,
+)  # noqa: E402
 
 # Import enhanced error handling and monitoring
 # Import handlers for flow management

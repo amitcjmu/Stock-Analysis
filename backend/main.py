@@ -38,6 +38,14 @@ except ImportError:
 # Load environment variables
 load_dotenv()
 
+# Import and apply DeepInfra response fix early in startup
+try:
+    from app.services import deepinfra_response_fixer
+    logger = logging.getLogger(__name__)
+    logger.info("✅ DeepInfra response fixer module loaded")
+except ImportError as e:
+    print(f"Warning: Could not load DeepInfra response fixer: {e}")
+
 # Database migrations will be handled by entrypoint.sh in Railway deployment
 
 # Import our structured logging module
