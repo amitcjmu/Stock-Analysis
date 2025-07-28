@@ -106,6 +106,7 @@ class FlowTriggerService:
                 flow_name=f"Discovery Import {data_import_id}",
                 configuration=configuration,
                 initial_state=initial_state,
+                atomic=True,  # 🔧 CC FIX: Use atomic mode to prevent immediate commit
             )
 
             # Extract flow_id from result tuple

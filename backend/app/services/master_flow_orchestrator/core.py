@@ -211,10 +211,11 @@ class MasterFlowOrchestrator:
         configuration: Optional[Dict[str, Any]] = None,
         initial_state: Optional[Dict[str, Any]] = None,
         _retry_count: int = 0,
+        atomic: bool = False,
     ) -> Tuple[str, Dict[str, Any]]:
         """Create a new flow of any type"""
         return await self._flow_ops.create_flow(
-            flow_type, flow_name, configuration, initial_state, _retry_count
+            flow_type, flow_name, configuration, initial_state, _retry_count, atomic
         )
 
     async def execute_phase(

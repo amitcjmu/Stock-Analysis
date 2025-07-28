@@ -56,6 +56,7 @@ class FlowLifecycleManager:
         flow_name: str,
         flow_configuration: Dict[str, Any],
         initial_state: Dict[str, Any],
+        auto_commit: bool = True,
     ) -> CrewAIFlowStateExtensions:
         """
         Create a new flow record in the database
@@ -66,6 +67,7 @@ class FlowLifecycleManager:
             flow_name: Human-readable name for the flow
             flow_configuration: Flow-specific configuration
             initial_state: Initial state data
+            auto_commit: Whether to commit immediately (default True)
 
         Returns:
             Created master flow record
@@ -74,8 +76,8 @@ class FlowLifecycleManager:
             FlowError: If flow creation fails
         """
         try:
-            # Create master flow record with immediate commit for foreign key visibility
-            # This ensures the master flow is immediately available for foreign key references
+            # Create master flow record with configurable commit behavior
+            # For atomic operations, use auto_commit=False to stay within transaction
             master_flow = await self.master_repo.create_master_flow(
                 flow_id=flow_id,
                 flow_type=flow_type,
@@ -83,13 +85,17 @@ class FlowLifecycleManager:
                 flow_name=flow_name,
                 flow_configuration=flow_configuration,
                 initial_state=initial_state,
-                auto_commit=True,  # Commit immediately to ensure foreign key visibility
+                auto_commit=auto_commit,  # 🔧 CC FIX: Allow controlling transaction behavior
             )
 
-            logger.info(
-                f"✅ Master flow record created and committed for foreign key visibility: {flow_id}"
-            )
-            # No need to flush since auto_commit=True already committed
+            if auto_commit:
+                logger.info(
+                    f"✅ Master flow record created and committed for foreign key visibility: {flow_id}"
+                )
+            else:
+                logger.info(
+                    f"✅ Master flow record created in atomic transaction: {flow_id}"
+                )
 
             return master_flow
 
