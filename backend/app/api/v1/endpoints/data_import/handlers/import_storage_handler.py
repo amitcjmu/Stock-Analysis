@@ -18,7 +18,6 @@ from app.core.context import (
 )
 from app.core.database import get_db
 from app.core.logging import get_logger
-from app.middleware.error_tracking import track_async_errors
 from app.schemas.data_import_schemas import StoreImportRequest
 
 # Import the new modular service
@@ -35,7 +34,6 @@ os.makedirs(VALIDATION_SESSIONS_PATH, exist_ok=True)
 
 
 @router.post("/store-import")
-@track_async_errors("store_import_data")
 async def store_import_data(
     store_request: StoreImportRequest,
     request: Request,
@@ -119,7 +117,10 @@ async def get_latest_import(request: Request, db: AsyncSession = Depends(get_db)
         if not latest_import_data:
             return {
                 "success": True,
-                "message": "No import data available yet for this client and engagement. Please upload data using the Data Import page.",
+                "message": (
+                    "No import data available yet for this client and engagement. "
+                    "Please upload data using the Data Import page."
+                ),
                 "data": [],
                 "import_metadata": {
                     "filename": None,
@@ -190,7 +191,9 @@ async def get_import_data_by_flow_id(
         context = extract_context_from_request(request)
 
         logger.info(
-            f"🔍 Getting import data for flow: {flow_id}, context: client={context.client_account_id}, engagement={context.engagement_id}"
+            f"🔍 Getting import data for flow: {flow_id}, "
+            f"context: client={context.client_account_id}, "
+            f"engagement={context.engagement_id}"
         )
 
         # First, find the discovery flow by flow_id
@@ -232,7 +235,8 @@ async def get_import_data_by_flow_id(
 
                 if data_import:
                     logger.info(
-                        f"✅ Found data import via master flow ID lookup: {data_import.id}"
+                        f"✅ Found data import via master flow ID lookup: "
+                        f"{data_import.id}"
                     )
                     # Initialize the modular import handler
                     import_handler = ImportStorageHandler(db, context.client_account_id)
@@ -262,7 +266,8 @@ async def get_import_data_by_flow_id(
         # Check if the flow has a data_import_id
         if not discovery_flow.data_import_id:
             logger.warning(
-                f"⚠️ Discovery flow {flow_id} has no associated data import, trying master flow ID lookup"
+                f"⚠️ Discovery flow {flow_id} has no associated data import, "
+                f"trying master flow ID lookup"
             )
 
             # Try to find data import directly using master flow ID
@@ -293,7 +298,8 @@ async def get_import_data_by_flow_id(
 
                 if data_import:
                     logger.info(
-                        f"✅ Found data import via master flow ID lookup: {data_import.id}"
+                        f"✅ Found data import via master flow ID lookup: "
+                        f"{data_import.id}"
                     )
                     # Initialize the modular import handler
                     import_handler = ImportStorageHandler(db, context.client_account_id)
@@ -336,7 +342,8 @@ async def get_import_data_by_flow_id(
 
         if not import_data:
             logger.error(
-                f"❌ Data import not found for flow {flow_id}, data_import_id: {discovery_flow.data_import_id}"
+                f"❌ Data import not found for flow {flow_id}, "
+                f"data_import_id: {discovery_flow.data_import_id}"
             )
             return {
                 "success": False,

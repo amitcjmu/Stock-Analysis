@@ -1,0 +1,156 @@
+{
+  "pie_chart_data": {
+    "releases": 26,
+    "features": 327,
+    "agents": 111,
+    "other": 670
+  },
+  "commits_by_author": {
+    "CryptoYogiLLC": 1110,
+    "CryptoYogi LLC": 12,
+    "gpt-engineer-app[bot]": 12
+  },
+  "code_changes_timeline": {
+    "2025-07-23": {
+      "added": 2338,
+      "deleted": 2036
+    },
+    "2025-07-24": {
+      "added": 2594,
+      "deleted": 1377
+    },
+    "2025-07-25": {
+      "added": 4860,
+      "deleted": 4839
+    },
+    "2025-07-26": {
+      "added": 1701,
+      "deleted": 1759
+    },
+    "2025-07-27": {
+      "added": 1590,
+      "deleted": 1770
+    },
+    "2025-07-28": {
+      "added": 49,
+      "deleted": 0
+    }
+  },
+  "agent_growth": {
+    "2025-05-25": 1,
+    "2025-05-26": 2,
+    "2025-05-27": 6,
+    "2025-05-29": 13,
+    "2025-05-30": 15,
+    "2025-05-31": 32,
+    "2025-06-01": 48,
+    "2025-06-02": 63,
+    "2025-06-03": 65,
+    "2025-06-05": 67,
+    "2025-06-06": 76,
+    "2025-06-07": 79,
+    "2025-06-08": 80,
+    "2025-06-09": 81,
+    "2025-06-15": 88,
+    "2025-06-16": 102,
+    "2025-06-17": 109,
+    "2025-06-18": 123,
+    "2025-06-19": 136,
+    "2025-06-20": 142,
+    "2025-06-24": 144,
+    "2025-06-25": 154,
+    "2025-06-26": 156,
+    "2025-06-28": 165,
+    "2025-06-29": 166,
+    "2025-07-01": 170,
+    "2025-07-05": 171,
+    "2025-07-07": 176,
+    "2025-07-12": 177,
+    "2025-07-13": 178,
+    "2025-07-14": 179,
+    "2025-07-15": 180,
+    "2025-07-16": 182,
+    "2025-07-17": 186,
+    "2025-07-18": 189,
+    "2025-07-19": 191,
+    "2025-07-20": 193,
+    "2025-07-21": 196,
+    "2025-07-22": 197,
+    "2025-07-24": 198,
+    "2025-07-26": 199
+  },
+  "bot_commits": [
+    {
+      "date": "2025-05-26 04:03:23 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Feat: Add FinOps subpages and sidebar links",
+      "hash": "c7f2791"
+    },
+    {
+      "date": "2025-05-26 03:39:11 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Add FinOps cost analysis pages",
+      "hash": "27ec66d"
+    },
+    {
+      "date": "2025-05-26 03:28:14 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Fix: Resolve build errors in App.tsx",
+      "hash": "504fff2"
+    },
+    {
+      "date": "2025-05-26 03:07:11 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "feat: Expand Execute phase with new pages",
+      "hash": "5b64b1f"
+    },
+    {
+      "date": "2025-05-26 02:54:26 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "feat: Implement Modernize phase pages",
+      "hash": "d7b61d2"
+    },
+    {
+      "date": "2025-05-26 02:41:00 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Add Decommission phase pages",
+      "hash": "0f39ea8"
+    },
+    {
+      "date": "2025-05-25 00:45:23 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Enhance UI with Agentic AI and Plan phase",
+      "hash": "698f844"
+    },
+    {
+      "date": "2025-05-25 00:25:24 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Add Assess section pages and navigation",
+      "hash": "a5866bc"
+    },
+    {
+      "date": "2025-05-24 22:24:31 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Add Discovery phase UI mockup",
+      "hash": "b5a6108"
+    },
+    {
+      "date": "2025-05-24 22:02:58 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Rename platform and add phase pages",
+      "hash": "3edc661"
+    },
+    {
+      "date": "2025-05-24 21:52:45 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "feat: Implement multi-page dashboard mockup",
+      "hash": "b00c3e2"
+    },
+    {
+      "date": "2025-05-24 21:48:52 +0000",
+      "author": "gpt-engineer-app[bot]",
+      "message": "Use tech stack vite_react_shadcn_ts",
+      "hash": "093a18b"
+    }
+  ]
+}
