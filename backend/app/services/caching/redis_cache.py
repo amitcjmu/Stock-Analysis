@@ -62,8 +62,15 @@ def _get_fallback_result(operation_name: str):
     ]:
         return None
     # Existence checks return False
-    elif operation_name in ["exists", "register_flow_atomic"]:
+    elif operation_name in ["exists"]:
         return False
+    # IMPORTANT: When Redis is unavailable, allow flow registration to succeed
+    # This prevents "flow already exists" errors when Redis is not configured
+    elif operation_name in ["register_flow_atomic"]:
+        logger.warning(
+            "Redis unavailable - allowing flow registration without deduplication check"
+        )
+        return True
     # Write operations that should "succeed" silently
     elif operation_name in ["set", "delete", "release_lock", "unregister_flow_atomic"]:
         return True

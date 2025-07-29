@@ -124,9 +124,14 @@ class FlowOperations:
             )
 
             if not redis_registered:
-                raise FlowError(
-                    f"Flow {flow_id} already exists or Redis registration failed"
-                )
+                # Check if Redis is available to provide better error message
+                if redis_cache.client is None:
+                    logger.warning(
+                        "Redis is not available - proceeding with flow creation without deduplication check"
+                    )
+                    # Continue with flow creation when Redis is unavailable
+                else:
+                    raise FlowError(f"Flow {flow_id} already exists in Redis registry")
 
             try:
                 # Create master flow record using lifecycle manager
