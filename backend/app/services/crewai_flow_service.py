@@ -22,14 +22,16 @@ from app.services.discovery_flow_service import DiscoveryFlowService
 # CrewAI Flow Integration (Conditional)
 if TYPE_CHECKING:
     from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
+else:
+    try:
+        from app.services.crewai_flows.unified_discovery_flow import (
+            UnifiedDiscoveryFlow,
+        )
 
-try:
-    from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
-
-    CREWAI_FLOWS_AVAILABLE = True
-except ImportError:
-    CREWAI_FLOWS_AVAILABLE = False
-    UnifiedDiscoveryFlow = None
+        CREWAI_FLOWS_AVAILABLE = True
+    except ImportError:
+        CREWAI_FLOWS_AVAILABLE = False
+        UnifiedDiscoveryFlow = None
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +99,59 @@ class CrewAIFlowService:
 
                 self._llm = MockLLM()
         return self._llm
+
+    def get_agents(self) -> Dict[str, Any]:
+        """
+        Get all CrewAI agents for the discovery flow.
+        This method is used by UnifiedDiscoveryFlow to initialize agents.
+        """
+        from app.services.crewai_service import CrewAIService
+
+        # Create CrewAI service with LLM
+        crewai_service = CrewAIService()
+        crewai_service.llm = self.get_llm()
+
+        # Create all agents
+        agents = {
+            "orchestrator": crewai_service.create_agent(
+                role="Discovery Orchestrator",
+                goal="Coordinate and manage the entire discovery process",
+                backstory="You are an experienced orchestrator who ensures all discovery phases run smoothly.",
+            ),
+            "data_validation_agent": crewai_service.create_agent(
+                role="Data Validation Specialist",
+                goal="Validate and ensure data quality of imported assets",
+                backstory="You are a meticulous data validator who ensures all imported data meets quality standards.",
+            ),
+            "attribute_mapping_agent": crewai_service.create_agent(
+                role="Attribute Mapping Expert",
+                goal="Map source data attributes to target schema",
+                backstory="You are an expert at understanding data schemas and mapping attributes correctly.",
+            ),
+            "data_cleansing_agent": crewai_service.create_agent(
+                role="Data Cleansing Specialist",
+                goal="Clean and standardize asset data",
+                backstory="You are skilled at identifying and fixing data quality issues.",
+            ),
+            "asset_inventory_agent": crewai_service.create_agent(
+                role="Asset Inventory Manager",
+                goal="Build comprehensive asset inventory",
+                backstory="You excel at organizing and categorizing IT assets into a clear inventory.",
+            ),
+            "dependency_analysis_agent": crewai_service.create_agent(
+                role="Dependency Analysis Expert",
+                goal="Analyze and map dependencies between assets",
+                backstory="You are an expert at understanding how systems and applications depend on each other.",
+            ),
+            "tech_debt_analysis_agent": crewai_service.create_agent(
+                role="Technical Debt Analyst",
+                goal="Identify and analyze technical debt in the infrastructure",
+                backstory="You specialize in identifying technical debt and recommending modernization strategies.",
+            ),
+        }
+
+        logger.info(f"✅ Created {len(agents)} agents for discovery flow")
+        return agents
 
     async def initialize_flow(
         self,
@@ -636,7 +691,9 @@ class CrewAIFlowService:
                             f"🔍 TESTING: Current flow status='{flow.status}', phase='{flow.current_phase}'"
                         )
                         logger.info(
-                            f"🔍 TESTING: Checking condition: status == 'waiting_for_approval' ({flow.status == 'waiting_for_approval'}) and phase == 'field_mapping' ({flow.current_phase == 'field_mapping'})"
+                            f"🔍 TESTING: Checking condition: "
+                            f"status == 'waiting_for_approval' ({flow.status == 'waiting_for_approval'}) "
+                            f"and phase == 'field_mapping' ({flow.current_phase == 'field_mapping'})"
                         )
 
                         # Resume from field mapping approval using CrewAI event listener system
@@ -694,7 +751,9 @@ class CrewAIFlowService:
                                     )
                                     mappings_exist = len(mappings) > 0
                                     logger.info(
-                                        f"🔍 TESTING: Field mappings structure check - outer dict len: {len(crewai_flow.state.field_mappings)}, mappings len: {len(mappings)}"
+                                        f"🔍 TESTING: Field mappings structure check - "
+                                        f"outer dict len: {len(crewai_flow.state.field_mappings)}, "
+                                        f"mappings len: {len(mappings)}"
                                     )
 
                             if not mappings_exist:
