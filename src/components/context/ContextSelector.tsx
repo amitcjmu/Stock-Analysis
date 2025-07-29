@@ -147,6 +147,26 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
   // Confirm the staged selections and apply to global context
   const handleConfirmSelection = async (): void => {
     try {
+      // Validate context before switching
+      if (!stagedClient || !stagedEngagement) {
+        toast({
+          title: "Invalid Context",
+          description: "Please select both a client and engagement.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Validate engagement belongs to selected client
+      if (stagedEngagement.client_id !== stagedClient.id) {
+        toast({
+          title: "Invalid Context",
+          description: "Selected engagement does not belong to the selected client.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Switch client first and wait for completion
       if (stagedClient && stagedClient.id !== auth.client?.id) {
         console.log('🔄 Switching client first:', stagedClient.id);
