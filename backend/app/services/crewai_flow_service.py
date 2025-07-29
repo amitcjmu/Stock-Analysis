@@ -103,55 +103,25 @@ class CrewAIFlowService:
     def get_agents(self) -> Dict[str, Any]:
         """
         Get all CrewAI agents for the discovery flow.
-        This method is used by UnifiedDiscoveryFlow to initialize agents.
+
+        Note: UnifiedDiscoveryFlow uses crews managed by UnifiedFlowCrewManager,
+        not individual agents. This method returns None for all agents to match
+        the flow_initialization.py pattern.
         """
-        from app.services.crewai_service import CrewAIService
+        logger.info(
+            "✅ UnifiedDiscoveryFlow uses crews - returning None for individual agents"
+        )
 
-        # Create CrewAI service with LLM
-        crewai_service = CrewAIService()
-        crewai_service.llm = self.get_llm()
-
-        # Create all agents
-        agents = {
-            "orchestrator": crewai_service.create_agent(
-                role="Discovery Orchestrator",
-                goal="Coordinate and manage the entire discovery process",
-                backstory="You are an experienced orchestrator who ensures all discovery phases run smoothly.",
-            ),
-            "data_validation_agent": crewai_service.create_agent(
-                role="Data Validation Specialist",
-                goal="Validate and ensure data quality of imported assets",
-                backstory="You are a meticulous data validator who ensures all imported data meets quality standards.",
-            ),
-            "attribute_mapping_agent": crewai_service.create_agent(
-                role="Attribute Mapping Expert",
-                goal="Map source data attributes to target schema",
-                backstory="You are an expert at understanding data schemas and mapping attributes correctly.",
-            ),
-            "data_cleansing_agent": crewai_service.create_agent(
-                role="Data Cleansing Specialist",
-                goal="Clean and standardize asset data",
-                backstory="You are skilled at identifying and fixing data quality issues.",
-            ),
-            "asset_inventory_agent": crewai_service.create_agent(
-                role="Asset Inventory Manager",
-                goal="Build comprehensive asset inventory",
-                backstory="You excel at organizing and categorizing IT assets into a clear inventory.",
-            ),
-            "dependency_analysis_agent": crewai_service.create_agent(
-                role="Dependency Analysis Expert",
-                goal="Analyze and map dependencies between assets",
-                backstory="You are an expert at understanding how systems and applications depend on each other.",
-            ),
-            "tech_debt_analysis_agent": crewai_service.create_agent(
-                role="Technical Debt Analyst",
-                goal="Identify and analyze technical debt in the infrastructure",
-                backstory="You specialize in identifying technical debt and recommending modernization strategies.",
-            ),
+        # Return None for all agents as they are managed by crews
+        return {
+            "orchestrator": None,  # Not needed - UnifiedFlowCrewManager handles orchestration
+            "data_validation_agent": None,  # Replaced by data_import_validation_crew
+            "attribute_mapping_agent": None,  # Replaced by field_mapping_crew
+            "data_cleansing_agent": None,  # Replaced by data_cleansing_crew
+            "asset_inventory_agent": None,  # Replaced by inventory_building_crew
+            "dependency_analysis_agent": None,  # Replaced by app_server_dependency_crew
+            "tech_debt_analysis_agent": None,  # Replaced by technical_debt_crew
         }
-
-        logger.info(f"✅ Created {len(agents)} agents for discovery flow")
-        return agents
 
     async def initialize_flow(
         self,
