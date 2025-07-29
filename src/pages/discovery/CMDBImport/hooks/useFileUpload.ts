@@ -95,8 +95,11 @@ export const useFileUpload = (): JSX.Element => {
       });
 
       console.log('📡 Store import response:', JSON.stringify(response, null, 2));
+      console.log('📡 Response type:', typeof response);
+      console.log('📡 Response.success type:', typeof response?.success);
+      console.log('📡 Response.success value:', response?.success);
 
-      if (response.success) {
+      if (response && response.success === true) {
         console.log('✅ Data stored successfully, import flow ID:', response.import_flow_id);
         console.log('✅ CrewAI Flow ID:', response.flow_id);
         console.log('✅ Full response data:', response);
@@ -119,12 +122,24 @@ export const useFileUpload = (): JSX.Element => {
           flow_id: flowId
         };
       } else {
-        console.error('❌ Failed to store data:', response.error);
-        return { import_flow_id: null, flow_id: null };
+        console.error('❌ Failed to store data - response not successful');
+        console.error('❌ Response details:', {
+          success: response?.success,
+          error: response?.error,
+          message: response?.message,
+          fullResponse: response
+        });
+        throw new Error(response?.message || response?.error || 'Failed to store data - backend returned success: false');
       }
     } catch (error) {
       console.error('❌ Error storing data:', error);
-      return { import_flow_id: null, flow_id: null };
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        error: error
+      });
+      // Re-throw the error so it can be caught by the parent handler
+      throw error;
     }
   }, [user, client, engagement, getAuthHeaders]);
 
@@ -246,6 +261,13 @@ export const useFileUpload = (): JSX.Element => {
 
       const { import_flow_id, flow_id } = await storeImportData(csvData, file, uploadId, categoryId);
 
+      console.log('🔍 Flow IDs returned from storeImportData:', {
+        import_flow_id,
+        flow_id,
+        flow_id_type: typeof flow_id,
+        flow_id_truthy: !!flow_id
+      });
+
       if (flow_id) {
         const recordCount = csvData.length;
 
@@ -302,6 +324,16 @@ export const useFileUpload = (): JSX.Element => {
 
     } catch (error) {
       console.error("File upload and flow trigger error:", error);
+      console.error("🔥 Detailed error information:", {
+        errorType: error?.constructor?.name,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        isApiError: error?.isApiError,
+        status: error?.status,
+        response: error?.response,
+        fullError: error
+      });
+
       const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
       setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? {
         ...f,
