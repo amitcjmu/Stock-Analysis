@@ -273,6 +273,53 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             logger.error(f"❌ Database error in get_by_flow_id_global: {e}")
             return None
 
+    def _ensure_json_serializable(self, obj: Any) -> Any:
+        """
+        Recursively convert non-JSON serializable objects to serializable format.
+        Handles UUID, datetime, and other common non-serializable types.
+
+        This method is critical for preventing JSON serialization errors when storing
+        phase_data, collaboration_entry, or metadata that may contain UUID objects
+        from CrewAI flows or other sources.
+
+        Common sources of UUID objects:
+        - RequestContext fields (client_account_id, engagement_id)
+        - Flow IDs from CrewAI
+        - Database record IDs
+        - Nested data structures from phase results
+        """
+        try:
+            if isinstance(obj, dict):
+                return {
+                    key: self._ensure_json_serializable(value)
+                    for key, value in obj.items()
+                }
+            elif isinstance(obj, list):
+                return [self._ensure_json_serializable(item) for item in obj]
+            elif isinstance(obj, uuid.UUID):
+                return str(obj)
+            elif isinstance(obj, datetime):
+                return obj.isoformat()
+            elif isinstance(obj, (str, int, float, bool, type(None))):
+                # These types are already JSON serializable
+                return obj
+            elif hasattr(obj, "__dict__"):
+                # Handle custom objects by converting to dict
+                logger.debug(f"Converting object of type {type(obj).__name__} to dict")
+                return self._ensure_json_serializable(obj.__dict__)
+            else:
+                # For any other type, convert to string
+                logger.warning(
+                    f"Converting unknown type {type(obj).__name__} to string: {obj}"
+                )
+                return str(obj)
+        except Exception as e:
+            logger.error(
+                f"Error in _ensure_json_serializable for object {type(obj).__name__}: {e}"
+            )
+            # As a last resort, convert to string
+            return str(obj)
+
     async def update_flow_status(
         self,
         flow_id: str,
@@ -297,25 +344,37 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
         # Get existing flow to merge data
         existing_flow = await self.get_by_flow_id(flow_id)
         if existing_flow:
-            # Update persistence data
+            # Update persistence data - ensure JSON serializable
             if phase_data:
                 persistence_data = existing_flow.flow_persistence_data or {}
-                persistence_data.update(phase_data)
+                # Ensure phase_data is JSON serializable before updating
+                logger.debug(
+                    f"🔍 Serializing phase_data for flow {flow_id} with keys: {list(phase_data.keys())}"
+                )
+                serializable_phase_data = self._ensure_json_serializable(phase_data)
+                persistence_data.update(serializable_phase_data)
                 update_values["flow_persistence_data"] = persistence_data
+                logger.debug(
+                    f"✅ Successfully serialized phase_data for flow {flow_id}"
+                )
 
-            # Update collaboration log
+            # Update collaboration log - ensure JSON serializable
             if collaboration_entry:
                 collaboration_log = existing_flow.agent_collaboration_log or []
-                collaboration_log.append(collaboration_entry)
+                # Ensure collaboration_entry is JSON serializable
+                serializable_entry = self._ensure_json_serializable(collaboration_entry)
+                collaboration_log.append(serializable_entry)
                 # Keep only last 100 entries to prevent bloat
                 if len(collaboration_log) > 100:
                     collaboration_log = collaboration_log[-100:]
                 update_values["agent_collaboration_log"] = collaboration_log
 
-            # Update metadata (ADR-012 sync metadata)
+            # Update metadata (ADR-012 sync metadata) - ensure JSON serializable
             if metadata:
                 flow_metadata = existing_flow.flow_metadata or {}
-                flow_metadata.update(metadata)
+                # Ensure metadata is JSON serializable
+                serializable_metadata = self._ensure_json_serializable(metadata)
+                flow_metadata.update(serializable_metadata)
                 update_values["flow_metadata"] = flow_metadata
 
         # Execute update
