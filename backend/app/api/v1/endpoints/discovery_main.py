@@ -345,12 +345,16 @@ async def get_active_discovery_flows(
             failed_flows = len([f for f in flow_details if f["status"] == "failed"])
 
             logger.info(
-                f"📈 Flow summary: {total_flows} total, {active_flows} active, {completed_flows} completed, {failed_flows} failed"
+                f"📈 Flow summary: {total_flows} total, {active_flows} active, "
+                f"{completed_flows} completed, {failed_flows} failed"
             )
 
             return {
                 "success": True,
-                "message": f"Active discovery flows retrieved successfully ({'platform-wide' if is_platform_admin else 'client-specific'})",
+                "message": (
+                    f"Active discovery flows retrieved successfully "
+                    f"({'platform-wide' if is_platform_admin else 'client-specific'})"
+                ),
                 "flow_details": flow_details,
                 "total_flows": total_flows,
                 "active_flows": active_flows,
@@ -532,4 +536,64 @@ async def advance_flow_phase(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to advance flow phase: {str(e)}",
+        )
+
+
+@router.get("/attribute-mapping/{flow_id}")
+async def get_attribute_mapping_data(
+    flow_id: str,
+    db: AsyncSession = Depends(AsyncSessionLocal),
+    context: dict = Depends(get_current_context),
+):
+    """
+    Get attribute mapping data for a discovery flow.
+    This endpoint provides compatibility for the frontend AttributeMapping page.
+    """
+    try:
+        logger.info(f"📊 Getting attribute mapping data for flow: {flow_id}")
+
+        # Initialize V2 services
+        flow_repo = DiscoveryFlowRepository(
+            db, context.get("client_account_id"), user_id=context.get("user_id")
+        )
+        flow_service = DiscoveryFlowService(flow_repo)
+
+        # Get flow
+        flow = await flow_service.get_flow(flow_id)
+        if not flow:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Discovery flow not found: {flow_id}",
+            )
+
+        # Get flow summary which includes field mappings
+        flow_summary = await flow_service.get_flow_summary(flow_id)
+
+        # Extract field mapping data
+        field_mappings = (
+            flow_summary.get("phases", {})
+            .get("attribute_mapping", {})
+            .get("field_mappings", [])
+        )
+
+        return {
+            "success": True,
+            "flow_id": flow_id,
+            "status": flow.status,
+            "current_phase": flow.current_phase,
+            "field_mappings": field_mappings,
+            "data_import_id": flow.data_import_id,
+            "metadata": {
+                "created_at": flow.created_at.isoformat() if flow.created_at else None,
+                "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
+            },
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to get attribute mapping data for {flow_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get attribute mapping data: {str(e)}",
         )
