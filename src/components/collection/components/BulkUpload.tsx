@@ -46,25 +46,6 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    const files = Array.from(e.dataTransfer.files);
-    const file = files[0];
-
-    if (file) {
-      await handleFileUpload(file);
-    }
-  }, [handleFileUpload]);
-
-  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      await handleFileUpload(file);
-    }
-  }, [handleFileUpload]);
-
   const handleFileUpload = useCallback(async (file: File): Promise<void> => {
     // Validate file type
     const allowedTypes = ['.csv', '.xlsx', '.xls', '.json'];
@@ -103,6 +84,25 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({
       setIsUploading(false);
     }
   }, [onUpload]);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const file = files[0];
+
+    if (file) {
+      await handleFileUpload(file);
+    }
+  }, [handleFileUpload]);
+
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await handleFileUpload(file);
+    }
+  }, [handleFileUpload]);
 
   const generateTemplate = (): unknown => {
     // Generate CSV template with field headers

@@ -141,7 +141,7 @@ const BulkUpload: React.FC = () => {
     }
   ];
 
-  const handleBulkUpload = async (file: File): JSX.Element => {
+  const handleBulkUpload = async (file: File): Promise<void> => {
     setIsProcessing(true);
     setUploadProgress(0);
 
