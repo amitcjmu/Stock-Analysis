@@ -5,6 +5,7 @@ Implements ADR-012: Flow Status Management Separation
 Provides atomic updates for critical flow state changes and event-driven synchronization.
 """
 
+import asyncio
 import logging
 from datetime import datetime
 from enum import Enum
@@ -20,6 +21,7 @@ from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+from app.services.caching.redis_cache import get_redis_cache
 
 logger = logging.getLogger(__name__)
 
@@ -112,33 +114,72 @@ class FlowStatusSyncService:
         )
 
         try:
-            async with self.db.begin():  # Start transaction
-                # Update master flow
-                master_flow = await self.master_repo.get_by_flow_id(flow_id)
-                if not master_flow:
-                    raise FlowNotFoundError(flow_id)
+            # Get Redis cache
+            redis_cache = get_redis_cache()
 
-                await self.master_repo.update_flow_status(
-                    flow_id=flow_id, status=master_status, metadata=metadata
+            # Acquire distributed lock for atomic operation
+            lock_id = await redis_cache.acquire_lock(f"flow:status:{flow_id}", ttl=30)
+            if not lock_id:
+                logger.warning(
+                    f"Failed to acquire lock for flow {flow_id}, retrying..."
                 )
-
-                # Update child flow
-                child_repo = self._get_child_repo(flow_type)
-                await child_repo.update_flow_status(
-                    flow_id=flow_id, status=child_status, metadata=metadata
+                # Wait and retry once
+                await asyncio.sleep(0.5)
+                lock_id = await redis_cache.acquire_lock(
+                    f"flow:status:{flow_id}", ttl=30
                 )
+                if not lock_id:
+                    raise FlowStateUpdateError(
+                        "Could not acquire lock for atomic update"
+                    )
 
-                # Both updates succeed together
-                logger.info(f"✅ [FlowStatusSync] Atomic update successful: {flow_id}")
+            try:
+                async with self.db.begin():  # Start transaction
+                    # Update master flow
+                    master_flow = await self.master_repo.get_by_flow_id(flow_id)
+                    if not master_flow:
+                        raise FlowNotFoundError(flow_id)
 
-                return {
-                    "success": True,
-                    "flow_id": flow_id,
-                    "master_status": master_status,
-                    "child_status": child_status,
-                    "update_type": "atomic",
-                    "timestamp": datetime.utcnow().isoformat(),
-                }
+                    await self.master_repo.update_flow_status(
+                        flow_id=flow_id, status=master_status, metadata=metadata
+                    )
+
+                    # Update child flow
+                    child_repo = self._get_child_repo(flow_type)
+                    await child_repo.update_flow_status(
+                        flow_id=flow_id, status=child_status, metadata=metadata
+                    )
+
+                    # Both updates succeed together
+                    logger.info(
+                        f"✅ [FlowStatusSync] Atomic update successful: {flow_id}"
+                    )
+
+                    # Invalidate existing cache before update
+                    await redis_cache.invalidate_flow_cache(flow_id)
+
+                    # Update Redis cache with new state
+                    flow_state = {
+                        "flow_id": flow_id,
+                        "flow_type": flow_type,
+                        "master_status": master_status,
+                        "child_status": child_status,
+                        "metadata": metadata,
+                        "updated_at": datetime.utcnow().isoformat(),
+                    }
+                    await redis_cache.cache_flow_state(flow_id, flow_state)
+
+                    return {
+                        "success": True,
+                        "flow_id": flow_id,
+                        "master_status": master_status,
+                        "child_status": child_status,
+                        "update_type": "atomic",
+                        "timestamp": datetime.utcnow().isoformat(),
+                    }
+            finally:
+                # Always release the lock
+                await redis_cache.release_lock(f"flow:status:{flow_id}", lock_id)
 
         except SQLAlchemyError as e:
             logger.error(f"❌ [FlowStatusSync] Atomic update failed: {flow_id} - {e}")
