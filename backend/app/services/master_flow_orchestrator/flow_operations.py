@@ -6,6 +6,7 @@ Contains core flow operation methods including creation, execution, and lifecycl
 
 import asyncio
 import uuid
+from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 
 from sqlalchemy import select
@@ -19,6 +20,7 @@ from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
+from app.services.caching.redis_cache import get_redis_cache
 from app.services.flow_error_handler import ErrorContext, RetryConfig
 from app.services.flow_orchestration import (
     FlowAuditLogger,
@@ -97,24 +99,66 @@ class FlowOperations:
             flow_config = self.flow_registry.get_flow_config(flow_type)
             flow_name = flow_name or flow_config.display_name
 
-            # Create master flow record using lifecycle manager
-            # 🔧 CC FIX: Use atomic=False to prevent immediate commit in atomic transactions
-            master_flow = await self.lifecycle_manager.create_flow_record(
-                flow_id=flow_id,
+            # Get Redis cache instance
+            redis_cache = get_redis_cache()
+
+            # Prepare flow data for Redis
+            flow_data = {
+                "flow_id": str(flow_id),
+                "flow_type": flow_type,
+                "flow_name": flow_name,
+                "client_id": str(self.context.client_account_id),
+                "engagement_id": str(self.context.engagement_id),
+                "user_id": str(self.context.user_id),
+                "configuration": configuration or flow_config.default_configuration,
+                "initial_state": initial_state or {},
+                "created_at": datetime.utcnow().isoformat(),
+            }
+
+            # Register flow atomically in Redis BEFORE database operations
+            # This prevents race conditions during concurrent flow creation
+            redis_registered = await redis_cache.register_flow_atomic(
+                flow_id=str(flow_id),
                 flow_type=flow_type,
-                flow_name=flow_name,
-                flow_configuration=configuration or flow_config.default_configuration,
-                initial_state=initial_state or {},
-                auto_commit=not atomic,  # Don't auto-commit if this is an atomic operation
+                flow_data=flow_data,
             )
 
-            # Initialize flow execution using execution engine
-            await self.execution_engine.initialize_flow_execution(
-                flow_id=flow_id,
-                flow_type=flow_type,
-                configuration=configuration,
-                initial_state=initial_state,
-            )
+            if not redis_registered:
+                raise FlowError(
+                    f"Flow {flow_id} already exists or Redis registration failed"
+                )
+
+            try:
+                # Create master flow record using lifecycle manager
+                # 🔧 CC FIX: Use atomic=False to prevent immediate commit in atomic transactions
+                master_flow = await self.lifecycle_manager.create_flow_record(
+                    flow_id=flow_id,
+                    flow_type=flow_type,
+                    flow_name=flow_name,
+                    flow_configuration=configuration
+                    or flow_config.default_configuration,
+                    initial_state=initial_state or {},
+                    auto_commit=not atomic,  # Don't auto-commit if this is an atomic operation
+                )
+
+                # Initialize flow execution using execution engine
+                await self.execution_engine.initialize_flow_execution(
+                    flow_id=flow_id,
+                    flow_type=flow_type,
+                    configuration=configuration,
+                    initial_state=initial_state,
+                )
+
+                # Cache flow state for quick access
+                await redis_cache.cache_flow_state(
+                    flow_id=str(flow_id),
+                    state=master_flow.to_dict(),
+                )
+
+            except Exception:
+                # If database operations fail, clean up Redis registration
+                await redis_cache.unregister_flow_atomic(str(flow_id), flow_type)
+                raise
 
             # Log creation audit
             await self.audit_logger.log_audit_event(
@@ -384,9 +428,22 @@ class FlowOperations:
     ) -> Dict[str, Any]:
         """Delete a flow (soft delete by default)"""
         try:
+            # Get flow type before deletion
+            flow = await self.master_repo.get_master_flow(flow_id)
+            if not flow:
+                raise FlowError(f"Flow {flow_id} not found")
+
+            flow_type = flow.flow_type
+
+            # Delete from database first
             result = await self.lifecycle_manager.delete_flow(
                 flow_id, soft_delete, reason
             )
+
+            # If hard delete, also remove from Redis
+            if not soft_delete:
+                redis_cache = get_redis_cache()
+                await redis_cache.unregister_flow_atomic(flow_id, flow_type)
 
             await self.audit_logger.log_audit_event(
                 flow_id=flow_id,

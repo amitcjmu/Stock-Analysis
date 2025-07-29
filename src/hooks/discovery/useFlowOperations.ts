@@ -54,20 +54,19 @@ export const useIncompleteFlowDetectionV2 = (): unknown => {
           flow.status !== 'completed' &&
           flow.status !== 'failed' &&
           flow.status !== 'error'
-        ).map((flow: unknown, index: number) => {
-          // Generate a demo-pattern UUID as fallback if no flow ID exists
-          // Uses the demo pattern: XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX
-          const generateDemoFallbackUuid = (index: number): unknown => {
-            const indexPadded = index.toString().padStart(8, '0');
-            const timestamp = Date.now().toString().slice(-12).padStart(12, '0');
-            return `${indexPadded}-def0-def0-def0-${timestamp}`;
-          };
+        ).map((flow: unknown) => {
+          // Get the flow ID from various possible fields
+          const flowId = flow.master_flow_id || flow.flowId || flow.flow_id;
 
-          const fallbackId = generateDemoFallbackUuid(index);
+          // If no flow ID exists, log an error and skip this flow
+          if (!flowId) {
+            console.error('❌ [DEBUG] Flow missing ID, skipping:', flow);
+            return null;
+          }
 
           return ({
-            flowId: flow.master_flow_id || flow.flowId || flow.flow_id || fallbackId,
-            flow_id: flow.master_flow_id || flow.flowId || flow.flow_id || fallbackId, // Add flow_id for component compatibility
+            flowId: flowId,
+            flow_id: flowId, // Add flow_id for component compatibility
             status: flow.status,
           current_phase: flow.currentPhase || flow.current_phase || 'unknown',
           next_phase: flow.nextPhase || flow.next_phase,
@@ -98,7 +97,7 @@ export const useIncompleteFlowDetectionV2 = (): unknown => {
             estimated_cleanup_time: '30s'
           },
         });
-        });
+        }).filter(flow => flow !== null); // Remove flows without IDs
 
         console.log('📋 [DEBUG] Transformed incomplete flows:', incompleteFlows);
         console.log('📋 [DEBUG] Final result:', { flows: incompleteFlows });

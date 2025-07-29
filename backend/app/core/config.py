@@ -120,6 +120,17 @@ class Settings(BaseSettings):
     # WebSocket settings
     WS_HEARTBEAT_INTERVAL: int = Field(default=30, env="WS_HEARTBEAT_INTERVAL")
 
+    # Redis Cache settings
+    REDIS_ENABLED: bool = Field(default=True, env="REDIS_ENABLED")
+    REDIS_URL: str = Field(
+        default="redis://localhost:6379/0",
+        env="REDIS_URL",
+    )
+    REDIS_DEFAULT_TTL: int = Field(default=3600, env="REDIS_DEFAULT_TTL")  # 1 hour
+    # Upstash Redis (for production)
+    UPSTASH_REDIS_URL: str = Field(default="", env="UPSTASH_REDIS_URL")
+    UPSTASH_REDIS_TOKEN: str = Field(default="", env="UPSTASH_REDIS_TOKEN")
+
     # CrewAI settings (using DeepInfra)
     CREWAI_ENABLED: bool = True
     CREWAI_FAST_MODE: bool = Field(
