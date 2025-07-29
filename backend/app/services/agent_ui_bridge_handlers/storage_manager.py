@@ -6,10 +6,22 @@ Manages data persistence and storage operations.
 import json
 import logging
 import os
+import uuid
 from datetime import datetime
 from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
+
+
+class UUIDEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles UUID objects"""
+
+    def default(self, obj):
+        if isinstance(obj, uuid.UUID):
+            return str(obj)
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
 
 
 class StorageManager:
@@ -36,6 +48,22 @@ class StorageManager:
             )
             # Fall back to temp directory
             self.storage_path = "/tmp"
+
+    def _convert_to_serializable(self, obj: Any) -> Any:
+        """Recursively convert UUIDs and other non-serializable objects to strings."""
+        if isinstance(obj, uuid.UUID):
+            return str(obj)
+        elif isinstance(obj, datetime):
+            return obj.isoformat()
+        elif isinstance(obj, dict):
+            return {k: self._convert_to_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._convert_to_serializable(item) for item in obj]
+        elif hasattr(obj, "__dict__"):
+            # Convert objects to dictionaries
+            return self._convert_to_serializable(obj.__dict__)
+        else:
+            return obj
 
     def save_questions(self, questions: Dict[str, Any]) -> bool:
         """Save questions to storage."""
@@ -64,7 +92,7 @@ class StorageManager:
 
             file_path = os.path.join(self.storage_path, "agent_questions.json")
             with open(file_path, "w") as f:
-                json.dump(serializable_questions, f, indent=2)
+                json.dump(serializable_questions, f, indent=2, cls=UUIDEncoder)
 
             logger.info(f"Saved {len(questions)} questions to storage")
             return True
@@ -115,7 +143,7 @@ class StorageManager:
 
             file_path = os.path.join(self.storage_path, "data_classifications.json")
             with open(file_path, "w") as f:
-                json.dump(serializable_classifications, f, indent=2)
+                json.dump(serializable_classifications, f, indent=2, cls=UUIDEncoder)
 
             logger.info(f"Saved {len(classifications)} classifications to storage")
             return True
@@ -179,11 +207,17 @@ class StorageManager:
                         insight_dict["confidence"] = insight_dict["confidence"].value
                     serializable_insights[insight_id] = insight_dict
                 else:
-                    serializable_insights[insight_id] = insight
+                    # Handle dictionary with UUID values
+                    if isinstance(insight, dict):
+                        serializable_insights[insight_id] = (
+                            self._convert_to_serializable(insight)
+                        )
+                    else:
+                        serializable_insights[insight_id] = insight
 
             file_path = os.path.join(self.storage_path, "agent_insights.json")
             with open(file_path, "w") as f:
-                json.dump(serializable_insights, f, indent=2)
+                json.dump(serializable_insights, f, indent=2, cls=UUIDEncoder)
 
             logger.info(f"Saved {len(insights)} insights to storage")
             return True
@@ -214,7 +248,7 @@ class StorageManager:
 
             file_path = os.path.join(self.storage_path, "agent_context.json")
             with open(file_path, "w") as f:
-                json.dump(context_data, f, indent=2)
+                json.dump(context_data, f, indent=2, cls=UUIDEncoder)
 
             logger.info("Saved agent context to storage")
             return True
@@ -267,7 +301,7 @@ class StorageManager:
         try:
             file_path = os.path.join(self.storage_path, "learning_experiences.json")
             with open(file_path, "w") as f:
-                json.dump(self._learning_experiences, f, indent=2)
+                json.dump(self._learning_experiences, f, indent=2, cls=UUIDEncoder)
 
             logger.info(f"Saved {len(self._learning_experiences)} learning experiences")
             return True
