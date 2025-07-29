@@ -114,59 +114,16 @@ class FlowTriggerService:
                 master_flow_id = flow_result[0]
                 logger.info(f"✅ Master flow created atomically: {master_flow_id}")
 
-                # 🔧 CC FIX: Now create the actual discovery flow that links to this master flow
-                # This is the missing piece - we need BOTH master flow AND discovery flow
-                try:
-                    # Generate unique discovery flow ID for CrewAI
-                    import uuid
+                # 🔧 CC FIX: The MasterFlowOrchestrator already creates the discovery flow
+                # We don't need to create it again - just return the master flow ID
+                logger.info(
+                    f"✅ Discovery flow created via MasterFlowOrchestrator: {master_flow_id}"
+                )
+                logger.info(f"   Master Flow ID: {master_flow_id}")
 
-                    from app.services.discovery_flow_service import DiscoveryFlowService
-
-                    discovery_flow_id = str(uuid.uuid4())
-
-                    # Create discovery flow service
-                    discovery_service = DiscoveryFlowService(self.db, context)
-
-                    # Create the discovery flow linked to the master flow
-                    # 🔧 CC FIX: Convert UUIDs to strings to prevent JSON serialization errors
-                    metadata = convert_uuids_to_str(
-                        {
-                            "source": "data_import",
-                            "import_id": data_import_id,
-                            "master_flow_id": master_flow_id,
-                            "import_timestamp": datetime.utcnow().isoformat(),
-                        }
-                    )
-
-                    await discovery_service.create_discovery_flow(
-                        flow_id=discovery_flow_id,
-                        raw_data=file_data,
-                        metadata=metadata,
-                        data_import_id=data_import_id,
-                        user_id=user_id,
-                        # 🔧 CC FIX: master_flow_id is passed in metadata, not as parameter
-                    )
-
-                    logger.info(
-                        f"✅ Discovery flow created and linked: {discovery_flow_id}"
-                    )
-                    logger.info(f"   Master Flow ID: {master_flow_id}")
-                    logger.info(f"   Discovery Flow ID: {discovery_flow_id}")
-
-                    # Return the master flow ID for foreign key linkage in storage manager
-                    # 🔧 CC FIX: Storage manager needs master_flow_id for foreign key constraint
-                    return master_flow_id
-
-                except Exception as discovery_error:
-                    logger.error(
-                        f"❌ Failed to create discovery flow after master flow: {discovery_error}"
-                    )
-                    # Don't fail the entire import - master flow exists
-                    # Return the master flow ID so at least the import can be linked
-                    logger.error(
-                        "❌ CRITICAL: Master flow created but discovery flow failed - continuing with master flow only"
-                    )
-                    return master_flow_id
+                # Return the master flow ID for foreign key linkage in storage manager
+                # The MasterFlowOrchestrator handles all the flow creation internally
+                return master_flow_id
 
             else:
                 logger.error(f"❌ Unexpected flow creation result: {flow_result}")

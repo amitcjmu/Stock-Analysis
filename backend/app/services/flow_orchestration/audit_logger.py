@@ -5,6 +5,7 @@ Handles audit logging, compliance tracking, flow operation logging, and security
 """
 
 import json
+import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from enum import Enum
@@ -216,21 +217,21 @@ class FlowAuditLogger:
             "engagement_id": str(event.engagement_id) if event.engagement_id else None,
             "success": event.success,
             "error_message": event.error_message,
-            "details": event.details,
-            "metadata": event.metadata,
+            "details": self._convert_to_serializable(event.details),
+            "metadata": self._convert_to_serializable(event.metadata),
         }
 
         # Log based on audit level
         if event.level == AuditLevel.CRITICAL:
-            logger.critical(f"📝 AUDIT: {json.dumps(log_data)}")
+            logger.critical(f"📝 AUDIT: {json.dumps(log_data, default=str)}")
         elif event.level == AuditLevel.ERROR:
-            logger.error(f"📝 AUDIT: {json.dumps(log_data)}")
+            logger.error(f"📝 AUDIT: {json.dumps(log_data, default=str)}")
         elif event.level == AuditLevel.WARNING:
-            logger.warning(f"📝 AUDIT: {json.dumps(log_data)}")
+            logger.warning(f"📝 AUDIT: {json.dumps(log_data, default=str)}")
         elif event.level == AuditLevel.DEBUG:
-            logger.debug(f"📝 AUDIT: {json.dumps(log_data)}")
+            logger.debug(f"📝 AUDIT: {json.dumps(log_data, default=str)}")
         else:
-            logger.info(f"📝 AUDIT: {json.dumps(log_data)}")
+            logger.info(f"📝 AUDIT: {json.dumps(log_data, default=str)}")
 
     async def _check_compliance_rules(self, event: AuditEvent):
         """Check compliance rules against audit event"""
@@ -535,7 +536,7 @@ class FlowAuditLogger:
         events = events[:limit]
 
         # Convert to dict format
-        return [asdict(event) for event in events]
+        return [self._event_to_dict(event) for event in events]
 
     def get_compliance_report(self, flow_id: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -617,7 +618,7 @@ class FlowAuditLogger:
 
         if format.lower() == "json":
             return json.dumps(
-                [asdict(event) for event in events], indent=2, default=str
+                [self._event_to_dict(event) for event in events], indent=2, default=str
             )
         elif format.lower() == "csv":
             # Simple CSV export (would need proper CSV library for production)
@@ -665,3 +666,24 @@ class FlowAuditLogger:
         """
         self.audit_filters[filter_name] = filter_function
         logger.info(f"🔍 Registered audit filter: {filter_name}")
+
+    def _convert_to_serializable(self, obj: Any) -> Any:
+        """Recursively convert UUIDs and other non-serializable objects to strings."""
+        if isinstance(obj, uuid.UUID):
+            return str(obj)
+        elif isinstance(obj, datetime):
+            return obj.isoformat()
+        elif isinstance(obj, dict):
+            return {k: self._convert_to_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._convert_to_serializable(item) for item in obj]
+        elif hasattr(obj, "__dict__"):
+            return self._convert_to_serializable(obj.__dict__)
+        else:
+            return obj
+
+    def _event_to_dict(self, event: AuditEvent) -> Dict[str, Any]:
+        """Convert AuditEvent to dictionary with proper serialization."""
+        event_dict = asdict(event)
+        # Convert any nested UUIDs or non-serializable objects
+        return self._convert_to_serializable(event_dict)
