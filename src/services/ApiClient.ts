@@ -35,8 +35,29 @@ export class ApiClient {
   private config: ApiClientConfig;
 
   private constructor() {
+    // Get backend URL from environment or window location
+    const getBackendUrl = (): string => {
+      // Use VITE environment variable if available
+      if (import.meta.env?.VITE_BACKEND_URL) {
+        return import.meta.env.VITE_BACKEND_URL;
+      }
+      // Fallback to process.env for Next.js compatibility
+      if (process.env.NEXT_PUBLIC_API_URL) {
+        return process.env.NEXT_PUBLIC_API_URL;
+      }
+      // Development mode - use empty string to utilize Vite proxy
+      if (import.meta.env?.DEV || import.meta.env?.MODE === 'development') {
+        return '';
+      }
+      // Default fallback
+      return '';
+    };
+
+    const baseUrl = getBackendUrl();
+    console.log('🔧 ApiClient initialized with baseURL:', `${baseUrl}/api/v1`);
+
     this.config = {
-      baseURL: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1`,
+      baseURL: `${baseUrl}/api/v1`,
       timeout: 30000,
       retries: 0,  // CC FIX: Remove retries to prevent duplicate backend executions
       defaultHeaders: {
@@ -63,6 +84,18 @@ export class ApiClient {
       ...this.config.defaultHeaders,
       ...config?.headers
     };
+
+    // Add auth token if available
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (token && !headers['Authorization']) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+
+    console.log(`🔍 MasterFlowService.request - ${method} ${url}`, { headers });
 
     const requestOptions: RequestInit = {
       method,
