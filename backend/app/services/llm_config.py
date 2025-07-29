@@ -19,6 +19,7 @@ from typing import Any, Dict
 # Import and apply DeepInfra response fix BEFORE importing litellm
 try:
     from . import deepinfra_response_fixer
+
     logging.info("✅ DeepInfra response fixer applied to litellm")
 except ImportError as e:
     logging.warning(f"Could not apply DeepInfra response fixer: {e}")
@@ -104,7 +105,7 @@ def deepinfra_logprobs_fixer(
     return kwargs
 
 
-def deepinfra_response_fixer(
+def deepinfra_response_fixer_success_callback(
     kwargs: Dict[str, Any], completion_obj: Any, start_time, end_time
 ) -> None:
     """

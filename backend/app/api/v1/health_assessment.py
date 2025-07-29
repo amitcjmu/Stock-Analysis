@@ -55,9 +55,8 @@ async def check_assessment_tables_health():
 
             for table in tables_to_check:
                 try:
-                    await db.execute(
-                        text(f"SELECT 1 FROM {table} LIMIT 1")
-                    )  # nosec B608 - table names hardcoded
+                    # nosec B608 - table names are hardcoded constants, not user input
+                    await db.execute(text(f"SELECT 1 FROM {table} LIMIT 1"))
                 except Exception as e:
                     # Table might not exist yet or be empty - that's ok for development
                     logger.warning(f"Assessment table {table} check failed: {str(e)}")
@@ -132,29 +131,28 @@ async def check_sse_health():
 async def check_redis_health():
     """Check Redis connectivity for assessment flow workers"""
     try:
-        import os
+        from app.services.caching.redis_cache import redis_cache
 
-        redis_url = os.getenv("REDIS_URL")
-
-        if not redis_url:
-            logger.debug("Redis not configured - worker mode disabled")
+        if not redis_cache.enabled:
+            logger.debug("Redis not configured - caching disabled")
             return
 
-        # Try to connect to Redis
-        try:
-            import redis.asyncio as redis
+        # Test Redis with a simple operation
+        test_key = "health:check:redis"
+        test_value = {"timestamp": datetime.utcnow().isoformat(), "status": "ok"}
 
-            redis_client = redis.from_url(redis_url)
-            await redis_client.ping()
-            await redis_client.close()
+        # Try to set and get a value
+        await redis_cache.set(test_key, test_value, ttl=10)
+        retrieved = await redis_cache.get(test_key)
 
-            logger.debug("Redis health check completed")
+        if not retrieved:
+            raise HealthCheckError("Redis write/read test failed")
 
-        except ImportError:
-            logger.warning("Redis client not available")
-        except Exception as e:
-            raise HealthCheckError(f"Redis unhealthy: {str(e)}")
+        logger.debug("Redis health check completed successfully")
 
+    except ImportError:
+        logger.warning("Redis cache service not available")
+        raise HealthCheckError("Redis cache service not available")
     except Exception as e:
         raise HealthCheckError(f"Redis health check failed: {str(e)}")
 

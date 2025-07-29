@@ -40,7 +40,8 @@ load_dotenv()
 
 # Import and apply DeepInfra response fix early in startup
 try:
-    from app.services import deepinfra_response_fixer
+    from app.services.deepinfra_response_fixer import patch_litellm_response_parsing
+
     logger = logging.getLogger(__name__)
     logger.info("✅ DeepInfra response fixer module loaded")
 except ImportError as e:

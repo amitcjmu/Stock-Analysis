@@ -163,6 +163,15 @@ class Settings(BaseSettings):
     CREWAI_RETRY_WAIT_SECONDS: int = Field(default=2, env="CREWAI_RETRY_WAIT_SECONDS")
     CREWAI_FLOW_TTL_HOURS: int = Field(default=1, env="CREWAI_FLOW_TTL_HOURS")
 
+    # Redis Configuration
+    REDIS_ENABLED: bool = Field(default=True, env="REDIS_ENABLED")
+    REDIS_URL: str = Field(default="redis://redis:6379", env="REDIS_URL")
+    REDIS_DEFAULT_TTL: int = Field(default=3600, env="REDIS_DEFAULT_TTL")  # 1 hour
+
+    # Upstash Redis Configuration (for production)
+    UPSTASH_REDIS_URL: str = Field(default="", env="UPSTASH_REDIS_URL")
+    UPSTASH_REDIS_TOKEN: str = Field(default="", env="UPSTASH_REDIS_TOKEN")
+
     model_config = ConfigDict(
         env_file=".env" if os.getenv("RAILWAY_ENVIRONMENT") is None else None,
         env_file_encoding="utf-8",

@@ -27,6 +27,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
+from app.services.caching.redis_cache import redis_cache
 
 from .flow_state_manager import FlowStateManager
 
@@ -199,7 +200,7 @@ class StateSerializer:
                     "utf-8"
                 )
             elif self.config.format == "pickle":
-                serialized = pickle.dumps(state)
+                serialized = pickle.dumps(state)  # nosec B301 - controlled pickle usage
             else:
                 raise StateSerializationError(
                     f"Unsupported serialization format: {self.config.format}"
@@ -240,7 +241,7 @@ class StateSerializer:
             if self.config.format == "json":
                 state = json.loads(data.decode("utf-8"))
             elif self.config.format == "pickle":
-                state = pickle.loads(data)
+                state = pickle.loads(data)  # nosec B301 - controlled pickle usage
             else:
                 raise StateSerializationError(
                     f"Unsupported deserialization format: {self.config.format}"
@@ -316,6 +317,10 @@ class EnhancedFlowStateManager(FlowStateManager):
         self.encryption_config = encryption_config or EncryptionConfig()
         self.serializer = StateSerializer(self.serialization_config)
 
+        # Redis cache TTL settings
+        self._cache_ttl = 300  # 5 minutes for active flows
+        self._completed_cache_ttl = 3600  # 1 hour for completed flows
+
         logger.info("✅ Enhanced Flow State Manager initialized")
 
     async def create_flow_state_enhanced(
@@ -355,8 +360,17 @@ class EnhancedFlowStateManager(FlowStateManager):
             raise
 
     async def get_flow_state_enhanced(self, flow_id: str) -> Optional[Dict[str, Any]]:
-        """Get flow state with automatic deserialization"""
+        """Get flow state with automatic deserialization and Redis caching"""
         try:
+            # Try Redis cache first
+            cached_state = await redis_cache.get_flow_state(flow_id)
+            if cached_state:
+                logger.debug(f"Cache hit for flow state: {flow_id}")
+                await redis_cache.increment_metric("flow_state_cache_hits")
+                return cached_state
+
+            logger.debug(f"Cache miss for flow state: {flow_id}")
+            await redis_cache.increment_metric("flow_state_cache_misses")
             # Try to get enhanced serialized state first
             serialized_data = await self._load_serialized_state(flow_id)
 
@@ -367,12 +381,27 @@ class EnhancedFlowStateManager(FlowStateManager):
                 # Merge with base state
                 base_state = await super().get_flow_state(flow_id)
                 if base_state:
-                    return {**base_state, **enhanced_state}
+                    merged_state = {**base_state, **enhanced_state}
+                    # Cache the merged state
+                    await redis_cache.cache_flow_state(
+                        flow_id, merged_state, ttl=self._cache_ttl
+                    )
+                    return merged_state
                 else:
+                    # Cache the enhanced state
+                    await redis_cache.cache_flow_state(
+                        flow_id, enhanced_state, ttl=self._cache_ttl
+                    )
                     return enhanced_state
             else:
                 # Fallback to base state manager
-                return await super().get_flow_state(flow_id)
+                state = await super().get_flow_state(flow_id)
+                if state:
+                    # Cache the state
+                    await redis_cache.cache_flow_state(
+                        flow_id, state, ttl=self._cache_ttl
+                    )
+                return state
 
         except Exception as e:
             logger.error(f"❌ Enhanced flow state retrieval failed: {e}")
@@ -382,8 +411,11 @@ class EnhancedFlowStateManager(FlowStateManager):
     async def update_flow_state_enhanced(
         self, flow_id: str, state_updates: Dict[str, Any], version: Optional[int] = None
     ) -> Dict[str, Any]:
-        """Update flow state with enhanced serialization"""
+        """Update flow state with enhanced serialization and cache invalidation"""
         try:
+            # Invalidate cache before update
+            await redis_cache.delete(f"flow:state:{flow_id}")
+
             # Update base state
             result = await super().update_flow_state(flow_id, state_updates, version)
 
@@ -399,6 +431,19 @@ class EnhancedFlowStateManager(FlowStateManager):
                 # Re-serialize and store
                 serialized_data = self.serializer.serialize_state(enhanced_state)
                 await self._store_serialized_state(flow_id, serialized_data)
+
+            # Cache the updated state
+            await redis_cache.cache_flow_state(flow_id, result, ttl=self._cache_ttl)
+
+            # Publish update event for SSE
+            await redis_cache.publish_event(
+                f"flow:updates:{flow_id}",
+                {
+                    "type": "state_update",
+                    "flow_id": flow_id,
+                    "timestamp": datetime.utcnow().isoformat(),
+                },
+            )
 
             return result
 
@@ -594,6 +639,58 @@ class EnhancedFlowStateManager(FlowStateManager):
         except Exception as e:
             logger.error(f"❌ Failed to get state analytics: {e}")
             return {"error": str(e), "flow_id": flow_id}
+
+    # Redis-specific caching methods
+    async def register_sse_connection(
+        self, flow_id: str, connection_id: str, metadata: Dict[str, Any]
+    ) -> bool:
+        """Register SSE connection for flow updates"""
+        return await redis_cache.register_sse_connection(
+            flow_id, connection_id, metadata
+        )
+
+    async def unregister_sse_connection(self, flow_id: str, connection_id: str) -> bool:
+        """Unregister SSE connection"""
+        return await redis_cache.unregister_sse_connection(flow_id, connection_id)
+
+    async def get_sse_connections(self, flow_id: str) -> Dict[str, Dict[str, Any]]:
+        """Get all SSE connections for a flow"""
+        return await redis_cache.get_sse_connections(flow_id)
+
+    async def cache_phase_results(
+        self, flow_id: str, phase: str, results: Dict[str, Any]
+    ) -> bool:
+        """Cache phase-specific results for reuse"""
+        key = f"flow:{flow_id}:phase:{phase}:results"
+        ttl = 1800  # 30 minutes for phase results
+        return await redis_cache.set(key, results, ttl=ttl)
+
+    async def get_cached_phase_results(
+        self, flow_id: str, phase: str
+    ) -> Optional[Dict[str, Any]]:
+        """Get cached phase results if available"""
+        key = f"flow:{flow_id}:phase:{phase}:results"
+        return await redis_cache.get(key)
+
+    async def acquire_flow_lock(
+        self, flow_id: str, operation: str, ttl: int = 30
+    ) -> Optional[str]:
+        """Acquire distributed lock for flow operation"""
+        resource = f"flow:{flow_id}:{operation}"
+        return await redis_cache.acquire_lock(resource, ttl)
+
+    async def release_flow_lock(
+        self, flow_id: str, operation: str, lock_id: str
+    ) -> bool:
+        """Release distributed lock for flow operation"""
+        resource = f"flow:{flow_id}:{operation}"
+        return await redis_cache.release_lock(resource, lock_id)
+
+    def _get_cache_ttl(self, phase: Optional[str] = None) -> int:
+        """Get appropriate TTL based on phase"""
+        if phase in ["completed", "failed", "cancelled"]:
+            return self._completed_cache_ttl
+        return self._cache_ttl
 
 
 # Factory function for creating enhanced flow state managers
