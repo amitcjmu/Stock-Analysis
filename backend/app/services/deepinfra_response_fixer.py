@@ -16,8 +16,7 @@ def patch_litellm_response_parsing():
     try:
         # Import the specific module that does response parsing
         from litellm.types.utils import ChoiceLogprobs
-        from typing import List, Optional, Any
-        
+
         # Store the original ChoiceLogprobs class
         _OriginalChoiceLogprobs = ChoiceLogprobs
 
@@ -32,7 +31,10 @@ def patch_litellm_response_parsing():
                             # Create a copy to avoid modifying original
                             item_copy = item.copy()
                             # Fix None top_logprobs
-                            if "top_logprobs" in item_copy and item_copy["top_logprobs"] is None:
+                            if (
+                                "top_logprobs" in item_copy
+                                and item_copy["top_logprobs"] is None
+                            ):
                                 item_copy["top_logprobs"] = []
                             fixed_content.append(item_copy)
                         else:
@@ -53,13 +55,13 @@ def patch_litellm_response_parsing():
                         if "content" in data:
                             # Try to extract just the text content
                             content_items = []
-                            for item in (data.get("content") or []):
+                            for item in data.get("content") or []:
                                 if isinstance(item, dict):
                                     # Keep only essential fields
                                     clean_item = {
                                         "token": item.get("token", ""),
                                         "logprob": item.get("logprob", 0.0),
-                                        "top_logprobs": []  # Always use empty list
+                                        "top_logprobs": [],  # Always use empty list
                                     }
                                     if "bytes" in item:
                                         clean_item["bytes"] = item["bytes"]
@@ -67,7 +69,9 @@ def patch_litellm_response_parsing():
                             minimal_data["content"] = content_items
                         super().__init__(**minimal_data)
                     except Exception as e2:
-                        logger.error(f"Failed to create even minimal ChoiceLogprobs: {e2}")
+                        logger.error(
+                            f"Failed to create even minimal ChoiceLogprobs: {e2}"
+                        )
                         # Last resort - create without content
                         super().__init__()
 
@@ -98,21 +102,21 @@ def apply_alternative_fix():
     """
     try:
         # Import all the types that might have top_logprobs
-        from litellm.types.utils import ChatCompletionTokenLogprob, TopLogprob
-        
+        from litellm.types.utils import ChatCompletionTokenLogprob
+
         # Try different patching approaches
-        
+
         # Approach 1: Monkey-patch the __init__ method
         original_init = ChatCompletionTokenLogprob.__init__
-        
+
         def patched_init(self, **data):
             # Fix top_logprobs before calling original init
             if "top_logprobs" in data and data["top_logprobs"] is None:
                 data["top_logprobs"] = []
             original_init(self, **data)
-        
+
         ChatCompletionTokenLogprob.__init__ = patched_init
-        
+
         # Approach 2: Also patch field validation if possible
         try:
             # Try to modify the field directly
