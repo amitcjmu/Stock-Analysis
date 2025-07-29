@@ -6,8 +6,8 @@ FROM python:3.11-slim-bookworm@sha256:139020233cc412efe4c8135b0efe1c7569dc8b28dd
 # Set working directory
 WORKDIR /app
 
-# Force cache invalidation - Updated 2025-07-18
-ENV CACHE_BUST=2025-07-18-v3
+# Force cache invalidation - Updated 2025-07-29
+ENV CACHE_BUST=2025-07-29-redis-fix
 
 # Install system dependencies with security updates
 RUN apt-get update \

@@ -297,7 +297,9 @@ class UnifiedDiscoveryFlow(Flow):
 
             # Save initial state to database
             if self.flow_bridge:
-                await self.flow_bridge.save_flow_state(self._flow_id, self._flow_state)
+                await self.flow_bridge.save_state(
+                    self._flow_id, self._flow_state.dict()
+                )
                 logger.info("💾 Saved initial flow state to database")
 
             logger.info(
