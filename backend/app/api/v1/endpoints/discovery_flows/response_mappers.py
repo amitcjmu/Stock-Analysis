@@ -322,8 +322,8 @@ class ResponseMappers:
                         for mapping in mappings:
                             db_field_mappings[mapping.source_field] = {
                                 "target_field": mapping.target_field,
-                                "confidence": mapping.confidence,
-                                "is_approved": mapping.is_approved,
+                                "confidence": mapping.confidence_score,
+                                "is_approved": mapping.status == "approved",
                                 "is_critical": getattr(mapping, "is_critical", False),
                             }
 
