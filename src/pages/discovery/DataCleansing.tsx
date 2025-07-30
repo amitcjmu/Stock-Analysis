@@ -8,6 +8,7 @@ import { useLatestImport, useAssets } from '../../hooks/discovery/useDataCleansi
 import { API_CONFIG } from '../../config/api'
 import { apiCall } from '../../config/api'
 import SecureLogger from '../../utils/secureLogger';
+import secureNavigation from '../../utils/secureNavigation';
 
 // Components
 import Sidebar from '../../components/Sidebar';
@@ -29,7 +30,7 @@ import { AlertTriangle } from 'lucide-react'
 import { Download, FileText, CheckCircle, Activity } from 'lucide-react'
 
 const DataCleansing: React.FC = () => {
-  const { user, client, engagement } = useAuth();
+  const { user, client, engagement, isLoading: isAuthLoading } = useAuth();
   const [pendingQuestions, setPendingQuestions] = useState(0);
 
   // Use the auto-detection hook for consistent flow detection
@@ -258,7 +259,10 @@ const DataCleansing: React.FC = () => {
   const hasData = hasImportedData || hasCleansingResults || hasFlowProgression;
 
   const isAnalyzing = isUpdating;
-  const isLoadingData = isLoading || isLatestImportLoading || isFlowListLoading;
+  const isLoadingData = isLoading || isLatestImportLoading || isFlowListLoading || isAuthLoading;
+
+  // Check if we're missing required context
+  const isMissingContext = !isAuthLoading && (!client?.id || !engagement?.id);
 
   // Check for pending agent questions (disabled polling for now as endpoint returns empty array)
   useEffect(() => {
@@ -328,9 +332,9 @@ const DataCleansing: React.FC = () => {
   return (
     <DataCleansingStateProvider
       isLoading={isLoadingData}
-      hasError={hasError}
-      errorMessage={errorMessage}
-      hasData={hasData}
+      hasError={hasError || isMissingContext}
+      errorMessage={errorMessage || (isMissingContext ? 'Missing client or engagement context' : undefined)}
+      hasData={hasData && !isMissingContext}
       onBackToAttributeMapping={handleBackToAttributeMapping}
       onTriggerAnalysis={handleTriggerDataCleansingCrew}
       isAnalyzing={isAnalyzing}
