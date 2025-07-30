@@ -7,6 +7,7 @@ import { useDiscoveryFlowAutoDetection } from '../../hooks/discovery/useDiscover
 import { useLatestImport, useAssets } from '../../hooks/discovery/useDataCleansingQueries';
 import { API_CONFIG } from '../../config/api'
 import { apiCall } from '../../config/api'
+import SecureLogger from '../../utils/secureLogger';
 
 // Components
 import Sidebar from '../../components/Sidebar';
@@ -39,7 +40,11 @@ const DataCleansing: React.FC = () => {
     flowList,
     isFlowListLoading,
     hasEffectiveFlow
-  } = useDiscoveryFlowAutoDetection();
+  } = useDiscoveryFlowAutoDetection({
+    currentPhase: 'data_cleansing',
+    preferredStatuses: ['initialized', 'running', 'active', 'in_progress', 'processing', 'paused', 'waiting_for_user_approval', 'waiting_for_approval'],
+    fallbackToAnyRunning: true
+  });
 
   // Unified Discovery flow hook with auto-detected flow ID
   const {
@@ -105,36 +110,46 @@ const DataCleansing: React.FC = () => {
     transformations_applied: flowDataCleansing?.metadata?.transformations_applied || 0
   };
 
-  // Debug logging to see what data is available
-  console.log('🔍 DataCleansing debug info:', {
-    flow: flow ? 'present' : 'null',
-    flowDataCleansing: flowDataCleansing ? 'present' : 'empty',
+  // Secure debug logging - data availability check
+  SecureLogger.debug('DataCleansing data availability check', {
+    hasFlow: !!flow,
+    hasDataCleansingResults: !!flowDataCleansing,
     qualityIssuesCount: qualityIssues.length,
     recommendationsCount: agentRecommendations.length,
-    cleansingProgress,
-    flowKeys: flow ? Object.keys(flow) : [],
-    dataCleansingKeys: flowDataCleansing ? Object.keys(flowDataCleansing) : [],
-    // ADR-012: Debug discovery flow data extraction
-    flowRawData: flow?.raw_data,
-    flowRawDataLength: flow?.raw_data?.length,
-    flowFieldMappings: flow?.field_mappings,
-    flowFieldMappingsKeys: flow?.field_mappings ? Object.keys(flow.field_mappings) : [],
-    flowImportMetadata: flow?.import_metadata,
-    flowProgressPercentage: flow?.progress_percentage,
-    totalRecordsCalculated: totalRecords,
-    cleanedRecordsCalculated: cleanedRecords,
-    fieldsAnalyzedCalculated: fieldsAnalyzed
+    totalRecords,
+    cleanedRecords,
+    fieldsAnalyzed,
+    progressPercentage: flow?.progress_percentage || 0
   });
 
   // Handle data cleansing execution - Now actually triggers analysis
   const handleTriggerDataCleansingCrew = async (): void => {
     if (!effectiveFlowId) {
-      console.error('No flow ID available for triggering analysis');
+      SecureLogger.warn('No flow ID available for triggering analysis, attempting to refresh flow list');
+
+      // Try to refresh the flow and see if we can detect one
+      try {
+        await refresh();
+        if (flowList && flowList.length > 0) {
+          SecureLogger.info('Found flows after refresh, redirecting to first available flow');
+          const firstFlow = flowList[0];
+          const flowId = firstFlow.flow_id || firstFlow.id;
+          if (flowId) {
+            // Secure redirect to data cleansing with specific flow ID
+            secureNavigation.navigateToDiscoveryPhase('data-cleansing', flowId);
+            return;
+          }
+        }
+      } catch (refreshError) {
+        SecureLogger.error('Failed to refresh flows', refreshError);
+      }
+
+      SecureLogger.error('No flow ID available for triggering analysis after refresh');
       return;
     }
 
     try {
-      console.log('🚀 Triggering data cleansing analysis for flow:', effectiveFlowId);
+      SecureLogger.info('Triggering data cleansing analysis for flow');
 
       // Call the new trigger analysis endpoint
       const response = await apiCall(`/api/v1/data-cleansing/flows/${effectiveFlowId}/data-cleansing/trigger`, {
@@ -145,13 +160,13 @@ const DataCleansing: React.FC = () => {
         })
       });
 
-      console.log('✅ Data cleansing analysis triggered successfully:', response);
+      SecureLogger.info('Data cleansing analysis triggered successfully');
 
       // Refresh the flow data to get updated results
       await refresh();
 
     } catch (error) {
-      console.error('❌ Failed to trigger data cleansing analysis:', error);
+      SecureLogger.error('Failed to trigger data cleansing analysis', error);
       // Still refresh to get any available data
       await refresh();
     }
@@ -159,32 +174,24 @@ const DataCleansing: React.FC = () => {
 
   // Navigation handlers
   const handleBackToAttributeMapping = (): void => {
-    // Navigate back to attribute mapping
-    window.history.back();
+    // Secure navigation back to attribute mapping
+    secureNavigation.navigateToDiscoveryPhase('attribute-mapping', effectiveFlowId);
   };
 
   const handleContinueToInventory = async (): void => {
     try {
       // First, mark the data cleansing phase as complete
       if (flow && !flow.phase_completion?.data_cleansing) {
-        console.log('📌 Marking data cleansing phase as complete...');
+        SecureLogger.info('Marking data cleansing phase as complete');
         await executeFlowPhase('data_cleansing', { complete: true });
       }
 
-      // Navigate to asset inventory with flow ID
-      if (effectiveFlowId) {
-        window.location.href = `/discovery/inventory/${effectiveFlowId}`;
-      } else {
-        window.location.href = '/discovery/inventory';
-      }
+      // Secure navigation to asset inventory
+      secureNavigation.navigateToDiscoveryPhase('inventory', effectiveFlowId);
     } catch (error) {
-      console.error('Failed to complete data cleansing phase:', error);
+      SecureLogger.error('Failed to complete data cleansing phase', error);
       // Still navigate even if phase completion fails
-      if (effectiveFlowId) {
-        window.location.href = `/discovery/inventory/${effectiveFlowId}`;
-      } else {
-        window.location.href = '/discovery/inventory';
-      }
+      secureNavigation.navigateToDiscoveryPhase('inventory', effectiveFlowId);
     }
   };
 
@@ -192,31 +199,63 @@ const DataCleansing: React.FC = () => {
   const hasError = !!(error || latestImportError);
   const errorMessage = error?.message || latestImportError?.message;
 
-  // Check if we have data available for cleansing - this includes imported data from previous phases
-  // Be more robust in checking for data existence
-  const hasRawData = !!(flow?.raw_data?.length > 0 || latestImportData?.data?.length > 0);
-  const hasFieldMappings = !!(
-    Object.keys(flow?.field_mappings || {}).length > 0 ||
-    (flow?.field_mappings && typeof flow.field_mappings === 'object' && Object.keys(flow.field_mappings).length > 0)
+  // Enhanced data availability detection with better edge case handling
+  const hasRawData = !!(
+    (flow?.raw_data && Array.isArray(flow.raw_data) && flow.raw_data.length > 0) ||
+    (latestImportData?.data && Array.isArray(latestImportData.data) && latestImportData.data.length > 0)
   );
-  const hasFlowWithDataImport = !!(flow?.data_import_id || flow?.import_metadata);
-  const hasImportedData = hasRawData || hasFieldMappings || hasFlowWithDataImport;
+
+  const hasFieldMappings = !!(
+    flow?.field_mappings &&
+    typeof flow.field_mappings === 'object' &&
+    Object.keys(flow.field_mappings).length > 0
+  );
+
+  const hasImportMetadata = !!(
+    flow?.import_metadata?.record_count > 0 ||
+    flow?.data_import_id ||
+    (flow?.summary && flow.summary.total_records > 0)
+  );
+
+  // Check if previous phases are complete
+  const isDataImportComplete = !!(
+    flow?.phase_completion?.data_import ||
+    flow?.phase_completion?.['data_import'] ||
+    (flow?.current_phase && flow.current_phase !== 'data_import' && flow.progress_percentage > 0)
+  );
+
+  const isFieldMappingComplete = !!(
+    flow?.phase_completion?.field_mapping ||
+    flow?.phase_completion?.attribute_mapping ||
+    flow?.phase_completion?.['field_mapping'] ||
+    flow?.phase_completion?.['attribute_mapping'] ||
+    hasFieldMappings
+  );
+
+  // More comprehensive data availability check
+  const hasImportedData = hasRawData || hasFieldMappings || hasImportMetadata;
 
   const hasCleansingResults = !!(
     qualityIssues.length > 0 ||
     agentRecommendations.length > 0 ||
     cleansingProgress.total_records > 0 ||
-    flow?.progress_percentage > 0
+    (flow?.data_cleansing_results && Object.keys(flow.data_cleansing_results).length > 0)
   );
 
-  // If we have a flow and it's past data_import phase, we should have data
-  const isPostDataImport = !!(flow && (
-    flow.current_phase !== 'data_import' ||
-    flow.phase_completion?.data_import ||
-    flow.progress_percentage > 0
-  ));
+  // Check if flow has progressed past initial phases
+  const hasFlowProgression = !!(
+    flow && (
+      flow.progress_percentage > 0 ||
+      isDataImportComplete ||
+      isFieldMappingComplete ||
+      flow.current_phase === 'data_cleansing' ||
+      flow.current_phase === 'field_mapping' ||
+      flow.current_phase === 'attribute_mapping'
+    )
+  );
 
-  const hasData = hasImportedData || hasCleansingResults || isPostDataImport;
+  // Determine if we have enough data to show the data cleansing interface
+  const hasData = hasImportedData || hasCleansingResults || hasFlowProgression;
 
   const isAnalyzing = isUpdating;
   const isLoadingData = isLoading || isLatestImportLoading || isFlowListLoading;
@@ -243,7 +282,7 @@ const DataCleansing: React.FC = () => {
         const unansweredQuestions = questions.filter(q => !q.is_resolved) || [];
         setPendingQuestions(unansweredQuestions.length);
       } catch (error) {
-        console.error('Failed to check pending questions:', error);
+        SecureLogger.error('Failed to check pending questions', error);
         // Set to 0 if endpoint fails
         setPendingQuestions(0);
       }
@@ -263,45 +302,26 @@ const DataCleansing: React.FC = () => {
   const rawDataSample = flowDataCleansing?.raw_data?.slice(0, 3) || [];
   const cleanedDataSample = flowDataCleansing?.cleaned_data?.slice(0, 3) || [];
 
-  // Debug info for flow detection and data extraction
-  console.log('🔍 DataCleansing flow detection:', {
-    urlFlowId,
-    autoDetectedFlowId,
-    effectiveFlowId,
-    hasEffectiveFlow,
+  // Secure debug logging for flow detection and data state
+  SecureLogger.debug('DataCleansing flow detection summary', {
+    hasUrlFlowId: !!urlFlowId,
+    hasAutoDetectedFlowId: !!autoDetectedFlowId,
+    hasEffectiveFlowId: !!effectiveFlowId,
     totalFlowsAvailable: flowList?.length || 0
   });
 
-  console.log('🔍 DataCleansing data extraction:', {
-    flow: flow ? 'present' : 'null',
-    flowDataCleansing: flowDataCleansing ? 'present' : 'empty',
+  SecureLogger.debug('DataCleansing data state summary', {
+    hasFlow: !!flow,
+    hasDataCleansingResults: !!flowDataCleansing,
     qualityIssuesCount: qualityIssues.length,
     recommendationsCount: agentRecommendations.length,
-    cleansingProgress,
-    flowKeys: flow ? Object.keys(flow) : [],
-    dataCleansingKeys: flowDataCleansing ? Object.keys(flowDataCleansing) : []
-  });
-
-  console.log('🔍 DataCleansing data availability check:', {
     hasRawData,
     hasFieldMappings,
-    hasFlowWithDataImport,
-    hasImportedData,
-    hasCleansingResults,
-    isPostDataImport,
+    hasImportMetadata,
+    isDataImportComplete,
+    isFieldMappingComplete,
     hasData,
-    rawDataLength: flow?.raw_data?.length || 0,
-    fieldMappingsCount: Object.keys(flow?.field_mappings || {}).length,
-    fieldMappingsType: typeof flow?.field_mappings,
-    fieldMappings: flow?.field_mappings,
-    latestImportDataLength: latestImportData?.data?.length || 0,
-    importMetadata: flow?.import_metadata,
-    dataImportId: flow?.data_import_id,
-    currentPhase: flow?.current_phase,
-    progressPercentage: flow?.progress_percentage,
-    phaseCompletion: flow?.phase_completion,
     hasError,
-    errorMessage,
     isLoadingData
   });
 
@@ -352,7 +372,7 @@ const DataCleansing: React.FC = () => {
                 pageContext="data-cleansing"
                 refreshTrigger={0}
                 onQuestionAnswered={(questionId, response) => {
-                  console.log('Data cleansing question answered:', questionId, response);
+                  SecureLogger.info('Data cleansing question answered');
                   refresh();
                 }}
               />
@@ -365,7 +385,7 @@ const DataCleansing: React.FC = () => {
                   <QualityIssuesPanel
                     qualityIssues={qualityIssues}
                     onResolveIssue={(issueId) => {
-                      console.log('Resolving issue:', issueId);
+                      SecureLogger.info('Resolving quality issue');
                       // Implementation for resolving issues
                     }}
                     isLoading={isLoadingData}
@@ -377,7 +397,7 @@ const DataCleansing: React.FC = () => {
                   <CleansingRecommendationsPanel
                     recommendations={agentRecommendations}
                     onApplyRecommendation={(recommendationId) => {
-                      console.log('Applying recommendation:', recommendationId);
+                      SecureLogger.info('Applying cleansing recommendation');
                       // Implementation for applying recommendations
                     }}
                     isLoading={isLoadingData}
@@ -559,7 +579,7 @@ const DataCleansing: React.FC = () => {
                   pageContext="data-cleansing"
                   refreshTrigger={0}
                   onInsightAction={(insightId, action) => {
-                    console.log('Data cleansing insight action:', insightId, action);
+                    SecureLogger.info('Data cleansing insight action triggered');
                     if (action === 'apply_insight') {
                       refresh();
                     }

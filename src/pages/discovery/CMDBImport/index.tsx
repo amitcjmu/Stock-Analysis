@@ -186,6 +186,7 @@ const CMDBImportContainer: React.FC = () => {
             setUploadedFiles={setUploadedFiles}
             isStartingFlow={isStartingFlow}
             onStartDiscoveryFlow={startDiscoveryFlow}
+            flowState={flowState}
           />
 
           {/* Discovery Flow Status - Commented out until SimplifiedFlowStatus component is available */}

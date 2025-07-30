@@ -44,7 +44,30 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
   }
 
   const file = actualFiles[0]; // Assuming one file at a time for now
-  const currentStatus = flowState?.status || file.status;
+
+  // Map flow states to display statuses
+  const mapFlowStatusToDisplayStatus = (flowStatus: string, fileStatus: string): string => {
+    const flowStatusMapping: Record<string, string> = {
+      'running': 'processing',
+      'active': 'processing',
+      'in_progress': 'processing',
+      'processing': 'processing',
+      'completed': 'approved',
+      'failed': 'error',
+      'cancelled': 'error',
+      'paused': 'processing',
+      'waiting_for_approval': 'processing',
+      'initialized': 'processing'
+    };
+
+    if (flowStatus && flowStatusMapping[flowStatus]) {
+      return flowStatusMapping[flowStatus];
+    }
+
+    return fileStatus || 'processing';
+  };
+
+  const currentStatus = mapFlowStatusToDisplayStatus(flowState?.status, file.status);
   const progress = flowState?.progress_percentage || 0;
   const currentPhase = flowState?.current_phase || file.current_phase;
   const StatusIcon = getStatusIcon(currentStatus);

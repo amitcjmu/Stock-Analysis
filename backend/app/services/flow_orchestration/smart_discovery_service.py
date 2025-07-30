@@ -342,7 +342,8 @@ class SmartDiscoveryService:
                     # Look for field mappings related to this flow
                     query = text(
                         """
-                        SELECT source_field, target_field, match_type, confidence_score, status
+                        SELECT ifm.source_field, ifm.target_field, ifm.match_type,
+                               ifm.confidence_score, ifm.status
                         FROM import_field_mappings ifm
                         JOIN data_imports di ON ifm.data_import_id = di.id
                         JOIN discovery_flows df ON di.id = df.data_import_id

@@ -14,6 +14,8 @@ import type {
   DataRecord,
   AssetProperties
 } from '../types/hooks/flow-types';
+import SecureLogger from '../utils/SecureLogger';
+import SecureStorage from '../utils/SecureStorage';
 
 // Types for UnifiedDiscoveryFlow
 interface CrewStatus {
@@ -170,22 +172,83 @@ interface UseUnifiedDiscoveryFlowReturn {
 // Use discovery flow service for operational status (ADR-012)
 const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string) => ({
   async getFlowStatus(flowId: string): Promise<UnifiedDiscoveryFlowState> {
-    console.log(`🔍 [DEBUG] useUnifiedDiscoveryFlow.getFlowStatus called for flowId: ${flowId}`);
+    SecureLogger.debug(`useUnifiedDiscoveryFlow.getFlowStatus called`);
 
     // ADR-012: Use discovery flow service for operational status
     // This provides child flow status for operational decisions
     const response: DiscoveryFlowStatusResponse = await discoveryFlowService.getOperationalStatus(flowId, clientAccountId, engagementId);
 
-    console.log(`🔍 [DEBUG] Raw API response:`, response);
-    console.log(`🔍 [DEBUG] Field mappings in response:`, response.field_mappings);
-    console.log(`🔍 [DEBUG] Field mappings type:`, typeof response.field_mappings);
-    console.log(`🔍 [DEBUG] Field mappings length:`, Array.isArray(response.field_mappings) ? response.field_mappings.length : 'not array');
-    console.log(`🔍 [DEBUG] Raw data in response:`, response.raw_data);
-    console.log(`🔍 [DEBUG] Raw data length:`, Array.isArray(response.raw_data) ? response.raw_data.length : 'not array');
-    console.log(`🔍 [DEBUG] Raw data type:`, typeof response.raw_data);
+    SecureLogger.debug('Discovery flow API response received', {
+      hasFieldMappings: !!response.field_mappings,
+      fieldMappingsType: typeof response.field_mappings,
+      fieldMappingsIsArray: Array.isArray(response.field_mappings),
+      hasRawData: !!response.raw_data,
+      rawDataType: typeof response.raw_data,
+      rawDataIsArray: Array.isArray(response.raw_data)
+    });
 
     // Map discovery flow response to frontend format
     // ADR-012: This now uses child flow status for operational decisions
+
+    // Enhanced logging for debugging data mapping issues
+    SecureLogger.debug('Processing discovery flow response for mapping', {
+      responseKeysCount: Object.keys(response).length,
+      rawDataType: typeof response.raw_data,
+      rawDataLength: Array.isArray(response.raw_data) ? response.raw_data.length : 0,
+      fieldMappingsType: typeof response.field_mappings,
+      fieldMappingsCount: response.field_mappings ? Object.keys(response.field_mappings).length : 0,
+      cleanedDataType: typeof response.cleaned_data,
+      cleanedDataLength: Array.isArray(response.cleaned_data) ? response.cleaned_data.length : 0,
+      hasSummary: !!response.summary
+    });
+
+    // Extract raw data from various possible locations in the response
+    let rawData = [];
+    if (Array.isArray(response.raw_data) && response.raw_data.length > 0) {
+      rawData = response.raw_data;
+      SecureLogger.debug(`Using direct raw_data: ${rawData.length} items`);
+    } else if (response.data?.raw_data && Array.isArray(response.data.raw_data)) {
+      rawData = response.data.raw_data;
+      SecureLogger.debug(`Using nested data.raw_data: ${rawData.length} items`);
+    } else if (response.summary?.total_records > 0) {
+      // If we have a record count but no raw data, create placeholder entries for UI purposes
+      const recordCount = response.summary.total_records;
+      rawData = Array(Math.min(recordCount, 3)).fill(null).map((_, index) => ({
+        id: `placeholder-${index}`,
+        record_number: index + 1,
+        status: 'processed',
+        metadata: { source: 'discovery_flow', total_available: recordCount }
+      }));
+      SecureLogger.debug(`Created placeholder raw_data from summary: ${rawData.length} items for ${recordCount} total records`);
+    }
+
+    // Extract field mappings from various possible locations
+    let fieldMappings = {};
+    if (response.field_mappings && typeof response.field_mappings === 'object') {
+      if (Array.isArray(response.field_mappings)) {
+        // Convert array of field mappings to object format
+        fieldMappings = response.field_mappings.reduce((acc, mapping) => {
+          if (mapping.source_field && mapping.target_field) {
+            acc[mapping.source_field] = {
+              source_field: mapping.source_field,
+              target_field: mapping.target_field,
+              mapping_type: mapping.mapping_type || 'direct',
+              transformation_rule: mapping.transformation_rule,
+              confidence: mapping.confidence_score || mapping.confidence || 1.0
+            };
+          }
+          return acc;
+        }, {});
+        SecureLogger.debug(`Converted array field_mappings to object: ${Object.keys(fieldMappings).length} mappings`);
+      } else {
+        fieldMappings = response.field_mappings;
+        SecureLogger.debug(`Using direct field_mappings object: ${Object.keys(fieldMappings).length} mappings`);
+      }
+    } else if (response.data?.field_mappings) {
+      fieldMappings = response.data.field_mappings;
+      SecureLogger.debug(`Using nested data.field_mappings: ${Object.keys(fieldMappings).length} mappings`);
+    }
+
     const mappedResponse = {
       flow_id: response.flow_id || flowId,
       client_account_id: clientAccountId,
@@ -194,15 +257,15 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
       current_phase: response.current_phase || '',
       phase_completion: {
         data_import: response.summary?.data_import_completed || false,
-        field_mapping: response.summary?.field_mapping_completed || false,
+        field_mapping: response.summary?.field_mapping_completed || response.summary?.attribute_mapping_completed || false,
         data_cleansing: response.summary?.data_cleansing_completed || false,
         asset_inventory: response.summary?.asset_inventory_completed || false,
         dependency_analysis: response.summary?.dependency_analysis_completed || false,
         tech_debt_analysis: response.summary?.tech_debt_assessment_completed || false,
       },
       crew_status: {}, // Will be populated by discovery flow service
-      raw_data: response.raw_data || [], // ADR-012: Use actual raw data from discovery flow response
-      field_mappings: response.field_mappings || {},
+      raw_data: rawData, // Enhanced raw data extraction
+      field_mappings: fieldMappings, // Enhanced field mappings extraction
       cleaned_data: response.cleaned_data || [],
       asset_inventory: response.asset_inventory || {},
       dependencies: response.dependencies || {},
@@ -214,15 +277,28 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
       warnings: response.warnings || [],
       created_at: response.created_at || '',
       updated_at: response.updated_at || '',
-      // Additional fields from discovery flow
+      // Additional fields from discovery flow with enhanced data extraction
       data_cleansing_results: response.cleaned_data ? { cleaned_data: response.cleaned_data } : {},
       inventory_results: response.asset_inventory || {},
       dependency_results: response.dependencies || {},
-      tech_debt_results: response.technical_debt || {}
+      tech_debt_results: response.technical_debt || {},
+      // Add import metadata for data availability detection
+      import_metadata: response.summary ? {
+        record_count: response.summary.total_records || 0,
+        records_processed: response.summary.records_processed || 0,
+        quality_score: response.summary.quality_score || 0
+      } : {}
     };
 
-    console.log(`🔍 [DEBUG] Mapped response field_mappings:`, mappedResponse.field_mappings);
-    console.log(`🔍 [DEBUG] Full mapped response:`, mappedResponse);
+    SecureLogger.debug('Mapped response field_mappings', {
+      fieldMappingsCount: Object.keys(mappedResponse.field_mappings).length
+    });
+    SecureLogger.debug('Discovery flow response mapping completed', {
+      flowId: mappedResponse.flow_id,
+      currentPhase: mappedResponse.current_phase,
+      status: mappedResponse.status,
+      progressPercentage: mappedResponse.progress_percentage
+    });
 
     return mappedResponse;
   },
@@ -272,7 +348,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
   const unifiedDiscoveryAPI = useMemo(() => {
     // Require proper client and engagement context
     if (!client?.id || !engagement?.id) {
-      console.warn('Missing client or engagement context for unified discovery flow');
+      SecureLogger.warn('Missing client or engagement context for unified discovery flow');
       return null;
     }
 
@@ -287,21 +363,25 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     }
 
     try {
-      // Try to get from URL parameters
+      // Try to get from URL parameters with validation
       const urlParams = new URLSearchParams(window.location.search);
-      const urlFlowId = urlParams.get('flow_id') || urlParams.get('flowId');
+      const rawUrlFlowId = urlParams.get('flow_id') || urlParams.get('flowId');
 
-      if (urlFlowId) {
-        localStorage.setItem('currentFlowId', urlFlowId);
-        return urlFlowId;
+      if (rawUrlFlowId) {
+        const validatedUrlFlowId = SecureStorage.validateUrlFlowId(rawUrlFlowId);
+        if (validatedUrlFlowId && SecureStorage.setFlowId(validatedUrlFlowId)) {
+          return validatedUrlFlowId;
+        }
       }
 
-      // Extract from path (e.g., /discovery/attribute-mapping/flow-123 or /discovery/attribute-mapping/uuid)
+      // Extract from path with validation (e.g., /discovery/attribute-mapping/flow-123 or /discovery/attribute-mapping/uuid)
       const pathMatch = window.location.pathname.match(/\/discovery\/[^/]+\/([a-f0-9-]+)/);
       if (pathMatch) {
-        const pathFlowId = pathMatch[1];
-        localStorage.setItem('currentFlowId', pathFlowId);
-        return pathFlowId;
+        const rawPathFlowId = pathMatch[1];
+        const validatedPathFlowId = SecureStorage.validateUrlFlowId(rawPathFlowId);
+        if (validatedPathFlowId && SecureStorage.setFlowId(validatedPathFlowId)) {
+          return validatedPathFlowId;
+        }
       }
 
       // Only use localStorage flow ID if we're on a page that expects a flow ID
@@ -311,14 +391,14 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       }
 
       // Try to get from localStorage for other pages
-      const storedFlowId = localStorage.getItem('currentFlowId');
+      const storedFlowId = SecureStorage.getFlowId();
       if (storedFlowId) {
         return storedFlowId;
       }
 
       return null;
     } catch (error) {
-      console.error('Error getting flow ID:', error);
+      SecureLogger.error('Error getting flow ID', error);
       return null;
     }
   }, [providedFlowId]);
@@ -390,9 +470,9 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
 
       // Clear invalid flow ID from localStorage on 404 error
       if (error?.status === 404 || error?.message?.includes('404') || error?.message?.includes('Not Found')) {
-        console.warn(`Flow ID ${flowId} not found, clearing from localStorage`);
+        SecureLogger.warn('Flow ID not found, clearing from storage');
         if (flowId) {
-          localStorage.removeItem('currentFlowId');
+          SecureStorage.removeFlowId();
         }
       }
     }
@@ -424,9 +504,9 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['unifiedDiscoveryFlow'] });
 
-      // Store flow ID
+      // Store flow ID securely
       if (data.flow_id) {
-        localStorage.setItem('currentFlowId', data.flow_id);
+        SecureStorage.setFlowId(data.flow_id);
       }
     },
   });
@@ -445,7 +525,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       queryClient.invalidateQueries({ queryKey: ['unifiedDiscoveryFlow', flowId] });
     },
     onError: (error) => {
-      console.error('Phase execution failed:', error);
+      SecureLogger.error('Phase execution failed', error);
     },
     onSettled: () => {
       setIsExecutingPhase(false);

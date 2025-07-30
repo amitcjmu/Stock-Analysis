@@ -292,7 +292,8 @@ class ResponseMappers:
                         str(flow.data_import_id)
                     )
 
-                    # FIXED: ImportStorageHandler.get_import_data() doesn't return "success" field, just check if data exists
+                    # FIXED: ImportStorageHandler.get_import_data() doesn't return "success" field,
+                    # just check if data exists
                     if import_data and import_data.get("data"):
                         raw_data = import_data.get("data", [])
                         import_metadata = import_data.get("import_metadata", {})
@@ -333,7 +334,8 @@ class ResponseMappers:
                         ):
                             actual_field_mappings = db_field_mappings
                             logger.info(
-                                f"✅ Retrieved {len(db_field_mappings)} field mappings from database for flow {flow.flow_id}"
+                                f"✅ Retrieved {len(db_field_mappings)} field mappings "
+                                f"from database for flow {flow.flow_id}"
                             )
 
                 except Exception as import_error:
@@ -459,6 +461,7 @@ class ResponseMappers:
         """Convert orchestrator result to status response format"""
         try:
             progress_percentage = float(result.get("progress_percentage", 0))
+            current_phase = result.get("current_phase", "unknown")
             return {
                 "flow_id": flow_id,
                 "data_import_id": flow_id,
@@ -475,8 +478,11 @@ class ResponseMappers:
                         "engagement_id", context.engagement_id if context else ""
                     )
                 ),
+                "current_phase": current_phase,
+                "progress_percentage": progress_percentage,
+                "awaiting_user_approval": result.get("awaiting_user_approval", False),
                 "progress": {
-                    "current_phase": result.get("current_phase", "unknown"),
+                    "current_phase": current_phase,
                     "completion_percentage": progress_percentage,
                     "steps_completed": int(
                         progress_percentage / 20
@@ -486,15 +492,39 @@ class ResponseMappers:
                 "metadata": result.get("metadata", {}),
                 "crewai_status": result.get("crewai_status", "unknown"),
                 "agent_insights": result.get("agent_insights", []),
+                "last_updated": result.get("updated_at", datetime.utcnow().isoformat()),
+                "phase_completion": result.get("phase_completion", {}),
+                "field_mappings": result.get("field_mappings", {}),
+                "raw_data": result.get("raw_data", []),
+                "import_metadata": result.get("import_metadata", {}),
             }
         except Exception as e:
             logger.error(f"Error mapping orchestrator result to status response: {e}")
             return {
                 "flow_id": flow_id,
+                "data_import_id": flow_id,
                 "status": "error",
                 "type": "discovery",
-                "error": str(e),
+                "client_account_id": str(context.client_account_id if context else ""),
+                "engagement_id": str(context.engagement_id if context else ""),
+                "current_phase": "unknown",
+                "progress_percentage": 0.0,
+                "awaiting_user_approval": False,
+                "progress": {
+                    "current_phase": "unknown",
+                    "completion_percentage": 0.0,
+                    "steps_completed": 0,
+                    "total_steps": 5,
+                },
                 "metadata": {},
+                "crewai_status": "error",
+                "agent_insights": [],
+                "last_updated": datetime.utcnow().isoformat(),
+                "phase_completion": {},
+                "field_mappings": {},
+                "raw_data": [],
+                "import_metadata": {},
+                "error": str(e),
             }
 
     @staticmethod

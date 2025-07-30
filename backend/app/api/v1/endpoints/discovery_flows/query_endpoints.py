@@ -87,8 +87,7 @@ async def get_active_flows(
         )
 
         # Query actual discovery flows from database
-        # CRITICAL FIX: Only return flows that have actual imported data (data_import_id is not null)
-        # This prevents the dashboard from showing empty flows without data
+        # Return all active flows, including those just initialized
         from app.models.discovery_flow import DiscoveryFlow
 
         stmt = select(DiscoveryFlow).where(
@@ -96,9 +95,7 @@ async def get_active_flows(
                 DiscoveryFlow.client_account_id == context.client_account_id,
                 DiscoveryFlow.status != "deleted",  # Exclude soft-deleted flows
                 DiscoveryFlow.status != "cancelled",  # Exclude cancelled flows
-                DiscoveryFlow.data_import_id.isnot(
-                    None
-                ),  # CRITICAL FIX: Only show flows with actual data
+                # Removed data_import_id filter to allow newly created flows to appear
                 or_(
                     DiscoveryFlow.status == "active",
                     DiscoveryFlow.status == "running",
@@ -107,9 +104,12 @@ async def get_active_flows(
                     DiscoveryFlow.status == "ready",
                     DiscoveryFlow.status == "waiting_for_approval",
                     DiscoveryFlow.status
-                    == "initialized",  # Include initialized flows with data
+                    == "initialized",  # Include all initialized flows
                     DiscoveryFlow.status
-                    == "orphaned",  # Include orphaned flows with data for testing
+                    == "orphaned",  # Include orphaned flows for testing
+                    DiscoveryFlow.status == "in_progress",  # Include in_progress flows
+                    DiscoveryFlow.status
+                    == "complete",  # Include completed flows to show history
                 ),
             )
         )
@@ -137,7 +137,7 @@ async def get_active_flows(
             flow.dict() if hasattr(flow, "dict") else flow for flow in active_flows
         ]
         state_json = json.dumps(flows_data, sort_keys=True, default=str)
-        etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+        etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
 
         # Check if content has changed
         if if_none_match == etag:
@@ -227,7 +227,7 @@ async def get_flow_status(
                 else status_response
             )
             state_json = json.dumps(response_dict, sort_keys=True, default=str)
-            etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+            etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
 
             # Check if content has changed
             if if_none_match == etag:
@@ -264,7 +264,7 @@ async def get_flow_status(
                     else status_response
                 )
                 state_json = json.dumps(response_dict, sort_keys=True, default=str)
-                etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+                etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
 
                 # Check if content has changed
                 if if_none_match == etag:
@@ -279,12 +279,10 @@ async def get_flow_status(
             logger.warning(f"Failed to get flow state from store: {store_error}")
 
         # Final fallback to orchestrator
-        from app.api.v1.unified_discovery.services.discovery_orchestrator import (
-            DiscoveryOrchestrator,
-        )
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
-        orchestrator = DiscoveryOrchestrator(db, context)
-        result = await orchestrator.get_discovery_flow_status(flow_id)
+        orchestrator = MasterFlowOrchestrator(db, context)
+        result = await orchestrator.get_flow_status(flow_id)
 
         # Use ResponseMappers to create standardized response
         status_response = ResponseMappers.map_orchestrator_result_to_status_response(
@@ -298,7 +296,7 @@ async def get_flow_status(
             else status_response
         )
         state_json = json.dumps(response_dict, sort_keys=True, default=str)
-        etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+        etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
 
         # Check if content has changed
         if if_none_match == etag:
@@ -386,7 +384,7 @@ async def get_flow_agent_insights(
 
             # Generate ETag from agent insights
             state_json = json.dumps(agent_insights, sort_keys=True, default=str)
-            etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+            etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
 
             # Check if content has changed
             if if_none_match == etag:
@@ -406,7 +404,7 @@ async def get_flow_agent_insights(
         empty_insights = []
 
         # Generate ETag even for empty response
-        etag = f'"{hashlib.md5(b"[]").hexdigest()}"'
+        etag = f'"{hashlib.md5(b"[]", usedforsecurity=False).hexdigest()}"'
 
         # Check if content has changed
         if if_none_match == etag:
@@ -497,7 +495,7 @@ async def get_agent_questions(
 #
 #             # Generate ETag from processing status
 #             state_json = json.dumps(processing_status, sort_keys=True, default=str)
-#             etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+#             etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
 #
 #             # Check if content has changed
 #             if if_none_match == etag:
@@ -545,7 +543,7 @@ async def get_agent_questions(
 #
 #             # Generate ETag from processing status
 #             state_json = json.dumps(processing_status, sort_keys=True, default=str)
-#             etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+#             etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
 #
 #             # Check if content has changed
 #             if if_none_match == etag:
@@ -594,7 +592,7 @@ async def get_agent_questions(
 #
 #             # Generate ETag even for default status
 #             state_json = json.dumps(default_status, sort_keys=True, default=str)
-#             etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+#             etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
 #
 #             # Check if content has changed
 #             if if_none_match == etag:
@@ -799,7 +797,7 @@ async def get_flow_health(
 
         # Generate ETag from health data
         state_json = json.dumps(health_data, sort_keys=True, default=str)
-        etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+        etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
 
         # Check if content has changed
         if if_none_match == etag:

@@ -325,18 +325,25 @@ export const apiCall = async (
   ];
 
   // Check if this is a context establishment call without proper authentication
+  // Only block if we're certain there's no authentication at all
   if (contextEstablishmentEndpoints.some(ep => endpoint.includes(ep))) {
     const token = tokenStorage.getToken();
     const user = tokenStorage.getUser();
 
-    if (!token || !user) {
-      console.warn(`⚠️ API Call [${requestId}] - Blocking premature context-establishment call to ${endpoint} - no auth`);
+    // Check localStorage directly as a fallback since tokenStorage might not be fully initialized
+    const fallbackToken = localStorage.getItem('auth_token');
+    const fallbackUser = localStorage.getItem('auth_user');
+
+    if (!token && !user && !fallbackToken && !fallbackUser) {
+      console.warn(`⚠️ API Call [${requestId}] - Blocking premature context-establishment call to ${endpoint} - no auth found`);
       const authError = new Error('Authentication required for context establishment') as EnhancedApiError;
       authError.status = 401;
       authError.isAuthError = true;
       authError.isApiError = true;
       authError.code = 'AUTH_REQUIRED';
       throw authError;
+    } else if (!token || !user) {
+      console.log(`ℹ️ API Call [${requestId}] - Context establishment call with partial auth state, proceeding with request`);
     }
   }
 
