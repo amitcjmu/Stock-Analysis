@@ -541,13 +541,25 @@ async def execute_flow_phase(
                     status_code=400,
                     detail="Cannot execute field_mapping phase: data_import not completed",
                 )
-            elif (
-                execution_phase == "data_cleansing" and not flow.field_mapping_completed
-            ):
-                raise HTTPException(
-                    status_code=400,
-                    detail="Cannot execute data_cleansing phase: field_mapping not completed",
-                )
+            elif execution_phase == "data_cleansing":
+                # Check if field_mapping is completed OR if user has approved mappings
+                phase_input = request.get("phase_input", {})
+                approved_mappings = phase_input.get("approved_mappings", False)
+
+                if not flow.field_mapping_completed and not approved_mappings:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Cannot execute data_cleansing phase: field_mapping not completed",
+                    )
+
+                # If user has approved mappings, update the field_mapping_completed flag
+                if approved_mappings and not flow.field_mapping_completed:
+                    logger.info(
+                        "✅ User approved field mappings, updating field_mapping_completed flag"
+                    )
+                    flow.field_mapping_completed = True
+                    flow.field_mapping_status = "completed"
+                    await db.commit()
             # Add more validation as needed
 
         # Import required modules for phase execution
