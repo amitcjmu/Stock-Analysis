@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 import masterFlowServiceExtended from '@/services/api/masterFlowService.extensions';
+import discoveryFlowService from '@/services/api/discoveryFlowService';
 import { useToast } from '@/components/ui/use-toast';
 
 export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgress?: unknown): unknown => {
@@ -71,8 +72,8 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
           const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
           const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
 
-          // Execute the next phase with mapping approval data
-          await masterFlowServiceExtended.executePhase(
+          // Execute the next phase with mapping approval data using discovery flow service
+          await discoveryFlowService.executePhase(
             flowId,
             'data_cleansing',
             {
@@ -139,11 +140,11 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
           const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
           const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
 
-          // If flow is failed, use retry instead of resume
+          // If flow is failed, use discovery flow retry instead of master flow resume
           if (flowStatus === 'failed') {
-            console.log('⚠️ Flow is in failed state, using retry operation');
-            const retryResult = await masterFlowServiceExtended.retryFlow(flowId, clientAccountId, engagementId);
-            console.log('✅ Flow retry successful:', retryResult);
+            console.log('⚠️ Flow is in failed state, using discovery flow retry operation');
+            const retryResult = await discoveryFlowService.retryFlow(flowId, clientAccountId, engagementId);
+            console.log('✅ Discovery flow retry successful:', retryResult);
 
             toast({
               title: "Flow Retried",
@@ -161,7 +162,7 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
           }
 
           // After retry/resume, execute the data cleansing phase with approved mappings
-          await masterFlowServiceExtended.executePhase(
+          await discoveryFlowService.executePhase(
             flowId,
             'data_cleansing',
             {
