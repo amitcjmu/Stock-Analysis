@@ -231,15 +231,17 @@ class PhaseController:
         """Execute initialization phase"""
         result = await self.discovery_flow.initialize_discovery()
 
+        # Check if initialization was successful based on the dictionary result
+        is_successful = isinstance(result, dict) and result.get("status") in [
+            "initialized",
+            "initialization_completed",
+        ]
+
         return PhaseExecutionResult(
             phase=FlowPhase.INITIALIZATION,
-            status="completed" if result == "initialization_completed" else "failed",
+            status="completed" if is_successful else "failed",
             data={"result": result},
-            next_phase=(
-                FlowPhase.DATA_IMPORT_VALIDATION
-                if result == "initialization_completed"
-                else None
-            ),
+            next_phase=(FlowPhase.DATA_IMPORT_VALIDATION if is_successful else None),
         )
 
     async def _execute_data_import_validation(
