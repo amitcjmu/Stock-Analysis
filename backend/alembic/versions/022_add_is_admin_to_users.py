@@ -47,7 +47,22 @@ def upgrade() -> None:
             sa.Column("is_admin", sa.Boolean(), nullable=False, server_default="false"),
             schema="migration",
         )
-        print("Added is_admin column to users table")
+
+        # Update existing platform admin users to have is_admin=true
+        op.execute(
+            """
+            UPDATE users
+            SET is_admin = true
+            WHERE id IN (
+                SELECT DISTINCT ur.user_id
+                FROM user_roles ur
+                WHERE ur.role_type = 'platform_admin'
+                AND ur.is_active = true
+            )
+        """
+        )
+
+        print("Added is_admin column to users table and updated platform admins")
     else:
         print("is_admin column already exists in users table")
 
