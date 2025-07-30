@@ -28,11 +28,11 @@ export const masterFlowServiceExtended = {
     return apiClient.post<ApiResponse<{ success: boolean; message?: string; data?: Record<string, unknown> }>>(
       `/flows/${flowId}/execute`,
       {
+        phase: phase,
         phase_input: {
-          phase: phase,
           ...phaseData
         },
-        force_execution: false
+        force: false
       },
       {
         headers: {
