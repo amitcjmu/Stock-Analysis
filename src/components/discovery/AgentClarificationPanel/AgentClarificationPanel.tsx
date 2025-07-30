@@ -32,21 +32,6 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [assetDetails, setAssetDetails] = useState<Record<string, AssetDetails>>({});
 
-  const fetchQuestions = useCallback(async (): Promise<void> => {
-    try {
-      const fetchedQuestions = await api.fetchAgentQuestions(pageContext);
-      setQuestions(fetchedQuestions);
-
-      // Fetch asset details for application boundary questions
-      await fetchAssetDetailsForQuestions(fetchedQuestions);
-      setError(null);
-    } catch (err: unknown) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [pageContext, fetchAssetDetailsForQuestions]);
-
   const fetchAssetDetailsForQuestions = useCallback(async (questions: AgentQuestion[]): Promise<void> => {
     const assetDetailsMap: Record<string, AssetDetails> = {};
 
@@ -68,6 +53,21 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
 
     setAssetDetails(assetDetailsMap);
   }, []);
+
+  const fetchQuestions = useCallback(async (): Promise<void> => {
+    try {
+      const fetchedQuestions = await api.fetchAgentQuestions(pageContext);
+      setQuestions(fetchedQuestions);
+
+      // Fetch asset details for application boundary questions
+      await fetchAssetDetailsForQuestions(fetchedQuestions);
+      setError(null);
+    } catch (err: unknown) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [pageContext, fetchAssetDetailsForQuestions]);
 
   useEffect(() => {
     fetchQuestions();

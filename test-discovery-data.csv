@@ -1,0 +1,11 @@
+asset_name,asset_type,location,os,cpu_cores,memory_gb,storage_gb,environment,business_criticality,owner
+APP-WEB-001,Application Server,US-East,Windows Server 2019,8,32,500,Production,High,IT Operations
+APP-WEB-002,Application Server,US-East,Red Hat Linux 8,16,64,1000,Production,Critical,IT Operations
+DB-SQL-001,Database Server,US-East,Windows Server 2019,32,128,2000,Production,Critical,Database Team
+DB-SQL-002,Database Server,US-West,Red Hat Linux 8,24,96,1500,DR,High,Database Team
+SRV-APP-001,Application Server,EU-West,Ubuntu 20.04,12,48,750,Development,Medium,Development Team
+SRV-APP-002,Application Server,EU-West,Windows Server 2016,8,32,500,Test,Low,QA Team
+LB-PROD-001,Load Balancer,US-East,Ubuntu 22.04,4,16,100,Production,High,Network Team
+WEB-FRONT-001,Web Server,US-East,Amazon Linux 2,4,8,50,Production,Medium,Web Team
+WEB-FRONT-002,Web Server,US-East,Amazon Linux 2,4,8,50,Production,Medium,Web Team
+CACHE-001,Cache Server,US-East,Red Hat Linux 8,8,64,200,Production,High,Infrastructure Team
