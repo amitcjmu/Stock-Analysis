@@ -12,7 +12,7 @@ Handles all data validation logic including:
 from __future__ import annotations
 
 import uuid
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,11 +23,13 @@ from app.core.logging import get_logger
 # Discovery Flow Services
 try:
     from app.services.discovery_flow_service import DiscoveryFlowService
+    from app.models.discovery_flow import DiscoveryFlow
 
     DISCOVERY_FLOW_AVAILABLE = True
 except ImportError:
     DISCOVERY_FLOW_AVAILABLE = False
     DiscoveryFlowService = None
+    DiscoveryFlow = None
 
 logger = get_logger(__name__)
 
@@ -40,6 +42,96 @@ class ImportValidator:
     def __init__(self, db: AsyncSession, client_account_id: str):
         self.db = db
         self.client_account_id = client_account_id
+
+    def _flow_to_dict(
+        self, flow: Union[Dict[str, Any], "DiscoveryFlow"]
+    ) -> Dict[str, Any]:
+        """
+        Convert a DiscoveryFlow object or dict to a dictionary format.
+
+        Args:
+            flow: Either a DiscoveryFlow model instance or a dictionary
+
+        Returns:
+            Dict representation of the flow
+
+        Raises:
+            TypeError: If flow is neither dict nor DiscoveryFlow instance
+        """
+        if isinstance(flow, dict):
+            # Already a dictionary
+            return flow
+
+        # Import here to avoid circular imports
+        from app.models.discovery_flow import DiscoveryFlow
+
+        # Ensure we have a DiscoveryFlow instance
+        if not isinstance(flow, DiscoveryFlow):
+            logger.error(
+                f"Expected DiscoveryFlow instance or dict, got {type(flow).__name__}"
+            )
+            raise TypeError(
+                f"Expected DiscoveryFlow instance or dict, got {type(flow).__name__}"
+            )
+
+        # Use the model's to_dict method if available
+        if hasattr(flow, "to_dict") and callable(flow.to_dict):
+            try:
+                flow_dict = flow.to_dict()
+            except Exception as e:
+                logger.error(f"Error calling to_dict on DiscoveryFlow: {e}")
+                # Fallback to manual extraction
+                flow_dict = self._extract_flow_attributes(flow)
+        else:
+            # Fallback: manually extract attributes
+            flow_dict = self._extract_flow_attributes(flow)
+
+        # Add current_phase if available and not already in dict
+        if "current_phase" not in flow_dict:
+            if hasattr(flow, "get_current_phase") and callable(flow.get_current_phase):
+                try:
+                    flow_dict["current_phase"] = flow.get_current_phase()
+                except Exception as e:
+                    logger.debug(f"Could not get current_phase: {e}")
+            elif hasattr(flow, "current_phase"):
+                flow_dict["current_phase"] = flow.current_phase
+
+        return flow_dict
+
+    def _extract_flow_attributes(self, flow: "DiscoveryFlow") -> Dict[str, Any]:
+        """
+        Safely extract attributes from a DiscoveryFlow instance.
+
+        Args:
+            flow: DiscoveryFlow model instance
+
+        Returns:
+            Dict with extracted attributes
+        """
+        flow_dict = {}
+
+        # List of attributes to extract with their default values
+        attributes = [
+            ("flow_id", None, lambda x: str(x) if x else None),
+            ("status", None, lambda x: x),
+            ("progress_percentage", 0, lambda x: x),
+            ("updated_at", None, lambda x: x.isoformat() if x else None),
+        ]
+
+        for attr_name, default_value, transformer in attributes:
+            try:
+                if hasattr(flow, attr_name):
+                    value = getattr(flow, attr_name)
+                    flow_dict[attr_name] = transformer(value)
+                else:
+                    flow_dict[attr_name] = default_value
+            except Exception as e:
+                logger.warning(
+                    f"Error extracting {attr_name} from DiscoveryFlow: {e}, using default"
+                )
+                flow_dict[attr_name] = default_value
+
+        return flow_dict
 
     def validate_csv_headers(self, data: List[Dict[str, Any]]) -> None:
         """
@@ -159,11 +251,16 @@ class ImportValidator:
                 # Get active flows and filter for incomplete ones
                 active_flows = await discovery_service.get_active_flows()
                 # Filter for incomplete flows (not completed/cancelled)
-                incomplete_flows = [
-                    flow
-                    for flow in active_flows
-                    if flow.status not in ["completed", "cancelled", "deleted"]
-                ]
+                incomplete_flows = []
+                for flow in active_flows:
+                    # Handle both DiscoveryFlow objects and dictionaries
+                    if isinstance(flow, dict):
+                        status = flow.get("status", "unknown")
+                    else:
+                        status = flow.status if hasattr(flow, "status") else "unknown"
+
+                    if status not in ["completed", "cancelled", "deleted"]:
+                        incomplete_flows.append(flow)
             else:
                 incomplete_flows = []
 
@@ -171,17 +268,23 @@ class ImportValidator:
             # Only consider flows with actual phases and meaningful progress
             actual_incomplete_flows = []
             for flow in incomplete_flows:
+                # Convert DiscoveryFlow object to dict if needed
+                flow_dict = self._flow_to_dict(flow)
+
+                current_phase = flow_dict.get("current_phase")
+                progress = flow_dict.get("progress_percentage", 0)
+                phase_completion = flow_dict.get("phase_completion", {})
+
                 # Check if this is a real flow with actual progress
                 if (
-                    flow.get("current_phase")
-                    and flow.get("current_phase") not in ["", "initialization"]
+                    current_phase
+                    and current_phase not in ["", "initialization"]
                     and (
-                        flow.get("progress_percentage", 0) > 0
-                        or flow.get("phase_completion", {})
-                        and any(flow.get("phase_completion", {}).values())
+                        progress > 0
+                        or (phase_completion and any(phase_completion.values()))
                     )
                 ):
-                    actual_incomplete_flows.append(flow)
+                    actual_incomplete_flows.append(flow_dict)
 
             # If we found any actual incomplete flows, prevent new import
             if actual_incomplete_flows:
@@ -189,26 +292,34 @@ class ImportValidator:
                     0
                 ]  # Use the most recent incomplete flow
 
+                # Extract flow properties safely
+                flow_id = first_flow.get("flow_id", "unknown")
+                current_phase = first_flow.get("current_phase", "unknown")
+                progress_percentage = first_flow.get("progress_percentage", 0)
+                status = first_flow.get("status", "unknown")
+                updated_at = first_flow.get("updated_at")
+
                 logger.info(
-                    f"🚫 Blocking data import due to incomplete discovery flow: {first_flow['flow_id']} in phase {first_flow['current_phase']}"
+                    f"🚫 Blocking data import due to incomplete discovery flow: {flow_id} in phase {current_phase}"
                 )
 
                 return {
                     "can_proceed": False,
-                    "message": "An incomplete Discovery Flow exists for this engagement. Please complete the existing flow before importing new data.",
+                    "message": (
+                        "An incomplete Discovery Flow exists for this engagement. "
+                        "Please complete the existing flow before importing new data."
+                    ),
                     "existing_flow": {
-                        "flow_id": first_flow["flow_id"],
-                        "current_phase": first_flow["current_phase"],
-                        "progress_percentage": first_flow["progress_percentage"],
-                        "status": first_flow["status"],
-                        "last_activity": first_flow.get("updated_at"),
-                        "next_steps": self._get_next_steps_for_phase(
-                            first_flow["current_phase"]
-                        ),
+                        "flow_id": flow_id,
+                        "current_phase": current_phase,
+                        "progress_percentage": progress_percentage,
+                        "status": status,
+                        "last_activity": updated_at,
+                        "next_steps": self._get_next_steps_for_phase(current_phase),
                     },
                     "all_incomplete_flows": actual_incomplete_flows,  # For flow management UI
                     "recommendations": [
-                        f"Complete the existing Discovery Flow in the '{first_flow['current_phase']}' phase",
+                        f"Complete the existing Discovery Flow in the '{current_phase}' phase",
                         "Navigate to the appropriate discovery page to continue the flow",
                         "Or use the flow management tools to delete the incomplete flow",
                     ],
@@ -217,7 +328,8 @@ class ImportValidator:
 
             # No actual incomplete flows found - allow import
             logger.info(
-                f"✅ No incomplete discovery flows found for context {client_account_id}/{engagement_id} - allowing import"
+                f"✅ No incomplete discovery flows found for context "
+                f"{client_account_id}/{engagement_id} - allowing import"
             )
             return {
                 "can_proceed": True,
@@ -315,7 +427,8 @@ class ImportValidator:
                 record_fields = set(record.keys())
                 if record_fields != expected_fields:
                     validation_results["warnings"].append(
-                        f"Record {idx + 1} has inconsistent fields: {record_fields.symmetric_difference(expected_fields)}"
+                        f"Record {idx + 1} has inconsistent fields: "
+                        f"{record_fields.symmetric_difference(expected_fields)}"
                     )
 
         # Store field analysis
@@ -327,6 +440,8 @@ class ImportValidator:
             }
 
         logger.info(
-            f"✅ Data validation completed: {validation_results['record_count']} records, {len(validation_results['issues'])} issues, {len(validation_results['warnings'])} warnings"
+            f"✅ Data validation completed: {validation_results['record_count']} records, "
+            f"{len(validation_results['issues'])} issues, "
+            f"{len(validation_results['warnings'])} warnings"
         )
         return validation_results

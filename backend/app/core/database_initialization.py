@@ -176,6 +176,7 @@ class DatabaseInitializer:
                 ),
                 is_active=True,
                 is_verified=True,
+                is_admin=True,
             )
             self.db.add(admin)
             await self.db.flush()
@@ -188,6 +189,7 @@ class DatabaseInitializer:
             )
             admin.is_active = True
             admin.is_verified = True
+            admin.is_admin = True
             admin_id = admin.id
 
             logger.info(f"Updated platform admin: {admin.email}")

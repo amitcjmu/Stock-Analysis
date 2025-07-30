@@ -1,18 +1,20 @@
 import { useMemo } from 'react';
 import type { AssetInventory, InventoryProgress } from '../types/inventory.types';
 
-export const useInventoryProgress = (assets: AssetInventory[]): InventoryProgress => {
+export const useInventoryProgress = (assets: AssetInventory[] = []): InventoryProgress => {
   return useMemo(() => {
-    const total = assets.length;
+    // Ensure assets is a valid array
+    const safeAssets = assets || [];
+    const total = safeAssets.length;
 
     // Debug logging to see what asset types we're receiving
-    if (assets.length > 0) {
-      const assetTypes = assets.map(asset => asset.asset_type).filter(Boolean);
+    if (safeAssets.length > 0) {
+      const assetTypes = safeAssets.map(asset => asset.asset_type).filter(Boolean);
       const uniqueTypes = [...new Set(assetTypes)];
       console.log('🔍 Asset types found:', uniqueTypes);
       console.log('🔍 Total assets:', total);
     }
-    const servers = assets.filter(asset => {
+    const servers = safeAssets.filter(asset => {
       const assetType = asset.asset_type?.toLowerCase();
       return assetType?.includes('server') ||
              assetType === 'server' ||
@@ -20,7 +22,7 @@ export const useInventoryProgress = (assets: AssetInventory[]): InventoryProgres
              assetType === 'vm' ||
              assetType?.includes('host');
     }).length;
-    const applications = assets.filter(asset => {
+    const applications = safeAssets.filter(asset => {
       const assetType = asset.asset_type?.toLowerCase();
       return assetType?.includes('application') ||
              assetType === 'application' ||
@@ -29,7 +31,7 @@ export const useInventoryProgress = (assets: AssetInventory[]): InventoryProgres
              assetType?.includes('web') ||
              assetType?.includes('api');
     }).length;
-    const databases = assets.filter(asset => {
+    const databases = safeAssets.filter(asset => {
       const assetType = asset.asset_type?.toLowerCase();
       return assetType?.includes('database') ||
              assetType === 'database' ||
@@ -39,7 +41,7 @@ export const useInventoryProgress = (assets: AssetInventory[]): InventoryProgres
              assetType === 'oracle' ||
              assetType === 'mongo';
     }).length;
-    const devices = assets.filter(asset => {
+    const devices = safeAssets.filter(asset => {
       const assetType = asset.asset_type?.toLowerCase();
       return assetType?.includes('device') ||
              assetType?.includes('network') ||

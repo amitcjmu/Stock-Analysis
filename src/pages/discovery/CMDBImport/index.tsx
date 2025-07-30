@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 // import { PollingStatusIndicator } from '@/components/common/PollingControls';
 // import { AgentActivityViewer } from '@/components/discovery/AgentActivityViewer';
 import { FlowDeletionModal } from '@/components/flows/FlowDeletionModal';
+import { DiscoveryErrorBoundary } from '@/components/discovery/DiscoveryErrorBoundary';
 
 // Custom hooks and components
 import { useCMDBImport } from './hooks/useCMDBImport';
@@ -256,4 +257,10 @@ const CMDBImportContainer: React.FC = () => {
   );
 };
 
-export default CMDBImportContainer;
+const CMDBImportWithErrorBoundary: React.FC = () => (
+  <DiscoveryErrorBoundary>
+    <CMDBImportContainer />
+  </DiscoveryErrorBoundary>
+);
+
+export default CMDBImportWithErrorBoundary;

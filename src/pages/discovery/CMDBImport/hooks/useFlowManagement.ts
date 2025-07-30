@@ -7,7 +7,7 @@ import {
   useBulkFlowOperationsV2
 } from '@/hooks/discovery/useFlowOperations';
 import { useFlowDeletion } from '@/hooks/useFlowDeletion';
-import type { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
+import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 
