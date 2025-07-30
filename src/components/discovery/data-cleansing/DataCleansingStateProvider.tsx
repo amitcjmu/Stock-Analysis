@@ -77,8 +77,8 @@ const DataCleansingStateProvider: React.FC<DataCleansingStateProviderProps> = ({
         </div>
         <div className="flex-1 flex items-center justify-center">
           <NoDataPlaceholder
-            title="No Data Available"
-            description="No data available for data cleansing analysis. Please ensure data has been imported and field mapping is complete."
+            title="No Data Available for Cleansing"
+            description="The Data Cleansing phase requires data from previous phases. Please ensure you have completed data import and field mapping, or that your discovery flow is properly configured with data."
             actions={
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
@@ -92,7 +92,7 @@ const DataCleansingStateProvider: React.FC<DataCleansingStateProviderProps> = ({
                   disabled={isAnalyzing}
                   className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
                 >
-                  <span>{isAnalyzing ? 'Analyzing...' : 'Trigger Analysis'}</span>
+                  <span>{isAnalyzing ? 'Re-analyze Flow' : 'Trigger Analysis'}</span>
                 </button>
               </div>
             }
