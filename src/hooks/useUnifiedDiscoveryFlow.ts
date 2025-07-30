@@ -14,8 +14,8 @@ import type {
   DataRecord,
   AssetProperties
 } from '../types/hooks/flow-types';
-import SecureLogger from '../utils/SecureLogger';
-import SecureStorage from '../utils/SecureStorage';
+import SecureLogger from '../utils/secureLogger';
+import SecureStorage from '../utils/secureStorage';
 
 // Types for UnifiedDiscoveryFlow
 interface CrewStatus {

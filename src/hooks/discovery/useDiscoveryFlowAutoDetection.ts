@@ -189,9 +189,11 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
     }
 
     // Priority 4: Most recent flow (even if completed)
-    const sortedFlows = [...flowList].sort((a: DiscoveryFlow, b: DiscoveryFlow) =>
-      new Date(b.updated_at || b.created_at || '').getTime() - new Date(a.updated_at || a.created_at || '').getTime()
-    );
+    const sortedFlows = [...flowList].sort((a: DiscoveryFlow, b: DiscoveryFlow) => {
+      const dateA = new Date(a.updated_at || a.created_at || '1970-01-01').getTime();
+      const dateB = new Date(b.updated_at || b.created_at || '1970-01-01').getTime();
+      return dateB - dateA;
+    });
 
     if (sortedFlows.length > 0) {
       const flowId = sortedFlows[0].flow_id || sortedFlows[0].id;

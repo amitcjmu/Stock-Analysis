@@ -1,3 +1,5 @@
+import SecureLogger from './secureLogger';
+
 /**
  * Secure storage utility for handling sensitive data in localStorage
  * CC - Security hardened storage operations with input validation
@@ -40,21 +42,21 @@ class SecureStorage {
   static setFlowId(flowId: string): boolean {
     try {
       if (!flowId) {
-        console.warn('SecureStorage: Empty flow ID provided');
+        SecureLogger.warn('SecureStorage: Empty flow ID provided');
         return false;
       }
 
       const sanitized = this.sanitizeInput(flowId);
 
       if (!this.validateFlowId(sanitized)) {
-        console.warn('SecureStorage: Invalid flow ID format, not storing');
+        SecureLogger.warn('SecureStorage: Invalid flow ID format, not storing');
         return false;
       }
 
       localStorage.setItem('currentFlowId', sanitized);
       return true;
     } catch (error) {
-      console.error('SecureStorage: Failed to store flow ID securely:', error);
+      SecureLogger.error('SecureStorage: Failed to store flow ID securely', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -72,14 +74,14 @@ class SecureStorage {
 
       // Validate stored flow ID
       if (!this.validateFlowId(flowId)) {
-        console.warn('SecureStorage: Invalid flow ID found in storage, removing');
+        SecureLogger.warn('SecureStorage: Invalid flow ID found in storage, removing');
         this.clearFlowId();
         return null;
       }
 
       return flowId;
     } catch (error) {
-      console.error('SecureStorage: Failed to retrieve flow ID:', error);
+      SecureLogger.error('SecureStorage: Failed to retrieve flow ID', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -91,7 +93,7 @@ class SecureStorage {
     try {
       localStorage.removeItem('currentFlowId');
     } catch (error) {
-      console.error('SecureStorage: Failed to clear flow ID:', error);
+      SecureLogger.error('SecureStorage: Failed to clear flow ID', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -106,7 +108,7 @@ class SecureStorage {
     const sanitized = this.sanitizeInput(flowId);
 
     if (!this.validateFlowId(sanitized)) {
-      console.warn('SecureStorage: Invalid flow ID extracted from URL');
+      SecureLogger.warn('SecureStorage: Invalid flow ID extracted from URL');
       return null;
     }
 
@@ -123,7 +125,7 @@ class SecureStorage {
       localStorage.removeItem(test);
       return true;
     } catch (error) {
-      console.warn('SecureStorage: localStorage not available');
+      SecureLogger.warn('SecureStorage: localStorage not available');
       return false;
     }
   }

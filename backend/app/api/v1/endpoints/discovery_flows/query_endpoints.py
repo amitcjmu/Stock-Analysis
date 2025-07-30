@@ -11,6 +11,7 @@ This module handles all GET operations for discovery flows:
 import hashlib
 import json
 import logging
+import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -32,6 +33,18 @@ from .status_calculator import StatusCalculator
 logger = logging.getLogger(__name__)
 
 query_router = APIRouter(tags=["discovery-query"])
+
+
+def generate_etag(data: str) -> str:
+    """Generate an ETag hash with Python version compatibility.
+
+    Note: MD5 is used here only for ETag generation (cache validation),
+    not for security purposes.
+    """
+    if sys.version_info >= (3, 9):
+        return f'"{hashlib.md5(data.encode(), usedforsecurity=False).hexdigest()}"'
+    else:
+        return f'"{hashlib.md5(data.encode()).hexdigest()}"'  # nosec B324
 
 
 @query_router.get("/flows/active", response_model=List[DiscoveryFlowResponse])
@@ -137,7 +150,7 @@ async def get_active_flows(
             flow.dict() if hasattr(flow, "dict") else flow for flow in active_flows
         ]
         state_json = json.dumps(flows_data, sort_keys=True, default=str)
-        etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
+        etag = generate_etag(state_json)
 
         # Check if content has changed
         if if_none_match == etag:
@@ -227,7 +240,7 @@ async def get_flow_status(
                 else status_response
             )
             state_json = json.dumps(response_dict, sort_keys=True, default=str)
-            etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
+            etag = generate_etag(state_json)
 
             # Check if content has changed
             if if_none_match == etag:
@@ -264,7 +277,7 @@ async def get_flow_status(
                     else status_response
                 )
                 state_json = json.dumps(response_dict, sort_keys=True, default=str)
-                etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
+                etag = generate_etag(state_json)
 
                 # Check if content has changed
                 if if_none_match == etag:
@@ -296,7 +309,7 @@ async def get_flow_status(
             else status_response
         )
         state_json = json.dumps(response_dict, sort_keys=True, default=str)
-        etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
+        etag = generate_etag(state_json)
 
         # Check if content has changed
         if if_none_match == etag:
@@ -384,7 +397,7 @@ async def get_flow_agent_insights(
 
             # Generate ETag from agent insights
             state_json = json.dumps(agent_insights, sort_keys=True, default=str)
-            etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
+            etag = generate_etag(state_json)
 
             # Check if content has changed
             if if_none_match == etag:
@@ -404,7 +417,7 @@ async def get_flow_agent_insights(
         empty_insights = []
 
         # Generate ETag even for empty response
-        etag = f'"{hashlib.md5(b"[]", usedforsecurity=False).hexdigest()}"'
+        etag = generate_etag("[]")
 
         # Check if content has changed
         if if_none_match == etag:
@@ -495,7 +508,7 @@ async def get_agent_questions(
 #
 #             # Generate ETag from processing status
 #             state_json = json.dumps(processing_status, sort_keys=True, default=str)
-#             etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
+#             etag = generate_etag(state_json)
 #
 #             # Check if content has changed
 #             if if_none_match == etag:
@@ -543,7 +556,7 @@ async def get_agent_questions(
 #
 #             # Generate ETag from processing status
 #             state_json = json.dumps(processing_status, sort_keys=True, default=str)
-#             etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
+#             etag = generate_etag(state_json)
 #
 #             # Check if content has changed
 #             if if_none_match == etag:
@@ -592,7 +605,7 @@ async def get_agent_questions(
 #
 #             # Generate ETag even for default status
 #             state_json = json.dumps(default_status, sort_keys=True, default=str)
-#             etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
+#             etag = generate_etag(state_json)
 #
 #             # Check if content has changed
 #             if if_none_match == etag:
@@ -797,7 +810,7 @@ async def get_flow_health(
 
         # Generate ETag from health data
         state_json = json.dumps(health_data, sort_keys=True, default=str)
-        etag = f'"{hashlib.md5(state_json.encode(), usedforsecurity=False).hexdigest()}"'
+        etag = generate_etag(state_json)
 
         # Check if content has changed
         if if_none_match == etag:
