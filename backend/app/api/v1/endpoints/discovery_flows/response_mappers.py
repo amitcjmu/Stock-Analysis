@@ -265,13 +265,43 @@ class ResponseMappers:
             # Extract field mappings from CrewAI state extensions
             field_mappings = {}
             if extensions and extensions.flow_persistence_data:
-                field_mappings = extensions.flow_persistence_data.get(
+                field_mappings_data = extensions.flow_persistence_data.get(
                     "field_mappings", {}
                 )
 
+                # Handle case where field_mappings is a list instead of dict
+                if isinstance(field_mappings_data, list):
+                    # Convert list format to dictionary format
+                    field_mappings = {}
+                    for mapping in field_mappings_data:
+                        if isinstance(mapping, dict) and "source_field" in mapping:
+                            field_mappings[mapping["source_field"]] = {
+                                "target_field": mapping.get("target_field", ""),
+                                "confidence": mapping.get("confidence_score", 0.0),
+                                "is_approved": mapping.get("status") == "approved",
+                                "match_type": mapping.get("match_type", ""),
+                            }
+                else:
+                    field_mappings = field_mappings_data
+
             # Also check discovery_flows table JSONB for field mappings
             if not field_mappings and flow.crewai_state_data:
-                field_mappings = flow.crewai_state_data.get("field_mappings", {})
+                field_mappings_data = flow.crewai_state_data.get("field_mappings", {})
+
+                # Handle case where field_mappings is a list instead of dict
+                if isinstance(field_mappings_data, list):
+                    # Convert list format to dictionary format
+                    field_mappings = {}
+                    for mapping in field_mappings_data:
+                        if isinstance(mapping, dict) and "source_field" in mapping:
+                            field_mappings[mapping["source_field"]] = {
+                                "target_field": mapping.get("target_field", ""),
+                                "confidence": mapping.get("confidence_score", 0.0),
+                                "is_approved": mapping.get("status") == "approved",
+                                "match_type": mapping.get("match_type", ""),
+                            }
+                else:
+                    field_mappings = field_mappings_data
 
             # Fetch actual import data if we have a data_import_id and db session
             raw_data = []
