@@ -184,9 +184,8 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
       `/discovery/flow/${flowId}/execute`,
       {
         phase,
-        data,
-        client_account_id: clientAccountId,
-        engagement_id: engagementId
+        phase_input: data,
+        force: false
       },
       {
         headers: {
