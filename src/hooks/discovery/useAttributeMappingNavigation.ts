@@ -132,31 +132,56 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
           });
         }
       } else {
-        // Flow is not paused, try to resume it first then continue
-        console.log('🔍 Flow is not paused, attempting to resume and continue to data_cleansing');
+        // Flow is not paused, check if it's failed and needs retry
+        console.log('🔍 Flow status:', flowStatus, '- determining best approach to continue');
 
         try {
           const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
           const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
 
-          // Try to resume the flow first
-          const resumeResult = await masterFlowServiceExtended.resumeFlow(flowId, clientAccountId, engagementId);
-          console.log('✅ Flow resumed successfully:', resumeResult);
+          // If flow is failed, use retry instead of resume
+          if (flowStatus === 'failed') {
+            console.log('⚠️ Flow is in failed state, using retry operation');
+            const retryResult = await masterFlowServiceExtended.retryFlow(flowId, clientAccountId, engagementId);
+            console.log('✅ Flow retry successful:', retryResult);
 
-          toast({
-            title: "Flow Resumed",
-            description: "Discovery flow has been resumed and is continuing to data cleansing.",
-          });
+            toast({
+              title: "Flow Retried",
+              description: "Discovery flow has been retried and is continuing to data cleansing.",
+            });
+          } else {
+            // Try to resume the flow for other states
+            const resumeResult = await masterFlowServiceExtended.resumeFlow(flowId, clientAccountId, engagementId);
+            console.log('✅ Flow resumed successfully:', resumeResult);
+
+            toast({
+              title: "Flow Resumed",
+              description: "Discovery flow has been resumed and is continuing to data cleansing.",
+            });
+          }
+
+          // After retry/resume, execute the data cleansing phase with approved mappings
+          await masterFlowServiceExtended.executePhase(
+            flowId,
+            'data_cleansing',
+            {
+              approved_mappings: true,
+              mapping_data: mappingProgress,
+              phase_transition: 'field_mapping_approval_to_data_cleansing'
+            },
+            clientAccountId,
+            engagementId
+          );
 
           // Navigate to data cleansing after a short delay
           setTimeout(() => {
             navigate(`/discovery/data-cleansing/${flowId}`);
           }, 1500);
 
-        } catch (resumeError) {
-          console.error('❌ Failed to resume flow, trying direct phase execution:', resumeError);
+        } catch (error) {
+          console.error('❌ Failed to continue flow:', error);
 
-          // If resume fails, try direct phase execution as fallback
+          // If all else fails, try direct phase execution as fallback
           const phaseData = {
             completed_phases: [...(flow.phases ? Object.keys(flow.phases).filter(p => flow.phases[p]) : []), 'attribute_mapping'],
             current_phase: 'data_cleansing',
