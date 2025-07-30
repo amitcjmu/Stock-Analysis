@@ -54,32 +54,82 @@ class ImportValidator:
 
         Returns:
             Dict representation of the flow
+
+        Raises:
+            TypeError: If flow is neither dict nor DiscoveryFlow instance
         """
         if isinstance(flow, dict):
             # Already a dictionary
             return flow
 
-        # It's a DiscoveryFlow model object
-        if hasattr(flow, "to_dict"):
-            flow_dict = flow.to_dict()
+        # Import here to avoid circular imports
+        from app.models.discovery_flow import DiscoveryFlow
+
+        # Ensure we have a DiscoveryFlow instance
+        if not isinstance(flow, DiscoveryFlow):
+            logger.error(
+                f"Expected DiscoveryFlow instance or dict, got {type(flow).__name__}"
+            )
+            raise TypeError(
+                f"Expected DiscoveryFlow instance or dict, got {type(flow).__name__}"
+            )
+
+        # Use the model's to_dict method if available
+        if hasattr(flow, "to_dict") and callable(flow.to_dict):
+            try:
+                flow_dict = flow.to_dict()
+            except Exception as e:
+                logger.error(f"Error calling to_dict on DiscoveryFlow: {e}")
+                # Fallback to manual extraction
+                flow_dict = self._extract_flow_attributes(flow)
         else:
             # Fallback: manually extract attributes
-            flow_dict = {
-                "flow_id": str(flow.flow_id) if hasattr(flow, "flow_id") else None,
-                "status": flow.status if hasattr(flow, "status") else None,
-                "progress_percentage": (
-                    flow.progress_percentage
-                    if hasattr(flow, "progress_percentage")
-                    else 0
-                ),
-                "updated_at": flow.updated_at if hasattr(flow, "updated_at") else None,
-            }
+            flow_dict = self._extract_flow_attributes(flow)
 
-        # Add current_phase if available
-        if hasattr(flow, "get_current_phase") and callable(flow.get_current_phase):
-            flow_dict["current_phase"] = flow.get_current_phase()
-        elif "current_phase" not in flow_dict and hasattr(flow, "current_phase"):
-            flow_dict["current_phase"] = flow.current_phase
+        # Add current_phase if available and not already in dict
+        if "current_phase" not in flow_dict:
+            if hasattr(flow, "get_current_phase") and callable(flow.get_current_phase):
+                try:
+                    flow_dict["current_phase"] = flow.get_current_phase()
+                except Exception as e:
+                    logger.debug(f"Could not get current_phase: {e}")
+            elif hasattr(flow, "current_phase"):
+                flow_dict["current_phase"] = flow.current_phase
+
+        return flow_dict
+
+    def _extract_flow_attributes(self, flow: "DiscoveryFlow") -> Dict[str, Any]:
+        """
+        Safely extract attributes from a DiscoveryFlow instance.
+
+        Args:
+            flow: DiscoveryFlow model instance
+
+        Returns:
+            Dict with extracted attributes
+        """
+        flow_dict = {}
+
+        # List of attributes to extract with their default values
+        attributes = [
+            ("flow_id", None, lambda x: str(x) if x else None),
+            ("status", None, lambda x: x),
+            ("progress_percentage", 0, lambda x: x),
+            ("updated_at", None, lambda x: x.isoformat() if x else None),
+        ]
+
+        for attr_name, default_value, transformer in attributes:
+            try:
+                if hasattr(flow, attr_name):
+                    value = getattr(flow, attr_name)
+                    flow_dict[attr_name] = transformer(value)
+                else:
+                    flow_dict[attr_name] = default_value
+            except Exception as e:
+                logger.warning(
+                    f"Error extracting {attr_name} from DiscoveryFlow: {e}, using default"
+                )
+                flow_dict[attr_name] = default_value
 
         return flow_dict
 

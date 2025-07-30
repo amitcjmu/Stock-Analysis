@@ -273,7 +273,9 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             logger.error(f"❌ Database error in get_by_flow_id_global: {e}")
             return None
 
-    def _ensure_json_serializable(self, obj: Any) -> Any:
+    def _ensure_json_serializable(
+        self, obj: Any, _visited: Optional[set] = None, _depth: int = 0
+    ) -> Any:
         """
         Recursively convert non-JSON serializable objects to serializable format.
         Handles UUID, datetime, and other common non-serializable types.
@@ -287,15 +289,54 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
         - Flow IDs from CrewAI
         - Database record IDs
         - Nested data structures from phase results
+
+        Args:
+            obj: Object to serialize
+            _visited: Set of visited object IDs to prevent circular references
+            _depth: Current recursion depth to prevent excessive nesting
         """
+        # Initialize visited set on first call
+        if _visited is None:
+            _visited = set()
+
+        # Prevent excessive recursion depth
+        MAX_DEPTH = 50
+        if _depth > MAX_DEPTH:
+            logger.warning(
+                f"Maximum serialization depth {MAX_DEPTH} reached, converting to string"
+            )
+            return str(obj)
+
         try:
             if isinstance(obj, dict):
-                return {
-                    key: self._ensure_json_serializable(value)
-                    for key, value in obj.items()
-                }
+                # Check for circular reference
+                obj_id = id(obj)
+                if obj_id in _visited:
+                    return "<circular reference: dict>"
+                _visited.add(obj_id)
+
+                result = {}
+                for key, value in obj.items():
+                    result[key] = self._ensure_json_serializable(
+                        value, _visited, _depth + 1
+                    )
+                _visited.discard(obj_id)
+                return result
+
             elif isinstance(obj, list):
-                return [self._ensure_json_serializable(item) for item in obj]
+                # Check for circular reference
+                obj_id = id(obj)
+                if obj_id in _visited:
+                    return "<circular reference: list>"
+                _visited.add(obj_id)
+
+                result = [
+                    self._ensure_json_serializable(item, _visited, _depth + 1)
+                    for item in obj
+                ]
+                _visited.discard(obj_id)
+                return result
+
             elif isinstance(obj, uuid.UUID):
                 return str(obj)
             elif isinstance(obj, datetime):
@@ -304,9 +345,19 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 # These types are already JSON serializable
                 return obj
             elif hasattr(obj, "__dict__"):
+                # Check for circular reference
+                obj_id = id(obj)
+                if obj_id in _visited:
+                    return f"<circular reference: {type(obj).__name__}>"
+                _visited.add(obj_id)
+
                 # Handle custom objects by converting to dict
                 logger.debug(f"Converting object of type {type(obj).__name__} to dict")
-                return self._ensure_json_serializable(obj.__dict__)
+                result = self._ensure_json_serializable(
+                    obj.__dict__, _visited, _depth + 1
+                )
+                _visited.discard(obj_id)
+                return result
             else:
                 # For any other type, convert to string
                 logger.warning(

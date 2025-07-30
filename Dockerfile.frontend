@@ -42,6 +42,9 @@ USER nodejs
 ENV NPM_CONFIG_CACHE=/app/.npm-cache
 ENV NPM_CONFIG_PREFIX=/app/.npm-global
 
+# Set Docker environment variable for Vite proxy configuration
+ENV DOCKER_ENV=true
+
 # Expose port 8081
 EXPOSE 8081
 
