@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMemo } from 'react'
 import type { AssetInventory, AssetFilters } from '../types/inventory.types';
 
-export const useAssetFilters = (assets: AssetInventory[]): {
+export const useAssetFilters = (assets: AssetInventory[] = []): {
   filters: AssetFilters;
   updateFilter: (key: keyof AssetFilters, value: unknown) => void;
   resetFilters: () => void;
@@ -18,16 +18,19 @@ export const useAssetFilters = (assets: AssetInventory[]): {
   });
 
   const uniqueEnvironments = useMemo(() => {
+    if (!assets || !Array.isArray(assets)) return [];
     const environments = new Set(assets.map(asset => asset.environment).filter(Boolean));
     return Array.from(environments);
   }, [assets]);
 
   const uniqueAssetTypes = useMemo(() => {
+    if (!assets || !Array.isArray(assets)) return [];
     const types = new Set(assets.map(asset => asset.asset_type).filter(Boolean));
     return Array.from(types);
   }, [assets]);
 
   const filteredAssets = useMemo(() => {
+    if (!assets || !Array.isArray(assets)) return [];
     return assets.filter(asset => {
       const matchesSearch = !filters.searchTerm ||
         Object.values(asset).some(value =>

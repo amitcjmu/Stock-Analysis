@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { masterFlowService } from '@/services/api/masterFlowService';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import type { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
+import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
 import type { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 

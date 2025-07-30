@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => ({
     port: 8081,  // Fixed port for frontend
     proxy: {
       '/api': {
-        target: 'http://backend:8000',  // Docker service name
+        target: 'http://localhost:8000',  // Local backend
         changeOrigin: true,
         secure: false,
         rewrite: (path) => {

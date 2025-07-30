@@ -10,7 +10,7 @@ import {
   useFlowResumptionV2
 } from '@/hooks/discovery/useFlowOperations';
 import { useFlowDeletion } from '@/hooks/useFlowDeletion';
-import type { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
+import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
 import { apiCall } from '@/config/api';
 
 export const useCMDBImport = (): JSX.Element => {

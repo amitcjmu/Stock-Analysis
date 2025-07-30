@@ -90,12 +90,12 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           setNeedsClassification(response.needs_classification || false);
 
           // If assets are properly classified, mark as triggered to prevent auto-execution loops
-          if (!response.needs_classification && assets.length > 0) {
+          if (!response.needs_classification && response.assets && response.assets.length > 0) {
             setHasTriggeredInventory(true);
           }
 
           // Transform API assets to match expected format
-          return response.assets.map((asset: unknown) => ({
+          return (response.assets || []).map((asset: any) => ({
             id: asset.id,
             asset_name: asset.name,
             asset_type: asset.asset_type,
@@ -136,7 +136,9 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
 
   const assets: AssetInventory[] = useMemo(() => {
     if (!assetsData) return [];
-    return Array.isArray(assetsData) ? assetsData : assetsData.assets || [];
+    if (Array.isArray(assetsData)) return assetsData;
+    if (assetsData && Array.isArray(assetsData.assets)) return assetsData.assets;
+    return [];
   }, [assetsData]);
 
   // Get all available columns

@@ -4,6 +4,7 @@ import { Brain } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
+import { DiscoveryErrorBoundary } from '@/components/discovery/DiscoveryErrorBoundary';
 
 // Components
 import Sidebar from '../../../components/Sidebar';
@@ -321,4 +322,10 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
   );
 };
 
-export default EnhancedDiscoveryDashboardContainer;
+const EnhancedDiscoveryDashboardWithErrorBoundary: React.FC = () => (
+  <DiscoveryErrorBoundary>
+    <EnhancedDiscoveryDashboardContainer />
+  </DiscoveryErrorBoundary>
+);
+
+export default EnhancedDiscoveryDashboardWithErrorBoundary;

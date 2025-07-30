@@ -152,12 +152,12 @@ export class DashboardService {
     // Fetch real-time active flows from multiple sources with retry logic
     const [discoveryFlowsResponse, dataImportsResponse] = await Promise.allSettled([
       // Get active Discovery flows - try the discovery flows endpoint first
-      makeApiCallWithRetry<DiscoveryFlowResponse[] | DiscoveryFlowsApiResponse>('/api/v1/discovery/flows/active', {
+      makeApiCallWithRetry<DiscoveryFlowResponse[] | DiscoveryFlowsApiResponse>('/discovery/flows/active', {
         method: 'GET',
         headers: getAuthHeaders({ user, client, engagement })
       }),
       // Get data import sessions (for discovering flows)
-      makeApiCallWithRetry<DataImportResponse>('/api/v1/data-import/latest-import', {
+      makeApiCallWithRetry<DataImportResponse>('/data-import/latest-import', {
         method: 'GET',
         headers: getAuthHeaders({ user, client, engagement })
       })
@@ -168,7 +168,7 @@ export class DashboardService {
     // Process Discovery flows
     if (discoveryFlowsResponse.status === 'fulfilled' && discoveryFlowsResponse.value) {
       const discoveryData = discoveryFlowsResponse.value;
-      console.log('📊 Discovery flows data from /api/v1/discovery/flows/active:', discoveryData);
+      console.log('📊 Discovery flows data from /discovery/flows/active:', discoveryData);
       console.log('📊 Discovery flows response type:', typeof discoveryData);
       console.log('📊 Discovery flows is array:', Array.isArray(discoveryData));
 
@@ -259,7 +259,7 @@ export class DashboardService {
         if (dataImport.id && !allFlows.find(f => f.flow_id === dataImport.id)) {
           try {
             // Get flow status for this import session with retry logic
-            const flowStatusResponse = await makeApiCallWithRetry<FlowStatusResponse>(`/api/v1/discovery/flows/${dataImport.id}/status`, {
+            const flowStatusResponse = await makeApiCallWithRetry<FlowStatusResponse>(`/discovery/flows/${dataImport.id}/status`, {
               method: 'GET',
               headers: getAuthHeaders({ user, client, engagement })
             });
