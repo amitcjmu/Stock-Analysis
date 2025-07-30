@@ -196,6 +196,9 @@ DEEPINFRA_PARAMS = {
     "logprobs": False,
 }
 
+# Embeddings configuration for CrewAI
+DEEPINFRA_EMBEDDINGS_MODEL = "thenlper/gte-large"
+
 
 @lru_cache(maxsize=128)
 def get_crewai_llm(
@@ -221,6 +224,10 @@ def get_crewai_llm(
 
     # Set the API key in environment for litellm to use
     os.environ["DEEPINFRA_API_KEY"] = api_key
+
+    # Also set OpenAI API key to use DeepInfra endpoint for embeddings
+    os.environ["OPENAI_API_KEY"] = api_key
+    os.environ["OPENAI_API_BASE"] = "https://api.deepinfra.com/v1/openai"
 
     # Try to create a CrewAI LLM instance with logprobs disabled
     try:
@@ -279,3 +286,29 @@ try:
     logging.info("DeepInfra response fixer loaded successfully")
 except Exception as e:
     logging.warning(f"Could not load DeepInfra response fixer: {e}")
+
+
+def get_crewai_embeddings():
+    """
+    Configures and returns embeddings configuration for CrewAI.
+    Uses DeepInfra's embedding model instead of OpenAI.
+    """
+    api_key = os.getenv("DEEPINFRA_API_KEY")
+    if not api_key:
+        logging.error("DEEPINFRA_API_KEY environment variable not set.")
+        raise ValueError("DEEPINFRA_API_KEY is required for embeddings.")
+
+    # Configure embeddings using DeepInfra's embedding model
+    embeddings_config = {
+        "provider": "openai",  # DeepInfra uses OpenAI-compatible API
+        "config": {
+            "model": DEEPINFRA_EMBEDDINGS_MODEL,
+            "api_key": api_key,
+            "base_url": "https://api.deepinfra.com/v1/openai",
+        },
+    }
+
+    logging.info(
+        f"Configured embeddings with DeepInfra model: {DEEPINFRA_EMBEDDINGS_MODEL}"
+    )
+    return embeddings_config

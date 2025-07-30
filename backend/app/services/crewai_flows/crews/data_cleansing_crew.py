@@ -333,16 +333,34 @@ def create_data_cleansing_crew(
             max_execution_time=100,  # Allow time for comprehensive analysis
         )
 
+        # Get embeddings configuration from llm_config
+        try:
+            from app.services.llm_config import get_crewai_embeddings
+
+            embeddings_config = get_crewai_embeddings()
+        except Exception as e:
+            logger.warning(f"Failed to get embeddings config: {e}")
+            embeddings_config = None
+
         # 🧠 AGENTIC CREW: Intelligence-focused process
-        crew = Crew(
-            agents=[agentic_enrichment_agent],
-            tasks=[enrichment_task],
-            process=Process.sequential,
-            verbose=True,  # Enable detailed intelligence logging
-            max_execution_time=180,  # Extended time for comprehensive analysis
-            memory=True,  # Enable memory for continuous learning
-            embedder=None,  # Disable embedding overhead
-        )
+        crew_config = {
+            "agents": [agentic_enrichment_agent],
+            "tasks": [enrichment_task],
+            "process": Process.sequential,
+            "verbose": True,  # Enable detailed intelligence logging
+            "max_execution_time": 180,  # Extended time for comprehensive analysis
+            "memory": True,  # Re-enabled with DeepInfra embeddings
+        }
+
+        # Add embeddings configuration if available
+        if embeddings_config:
+            crew_config["embedder"] = embeddings_config
+            logger.info("✅ Configured crew with DeepInfra embeddings")
+        else:
+            crew_config["memory"] = False  # Disable memory if embeddings not configured
+            logger.warning("⚠️ Embeddings not configured, disabling memory")
+
+        crew = Crew(**crew_config)
 
         logger.info(
             "✅ AGENTIC Data Cleansing Crew created - intelligence-driven asset enrichment"
@@ -383,13 +401,30 @@ def _create_minimal_fallback_crew(
             expected_output="PROCESSED",
         )
 
-        return Crew(
-            agents=[minimal_agent],
-            tasks=[minimal_task],
-            process=Process.sequential,
-            verbose=False,
-            memory=True,  # RE-ENABLED: Memory system working correctly
-        )
+        # Get embeddings configuration from llm_config for fallback crew
+        try:
+            from app.services.llm_config import get_crewai_embeddings
+
+            embeddings_config = get_crewai_embeddings()
+        except Exception as e:
+            logger.warning(f"Failed to get embeddings config for fallback: {e}")
+            embeddings_config = None
+
+        crew_config = {
+            "agents": [minimal_agent],
+            "tasks": [minimal_task],
+            "process": Process.sequential,
+            "verbose": False,
+            "memory": True,  # RE-ENABLED: Memory system working correctly
+        }
+
+        # Add embeddings configuration if available
+        if embeddings_config:
+            crew_config["embedder"] = embeddings_config
+        else:
+            crew_config["memory"] = False  # Disable memory if embeddings not configured
+
+        return Crew(**crew_config)
     except Exception as e:
         logger.error(f"Even fallback crew creation failed: {e}")
         raise
