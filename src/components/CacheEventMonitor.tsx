@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useWebSocket, CACHE_EVENT_TYPES, CacheInvalidationEvent } from '@/hooks/useWebSocket';
+import { useWebSocket, CACHE_EVENT_TYPES, type CacheInvalidationEvent } from '@/hooks/useWebSocket';
 import {
   isUserContextChangedEvent,
   isFieldMappingsUpdatedEvent,
