@@ -243,12 +243,10 @@ class UnifiedDiscoveryFlow(Flow):
     def _initialize_phase_executors_with_state(self):
         """Initialize phase executors with the actual state once it's available"""
         if not hasattr(self, "_flow_state") or not self._flow_state:
-            logger.warning("Cannot initialize phase executors without state")
-            return
+            raise RuntimeError("Cannot initialize phase executors without state")
 
         if not hasattr(self, "crew_manager") or not self.crew_manager:
-            logger.warning("Cannot initialize phase executors without crew manager")
-            return
+            raise RuntimeError("Cannot initialize phase executors without crew manager")
 
         # Now initialize the actual phase executors with state
         self.data_validation_phase = self._phase_executor_classes[

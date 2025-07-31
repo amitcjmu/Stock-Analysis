@@ -116,11 +116,14 @@ def create_asset_enrichment_pattern(
         supporting_data=supporting_data or {},
     )
 
-    session.add(pattern)
-    session.commit()
-    session.refresh(pattern)
-
-    return pattern
+    try:
+        session.add(pattern)
+        session.commit()
+        session.refresh(pattern)
+        return pattern
+    except Exception:
+        session.rollback()
+        raise
 
 
 def get_patterns_for_agent_reasoning(
