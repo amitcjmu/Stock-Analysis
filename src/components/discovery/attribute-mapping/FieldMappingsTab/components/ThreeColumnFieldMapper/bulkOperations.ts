@@ -32,6 +32,7 @@ export interface BulkApproveHandlerParams {
   setLastBulkOperationTime: (time: number) => void;
   setProcessingMappings: Dispatch<SetStateAction<Set<string>>>;
   onRefresh?: () => Promise<void> | void;
+  importId?: string;
 }
 
 export type BulkApproveHandler = (mappingIds: string[]) => Promise<void>;
@@ -147,9 +148,20 @@ export const createBulkApproveHandler = ({
         window.showSuccessToast(`Successfully approved ${response.successful_updates} mappings`);
       }
 
-      // Refresh the data
+      // Refresh the data and invalidate cache
       if (onRefresh) {
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+
+        // CRITICAL: Invalidate the React Query cache for field mappings
+        // This ensures fresh data is fetched from the server
+        interface WindowWithInvalidate extends Window {
+          __invalidateFieldMappings?: () => Promise<void>;
+        }
+        if (typeof window !== 'undefined' && (window as WindowWithInvalidate).__invalidateFieldMappings) {
+          console.log('🔄 Invalidating field mappings cache after bulk approval');
+          await (window as WindowWithInvalidate).__invalidateFieldMappings();
+        }
+
         onRefresh();
       }
 
@@ -189,6 +201,7 @@ export interface BulkRejectHandlerParams {
   setLastBulkOperationTime: (time: number) => void;
   setProcessingMappings: Dispatch<SetStateAction<Set<string>>>;
   onRefresh?: () => Promise<void> | void;
+  importId?: string;
 }
 
 export type BulkRejectHandler = (mappingIds: string[]) => Promise<void>;
@@ -286,9 +299,20 @@ export const createBulkRejectHandler = ({
         window.showSuccessToast(`Successfully rejected ${response.successful_updates} mappings`);
       }
 
-      // Refresh the data
+      // Refresh the data and invalidate cache
       if (onRefresh) {
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+
+        // CRITICAL: Invalidate the React Query cache for field mappings
+        // This ensures fresh data is fetched from the server
+        interface WindowWithInvalidate extends Window {
+          __invalidateFieldMappings?: () => Promise<void>;
+        }
+        if (typeof window !== 'undefined' && (window as WindowWithInvalidate).__invalidateFieldMappings) {
+          console.log('🔄 Invalidating field mappings cache after bulk rejection');
+          await (window as WindowWithInvalidate).__invalidateFieldMappings();
+        }
+
         onRefresh();
       }
 

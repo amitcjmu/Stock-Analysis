@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMemo, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall } from '../../../config/api';
 import type { FormFieldValue } from '@/types/shared/form-types';
@@ -80,6 +80,7 @@ export const useFieldMappings = (
   fieldMappingData: FieldMappingData | null
 ): FieldMappingsResult => {
   const { getAuthHeaders } = useAuth();
+  const queryClient = useQueryClient();
 
   // Get field mappings using the import ID
   const {
@@ -399,6 +400,36 @@ export const useFieldMappings = (
     console.log('🔄 [DEBUG] No field mappings available - returning empty array');
     return [];
   }, [fieldMappingData, realFieldMappings]);
+
+  // Set up cache invalidation function
+  useEffect(() => {
+    const importId = importData?.import_metadata?.import_id;
+    if (!importId) return;
+
+    // Create cache invalidation function
+    const invalidateFieldMappings = async () => {
+      console.log('🔄 Invalidating field mappings cache for import:', importId);
+      await queryClient.invalidateQueries({
+        queryKey: ['field-mappings', importId],
+        exact: true
+      });
+    };
+
+    // Attach to window for bulk operations to use
+    interface WindowWithInvalidate extends Window {
+      __invalidateFieldMappings?: () => Promise<void>;
+    }
+    if (typeof window !== 'undefined') {
+      (window as WindowWithInvalidate).__invalidateFieldMappings = invalidateFieldMappings;
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as WindowWithInvalidate).__invalidateFieldMappings;
+      }
+    };
+  }, [importData?.import_metadata?.import_id, queryClient]);
 
   return {
     fieldMappings,
