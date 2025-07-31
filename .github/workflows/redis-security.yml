@@ -1,0 +1,434 @@
+name: Redis Security and Deployment
+
+on:
+  push:
+    branches: [main, develop, feature/redis-*]
+    paths:
+      - 'redis/**'
+      - 'docker-compose*.yml'
+      - 'backend/app/**/*cache*'
+      - 'backend/app/**/*redis*'
+      - 'scripts/security/**'
+      - '.github/workflows/redis-security.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'redis/**'
+      - 'docker-compose*.yml'
+      - 'backend/app/**/*cache*'
+      - 'backend/app/**/*redis*'
+
+jobs:
+  redis-security-audit:
+    name: Redis Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install redis pyyaml opentelemetry-api opentelemetry-sdk prometheus-client
+
+      - name: Run Redis Security Audit
+        run: |
+          cd ${{ github.workspace }}
+          python scripts/security/redis_security_audit.py
+        env:
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD_TEST }}
+          REDIS_APP_PASSWORD: ${{ secrets.REDIS_APP_PASSWORD_TEST }}
+          REDIS_ADMIN_PASSWORD: ${{ secrets.REDIS_ADMIN_PASSWORD_TEST }}
+
+      - name: Upload Security Report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: redis-security-audit-report
+          path: redis_security_audit_report.json
+          retention-days: 30
+
+      - name: Comment Security Results on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            try {
+              const report = JSON.parse(fs.readFileSync('redis_security_audit_report.json', 'utf8'));
+              const critical = report.critical_issues;
+              const high = report.high_issues;
+              const medium = report.medium_issues;
+              const low = report.low_issues;
+
+              let status = '✅ **PASSED**';
+              if (critical > 0) status = '🚨 **CRITICAL ISSUES**';
+              else if (high > 0) status = '⚠️ **HIGH PRIORITY ISSUES**';
+              else if (medium > 0) status = '📋 **MEDIUM ISSUES**';
+
+              const comment = `## Redis Security Audit ${status}
+
+              **Compliance Score:** ${report.compliance_score}/100
+
+              ### Issues Summary
+              - 🔴 Critical: ${critical}
+              - 🟠 High: ${high}
+              - 🟡 Medium: ${medium}
+              - 🔵 Low: ${low}
+
+              ${critical > 0 ? '**⚠️ Critical issues must be resolved before merging**' : ''}
+              ${high > 0 ? '**📋 High priority issues should be addressed**' : ''}
+
+              <details>
+              <summary>View Recommendations</summary>
+
+              ${report.recommendations.map(rec => `- ${rec}`).join('\n')}
+              </details>
+
+              *Audit completed at ${report.timestamp}*`;
+
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            } catch (error) {
+              console.log('Could not read security report:', error);
+            }
+
+  redis-config-validation:
+    name: Redis Configuration Validation
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate Redis Configuration
+        run: |
+          # Test Redis configuration syntax
+          redis-server redis/redis.conf --test-config
+          echo "✅ Redis configuration syntax is valid"
+
+      - name: Test Redis with Security Configuration
+        run: |
+          # Start Redis with our configuration in background
+          redis-server redis/redis.conf --daemonize yes --requirepass testpassword123
+          sleep 5
+
+          # Test authentication
+          redis-cli -a testpassword123 ping
+          echo "✅ Redis authentication working"
+
+          # Test disabled commands
+          if redis-cli -a testpassword123 FLUSHALL 2>&1 | grep -q "unknown command"; then
+            echo "✅ Dangerous commands properly disabled"
+          else
+            echo "❌ Dangerous commands not properly disabled"
+            exit 1
+          fi
+
+          # Test memory limit
+          redis-cli -a testpassword123 CONFIG GET maxmemory
+
+          # Cleanup
+          redis-cli -a testpassword123 SHUTDOWN NOSAVE || true
+
+  redis-performance-test:
+    name: Redis Performance Test
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Redis Python client
+        run: pip install redis
+
+      - name: Run Performance Tests
+        run: |
+          python << 'EOF'
+          import redis
+          import time
+          import statistics
+
+          # Connect to Redis
+          r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+
+          # Test basic operations
+          latencies = []
+          for i in range(100):
+              start = time.time()
+              r.set(f'test:{i}', f'value_{i}')
+              r.get(f'test:{i}')
+              latencies.append((time.time() - start) * 1000)
+
+          avg_latency = statistics.mean(latencies)
+          p95_latency = statistics.quantiles(latencies, n=20)[18]  # 95th percentile
+
+          print(f"Average latency: {avg_latency:.2f}ms")
+          print(f"95th percentile latency: {p95_latency:.2f}ms")
+
+          # Performance thresholds
+          if avg_latency > 10:
+              print("⚠️ High average latency detected")
+          if p95_latency > 50:
+              print("⚠️ High 95th percentile latency detected")
+              exit(1)
+
+          print("✅ Performance tests passed")
+
+          # Cleanup
+          for i in range(100):
+              r.delete(f'test:{i}')
+          EOF
+
+  redis-integration-test:
+    name: Redis Integration Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run Redis Integration Tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
+          REDIS_ENABLED: true
+          REDIS_URL: redis://localhost:6379/0
+          PYTHONPATH: ${{ github.workspace }}/backend
+        run: |
+          cd backend
+          python -m pytest tests/test_redis_cache.py -v
+          python -m pytest tests/backend/test_redis_integration.py -v --tb=short
+
+  redis-security-scan:
+    name: Redis Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Bandit Security Scanner
+        run: |
+          pip install bandit[toml]
+          bandit -r backend/app/services/caching/ \
+                 -r backend/app/core/upstash_config.py \
+                 -r backend/app/monitoring/redis_monitor.py \
+                 -f json -o bandit-redis-report.json || true
+
+      - name: Run Semgrep Security Scanner
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/secrets
+            p/dockerfile
+          generateSarif: "1"
+
+      - name: Check for Secrets in Redis Config
+        run: |
+          if grep -r "password\|secret\|key" redis/ --include="*.conf" --include="*.acl" | grep -v '\${' | grep -v '^#'; then
+            echo "❌ Hardcoded secrets found in Redis configuration"
+            exit 1
+          else
+            echo "✅ No hardcoded secrets found"
+          fi
+
+      - name: Upload Security Results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: redis-security-scan-results
+          path: |
+            bandit-redis-report.json
+            results.sarif
+          retention-days: 30
+
+  deploy-redis-staging:
+    name: Deploy Redis to Staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    needs: [redis-security-audit, redis-config-validation, redis-integration-test]
+    environment:
+      name: staging
+      url: https://staging.your-domain.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Railway Staging
+        run: |
+          # Install Railway CLI
+          curl -fsSL https://railway.app/install.sh | sh
+
+          # Deploy with staging configuration
+          railway login --token ${{ secrets.RAILWAY_TOKEN }}
+          railway environment -e staging
+
+          # Set Redis environment variables
+          railway variables set REDIS_ENABLED=true
+          railway variables set REDIS_URL="${{ secrets.REDIS_URL_STAGING }}"
+          railway variables set REDIS_PASSWORD="${{ secrets.REDIS_PASSWORD_STAGING }}"
+          railway variables set REDIS_APP_PASSWORD="${{ secrets.REDIS_APP_PASSWORD_STAGING }}"
+
+          # Deploy
+          railway up --environment staging
+
+      - name: Run Post-Deployment Tests
+        run: |
+          sleep 30  # Wait for deployment
+
+          # Test Redis connectivity
+          curl -f "${{ secrets.STAGING_URL }}/api/v1/health/redis" || exit 1
+          echo "✅ Redis health check passed"
+
+          # Test cache functionality
+          curl -f "${{ secrets.STAGING_URL }}/api/v1/health/dependencies" || exit 1
+          echo "✅ Dependencies check passed"
+
+  deploy-redis-production:
+    name: Deploy Redis to Production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [redis-security-audit, redis-config-validation, redis-integration-test]
+    environment:
+      name: production
+      url: https://your-domain.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Pre-deployment Security Check
+        run: |
+          python scripts/security/redis_security_audit.py
+
+          # Fail if critical issues found
+          if [ -f redis_security_audit_report.json ]; then
+            critical_issues=$(python -c "import json; report = json.load(open('redis_security_audit_report.json')); print(report['critical_issues'])")
+            if [ "$critical_issues" -gt 0 ]; then
+              echo "❌ Critical security issues found. Deployment blocked."
+              exit 1
+            fi
+          fi
+        env:
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD_PROD }}
+          REDIS_APP_PASSWORD: ${{ secrets.REDIS_APP_PASSWORD_PROD }}
+          REDIS_ADMIN_PASSWORD: ${{ secrets.REDIS_ADMIN_PASSWORD_PROD }}
+
+      - name: Deploy to Production
+        run: |
+          # Install Railway CLI
+          curl -fsSL https://railway.app/install.sh | sh
+
+          # Deploy with production configuration
+          railway login --token ${{ secrets.RAILWAY_TOKEN }}
+          railway environment -e production
+
+          # Set Redis environment variables
+          railway variables set REDIS_ENABLED=true
+          railway variables set REDIS_URL="${{ secrets.UPSTASH_REDIS_URL }}"
+          railway variables set REDIS_SSL_REQUIRED=true
+          railway variables set UPSTASH_REDIS_TOKEN="${{ secrets.UPSTASH_REDIS_TOKEN }}"
+
+          # Deploy
+          railway up --environment production
+
+      - name: Run Production Health Checks
+        run: |
+          sleep 60  # Wait for production deployment
+
+          # Test Redis connectivity
+          curl -f "${{ secrets.PRODUCTION_URL }}/api/v1/health/redis" || exit 1
+
+          # Test Upstash metrics
+          curl -f "${{ secrets.PRODUCTION_URL }}/api/v1/metrics/upstash" || exit 1
+
+          echo "✅ Production deployment verified"
+
+      - name: Setup Production Monitoring
+        run: |
+          # Configure alerts and monitoring
+          echo "Setting up production monitoring for Redis..."
+          # This would integrate with your monitoring system
+
+  auto-rollback:
+    name: Auto Rollback on Failure
+    runs-on: ubuntu-latest
+    if: failure() && github.ref == 'refs/heads/main'
+    needs: [deploy-redis-production]
+    steps:
+      - name: Rollback Production Deployment
+        run: |
+          # Install Railway CLI
+          curl -fsSL https://railway.app/install.sh | sh
+          railway login --token ${{ secrets.RAILWAY_TOKEN }}
+
+          # Disable Redis features
+          railway environment -e production
+          railway variables set REDIS_ENABLED=false
+          railway restart
+
+          echo "🔄 Redis features disabled due to deployment failure"
+
+      - name: Notify Team
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          text: 'Redis production deployment failed and was rolled back'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
