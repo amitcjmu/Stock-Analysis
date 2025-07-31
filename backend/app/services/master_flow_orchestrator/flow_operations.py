@@ -13,7 +13,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.core.database import AsyncSessionLocal
 from app.core.exceptions import FlowError
 from app.core.logging import get_logger
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
@@ -487,23 +486,21 @@ class FlowOperations:
 
                     crewai_service = CrewAIFlowService(self.db)
 
-                    async with AsyncSessionLocal():
-                        if resume_context is None:
-                            resume_context = {
-                                "client_account_id": str(master_flow.client_account_id),
-                                "engagement_id": str(master_flow.engagement_id),
-                                "user_id": master_flow.user_id,
-                                "approved_by": master_flow.user_id,
-                                "resume_from": "master_flow_orchestrator",
-                            }
+                    # Use existing session from self.db for consistency
+                    if resume_context is None:
+                        resume_context = {
+                            "client_account_id": str(master_flow.client_account_id),
+                            "engagement_id": str(master_flow.engagement_id),
+                            "user_id": master_flow.user_id,
+                            "approved_by": master_flow.user_id,
+                            "resume_from": "master_flow_orchestrator",
+                        }
 
-                        crew_result = await crewai_service.resume_flow(
-                            flow_id=str(flow_id), resume_context=resume_context
-                        )
+                    crew_result = await crewai_service.resume_flow(
+                        flow_id=str(flow_id), resume_context=resume_context
+                    )
 
-                        logger.info(
-                            f"✅ Delegated to CrewAI Flow Service: {crew_result}"
-                        )
+                    logger.info(f"✅ Delegated to CrewAI Flow Service: {crew_result}")
 
                 except Exception as e:
                     logger.warning(f"⚠️ Failed to delegate to CrewAI Flow Service: {e}")
