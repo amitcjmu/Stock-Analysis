@@ -50,6 +50,17 @@ class PhaseHandlers:
                 await self.flow._load_raw_data_from_database(self.flow.state)
 
             # Execute data validation using the executor pattern
+            if not self.flow.data_validation_phase:
+                self.logger.error("❌ Data validation phase executor not initialized")
+                # Try to initialize it now
+                if hasattr(self.flow, "_initialize_phase_executors_with_state"):
+                    self.flow._initialize_phase_executors_with_state()
+
+            if not self.flow.data_validation_phase:
+                raise RuntimeError(
+                    "Data validation phase executor is not initialized. This is a critical error."
+                )
+
             validation_result = await self.flow.data_validation_phase.execute(
                 None  # No previous result for the first phase
             )

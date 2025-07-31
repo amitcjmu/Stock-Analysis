@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { Search, Edit, Save, X, User, Building2, Briefcase, Crown, Shield } from 'lucide-react';
-import { apiCall } from '@/config/api';
+import { apiCall, clearUserManagementCache } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface User {
@@ -191,6 +191,9 @@ export const UserSearchAndEdit: React.FC = () => {
       });
 
       if (response.status === 'success') {
+        // Clear cache to ensure fresh data
+        clearUserManagementCache();
+
         // Update local state
         setUsers(prevUsers =>
           prevUsers.map(user =>
@@ -207,6 +210,9 @@ export const UserSearchAndEdit: React.FC = () => {
 
         setShowEditDialog(false);
         setSelectedUser(null);
+
+        // Reload users to ensure we have the latest data
+        await loadUsers();
       } else {
         throw new Error(response.message || 'Failed to update user');
       }

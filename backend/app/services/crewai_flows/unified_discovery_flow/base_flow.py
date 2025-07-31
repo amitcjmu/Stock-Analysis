@@ -207,25 +207,69 @@ class UnifiedDiscoveryFlow(Flow):
 
     def _initialize_phases(self):
         """Initialize phase handlers"""
-        # Create agents dict for phase initialization
-        agents = {
-            "data_validation_agent": self.data_validation_agent,
-            "attribute_mapping_agent": self.attribute_mapping_agent,
-            "data_cleansing_agent": self.data_cleansing_agent,
-            "asset_inventory_agent": self.asset_inventory_agent,
-            "dependency_analysis_agent": self.dependency_analysis_agent,
-            "tech_debt_analysis_agent": self.tech_debt_analysis_agent,
+        # Import phase executors
+        from ..handlers.phase_executors import (
+            AssetInventoryExecutor,
+            DataCleansingExecutor,
+            DataImportValidationExecutor,
+            DependencyAnalysisExecutor,
+            FieldMappingExecutor,
+            TechDebtExecutor,
+        )
+        from .crew_coordination import CrewCoordinator
+
+        # Initialize crew manager
+        self.crew_manager = CrewCoordinator(self.crewai_service, self.context)
+
+        # Note: We'll initialize the actual phase executors later when state is available
+        # For now, store the executor classes
+        self._phase_executor_classes = {
+            "data_validation_phase": DataImportValidationExecutor,
+            "field_mapping_phase": FieldMappingExecutor,
+            "data_cleansing_phase": DataCleansingExecutor,
+            "asset_inventory_phase": AssetInventoryExecutor,
+            "dependency_analysis_phase": DependencyAnalysisExecutor,
+            "tech_debt_assessment_phase": TechDebtExecutor,
         }
 
-        # Initialize phases (will use state when available)
-        phases = self.initializer.initialize_phases(None, agents, self.flow_bridge)
+        # Create placeholder phases that will be initialized with state later
+        self.data_validation_phase = None
+        self.field_mapping_phase = None
+        self.data_cleansing_phase = None
+        self.asset_inventory_phase = None
+        self.dependency_analysis_phase = None
+        self.tech_debt_assessment_phase = None
 
-        self.data_validation_phase = phases["data_validation_phase"]
-        self.field_mapping_phase = phases["field_mapping_phase"]
-        self.data_cleansing_phase = phases["data_cleansing_phase"]
-        self.asset_inventory_phase = phases["asset_inventory_phase"]
-        self.dependency_analysis_phase = phases["dependency_analysis_phase"]
-        self.tech_debt_assessment_phase = phases["tech_debt_assessment_phase"]
+    def _initialize_phase_executors_with_state(self):
+        """Initialize phase executors with the actual state once it's available"""
+        if not hasattr(self, "_flow_state") or not self._flow_state:
+            raise RuntimeError("Cannot initialize phase executors without state")
+
+        if not hasattr(self, "crew_manager") or not self.crew_manager:
+            raise RuntimeError("Cannot initialize phase executors without crew manager")
+
+        # Initialize all phase executors with state using a mapping
+        phase_mappings = {
+            "data_validation_phase": "data_validation_phase",
+            "field_mapping_phase": "field_mapping_phase",
+            "data_cleansing_phase": "data_cleansing_phase",
+            "asset_inventory_phase": "asset_inventory_phase",
+            "dependency_analysis_phase": "dependency_analysis_phase",
+            "tech_debt_assessment_phase": "tech_debt_assessment_phase",
+        }
+
+        # Initialize each phase executor with common parameters
+        for attr_name, phase_key in phase_mappings.items():
+            if phase_key not in self._phase_executor_classes:
+                raise RuntimeError(f"Phase executor class not found for {phase_key}")
+
+            executor_class = self._phase_executor_classes[phase_key]
+            executor_instance = executor_class(
+                self._flow_state, self.crew_manager, self.flow_bridge
+            )
+            setattr(self, attr_name, executor_instance)
+
+        logger.info("✅ Phase executors initialized with state and crew manager")
 
     def _initialize_utilities(self):
         """Initialize modular utility classes"""
@@ -287,6 +331,9 @@ class UnifiedDiscoveryFlow(Flow):
             self._flow_state.status = "processing"
             self._flow_state.current_phase = "initialization"
             self._flow_state.started_at = datetime.now().isoformat()
+
+            # Initialize phase executors now that we have state
+            self._initialize_phase_executors_with_state()
 
             # Load raw data if not already loaded
             if (

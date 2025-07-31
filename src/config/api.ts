@@ -692,3 +692,45 @@ export const apiCallWithFallback = async (
     };
   }
 };
+
+/**
+ * Clear cache for specific endpoints or patterns
+ * @param patterns Array of endpoint patterns to clear from cache
+ */
+export const clearApiCache = (patterns?: string[]): void => {
+  if (!patterns || patterns.length === 0) {
+    // Clear entire cache
+    responseCache.clear();
+    console.log('🔄 Cleared entire API cache');
+    return;
+  }
+
+  // Clear specific patterns
+  const clearedKeys: string[] = [];
+  responseCache.forEach((_, key) => {
+    for (const pattern of patterns) {
+      if (key.includes(pattern)) {
+        responseCache.delete(key);
+        clearedKeys.push(key);
+        break;
+      }
+    }
+  });
+
+  if (clearedKeys.length > 0) {
+    console.log('🔄 Cleared API cache for:', clearedKeys);
+  }
+};
+
+/**
+ * Clear cache for user management endpoints
+ */
+export const clearUserManagementCache = (): void => {
+  clearApiCache([
+    '/auth/active-users',
+    '/auth/pending-approvals',
+    '/admin/users',
+    '/admin/clients',
+    '/admin/engagements'
+  ]);
+};

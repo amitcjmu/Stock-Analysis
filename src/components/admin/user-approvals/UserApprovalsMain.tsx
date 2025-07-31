@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { apiCall } from '@/config/api';
+import { apiCall, clearUserManagementCache } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminLoadingState, getAccessLevelColor } from '@/components/admin/shared'
 import { useAdminToasts, formatDate } from '@/components/admin/shared'
@@ -208,6 +208,9 @@ export const UserApprovalsMain: React.FC = () => {
       if (response.status === 'success') {
         showUserApprovedToast(selectedUser.full_name);
 
+        // Clear cache to ensure fresh data
+        clearUserManagementCache();
+
         // Remove from pending users
         setPendingUsers(prev => prev.filter(u => u.user_id !== selectedUser.user_id));
 
@@ -235,6 +238,9 @@ export const UserApprovalsMain: React.FC = () => {
           client_access: [],
           notes: ''
         });
+
+        // Reload data to ensure consistency
+        await Promise.all([fetchPendingUsers(), fetchActiveUsers()]);
       } else {
         throw new Error(response.message || 'Failed to approve user');
       }
@@ -265,12 +271,18 @@ export const UserApprovalsMain: React.FC = () => {
       if (response.status === 'success') {
         showUserRejectedToast(selectedUser.full_name);
 
+        // Clear cache to ensure fresh data
+        clearUserManagementCache();
+
         // Remove from pending users
         setPendingUsers(prev => prev.filter(u => u.user_id !== selectedUser.user_id));
 
         setShowRejectionDialog(false);
         setSelectedUser(null);
         setRejectionData({ rejection_reason: '' });
+
+        // Reload data to ensure consistency
+        await fetchPendingUsers();
       } else {
         throw new Error(response.message || 'Failed to reject user');
       }
@@ -297,10 +309,16 @@ export const UserApprovalsMain: React.FC = () => {
       if (response.status === 'success') {
         showUserDeactivatedToast(user.full_name);
 
+        // Clear cache to ensure fresh data
+        clearUserManagementCache();
+
         // Update user status
         setActiveUsers(prev => prev.map(u =>
           u.user_id === user.user_id ? { ...u, is_active: false } : u
         ));
+
+        // Reload data to ensure consistency
+        await fetchActiveUsers();
       } else {
         throw new Error(response.message || 'Failed to deactivate user');
       }
@@ -326,10 +344,16 @@ export const UserApprovalsMain: React.FC = () => {
       if (response.status === 'success') {
         showUserActivatedToast(user.full_name);
 
+        // Clear cache to ensure fresh data
+        clearUserManagementCache();
+
         // Update user status
         setActiveUsers(prev => prev.map(u =>
           u.user_id === user.user_id ? { ...u, is_active: true } : u
         ));
+
+        // Reload data to ensure consistency
+        await fetchActiveUsers();
       } else {
         throw new Error(response.message || 'Failed to activate user');
       }

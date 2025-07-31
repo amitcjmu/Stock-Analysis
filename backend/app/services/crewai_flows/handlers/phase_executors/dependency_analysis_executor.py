@@ -291,8 +291,8 @@ class DependencyAnalysisExecutor(BasePhaseExecutor):
 
     async def _persist_dependencies_to_db(self, results: Dict[str, Any]):
         """Persist discovered dependencies to the database"""
-        from app.services.dependency_analysis_service import DependencyAnalysisService
         from app.core.database import get_db
+        from app.services.dependency_analysis_service import DependencyAnalysisService
 
         # Get context from state
         client_account_id = getattr(self.state, "client_account_id", None)
