@@ -235,8 +235,10 @@ class DependencyAnalysisExecutor(BasePhaseExecutor):
                 logger.error("Missing client_account_id or engagement_id in state")
                 return []
 
-            # Get database session
-            async for db in get_db():
+            # Get database session - get_db() yields a single session
+            db_gen = get_db()
+            db = await db_gen.__anext__()
+            try:
                 # Create asset repository
                 asset_repo = AssetRepository(db, client_account_id, engagement_id)
 
@@ -269,6 +271,12 @@ class DependencyAnalysisExecutor(BasePhaseExecutor):
                     f"✅ Loaded {len(asset_dicts)} assets from database for dependency analysis"
                 )
                 return asset_dicts
+            finally:
+                # Properly close the generator
+                try:
+                    await db_gen.aclose()
+                except StopAsyncIteration:
+                    pass
         except Exception as e:
             logger.error(f"Error loading assets from database: {e}")
             return []
@@ -295,86 +303,94 @@ class DependencyAnalysisExecutor(BasePhaseExecutor):
             logger.error("Missing context for dependency persistence")
             return
 
-        async for db in get_db():
+        # Get database session - get_db() yields a single session
+        db_gen = get_db()
+        db = await db_gen.__anext__()
+        try:
+            # Create dependency service
+            dep_service = DependencyAnalysisService(
+                db, client_account_id, engagement_id, flow_id
+            )
+
+            # Persist app-server dependencies
+            app_server_deps = results.get("app_server_mapping", [])
+            for dep in app_server_deps:
+                try:
+                    await dep_service.create_dependency(
+                        source_id=dep.get("application_id"),
+                        target_id=dep.get("server_id"),
+                        dependency_type=dep.get("dependency_type", "hosting"),
+                        is_app_to_app=False,
+                        description=f"{dep.get('application_name')} depends on {dep.get('server_name')}",
+                    )
+                    logger.info(
+                        f"✅ Persisted app-server dependency: "
+                        f"{dep.get('application_name')} -> {dep.get('server_name')}"
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to persist app-server dependency: {e}")
+
+            # Persist app-app dependencies
+            cross_app_deps = results.get("cross_application_mapping", [])
+            for dep in cross_app_deps:
+                try:
+                    await dep_service.create_dependency(
+                        source_id=dep.get("source_application_id"),
+                        target_id=dep.get("target_application_id"),
+                        dependency_type=dep.get("dependency_type", "api"),
+                        is_app_to_app=True,
+                        description=f"{dep.get('source_application')} depends on {dep.get('target_application')}",
+                    )
+                    logger.info(
+                        f"✅ Persisted app-app dependency: "
+                        f"{dep.get('source_application')} -> {dep.get('target_application')}"
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to persist app-app dependency: {e}")
+
+            # Also persist the raw dependency list if present
+            all_deps = results.get("dependency_relationships", [])
+            for dep in all_deps:
+                try:
+                    if (
+                        isinstance(dep, dict)
+                        and dep.get("source_id")
+                        and dep.get("target_id")
+                    ):
+                        await dep_service.create_dependency(
+                            source_id=dep.get("source_id"),
+                            target_id=dep.get("target_id"),
+                            dependency_type=dep.get("dependency_type", "unknown"),
+                            is_app_to_app=dep.get("source_name", "")
+                            .lower()
+                            .endswith("app")
+                            and dep.get("target_name", "").lower().endswith("app"),
+                            description=dep.get("description", ""),
+                        )
+                        logger.info(
+                            f"✅ Persisted dependency: {dep.get('source_name')} -> {dep.get('target_name')}"
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to persist dependency: {e}")
+
+            # Commit the transaction
+            await db.commit()
+            logger.info(
+                f"✅ Successfully persisted "
+                f"{len(app_server_deps) + len(cross_app_deps) + len(all_deps)} "
+                f"dependencies to database"
+            )
+
+        except Exception as e:
+            logger.error(f"Error persisting dependencies: {e}")
+            await db.rollback()
+            raise
+        finally:
+            # Properly close the generator
             try:
-                # Create dependency service
-                dep_service = DependencyAnalysisService(
-                    db, client_account_id, engagement_id, flow_id
-                )
-
-                # Persist app-server dependencies
-                app_server_deps = results.get("app_server_mapping", [])
-                for dep in app_server_deps:
-                    try:
-                        await dep_service.create_dependency(
-                            source_id=dep.get("application_id"),
-                            target_id=dep.get("server_id"),
-                            dependency_type=dep.get("dependency_type", "hosting"),
-                            is_app_to_app=False,
-                            description=f"{dep.get('application_name')} depends on {dep.get('server_name')}",
-                        )
-                        logger.info(
-                            f"✅ Persisted app-server dependency: "
-                            f"{dep.get('application_name')} -> {dep.get('server_name')}"
-                        )
-                    except Exception as e:
-                        logger.warning(f"Failed to persist app-server dependency: {e}")
-
-                # Persist app-app dependencies
-                cross_app_deps = results.get("cross_application_mapping", [])
-                for dep in cross_app_deps:
-                    try:
-                        await dep_service.create_dependency(
-                            source_id=dep.get("source_application_id"),
-                            target_id=dep.get("target_application_id"),
-                            dependency_type=dep.get("dependency_type", "api"),
-                            is_app_to_app=True,
-                            description=f"{dep.get('source_application')} depends on {dep.get('target_application')}",
-                        )
-                        logger.info(
-                            f"✅ Persisted app-app dependency: "
-                            f"{dep.get('source_application')} -> {dep.get('target_application')}"
-                        )
-                    except Exception as e:
-                        logger.warning(f"Failed to persist app-app dependency: {e}")
-
-                # Also persist the raw dependency list if present
-                all_deps = results.get("dependency_relationships", [])
-                for dep in all_deps:
-                    try:
-                        if (
-                            isinstance(dep, dict)
-                            and dep.get("source_id")
-                            and dep.get("target_id")
-                        ):
-                            await dep_service.create_dependency(
-                                source_id=dep.get("source_id"),
-                                target_id=dep.get("target_id"),
-                                dependency_type=dep.get("dependency_type", "unknown"),
-                                is_app_to_app=dep.get("source_name", "")
-                                .lower()
-                                .endswith("app")
-                                and dep.get("target_name", "").lower().endswith("app"),
-                                description=dep.get("description", ""),
-                            )
-                            logger.info(
-                                f"✅ Persisted dependency: {dep.get('source_name')} -> {dep.get('target_name')}"
-                            )
-                    except Exception as e:
-                        logger.warning(f"Failed to persist dependency: {e}")
-
-                # Commit the transaction
-                await db.commit()
-                logger.info(
-                    f"✅ Successfully persisted "
-                    f"{len(app_server_deps) + len(cross_app_deps) + len(all_deps)} "
-                    f"dependencies to database"
-                )
-
-            except Exception as e:
-                logger.error(f"Error persisting dependencies: {e}")
-                await db.rollback()
-                raise
+                await db_gen.aclose()
+            except StopAsyncIteration:
+                pass
 
     def _get_phase_timeout(self) -> Optional[int]:
         """No timeout for dependency analysis - it's a complex agentic task"""
