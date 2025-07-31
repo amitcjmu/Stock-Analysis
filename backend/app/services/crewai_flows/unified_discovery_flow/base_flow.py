@@ -248,25 +248,26 @@ class UnifiedDiscoveryFlow(Flow):
         if not hasattr(self, "crew_manager") or not self.crew_manager:
             raise RuntimeError("Cannot initialize phase executors without crew manager")
 
-        # Now initialize the actual phase executors with state
-        self.data_validation_phase = self._phase_executor_classes[
-            "data_validation_phase"
-        ](self._flow_state, self.crew_manager, self.flow_bridge)
-        self.field_mapping_phase = self._phase_executor_classes["field_mapping_phase"](
-            self._flow_state, self.crew_manager, self.flow_bridge
-        )
-        self.data_cleansing_phase = self._phase_executor_classes[
-            "data_cleansing_phase"
-        ](self._flow_state, self.crew_manager, self.flow_bridge)
-        self.asset_inventory_phase = self._phase_executor_classes[
-            "asset_inventory_phase"
-        ](self._flow_state, self.crew_manager, self.flow_bridge)
-        self.dependency_analysis_phase = self._phase_executor_classes[
-            "dependency_analysis_phase"
-        ](self._flow_state, self.crew_manager, self.flow_bridge)
-        self.tech_debt_assessment_phase = self._phase_executor_classes[
-            "tech_debt_assessment_phase"
-        ](self._flow_state, self.crew_manager, self.flow_bridge)
+        # Initialize all phase executors with state using a mapping
+        phase_mappings = {
+            "data_validation_phase": "data_validation_phase",
+            "field_mapping_phase": "field_mapping_phase",
+            "data_cleansing_phase": "data_cleansing_phase",
+            "asset_inventory_phase": "asset_inventory_phase",
+            "dependency_analysis_phase": "dependency_analysis_phase",
+            "tech_debt_assessment_phase": "tech_debt_assessment_phase",
+        }
+
+        # Initialize each phase executor with common parameters
+        for attr_name, phase_key in phase_mappings.items():
+            if phase_key not in self._phase_executor_classes:
+                raise RuntimeError(f"Phase executor class not found for {phase_key}")
+
+            executor_class = self._phase_executor_classes[phase_key]
+            executor_instance = executor_class(
+                self._flow_state, self.crew_manager, self.flow_bridge
+            )
+            setattr(self, attr_name, executor_instance)
 
         logger.info("✅ Phase executors initialized with state and crew manager")
 

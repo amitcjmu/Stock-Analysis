@@ -101,14 +101,50 @@ def create_asset_enrichment_pattern(
 
     This function is used by agents to store discovered patterns
     as part of the Tier 3 semantic memory system.
+
+    Args:
+        session: Database session
+        client_account_id: UUID of the client account
+        engagement_id: UUID of the engagement
+        pattern_type: Type of pattern discovered
+        pattern_name: Name of the pattern
+        pattern_description: Description of the pattern
+        discovered_by_agent: Name of the agent that discovered the pattern
+        confidence_score: Confidence score between 0.0 and 1.0
+        evidence_assets: List of asset IDs that support this pattern
+        reasoning: Optional reasoning for the pattern
+        supporting_data: Optional additional data
+
+    Returns:
+        AgentDiscoveredPattern: The created pattern
+
+    Raises:
+        ValueError: If validation fails
+        Exception: If database operation fails
     """
+    # Validation
+    if not pattern_name or not pattern_name.strip():
+        raise ValueError("Pattern name cannot be empty")
+
+    if not pattern_description or not pattern_description.strip():
+        raise ValueError("Pattern description cannot be empty")
+
+    if not discovered_by_agent or not discovered_by_agent.strip():
+        raise ValueError("Discovered by agent cannot be empty")
+
+    if not 0.0 <= confidence_score <= 1.0:
+        raise ValueError("Confidence score must be between 0.0 and 1.0")
+
+    if not isinstance(evidence_assets, list):
+        raise ValueError("Evidence assets must be a list")
+
     pattern = AgentDiscoveredPattern(
         client_account_id=client_account_id,
         engagement_id=engagement_id,
         pattern_type=pattern_type,
-        pattern_name=pattern_name,
-        pattern_description=pattern_description,
-        discovered_by_agent=discovered_by_agent,
+        pattern_name=pattern_name.strip(),
+        pattern_description=pattern_description.strip(),
+        discovered_by_agent=discovered_by_agent.strip(),
         confidence_score=confidence_score,
         evidence_count=len(evidence_assets),
         evidence_assets=evidence_assets,
