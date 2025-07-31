@@ -273,18 +273,12 @@ class DependencyAnalysisExecutor(BasePhaseExecutor):
                 "error": str(e),
             }
 
-    def _store_results(self, results: Dict[str, Any]):
+    async def _store_results(self, results: Dict[str, Any]):
         self.state.dependencies = results
 
         # CRITICAL: Persist dependencies to database
-        import asyncio
-
         try:
-            # Run async persistence in sync context
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(self._persist_dependencies_to_db(results))
-            loop.close()
+            await self._persist_dependencies_to_db(results)
         except Exception as e:
             logger.error(f"Failed to persist dependencies to database: {e}")
 

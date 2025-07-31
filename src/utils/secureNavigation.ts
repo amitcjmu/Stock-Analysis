@@ -7,7 +7,7 @@
  * Created by CC (Claude Code) - Security Enhancement
  */
 
-import SecureLogger from './SecureLogger';
+import SecureLogger from './secureLogger';
 import { validateFlowId } from './secureStorage';
 
 // Allowed path patterns (whitelist approach)

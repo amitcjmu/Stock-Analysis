@@ -121,7 +121,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
             "mapping_type": "comprehensive_field_mapping",
         }
 
-    def _store_results(self, results: Dict[str, Any]):
+    async def _store_results(self, results: Dict[str, Any]):
         """Store execution results in state"""
         self.state.field_mappings = results
 

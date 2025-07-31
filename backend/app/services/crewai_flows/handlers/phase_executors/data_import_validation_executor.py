@@ -41,7 +41,7 @@ class DataImportValidationExecutor(BasePhaseExecutor):
             },
         }
 
-    def _store_results(self, results: Dict[str, Any]):
+    async def _store_results(self, results: Dict[str, Any]):
         """Store execution results in state"""
         # Debug: Log what we're storing
         logger.info("🔍 DEBUG: Storing data import validation results")
@@ -280,7 +280,7 @@ class DataImportValidationExecutor(BasePhaseExecutor):
             validation_results = await self._perform_validation_checks()
 
             # Store results in state
-            self._store_results(validation_results)
+            await self._store_results(validation_results)
 
             # Persist the validated data
             logger.info(

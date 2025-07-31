@@ -52,5 +52,5 @@ class TechDebtExecutor(BasePhaseExecutor):
     def _prepare_crew_input(self) -> Dict[str, Any]:
         return {"asset_inventory": getattr(self.state, "asset_inventory", {})}
 
-    def _store_results(self, results: Dict[str, Any]):
+    async def _store_results(self, results: Dict[str, Any]):
         self.state.technical_debt = results
