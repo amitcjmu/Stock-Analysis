@@ -360,7 +360,7 @@ export const useAuthService = (
   let lastFetchDefaultContextTime = 0;
   const FETCH_DEFAULT_CONTEXT_DEBOUNCE = 1000; // 1 second debounce
 
-  const fetchDefaultContext = async (): JSX.Element => {
+  const fetchDefaultContext = async (): Promise<void> => {
     try {
       console.log('🔍 fetchDefaultContext - Starting with current context:', { client, engagement });
 

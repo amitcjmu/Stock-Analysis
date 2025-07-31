@@ -51,7 +51,7 @@ export const useAuthInitialization = ({
   setIsLoading,
   switchClient,
   fetchDefaultContext
-}: UseAuthInitializationProps): JSX.Element => {
+}: UseAuthInitializationProps): void => {
   const navigate = useNavigate();
   const initRef = useRef(false);
 
@@ -59,7 +59,7 @@ export const useAuthInitialization = ({
     let isMounted = true;
 
 
-    const initializeAuth = async (): JSX.Element => {
+    const initializeAuth = async (): Promise<void> => {
       // Add a small delay to ensure React has fully mounted
       await new Promise(resolve => setTimeout(resolve, 100));
 

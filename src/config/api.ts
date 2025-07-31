@@ -92,7 +92,7 @@ const getBaseUrl = (): string => {
 };
 
 export const API_CONFIG = {
-  get BASE_URL(): JSX.Element {
+  get BASE_URL(): string {
     return getBaseUrl();
   },
   ENDPOINTS: {

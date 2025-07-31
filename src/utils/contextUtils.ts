@@ -42,7 +42,7 @@ export const getAuthHeaders = (context?: Partial<AuthContextType & ContextWithId
  * @param context - The auth context containing client and engagement info
  * @returns Headers object with context information
  */
-export const getContextHeaders = (context?: Partial<ContextWithIds>): JSX.Element => {
+export const getContextHeaders = (context?: Partial<ContextWithIds>): Record<string, string> => {
   const headers: Record<string, string> = {};
 
   if (context?.client?.id) {
