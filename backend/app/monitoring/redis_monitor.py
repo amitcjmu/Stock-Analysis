@@ -11,20 +11,22 @@ Comprehensive monitoring for Redis operations including:
 """
 
 import asyncio
-import json
-import logging
+
+# import json  # unused import
+# import logging  # unused import
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, asdict
 from collections import defaultdict, deque
 
 from opentelemetry import trace, metrics
 from opentelemetry.trace import Status, StatusCode
-from opentelemetry.metrics import CallbackOptions, Observation
+
+# from opentelemetry.metrics import CallbackOptions, Observation  # unused imports
 from prometheus_client import Counter, Histogram, Gauge, Info
 
-from app.core.config import settings
+# from app.core.config import settings  # unused import
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -343,12 +345,12 @@ class RedisHealthMonitor:
     async def _check_rate_limit(self, tenant_id: str) -> bool:
         """Check rate limiting for tenant"""
         # Simple rate limiting - 1000 operations per minute per tenant
-        rate_limit_key = f"rate_limit:{tenant_id}"
-        current_time = int(time.time() / 60)  # Current minute
-
-        # This would normally use Redis for rate limiting
-        # For now, return True (rate limit not exceeded)
-        return True
+        # Rate limiting implementation
+        # In production, this would use Redis to track rate limits
+        # rate_limit_key = f"rate_limit:{tenant_id}"
+        # current_time = int(time.time() / 60)  # Current minute
+        # ... rate limiting logic ...
+        return True  # For now, allow all requests
 
     async def _record_security_event(self, event: SecurityEvent):
         """Record a security event"""
@@ -640,7 +642,7 @@ redis_monitor = RedisHealthMonitor()
 
 async def setup_monitoring(redis_client):
     """Setup Redis monitoring with client"""
-    global redis_monitor
+    # Set the redis client on the global monitor instance
     redis_monitor.redis_client = redis_client
 
     # Start background monitoring tasks
