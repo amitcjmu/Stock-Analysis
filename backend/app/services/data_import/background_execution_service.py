@@ -20,6 +20,9 @@ from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
+# Global set to track background tasks
+_background_tasks = set()
+
 
 class BackgroundExecutionService:
     """
@@ -35,27 +38,72 @@ class BackgroundExecutionService:
         self, flow_id: str, file_data: List[Dict[str, Any]], context: RequestContext
     ) -> None:
         """
-        Start CrewAI flow execution in background after successful database commit.
+        Start CrewAI flow execution in background with proper task tracking.
 
-        This function runs the actual CrewAI flow kickoff after all database operations
-        have been committed atomically. It uses fresh database sessions since it runs
-        independently from the main transaction.
-
-        Args:
-            flow_id: The master flow ID to execute
-            file_data: Raw import data for the flow
-            context: Request context for the flow
+        Key fixes:
+        1. Properly track background tasks to prevent garbage collection
+        2. Add error handling to ensure tasks complete
+        3. Ensure flow execution actually starts
         """
         try:
             logger.info(f"🚀 Starting background flow execution for {flow_id}")
 
-            # Create the background task
-            asyncio.create_task(self._run_discovery_flow(flow_id, file_data, context))
-            logger.info(f"✅ Background flow execution task created for {flow_id}")
+            # Create the background task with proper tracking
+            task = asyncio.create_task(
+                self._run_discovery_flow_with_error_handling(
+                    flow_id, file_data, context
+                )
+            )
+
+            # Add to global set to prevent garbage collection
+            _background_tasks.add(task)
+
+            # Remove from set when done
+            task.add_done_callback(_background_tasks.discard)
+
+            logger.info(
+                f"✅ Background flow execution task created and tracked for {flow_id}"
+            )
+
+            # Give the task a moment to start (non-blocking)
+            await asyncio.sleep(0.1)
 
         except Exception as e:
-            logger.error(f"❌ Failed to start background flow execution: {e}")
+            logger.error(
+                f"❌ Failed to start background flow execution: {e}", exc_info=True
+            )
             raise FlowError(f"Failed to start background execution: {str(e)}")
+
+    async def _run_discovery_flow_with_error_handling(
+        self, flow_id: str, file_data: List[Dict[str, Any]], context: RequestContext
+    ) -> None:
+        """
+        Wrapper that ensures errors are logged and flow status is updated.
+        """
+        try:
+            await self._run_discovery_flow(flow_id, file_data, context)
+        except Exception as e:
+            logger.error(
+                f"❌ Critical error in background flow execution for {flow_id}: {e}",
+                exc_info=True,
+            )
+            # Ensure we update the flow status even on failure
+            try:
+                from datetime import datetime
+
+                await self._update_flow_status(
+                    flow_id=flow_id,
+                    status="failed",
+                    phase_data={
+                        "error": str(e),
+                        "timestamp": datetime.utcnow().isoformat(),
+                    },
+                    context=context,
+                )
+            except Exception as status_error:
+                logger.error(
+                    f"❌ Failed to update flow status on error: {status_error}"
+                )
 
     async def _run_discovery_flow(
         self, flow_id: str, file_data: List[Dict[str, Any]], context: RequestContext
@@ -68,7 +116,27 @@ class BackgroundExecutionService:
             file_data: Raw import data for the flow
             context: Request context for the flow
         """
+        logger.info(
+            f"🎯 Background CrewAI Discovery Flow execution starting for {flow_id}"
+        )
+        logger.info(f"📊 Processing {len(file_data)} records")
+
+        discovery_flow = None
+
         try:
+            # Update status to indicate we're starting
+            from datetime import datetime
+
+            await self._update_flow_status(
+                flow_id=flow_id,
+                status="starting",
+                phase_data={
+                    "message": "Initializing discovery flow execution",
+                    "timestamp": datetime.utcnow().isoformat(),
+                },
+                context=context,
+            )
+
             logger.info(
                 f"🎯 Background CrewAI Discovery Flow kickoff starting for {flow_id}"
             )

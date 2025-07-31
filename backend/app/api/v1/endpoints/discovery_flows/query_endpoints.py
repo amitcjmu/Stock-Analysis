@@ -437,6 +437,92 @@ async def get_flow_agent_insights(
         )
 
 
+@query_router.get("/flows/{flow_id}/field-mappings", response_model=Dict[str, Any])
+async def get_flow_field_mappings(
+    flow_id: str,
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get field mappings for a specific discovery flow.
+
+    This endpoint retrieves the field mapping configuration for the flow.
+    """
+    try:
+        # Validate context - engagement context is required
+        if not context:
+            logger.error("No request context available")
+            raise HTTPException(status_code=403, detail="Request context is required")
+
+        if not context.engagement_id:
+            logger.error("No engagement ID in context")
+            raise HTTPException(
+                status_code=403, detail="Engagement context is required"
+            )
+
+        logger.info(
+            f"Getting field mappings for flow {flow_id}, engagement {context.engagement_id}"
+        )
+
+        # Import required models
+        import uuid as uuid_lib
+
+        from app.models.discovery_flow import DiscoveryFlow
+
+        # Convert flow_id to UUID if needed
+        try:
+            flow_uuid = uuid_lib.UUID(flow_id)
+        except ValueError:
+            logger.warning(f"Invalid UUID format for flow_id: {flow_id}")
+            flow_uuid = flow_id
+
+        # Get flow from DiscoveryFlow table
+        stmt = select(DiscoveryFlow).where(
+            and_(
+                DiscoveryFlow.flow_id == flow_uuid,
+                DiscoveryFlow.engagement_id == context.engagement_id,
+            )
+        )
+        result = await db.execute(stmt)
+        flow = result.scalar_one_or_none()
+
+        if not flow:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Flow {flow_id} not found for engagement {context.engagement_id}",
+            )
+
+        # Extract field mappings from flow
+        field_mappings = flow.field_mappings or {}
+
+        # Also check crewai_state_data for field mappings
+        if flow.crewai_state_data and "field_mappings" in flow.crewai_state_data:
+            crewai_mappings = flow.crewai_state_data.get("field_mappings", {})
+            # Merge with existing mappings
+            field_mappings.update(crewai_mappings)
+
+        return {
+            "flow_id": str(flow_id),
+            "field_mappings": field_mappings,
+            "mapping_status": flow.field_mapping_status or "pending",
+            "mapping_completed": flow.field_mapping_completed or False,
+            "confidence_scores": (
+                flow.crewai_state_data.get("confidence_scores", {})
+                if flow.crewai_state_data
+                else {}
+            ),
+            "last_updated": flow.updated_at.isoformat() if flow.updated_at else "",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting field mappings: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get field mappings: {str(e)}"
+        )
+
+
 @query_router.get(
     "/agents/discovery/agent-questions", response_model=List[Dict[str, Any]]
 )
@@ -453,14 +539,28 @@ async def get_agent_questions(
     with the discovery process.
     """
     try:
+        # Validate context - engagement context is required
+        if not context:
+            logger.error("No request context available")
+            raise HTTPException(status_code=403, detail="Request context is required")
+
+        if not context.engagement_id:
+            logger.error("No engagement ID in context")
+            raise HTTPException(
+                status_code=403, detail="Engagement context is required"
+            )
+
         logger.info(
-            f"Getting agent questions - TypeErr: {TypeErr}, field_mappings: {field_mappings}"
+            f"Getting agent questions - TypeErr: {TypeErr}, "
+            f"field_mappings: {field_mappings}, engagement: {context.engagement_id}"
         )
 
         # TODO: Implement real agent questions retrieval
         # For now, return empty list to avoid 404 errors
         return []
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting agent questions: {e}")
         raise HTTPException(

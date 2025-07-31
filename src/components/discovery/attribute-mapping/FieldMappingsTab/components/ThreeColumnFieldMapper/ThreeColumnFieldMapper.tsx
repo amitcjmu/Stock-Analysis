@@ -106,7 +106,8 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
 
     try {
       setProcessingMappings(prev => new Set(prev).add(mappingId));
-      onMappingAction(mappingId, 'approve');
+      // IMPORTANT: Await the onMappingAction to ensure it completes before continuing
+      await onMappingAction(mappingId, 'approve');
 
       // Remove from processing set after a short delay
       setTimeout(() => {

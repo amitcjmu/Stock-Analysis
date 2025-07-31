@@ -165,7 +165,7 @@ class BasePhaseExecutor(ABC):
                 )
 
             # Store results and update state
-            self._store_results(results)
+            await self._store_results(results)
             self.state.mark_phase_complete(phase_name, results)
             self.state.update_progress()
 
@@ -243,7 +243,7 @@ class BasePhaseExecutor(ABC):
         pass
 
     @abstractmethod
-    def _store_results(self, results: Dict[str, Any]):
+    async def _store_results(self, results: Dict[str, Any]):
         """Store execution results in state"""
         pass
 

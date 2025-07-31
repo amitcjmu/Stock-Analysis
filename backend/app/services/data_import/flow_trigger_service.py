@@ -114,16 +114,52 @@ class FlowTriggerService:
                 master_flow_id = flow_result[0]
                 logger.info(f"✅ Master flow created atomically: {master_flow_id}")
 
-                # 🔧 CC FIX: The MasterFlowOrchestrator already creates the discovery flow
-                # We don't need to create it again - just return the master flow ID
-                logger.info(
-                    f"✅ Discovery flow created via MasterFlowOrchestrator: {master_flow_id}"
-                )
-                logger.info(f"   Master Flow ID: {master_flow_id}")
+                # Create the Discovery flow child record that links to this master flow
+                # This follows the MFO two-table design pattern
+                try:
+                    from app.services.discovery_flow_service import DiscoveryFlowService
 
-                # Return the master flow ID for foreign key linkage in storage manager
-                # The MasterFlowOrchestrator handles all the flow creation internally
-                return master_flow_id
+                    # Create discovery flow service
+                    discovery_service = DiscoveryFlowService(self.db, context)
+
+                    # Create the discovery flow linked to the master flow
+                    # Convert UUIDs to strings to prevent JSON serialization errors
+                    metadata = convert_uuids_to_str(
+                        {
+                            "source": "data_import",
+                            "import_id": data_import_id,
+                            "master_flow_id": master_flow_id,
+                            "import_timestamp": datetime.utcnow().isoformat(),
+                        }
+                    )
+
+                    await discovery_service.create_discovery_flow(
+                        flow_id=str(master_flow_id),  # Use same flow_id as master
+                        raw_data=file_data,
+                        metadata=metadata,
+                        data_import_id=data_import_id,
+                        user_id=user_id,
+                        master_flow_id=str(master_flow_id),  # Link to master flow
+                    )
+
+                    logger.info(
+                        f"✅ Discovery flow child record created and linked: {master_flow_id}"
+                    )
+                    logger.info(f"   Master Flow ID: {master_flow_id}")
+                    logger.info(f"   Discovery Flow ID: {master_flow_id}")
+
+                    # Return the master flow ID for foreign key linkage in storage manager
+                    return master_flow_id
+
+                except Exception as discovery_error:
+                    logger.error(
+                        f"❌ Failed to create discovery flow child record: {discovery_error}"
+                    )
+                    # This is critical - we need both master and child records
+                    # Raise the error to trigger transaction rollback
+                    raise FlowError(
+                        f"Failed to create discovery flow child record: {str(discovery_error)}"
+                    )
 
             else:
                 logger.error(f"❌ Unexpected flow creation result: {flow_result}")
@@ -197,10 +233,54 @@ class FlowTriggerService:
                 # Extract flow_id from result tuple
                 if isinstance(flow_result, tuple) and len(flow_result) >= 1:
                     master_flow_id = flow_result[0]
-                    logger.info(
-                        f"✅ Discovery flow created via orchestrator: {master_flow_id}"
-                    )
-                    return master_flow_id
+                    logger.info(f"✅ Master flow created: {master_flow_id}")
+
+                    # Create the Discovery flow child record
+                    try:
+                        from app.services.discovery_flow_service import (
+                            DiscoveryFlowService,
+                        )
+
+                        # Create discovery flow service with fresh session
+                        discovery_service = DiscoveryFlowService(fresh_db, context)
+
+                        # Create the discovery flow linked to the master flow
+                        metadata = convert_uuids_to_str(
+                            {
+                                "source": "data_import",
+                                "import_id": data_import_id,
+                                "master_flow_id": master_flow_id,
+                                "import_timestamp": datetime.utcnow().isoformat(),
+                            }
+                        )
+
+                        await discovery_service.create_discovery_flow(
+                            flow_id=str(master_flow_id),  # Use same flow_id as master
+                            raw_data=file_data,
+                            metadata=metadata,
+                            data_import_id=data_import_id,
+                            user_id=user_id,
+                            master_flow_id=str(master_flow_id),  # Link to master flow
+                        )
+
+                        logger.info(
+                            f"✅ Discovery flow child record created: {master_flow_id}"
+                        )
+
+                        # Commit the transaction for non-atomic version
+                        await fresh_db.commit()
+
+                        return master_flow_id
+
+                    except Exception as discovery_error:
+                        logger.error(
+                            f"❌ Failed to create discovery flow child record: {discovery_error}"
+                        )
+                        # Rollback on error
+                        await fresh_db.rollback()
+                        raise FlowError(
+                            f"Failed to create discovery flow child record: {str(discovery_error)}"
+                        )
                 else:
                     logger.error(f"❌ Unexpected flow creation result: {flow_result}")
                     return None

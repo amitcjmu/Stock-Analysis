@@ -131,7 +131,7 @@ class DataCleansingExecutor(BasePhaseExecutor):
             "cleansing_type": "comprehensive_data_cleansing",
         }
 
-    def _store_results(self, results: Dict[str, Any]):
+    async def _store_results(self, results: Dict[str, Any]):
         # NO FALLBACK LOGIC - Crew results must be valid
         cleaned_data = results.get("cleaned_data", [])
 

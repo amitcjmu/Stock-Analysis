@@ -154,6 +154,11 @@ export interface DiscoveryFlowService {
    * Submit agent clarification answers
    */
   submitClarificationAnswers(flowId: string, answers: ClarificationAnswers, clientAccountId: string, engagementId: string): Promise<ClarificationSubmissionResponse>;
+
+  /**
+   * Retry a failed discovery flow
+   */
+  retryFlow(flowId: string, clientAccountId: string, engagementId: string): Promise<ApiResponse<{ success: boolean; message?: string }>>;
 }
 
 class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
@@ -184,9 +189,8 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
       `/discovery/flow/${flowId}/execute`,
       {
         phase,
-        data,
-        client_account_id: clientAccountId,
-        engagement_id: engagementId
+        phase_input: data,
+        force: false
       },
       {
         headers: {
@@ -219,6 +223,24 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
     );
 
     console.log(`✅ [DiscoveryFlowService] Clarification submission result:`, response);
+    return response;
+  }
+
+  async retryFlow(flowId: string, clientAccountId: string, engagementId: string): Promise<ApiResponse<{ success: boolean; message?: string }>> {
+    console.log(`🔄 [DiscoveryFlowService] Retrying failed flow: ${flowId}`);
+
+    const response = await apiClient.post<ApiResponse<{ success: boolean; message?: string }>>(
+      `/discovery/flow/${flowId}/retry`,
+      {},
+      {
+        headers: {
+          'X-Client-Account-ID': clientAccountId,
+          'X-Engagement-ID': engagementId
+        }
+      }
+    );
+
+    console.log(`✅ [DiscoveryFlowService] Flow retry result:`, response);
     return response;
   }
 }

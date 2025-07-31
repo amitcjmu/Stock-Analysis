@@ -136,6 +136,21 @@ async def get_agent_questions(
 ):
     """Get pending agent questions for the current page."""
     try:
+        # Validate context - engagement context is required
+        if not context:
+            logger.error("No request context available")
+            raise HTTPException(status_code=403, detail="Request context is required")
+
+        if not context.engagement_id:
+            logger.error("No engagement ID in context")
+            raise HTTPException(
+                status_code=403, detail="Engagement context is required"
+            )
+
+        logger.info(
+            f"Getting agent questions for page {page}, engagement {context.engagement_id}"
+        )
+
         # Get questions from agent UI bridge
         questions = agent_ui_bridge.get_questions_for_page(page)
 
@@ -227,6 +242,21 @@ async def get_agent_insights(
 ):
     """Get agent insights for the current page."""
     try:
+        # Validate context - engagement context is required
+        if not context:
+            logger.error("No request context available")
+            raise HTTPException(status_code=403, detail="Request context is required")
+
+        if not context.engagement_id:
+            logger.error("No engagement ID in context")
+            raise HTTPException(
+                status_code=403, detail="Engagement context is required"
+            )
+
+        logger.info(
+            f"Getting agent insights for page {page}, engagement {context.engagement_id}"
+        )
+
         # Get insights from agent UI bridge
         insights = agent_ui_bridge.get_insights_for_page(page)
 
@@ -238,7 +268,10 @@ async def get_agent_insights(
                 agent_name="Dependency Analysis Agent",
                 insight_type="dependency_analysis",
                 title="Dependency Analysis Complete",
-                description="Analyzed application dependencies and identified 3 critical paths that require attention during migration planning.",
+                description=(
+                    "Analyzed application dependencies and identified 3 critical paths "
+                    "that require attention during migration planning."
+                ),
                 confidence="high",
                 supporting_data={
                     "total_dependencies": 12,

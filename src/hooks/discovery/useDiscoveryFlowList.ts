@@ -19,7 +19,7 @@ export interface DiscoveryFlow {
   updated_at: string;
 }
 
-export const useDiscoveryFlowList = (): JSX.Element => {
+export const useDiscoveryFlowList = () => {
   const { client, engagement } = useAuth();
 
   return useQuery<DiscoveryFlow[]>({

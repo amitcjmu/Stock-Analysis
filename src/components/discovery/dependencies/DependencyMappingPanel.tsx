@@ -25,26 +25,22 @@ const DependencyMappingPanel: React.FC<DependencyMappingPanelProps> = ({
 
   if (!data) return null;
 
-  const getApplications = (): unknown => {
-    if (activeView === 'app-server') {
-      const hostingRelationships = data?.app_server_mapping?.hosting_relationships || [];
-      return Array.from(new Set(
-        hostingRelationships.map(r => r?.application_name).filter(Boolean)
-      ));
-    } else {
-      const crossAppDependencies = data?.cross_application_mapping?.cross_app_dependencies || [];
-      return Array.from(new Set([
-        ...crossAppDependencies.map(d => d?.source_app).filter(Boolean),
-        ...crossAppDependencies.map(d => d?.target_app).filter(Boolean)
-      ]));
+  const getApplications = (): string[] => {
+    const availableApps = data?.available_applications || [];
+    const apps = availableApps.map(app => app.name || app.asset_name || `App-${app.id}`).filter(Boolean);
+    if (apps.length > 0) {
+      console.log('✅ Applications available for dropdown:', apps.length);
     }
+    return apps;
   };
 
-  const getServers = (): unknown => {
-    const hostingRelationships = data?.app_server_mapping?.hosting_relationships || [];
-    return Array.from(new Set(
-      hostingRelationships.map(r => r?.server_name).filter(Boolean)
-    ));
+  const getServers = (): string[] => {
+    const availableServers = data?.available_servers || [];
+    const servers = availableServers.map(server => server.name || server.asset_name || `Server-${server.id}`).filter(Boolean);
+    if (servers.length > 0) {
+      console.log('✅ Servers available for dropdown:', servers.length);
+    }
+    return servers;
   };
 
   const handleCreateDependency = (): void => {

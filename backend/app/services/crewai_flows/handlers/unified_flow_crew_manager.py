@@ -53,6 +53,14 @@ class UnifiedFlowCrewManager:
     def _initialize_crew_factories(self):
         """Initialize CrewAI crew factory functions for on-demand creation"""
         try:
+            # CRITICAL: Initialize LLM configuration BEFORE importing crews
+            # This ensures OPENAI_API_KEY is set for DeepInfra before CrewAI initialization
+            from app.services.llm_config import get_crewai_llm
+
+            # Initialize LLM to ensure environment variables are set
+            _ = get_crewai_llm()
+            logger.info("✅ LLM configuration initialized for CrewAI")
+
             # 🚀 PERFORMANCE OPTIMIZATION: Always use optimized crews
             from app.services.crewai_flows.crews.field_mapping_crew_fast import (
                 create_fast_field_mapping_crew,

@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import type { Brain, Target, BarChart3, CheckCircle, TrendingUp, AlertCircle, XCircle } from 'lucide-react';
+import { Brain, Target, BarChart3, CheckCircle, TrendingUp, AlertCircle, XCircle } from 'lucide-react';
 import type { FieldMapping } from '../../types';
 import type { AgentTypeInfo, ConfidenceDisplayInfo } from './types';
 

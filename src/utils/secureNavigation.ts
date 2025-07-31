@@ -7,7 +7,7 @@
  * Created by CC (Claude Code) - Security Enhancement
  */
 
-import { secureLogger } from './secureLogger';
+import SecureLogger from './secureLogger';
 import { validateFlowId } from './secureStorage';
 
 // Allowed path patterns (whitelist approach)
@@ -72,13 +72,13 @@ function validateUrl(url: string): boolean {
     const currentOrigin = window.location.origin;
 
     if (urlObj.origin !== currentOrigin) {
-      secureLogger.warn(`Cross-origin navigation attempt blocked: ${urlObj.origin}`);
+      SecureLogger.warn(`Cross-origin navigation attempt blocked: ${urlObj.origin}`);
       return false;
     }
 
     return validatePath(urlObj.pathname);
   } catch (error) {
-    secureLogger.error('Invalid URL format', error);
+    SecureLogger.error('Invalid URL format', error);
     return false;
   }
 }
@@ -94,7 +94,7 @@ function sanitizeFlowId(flowId: string | null | undefined): string | null {
   const trimmedFlowId = flowId.trim();
 
   if (!validateFlowId(trimmedFlowId)) {
-    secureLogger.warn(`Invalid flow ID format: ${trimmedFlowId}`);
+    SecureLogger.warn(`Invalid flow ID format: ${trimmedFlowId}`);
     return null;
   }
 
@@ -106,7 +106,7 @@ function sanitizeFlowId(flowId: string | null | undefined): string | null {
  */
 function buildDiscoveryUrl(phase: DiscoveryPhase, flowId?: string | null): string {
   if (!DISCOVERY_PHASES.includes(phase)) {
-    secureLogger.error(`Invalid discovery phase: ${phase}`);
+    SecureLogger.error(`Invalid discovery phase: ${phase}`);
     return '/dashboard'; // Safe fallback
   }
 
@@ -117,7 +117,7 @@ function buildDiscoveryUrl(phase: DiscoveryPhase, flowId?: string | null): strin
     if (sanitizedFlowId) {
       url += `/${sanitizedFlowId}`;
     } else {
-      secureLogger.warn(`Invalid flow ID provided for ${phase}, navigating without ID`);
+      SecureLogger.warn(`Invalid flow ID provided for ${phase}, navigating without ID`);
     }
   }
 
@@ -143,15 +143,15 @@ function createSecureNavigation(): SecureNavigation {
   const navigateTo = (url: string): boolean => {
     try {
       if (!validateUrl(url)) {
-        secureLogger.error(`Navigation blocked - invalid URL: ${url}`);
+        SecureLogger.error(`Navigation blocked - invalid URL: ${url}`);
         return false;
       }
 
-      secureLogger.debug(`Navigating to validated URL: ${url}`);
+      SecureLogger.debug(`Navigating to validated URL: ${url}`);
       window.location.href = url;
       return true;
     } catch (error) {
-      secureLogger.error('Navigation failed', error);
+      SecureLogger.error('Navigation failed', error);
       return false;
     }
   };
@@ -161,14 +161,14 @@ function createSecureNavigation(): SecureNavigation {
       const url = buildDiscoveryUrl(phase, flowId);
       return navigateTo(url);
     } catch (error) {
-      secureLogger.error(`Failed to navigate to discovery phase: ${phase}`, error);
+      SecureLogger.error(`Failed to navigate to discovery phase: ${phase}`, error);
       return false;
     }
   };
 
   const validateAndNavigate = (url: string): boolean => {
     if (!validateUrl(url)) {
-      secureLogger.warn(`Invalid URL rejected: ${url}`);
+      SecureLogger.warn(`Invalid URL rejected: ${url}`);
       // Navigate to safe fallback
       return navigateTo('/dashboard');
     }

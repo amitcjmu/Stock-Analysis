@@ -130,7 +130,7 @@ class AssetInventoryExecutor(BasePhaseExecutor):
 
         return {"cleaned_data": cleaned_data}
 
-    def _store_results(self, results: Dict[str, Any]):
+    async def _store_results(self, results: Dict[str, Any]):
         """Store results in state - persistence is handled in execute_with_crew"""
         self.state.asset_inventory = results
 

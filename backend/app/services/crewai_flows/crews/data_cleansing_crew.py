@@ -223,6 +223,25 @@ def create_data_cleansing_crew(
     try:
         logger.info("🧠 Creating AGENTIC Data Cleansing Crew with intelligence agents")
 
+        # Debug logging
+        logger.info(f"🔍 DEBUG: state type = {type(state)}")
+        logger.info(f"🔍 DEBUG: state attributes = {dir(state) if state else 'None'}")
+
+        # Check if state has raw_data
+        if not hasattr(state, "raw_data"):
+            logger.error(
+                f"❌ State object has no raw_data attribute. State type: {type(state)}"
+            )
+            # Initialize raw_data to empty list if missing
+            if hasattr(state, "__dict__"):
+                state.raw_data = []
+                logger.warning("⚠️ Initialized state.raw_data to empty list")
+            else:
+                logger.error("❌ Cannot set raw_data on state object")
+                raise AttributeError(
+                    f"State object {type(state)} has no raw_data attribute and cannot be modified"
+                )
+
         # Get LLM configuration
         llm = crewai_service.get_llm()
         logger.info(f"Using LLM: {llm.model}")
@@ -230,7 +249,10 @@ def create_data_cleansing_crew(
         # 🧠 AGENTIC INTELLIGENCE AGENT: Data enrichment orchestrator
         agentic_enrichment_agent = Agent(
             role="Agentic Asset Intelligence Orchestrator",
-            goal="Enrich assets with comprehensive business value, risk, and modernization analysis using agent intelligence",
+            goal=(
+                "Enrich assets with comprehensive business value, risk, and "
+                "modernization analysis using agent intelligence"
+            ),
             backstory="""You are an intelligent asset analysis orchestrator who coordinates
             specialized agents to provide comprehensive asset enrichment. Instead of basic data
             cleansing, you orchestrate business value analysis, risk assessment, and modernization
@@ -253,9 +275,14 @@ def create_data_cleansing_crew(
         )
 
         # 🧠 AGENTIC INTELLIGENCE TASK: Complete asset enrichment
+        # Safely get raw_data length
+        raw_data_count = (
+            len(state.raw_data) if hasattr(state, "raw_data") and state.raw_data else 0
+        )
+
         enrichment_task = Task(
             description=f"""
-            Orchestrate comprehensive agentic asset enrichment for {len(state.raw_data)} assets.
+            Orchestrate comprehensive agentic asset enrichment for {raw_data_count} assets.
 
             AGENTIC INTELLIGENCE PROCESS:
 
@@ -284,7 +311,7 @@ def create_data_cleansing_crew(
                - Overall enrichment success rate
 
             EXPECTED OUTCOMES:
-            - {len(state.raw_data)} assets enriched with business intelligence
+            - {raw_data_count} assets enriched with business intelligence
             - Business value, risk, and modernization assessments for each asset
             - Pattern discovery and memory learning progress
             - Comprehensive intelligence summary for migration planning
@@ -306,16 +333,34 @@ def create_data_cleansing_crew(
             max_execution_time=100,  # Allow time for comprehensive analysis
         )
 
+        # Get embeddings configuration from llm_config
+        try:
+            from app.services.llm_config import get_crewai_embeddings
+
+            embeddings_config = get_crewai_embeddings()
+        except Exception as e:
+            logger.warning(f"Failed to get embeddings config: {e}")
+            embeddings_config = None
+
         # 🧠 AGENTIC CREW: Intelligence-focused process
-        crew = Crew(
-            agents=[agentic_enrichment_agent],
-            tasks=[enrichment_task],
-            process=Process.sequential,
-            verbose=True,  # Enable detailed intelligence logging
-            max_execution_time=180,  # Extended time for comprehensive analysis
-            memory=True,  # Enable memory for continuous learning
-            embedder=None,  # Disable embedding overhead
-        )
+        crew_config = {
+            "agents": [agentic_enrichment_agent],
+            "tasks": [enrichment_task],
+            "process": Process.sequential,
+            "verbose": True,  # Enable detailed intelligence logging
+            "max_execution_time": 180,  # Extended time for comprehensive analysis
+            "memory": True,  # Re-enabled with DeepInfra embeddings
+        }
+
+        # Add embeddings configuration if available
+        if embeddings_config:
+            crew_config["embedder"] = embeddings_config
+            logger.info("✅ Configured crew with DeepInfra embeddings")
+        else:
+            crew_config["memory"] = False  # Disable memory if embeddings not configured
+            logger.warning("⚠️ Embeddings not configured, disabling memory")
+
+        crew = Crew(**crew_config)
 
         logger.info(
             "✅ AGENTIC Data Cleansing Crew created - intelligence-driven asset enrichment"
@@ -345,19 +390,41 @@ def _create_minimal_fallback_crew(
             max_iter=1,
         )
 
+        # Safely get raw_data length
+        raw_data_count = (
+            len(getattr(state, "raw_data", [])) if hasattr(state, "raw_data") else 0
+        )
+
         minimal_task = Task(
-            description=f"Quick data validation for {len(state.raw_data)} records. Return: PROCESSED",
+            description=f"Quick data validation for {raw_data_count} records. Return: PROCESSED",
             agent=minimal_agent,
             expected_output="PROCESSED",
         )
 
-        return Crew(
-            agents=[minimal_agent],
-            tasks=[minimal_task],
-            process=Process.sequential,
-            verbose=False,
-            memory=True,  # RE-ENABLED: Memory system working correctly
-        )
+        # Get embeddings configuration from llm_config for fallback crew
+        try:
+            from app.services.llm_config import get_crewai_embeddings
+
+            embeddings_config = get_crewai_embeddings()
+        except Exception as e:
+            logger.warning(f"Failed to get embeddings config for fallback: {e}")
+            embeddings_config = None
+
+        crew_config = {
+            "agents": [minimal_agent],
+            "tasks": [minimal_task],
+            "process": Process.sequential,
+            "verbose": False,
+            "memory": True,  # RE-ENABLED: Memory system working correctly
+        }
+
+        # Add embeddings configuration if available
+        if embeddings_config:
+            crew_config["embedder"] = embeddings_config
+        else:
+            crew_config["memory"] = False  # Disable memory if embeddings not configured
+
+        return Crew(**crew_config)
     except Exception as e:
         logger.error(f"Even fallback crew creation failed: {e}")
         raise

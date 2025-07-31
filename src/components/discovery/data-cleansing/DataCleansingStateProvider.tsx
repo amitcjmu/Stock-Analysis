@@ -54,14 +54,23 @@ const DataCleansingStateProvider: React.FC<DataCleansingStateProviderProps> = ({
         <div className="flex-1 flex items-center justify-center">
           <NoDataPlaceholder
             title="Discovery Flow Error"
-            description={`Failed to initialize Discovery Flow: ${errorMessage}`}
+            description={errorMessage || "Failed to initialize Discovery Flow"}
             actions={
-              <button
-                onClick={onBackToAttributeMapping}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                <span>Return to Attribute Mapping</span>
-              </button>
+              errorMessage === 'Missing client or engagement context' ? (
+                <a
+                  href="/dashboard"
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <span>Return to Dashboard</span>
+                </a>
+              ) : (
+                <button
+                  onClick={onBackToAttributeMapping}
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <span>Return to Attribute Mapping</span>
+                </button>
+              )
             }
           />
         </div>

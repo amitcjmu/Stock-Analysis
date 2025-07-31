@@ -22,11 +22,13 @@ import { useAgentQuestions, useAnswerAgentQuestion, useAgentInsights, useConfide
 interface AgentUIMonitorProps {
   className?: string;
   pageContext?: string;
+  onDependencyCreated?: () => void | Promise<void>;
 }
 
 const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
   className = "",
-  pageContext = "dependencies"
+  pageContext = "dependencies",
+  onDependencyCreated
 }) => {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['clarifications']));
@@ -67,10 +69,49 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
     if (!answer) return;
 
     try {
+      // Find the question to check if it's dependency-related
+      const question = questions.find(q => q.id === questionId);
+
       await answerQuestionMutation.mutateAsync({
         question_id: questionId,
         response: answer
       });
+
+      // If this is a dependency acceptance and the answer is yes/accept
+      if (question &&
+          question.question_type === 'dependency_confirmation' &&
+          (answer.toLowerCase() === 'yes' || answer.toLowerCase() === 'accept')) {
+
+        // Extract dependency data from question context
+        const context = question.context || {};
+        if (context.source_id && context.target_id) {
+          try {
+            // Import dependency service dynamically to avoid circular dependencies
+            const { createDependency } = await import('../../../services/dependencyService');
+            const { toast } = await import('@/components/ui/use-toast');
+
+            await createDependency({
+              source_id: context.source_id as string,
+              target_id: context.target_id as string,
+              dependency_type: (context.dependency_type as string) || 'runtime',
+              is_app_to_app: context.is_app_to_app === true,
+              description: context.description as string
+            });
+
+            toast({
+              title: "Success",
+              description: "Dependency created from agent suggestion",
+            });
+
+            // Trigger a refresh of dependencies using the callback
+            if (onDependencyCreated) {
+              await onDependencyCreated();
+            }
+          } catch (error) {
+            console.error('Failed to create dependency from agent suggestion:', error);
+          }
+        }
+      }
 
       // Clear the selected answer
       setSelectedAnswers(prev => {

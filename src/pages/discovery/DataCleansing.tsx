@@ -8,6 +8,7 @@ import { useLatestImport, useAssets } from '../../hooks/discovery/useDataCleansi
 import { API_CONFIG } from '../../config/api'
 import { apiCall } from '../../config/api'
 import SecureLogger from '../../utils/secureLogger';
+import { secureNavigation } from '../../utils/secureNavigation';
 
 // Components
 import Sidebar from '../../components/Sidebar';
@@ -29,7 +30,7 @@ import { AlertTriangle } from 'lucide-react'
 import { Download, FileText, CheckCircle, Activity } from 'lucide-react'
 
 const DataCleansing: React.FC = () => {
-  const { user, client, engagement } = useAuth();
+  const { user, client, engagement, isLoading: isAuthLoading } = useAuth();
   const [pendingQuestions, setPendingQuestions] = useState(0);
 
   // Use the auto-detection hook for consistent flow detection
@@ -196,8 +197,9 @@ const DataCleansing: React.FC = () => {
   };
 
   // Determine state conditions - use real data cleansing analysis
-  const hasError = !!(error || latestImportError);
-  const errorMessage = error?.message || latestImportError?.message;
+  // Ignore latestImportError if it's due to missing context during loading
+  const hasError = !!(error);
+  const errorMessage = error?.message;
 
   // Enhanced data availability detection with better edge case handling
   const hasRawData = !!(
@@ -258,7 +260,14 @@ const DataCleansing: React.FC = () => {
   const hasData = hasImportedData || hasCleansingResults || hasFlowProgression;
 
   const isAnalyzing = isUpdating;
-  const isLoadingData = isLoading || isLatestImportLoading || isFlowListLoading;
+
+  // Keep showing loading state until auth is complete and we have context
+  const isLoadingData = isLoading || isLatestImportLoading || isFlowListLoading || isAuthLoading;
+
+  // Check if we're missing required context
+  // Only show error if auth is fully loaded and we still don't have context
+  // This should be rare as fetchDefaultContext should establish context during auth init
+  const isMissingContext = !isAuthLoading && !isLoadingData && (!client?.id || !engagement?.id);
 
   // Check for pending agent questions (disabled polling for now as endpoint returns empty array)
   useEffect(() => {
@@ -328,9 +337,9 @@ const DataCleansing: React.FC = () => {
   return (
     <DataCleansingStateProvider
       isLoading={isLoadingData}
-      hasError={hasError}
-      errorMessage={errorMessage}
-      hasData={hasData}
+      hasError={hasError || isMissingContext}
+      errorMessage={errorMessage || (isMissingContext ? 'Missing client or engagement context' : undefined)}
+      hasData={hasData && !isMissingContext}
       onBackToAttributeMapping={handleBackToAttributeMapping}
       onTriggerAnalysis={handleTriggerDataCleansingCrew}
       isAnalyzing={isAnalyzing}
