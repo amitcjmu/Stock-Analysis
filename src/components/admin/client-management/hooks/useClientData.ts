@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useCallback, useEffect } from 'react'
+import { useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { apiCall } from '@/config/api';
 import type { Client } from '../types';
 
@@ -8,7 +8,10 @@ interface UseClientDataProps {
   filterIndustry?: string;
 }
 
-export const useClientData = ({ searchTerm = '', filterIndustry = 'all' }: UseClientDataProps = {}): {
+export const useClientData = ({
+  searchTerm = '',
+  filterIndustry = 'all',
+}: UseClientDataProps = {}): {
   clients: Client[];
   setClients: (clients: Client[]) => void;
   loading: boolean;
@@ -54,6 +57,6 @@ export const useClientData = ({ searchTerm = '', filterIndustry = 'all' }: UseCl
     clients,
     setClients,
     loading,
-    refetch: fetchClients
+    refetch: fetchClients,
   };
 };

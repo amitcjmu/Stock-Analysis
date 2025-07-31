@@ -6,8 +6,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { LucideIcon } from 'lucide-react'
-import { RotateCcw } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 
 export interface HeaderAction {
   label: string;
@@ -37,26 +37,18 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
   actions = [],
   onRefresh,
   refreshLoading = false,
-  className = ''
+  className = '',
 }) => {
   return (
     <div className={`flex justify-between items-start ${className}`}>
       <div>
         <h1 className="text-3xl font-bold">{title}</h1>
-        {description && (
-          <p className="text-muted-foreground mt-1">
-            {description}
-          </p>
-        )}
+        {description && <p className="text-muted-foreground mt-1">{description}</p>}
       </div>
 
       <div className="flex items-center gap-2">
         {onRefresh && (
-          <Button
-            onClick={onRefresh}
-            variant="outline"
-            disabled={refreshLoading}
-          >
+          <Button onClick={onRefresh} variant="outline" disabled={refreshLoading}>
             <RotateCcw className={`w-4 h-4 mr-2 ${refreshLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
@@ -75,10 +67,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                 {action.icon && <action.icon className="w-4 h-4 mr-2" />}
                 {action.label}
                 {action.badge && (
-                  <Badge
-                    variant={action.badge.variant || 'secondary'}
-                    className="ml-2"
-                  >
+                  <Badge variant={action.badge.variant || 'secondary'} className="ml-2">
                     {action.badge.text}
                   </Badge>
                 )}
@@ -88,10 +77,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                 {action.icon && <action.icon className="w-4 h-4 mr-2" />}
                 {action.label}
                 {action.badge && (
-                  <Badge
-                    variant={action.badge.variant || 'secondary'}
-                    className="ml-2"
-                  >
+                  <Badge variant={action.badge.variant || 'secondary'} className="ml-2">
                     {action.badge.text}
                   </Badge>
                 )}

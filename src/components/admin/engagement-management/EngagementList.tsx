@@ -8,13 +8,25 @@ import {
   Trash2,
   MoreHorizontal,
   Target,
-  TrendingUp
+  TrendingUp,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { Engagement } from './types';
 
 interface EngagementListProps {
@@ -38,7 +50,7 @@ export const EngagementList: React.FC<EngagementListProps> = ({
   totalPages,
   onPageChange,
   getPhaseColor,
-  formatCurrency
+  formatCurrency,
 }) => {
   return (
     <>
@@ -78,11 +90,17 @@ export const EngagementList: React.FC<EngagementListProps> = ({
                           <Badge className={getPhaseColor(engagement.migration_phase)}>
                             {engagement.migration_phase}
                           </Badge>
-                          <span>{Array.isArray(engagement.migration_scope) ? engagement.migration_scope.join(', ') : (engagement.migration_scope || 'Not specified')}</span>
+                          <span>
+                            {Array.isArray(engagement.migration_scope)
+                              ? engagement.migration_scope.join(', ')
+                              : engagement.migration_scope || 'Not specified'}
+                          </span>
                         </div>
                         <div className="text-sm text-muted-foreground flex items-center">
                           <Target className="w-3 h-3 mr-1" />
-                          {engagement.target_cloud_provider ? engagement.target_cloud_provider.toUpperCase() : 'NOT SPECIFIED'}
+                          {engagement.target_cloud_provider
+                            ? engagement.target_cloud_provider.toUpperCase()
+                            : 'NOT SPECIFIED'}
                         </div>
                       </div>
                     </TableCell>
@@ -108,21 +126,27 @@ export const EngagementList: React.FC<EngagementListProps> = ({
                       <div className="text-sm">
                         <div className="flex items-center">
                           <Calendar className="w-3 h-3 mr-1" />
-                          {engagement.planned_start_date ? new Date(engagement.planned_start_date).toLocaleDateString() : 'Not set'}
+                          {engagement.planned_start_date
+                            ? new Date(engagement.planned_start_date).toLocaleDateString()
+                            : 'Not set'}
                         </div>
                         <div className="flex items-center text-muted-foreground">
                           <Clock className="w-3 h-3 mr-1" />
-                          {engagement.planned_end_date ? new Date(engagement.planned_end_date).toLocaleDateString() : 'Not set'}
+                          {engagement.planned_end_date
+                            ? new Date(engagement.planned_end_date).toLocaleDateString()
+                            : 'Not set'}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
                         <div className="font-medium">
-                          {engagement.estimated_budget ?
-                            formatCurrency(engagement.estimated_budget, engagement.budget_currency || 'USD') :
-                            'No budget set'
-                          }
+                          {engagement.estimated_budget
+                            ? formatCurrency(
+                                engagement.estimated_budget,
+                                engagement.budget_currency || 'USD'
+                              )
+                            : 'No budget set'}
                         </div>
                       </div>
                     </TableCell>
@@ -164,7 +188,9 @@ export const EngagementList: React.FC<EngagementListProps> = ({
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => onDeleteEngagement(engagement.id, engagement.engagement_name)}
+                            onClick={() =>
+                              onDeleteEngagement(engagement.id, engagement.engagement_name)
+                            }
                             className="text-red-600"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />

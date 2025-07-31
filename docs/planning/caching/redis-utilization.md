@@ -190,6 +190,29 @@ class CacheInvalidationService:
         """Invalidate when flow state changes"""
         await self.redis.delete(f"v1:flow:complete:{flow_id}")
         await self.redis.delete(f"v1:user:{user_id}:active_flows")
+    
+    async def on_field_mapping_bulk_operation(self, import_id: str):
+        """Invalidate field mappings after bulk approval/rejection"""
+        await self.redis.delete(f"v1:field_mappings:{import_id}")
+        await self.redis.delete(f"v1:import:{import_id}:mappings")
+        # Invalidate any aggregated mapping statistics
+        await self._invalidate_pattern(f"v1:mapping_stats:{import_id}:*")
+    
+    async def on_user_defaults_updated(self, user_id: str, default_client_id: str = None, default_engagement_id: str = None):
+        """Invalidate when user's default client/engagement is updated"""
+        await self.redis.delete(f"v1:user:context:{user_id}")
+        await self.redis.delete(f"v1:user:{user_id}:defaults")
+        # Invalidate admin user lists
+        await self.redis.delete("v1:admin:active_users")
+        await self.redis.delete("v1:admin:pending_approvals")
+        
+        # If client changed, invalidate client-specific caches
+        if default_client_id:
+            await self.redis.delete(f"v1:client:{default_client_id}:users")
+        
+        # If engagement changed, invalidate engagement-specific caches
+        if default_engagement_id:
+            await self.redis.delete(f"v1:engagement:{default_engagement_id}:users")
 
 # Integration with service layer
 @router.put("/users/{user_id}/roles")
@@ -721,6 +744,92 @@ CACHE_VERSION=v1-dev   # Different version for dev
 3. Quick disable switch in case of issues
 4. Maintain backward compatibility
 
+## Migration Strategy for Current Custom Cache
+
+### Phase 1: Feature Flag Introduction (Week 1)
+```typescript
+// src/config/featureFlags.ts
+export const FEATURE_FLAGS = {
+  USE_REDIS_CACHE: process.env.VITE_USE_REDIS_CACHE === 'true',
+  USE_CUSTOM_API_CACHE: process.env.VITE_USE_CUSTOM_API_CACHE !== 'false', // Default on
+  ENABLE_CACHE_HEADERS: process.env.VITE_ENABLE_CACHE_HEADERS === 'true',
+};
+
+// src/config/api.ts modification
+if (shouldDeduplicate && FEATURE_FLAGS.USE_CUSTOM_API_CACHE) {
+  const cachedResponse = getCachedResponse(method, normalizedEndpoint);
+  if (cachedResponse !== null) {
+    return Promise.resolve(cachedResponse);
+  }
+}
+```
+
+### Phase 2: Gradual Migration (Weeks 2-3)
+1. **Week 2**: Enable Redis caching for read-heavy endpoints
+   - User context, client lists, engagement lists
+   - Monitor cache hit rates and performance
+
+2. **Week 3**: Disable custom cache for migrated endpoints
+   - Use feature flags to disable custom cache per endpoint
+   - Rely solely on Redis + React Query for these endpoints
+
+3. **Week 4**: Full migration
+   - Disable custom API cache completely
+   - Remove cache-related code from apiCall function
+
+### Phase 3: Immediate Quick Wins
+
+#### 1. Add Cache Headers Support (Day 1)
+```typescript
+// backend/app/middleware/cache_headers.py
+from fastapi import Request, Response
+from typing import Callable
+
+class CacheHeadersMiddleware:
+    """Add appropriate cache headers based on endpoint patterns"""
+    
+    CACHE_PATTERNS = {
+        r"/api/v1/admin/clients": {"Cache-Control": "private, max-age=300"},
+        r"/api/v1/admin/engagements": {"Cache-Control": "private, max-age=300"},
+        r"/api/v1/auth/active-users": {"Cache-Control": "private, max-age=60"},
+        r"/api/v1/field-mappings/\w+": {"Cache-Control": "private, max-age=120"},
+    }
+    
+    async def __call__(self, request: Request, call_next: Callable) -> Response:
+        response = await call_next(request)
+        
+        # Add cache headers for GET requests
+        if request.method == "GET" and response.status_code == 200:
+            for pattern, headers in self.CACHE_PATTERNS.items():
+                if re.match(pattern, request.url.path):
+                    for header, value in headers.items():
+                        response.headers[header] = value
+                    break
+        
+        return response
+```
+
+#### 2. Frontend Cache Header Support (Day 1)
+```typescript
+// src/lib/api/apiClient.ts enhancement
+private async executeRequest<T>(
+  endpoint: string, 
+  options: RequestInit
+): Promise<T> {
+  const response = await fetch(endpoint, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    // Honor cache headers from backend
+    cache: FEATURE_FLAGS.ENABLE_CACHE_HEADERS ? 'default' : 'no-store',
+  });
+  
+  // Rest of implementation
+}
+```
+
 ## Security Considerations
 
 ### 1. Cache Security
@@ -788,6 +897,92 @@ class AgentCacheStrategy:
             'learning_agent': 604800       # 7 days
         }
         return ttl_map.get(agent_type, 1800)
+```
+
+## Field Mapping Specific Caching
+
+### Backend Field Mapping Cache Strategy
+```python
+# backend/app/api/v1/endpoints/field_mappings.py
+@router.get("/field-mappings/{import_id}")
+async def get_field_mappings(
+    import_id: str,
+    user: User = Depends(get_current_user),
+    redis: RedisCache = Depends(get_redis_cache)
+):
+    cache_key = f"v1:field_mappings:{import_id}"
+    
+    # Check cache
+    cached = await redis.get(cache_key)
+    if cached:
+        return cached
+    
+    # Fetch from database
+    mappings = await fetch_field_mappings(import_id)
+    
+    # Cache with shorter TTL since mappings change frequently during review
+    await redis.set(cache_key, mappings, ttl=120)  # 2 minutes
+    
+    return mappings
+
+@router.post("/field-mappings/{import_id}/bulk-approve")
+async def bulk_approve_mappings(
+    import_id: str,
+    mapping_ids: List[str],
+    user: User = Depends(get_current_user),
+    redis: RedisCache = Depends(get_redis_cache),
+    invalidator: CacheInvalidationService = Depends()
+):
+    # Perform bulk approval
+    result = await approve_mappings_in_db(import_id, mapping_ids)
+    
+    # Invalidate caches
+    await invalidator.on_field_mapping_bulk_operation(import_id)
+    
+    # Also invalidate React Query cache via WebSocket event
+    await broadcast_cache_invalidation_event({
+        "type": "field_mappings_updated",
+        "import_id": import_id,
+        "action": "bulk_approve"
+    })
+    
+    return result
+```
+
+### Frontend Field Mapping Cache Management
+```typescript
+// src/hooks/discovery/attribute-mapping/useFieldMappings.ts
+export const useFieldMappings = (importId: string | null) => {
+  const queryClient = useQueryClient();
+  
+  // Subscribe to WebSocket cache invalidation events
+  useEffect(() => {
+    if (!importId) return;
+    
+    const handleCacheInvalidation = (event: CacheInvalidationEvent) => {
+      if (event.type === 'field_mappings_updated' && event.import_id === importId) {
+        queryClient.invalidateQueries({ 
+          queryKey: ['field-mappings', importId],
+          exact: true 
+        });
+      }
+    };
+    
+    websocket.on('cache_invalidation', handleCacheInvalidation);
+    
+    return () => {
+      websocket.off('cache_invalidation', handleCacheInvalidation);
+    };
+  }, [importId, queryClient]);
+  
+  return useQuery({
+    queryKey: ['field-mappings', importId],
+    queryFn: () => apiClient.get(`/api/v1/field-mappings/${importId}`),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    cacheTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!importId,
+  });
+};
 ```
 
 ## Additional Architectural Components
@@ -922,3 +1117,38 @@ Based on the comprehensive review by Gemini Pro 2.5, the following enhancements 
 5. **Centralized Constants**: Replaced "magic strings" with centralized constants for API endpoints and cache key generation, improving maintainability and reducing bugs.
 
 These improvements address the key architectural concerns while maintaining the plan's focus on performance, security, and scalability.
+
+## Summary of Additional Tweaks Added
+
+Based on the production cache issues identified, the following enhancements have been added to the plan:
+
+### 1. **Field Mapping Cache Invalidation**
+- Added `on_field_mapping_bulk_operation()` method to `CacheInvalidationService`
+- Implemented WebSocket-based cache invalidation events for React Query
+- Specific cache strategy for field mappings with shorter TTL (2 minutes)
+- Bulk operation support with proper invalidation cascade
+
+### 2. **User Management Cache Invalidation**
+- Added `on_user_defaults_updated()` method for handling default client/engagement changes
+- Comprehensive invalidation of admin user lists when defaults change
+- Client and engagement-specific cache invalidation when user associations change
+
+### 3. **Migration Strategy for Custom Cache**
+- Feature flag-based approach to gradually disable custom API cache
+- Three-phase migration plan over 4 weeks
+- Maintains backward compatibility during transition
+- Clear rollback capability at each phase
+
+### 4. **Immediate Quick Wins**
+- Cache headers middleware for backend (implementable Day 1)
+- Frontend support for honoring backend cache headers
+- No code changes needed for basic caching benefits
+- Progressive enhancement approach
+
+### 5. **Field Mapping Specific Section**
+- Dedicated caching strategy for field mapping workflows
+- WebSocket integration for real-time cache invalidation
+- React Query configuration optimized for field mapping use cases
+- Handles the specific challenge of bulk operations
+
+These additions directly address the cache issues experienced in production while maintaining the overall architectural integrity of the Redis caching plan.

@@ -82,6 +82,30 @@ repos:
         files: \.sql$  # Only actual SQL files, not Python
         args: ['--dialect', 'postgres']
 
+  # Cache Security Validation - CC DevSecOps Requirements
+  - repo: local
+    hooks:
+      - id: cache-security-check
+        name: Cache Security Check
+        entry: /opt/homebrew/bin/python3.11 scripts/check_cache_security.py
+        language: system
+        files: '.*\.(py|ts|tsx)$'
+        pass_filenames: false
+
+      # - id: cache-key-validation
+      #   name: Cache Key Validation
+      #   entry: /opt/homebrew/bin/python3.11 scripts/validate_cache_keys.py
+      #   language: system
+      #   files: '.*cache.*\.(py|ts)$'
+      #   pass_filenames: false
+
+      # - id: sensitive-data-check
+      #   name: Sensitive Data in Cache Check
+      #   entry: /opt/homebrew/bin/python3.11 scripts/check_sensitive_cache.py
+      #   language: system
+      #   files: '.*\.(py|ts|tsx)$'
+      #   pass_filenames: false
+
   # Lightweight security checks (faster versions)
   - repo: local
     hooks:

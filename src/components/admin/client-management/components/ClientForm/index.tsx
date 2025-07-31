@@ -1,5 +1,5 @@
-import React from 'react'
-import { useState } from 'react'
+import React from 'react';
+import { useState } from 'react';
 import type { ClientFormData } from '../../types';
 import { BasicInfoTab } from './BasicInfoTab';
 import { BusinessContextTab } from './BusinessContextTab';
@@ -17,7 +17,7 @@ const tabs: Array<{ id: TabType; label: string }> = [
   { id: 'basic', label: 'Basic Information' },
   { id: 'business', label: 'Business Context' },
   { id: 'technical', label: 'Technical Preferences' },
-  { id: 'advanced', label: 'Advanced Settings' }
+  { id: 'advanced', label: 'Advanced Settings' },
 ];
 
 export const ClientForm: React.FC<ClientFormProps> = React.memo(({ formData, onFormChange }) => {
@@ -45,9 +45,7 @@ export const ClientForm: React.FC<ClientFormProps> = React.memo(({ formData, onF
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'basic' && (
-        <BasicInfoTab formData={formData} onFormChange={onFormChange} />
-      )}
+      {activeTab === 'basic' && <BasicInfoTab formData={formData} onFormChange={onFormChange} />}
       {activeTab === 'business' && (
         <BusinessContextTab formData={formData} onFormChange={onFormChange} />
       )}

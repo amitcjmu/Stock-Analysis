@@ -105,37 +105,37 @@ export const INDUSTRIES = [
   'Government',
   'Energy',
   'Transportation',
-  'Other'
+  'Other',
 ];
 
 export const COMPANY_SIZES = [
   'Small (1-100)',
   'Medium (101-1000)',
   'Large (1001-5000)',
-  'Enterprise (5000+)'
+  'Enterprise (5000+)',
 ];
 
 export const SUBSCRIPTION_TIERS = [
   { value: 'basic', label: 'Basic' },
   { value: 'pro', label: 'Pro' },
   { value: 'enterprise', label: 'Enterprise' },
-  { value: 'custom', label: 'Custom' }
+  { value: 'custom', label: 'Custom' },
 ];
 
 export const PROVIDER_MAP: Record<string, string> = {
-  'aws': 'Amazon Web Services (AWS)',
-  'azure': 'Microsoft Azure',
-  'gcp': 'Google Cloud Platform (GCP)',
-  'multi_cloud': 'Multi-Cloud Strategy',
-  'hybrid': 'Hybrid Cloud',
-  'private_cloud': 'Private Cloud'
+  aws: 'Amazon Web Services (AWS)',
+  azure: 'Microsoft Azure',
+  gcp: 'Google Cloud Platform (GCP)',
+  multi_cloud: 'Multi-Cloud Strategy',
+  hybrid: 'Hybrid Cloud',
+  private_cloud: 'Private Cloud',
 };
 
 export const PRIORITY_MAP: Record<string, string> = {
-  'cost_reduction': 'Cost Reduction',
-  'agility_speed': 'Agility & Speed',
-  'security_compliance': 'Security & Compliance',
-  'innovation': 'Innovation',
-  'scalability': 'Scalability',
-  'reliability': 'Reliability'
+  cost_reduction: 'Cost Reduction',
+  agility_speed: 'Agility & Speed',
+  security_compliance: 'Security & Compliance',
+  innovation: 'Innovation',
+  scalability: 'Scalability',
+  reliability: 'Reliability',
 };

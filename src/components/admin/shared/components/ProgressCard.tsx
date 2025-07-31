@@ -32,9 +32,9 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
   totalItems,
   showPercentage = true,
   showCounts = true,
-  className = ''
+  className = '',
 }) => {
-  const maxTotal = totalItems || Math.max(...items.map(item => item.total || item.value));
+  const maxTotal = totalItems || Math.max(...items.map((item) => item.total || item.value));
 
   return (
     <Card className={className}>
@@ -45,7 +45,9 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
       <CardContent className="space-y-4">
         {items.length > 0 ? (
           items.map((item) => {
-            const percentage = showPercentage ? safePercentage(item.value, item.total || maxTotal) : 0;
+            const percentage = showPercentage
+              ? safePercentage(item.value, item.total || maxTotal)
+              : 0;
             return (
               <div key={item.label} className="flex items-center justify-between">
                 <span className="text-sm font-medium">{item.label}</span>
@@ -56,7 +58,7 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
                       className="w-20 h-2"
                       style={{
                         // @ts-expect-error - Custom CSS properties for progress color
-                        '--progress-background': item.color || 'hsl(var(--primary))'
+                        '--progress-background': item.color || 'hsl(var(--primary))',
                       }}
                     />
                   )}
@@ -75,9 +77,7 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
             );
           })
         ) : (
-          <div className="text-center text-muted-foreground py-4">
-            No data available
-          </div>
+          <div className="text-center text-muted-foreground py-4">No data available</div>
         )}
       </CardContent>
     </Card>

@@ -3,36 +3,28 @@
  * Only accessible by platform administrators
  */
 
-import React from 'react'
-import { useState } from 'react'
-import { useEffect, useCallback } from 'react'
+import React from 'react';
+import { useState } from 'react';
+import { useEffect, useCallback } from 'react';
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { AdminLoadingState } from '@/components/admin/shared/components'
-import { AdminHeader } from '@/components/admin/shared/components'
-import {
-  useAdminToasts
-} from '@/components/admin/shared';
-import type {
-  SoftDeletedItem,
-  PurgeAction
-} from './components';
+import { AdminLoadingState } from '@/components/admin/shared/components';
+import { AdminHeader } from '@/components/admin/shared/components';
+import { useAdminToasts } from '@/components/admin/shared';
+import type { SoftDeletedItem, PurgeAction } from './components';
 import {
   PlatformStats,
   PendingItemsList,
   PurgeActionDialog,
-  ItemDetailsDialog
+  ItemDetailsDialog,
 } from './components';
 
 // Interfaces moved to components folder
 
 export const PlatformAdminDashboard: React.FC = () => {
   const { getAuthHeaders } = useAuth();
-  const {
-    showPurgeApprovedToast,
-    showPurgeRejectedToast,
-    showGenericErrorToast
-  } = useAdminToasts();
+  const { showPurgeApprovedToast, showPurgeRejectedToast, showGenericErrorToast } =
+    useAdminToasts();
 
   const [pendingItems, setPendingItems] = useState<SoftDeletedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +37,7 @@ export const PlatformAdminDashboard: React.FC = () => {
     try {
       setLoading(true);
       const response = await apiCall('admin/platform/platform-admin/pending-purge-items', {
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
       });
 
       if (response.status === 'success') {
@@ -64,7 +56,7 @@ export const PlatformAdminDashboard: React.FC = () => {
             deleted_by_email: 'john.admin@company.com',
             deleted_at: '2025-01-05T14:30:00Z',
             delete_reason: 'Client requested account closure after migration completion',
-            status: 'pending_review'
+            status: 'pending_review',
           },
           {
             id: 'item_002',
@@ -77,7 +69,7 @@ export const PlatformAdminDashboard: React.FC = () => {
             deleted_by_email: 'sarah.manager@techcorp.com',
             deleted_at: '2025-01-04T09:15:00Z',
             delete_reason: 'Project completed successfully, archiving engagement data',
-            status: 'pending_review'
+            status: 'pending_review',
           },
           {
             id: 'item_003',
@@ -90,8 +82,8 @@ export const PlatformAdminDashboard: React.FC = () => {
             deleted_by_email: 'mike.analyst@globalsystems.com',
             deleted_at: '2025-01-03T16:45:00Z',
             delete_reason: 'Duplicate data import, cleaned up incorrect session',
-            status: 'pending_review'
-          }
+            status: 'pending_review',
+          },
         ]);
       }
     } catch (error) {
@@ -116,7 +108,7 @@ export const PlatformAdminDashboard: React.FC = () => {
     setPurgeAction({
       action: 'approve',
       item: item,
-      notes: ''
+      notes: '',
     });
     setShowPurgeDialog(true);
   };
@@ -125,7 +117,7 @@ export const PlatformAdminDashboard: React.FC = () => {
     setPurgeAction({
       action: 'reject',
       item: item,
-      notes: ''
+      notes: '',
     });
     setShowPurgeDialog(true);
   };
@@ -136,17 +128,18 @@ export const PlatformAdminDashboard: React.FC = () => {
     try {
       setActionLoading(purgeAction.item.id);
 
-      const endpoint = purgeAction.action === 'approve'
-        ? 'admin/platform/platform-admin/approve-purge'
-        : 'admin/platform/platform-admin/reject-purge';
+      const endpoint =
+        purgeAction.action === 'approve'
+          ? 'admin/platform/platform-admin/approve-purge'
+          : 'admin/platform/platform-admin/reject-purge';
 
       const response = await apiCall(endpoint, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
           soft_delete_id: purgeAction.item.id,
-          notes: purgeAction.notes
-        })
+          notes: purgeAction.notes,
+        }),
       });
 
       if (response.status === 'success') {
@@ -157,7 +150,7 @@ export const PlatformAdminDashboard: React.FC = () => {
         }
 
         // Remove item from list
-        setPendingItems(prev => prev.filter(item => item.id !== purgeAction.item.id));
+        setPendingItems((prev) => prev.filter((item) => item.id !== purgeAction.item.id));
         setShowPurgeDialog(false);
         setPurgeAction(null);
       } else {
@@ -205,7 +198,7 @@ export const PlatformAdminDashboard: React.FC = () => {
         purgeAction={purgeAction}
         onClose={() => setShowPurgeDialog(false)}
         onExecute={executePurgeAction}
-        onNotesChange={(notes) => setPurgeAction(prev => prev ? { ...prev, notes } : null)}
+        onNotesChange={(notes) => setPurgeAction((prev) => (prev ? { ...prev, notes } : null))}
       />
 
       {/* Item Details Dialog */}

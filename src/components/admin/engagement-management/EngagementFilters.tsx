@@ -3,8 +3,14 @@ import { Search, Download, Upload, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Client} from './types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type { Client } from './types';
 import { MigrationPhases } from './types';
 
 interface EngagementFiltersProps {
@@ -24,7 +30,7 @@ export const EngagementFilters: React.FC<EngagementFiltersProps> = ({
   onClientFilterChange,
   filterPhase,
   onPhaseFilterChange,
-  clients
+  clients,
 }) => {
   return (
     <>
@@ -32,9 +38,7 @@ export const EngagementFilters: React.FC<EngagementFiltersProps> = ({
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Engagement Management</h1>
-          <p className="text-muted-foreground">
-            Manage client engagements and migration projects
-          </p>
+          <p className="text-muted-foreground">Manage client engagements and migration projects</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline">
@@ -71,8 +75,10 @@ export const EngagementFilters: React.FC<EngagementFiltersProps> = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Clients</SelectItem>
-            {clients.map(client => (
-              <SelectItem key={client.id} value={client.id}>{client.account_name}</SelectItem>
+            {clients.map((client) => (
+              <SelectItem key={client.id} value={client.id}>
+                {client.account_name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -82,8 +88,10 @@ export const EngagementFilters: React.FC<EngagementFiltersProps> = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Phases</SelectItem>
-            {MigrationPhases.map(phase => (
-              <SelectItem key={phase.value} value={phase.value}>{phase.label}</SelectItem>
+            {MigrationPhases.map((phase) => (
+              <SelectItem key={phase.value} value={phase.value}>
+                {phase.label}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>

@@ -1,7 +1,13 @@
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Industries, CompanySizes, SubscriptionTiers } from '../../types';
 import type { ClientFormData } from '../../types';
 
@@ -27,13 +33,18 @@ export const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ formData, onFormChan
 
         <div className="space-y-2">
           <Label htmlFor="industry">Industry *</Label>
-          <Select value={formData.industry} onValueChange={(value) => onFormChange('industry', value)}>
+          <Select
+            value={formData.industry}
+            onValueChange={(value) => onFormChange('industry', value)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select industry" />
             </SelectTrigger>
             <SelectContent>
-              {Industries.map(industry => (
-                <SelectItem key={industry} value={industry}>{industry}</SelectItem>
+              {Industries.map((industry) => (
+                <SelectItem key={industry} value={industry}>
+                  {industry}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -41,13 +52,18 @@ export const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ formData, onFormChan
 
         <div className="space-y-2">
           <Label htmlFor="company_size">Company Size *</Label>
-          <Select value={formData.company_size} onValueChange={(value) => onFormChange('company_size', value)}>
+          <Select
+            value={formData.company_size}
+            onValueChange={(value) => onFormChange('company_size', value)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select company size" />
             </SelectTrigger>
             <SelectContent>
-              {CompanySizes.map(size => (
-                <SelectItem key={size} value={size}>{size}</SelectItem>
+              {CompanySizes.map((size) => (
+                <SelectItem key={size} value={size}>
+                  {size}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -55,13 +71,18 @@ export const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ formData, onFormChan
 
         <div className="space-y-2">
           <Label htmlFor="subscription_tier">Subscription Tier</Label>
-          <Select value={formData.subscription_tier} onValueChange={(value) => onFormChange('subscription_tier', value)}>
+          <Select
+            value={formData.subscription_tier}
+            onValueChange={(value) => onFormChange('subscription_tier', value)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select tier" />
             </SelectTrigger>
             <SelectContent>
-              {SubscriptionTiers.map(tier => (
-                <SelectItem key={tier.value} value={tier.value}>{tier.label}</SelectItem>
+              {SubscriptionTiers.map((tier) => (
+                <SelectItem key={tier.value} value={tier.value}>
+                  {tier.label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>

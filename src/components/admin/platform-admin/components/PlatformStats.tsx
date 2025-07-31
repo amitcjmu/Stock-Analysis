@@ -4,11 +4,7 @@
  */
 
 import React from 'react';
-import {
-  Clock,
-  AlertTriangle,
-  Calendar
-} from 'lucide-react';
+import { Clock, AlertTriangle, Calendar } from 'lucide-react';
 import { StatCard } from '@/components/admin/shared/components/StatCard';
 
 export interface SoftDeletedItem {
@@ -30,13 +26,12 @@ export interface PlatformStatsProps {
   className?: string;
 }
 
-export const PlatformStats: React.FC<PlatformStatsProps> = ({
-  pendingItems,
-  className = ''
-}) => {
-  const highPriorityItems = pendingItems.filter(item => item.item_type === 'client_account').length;
+export const PlatformStats: React.FC<PlatformStatsProps> = ({ pendingItems, className = '' }) => {
+  const highPriorityItems = pendingItems.filter(
+    (item) => item.item_type === 'client_account'
+  ).length;
 
-  const recentItems = pendingItems.filter(item => {
+  const recentItems = pendingItems.filter((item) => {
     const deletedDate = new Date(item.deleted_at);
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);

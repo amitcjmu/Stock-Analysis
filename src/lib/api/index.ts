@@ -2,7 +2,10 @@
 export * from './sixr';
 export { sixrApi } from './sixr';
 
-// Export the generic API call function
+// Export the new simplified API client
+export { apiClient, ApiError } from './apiClient';
+
+// Export the generic API call function (backward compatibility)
 export { apiCall, apiCallWithFallback } from '@/config/api';
 
 // Default export for backward compatibility

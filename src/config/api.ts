@@ -6,6 +6,8 @@
 
 import type { ApiResponse, ApiError } from '../types/shared/api-types';
 import { tokenStorage } from '../contexts/AuthContext/storage';
+import { isCacheFeatureEnabled } from '@/constants/features';
+import { apiClient as newApiClient } from '@/lib/api/apiClient';
 
 // Define types for the API context
 interface AppContextType {
@@ -256,6 +258,11 @@ function isRateLimited(method: string, normalizedEndpoint: string): boolean {
 }
 
 function getCachedResponse<T = unknown>(method: string, normalizedEndpoint: string): T | null {
+  // Skip custom caching if disabled by feature flag
+  if (isCacheFeatureEnabled('DISABLE_CUSTOM_CACHE')) {
+    return null;
+  }
+
   const key = `${method}:${normalizedEndpoint}`;
   const entry = responseCache.get(key);
 
@@ -267,17 +274,22 @@ function getCachedResponse<T = unknown>(method: string, normalizedEndpoint: stri
     return null;
   }
 
-  console.log(`📋 Cache hit for ${key}, expires in ${Math.round((entry.expiry - now) / 1000)}s`);
+  console.log(`📋 Legacy cache hit for ${key}, expires in ${Math.round((entry.expiry - now) / 1000)}s`);
   return entry.data;
 }
 
 function setCachedResponse<T = unknown>(method: string, normalizedEndpoint: string, data: T): void {
+  // Skip custom caching if disabled by feature flag
+  if (isCacheFeatureEnabled('DISABLE_CUSTOM_CACHE')) {
+    return;
+  }
+
   const key = `${method}:${normalizedEndpoint}`;
   const config = CACHE_CONFIG[key] || CACHE_CONFIG.default;
   const expiry = Date.now() + config;
 
   responseCache.set(key, { data, timestamp: Date.now(), expiry });
-  console.log(`💾 Cached response for ${key}, expires at ${new Date(expiry).toISOString()}`);
+  console.log(`💾 Legacy cached response for ${key}, expires at ${new Date(expiry).toISOString()}`);
 }
 
 interface EnhancedApiError extends ApiError {
@@ -310,6 +322,30 @@ export const apiCall = async (
   options: ApiRequestInit = {},
   includeContext: boolean = true
 ): Promise<ExternalApiResponse> => {
+  // If custom cache is disabled, use the new API client
+  if (isCacheFeatureEnabled('DISABLE_CUSTOM_CACHE')) {
+    console.log('🚀 Using new API client (custom cache disabled)');
+
+    const method = (options.method || 'GET').toUpperCase();
+    switch (method) {
+      case 'GET':
+        return newApiClient.get(endpoint, options);
+      case 'POST':
+        return newApiClient.post(endpoint, options.body, options);
+      case 'PUT':
+        return newApiClient.put(endpoint, options.body, options);
+      case 'PATCH':
+        return newApiClient.patch(endpoint, options.body, options);
+      case 'DELETE':
+        return newApiClient.delete(endpoint, options);
+      default:
+        return newApiClient.get(endpoint, options);
+    }
+  }
+
+  // Legacy implementation with custom caching
+  console.log('🔄 Using legacy API implementation with custom cache');
+
   const requestId = Math.random().toString(36).substring(2, 8);
   const startTime = performance.now();
 
@@ -520,6 +556,8 @@ export const apiCall = async (
         headers,
         credentials: 'include',
         signal: controller.signal,
+        // Honor backend cache headers if feature is enabled
+        cache: isCacheFeatureEnabled('ENABLE_CACHE_HEADERS') ? 'default' : 'no-store',
       }).finally(() => {
         if (timeoutId !== null) {
           clearTimeout(timeoutId);
@@ -698,10 +736,16 @@ export const apiCallWithFallback = async (
  * @param patterns Array of endpoint patterns to clear from cache
  */
 export const clearApiCache = (patterns?: string[]): void => {
+  // Only clear legacy cache if custom caching is still enabled
+  if (isCacheFeatureEnabled('DISABLE_CUSTOM_CACHE')) {
+    console.log('🚫 Custom cache disabled - cache clearing skipped');
+    return;
+  }
+
   if (!patterns || patterns.length === 0) {
     // Clear entire cache
     responseCache.clear();
-    console.log('🔄 Cleared entire API cache');
+    console.log('🔄 Cleared entire legacy API cache');
     return;
   }
 
@@ -718,7 +762,7 @@ export const clearApiCache = (patterns?: string[]): void => {
   });
 
   if (clearedKeys.length > 0) {
-    console.log('🔄 Cleared API cache for:', clearedKeys);
+    console.log('🔄 Cleared legacy API cache for:', clearedKeys);
   }
 };
 

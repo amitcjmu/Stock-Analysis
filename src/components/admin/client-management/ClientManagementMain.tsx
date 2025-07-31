@@ -1,19 +1,31 @@
-import React from 'react'
-import { useState } from 'react'
-import { useCallback } from 'react'
-import { Upload } from 'lucide-react'
-import { Building2, Plus, Search, Download } from 'lucide-react'
+import React from 'react';
+import { useState } from 'react';
+import { useCallback } from 'react';
+import { Upload } from 'lucide-react';
+import { Building2, Plus, Search, Download } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ClientForm } from './components/ClientForm';
 import { ClientTable } from './components/ClientTable';
 import { useClientData } from './hooks/useClientData';
 import { useClientOperations } from './hooks/useClientOperations';
-import type { ClientFormData , Client} from './types'
-import { Industries } from './types'
+import type { ClientFormData, Client } from './types';
+import { Industries } from './types';
 
 const initialFormData: ClientFormData = {
   account_name: '',
@@ -36,29 +48,29 @@ const initialFormData: ClientFormData = {
     architecture_patterns: [],
     security_requirements: [],
     data_residency_requirements: [],
-    integration_standards: []
+    integration_standards: [],
   },
   decision_criteria: {
     risk_tolerance: 'medium',
     cost_sensitivity: 'medium',
     timeline_pressure: 'medium',
-    technical_debt_tolerance: 'medium'
+    technical_debt_tolerance: 'medium',
   },
   agent_preferences: {
     confidence_thresholds: {
       field_mapping: 0.8,
       dependency_detection: 0.75,
-      risk_assessment: 0.85
+      risk_assessment: 0.85,
     },
-    escalation_mode: 'balanced'
+    escalation_mode: 'balanced',
   },
   platform_settings: {
     enable_notifications: true,
     enable_auto_discovery: true,
     enable_cost_optimization: true,
     data_retention_days: 90,
-    backup_frequency: 'daily'
-  }
+    backup_frequency: 'daily',
+  },
 };
 
 const ClientManagementMain: React.FC = () => {
@@ -73,9 +85,9 @@ const ClientManagementMain: React.FC = () => {
 
   // Form handlers
   const handleFormChange = useCallback((field: keyof ClientFormData, value: string | string[]) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   }, []);
 
@@ -87,7 +99,7 @@ const ClientManagementMain: React.FC = () => {
   const handleCreateClient = async (): void => {
     const newClient = await createClient(formData);
     if (newClient) {
-      setClients(prev => [newClient, ...prev]);
+      setClients((prev) => [newClient, ...prev]);
       setShowCreateDialog(false);
       resetForm();
     }
@@ -98,9 +110,9 @@ const ClientManagementMain: React.FC = () => {
 
     const updatedClient = await updateClient(editingClient, formData);
     if (updatedClient) {
-      setClients(prev => prev.map(client =>
-        client.id === editingClient.id ? updatedClient : client
-      ));
+      setClients((prev) =>
+        prev.map((client) => (client.id === editingClient.id ? updatedClient : client))
+      );
       setEditingClient(null);
       resetForm();
     }
@@ -109,7 +121,7 @@ const ClientManagementMain: React.FC = () => {
   const handleDeleteClient = async (clientId: string, clientName: string): void => {
     const success = await deleteClient(clientId, clientName);
     if (success) {
-      setClients(prev => prev.filter(client => client.id !== clientId));
+      setClients((prev) => prev.filter((client) => client.id !== clientId));
     }
   };
 
@@ -135,7 +147,7 @@ const ClientManagementMain: React.FC = () => {
       it_guidelines: client.it_guidelines || initialFormData.it_guidelines,
       decision_criteria: client.decision_criteria || initialFormData.decision_criteria,
       agent_preferences: client.agent_preferences || initialFormData.agent_preferences,
-      platform_settings: client.platform_settings || initialFormData.platform_settings
+      platform_settings: client.platform_settings || initialFormData.platform_settings,
     });
   };
 
@@ -193,8 +205,10 @@ const ClientManagementMain: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Industries</SelectItem>
-                {Industries.map(industry => (
-                  <SelectItem key={industry} value={industry}>{industry}</SelectItem>
+                {Industries.map((industry) => (
+                  <SelectItem key={industry} value={industry}>
+                    {industry}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -222,16 +236,16 @@ const ClientManagementMain: React.FC = () => {
           </DialogHeader>
           <ClientForm formData={formData} onFormChange={handleFormChange} />
           <div className="flex justify-end gap-3 mt-6">
-            <Button variant="outline" onClick={() => {
-              setShowCreateDialog(false);
-              resetForm();
-            }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCreateDialog(false);
+                resetForm();
+              }}
+            >
               Cancel
             </Button>
-            <Button
-              onClick={handleCreateClient}
-              disabled={actionLoading === 'create'}
-            >
+            <Button onClick={handleCreateClient} disabled={actionLoading === 'create'}>
               {actionLoading === 'create' ? 'Creating...' : 'Create Client'}
             </Button>
           </div>
@@ -239,12 +253,15 @@ const ClientManagementMain: React.FC = () => {
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={!!editingClient} onOpenChange={(open) => {
-        if (!open) {
-          setEditingClient(null);
-          resetForm();
-        }
-      }}>
+      <Dialog
+        open={!!editingClient}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingClient(null);
+            resetForm();
+          }
+        }}
+      >
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Edit Client</DialogTitle>
@@ -254,16 +271,16 @@ const ClientManagementMain: React.FC = () => {
           </DialogHeader>
           <ClientForm formData={formData} onFormChange={handleFormChange} />
           <div className="flex justify-end gap-3 mt-6">
-            <Button variant="outline" onClick={() => {
-              setEditingClient(null);
-              resetForm();
-            }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditingClient(null);
+                resetForm();
+              }}
+            >
               Cancel
             </Button>
-            <Button
-              onClick={handleUpdateClient}
-              disabled={actionLoading === editingClient?.id}
-            >
+            <Button onClick={handleUpdateClient} disabled={actionLoading === editingClient?.id}>
               {actionLoading === editingClient?.id ? 'Updating...' : 'Update Client'}
             </Button>
           </div>

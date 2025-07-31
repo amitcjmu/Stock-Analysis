@@ -1,10 +1,29 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Users, Building2, Calendar, UserCheck, BarChart3, Crown, Shield, Settings, Home, ChevronRight, LogOut, User } from 'lucide-react'
+import {
+  Users,
+  Building2,
+  Calendar,
+  UserCheck,
+  BarChart3,
+  Crown,
+  Shield,
+  Settings,
+  Home,
+  ChevronRight,
+  LogOut,
+  User,
+} from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -17,26 +36,26 @@ const adminNavItems = [
     title: 'Dashboard',
     href: '/admin/dashboard',
     icon: BarChart3,
-    description: 'Overview and metrics'
+    description: 'Overview and metrics',
   },
   {
     title: 'Client Management',
     href: '/admin/clients',
     icon: Building2,
-    description: 'Manage client accounts'
+    description: 'Manage client accounts',
   },
   {
     title: 'Engagement Management',
     href: '/admin/engagements',
     icon: Calendar,
-    description: 'Manage engagements'
+    description: 'Manage engagements',
   },
   {
     title: 'User Approvals',
     href: '/admin/users/approvals',
     icon: UserCheck,
-    description: 'Review pending users'
-  }
+    description: 'Review pending users',
+  },
 ];
 
 const platformAdminNavItems = [
@@ -45,8 +64,8 @@ const platformAdminNavItems = [
     href: '/admin/platform',
     icon: Crown,
     description: 'Manage platform & deleted data',
-    platformAdminOnly: true
-  }
+    platformAdminOnly: true,
+  },
 ];
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
@@ -82,10 +101,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                   isActive
-                    ? "bg-blue-50 text-blue-700 border border-blue-200"
-                    : "text-gray-700 hover:bg-gray-100"
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                    : 'text-gray-700 hover:bg-gray-100'
                 )}
               >
                 <item.icon className="h-5 w-5" />
@@ -99,29 +118,30 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           })}
 
           {/* Platform Admin Only Navigation */}
-          {user?.role === 'platform_admin' && platformAdminNavItems.map((item) => {
-            const isActive = location.pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                  "border-t mt-4 pt-4",
-                  isActive
-                    ? "bg-amber-50 text-amber-700 border border-amber-200"
-                    : "text-gray-700 hover:bg-gray-100"
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                <div className="flex-1">
-                  <div className="font-medium">{item.title}</div>
-                  <div className="text-xs text-gray-500">{item.description}</div>
-                </div>
-                {isActive && <ChevronRight className="h-4 w-4" />}
-              </Link>
-            );
-          })}
+          {user?.role === 'platform_admin' &&
+            platformAdminNavItems.map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                    'border-t mt-4 pt-4',
+                    isActive
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <div className="flex-1">
+                    <div className="font-medium">{item.title}</div>
+                    <div className="text-xs text-gray-500">{item.description}</div>
+                  </div>
+                  {isActive && <ChevronRight className="h-4 w-4" />}
+                </Link>
+              );
+            })}
         </nav>
 
         {/* Footer */}
@@ -182,9 +202,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </div>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-auto">
-          {children || <Outlet />}
-        </div>
+        <div className="flex-1 overflow-auto">{children || <Outlet />}</div>
       </div>
     </div>
   );

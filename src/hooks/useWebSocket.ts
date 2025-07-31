@@ -1,0 +1,436 @@
+/**
+ * WebSocket Hook for Cache Invalidation Events
+ *
+ * Provides real-time cache invalidation notifications from the backend
+ * Redis cache system via WebSocket connections.
+ *
+ * CC Generated WebSocket Cache Events Hook
+ */
+
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { isCacheFeatureEnabled } from '@/constants/features';
+
+// Cache event types
+export interface CacheInvalidationEvent {
+  event_type: 'cache_invalidation' | 'user_context_changed' | 'field_mappings_updated' | 'flow_state_changed' | 'engagement_modified' | 'asset_inventory_updated';
+  entity_type: string;
+  entity_id: string;
+  client_account_id: string;
+  engagement_id?: string;
+  metadata?: Record<string, any>;
+  timestamp: string;
+}
+
+export interface WebSocketCacheMessage {
+  type: 'welcome' | 'cache_invalidation' | 'ping' | 'stats' | 'subscription_updated';
+  data: CacheInvalidationEvent | any;
+  connection_id?: string;
+  sent_at?: string;
+}
+
+// Subscription callback type
+export type CacheEventCallback = (event: CacheInvalidationEvent) => void;
+
+// WebSocket state
+interface WebSocketState {
+  isConnected: boolean;
+  isConnecting: boolean;
+  error: string | null;
+  connectionId: string | null;
+  reconnectAttempts: number;
+  lastEvent: CacheInvalidationEvent | null;
+}
+
+// Hook options
+interface UseWebSocketOptions {
+  clientAccountId?: string;
+  engagementId?: string;
+  autoReconnect?: boolean;
+  reconnectInterval?: number;
+  maxReconnectAttempts?: number;
+  subscribedEvents?: string[];
+  onConnect?: () => void;
+  onDisconnect?: () => void;
+  onError?: (error: string) => void;
+}
+
+/**
+ * WebSocket hook for cache invalidation events
+ */
+export const useWebSocket = (options: UseWebSocketOptions = {}) => {
+  const {
+    clientAccountId,
+    engagementId,
+    autoReconnect = true,
+    reconnectInterval = 3000,
+    maxReconnectAttempts = 5,
+    subscribedEvents = [
+      'cache_invalidation',
+      'user_context_changed',
+      'field_mappings_updated',
+      'flow_state_changed',
+      'engagement_modified',
+      'asset_inventory_updated'
+    ],
+    onConnect,
+    onDisconnect,
+    onError
+  } = options;
+
+  const [state, setState] = useState<WebSocketState>({
+    isConnected: false,
+    isConnecting: false,
+    error: null,
+    connectionId: null,
+    reconnectAttempts: 0,
+    lastEvent: null
+  });
+
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const eventCallbacksRef = useRef<Map<string, Set<CacheEventCallback>>>(new Map());
+
+  // Get auth token for WebSocket connection
+  const getAuthToken = useCallback(() => {
+    try {
+      return localStorage.getItem('auth_token') || '';
+    } catch {
+      return '';
+    }
+  }, []);
+
+  // Get client account ID from storage if not provided
+  const getClientAccountId = useCallback(() => {
+    if (clientAccountId) return clientAccountId;
+
+    try {
+      const client = localStorage.getItem('auth_client');
+      if (client && client !== 'null') {
+        const clientData = JSON.parse(client);
+        return clientData?.id || 'demo-client';
+      }
+    } catch {
+      // Ignore parsing errors
+    }
+    return 'demo-client';
+  }, [clientAccountId]);
+
+  // Build WebSocket URL
+  const getWebSocketUrl = useCallback(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    const clientId = getClientAccountId();
+    const token = getAuthToken();
+
+    let url = `${protocol}//${host}/api/v1/ws-cache/events?client_account_id=${clientId}`;
+
+    if (engagementId) {
+      url += `&engagement_id=${engagementId}`;
+    }
+
+    if (token) {
+      url += `&token=${encodeURIComponent(token)}`;
+    }
+
+    return url;
+  }, [getClientAccountId, getAuthToken, engagementId]);
+
+  // Clear reconnect timeout
+  const clearReconnectTimeout = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Clear ping interval
+  const clearPingInterval = useCallback(() => {
+    if (pingIntervalRef.current) {
+      clearInterval(pingIntervalRef.current);
+      pingIntervalRef.current = null;
+    }
+  }, []);
+
+  // Start ping interval to respond to server pings
+  const startPingInterval = useCallback(() => {
+    clearPingInterval();
+    // No automatic pinging - just respond to server pings
+  }, [clearPingInterval]);
+
+  // Connect to WebSocket
+  const connect = useCallback(() => {
+    // Check if WebSocket cache is enabled
+    if (!isCacheFeatureEnabled('ENABLE_WEBSOCKET_CACHE')) {
+      console.log('🔇 WebSocket cache events disabled by feature flag');
+      return;
+    }
+
+    if (wsRef.current?.readyState === WebSocket.OPEN || state.isConnecting) {
+      return;
+    }
+
+    setState(prev => ({ ...prev, isConnecting: true, error: null }));
+
+    try {
+      const url = getWebSocketUrl();
+      console.log('🔗 Connecting to WebSocket cache events:', url);
+
+      wsRef.current = new WebSocket(url);
+
+      wsRef.current.onopen = () => {
+        console.log('✅ WebSocket cache events connected');
+
+        setState(prev => ({
+          ...prev,
+          isConnected: true,
+          isConnecting: false,
+          error: null,
+          reconnectAttempts: 0
+        }));
+
+        startPingInterval();
+        onConnect?.();
+
+        // Subscribe to events
+        if (wsRef.current?.readyState === WebSocket.OPEN && subscribedEvents.length > 0) {
+          wsRef.current.send(JSON.stringify({
+            type: 'subscribe',
+            events: subscribedEvents
+          }));
+        }
+      };
+
+      wsRef.current.onmessage = (event) => {
+        try {
+          const message: WebSocketCacheMessage = JSON.parse(event.data);
+
+          switch (message.type) {
+            case 'welcome':
+              console.log('👋 WebSocket welcome:', message.data);
+              setState(prev => ({
+                ...prev,
+                connectionId: message.data?.connection_id || null
+              }));
+              break;
+
+            case 'cache_invalidation':
+              console.log('🔄 Cache invalidation event:', message.data);
+              const event = message.data as CacheInvalidationEvent;
+
+              setState(prev => ({ ...prev, lastEvent: event }));
+
+              // Trigger event callbacks
+              const eventType = event.event_type;
+              const callbacks = eventCallbacksRef.current.get(eventType);
+              if (callbacks) {
+                callbacks.forEach(callback => {
+                  try {
+                    callback(event);
+                  } catch (error) {
+                    console.error('Error in cache event callback:', error);
+                  }
+                });
+              }
+
+              // Also trigger generic callbacks
+              const genericCallbacks = eventCallbacksRef.current.get('*');
+              if (genericCallbacks) {
+                genericCallbacks.forEach(callback => {
+                  try {
+                    callback(event);
+                  } catch (error) {
+                    console.error('Error in generic cache event callback:', error);
+                  }
+                });
+              }
+              break;
+
+            case 'ping':
+              // Respond to ping
+              if (wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({ type: 'pong' }));
+              }
+              break;
+
+            case 'subscription_updated':
+              console.log('📋 Subscription updated:', message.data);
+              break;
+
+            case 'stats':
+              console.log('📊 WebSocket stats:', message.data);
+              break;
+
+            default:
+              console.log('❓ Unknown WebSocket message type:', message.type);
+          }
+        } catch (error) {
+          console.error('Failed to parse WebSocket message:', error);
+        }
+      };
+
+      wsRef.current.onerror = (error) => {
+        console.error('❌ WebSocket error:', error);
+        const errorMessage = 'WebSocket connection error';
+        setState(prev => ({ ...prev, error: errorMessage }));
+        onError?.(errorMessage);
+      };
+
+      wsRef.current.onclose = (event) => {
+        console.log('🔌 WebSocket disconnected:', event.code, event.reason);
+
+        setState(prev => ({
+          ...prev,
+          isConnected: false,
+          isConnecting: false,
+          connectionId: null
+        }));
+
+        clearPingInterval();
+        onDisconnect?.();
+
+        // Attempt to reconnect if enabled and not a clean close
+        if (autoReconnect && event.code !== 1000 && state.reconnectAttempts < maxReconnectAttempts) {
+          console.log(`🔄 Attempting reconnect ${state.reconnectAttempts + 1}/${maxReconnectAttempts}`);
+
+          setState(prev => ({ ...prev, reconnectAttempts: prev.reconnectAttempts + 1 }));
+
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connect();
+          }, reconnectInterval * Math.pow(1.5, state.reconnectAttempts)); // Exponential backoff
+        }
+      };
+
+    } catch (error) {
+      console.error('Failed to create WebSocket connection:', error);
+      setState(prev => ({
+        ...prev,
+        isConnecting: false,
+        error: 'Failed to create WebSocket connection'
+      }));
+    }
+  }, [
+    state.isConnecting,
+    state.reconnectAttempts,
+    getWebSocketUrl,
+    startPingInterval,
+    clearPingInterval,
+    onConnect,
+    onDisconnect,
+    onError,
+    autoReconnect,
+    maxReconnectAttempts,
+    reconnectInterval,
+    subscribedEvents
+  ]);
+
+  // Disconnect from WebSocket
+  const disconnect = useCallback(() => {
+    clearReconnectTimeout();
+    clearPingInterval();
+
+    if (wsRef.current) {
+      wsRef.current.close(1000, 'Manual disconnect');
+      wsRef.current = null;
+    }
+
+    setState(prev => ({
+      ...prev,
+      isConnected: false,
+      isConnecting: false,
+      error: null,
+      connectionId: null,
+      reconnectAttempts: 0
+    }));
+  }, [clearReconnectTimeout, clearPingInterval]);
+
+  // Subscribe to cache events
+  const subscribe = useCallback((eventType: string, callback: CacheEventCallback) => {
+    if (!eventCallbacksRef.current.has(eventType)) {
+      eventCallbacksRef.current.set(eventType, new Set());
+    }
+    eventCallbacksRef.current.get(eventType)!.add(callback);
+
+    // Return unsubscribe function
+    return () => {
+      const callbacks = eventCallbacksRef.current.get(eventType);
+      if (callbacks) {
+        callbacks.delete(callback);
+        if (callbacks.size === 0) {
+          eventCallbacksRef.current.delete(eventType);
+        }
+      }
+    };
+  }, []);
+
+  // Send message to WebSocket
+  const sendMessage = useCallback((message: any) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(message));
+      return true;
+    }
+    return false;
+  }, []);
+
+  // Update subscription
+  const updateSubscription = useCallback((events: string[]) => {
+    return sendMessage({
+      type: 'subscribe',
+      events
+    });
+  }, [sendMessage]);
+
+  // Get connection stats
+  const getStats = useCallback(() => {
+    return sendMessage({ type: 'get_stats' });
+  }, [sendMessage]);
+
+  // Auto-connect on mount if feature is enabled
+  useEffect(() => {
+    if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_CACHE')) {
+      connect();
+    }
+
+    return () => {
+      disconnect();
+    };
+  }, [connect, disconnect]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      disconnect();
+      eventCallbacksRef.current.clear();
+    };
+  }, [disconnect]);
+
+  return {
+    // Connection state
+    isConnected: state.isConnected,
+    isConnecting: state.isConnecting,
+    error: state.error,
+    connectionId: state.connectionId,
+    reconnectAttempts: state.reconnectAttempts,
+    canReconnect: autoReconnect && state.reconnectAttempts < maxReconnectAttempts,
+
+    // Last received event
+    lastEvent: state.lastEvent,
+
+    // Connection controls
+    connect,
+    disconnect,
+
+    // Event subscription
+    subscribe,
+    updateSubscription,
+
+    // Utilities
+    sendMessage,
+    getStats,
+
+    // Feature flag status
+    isFeatureEnabled: isCacheFeatureEnabled('ENABLE_WEBSOCKET_CACHE')
+  };
+};
+
+export default useWebSocket;

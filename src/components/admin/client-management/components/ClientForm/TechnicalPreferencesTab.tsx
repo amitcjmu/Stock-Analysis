@@ -2,7 +2,13 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { ClientFormData } from '../../types';
 
 interface TechnicalPreferencesTabProps {
@@ -10,7 +16,10 @@ interface TechnicalPreferencesTabProps {
   onFormChange: (field: keyof ClientFormData, value: ClientFormData[keyof ClientFormData]) => void;
 }
 
-export const TechnicalPreferencesTab: React.FC<TechnicalPreferencesTabProps> = ({ formData, onFormChange }) => {
+export const TechnicalPreferencesTab: React.FC<TechnicalPreferencesTabProps> = ({
+  formData,
+  onFormChange,
+}) => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -22,10 +31,15 @@ export const TechnicalPreferencesTab: React.FC<TechnicalPreferencesTabProps> = (
               <Input
                 id="architecture_patterns"
                 value={formData.it_guidelines?.architecture_patterns?.join(', ') || ''}
-                onChange={(e) => onFormChange('it_guidelines', {
-                  ...formData.it_guidelines,
-                  architecture_patterns: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
-                })}
+                onChange={(e) =>
+                  onFormChange('it_guidelines', {
+                    ...formData.it_guidelines,
+                    architecture_patterns: e.target.value
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter(Boolean),
+                  })
+                }
                 placeholder="Microservices, Containerization, Serverless"
               />
             </div>
@@ -34,10 +48,12 @@ export const TechnicalPreferencesTab: React.FC<TechnicalPreferencesTabProps> = (
               <Textarea
                 id="security_requirements"
                 value={formData.it_guidelines?.security_requirements?.join('\n') || ''}
-                onChange={(e) => onFormChange('it_guidelines', {
-                  ...formData.it_guidelines,
-                  security_requirements: e.target.value.split('\n').filter(Boolean)
-                })}
+                onChange={(e) =>
+                  onFormChange('it_guidelines', {
+                    ...formData.it_guidelines,
+                    security_requirements: e.target.value.split('\n').filter(Boolean),
+                  })
+                }
                 placeholder="Zero Trust Architecture&#10;End-to-end encryption&#10;Multi-factor authentication"
                 rows={3}
               />
@@ -47,10 +63,15 @@ export const TechnicalPreferencesTab: React.FC<TechnicalPreferencesTabProps> = (
               <Input
                 id="data_residency"
                 value={formData.it_guidelines?.data_residency_requirements?.join(', ') || ''}
-                onChange={(e) => onFormChange('it_guidelines', {
-                  ...formData.it_guidelines,
-                  data_residency_requirements: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
-                })}
+                onChange={(e) =>
+                  onFormChange('it_guidelines', {
+                    ...formData.it_guidelines,
+                    data_residency_requirements: e.target.value
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter(Boolean),
+                  })
+                }
                 placeholder="US-only, EU data centers, etc."
               />
             </div>
@@ -59,10 +80,15 @@ export const TechnicalPreferencesTab: React.FC<TechnicalPreferencesTabProps> = (
               <Input
                 id="integration_standards"
                 value={formData.it_guidelines?.integration_standards?.join(', ') || ''}
-                onChange={(e) => onFormChange('it_guidelines', {
-                  ...formData.it_guidelines,
-                  integration_standards: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
-                })}
+                onChange={(e) =>
+                  onFormChange('it_guidelines', {
+                    ...formData.it_guidelines,
+                    integration_standards: e.target.value
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter(Boolean),
+                  })
+                }
                 placeholder="REST APIs, GraphQL, Event-driven"
               />
             </div>
@@ -76,10 +102,12 @@ export const TechnicalPreferencesTab: React.FC<TechnicalPreferencesTabProps> = (
               <Label htmlFor="risk_tolerance">Risk Tolerance</Label>
               <Select
                 value={formData.decision_criteria?.risk_tolerance || 'medium'}
-                onValueChange={(value) => onFormChange('decision_criteria', {
-                  ...formData.decision_criteria,
-                  risk_tolerance: value
-                })}
+                onValueChange={(value) =>
+                  onFormChange('decision_criteria', {
+                    ...formData.decision_criteria,
+                    risk_tolerance: value,
+                  })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -95,10 +123,12 @@ export const TechnicalPreferencesTab: React.FC<TechnicalPreferencesTabProps> = (
               <Label htmlFor="cost_sensitivity">Cost Sensitivity</Label>
               <Select
                 value={formData.decision_criteria?.cost_sensitivity || 'medium'}
-                onValueChange={(value) => onFormChange('decision_criteria', {
-                  ...formData.decision_criteria,
-                  cost_sensitivity: value
-                })}
+                onValueChange={(value) =>
+                  onFormChange('decision_criteria', {
+                    ...formData.decision_criteria,
+                    cost_sensitivity: value,
+                  })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -114,10 +144,12 @@ export const TechnicalPreferencesTab: React.FC<TechnicalPreferencesTabProps> = (
               <Label htmlFor="timeline_pressure">Timeline Pressure</Label>
               <Select
                 value={formData.decision_criteria?.timeline_pressure || 'medium'}
-                onValueChange={(value) => onFormChange('decision_criteria', {
-                  ...formData.decision_criteria,
-                  timeline_pressure: value
-                })}
+                onValueChange={(value) =>
+                  onFormChange('decision_criteria', {
+                    ...formData.decision_criteria,
+                    timeline_pressure: value,
+                  })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -133,10 +165,12 @@ export const TechnicalPreferencesTab: React.FC<TechnicalPreferencesTabProps> = (
               <Label htmlFor="technical_debt_tolerance">Technical Debt Tolerance</Label>
               <Select
                 value={formData.decision_criteria?.technical_debt_tolerance || 'medium'}
-                onValueChange={(value) => onFormChange('decision_criteria', {
-                  ...formData.decision_criteria,
-                  technical_debt_tolerance: value
-                })}
+                onValueChange={(value) =>
+                  onFormChange('decision_criteria', {
+                    ...formData.decision_criteria,
+                    technical_debt_tolerance: value,
+                  })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />

@@ -25,7 +25,7 @@ export const useAdminToasts = (): {
     toast({
       title,
       description,
-      variant: "default"
+      variant: 'default',
     });
   };
 
@@ -33,7 +33,7 @@ export const useAdminToasts = (): {
     toast({
       title,
       description,
-      variant: "destructive"
+      variant: 'destructive',
     });
   };
 
@@ -41,70 +41,46 @@ export const useAdminToasts = (): {
     toast({
       title,
       description,
-      className: "border-orange-200 bg-orange-50"
+      className: 'border-orange-200 bg-orange-50',
     });
   };
 
   // Specific admin operation toasts
   const showUserApprovedToast = (userName: string): unknown => {
-    showSuccessToast(
-      "User Approved",
-      `${userName} has been approved and granted access`
-    );
+    showSuccessToast('User Approved', `${userName} has been approved and granted access`);
   };
 
   const showUserRejectedToast = (userName: string): unknown => {
-    showSuccessToast(
-      "User Rejected",
-      `${userName}'s request has been rejected`
-    );
+    showSuccessToast('User Rejected', `${userName}'s request has been rejected`);
   };
 
   const showUserDeactivatedToast = (userName: string): unknown => {
-    showSuccessToast(
-      "User Deactivated",
-      `${userName} has been deactivated`
-    );
+    showSuccessToast('User Deactivated', `${userName} has been deactivated`);
   };
 
   const showUserActivatedToast = (userName: string): unknown => {
-    showSuccessToast(
-      "User Activated",
-      `${userName} has been activated`
-    );
+    showSuccessToast('User Activated', `${userName} has been activated`);
   };
 
   const showPurgeApprovedToast = (message?: string): unknown => {
-    showSuccessToast(
-      "Purge Approved",
-      message || "Purge request has been approved"
-    );
+    showSuccessToast('Purge Approved', message || 'Purge request has been approved');
   };
 
   const showPurgeRejectedToast = (message?: string): unknown => {
-    showSuccessToast(
-      "Purge Rejected",
-      message || "Purge request has been rejected"
-    );
+    showSuccessToast('Purge Rejected', message || 'Purge request has been rejected');
   };
 
   const showDataFetchErrorToast = (): unknown => {
-    showErrorToast(
-      "Error",
-      "Failed to fetch data. Please try again."
-    );
+    showErrorToast('Error', 'Failed to fetch data. Please try again.');
   };
 
   const showGenericErrorToast = (operation: string): unknown => {
-    showErrorToast(
-      "Error",
-      `Failed to ${operation}. Please try again.`
-    );
+    showErrorToast('Error', `Failed to ${operation}. Please try again.`);
   };
 
   const showDemoDataWarningToast = (errorMessage?: string): unknown => {
     showWarningToast(
-      "Using Demo Data",
+      'Using Demo Data',
       `There was an issue fetching live data. Showing demo statistics. ${errorMessage ? `Error: ${errorMessage}` : ''}`
     );
   };
@@ -121,6 +97,6 @@ export const useAdminToasts = (): {
     showPurgeRejectedToast,
     showDataFetchErrorToast,
     showGenericErrorToast,
-    showDemoDataWarningToast
+    showDemoDataWarningToast,
   };
 };
