@@ -51,9 +51,7 @@ class PhaseHandlers:
 
             # Execute data validation using the executor pattern
             validation_result = await self.flow.data_validation_phase.execute(
-                state=self.flow.state,
-                agents={"data_validation_agent": self.flow.data_validation_agent},
-                flow_bridge=self.flow.flow_bridge,
+                None  # No previous result for the first phase
             )
 
             # Send agent insight
@@ -99,10 +97,7 @@ class PhaseHandlers:
 
             # Execute field mapping using the executor pattern
             mapping_result = await self.flow.field_mapping_phase.execute(
-                state=self.flow.state,
-                agents={"attribute_mapping_agent": self.flow.attribute_mapping_agent},
-                flow_bridge=self.flow.flow_bridge,
-                previous_result=data_validation_agent_result,
+                data_validation_agent_result  # Pass validation result from previous phase
             )
 
             # Send agent insight
@@ -206,10 +201,7 @@ class PhaseHandlers:
 
             # Execute data cleansing using the executor pattern
             cleansing_result = await self.flow.data_cleansing_phase.execute(
-                state=self.flow.state,
-                agents={"data_cleansing_agent": self.flow.data_cleansing_agent},
-                flow_bridge=self.flow.flow_bridge,
-                previous_result=mapping_application_result,
+                mapping_application_result  # Pass mapping result from previous phase
             )
 
             # Send agent insight
@@ -253,10 +245,7 @@ class PhaseHandlers:
 
             # Execute asset creation using the executor pattern
             asset_creation_result = await self.flow.asset_inventory_phase.execute(
-                state=self.flow.state,
-                agents={"asset_inventory_agent": self.flow.asset_inventory_agent},
-                flow_bridge=self.flow.flow_bridge,
-                previous_result=data_cleansing_result,
+                data_cleansing_result  # Pass cleansing result from previous phase
             )
 
             # Send agent insight
@@ -304,19 +293,11 @@ class PhaseHandlers:
             import asyncio
 
             dependency_task = self.flow.dependency_analysis_phase.execute(
-                state=self.flow.state,
-                agents={
-                    "dependency_analysis_agent": self.flow.dependency_analysis_agent
-                },
-                flow_bridge=self.flow.flow_bridge,
-                previous_result=asset_promotion_result,
+                asset_promotion_result  # Pass asset promotion result from previous phase
             )
 
             tech_debt_task = self.flow.tech_debt_assessment_phase.execute(
-                state=self.flow.state,
-                agents={"tech_debt_analysis_agent": self.flow.tech_debt_analysis_agent},
-                flow_bridge=self.flow.flow_bridge,
-                previous_result=asset_promotion_result,
+                asset_promotion_result  # Pass asset promotion result from previous phase
             )
 
             # Wait for both tasks to complete
