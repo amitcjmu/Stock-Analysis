@@ -9,24 +9,23 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { isCacheFeatureEnabled } from '@/constants/features';
+import {
+  CacheInvalidationEvent,
+  WebSocketCacheMessage,
+  CacheEventType,
+  CACHE_EVENT_TYPES,
+  WS_MESSAGE_TYPES,
+  isWelcomeMessage,
+  isCacheInvalidationMessage,
+  isPingMessage,
+  isStatsMessage,
+  isSubscriptionUpdatedMessage,
+  isErrorMessage
+} from '@/types/websocket';
 
-// Cache event types
-export interface CacheInvalidationEvent {
-  event_type: 'cache_invalidation' | 'user_context_changed' | 'field_mappings_updated' | 'flow_state_changed' | 'engagement_modified' | 'asset_inventory_updated';
-  entity_type: string;
-  entity_id: string;
-  client_account_id: string;
-  engagement_id?: string;
-  metadata?: Record<string, any>;
-  timestamp: string;
-}
-
-export interface WebSocketCacheMessage {
-  type: 'welcome' | 'cache_invalidation' | 'ping' | 'stats' | 'subscription_updated';
-  data: CacheInvalidationEvent | any;
-  connection_id?: string;
-  sent_at?: string;
-}
+// Re-export types for convenience
+export type { CacheInvalidationEvent, CacheEventType };
+export { CACHE_EVENT_TYPES };
 
 // Subscription callback type
 export type CacheEventCallback = (event: CacheInvalidationEvent) => void;
@@ -48,7 +47,7 @@ interface UseWebSocketOptions {
   autoReconnect?: boolean;
   reconnectInterval?: number;
   maxReconnectAttempts?: number;
-  subscribedEvents?: string[];
+  subscribedEvents?: CacheEventType[];
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (error: string) => void;
@@ -65,12 +64,12 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     reconnectInterval = 3000,
     maxReconnectAttempts = 5,
     subscribedEvents = [
-      'cache_invalidation',
-      'user_context_changed',
-      'field_mappings_updated',
-      'flow_state_changed',
-      'engagement_modified',
-      'asset_inventory_updated'
+      CACHE_EVENT_TYPES.CACHE_INVALIDATION,
+      CACHE_EVENT_TYPES.USER_CONTEXT_CHANGED,
+      CACHE_EVENT_TYPES.FIELD_MAPPINGS_UPDATED,
+      CACHE_EVENT_TYPES.FLOW_STATE_CHANGED,
+      CACHE_EVENT_TYPES.ENGAGEMENT_MODIFIED,
+      CACHE_EVENT_TYPES.ASSET_INVENTORY_UPDATED
     ],
     onConnect,
     onDisconnect,
@@ -205,64 +204,61 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         try {
           const message: WebSocketCacheMessage = JSON.parse(event.data);
 
-          switch (message.type) {
-            case 'welcome':
-              console.log('👋 WebSocket welcome:', message.data);
-              setState(prev => ({
-                ...prev,
-                connectionId: message.data?.connection_id || null
-              }));
-              break;
+          if (isWelcomeMessage(message)) {
+            console.log('👋 WebSocket welcome:', message.data);
+            setState(prev => ({
+              ...prev,
+              connectionId: message.data.connection_id
+            }));
+          } else if (isCacheInvalidationMessage(message)) {
+            console.log('🔄 Cache invalidation event:', message.data);
+            const cacheEvent = message.data;
 
-            case 'cache_invalidation':
-              console.log('🔄 Cache invalidation event:', message.data);
-              const event = message.data as CacheInvalidationEvent;
+            setState(prev => ({ ...prev, lastEvent: cacheEvent }));
 
-              setState(prev => ({ ...prev, lastEvent: event }));
+            // Trigger event callbacks
+            const eventType = cacheEvent.event_type;
+            const callbacks = eventCallbacksRef.current.get(eventType);
+            if (callbacks) {
+              callbacks.forEach(callback => {
+                try {
+                  callback(cacheEvent);
+                } catch (error) {
+                  console.error('Error in cache event callback:', error);
+                }
+              });
+            }
 
-              // Trigger event callbacks
-              const eventType = event.event_type;
-              const callbacks = eventCallbacksRef.current.get(eventType);
-              if (callbacks) {
-                callbacks.forEach(callback => {
-                  try {
-                    callback(event);
-                  } catch (error) {
-                    console.error('Error in cache event callback:', error);
-                  }
-                });
-              }
-
-              // Also trigger generic callbacks
-              const genericCallbacks = eventCallbacksRef.current.get('*');
-              if (genericCallbacks) {
-                genericCallbacks.forEach(callback => {
-                  try {
-                    callback(event);
-                  } catch (error) {
-                    console.error('Error in generic cache event callback:', error);
-                  }
-                });
-              }
-              break;
-
-            case 'ping':
-              // Respond to ping
-              if (wsRef.current?.readyState === WebSocket.OPEN) {
-                wsRef.current.send(JSON.stringify({ type: 'pong' }));
-              }
-              break;
-
-            case 'subscription_updated':
-              console.log('📋 Subscription updated:', message.data);
-              break;
-
-            case 'stats':
-              console.log('📊 WebSocket stats:', message.data);
-              break;
-
-            default:
-              console.log('❓ Unknown WebSocket message type:', message.type);
+            // Also trigger generic callbacks
+            const genericCallbacks = eventCallbacksRef.current.get('*');
+            if (genericCallbacks) {
+              genericCallbacks.forEach(callback => {
+                try {
+                  callback(cacheEvent);
+                } catch (error) {
+                  console.error('Error in generic cache event callback:', error);
+                }
+              });
+            }
+          } else if (isPingMessage(message)) {
+            // Respond to ping with pong
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+              const pongMessage = {
+                type: WS_MESSAGE_TYPES.PONG,
+                data: { timestamp: new Date().toISOString() }
+              };
+              wsRef.current.send(JSON.stringify(pongMessage));
+            }
+          } else if (isSubscriptionUpdatedMessage(message)) {
+            console.log('📋 Subscription updated:', message.data);
+          } else if (isStatsMessage(message)) {
+            console.log('📊 WebSocket stats:', message.data);
+          } else if (isErrorMessage(message)) {
+            console.error('❌ WebSocket error:', message.data);
+            setState(prev => ({ ...prev, error: message.data.message }));
+            onError?.(message.data.message);
+          } else {
+            console.log('❓ Unknown WebSocket message type:', message);
           }
         } catch (error) {
           console.error('Failed to parse WebSocket message:', error);
@@ -345,7 +341,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   }, [clearReconnectTimeout, clearPingInterval]);
 
   // Subscribe to cache events
-  const subscribe = useCallback((eventType: string, callback: CacheEventCallback) => {
+  const subscribe = useCallback((eventType: CacheEventType | '*', callback: CacheEventCallback) => {
     if (!eventCallbacksRef.current.has(eventType)) {
       eventCallbacksRef.current.set(eventType, new Set());
     }
@@ -364,7 +360,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   }, []);
 
   // Send message to WebSocket
-  const sendMessage = useCallback((message: any) => {
+  const sendMessage = useCallback((message: Partial<WebSocketCacheMessage>) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
       return true;
@@ -373,16 +369,16 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   }, []);
 
   // Update subscription
-  const updateSubscription = useCallback((events: string[]) => {
+  const updateSubscription = useCallback((events: CacheEventType[]) => {
     return sendMessage({
-      type: 'subscribe',
-      events
+      type: WS_MESSAGE_TYPES.SUBSCRIPTION_UPDATED as any,
+      data: { subscribed_events: events } as any
     });
   }, [sendMessage]);
 
   // Get connection stats
   const getStats = useCallback(() => {
-    return sendMessage({ type: 'get_stats' });
+    return sendMessage({ type: WS_MESSAGE_TYPES.STATS as any });
   }, [sendMessage]);
 
   // Auto-connect on mount if feature is enabled
