@@ -163,7 +163,13 @@ export const useDependencyLogic = (flowId?: string) => {
         setPersistedDependencies(response);
       }
     } catch (error) {
-      console.warn('Failed to fetch persisted dependencies:', error);
+      console.error('Failed to fetch persisted dependencies:', error);
+      // Set empty state to prevent infinite loading
+      setPersistedDependencies({
+        app_server_mapping: [],
+        cross_application_mapping: []
+      });
+      throw error; // Re-throw to allow caller to handle
     }
   }, [client?.id, engagement?.id]);
 
@@ -221,10 +227,16 @@ export const useDependencyLogic = (flowId?: string) => {
   // Combined refresh function that refreshes both flow and persisted dependencies
   const refreshAllDependencies = useCallback(async () => {
     console.log('🔄 Refreshing all dependencies...');
-    // Refresh flow state
-    await refresh();
-    // Refresh persisted dependencies
-    await fetchPersistedDependencies();
+    try {
+      // Refresh flow state
+      await refresh();
+      // Refresh persisted dependencies
+      await fetchPersistedDependencies();
+      console.log('✅ Successfully refreshed all dependencies');
+    } catch (error) {
+      console.error('❌ Failed to refresh dependencies:', error);
+      // Don't re-throw to prevent component crashes
+    }
   }, [refresh, fetchPersistedDependencies]);
 
   return {
