@@ -19,21 +19,19 @@ VITE_BACKEND_URL=https://migrate-ui-orchestrator-production.up.railway.app
 
 ## Testing API Connectivity
 
-You can test if the API is working by opening the browser console and running:
+**⚠️ WARNING: Only perform these tests in development environments. Never run debugging code in production.**
 
-```javascript
-// Test 1: Check if API_CONFIG resolves correctly
-console.log('API BASE_URL:', window.API_CONFIG?.BASE_URL);
+To test API connectivity in development:
 
-// Test 2: Test a simple API call
-fetch('https://migrate-ui-orchestrator-production.up.railway.app/health')
-  .then(response => response.json())
-  .then(data => console.log('Backend health:', data))
-  .catch(error => console.error('Backend connection failed:', error));
+1. **Check Network Tab**: Look for failed API requests in browser DevTools
+2. **Verify Environment Variables**: Ensure `VITE_BACKEND_URL` is properly set
+3. **Test Backend Health**: Use tools like curl or Postman to test backend endpoints
+4. **Check Console Errors**: Look for JavaScript errors or network failures
 
-// Test 3: Check auth context
-console.log('Auth context:', window.authContext);
-```
+**For developers only (development environment):**
+- Backend health endpoint can be tested directly
+- Check browser DevTools Network tab for API call status
+- Verify authentication headers are being sent correctly
 
 ## Common Issues and Solutions
 

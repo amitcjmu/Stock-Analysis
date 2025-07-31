@@ -136,7 +136,24 @@ class FlowOperations:
                         f"Flow {flow_id} already exists in Redis registry, attempting cleanup"
                     )
                     try:
-                        # Try to clean up the existing entry
+                        # Verify flow status before cleanup - only cleanup stale entries
+                        flow_state = await redis_cache.get_flow_state(str(flow_id))
+                        if flow_state and flow_state.get("status") in [
+                            "running",
+                            "active",
+                            "executing",
+                        ]:
+                            raise FlowError(
+                                f"Flow {flow_id} is currently active "
+                                f"(status: {flow_state.get('status')}) and cannot be cleaned up"
+                            )
+
+                        status = flow_state.get("status") if flow_state else "not found"
+                        logger.info(
+                            f"Flow {flow_id} appears to be stale (status: {status}), attempting cleanup"
+                        )
+
+                        # Try to clean up the stale entry
                         cleanup_success = await redis_cache.unregister_flow_atomic(
                             str(flow_id), flow_type
                         )
@@ -158,12 +175,27 @@ class FlowOperations:
                             raise FlowError(
                                 f"Flow {flow_id} already exists and cleanup failed"
                             )
-                    except Exception as cleanup_error:
+                    except ConnectionError as conn_error:
                         logger.error(
-                            f"Failed to cleanup existing flow {flow_id}: {cleanup_error}"
+                            f"Redis connection failed during flow {flow_id} cleanup: {conn_error}"
                         )
                         raise FlowError(
-                            f"Flow {flow_id} already exists in Redis registry and cleanup failed: {cleanup_error}"
+                            f"Flow {flow_id} cleanup failed due to Redis connection error"
+                        )
+                    except TimeoutError as timeout_error:
+                        logger.error(
+                            f"Redis timeout during flow {flow_id} cleanup: {timeout_error}"
+                        )
+                        raise FlowError(
+                            f"Flow {flow_id} cleanup failed due to Redis timeout"
+                        )
+                    except Exception as cleanup_error:
+                        error_type = type(cleanup_error).__name__
+                        logger.error(
+                            f"Failed to cleanup existing flow {flow_id} ({error_type}): {cleanup_error}"
+                        )
+                        raise FlowError(
+                            f"Flow {flow_id} already exists in Redis registry and cleanup failed: {error_type}"
                         )
 
             try:
@@ -270,14 +302,39 @@ class FlowOperations:
             if flow_id:
                 try:
                     redis_cache = get_redis_cache()
-                    await redis_cache.unregister_flow_atomic(str(flow_id), flow_type)
-                    logger.info(
-                        f"🧹 Cleaned up Redis registry for failed flow: {flow_id}"
+                    if redis_cache and redis_cache.client is not None:
+                        await redis_cache.unregister_flow_atomic(
+                            str(flow_id), flow_type
+                        )
+                        logger.info(
+                            f"🧹 Cleaned up Redis registry for failed flow: {flow_id}"
+                        )
+                    else:
+                        logger.warning(
+                            f"Redis unavailable - skipping cleanup for flow {flow_id}"
+                        )
+                except ConnectionError as conn_error:
+                    logger.error(
+                        f"Redis connection failed during cleanup for flow {flow_id}: {conn_error}"
+                    )
+                except TimeoutError as timeout_error:
+                    logger.error(
+                        f"Redis timeout during cleanup for flow {flow_id}: {timeout_error}"
                     )
                 except Exception as cleanup_error:
-                    logger.warning(
-                        f"Failed to cleanup Redis registry for flow {flow_id}: {cleanup_error}"
-                    )
+                    # Check if this is a Redis-specific error or general error
+                    error_type = type(cleanup_error).__name__
+                    if (
+                        "redis" in error_type.lower()
+                        or "connection" in str(cleanup_error).lower()
+                    ):
+                        logger.error(
+                            f"Redis error during cleanup for flow {flow_id}: {cleanup_error}"
+                        )
+                    else:
+                        logger.warning(
+                            f"General error during cleanup for flow {flow_id}: {cleanup_error}"
+                        )
 
             # Log failure audit
             await self.audit_logger.log_audit_event(
