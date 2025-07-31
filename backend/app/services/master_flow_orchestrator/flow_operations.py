@@ -131,7 +131,40 @@ class FlowOperations:
                     )
                     # Continue with flow creation when Redis is unavailable
                 else:
-                    raise FlowError(f"Flow {flow_id} already exists in Redis registry")
+                    # CRITICAL FIX: Check if this is a stale entry and try to clean it up
+                    logger.warning(
+                        f"Flow {flow_id} already exists in Redis registry, attempting cleanup"
+                    )
+                    try:
+                        # Try to clean up the existing entry
+                        cleanup_success = await redis_cache.unregister_flow_atomic(
+                            str(flow_id), flow_type
+                        )
+                        if cleanup_success:
+                            logger.info(
+                                f"🧹 Cleaned up stale Redis entry for flow: {flow_id}"
+                            )
+                            # Retry registration after cleanup
+                            redis_registered = await redis_cache.register_flow_atomic(
+                                flow_id=str(flow_id),
+                                flow_type=flow_type,
+                                flow_data=flow_data,
+                            )
+                            if not redis_registered:
+                                raise FlowError(
+                                    f"Flow {flow_id} registration failed even after cleanup"
+                                )
+                        else:
+                            raise FlowError(
+                                f"Flow {flow_id} already exists and cleanup failed"
+                            )
+                    except Exception as cleanup_error:
+                        logger.error(
+                            f"Failed to cleanup existing flow {flow_id}: {cleanup_error}"
+                        )
+                        raise FlowError(
+                            f"Flow {flow_id} already exists in Redis registry and cleanup failed: {cleanup_error}"
+                        )
 
             try:
                 # Create master flow record using lifecycle manager
@@ -232,6 +265,19 @@ class FlowOperations:
                 logger.error(
                     f"Max retries (3) reached for flow creation of type {flow_type}"
                 )
+
+            # CRITICAL FIX: Clean up Redis registry entry on flow creation failure
+            if flow_id:
+                try:
+                    redis_cache = get_redis_cache()
+                    await redis_cache.unregister_flow_atomic(str(flow_id), flow_type)
+                    logger.info(
+                        f"🧹 Cleaned up Redis registry for failed flow: {flow_id}"
+                    )
+                except Exception as cleanup_error:
+                    logger.warning(
+                        f"Failed to cleanup Redis registry for flow {flow_id}: {cleanup_error}"
+                    )
 
             # Log failure audit
             await self.audit_logger.log_audit_event(
