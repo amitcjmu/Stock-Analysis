@@ -50,46 +50,10 @@ class DependencyAnalysisExecutor(BasePhaseExecutor):
         return self._process_crew_result(crew_result)
 
     async def execute_fallback(self) -> Dict[str, Any]:
-        # 🚀 DATA VALIDATION: Check if we have data to process
-        asset_inventory = getattr(self.state, "asset_inventory", {})
-        if not asset_inventory or asset_inventory.get("total_assets", 0) == 0:
-            return {
-                "app_server_mapping": [],
-                "cross_application_mapping": [],
-                "total_applications": 0,
-                "mapped_dependencies": 0,
-                "dependency_relationships": [],
-                "dependency_matrix": {},
-                "critical_dependencies": [],
-                "orphaned_assets": [],
-                "complexity_score": 0.0,
-                "recommendations": [
-                    "No asset inventory data available for dependency analysis"
-                ],
-                "success": False,
-                "reason": "no_data",
-            }
-
-        # Basic dependency analysis based on asset inventory
-        total_assets = asset_inventory.get("total_assets", 0)
-        return {
-            "app_server_mapping": [],
-            "cross_application_mapping": [],
-            "total_applications": total_assets,
-            "mapped_dependencies": 0,
-            "dependency_relationships": [],
-            "dependency_matrix": {},
-            "critical_dependencies": [],
-            "orphaned_assets": [],
-            "complexity_score": 0.0,
-            "recommendations": [
-                f"Fallback dependency analysis for {total_assets} assets",
-                "Run full dependency analysis to discover actual relationships",
-            ],
-            "fallback_used": True,
-            "assets_analyzed": total_assets,
-            "success": True,
-        }
+        # NO FALLBACK - CrewAI should always be available
+        raise RuntimeError(
+            "Dependency analysis requires CrewAI. No fallback available."
+        )
 
     def _prepare_crew_input(self) -> Dict[str, Any]:
         return {"asset_inventory": getattr(self.state, "asset_inventory", {})}
@@ -235,43 +199,17 @@ class DependencyAnalysisExecutor(BasePhaseExecutor):
                     "success": True,
                 }
             else:
-                # Use fallback format if crew result is not successful
-                return {
-                    "app_server_mapping": [],
-                    "cross_application_mapping": [],
-                    "total_applications": 0,
-                    "mapped_dependencies": 0,
-                    "dependency_relationships": [],
-                    "dependency_matrix": {},
-                    "critical_dependencies": [],
-                    "orphaned_assets": [],
-                    "complexity_score": 0.0,
-                    "recommendations": [
-                        "Dependency analysis failed - using fallback data"
-                    ],
-                    "success": False,
-                    "error": (
-                        crew_result.get("error", "Unknown error")
-                        if isinstance(crew_result, dict)
-                        else "Invalid crew result format"
-                    ),
-                }
+                # Crew result is not successful - fail properly
+                error_msg = (
+                    crew_result.get("error", "Unknown error")
+                    if isinstance(crew_result, dict)
+                    else "Invalid crew result format"
+                )
+                raise RuntimeError(f"Dependency analysis crew failed: {error_msg}")
         except Exception as e:
-            # Fallback processing
-            return {
-                "app_server_mapping": [],
-                "cross_application_mapping": [],
-                "total_applications": 0,
-                "mapped_dependencies": 0,
-                "dependency_relationships": [],
-                "dependency_matrix": {},
-                "critical_dependencies": [],
-                "orphaned_assets": [],
-                "complexity_score": 0.0,
-                "recommendations": [f"Error processing dependency analysis: {str(e)}"],
-                "success": False,
-                "error": str(e),
-            }
+            # Re-raise the exception - no fallback
+            logger.error(f"Error processing dependency analysis: {e}")
+            raise
 
     async def _store_results(self, results: Dict[str, Any]):
         self.state.dependencies = results

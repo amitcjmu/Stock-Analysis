@@ -8,54 +8,12 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List
 
-# CrewAI imports with fallback
-try:
-    from crewai import Agent, Crew, Task
-    from crewai.tools import BaseTool
-
-    CREWAI_AVAILABLE = True
-    logger = logging.getLogger(__name__)
-    logger.info("✅ CrewAI imports successful for DependencyAnalysisCrew")
-except ImportError as e:
-    logger = logging.getLogger(__name__)
-    logger.warning(f"CrewAI not available: {e}")
-    CREWAI_AVAILABLE = False
-
-    # Fallback classes
-    class Agent:
-        def __init__(self, **kwargs):
-            self.role = kwargs.get("role", "")
-            self.goal = kwargs.get("goal", "")
-            self.backstory = kwargs.get("backstory", "")
-
-    class Task:
-        def __init__(self, **kwargs):
-            self.description = kwargs.get("description", "")
-            self.expected_output = kwargs.get("expected_output", "")
-
-    class Crew:
-        def __init__(self, **kwargs):
-            self.agents = kwargs.get("agents", [])
-            self.tasks = kwargs.get("tasks", [])
-
-        def kickoff(self, inputs=None):
-            return {
-                "status": "fallback_mode",
-                "analysis_results": [],
-                "summary": {"total_assets": 0, "average_confidence": 0.0},
-            }
-
-    class BaseTool:
-        name: str = "base_tool"
-        description: str = "Base tool"
-
-        def _run(self, *args, **kwargs):
-            return {}
-
-
+from crewai import Agent, Crew, Task
+from crewai.tools import BaseTool
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
+logger.info("✅ CrewAI imports successful for DependencyAnalysisCrew")
 
 
 class DependencyAnalysisResult(BaseModel):
@@ -216,27 +174,18 @@ class DependencyAnalysisCrew:
         self.knowledge_base = knowledge_base
         self.network_topology_tool = NetworkTopologyTool()
 
-        if CREWAI_AVAILABLE:
-            # Initialize agents
-            self.network_architecture_specialist = (
-                self._create_network_architecture_specialist()
-            )
-            self.application_dependency_analyst = (
-                self._create_application_dependency_analyst()
-            )
-            self.infrastructure_dependency_mapper = (
-                self._create_infrastructure_dependency_mapper()
-            )
-            self.crew = None  # Will be created in kickoff method
-            logger.info(
-                "🎯 Dependency Analysis Crew initialized with specialized agents"
-            )
-        else:
-            logger.warning("CrewAI not available, using fallback mode")
-            self.network_architecture_specialist = None
-            self.application_dependency_analyst = None
-            self.infrastructure_dependency_mapper = None
-            self.crew = None
+        # Initialize agents - CrewAI is required
+        self.network_architecture_specialist = (
+            self._create_network_architecture_specialist()
+        )
+        self.application_dependency_analyst = (
+            self._create_application_dependency_analyst()
+        )
+        self.infrastructure_dependency_mapper = (
+            self._create_infrastructure_dependency_mapper()
+        )
+        self.crew = None  # Will be created in kickoff method
+        logger.info("🎯 Dependency Analysis Crew initialized with specialized agents")
 
     def _create_network_architecture_specialist(self) -> Agent:
         """Create the Network Architecture Specialist agent"""
@@ -367,9 +316,7 @@ class DependencyAnalysisCrew:
                 f"🚀 Starting Dependency Analysis Crew for {len(assets_data)} REAL assets"
             )
 
-            if not CREWAI_AVAILABLE:
-                logger.warning("CrewAI not available, using fallback implementation")
-                return self._execute_fallback(assets_data)
+            # CrewAI is required - no fallback
 
             # Create tasks for the crew
             tasks = self._create_tasks(assets_data)
@@ -600,12 +547,13 @@ class DependencyAnalysisCrew:
                             f"Skipping invalid dependency: {source_id} -> {target_id}"
                         )
 
-            # If no valid dependencies found, create basic dependencies based on asset types
+            # If no valid dependencies found, this is a crew failure
             if not validated_dependencies:
-                logger.info(
-                    "No dependencies extracted from crew, generating basic dependencies"
+                logger.error(
+                    "No dependencies extracted from crew - dependency analysis failed"
                 )
-                validated_dependencies = self._generate_basic_dependencies(assets_data)
+                # Return empty dependencies rather than generating fake ones
+                validated_dependencies = []
 
             # Create analysis results for compatibility
             for asset_data in assets_data:
@@ -710,183 +658,6 @@ class DependencyAnalysisCrew:
                 "analysis_results": [],
                 "crew_insights": [],
             }
-
-    def _execute_fallback(self, assets_data: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Fallback implementation when CrewAI is not available"""
-        logger.info(
-            f"Executing dependency analysis in fallback mode for {len(assets_data)} assets"
-        )
-
-        # Generate basic dependencies based on asset types
-        dependencies = self._generate_basic_dependencies(assets_data)
-        logger.info(
-            f"Generated {len(dependencies)} basic dependencies in fallback mode"
-        )
-
-        analysis_results = []
-
-        for asset_data in assets_data:
-            asset_id = asset_data.get("id", "unknown")
-            asset_name = asset_data.get("name", asset_data.get("asset_name", "Unknown"))
-
-            # Find dependencies for this asset
-            upstream = [d for d in dependencies if d["target_id"] == asset_id]
-            downstream = [d for d in dependencies if d["source_id"] == asset_id]
-
-            # Create dependency result
-            dependency_result = DependencyAnalysisResult(
-                asset_id=asset_id,
-                asset_name=asset_name,
-                network_analysis={
-                    "complexity_level": (
-                        "low"
-                        if len(upstream) + len(downstream) == 0
-                        else "medium" if len(upstream) + len(downstream) < 3 else "high"
-                    ),
-                    "architecture_type": self._determine_architecture_type_from_asset(
-                        asset_data
-                    ),
-                    "network_indicators": {
-                        "ports": [],
-                        "protocols": [],
-                    },
-                },
-                application_dependencies={
-                    "dependency_strength": (
-                        "low"
-                        if not downstream
-                        else "medium" if len(downstream) < 2 else "high"
-                    ),
-                    "integration_complexity": "low",
-                    "integration_patterns": {},
-                },
-                infrastructure_dependencies={
-                    "maturity_level": "medium",
-                    "dependency_complexity": "low" if not upstream else "medium",
-                    "critical_components": [],
-                },
-                critical_path_analysis={
-                    "critical_dependencies": [d["source_name"] for d in upstream],
-                    "migration_blockers": [],
-                    "sequence_requirements": [],
-                },
-                dependency_map={
-                    "upstream_dependencies": [d["source_id"] for d in upstream],
-                    "downstream_dependencies": [d["target_id"] for d in downstream],
-                    "peer_dependencies": [],
-                },
-                migration_sequence=[],
-                risk_assessment={
-                    "overall_risk": "low" if not upstream else "medium",
-                    "key_risks": [],
-                    "mitigation_strategies": [],
-                },
-                confidence_score=0.6,
-            )
-
-            analysis_results.append(dependency_result)
-
-        # Generate summary
-        summary = self._generate_dependency_summary(analysis_results)
-
-        return {
-            "success": True,
-            "analysis_results": analysis_results,
-            "dependencies": dependencies,
-            "crew_insights": [],
-            "summary": summary,
-            "metadata": {
-                "total_assets_analyzed": len(assets_data),
-                "total_dependencies_found": len(dependencies),
-                "analysis_timestamp": datetime.utcnow().isoformat(),
-                "crew_pattern": "fallback_mode",
-                "agents_involved": [],
-            },
-            "execution_mode": "fallback",
-        }
-
-    def _generate_basic_dependencies(
-        self, assets_data: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
-        """Generate basic dependencies based on asset types and names"""
-        dependencies = []
-
-        # Categorize assets by type
-        servers = []
-        applications = []
-        databases = []
-
-        for asset in assets_data:
-            if isinstance(asset, dict):
-                asset_type = asset.get("type", "").lower()
-                if "server" in asset_type:
-                    servers.append(asset)
-                elif "application" in asset_type or "app" in asset_type:
-                    applications.append(asset)
-                elif "database" in asset_type or "db" in asset_type:
-                    databases.append(asset)
-
-        # Create basic hosting dependencies (apps on servers)
-        for app in applications:
-            if servers:
-                # Find a likely server based on name matching or assign first available
-                app_name = app.get("name", "").lower()
-                matched_server = None
-
-                for server in servers:
-                    server_name = server.get("name", "").lower()
-                    # Check for name similarity
-                    if any(part in server_name for part in app_name.split()) or any(
-                        part in app_name for part in server_name.split()
-                    ):
-                        matched_server = server
-                        break
-
-                if not matched_server and servers:
-                    matched_server = servers[0]  # Default to first server
-
-                if matched_server:
-                    dependencies.append(
-                        {
-                            "source_id": app.get("id"),
-                            "source_name": app.get("name", "Unknown App"),
-                            "target_id": matched_server.get("id"),
-                            "target_name": matched_server.get("name", "Unknown Server"),
-                            "dependency_type": "hosting",
-                            "confidence_score": 0.6,
-                            "is_app_to_app": False,
-                            "description": "Application hosted on server",
-                        }
-                    )
-
-        # Create basic database dependencies (apps use databases)
-        for app in applications:
-            if databases:
-                # Find a likely database based on name matching
-                app_name = app.get("name", "").lower()
-                for db in databases:
-                    db_name = db.get("name", "").lower()
-                    # Check for name similarity or common patterns
-                    if (
-                        any(part in db_name for part in app_name.split())
-                        or "main" in db_name
-                        or "primary" in db_name
-                    ):
-                        dependencies.append(
-                            {
-                                "source_id": app.get("id"),
-                                "source_name": app.get("name", "Unknown App"),
-                                "target_id": db.get("id"),
-                                "target_name": db.get("name", "Unknown DB"),
-                                "dependency_type": "database",
-                                "confidence_score": 0.5,
-                                "is_app_to_app": False,
-                                "description": "Application uses database",
-                            }
-                        )
-                        break
-
-        return dependencies
 
     def _determine_architecture_type_from_asset(
         self, asset_data: Dict[str, Any]
