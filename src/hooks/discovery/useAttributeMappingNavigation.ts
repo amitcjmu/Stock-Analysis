@@ -71,11 +71,16 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
         const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
         const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
 
-        // If flow is failed, retry it first
+        // If flow is failed, retry it first with error handling
         if (flowStatus === 'failed') {
-          console.log('⚠️ Flow is in failed state, retrying first');
-          await discoveryFlowService.retryFlow(flowId, clientAccountId, engagementId);
-          console.log('✅ Flow retry successful');
+          try {
+            console.log('⚠️ Flow is in failed state, retrying first');
+            await discoveryFlowService.retryFlow(flowId, clientAccountId, engagementId);
+            console.log('✅ Flow retry successful');
+          } catch (retryError) {
+            console.warn('⚠️ Flow retry failed, continuing with phase execution:', retryError);
+            // Continue with phase execution even if retry fails
+          }
         }
 
         // Execute the next phase with mapping approval data using discovery flow service

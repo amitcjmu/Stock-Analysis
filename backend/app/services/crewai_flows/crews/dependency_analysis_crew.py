@@ -324,6 +324,16 @@ class DependencyAnalysisCrew:
                     logger.warning("No assets found in inventory")
                     assets_data = []
 
+            # Validate that assets_data contains valid asset dictionaries
+            if assets_data:
+                valid_assets = []
+                for asset in assets_data:
+                    if isinstance(asset, dict) and asset.get("id"):
+                        valid_assets.append(asset)
+                    else:
+                        logger.warning(f"Skipping invalid asset: {asset}")
+                assets_data = valid_assets
+
             # CRITICAL: Ensure we have actual asset data
             if not assets_data:
                 logger.error("❌ No assets data available for dependency analysis")

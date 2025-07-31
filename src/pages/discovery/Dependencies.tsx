@@ -265,33 +265,18 @@ const Dependencies: React.FC = () => {
                       let targetId: string | null = null;
                       let isAppToApp = false;
 
+                      const availableApps = dependencyData.available_applications || [];
+                      const availableServers = dependencyData.available_servers || [];
+
                       if (activeView === 'app-server') {
                         // App to Server dependency
-                        const sourceApp = dependencyData.available_applications.find(app =>
-                          app.name === dependency.application_name ||
-                          app.asset_name === dependency.application_name
-                        );
-                        const targetServer = dependencyData.available_servers.find(server =>
-                          server.name === dependency.server_name ||
-                          server.asset_name === dependency.server_name
-                        );
-
-                        sourceId = sourceApp?.id || null;
-                        targetId = targetServer?.id || null;
+                        sourceId = findAssetIdByName(dependency.application_name, availableApps);
+                        targetId = findAssetIdByName(dependency.server_name, availableServers);
                         isAppToApp = false;
                       } else {
                         // App to App dependency
-                        const sourceApp = dependencyData.available_applications.find(app =>
-                          app.name === dependency.source_app ||
-                          app.asset_name === dependency.source_app
-                        );
-                        const targetApp = dependencyData.available_applications.find(app =>
-                          app.name === dependency.target_app ||
-                          app.asset_name === dependency.target_app
-                        );
-
-                        sourceId = sourceApp?.id || null;
-                        targetId = targetApp?.id || null;
+                        sourceId = findAssetIdByName(dependency.source_app, availableApps);
+                        targetId = findAssetIdByName(dependency.target_app, availableApps);
                         isAppToApp = true;
                       }
 
