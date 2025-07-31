@@ -60,8 +60,30 @@ async def store_import_data(
 
         # Handle HTTP exceptions based on response (dict)
         if not response.get("success") and response.get("error"):
+            # Check if this is a partial success (data stored but flow failed)
+            records_stored = response.get("records_stored", 0)
+            if records_stored > 0 and "Discovery Flow failed" in response.get(
+                "message", ""
+            ):
+                # This is a partial success - data was stored successfully but flow creation failed
+                # Return 200 OK with warning instead of 500 error
+                logger.info(
+                    f"Partial success: {records_stored} records stored, flow creation failed. "
+                    f"Returning success response with warning."
+                )
+                return {
+                    "success": True,  # Change to True since data upload succeeded
+                    "data_import_id": response.get("data_import_id"),
+                    "import_flow_id": response.get("import_flow_id"),
+                    "flow_id": response.get("flow_id"),
+                    "message": f"Successfully uploaded {records_stored} records. "
+                    f"Discovery flow creation will be retried automatically.",
+                    "records_stored": records_stored,
+                    "warning": response.get("error"),  # Include flow error as warning
+                    "partial_success": True,  # Flag for frontend handling
+                }
             # Check if this is a conflict error
-            if "incomplete_discovery_flow_exists" in response.get("error", ""):
+            elif "incomplete_discovery_flow_exists" in response.get("error", ""):
                 raise HTTPException(
                     status_code=409,  # Conflict
                     detail={

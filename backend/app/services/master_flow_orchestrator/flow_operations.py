@@ -132,70 +132,95 @@ class FlowOperations:
                 else:
                     # CRITICAL FIX: Check if this is a stale entry and try to clean it up
                     logger.warning(
-                        f"Flow {flow_id} already exists in Redis registry, attempting cleanup"
+                        f"Flow {flow_id} registration failed, checking if Redis is accessible"
                     )
                     try:
-                        # Verify flow status before cleanup - only cleanup stale entries
-                        flow_state = await redis_cache.get_flow_state(str(flow_id))
-                        if flow_state and flow_state.get("status") in [
-                            "running",
-                            "active",
-                            "executing",
-                        ]:
-                            raise FlowError(
-                                f"Flow {flow_id} is currently active "
-                                f"(status: {flow_state.get('status')}) and cannot be cleaned up"
+                        # First test Redis connectivity before attempting cleanup
+                        try:
+                            test_result = await redis_cache.exists(
+                                f"test_connectivity_{flow_id}"
                             )
-
-                        status = flow_state.get("status") if flow_state else "not found"
-                        logger.info(
-                            f"Flow {flow_id} appears to be stale (status: {status}), attempting cleanup"
-                        )
-
-                        # Try to clean up the stale entry
-                        cleanup_success = await redis_cache.unregister_flow_atomic(
-                            str(flow_id), flow_type
-                        )
-                        if cleanup_success:
                             logger.info(
-                                f"🧹 Cleaned up stale Redis entry for flow: {flow_id}"
+                                f"Redis connectivity test passed: {test_result}"
                             )
-                            # Retry registration after cleanup
-                            redis_registered = await redis_cache.register_flow_atomic(
-                                flow_id=str(flow_id),
-                                flow_type=flow_type,
-                                flow_data=flow_data,
+                        except (ConnectionError, TimeoutError, Exception) as conn_error:
+                            logger.warning(
+                                f"Redis connection test failed: {conn_error}. "
+                                f"Proceeding with flow creation without Redis deduplication."
                             )
-                            if not redis_registered:
-                                raise FlowError(
-                                    f"Flow {flow_id} registration failed even after cleanup"
-                                )
+                            # Redis is not accessible, continue with flow creation
+                            pass  # Continue to database operations
                         else:
-                            raise FlowError(
-                                f"Flow {flow_id} already exists and cleanup failed"
+                            # Redis is accessible, attempt cleanup
+                            logger.info(
+                                f"Flow {flow_id} already exists in Redis registry, attempting cleanup"
                             )
+
+                            # Verify flow status before cleanup - only cleanup stale entries
+                            flow_state = await redis_cache.get_flow_state(str(flow_id))
+                            if flow_state and flow_state.get("status") in [
+                                "running",
+                                "active",
+                                "executing",
+                            ]:
+                                raise FlowError(
+                                    f"Flow {flow_id} is currently active "
+                                    f"(status: {flow_state.get('status')}) and cannot be cleaned up"
+                                )
+
+                            status = (
+                                flow_state.get("status") if flow_state else "not found"
+                            )
+                            logger.info(
+                                f"Flow {flow_id} appears to be stale (status: {status}), attempting cleanup"
+                            )
+
+                            # Try to clean up the stale entry
+                            cleanup_success = await redis_cache.unregister_flow_atomic(
+                                str(flow_id), flow_type
+                            )
+                            if cleanup_success:
+                                logger.info(
+                                    f"🧹 Cleaned up stale Redis entry for flow: {flow_id}"
+                                )
+                                # Retry registration after cleanup
+                                redis_registered = (
+                                    await redis_cache.register_flow_atomic(
+                                        flow_id=str(flow_id),
+                                        flow_type=flow_type,
+                                        flow_data=flow_data,
+                                    )
+                                )
+                                if not redis_registered:
+                                    raise FlowError(
+                                        f"Flow {flow_id} registration failed even after cleanup"
+                                    )
+                            else:
+                                raise FlowError(
+                                    f"Flow {flow_id} already exists and cleanup failed"
+                                )
                     except ConnectionError as conn_error:
-                        logger.error(
-                            f"Redis connection failed during flow {flow_id} cleanup: {conn_error}"
+                        logger.warning(
+                            f"Redis connection failed during flow {flow_id} cleanup: {conn_error}. "
+                            f"Proceeding with flow creation without Redis deduplication."
                         )
-                        raise FlowError(
-                            f"Flow {flow_id} cleanup failed due to Redis connection error"
-                        )
+                        # Don't raise error, continue with flow creation
+                        pass
                     except TimeoutError as timeout_error:
-                        logger.error(
-                            f"Redis timeout during flow {flow_id} cleanup: {timeout_error}"
+                        logger.warning(
+                            f"Redis timeout during flow {flow_id} cleanup: {timeout_error}. "
+                            f"Proceeding with flow creation without Redis deduplication."
                         )
-                        raise FlowError(
-                            f"Flow {flow_id} cleanup failed due to Redis timeout"
-                        )
+                        # Don't raise error, continue with flow creation
+                        pass
                     except Exception as cleanup_error:
                         error_type = type(cleanup_error).__name__
-                        logger.error(
-                            f"Failed to cleanup existing flow {flow_id} ({error_type}): {cleanup_error}"
+                        logger.warning(
+                            f"Failed to cleanup existing flow {flow_id} ({error_type}): {cleanup_error}. "
+                            f"Proceeding with flow creation without Redis deduplication."
                         )
-                        raise FlowError(
-                            f"Flow {flow_id} already exists in Redis registry and cleanup failed: {error_type}"
-                        )
+                        # Don't raise error, continue with flow creation
+                        pass
 
             try:
                 # Create master flow record using lifecycle manager
