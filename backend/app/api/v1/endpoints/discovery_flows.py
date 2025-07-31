@@ -45,6 +45,7 @@ router.include_router(lifecycle_router, prefix="", tags=["discovery-lifecycle"])
 router.include_router(execution_router, prefix="", tags=["discovery-execution"])
 router.include_router(validation_router, prefix="", tags=["discovery-validation"])
 
+
 # Export models for OpenAPI documentation
 __all__ = [
     "router",

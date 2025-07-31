@@ -312,6 +312,22 @@ async def get_discovery_flow_status(
                 if field_mappings
                 else []
             ),
+            # CRITICAL FIX: Include phase results from JSONB columns
+            "asset_inventory": discovery_flow.discovered_assets or {},
+            "dependency_analysis": discovery_flow.dependencies or {},
+            "dependencies": discovery_flow.dependencies
+            or {},  # Alternative key for compatibility
+            "tech_debt_analysis": discovery_flow.tech_debt_analysis or {},
+            "raw_data": (
+                discovery_flow.crewai_state_data.get("raw_data", [])
+                if discovery_flow.crewai_state_data
+                else []
+            ),
+            "cleaned_data": (
+                discovery_flow.crewai_state_data.get("cleaned_data", [])
+                if discovery_flow.crewai_state_data
+                else []
+            ),
             "errors": [],
             "warnings": [],
         }

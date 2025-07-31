@@ -95,7 +95,18 @@ class ImportStorageHandler:
             import_uuid = await self.validator.validate_import_id(import_validation_id)
 
             # Step 1.5: Validate CSV headers to catch corruption early
-            self.validator.validate_csv_headers(file_data)
+            try:
+                self.validator.validate_csv_headers(file_data)
+            except Exception as csv_error:
+                logger.error(f"CSV validation error: {str(csv_error)}")
+                logger.error(f"File data type: {type(file_data)}")
+                logger.error(
+                    f"File data length: {len(file_data) if file_data else 'None'}"
+                )
+                if file_data and len(file_data) > 0:
+                    logger.error(f"First record: {file_data[0]}")
+                    logger.error(f"First record type: {type(file_data[0])}")
+                raise
 
             # Step 2: Check for existing incomplete discovery flows
             existing_flow_validation = (
@@ -456,7 +467,8 @@ class ImportStorageHandler:
                 engagement_uuid = uuid_pkg.UUID(context.engagement_id)
             except (ValueError, TypeError):
                 logger.warning(
-                    f"Invalid UUID format in context: client={context.client_account_id}, engagement={context.engagement_id}"
+                    f"Invalid UUID format in context: "
+                    f"client={context.client_account_id}, engagement={context.engagement_id}"
                 )
                 return None
 

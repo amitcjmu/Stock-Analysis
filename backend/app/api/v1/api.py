@@ -7,8 +7,7 @@ import logging
 
 from fastapi import APIRouter, Depends
 
-logger = logging.getLogger(__name__)
-
+from app.api.v1.auth.auth_utils import get_current_user
 from app.api.v1.endpoints import (
     agent_learning_router,
     agents_router,
@@ -22,7 +21,15 @@ from app.api.v1.endpoints import (
     sixr_router,
     test_discovery_router,
 )
+from app.api.v1.endpoints.context import get_user_context
+from app.api.v1.endpoints.context_establishment import (
+    router as context_establishment_router,
+)
 from app.api.v1.endpoints.flow_sync_debug import router as flow_sync_debug_router
+from app.core.database import get_db
+from app.schemas.context import UserContext
+
+logger = logging.getLogger(__name__)
 
 # Decommission endpoints
 try:
@@ -59,9 +66,7 @@ except ImportError as e:
 #     DISCOVERY_FLOW_V2_AVAILABLE = False
 
 # Import only existing endpoint files
-from app.api.v1.endpoints.context_establishment import (
-    router as context_establishment_router,
-)
+# context_establishment_router already imported at top
 
 # Unified Discovery Flow API - Master Flow Orchestrator Integration
 try:
@@ -91,10 +96,7 @@ except ImportError:
     WAVE_PLANNING_AVAILABLE = False
 
 # Import the /me endpoint function for root-level access
-from app.api.v1.auth.auth_utils import get_current_user
-from app.api.v1.endpoints.context import get_user_context
-from app.core.database import get_db
-from app.schemas.context import UserContext
+# These imports are already at the top of the file
 
 # Collection Flow endpoints
 try:
@@ -387,6 +389,17 @@ except ImportError as e:
 logger.info(
     "✅ Discovery flows implemented with real CrewAI via Master Flow Orchestrator"
 )
+
+# Include dependency endpoints under discovery prefix
+try:
+    from app.api.v1.discovery.dependency_endpoints import router as dependency_router
+
+    api_router.include_router(
+        dependency_router, prefix="/discovery", tags=["Discovery Dependencies"]
+    )
+    logger.info("✅ Dependency endpoints included under /discovery")
+except ImportError as e:
+    logger.warning(f"⚠️ Dependency endpoints not available: {e}")
 logger.info("✅ Pseudo-agents archived and replaced with real CrewAI implementations")
 
 # Performance Monitoring API (Task 4.3) - DISABLED (psutil dependency issues)

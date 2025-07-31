@@ -240,6 +240,11 @@ class DependencyAnalysisCrew:
 
     def _create_network_architecture_specialist(self) -> Agent:
         """Create the Network Architecture Specialist agent"""
+        # Get LLM configuration
+        from app.services.llm_config import get_crewai_llm
+
+        llm = get_crewai_llm()
+
         return Agent(
             role="Network Architecture Specialist",
             goal="Analyze network topology and architecture patterns to identify connectivity "
@@ -253,10 +258,16 @@ class DependencyAnalysisCrew:
             verbose=True,
             allow_delegation=False,
             max_iter=3,
+            llm=llm,
         )
 
     def _create_application_dependency_analyst(self) -> Agent:
         """Create the Application Dependency Analyst agent"""
+        # Get LLM configuration
+        from app.services.llm_config import get_crewai_llm
+
+        llm = get_crewai_llm()
+
         return Agent(
             role="Application Dependency Analyst",
             goal="Analyze application-to-application dependencies and integration patterns",
@@ -267,10 +278,16 @@ class DependencyAnalysisCrew:
             verbose=True,
             allow_delegation=False,
             max_iter=3,
+            llm=llm,
         )
 
     def _create_infrastructure_dependency_mapper(self) -> Agent:
         """Create the Infrastructure Dependency Mapper agent"""
+        # Get LLM configuration
+        from app.services.llm_config import get_crewai_llm
+
+        llm = get_crewai_llm()
+
         return Agent(
             role="Infrastructure Dependency Mapper",
             goal="Map infrastructure dependencies and identify critical migration paths",
@@ -281,6 +298,7 @@ class DependencyAnalysisCrew:
             verbose=True,
             allow_delegation=False,
             max_iter=3,
+            llm=llm,
         )
 
     def kickoff(self, inputs: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -306,8 +324,37 @@ class DependencyAnalysisCrew:
                     logger.warning("No assets found in inventory")
                     assets_data = []
 
+            # CRITICAL: Ensure we have actual asset data
+            if not assets_data:
+                logger.error("❌ No assets data available for dependency analysis")
+                return {
+                    "success": False,
+                    "error": "No assets data available",
+                    "analysis_results": [],
+                    "dependencies": [],
+                    "crew_insights": [],
+                }
+
+            # Log asset details for debugging
+            logger.info(f"📊 Asset inventory contains {len(assets_data)} assets:")
+            asset_types = {}
+            asset_names = []
+            for asset in assets_data:
+                if isinstance(asset, dict):
+                    asset_type = asset.get("type", "unknown")
+                    asset_name = asset.get("name", asset.get("asset_name", "Unknown"))
+                    asset_types[asset_type] = asset_types.get(asset_type, 0) + 1
+                    asset_names.append(f"{asset_name} ({asset_type})")
+
+            for asset_type, count in asset_types.items():
+                logger.info(f"  - {asset_type}: {count} assets")
+
+            # Log sample asset names for verification
+            if asset_names:
+                logger.info(f"Sample assets: {', '.join(asset_names[:5])}...")
+
             logger.info(
-                f"🚀 Starting Dependency Analysis Crew for {len(assets_data)} assets"
+                f"🚀 Starting Dependency Analysis Crew for {len(assets_data)} REAL assets"
             )
 
             if not CREWAI_AVAILABLE:
@@ -348,20 +395,39 @@ class DependencyAnalysisCrew:
         """Create tasks for dependency analysis"""
         tasks = []
 
+        # Format asset list for agents - include ID and name only to prevent overwhelming context
+        asset_summary = []
+        for asset in assets_data[:50]:  # Limit to first 50 assets for context window
+            if isinstance(asset, dict):
+                asset_summary.append(
+                    {
+                        "id": asset.get("id", "unknown"),
+                        "name": asset.get("name", asset.get("asset_name", "Unknown")),
+                        "type": asset.get("type", "unknown"),
+                    }
+                )
+
         # Task 1: Network dependency analysis
         network_analysis_task = Task(
-            description=f"""Analyze network dependencies and topology for {len(assets_data)} assets.
+            description=f"""Analyze network dependencies and topology for {len(assets_data)} REAL assets.
+
+            CRITICAL INSTRUCTIONS:
+            - ONLY analyze the actual assets provided below
+            - DO NOT invent or create any fictional services
+            - If an asset doesn't have clear dependencies, mark it as standalone
+            - Use the asset IDs and names exactly as provided
 
             For each asset:
-            1. Identify network connectivity patterns
-            2. Map port and protocol dependencies
-            3. Determine network architecture tier
-            4. Assess network complexity
-            5. Identify critical network paths
+            1. Check if asset name/description indicates network connectivity
+            2. Look for keywords indicating dependencies (API, database, service)
+            3. Identify potential port/protocol usage based on asset type
+            4. Determine if asset is client, server, or both
+            5. Map connectivity patterns between REAL assets only
 
-            Assets to analyze: {assets_data}
+            REAL Assets to analyze (showing first {len(asset_summary)} of {len(assets_data)}):
+            {asset_summary}
 
-            Provide detailed network dependency mapping for each asset.""",
+            Return analysis as structured data for each asset.""",
             expected_output="""Network dependency analysis containing:
             - Network topology mapping for each asset
             - Port and protocol requirements
@@ -374,16 +440,29 @@ class DependencyAnalysisCrew:
 
         # Task 2: Application dependency analysis
         app_dependency_task = Task(
-            description="""Analyze application-to-application dependencies based on the network analysis.
+            description=f"""Analyze application-to-application dependencies based on the network analysis.
+
+            CRITICAL INSTRUCTIONS:
+            - ONLY identify dependencies between the {len(assets_data)} REAL assets provided
+            - DO NOT create fictional services or applications
+            - Base dependencies on asset names and types
+            - If unsure about a dependency, don't include it
 
             Focus on:
-            1. API integration patterns
-            2. Data flow dependencies
-            3. Service-to-service communication
-            4. Shared resource dependencies
-            5. Integration complexity assessment
+            1. Identifying applications from the asset list (type='application')
+            2. Finding servers that host these applications
+            3. Discovering databases used by applications
+            4. Mapping API relationships based on asset names
+            5. Identifying shared infrastructure
 
-            Identify upstream, downstream, and peer dependencies for migration planning.""",
+            For each dependency found, provide:
+            - source_id: The ID of the source asset
+            - target_id: The ID of the target asset
+            - dependency_type: Type of dependency (hosting, database, api, etc)
+            - confidence_score: How confident you are (0.0-1.0)
+            - is_app_to_app: Boolean indicating if both are applications
+
+            Return results as a JSON array of dependency objects.""",
             expected_output="""Application dependency analysis containing:
             - Upstream dependencies (services this app depends on)
             - Downstream dependencies (services that depend on this app)
@@ -397,23 +476,46 @@ class DependencyAnalysisCrew:
 
         # Task 3: Infrastructure dependency mapping and migration sequence
         infrastructure_mapping_task = Task(
-            description="""Map infrastructure dependencies and create migration sequence based on
-            network and application analysis.
+            description=f"""Map infrastructure dependencies and create migration sequence based on
+            network and application analysis of {len(assets_data)} REAL assets.
 
-            Deliverables:
-            1. Infrastructure component dependencies
-            2. Critical migration paths
-            3. Migration sequence recommendations
-            4. Risk assessment for dependencies
-            5. Mitigation strategies
+            CRITICAL INSTRUCTIONS:
+            - Create a structured JSON output with discovered dependencies
+            - Each dependency must reference REAL asset IDs from the provided list
+            - DO NOT invent any services or components
 
-            Consider both technical dependencies and business continuity requirements.""",
-            expected_output="""Infrastructure dependency mapping containing:
-            - Infrastructure component dependencies
-            - Critical path analysis
-            - Recommended migration sequence
-            - Risk assessment with mitigation strategies
-            - Confidence scores for recommendations""",
+            Required JSON output format:
+            {{"dependencies": [
+                {{
+                    "source_id": "actual_asset_id",
+                    "source_name": "actual_asset_name",
+                    "target_id": "actual_asset_id",
+                    "target_name": "actual_asset_name",
+                    "dependency_type": "hosting|database|api|network|storage",
+                    "confidence_score": 0.0-1.0,
+                    "is_app_to_app": true/false,
+                    "description": "Brief description of the dependency"
+                }}
+            ],
+            "migration_groups": [
+                {{
+                    "group_name": "Group 1",
+                    "asset_ids": ["id1", "id2"],
+                    "sequence": 1,
+                    "reason": "Why these should migrate together"
+                }}
+            ]}}
+
+            Base dependencies on:
+            1. Asset types (servers host applications, applications use databases)
+            2. Asset names (similar names may indicate relationships)
+            3. Common patterns (web servers, app servers, databases)
+
+            Remember: ONLY use assets from the provided list!""",
+            expected_output="""A valid JSON object containing:
+            1. 'dependencies' array with discovered dependency relationships
+            2. 'migration_groups' array with recommended migration sequences
+            Each dependency must reference real asset IDs from the provided inventory.""",
             agent=self.infrastructure_dependency_mapper,
             context=[network_analysis_task, app_dependency_task],
         )
@@ -426,63 +528,142 @@ class DependencyAnalysisCrew:
     ) -> Dict[str, Any]:
         """Process crew execution results into structured format"""
         try:
-            # Create analysis results for each asset
+            # Initialize empty results
+            dependencies = []
             analysis_results = []
 
-            for i, asset_data in enumerate(assets_data):
-                # Create a dependency result based on crew analysis
+            # Try to extract structured JSON from crew result
+            if isinstance(crew_result, str):
+                # Try to parse JSON from string result
+                import json
+                import re
+
+                # Look for JSON in the result
+                json_match = re.search(r"\{[\s\S]*\}", crew_result)
+                if json_match:
+                    try:
+                        parsed_result = json.loads(json_match.group())
+                        if "dependencies" in parsed_result:
+                            dependencies = parsed_result["dependencies"]
+                    except json.JSONDecodeError:
+                        logger.warning("Failed to parse JSON from crew result")
+            elif isinstance(crew_result, dict):
+                # Direct dict result
+                dependencies = crew_result.get("dependencies", [])
+
+            # Create asset lookup for validation
+            asset_lookup = {}
+            for asset in assets_data:
+                if isinstance(asset, dict):
+                    asset_id = asset.get("id")
+                    if asset_id:
+                        asset_lookup[asset_id] = asset
+
+            # Process and validate dependencies
+            validated_dependencies = []
+            for dep in dependencies:
+                if isinstance(dep, dict):
+                    source_id = dep.get("source_id")
+                    target_id = dep.get("target_id")
+
+                    # Validate that both assets exist
+                    if source_id in asset_lookup and target_id in asset_lookup:
+                        validated_dep = {
+                            "source_id": source_id,
+                            "source_name": dep.get(
+                                "source_name",
+                                asset_lookup[source_id].get("name", "Unknown"),
+                            ),
+                            "target_id": target_id,
+                            "target_name": dep.get(
+                                "target_name",
+                                asset_lookup[target_id].get("name", "Unknown"),
+                            ),
+                            "dependency_type": dep.get("dependency_type", "unknown"),
+                            "confidence_score": float(dep.get("confidence_score", 0.5)),
+                            "is_app_to_app": bool(dep.get("is_app_to_app", False)),
+                            "description": dep.get("description", ""),
+                        }
+                        validated_dependencies.append(validated_dep)
+                    else:
+                        logger.warning(
+                            f"Skipping invalid dependency: {source_id} -> {target_id}"
+                        )
+
+            # If no valid dependencies found, create basic dependencies based on asset types
+            if not validated_dependencies:
+                logger.info(
+                    "No dependencies extracted from crew, generating basic dependencies"
+                )
+                validated_dependencies = self._generate_basic_dependencies(assets_data)
+
+            # Create analysis results for compatibility
+            for asset_data in assets_data:
+                asset_id = asset_data.get("id", "unknown")
+                asset_name = asset_data.get(
+                    "name", asset_data.get("asset_name", "Unknown")
+                )
+
+                # Find dependencies for this asset
+                upstream = [
+                    d for d in validated_dependencies if d["target_id"] == asset_id
+                ]
+                downstream = [
+                    d for d in validated_dependencies if d["source_id"] == asset_id
+                ]
+
                 dependency_result = DependencyAnalysisResult(
-                    asset_id=asset_data.get("id", f"asset_{i}"),
-                    asset_name=asset_data.get("name", "Unknown Asset"),
+                    asset_id=asset_id,
+                    asset_name=asset_name,
                     network_analysis={
-                        "complexity_level": "medium",
-                        "architecture_type": "multi_tier",
+                        "complexity_level": (
+                            "low"
+                            if len(upstream) + len(downstream) == 0
+                            else (
+                                "medium"
+                                if len(upstream) + len(downstream) < 3
+                                else "high"
+                            )
+                        ),
+                        "architecture_type": self._determine_architecture_type_from_asset(
+                            asset_data
+                        ),
                         "network_indicators": {
-                            "ports": ["http", "https"],
-                            "protocols": ["tcp"],
+                            "ports": [],
+                            "protocols": [],
                         },
                     },
                     application_dependencies={
-                        "dependency_strength": "medium",
-                        "integration_complexity": "medium",
-                        "integration_patterns": {
-                            "api_integration": {"confidence": 0.7}
-                        },
+                        "dependency_strength": (
+                            "low"
+                            if not downstream
+                            else "medium" if len(downstream) < 2 else "high"
+                        ),
+                        "integration_complexity": "low",
+                        "integration_patterns": {},
                     },
                     infrastructure_dependencies={
                         "maturity_level": "medium",
-                        "dependency_complexity": "medium",
-                        "critical_components": ["compute", "network"],
+                        "dependency_complexity": "low" if not upstream else "medium",
+                        "critical_components": [],
                     },
                     critical_path_analysis={
-                        "critical_dependencies": [
-                            "database_connection",
-                            "api_endpoints",
-                        ],
+                        "critical_dependencies": [d["source_name"] for d in upstream],
                         "migration_blockers": [],
-                        "sequence_requirements": [
-                            "network_first",
-                            "data_migration",
-                            "application_cutover",
-                        ],
+                        "sequence_requirements": [],
                     },
                     dependency_map={
-                        "upstream_dependencies": ["authentication_service", "database"],
-                        "downstream_dependencies": ["reporting_service", "monitoring"],
-                        "peer_dependencies": ["cache_service"],
+                        "upstream_dependencies": [d["source_id"] for d in upstream],
+                        "downstream_dependencies": [d["target_id"] for d in downstream],
+                        "peer_dependencies": [],
                     },
-                    migration_sequence=[
-                        "prepare_network_connectivity",
-                        "migrate_supporting_services",
-                        "migrate_core_application",
-                        "update_dependent_services",
-                    ],
+                    migration_sequence=[],
                     risk_assessment={
-                        "overall_risk": "medium",
-                        "key_risks": ["network_connectivity", "data_consistency"],
-                        "mitigation_strategies": ["parallel_testing", "rollback_plan"],
+                        "overall_risk": "low" if not upstream else "medium",
+                        "key_risks": [],
+                        "mitigation_strategies": [],
                     },
-                    confidence_score=0.78,
+                    confidence_score=0.8 if validated_dependencies else 0.5,
                 )
 
                 analysis_results.append(dependency_result)
@@ -495,10 +676,12 @@ class DependencyAnalysisCrew:
             return {
                 "success": True,
                 "analysis_results": analysis_results,
+                "dependencies": validated_dependencies,
                 "crew_insights": [],
                 "summary": summary,
                 "metadata": {
                     "total_assets_analyzed": len(assets_data),
+                    "total_dependencies_found": len(validated_dependencies),
                     "analysis_timestamp": datetime.utcnow().isoformat(),
                     "crew_pattern": "sequential_analysis",
                     "agents_involved": [
@@ -524,58 +707,69 @@ class DependencyAnalysisCrew:
             f"Executing dependency analysis in fallback mode for {len(assets_data)} assets"
         )
 
+        # Generate basic dependencies based on asset types
+        dependencies = self._generate_basic_dependencies(assets_data)
+        logger.info(
+            f"Generated {len(dependencies)} basic dependencies in fallback mode"
+        )
+
         analysis_results = []
 
-        for i, asset_data in enumerate(assets_data):
-            # Create simplified dependency result
+        for asset_data in assets_data:
+            asset_id = asset_data.get("id", "unknown")
+            asset_name = asset_data.get("name", asset_data.get("asset_name", "Unknown"))
+
+            # Find dependencies for this asset
+            upstream = [d for d in dependencies if d["target_id"] == asset_id]
+            downstream = [d for d in dependencies if d["source_id"] == asset_id]
+
+            # Create dependency result
             dependency_result = DependencyAnalysisResult(
-                asset_id=asset_data.get("id", f"asset_{i}"),
-                asset_name=asset_data.get("name", "Unknown Asset"),
+                asset_id=asset_id,
+                asset_name=asset_name,
                 network_analysis={
-                    "complexity_level": "medium",
-                    "architecture_type": "multi_tier",
+                    "complexity_level": (
+                        "low"
+                        if len(upstream) + len(downstream) == 0
+                        else "medium" if len(upstream) + len(downstream) < 3 else "high"
+                    ),
+                    "architecture_type": self._determine_architecture_type_from_asset(
+                        asset_data
+                    ),
                     "network_indicators": {
-                        "ports": ["http", "https"],
-                        "protocols": ["tcp"],
+                        "ports": [],
+                        "protocols": [],
                     },
                 },
                 application_dependencies={
-                    "dependency_strength": "medium",
-                    "integration_complexity": "medium",
-                    "integration_patterns": {"api_integration": {"confidence": 0.6}},
+                    "dependency_strength": (
+                        "low"
+                        if not downstream
+                        else "medium" if len(downstream) < 2 else "high"
+                    ),
+                    "integration_complexity": "low",
+                    "integration_patterns": {},
                 },
                 infrastructure_dependencies={
                     "maturity_level": "medium",
-                    "dependency_complexity": "medium",
-                    "critical_components": ["compute", "network"],
+                    "dependency_complexity": "low" if not upstream else "medium",
+                    "critical_components": [],
                 },
                 critical_path_analysis={
-                    "critical_dependencies": [
-                        "database_connection",
-                        "api_endpoints",
-                    ],
+                    "critical_dependencies": [d["source_name"] for d in upstream],
                     "migration_blockers": [],
-                    "sequence_requirements": [
-                        "network_first",
-                        "data_migration",
-                        "application_cutover",
-                    ],
+                    "sequence_requirements": [],
                 },
                 dependency_map={
-                    "upstream_dependencies": ["authentication_service", "database"],
-                    "downstream_dependencies": ["reporting_service"],
-                    "peer_dependencies": ["cache_service"],
+                    "upstream_dependencies": [d["source_id"] for d in upstream],
+                    "downstream_dependencies": [d["target_id"] for d in downstream],
+                    "peer_dependencies": [],
                 },
-                migration_sequence=[
-                    "prepare_network_connectivity",
-                    "migrate_supporting_services",
-                    "migrate_core_application",
-                    "update_dependent_services",
-                ],
+                migration_sequence=[],
                 risk_assessment={
-                    "overall_risk": "medium",
-                    "key_risks": ["network_connectivity", "data_consistency"],
-                    "mitigation_strategies": ["parallel_testing", "rollback_plan"],
+                    "overall_risk": "low" if not upstream else "medium",
+                    "key_risks": [],
+                    "mitigation_strategies": [],
                 },
                 confidence_score=0.6,
             )
@@ -588,16 +782,119 @@ class DependencyAnalysisCrew:
         return {
             "success": True,
             "analysis_results": analysis_results,
+            "dependencies": dependencies,
             "crew_insights": [],
             "summary": summary,
             "metadata": {
                 "total_assets_analyzed": len(assets_data),
+                "total_dependencies_found": len(dependencies),
                 "analysis_timestamp": datetime.utcnow().isoformat(),
                 "crew_pattern": "fallback_mode",
                 "agents_involved": [],
             },
             "execution_mode": "fallback",
         }
+
+    def _generate_basic_dependencies(
+        self, assets_data: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Generate basic dependencies based on asset types and names"""
+        dependencies = []
+
+        # Categorize assets by type
+        servers = []
+        applications = []
+        databases = []
+
+        for asset in assets_data:
+            if isinstance(asset, dict):
+                asset_type = asset.get("type", "").lower()
+                if "server" in asset_type:
+                    servers.append(asset)
+                elif "application" in asset_type or "app" in asset_type:
+                    applications.append(asset)
+                elif "database" in asset_type or "db" in asset_type:
+                    databases.append(asset)
+
+        # Create basic hosting dependencies (apps on servers)
+        for app in applications:
+            if servers:
+                # Find a likely server based on name matching or assign first available
+                app_name = app.get("name", "").lower()
+                matched_server = None
+
+                for server in servers:
+                    server_name = server.get("name", "").lower()
+                    # Check for name similarity
+                    if any(part in server_name for part in app_name.split()) or any(
+                        part in app_name for part in server_name.split()
+                    ):
+                        matched_server = server
+                        break
+
+                if not matched_server and servers:
+                    matched_server = servers[0]  # Default to first server
+
+                if matched_server:
+                    dependencies.append(
+                        {
+                            "source_id": app.get("id"),
+                            "source_name": app.get("name", "Unknown App"),
+                            "target_id": matched_server.get("id"),
+                            "target_name": matched_server.get("name", "Unknown Server"),
+                            "dependency_type": "hosting",
+                            "confidence_score": 0.6,
+                            "is_app_to_app": False,
+                            "description": "Application hosted on server",
+                        }
+                    )
+
+        # Create basic database dependencies (apps use databases)
+        for app in applications:
+            if databases:
+                # Find a likely database based on name matching
+                app_name = app.get("name", "").lower()
+                for db in databases:
+                    db_name = db.get("name", "").lower()
+                    # Check for name similarity or common patterns
+                    if (
+                        any(part in db_name for part in app_name.split())
+                        or "main" in db_name
+                        or "primary" in db_name
+                    ):
+                        dependencies.append(
+                            {
+                                "source_id": app.get("id"),
+                                "source_name": app.get("name", "Unknown App"),
+                                "target_id": db.get("id"),
+                                "target_name": db.get("name", "Unknown DB"),
+                                "dependency_type": "database",
+                                "confidence_score": 0.5,
+                                "is_app_to_app": False,
+                                "description": "Application uses database",
+                            }
+                        )
+                        break
+
+        return dependencies
+
+    def _determine_architecture_type_from_asset(
+        self, asset_data: Dict[str, Any]
+    ) -> str:
+        """Determine architecture type from asset information"""
+        asset_type = asset_data.get("type", "").lower()
+        asset_name = asset_data.get("name", "").lower()
+
+        if "web" in asset_name or "frontend" in asset_name:
+            return "web_tier"
+        elif "api" in asset_name or "service" in asset_name:
+            return "application_tier"
+        elif "database" in asset_type or "db" in asset_type:
+            return "data_tier"
+        elif "server" in asset_type:
+            return "infrastructure"
+        else:
+            return "standalone"
 
     def _generate_dependency_summary(
         self, analysis_results: List[DependencyAnalysisResult]

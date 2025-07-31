@@ -269,7 +269,9 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
       cleaned_data: response.cleaned_data || [],
       asset_inventory: response.asset_inventory || {},
       dependencies: response.dependencies || {},
-      technical_debt: response.technical_debt || {},
+      // CRITICAL FIX: Map dependency_analysis data for Dependencies page
+      dependency_analysis: response.dependency_analysis || response.dependencies || {},
+      technical_debt: response.tech_debt_analysis || {},
       agent_insights: response.agent_insights || [],
       status: response.status || 'unknown',
       progress_percentage: response.progress_percentage || 0,
@@ -280,8 +282,15 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
       // Additional fields from discovery flow with enhanced data extraction
       data_cleansing_results: response.cleaned_data ? { cleaned_data: response.cleaned_data } : {},
       inventory_results: response.asset_inventory || {},
-      dependency_results: response.dependencies || {},
-      tech_debt_results: response.technical_debt || {},
+      dependency_results: response.dependency_analysis || response.dependencies || {},
+      tech_debt_results: response.tech_debt_analysis || {},
+      // CRITICAL FIX: Add results object for compatibility with Dependencies page
+      results: {
+        dependency_analysis: response.dependency_analysis || response.dependencies || {},
+        asset_inventory: response.asset_inventory || {},
+        data_cleansing: response.cleaned_data ? { cleaned_data: response.cleaned_data } : {},
+        tech_debt_analysis: response.tech_debt_analysis || {}
+      },
       // Add import metadata for data availability detection
       import_metadata: response.summary ? {
         record_count: response.summary.total_records || 0,

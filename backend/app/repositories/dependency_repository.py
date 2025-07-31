@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import aliased
 
 from app.models.asset import Asset, AssetDependency, AssetType
 from app.repositories.context_aware_repository import ContextAwareRepository
@@ -29,85 +30,129 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
 
     async def get_app_server_dependencies(self) -> List[Dict[str, Any]]:
         """Get all application-to-server dependencies."""
+        # Create aliases for the two Asset joins
+        AppAsset = aliased(Asset)
+        ServerAsset = aliased(Asset)
+
         query = (
             select(
                 AssetDependency,
-                Asset.name.label("app_name"),
-                Asset.asset_type.label("app_type"),
-                Asset.id.label("app_id"),
-                Asset.application_name.label("app_display_name"),
+                AppAsset.name.label("app_name"),
+                AppAsset.asset_type.label("app_type"),
+                AppAsset.id.label("app_id"),
+                AppAsset.application_name.label("app_display_name"),
                 func.json_build_object(
                     "name",
-                    Asset.name,
+                    ServerAsset.name,
                     "type",
-                    Asset.asset_type,
+                    ServerAsset.asset_type,
                     "id",
-                    Asset.id,
+                    ServerAsset.id,
                     "hostname",
-                    Asset.hostname,
+                    ServerAsset.hostname,
                 ).label("server_info"),
             )
+            .select_from(AssetDependency)
             .join(
-                Asset,
+                AppAsset,
                 and_(
-                    Asset.id == AssetDependency.asset_id,
-                    Asset.asset_type == AssetType.APPLICATION,
+                    AppAsset.id == AssetDependency.asset_id,
+                    AppAsset.asset_type == AssetType.APPLICATION,
                 ),
             )
             .join(
-                Asset,
+                ServerAsset,
                 and_(
-                    Asset.id == AssetDependency.depends_on_asset_id,
-                    Asset.asset_type == AssetType.SERVER,
+                    ServerAsset.id == AssetDependency.depends_on_asset_id,
+                    ServerAsset.asset_type == AssetType.SERVER,
                 ),
-                from_joinpoint=True,
             )
         )
 
         query = self._apply_context_filter(query)
         result = await self.db.execute(query)
-        return [dict(row) for row in result]
+        rows = result.all()
+
+        dependencies = []
+        for row in rows:
+            dep = {
+                "dependency_id": str(row.AssetDependency.id),
+                "application_id": str(row.app_id),
+                "application_name": row.app_name,
+                "server_info": row.server_info,
+                "dependency_type": row.AssetDependency.dependency_type,
+                "created_at": (
+                    row.AssetDependency.created_at.isoformat()
+                    if row.AssetDependency.created_at
+                    else None
+                ),
+            }
+            dependencies.append(dep)
+
+        return dependencies
 
     async def get_app_app_dependencies(self) -> List[Dict[str, Any]]:
         """Get all application-to-application dependencies."""
+        # Create aliases for the two Asset joins
+        SourceAppAsset = aliased(Asset)
+        TargetAppAsset = aliased(Asset)
+
         query = (
             select(
                 AssetDependency,
-                Asset.name.label("source_app_name"),
-                Asset.asset_type.label("source_app_type"),
-                Asset.id.label("source_app_id"),
-                Asset.application_name.label("source_app_display_name"),
+                SourceAppAsset.name.label("source_app_name"),
+                SourceAppAsset.asset_type.label("source_app_type"),
+                SourceAppAsset.id.label("source_app_id"),
+                SourceAppAsset.application_name.label("source_app_display_name"),
                 func.json_build_object(
                     "name",
-                    Asset.name,
+                    TargetAppAsset.name,
                     "type",
-                    Asset.asset_type,
+                    TargetAppAsset.asset_type,
                     "id",
-                    Asset.id,
+                    TargetAppAsset.id,
                     "application_name",
-                    Asset.application_name,
+                    TargetAppAsset.application_name,
                 ).label("target_app_info"),
             )
+            .select_from(AssetDependency)
             .join(
-                Asset,
+                SourceAppAsset,
                 and_(
-                    Asset.id == AssetDependency.asset_id,
-                    Asset.asset_type == AssetType.APPLICATION,
+                    SourceAppAsset.id == AssetDependency.asset_id,
+                    SourceAppAsset.asset_type == AssetType.APPLICATION,
                 ),
             )
             .join(
-                Asset,
+                TargetAppAsset,
                 and_(
-                    Asset.id == AssetDependency.depends_on_asset_id,
-                    Asset.asset_type == AssetType.APPLICATION,
+                    TargetAppAsset.id == AssetDependency.depends_on_asset_id,
+                    TargetAppAsset.asset_type == AssetType.APPLICATION,
                 ),
-                from_joinpoint=True,
             )
         )
 
         query = self._apply_context_filter(query)
         result = await self.db.execute(query)
-        return [dict(row) for row in result]
+        rows = result.all()
+
+        dependencies = []
+        for row in rows:
+            dep = {
+                "dependency_id": str(row.AssetDependency.id),
+                "source_app_id": str(row.source_app_id),
+                "source_app_name": row.source_app_name,
+                "target_app_info": row.target_app_info,
+                "dependency_type": row.AssetDependency.dependency_type,
+                "created_at": (
+                    row.AssetDependency.created_at.isoformat()
+                    if row.AssetDependency.created_at
+                    else None
+                ),
+            }
+            dependencies.append(dep)
+
+        return dependencies
 
     async def get_available_applications(self) -> List[Dict[str, Any]]:
         """Get list of all applications."""
@@ -117,7 +162,17 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
 
         query = self._apply_context_filter(query)
         result = await self.db.execute(query)
-        return [dict(row) for row in result]
+        rows = result.all()
+
+        return [
+            {
+                "id": str(row.id),
+                "name": row.name,
+                "application_name": row.application_name,
+                "description": row.description,
+            }
+            for row in rows
+        ]
 
     async def get_available_servers(self) -> List[Dict[str, Any]]:
         """Get list of all servers."""
@@ -127,7 +182,17 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
 
         query = self._apply_context_filter(query)
         result = await self.db.execute(query)
-        return [dict(row) for row in result]
+        rows = result.all()
+
+        return [
+            {
+                "id": str(row.id),
+                "name": row.name,
+                "hostname": row.hostname,
+                "description": row.description,
+            }
+            for row in rows
+        ]
 
     async def create_app_server_dependency(
         self,

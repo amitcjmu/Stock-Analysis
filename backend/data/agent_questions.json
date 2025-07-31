@@ -2285,6 +2285,60 @@
     "confidence": "medium",
     "priority": "normal",
     "created_at": "2025-06-29T03:34:30.297073",
+    "answered_at": "2025-07-31T00:32:15.014243",
+    "user_response": "Yes, confirm this dependency",
+    "is_resolved": true
+  },
+  "e929be0e-97b9-41bd-940b-1a287a6907dc": {
+    "id": "e929be0e-97b9-41bd-940b-1a287a6907dc",
+    "agent_id": "dependency_analysis_agent",
+    "agent_name": "Dependency Analysis Agent",
+    "question_type": "dependency_validation",
+    "page": "dependencies",
+    "title": "Verify Application Dependency",
+    "question": "Should 'WebApp-01' depend on 'Database-01' based on the network traffic patterns?",
+    "context": {
+      "source_app": "WebApp-01",
+      "target_app": "Database-01",
+      "confidence": 0.75,
+      "evidence": "Network traffic analysis shows regular connections"
+    },
+    "options": [
+      "Yes, confirm this dependency",
+      "No, this is incorrect",
+      "Need more analysis",
+      "Mark as optional dependency"
+    ],
+    "confidence": "medium",
+    "priority": "normal",
+    "created_at": "2025-07-31T01:42:41.664971",
+    "answered_at": "2025-07-31T02:03:37.598272",
+    "user_response": "Yes, confirm this dependency",
+    "is_resolved": true
+  },
+  "7b6b3528-d1a8-45b4-83e0-cfdab9544a0a": {
+    "id": "7b6b3528-d1a8-45b4-83e0-cfdab9544a0a",
+    "agent_id": "dependency_analysis_agent",
+    "agent_name": "Dependency Analysis Agent",
+    "question_type": "dependency_validation",
+    "page": "dependencies",
+    "title": "Verify Application Dependency",
+    "question": "Should 'WebApp-01' depend on 'Database-01' based on the network traffic patterns?",
+    "context": {
+      "source_app": "WebApp-01",
+      "target_app": "Database-01",
+      "confidence": 0.75,
+      "evidence": "Network traffic analysis shows regular connections"
+    },
+    "options": [
+      "Yes, confirm this dependency",
+      "No, this is incorrect",
+      "Need more analysis",
+      "Mark as optional dependency"
+    ],
+    "confidence": "medium",
+    "priority": "normal",
+    "created_at": "2025-07-31T03:04:59.760902",
     "answered_at": null,
     "user_response": null,
     "is_resolved": false

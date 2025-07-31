@@ -448,10 +448,55 @@
     },
     "page": "flow_caa55ba4-85aa-431f-a664-d7a0105cfa68",
     "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-07-30T21:49:09.295748",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "34a52904-428a-48ee-b7f8-e4a7514d10de": {
+    "id": "34a52904-428a-48ee-b7f8-e4a7514d10de",
+    "agent_id": "dependencies_executor",
+    "agent_name": "Dependencies Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Dependencies",
+    "description": "Beginning execution of dependencies phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "dependencies",
+      "status": "starting",
+      "progress": 66.7
+    },
+    "page": "flow_caa55ba4-85aa-431f-a664-d7a0105cfa68",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-07-31T00:32:04.713190",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "66256023-5cb1-49c9-b03f-e1d6bed9a4bb": {
+    "id": "66256023-5cb1-49c9-b03f-e1d6bed9a4bb",
+    "agent_id": "dependencies_executor",
+    "agent_name": "Dependencies Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Dependencies",
+    "description": "Successfully completed dependencies phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "dependencies",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_caa55ba4-85aa-431f-a664-d7a0105cfa68",
+    "actionable": true,
     "client_account_id": "11111111-1111-1111-1111-111111111111",
     "engagement_id": "22222222-2222-2222-2222-222222222222",
     "flow_id": "caa55ba4-85aa-431f-a664-d7a0105cfa68",
-    "created_at": "2025-07-30T21:49:09.295748",
+    "created_at": "2025-07-31T01:18:59.641220",
     "user_feedback": null,
     "is_validated": false
   }

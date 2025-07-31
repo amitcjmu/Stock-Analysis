@@ -157,23 +157,39 @@ class AppAppDependencyCrew:
         applications = asset_inventory.get("applications", [])
         hosting_relationships = app_server_dependencies.get("hosting_relationships", {})
 
+        # Format applications list for agents
+        app_summary = []
+        for app in applications[:30]:  # Limit for context
+            if isinstance(app, dict):
+                app_summary.append(
+                    {
+                        "id": app.get("id", "unknown"),
+                        "name": app.get("name", app.get("asset_name", "Unknown")),
+                        "type": app.get("type", "application"),
+                    }
+                )
+
         # Planning Task - Manager coordinates integration analysis approach
         planning_task = Task(
             description=f"""Plan comprehensive app-to-app integration dependency analysis strategy.
 
-            Available assets for analysis:
-            - Applications: {len(applications)} identified application assets
+            CRITICAL: You must analyze ONLY the {len(applications)} REAL applications provided.
+            DO NOT invent any fictional services or applications.
+
+            Available REAL assets for analysis:
+            - Applications: {len(applications)} actual application assets
+            - Sample applications: {app_summary}
             - Hosting context: {len(hosting_relationships)} hosting relationships available
 
             Create an integration analysis plan that:
-            1. Assigns integration pattern discovery priorities
-            2. Defines dependency mapping methodology for app-to-app relationships
-            3. Establishes business flow analysis criteria
-            4. Plans collaboration between integration and business flow specialists
-            5. Leverages hosting and inventory insights from shared memory
+            1. Focuses on discovering dependencies between REAL applications only
+            2. Uses application names and types to infer likely integrations
+            3. Establishes criteria for identifying app-to-app dependencies
+            4. Plans systematic analysis of the provided application list
+            5. Ensures NO fictional services are created
 
-            Use your planning capabilities to coordinate comprehensive integration mapping.""",
-            expected_output="Comprehensive integration analysis execution plan with pattern discovery strategy and business flow approach",
+            Remember: ONLY analyze relationships between the applications in the provided list!""",
+            expected_output="Integration analysis plan focusing on real application dependencies only",
             agent=manager,
             tools=[],
         )
@@ -182,22 +198,39 @@ class AppAppDependencyCrew:
         integration_discovery_task = Task(
             description=f"""Identify and map application integration patterns and dependencies.
 
-            Assets to analyze:
-            - Application inventory: {len(applications)} applications
-            - Sample applications: {applications[:3] if applications else []}
-            - Hosting context: Available from app-server dependency analysis
+            CRITICAL INSTRUCTIONS:
+            - ONLY analyze the {len(applications)} REAL applications provided
+            - DO NOT create any fictional services or applications
+            - Base dependencies on application names and types
+            - Output must be structured JSON
 
-            Integration Analysis Requirements:
-            1. Identify API dependencies between applications
-            2. Map database sharing and data flow patterns
-            3. Discover messaging and event-driven integrations
-            4. Identify shared services and middleware dependencies
-            5. Map authentication and authorization dependencies
-            6. Generate integration dependency matrix
-            7. Store integration insights in shared memory for business flow analysis
+            REAL Applications to analyze (showing {len(app_summary)} samples):
+            {app_summary}
 
-            Collaborate with business flow analyst to share integration discoveries.""",
-            expected_output="Comprehensive integration dependency matrix with app-to-app mappings and integration patterns",
+            Analysis Requirements:
+            1. Look for naming patterns suggesting integration (e.g., "API", "Service", "Gateway")
+            2. Identify frontend/backend relationships based on names
+            3. Find database relationships (apps with "DB" or "Database" in related apps)
+            4. Map authentication dependencies (apps with "Auth" or "Login")
+            5. Discover API integrations (apps with "API" or "Service")
+
+            Required JSON output format:
+            {{"app_dependencies": [
+                {{
+                    "source_id": "actual_app_id",
+                    "source_name": "actual_app_name",
+                    "target_id": "actual_app_id",
+                    "target_name": "actual_app_name",
+                    "dependency_type": "api|data|auth|messaging|shared_service",
+                    "confidence_score": 0.0-1.0,
+                    "is_app_to_app": true,
+                    "integration_pattern": "REST API|Database|Auth|Message Queue|etc",
+                    "description": "Brief description"
+                }}
+            ]}}
+
+            Remember: Every dependency MUST reference real application IDs from the provided list!""",
+            expected_output="Valid JSON object with app_dependencies array containing real app-to-app mappings",
             agent=integration_expert,
             context=[planning_task],
             tools=self._create_integration_analysis_tools(),
@@ -207,21 +240,47 @@ class AppAppDependencyCrew:
         business_flow_task = Task(
             description=f"""Map business process flows and critical application dependencies.
 
-            Integration context: Use insights from integration expert
-            Application inventory: {len(applications)} applications with integration dependencies
-            Hosting relationships: Available from previous dependency analysis
+            CRITICAL INSTRUCTIONS:
+            - Use ONLY the integration dependencies discovered by the integration expert
+            - DO NOT create new applications or services
+            - Focus on business impact of REAL dependencies only
 
-            Business Flow Analysis Requirements:
-            1. Map critical business process flows across applications
-            2. Identify single points of failure in business processes
-            3. Determine migration sequencing based on business criticality
-            4. Assess business continuity risks during migration
-            5. Identify opportunities for process optimization
-            6. Generate business impact assessment for integration dependencies
-            7. Use integration expert insights from shared memory
+            Context:
+            - {len(applications)} REAL applications analyzed
+            - Integration dependencies from previous task
+            - Must validate all references against actual application IDs
 
-            Collaborate with integration expert to validate business flow mappings.""",
-            expected_output="Comprehensive business flow analysis with criticality assessment and migration sequencing recommendations",
+            Analysis Requirements:
+            1. Group applications by business function based on names
+            2. Identify critical paths through connected applications
+            3. Determine migration sequence based on dependencies
+            4. Assess risk levels for each dependency
+            5. Provide migration recommendations
+
+            Required JSON output format:
+            {{"business_analysis": {{
+                "critical_paths": [
+                    {{
+                        "path_name": "Critical Business Flow",
+                        "applications": ["app_id_1", "app_id_2"],
+                        "criticality": "high|medium|low",
+                        "description": "Why this path is critical"
+                    }}
+                ],
+                "migration_groups": [
+                    {{
+                        "group_name": "Group 1",
+                        "application_ids": ["app_id_1", "app_id_2"],
+                        "sequence": 1,
+                        "dependencies": ["Description of dependencies"],
+                        "risk_level": "high|medium|low"
+                    }}
+                ],
+                "recommendations": ["Specific migration recommendations based on real dependencies"]
+            }}}}
+
+            All application IDs must be from the original {len(applications)} applications!""",
+            expected_output="Valid JSON object with business_analysis containing critical paths and migration groups",
             agent=business_flow_analyst,
             context=[integration_discovery_task],
             tools=self._create_business_flow_tools(),
@@ -273,7 +332,8 @@ class AppAppDependencyCrew:
             )
 
         logger.info(
-            f"Creating App-App Dependency Crew with {process.name if hasattr(process, 'name') else 'sequential'} process"
+            f"Creating App-App Dependency Crew with "
+            f"{process.name if hasattr(process, 'name') else 'sequential'} process"
         )
         logger.info(
             f"Using LLM: {self.llm_model if isinstance(self.llm_model, str) else 'Unknown'}"
