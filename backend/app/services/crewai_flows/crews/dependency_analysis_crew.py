@@ -292,6 +292,14 @@ class DependencyAnalysisCrew:
                     "analysis_results": [],
                     "dependencies": [],
                     "crew_insights": [],
+                    "summary": {},
+                    "metadata": {
+                        "total_assets_analyzed": 0,
+                        "total_dependencies_found": 0,
+                        "analysis_timestamp": datetime.utcnow().isoformat(),
+                        "crew_pattern": "sequential_analysis",
+                        "agents_involved": [],
+                    },
                 }
 
             # Log asset details for debugging
@@ -346,6 +354,15 @@ class DependencyAnalysisCrew:
                 "error": str(e),
                 "analysis_results": [],
                 "crew_insights": [],
+                "dependencies": [],
+                "summary": {},
+                "metadata": {
+                    "total_assets_analyzed": 0,
+                    "total_dependencies_found": 0,
+                    "analysis_timestamp": datetime.utcnow().isoformat(),
+                    "crew_pattern": "sequential_analysis",
+                    "agents_involved": [],
+                },
             }
 
     def _create_tasks(self, assets_data: List[Dict[str, Any]]) -> List[Task]:
@@ -547,12 +564,12 @@ class DependencyAnalysisCrew:
                             f"Skipping invalid dependency: {source_id} -> {target_id}"
                         )
 
-            # If no valid dependencies found, this is a crew failure
+            # If no valid dependencies found, this is still a valid result
             if not validated_dependencies:
-                logger.error(
-                    "No dependencies extracted from crew - dependency analysis failed"
+                logger.info(
+                    "No dependencies extracted from crew - assets may be standalone"
                 )
-                # Return empty dependencies rather than generating fake ones
+                # Return empty dependencies - this is a valid result
                 validated_dependencies = []
 
             # Create analysis results for compatibility
@@ -657,6 +674,15 @@ class DependencyAnalysisCrew:
                 "error": str(e),
                 "analysis_results": [],
                 "crew_insights": [],
+                "dependencies": [],
+                "summary": {},
+                "metadata": {
+                    "total_assets_analyzed": 0,
+                    "total_dependencies_found": 0,
+                    "analysis_timestamp": datetime.utcnow().isoformat(),
+                    "crew_pattern": "sequential_analysis",
+                    "agents_involved": [],
+                },
             }
 
     def _determine_architecture_type_from_asset(

@@ -77,6 +77,8 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
             console.log('⚠️ Flow is in failed state, retrying first');
             await discoveryFlowService.retryFlow(flowId, clientAccountId, engagementId);
             console.log('✅ Flow retry successful');
+            // Wait for flow state to stabilize after retry
+            await new Promise(resolve => setTimeout(resolve, 1000));
           } catch (retryError) {
             console.warn('⚠️ Flow retry failed, continuing with phase execution:', retryError);
             // Continue with phase execution even if retry fails

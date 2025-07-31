@@ -135,8 +135,7 @@ export const findAssetIdByName = (
 ): string | null => {
   const asset = assets.find(a =>
     a.name === assetName ||
-    a.asset_name === assetName ||
-    `${a.name || a.asset_name || ''}` === assetName
+    a.asset_name === assetName
   );
   return asset?.id || null;
 };
