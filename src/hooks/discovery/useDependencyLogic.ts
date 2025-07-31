@@ -150,26 +150,27 @@ export const useDependencyLogic = (flowId?: string) => {
     fetchAssetsDirectly();
   }, [client?.id, engagement?.id, flow]);
 
+  // Function to fetch persisted dependencies
+  const fetchPersistedDependencies = useCallback(async () => {
+    if (!client?.id || !engagement?.id) return;
+
+    try {
+      const { apiCall } = await import('@/config/api');
+      const response = await apiCall('/discovery/dependencies/analysis');
+
+      if (response) {
+        console.log('✅ Fetched persisted dependencies from database:', response);
+        setPersistedDependencies(response);
+      }
+    } catch (error) {
+      console.warn('Failed to fetch persisted dependencies:', error);
+    }
+  }, [client?.id, engagement?.id]);
+
   // Fetch persisted dependencies from database
   useEffect(() => {
-    const fetchPersistedDependencies = async () => {
-      if (!client?.id || !engagement?.id) return;
-
-      try {
-        const { apiCall } = await import('@/config/api');
-        const response = await apiCall('/discovery/dependencies/analysis');
-
-        if (response) {
-          console.log('✅ Fetched persisted dependencies from database:', response);
-          setPersistedDependencies(response);
-        }
-      } catch (error) {
-        console.warn('Failed to fetch persisted dependencies:', error);
-      }
-    };
-
     fetchPersistedDependencies();
-  }, [client?.id, engagement?.id, flow?.flow_id]);
+  }, [fetchPersistedDependencies, flow?.flow_id]);
 
   // Extract dependency analysis data from flow state AND persisted dependencies
   const dependencyData = {
@@ -217,6 +218,15 @@ export const useDependencyLogic = (flowId?: string) => {
     return isDependencyAnalysisComplete;
   }, [isDependencyAnalysisComplete]);
 
+  // Combined refresh function that refreshes both flow and persisted dependencies
+  const refreshAllDependencies = useCallback(async () => {
+    console.log('🔄 Refreshing all dependencies...');
+    // Refresh flow state
+    await refresh();
+    // Refresh persisted dependencies
+    await fetchPersistedDependencies();
+  }, [refresh, fetchPersistedDependencies]);
+
   return {
     dependencyData,
     isLoading,
@@ -231,6 +241,7 @@ export const useDependencyLogic = (flowId?: string) => {
     prerequisitePhases,
     isDependencyAnalysisComplete,
     inventoryData,
-    flowState: flow
+    flowState: flow,
+    refreshDependencies: refreshAllDependencies
   };
 };

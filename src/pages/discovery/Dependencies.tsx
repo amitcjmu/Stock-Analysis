@@ -53,7 +53,8 @@ const Dependencies: React.FC = () => {
     prerequisitePhases,
     isDependencyAnalysisComplete,
     inventoryData,
-    flowState
+    flowState,
+    refreshDependencies
   } = useDependencyLogic(effectiveFlowId);
 
   // Use navigation hook - following the established pattern
@@ -335,6 +336,7 @@ const Dependencies: React.FC = () => {
               <AgentUIMonitor
                 pageContext="dependencies"
                 className="h-fit"
+                onDependencyCreated={refreshDependencies}
               />
               <DataClassificationDisplay
                 pageContext="dependency-analysis"

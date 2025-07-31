@@ -22,11 +22,13 @@ import { useAgentQuestions, useAnswerAgentQuestion, useAgentInsights, useConfide
 interface AgentUIMonitorProps {
   className?: string;
   pageContext?: string;
+  onDependencyCreated?: () => void | Promise<void>;
 }
 
 const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
   className = "",
-  pageContext = "dependencies"
+  pageContext = "dependencies",
+  onDependencyCreated
 }) => {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['clarifications']));
@@ -101,8 +103,10 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
               description: "Dependency created from agent suggestion",
             });
 
-            // Trigger a refresh of dependencies
-            window.location.reload();
+            // Trigger a refresh of dependencies using the callback
+            if (onDependencyCreated) {
+              await onDependencyCreated();
+            }
           } catch (error) {
             console.error('Failed to create dependency from agent suggestion:', error);
           }
