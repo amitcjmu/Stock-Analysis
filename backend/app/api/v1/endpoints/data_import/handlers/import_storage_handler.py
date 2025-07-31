@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import (
     RequestContext,
     extract_context_from_request,
-    get_current_context,
+    get_current_context_dependency,
 )
 from app.core.database import get_db
 from app.core.logging import get_logger
@@ -38,7 +38,7 @@ async def store_import_data(
     store_request: StoreImportRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context),
+    context: RequestContext = Depends(get_current_context_dependency),
 ) -> Dict[str, Any]:
     """
     Store validated import data in the database and trigger Discovery Flow.
@@ -408,7 +408,7 @@ async def get_import_status(import_id: str, db: AsyncSession = Depends(get_db)):
 async def cancel_import(
     import_id: str,
     db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context),
+    context: RequestContext = Depends(get_current_context_dependency),
 ):
     """Cancel an import operation and its associated flows."""
     try:
@@ -438,7 +438,7 @@ async def cancel_import(
 async def retry_failed_import(
     import_id: str,
     db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context),
+    context: RequestContext = Depends(get_current_context_dependency),
 ):
     """Retry a failed import operation."""
     try:
