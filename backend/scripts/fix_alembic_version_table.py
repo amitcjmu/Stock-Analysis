@@ -7,6 +7,12 @@ and sets the appropriate migration version.
 
 import asyncio
 import logging
+import sys
+from pathlib import Path
+
+# Add the parent directory to sys.path to import app modules
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 from app.core.config import settings
@@ -19,7 +25,7 @@ async def fix_alembic_version():
     """Create alembic_version table and set current migration."""
     # Create engine
     engine = create_async_engine(
-        settings.ASYNC_DATABASE_URL,
+        settings.database_url_async,
         echo=False,
         pool_pre_ping=True,
         pool_size=5,
@@ -28,13 +34,13 @@ async def fix_alembic_version():
 
     async with engine.begin() as conn:
         try:
-            # Check if alembic_version table exists
+            # Check if alembic_version table exists in any schema
             result = await conn.execute(
                 text(
                     """
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables
-                    WHERE table_schema = 'public'
+                    WHERE (table_schema = 'migration' OR table_schema = 'public')
                     AND table_name = 'alembic_version'
                 );
             """
@@ -45,11 +51,16 @@ async def fix_alembic_version():
             if not table_exists:
                 logger.info("Creating alembic_version table...")
 
-                # Create the alembic_version table
+                # Create migration schema if it doesn't exist
+                await conn.execute(
+                    text("CREATE SCHEMA IF NOT EXISTS migration")
+                )
+                
+                # Create the alembic_version table in migration schema
                 await conn.execute(
                     text(
                         """
-                    CREATE TABLE alembic_version (
+                    CREATE TABLE migration.alembic_version (
                         version_num VARCHAR(32) NOT NULL,
                         CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
                     );
@@ -61,11 +72,19 @@ async def fix_alembic_version():
             else:
                 logger.info("alembic_version table already exists")
 
-            # Check current version
-            result = await conn.execute(
-                text("SELECT version_num FROM alembic_version LIMIT 1;")
-            )
-            current_version = result.scalar()
+            # Check current version (try migration schema first)
+            current_version = None
+            for schema in ['migration', 'public']:
+                try:
+                    result = await conn.execute(
+                        text(f"SELECT version_num FROM {schema}.alembic_version LIMIT 1;")
+                    )
+                    current_version = result.scalar()
+                    if current_version:
+                        logger.info(f"Found version in {schema} schema: {current_version}")
+                        break
+                except Exception:
+                    continue
 
             if current_version:
                 logger.info(f"Current migration version: {current_version}")
@@ -76,17 +95,23 @@ async def fix_alembic_version():
 
                 logger.info(f"Setting migration version to: {latest_version}")
                 await conn.execute(
-                    text("INSERT INTO alembic_version (version_num) VALUES (:version)"),
+                    text("INSERT INTO migration.alembic_version (version_num) VALUES (:version)"),
                     {"version": latest_version},
                 )
                 logger.info("✅ Migration version set successfully")
 
-            # Verify
-            result = await conn.execute(
-                text("SELECT version_num FROM alembic_version;")
-            )
-            version = result.scalar()
-            logger.info(f"✅ Final migration version: {version}")
+            # Verify (check both schemas)
+            for schema in ['migration', 'public']:
+                try:
+                    result = await conn.execute(
+                        text(f"SELECT version_num FROM {schema}.alembic_version;")
+                    )
+                    version = result.scalar()
+                    if version:
+                        logger.info(f"✅ Final migration version in {schema} schema: {version}")
+                        break
+                except Exception:
+                    continue
 
         except Exception as e:
             logger.error(f"Error: {e}")

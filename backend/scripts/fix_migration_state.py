@@ -103,13 +103,20 @@ class MigrationStateFixer:
         """Get current Alembic version from database"""
         try:
             async with self.engine.connect() as conn:
-                result = await conn.execute(
-                    text("SELECT version_num FROM alembic_version LIMIT 1")
-                )
-                row = result.fetchone()
-                version = row[0] if row else None
-                logger.info(f"Current Alembic version: {version or 'None'}")
-                return version
+                # Try migration schema first, then public schema
+                for schema in ['migration', 'public']:
+                    try:
+                        result = await conn.execute(
+                            text(f"SELECT version_num FROM {schema}.alembic_version LIMIT 1")
+                        )
+                        row = result.fetchone()
+                        version = row[0] if row else None
+                        logger.info(f"Current Alembic version in {schema} schema: {version or 'None'}")
+                        return version
+                    except Exception:
+                        continue
+                logger.warning("Could not find alembic_version table in any schema")
+                return None
         except Exception as e:
             logger.warning(f"Could not read alembic_version table: {e}")
             return None
@@ -140,10 +147,15 @@ class MigrationStateFixer:
         """Create alembic_version table if it doesn't exist"""
         try:
             async with self.engine.connect() as conn:
+                # Create migration schema if it doesn't exist
+                await conn.execute(
+                    text("CREATE SCHEMA IF NOT EXISTS migration")
+                )
+                
                 await conn.execute(
                     text(
                         """
-                    CREATE TABLE IF NOT EXISTS alembic_version (
+                    CREATE TABLE IF NOT EXISTS migration.alembic_version (
                         version_num VARCHAR(50) NOT NULL,
                         CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
                     )
@@ -151,7 +163,7 @@ class MigrationStateFixer:
                     )
                 )
                 await conn.commit()
-                logger.info("✅ Created alembic_version table")
+                logger.info("✅ Created migration.alembic_version table")
         except Exception as e:
             logger.error(f"Failed to create alembic_version table: {e}")
             raise
@@ -160,12 +172,25 @@ class MigrationStateFixer:
         """Set the migration version in alembic_version table"""
         try:
             async with self.engine.connect() as conn:
-                # Clear existing version
-                await conn.execute(text("DELETE FROM alembic_version"))
+                # First check if alembic_version table exists
+                table_exists = await self.check_alembic_version_table_exists()
 
-                # Insert new version
+                if not table_exists:
+                    logger.warning(
+                        "alembic_version table doesn't exist, creating it first..."
+                    )
+                    await self.create_alembic_version_table()
+                else:
+                    # Try to clear existing version in migration schema first
+                    try:
+                        await conn.execute(text("DELETE FROM migration.alembic_version"))
+                    except Exception:
+                        # Fall back to public schema
+                        await conn.execute(text("DELETE FROM public.alembic_version"))
+
+                # Insert new version in migration schema
                 await conn.execute(
-                    text("INSERT INTO alembic_version (version_num) VALUES (:version)"),
+                    text("INSERT INTO migration.alembic_version (version_num) VALUES (:version)"),
                     {"version": version},
                 )
                 await conn.commit()
@@ -287,13 +312,24 @@ class MigrationStateFixer:
     async def alter_version_num_length(self):
         try:
             async with self.engine.connect() as conn:
-                await conn.execute(
-                    text(
-                        "ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(50)"
+                # Try migration schema first
+                try:
+                    await conn.execute(
+                        text(
+                            "ALTER TABLE migration.alembic_version ALTER COLUMN version_num TYPE VARCHAR(50)"
+                        )
                     )
-                )
-                await conn.commit()
-                logger.info("✅ Altered version_num to VARCHAR(50)")
+                    await conn.commit()
+                    logger.info("✅ Altered migration.alembic_version version_num to VARCHAR(50)")
+                except Exception:
+                    # Fall back to public schema
+                    await conn.execute(
+                        text(
+                            "ALTER TABLE public.alembic_version ALTER COLUMN version_num TYPE VARCHAR(50)"
+                        )
+                    )
+                    await conn.commit()
+                    logger.info("✅ Altered public.alembic_version version_num to VARCHAR(50)")
         except Exception as e:
             logger.warning(f"Failed to alter version_num length: {e}")
 
