@@ -1,58 +1,12 @@
-import React, { memo, useMemo, useCallback, useRef } from 'react';
+/**
+ * Memoization hooks and utilities
+ * Separated to avoid React Fast Refresh warnings
+ */
+
+import React, { useMemo, useCallback, useRef } from 'react';
+import { memo } from 'react';
 import { useRenderPerformance } from './hooks';
-
-// Deep comparison utilities
-const isEqual = (a: any, b: any): boolean => {
-  if (a === b) return true;
-
-  if (a == null || b == null) return a === b;
-
-  if (typeof a !== typeof b) return false;
-
-  if (typeof a !== 'object') return a === b;
-
-  if (Array.isArray(a) !== Array.isArray(b)) return false;
-
-  if (Array.isArray(a)) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (!isEqual(a[i], b[i])) return false;
-    }
-    return true;
-  }
-
-  const keysA = Object.keys(a);
-  const keysB = Object.keys(b);
-
-  if (keysA.length !== keysB.length) return false;
-
-  for (const key of keysA) {
-    if (!keysB.includes(key)) return false;
-    if (!isEqual(a[key], b[key])) return false;
-  }
-
-  return true;
-};
-
-// Shallow comparison for props
-const shallowEqual = (a: any, b: any): boolean => {
-  if (a === b) return true;
-
-  if (typeof a !== 'object' || typeof b !== 'object' || a == null || b == null) {
-    return false;
-  }
-
-  const keysA = Object.keys(a);
-  const keysB = Object.keys(b);
-
-  if (keysA.length !== keysB.length) return false;
-
-  for (const key of keysA) {
-    if (a[key] !== b[key]) return false;
-  }
-
-  return true;
-};
+import { isEqual, shallowEqual, type AnyFunction } from './memoizationHelpers';
 
 /**
  * Enhanced memo with performance tracking
@@ -61,13 +15,13 @@ export const performantMemo = <P extends object>(
   Component: React.ComponentType<P>,
   propsAreEqual?: (prevProps: P, nextProps: P) => boolean,
   displayName?: string
-) => {
+): React.FC<P> => {
   const componentName = displayName || Component.displayName || Component.name || 'Anonymous';
 
   const MemoizedComponent = memo(Component, propsAreEqual);
   MemoizedComponent.displayName = `PerformantMemo(${componentName})`;
 
-  return (props: P) => {
+  return (props: P): React.ReactElement => {
     useRenderPerformance(componentName);
     return <MemoizedComponent {...props} />;
   };
@@ -83,7 +37,7 @@ export const smartMemo = <P extends object>(
     ignoreKeys?: Array<keyof P>;
     displayName?: string;
   } = {}
-) => {
+): React.FC<P> => {
   const { deep = false, ignoreKeys = [], displayName } = options;
   const componentName = displayName || Component.displayName || Component.name || 'Anonymous';
 
@@ -110,12 +64,12 @@ export const stableMemo = <P extends object>(
   Component: React.ComponentType<P>,
   stableKeys: Array<keyof P> = [],
   displayName?: string
-) => {
+): React.FC<P> => {
   const componentName = displayName || Component.displayName || Component.name || 'Anonymous';
 
   const propsAreEqual = (prevProps: P, nextProps: P): boolean => {
-    const prevEntries = Object.entries(prevProps) as Array<[keyof P, any]>;
-    const nextEntries = Object.entries(nextProps) as Array<[keyof P, any]>;
+    const prevEntries = Object.entries(prevProps) as Array<[keyof P, unknown]>;
+    const nextEntries = Object.entries(nextProps) as Array<[keyof P, unknown]>;
 
     if (prevEntries.length !== nextEntries.length) return false;
 
@@ -146,7 +100,7 @@ export const stableMemo = <P extends object>(
 /**
  * Hook for stable callbacks
  */
-export const useStableCallback = <T extends (...args: any[]) => any>(
+export const useStableCallback = <T extends AnyFunction>(
   callback: T,
   deps: React.DependencyList
 ): T => {
@@ -155,6 +109,7 @@ export const useStableCallback = <T extends (...args: any[]) => any>(
 
   return useCallback(
     ((...args: Parameters<T>) => callbackRef.current(...args)) as T,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     deps
   );
 };
@@ -182,6 +137,7 @@ export const useExpensiveMemo = <T,>(
     }
 
     return result;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 };
 
@@ -207,7 +163,7 @@ export const useDebouncedValue = <T,>(value: T, delay: number): T => {
 /**
  * Hook for throttled callbacks
  */
-export const useThrottledCallback = <T extends (...args: any[]) => any>(
+export const useThrottledCallback = <T extends AnyFunction>(
   callback: T,
   delay: number
 ): T => {
@@ -237,114 +193,6 @@ export const useThrottledCallback = <T extends (...args: any[]) => any>(
 };
 
 /**
- * Higher-order component for lazy rendering
- */
-export const withLazyRendering = <P extends object>(
-  Component: React.ComponentType<P>,
-  options: {
-    threshold?: number; // Intersection threshold
-    rootMargin?: string;
-    displayName?: string;
-  } = {}
-) => {
-  const { threshold = 0.1, rootMargin = '100px', displayName } = options;
-  const componentName = displayName || Component.displayName || Component.name || 'Anonymous';
-
-  const LazyComponent: React.FC<P> = (props) => {
-    const [isVisible, setIsVisible] = React.useState(false);
-    const [hasRendered, setHasRendered] = React.useState(false);
-    const ref = useRef<HTMLDivElement>(null);
-
-    React.useEffect(() => {
-      const element = ref.current;
-      if (!element) return;
-
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting && !hasRendered) {
-            setIsVisible(true);
-            setHasRendered(true);
-          }
-        },
-        { threshold, rootMargin }
-      );
-
-      observer.observe(element);
-
-      return () => observer.disconnect();
-    }, [hasRendered]);
-
-    return (
-      <div ref={ref}>
-        {isVisible ? <Component {...props} /> : (
-          <div className="h-32 flex items-center justify-center bg-gray-50">
-            <div className="text-sm text-gray-500">Loading...</div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  LazyComponent.displayName = `LazyRendering(${componentName})`;
-  return LazyComponent;
-};
-
-/**
- * Virtual list component for large datasets
- */
-interface VirtualListProps<T> {
-  items: T[];
-  itemHeight: number;
-  containerHeight: number;
-  renderItem: (item: T, index: number) => React.ReactNode;
-  overscan?: number;
-}
-
-export const VirtualList = <T,>({
-  items,
-  itemHeight,
-  containerHeight,
-  renderItem,
-  overscan = 3
-}: VirtualListProps<T>) => {
-  const [scrollTop, setScrollTop] = React.useState(0);
-
-  const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
-  const endIndex = Math.min(
-    items.length - 1,
-    Math.ceil((scrollTop + containerHeight) / itemHeight) + overscan
-  );
-
-  const visibleItems = items.slice(startIndex, endIndex + 1);
-
-  const handleScroll = useThrottledCallback((e: React.UIEvent<HTMLDivElement>) => {
-    setScrollTop(e.currentTarget.scrollTop);
-  }, 16); // ~60fps
-
-  return (
-    <div
-      style={{ height: containerHeight, overflow: 'auto' }}
-      onScroll={handleScroll}
-    >
-      <div style={{ height: items.length * itemHeight, position: 'relative' }}>
-        {visibleItems.map((item, index) => (
-          <div
-            key={startIndex + index}
-            style={{
-              position: 'absolute',
-              top: (startIndex + index) * itemHeight,
-              height: itemHeight,
-            }}
-          >
-            {renderItem(item, startIndex + index)}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-/**
  * Context selector hook for avoiding unnecessary re-renders
  */
 export const useContextSelector = <T, S>(
@@ -353,20 +201,4 @@ export const useContextSelector = <T, S>(
 ): S => {
   const value = React.useContext(context);
   return useMemo(() => selector(value), [value, selector]);
-};
-
-// Export all utilities as a performance toolkit
-export const performanceToolkit = {
-  performantMemo,
-  smartMemo,
-  stableMemo,
-  useStableCallback,
-  useExpensiveMemo,
-  useDebouncedValue,
-  useThrottledCallback,
-  withLazyRendering,
-  VirtualList,
-  useContextSelector,
-  isEqual,
-  shallowEqual,
 };

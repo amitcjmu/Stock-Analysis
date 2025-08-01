@@ -21,7 +21,11 @@ export {
   usePerformanceTracker
 } from './hooks';
 
-// Memoization utilities
+// Memoization components
+export { default as withLazyRendering } from './withLazyRendering';
+export { default as VirtualList } from './VirtualList';
+
+// Memoization hooks
 export {
   performantMemo,
   smartMemo,
@@ -30,13 +34,15 @@ export {
   useExpensiveMemo,
   useDebouncedValue,
   useThrottledCallback,
-  withLazyRendering,
-  VirtualList,
-  useContextSelector,
-  performanceToolkit,
+  useContextSelector
+} from './memoizationHooks';
+
+// Memoization helpers  
+export {
   isEqual,
-  shallowEqual
-} from './memoization';
+  shallowEqual,
+  performanceToolkit
+} from './memoizationHelpers';
 
 // Feature flags
 export {
