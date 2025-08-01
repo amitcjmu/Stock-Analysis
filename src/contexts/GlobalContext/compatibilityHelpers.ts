@@ -3,11 +3,11 @@
  * Separated to avoid React Fast Refresh warnings
  */
 
-import type { ClientAccount, Engagement } from './types';
+import type { Client, Engagement, User } from './types';
 
 // Type definitions
 export interface AuthCompatReturn {
-  user: any;
+  user: User | null;
   isLoading: boolean;
   isInitialized: boolean;
   error: Error | null;
@@ -24,10 +24,10 @@ export interface AuthCompatReturn {
 }
 
 export interface ClientCompatReturn {
-  client: ClientAccount | null;
+  client: Client | null;
   isLoading: boolean;
   error: Error | null;
-  setClient: (client: ClientAccount | null) => void;
+  setClient: (client: Client | null) => void;
   clearClient: () => void;
   getClientId: () => string | null;
   setDemoClient: (clientData: unknown) => void;
@@ -53,7 +53,7 @@ export interface GlobalAuthState {
 // Helper function to check if context is available
 export const hasContext = (
   isAuthenticated: boolean,
-  client: ClientAccount | null,
+  client: Client | null,
   engagement: Engagement | null,
   requireAuth: boolean,
   requireClient: boolean,

@@ -90,6 +90,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const eventCallbacksRef = useRef<Map<string, Set<CacheEventCallback>>>(new Map());
+  const reconnectAttemptsRef = useRef<number>(0);
 
   // Get auth token for WebSocket connection
   const getAuthToken = useCallback(() => {
@@ -180,6 +181,9 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
       wsRef.current.onopen = () => {
         console.log('✅ WebSocket cache events connected');
+
+        // Reset reconnect attempts on successful connection
+        reconnectAttemptsRef.current = 0;
 
         setState(prev => ({
           ...prev,
@@ -287,14 +291,17 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         onDisconnect?.();
 
         // Attempt to reconnect if enabled and not a clean close
-        if (autoReconnect && event.code !== 1000 && state.reconnectAttempts < maxReconnectAttempts) {
-          console.log(`🔄 Attempting reconnect ${state.reconnectAttempts + 1}/${maxReconnectAttempts}`);
+        if (autoReconnect && event.code !== 1000 && reconnectAttemptsRef.current < maxReconnectAttempts) {
+          const currentAttempt = reconnectAttemptsRef.current;
+          console.log(`🔄 Attempting reconnect ${currentAttempt + 1}/${maxReconnectAttempts}`);
 
-          setState(prev => ({ ...prev, reconnectAttempts: prev.reconnectAttempts + 1 }));
+          // Increment reconnect attempts
+          reconnectAttemptsRef.current += 1;
+          setState(prev => ({ ...prev, reconnectAttempts: reconnectAttemptsRef.current }));
 
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
-          }, reconnectInterval * Math.pow(1.5, state.reconnectAttempts)); // Exponential backoff
+          }, reconnectInterval * Math.pow(1.5, currentAttempt)); // Exponential backoff using current value
         }
       };
 

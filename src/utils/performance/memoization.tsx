@@ -188,7 +188,7 @@ export const useExpensiveMemo = <T,>(
 /**
  * Hook for debounced values
  */
-export const useDebouncedValue = <T>(value: T, delay: number): T => {
+export const useDebouncedValue = <T,>(value: T, delay: number): T => {
   const [debouncedValue, setDebouncedValue] = React.useState<T>(value);
 
   React.useEffect(() => {

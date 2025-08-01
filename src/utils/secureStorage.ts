@@ -30,6 +30,7 @@ class SecureStorage {
     // Remove HTML tags and potentially dangerous characters
     return input
       .replace(/<[^>]*>/g, '') // Remove HTML tags
+      // eslint-disable-next-line no-control-regex
       .replace(/[<>'"&\u0000-\u001F\u007F-\u009F]/g, '') // Remove dangerous characters
       .replace(/javascript:/gi, '') // Remove javascript: protocol
       .replace(/data:/gi, '') // Remove data: protocol
