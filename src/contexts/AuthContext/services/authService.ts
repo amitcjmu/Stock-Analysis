@@ -244,7 +244,7 @@ export const useAuthService = (
       }
 
       console.log('🔍 switchClient - Completed successfully');
-      
+
       // CRITICAL: Sync context to individual localStorage keys for new API client
       syncContextToIndividualKeys();
 
@@ -327,7 +327,7 @@ export const useAuthService = (
       }
 
       console.log('🔍 switchEngagement - Completed successfully');
-      
+
       // CRITICAL: Sync context to individual localStorage keys for new API client
       syncContextToIndividualKeys();
 

@@ -7,7 +7,7 @@
 // eslint-disable-next-line react-refresh/only-export-components
 export { AuthProvider } from './AuthContext/provider';
 
-// Hooks  
+// Hooks
 export { useAuth } from './AuthContext/useAuth';
 
 // Types

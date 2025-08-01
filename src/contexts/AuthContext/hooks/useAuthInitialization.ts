@@ -168,10 +168,10 @@ export const useAuthInitialization = ({
 
           await Promise.race([contextPromise, timeoutPromise]);
           console.log('✅ Context restored successfully');
-          
+
           // CRITICAL: Sync context to individual localStorage keys for new API client
           syncContextToIndividualKeys();
-          
+
           setIsLoading(false);
           // Mark initialization as complete again
           globalAuthInitialized = true;

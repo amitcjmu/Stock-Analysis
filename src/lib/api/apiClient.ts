@@ -231,7 +231,7 @@ class ApiClient {
     } else {
       url = `${this.baseUrl}${normalizedEndpoint}`;
     }
-    
+
     const method = (options.method || 'GET').toUpperCase();
 
     try {
