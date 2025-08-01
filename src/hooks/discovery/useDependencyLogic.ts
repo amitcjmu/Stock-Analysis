@@ -4,7 +4,32 @@ import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 import { useAuth } from '../../contexts/AuthContext';
 import { ApiClient } from '../../services/ApiClient';
 
-export const useDependencyLogic = (flowId?: string) => {
+export const useDependencyLogic = (flowId?: string): {
+  dependencyData: {
+    servers: unknown[];
+    applications: unknown[];
+    databases: unknown[];
+    totalAssets: number;
+  };
+  isLoading: boolean;
+  error: string | null;
+  isAnalyzing: boolean;
+  analyzeDependencies: () => Promise<void>;
+  activeView: string;
+  setActiveView: (view: string) => void;
+  canContinueToNextPhase: boolean;
+  canAccessDependencyPhase: boolean;
+  prerequisitePhases: string[];
+  isDependencyAnalysisComplete: boolean;
+  inventoryData: {
+    servers: unknown[];
+    applications: unknown[];
+    databases: unknown[];
+    totalAssets: number;
+  };
+  flowState: unknown;
+  refreshDependencies: () => Promise<void>;
+} => {
   const { client, engagement } = useAuth();
 
   // Use the unified discovery flow

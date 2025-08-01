@@ -6,7 +6,11 @@ import { useGlobalPerformance } from '../../contexts/GlobalContext';
 /**
  * Hook for tracking component render performance
  */
-export const useRenderPerformance = (componentName: string) => {
+export const useRenderPerformance = (componentName: string): {
+  renderCount: number;
+  markStart: (label: string) => void;
+  markEnd: (label: string) => number | null;
+} => {
   const { enabled, updateMetrics } = useGlobalPerformance();
   const renderStartTime = useRef<number>(0);
   const renderCount = useRef<number>(0);
@@ -62,7 +66,10 @@ export const useRenderPerformance = (componentName: string) => {
 /**
  * Hook for tracking API call performance
  */
-export const useApiPerformance = () => {
+export const useApiPerformance = (): {
+  trackApiCall: <T>(label: string, apiCall: () => Promise<T>, metadata?: Record<string, unknown>) => Promise<T>;
+  apiCallCount: number;
+} => {
   const { enabled, updateMetrics } = useGlobalPerformance();
   const apiCallCount = useRef<number>(0);
 
@@ -117,7 +124,13 @@ export const useApiPerformance = () => {
 /**
  * Hook for tracking cache performance
  */
-export const useCachePerformance = () => {
+export const useCachePerformance = (): {
+  trackCacheHit: (key: string, metadata?: Record<string, unknown>) => void;
+  trackCacheMiss: (key: string, metadata?: Record<string, unknown>) => void;
+  cacheHits: number;
+  cacheMisses: number;
+  hitRate: number;
+} => {
   const { enabled, updateMetrics } = useGlobalPerformance();
   const cacheHits = useRef<number>(0);
   const cacheMisses = useRef<number>(0);
@@ -174,7 +187,15 @@ export const useCachePerformance = () => {
 /**
  * Hook for tracking bundle loading performance
  */
-export const useBundlePerformance = () => {
+export const useBundlePerformance = (): {
+  trackBundleLoad: <T>(bundleName: string, bundleLoader: () => Promise<T>) => Promise<T>;
+  loadingStats: {
+    totalBundles: number;
+    loadedBundles: number;
+    failedBundles: number;
+    averageLoadTime: number;
+  };
+} => {
   const { enabled } = useGlobalPerformance();
   const [loadingStats, setLoadingStats] = useState<{
     totalBundles: number;
@@ -262,7 +283,12 @@ export const useBundlePerformance = () => {
 /**
  * Hook for monitoring memory usage
  */
-export const useMemoryMonitoring = (intervalMs: number = 30000) => {
+export const useMemoryMonitoring = (intervalMs: number = 30000): {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+  timestamp: number;
+} | null => {
   const { enabled } = useGlobalPerformance();
   const [memoryStats, setMemoryStats] = useState<{
     usedJSHeapSize: number;
@@ -307,7 +333,10 @@ export const useMemoryMonitoring = (intervalMs: number = 30000) => {
 /**
  * Hook for tracking route transitions
  */
-export const useRoutePerformance = () => {
+export const useRoutePerformance = (): {
+  startRouteTransition: (routeName: string) => void;
+  endRouteTransition: (routeName: string, metadata?: Record<string, unknown>) => number | null;
+} => {
   const { enabled } = useGlobalPerformance();
   const routeStartTime = useRef<number>(0);
 
@@ -347,7 +376,12 @@ export const useRoutePerformance = () => {
 /**
  * Hook for tracking form performance
  */
-export const useFormPerformance = (formName: string) => {
+export const useFormPerformance = (formName: string): {
+  startForm: () => void;
+  trackFieldInteraction: (fieldName: string) => void;
+  completeForm: (success: boolean, metadata?: Record<string, unknown>) => number;
+  interactionCount: number;
+} => {
   const { enabled } = useGlobalPerformance();
   const formStartTime = useRef<number>(0);
   const fieldInteractions = useRef<number>(0);
@@ -407,7 +441,9 @@ export const useFormPerformance = (formName: string) => {
 /**
  * Hook for general performance tracking
  */
-export const usePerformanceTracker = () => {
+export const usePerformanceTracker = (): {
+  track: <T>(label: string, operation: () => T | Promise<T>, metadata?: Record<string, unknown>) => T | Promise<T>;
+} => {
   const { enabled } = useGlobalPerformance();
 
   const track = useCallback(<T>(

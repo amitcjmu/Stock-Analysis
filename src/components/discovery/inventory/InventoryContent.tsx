@@ -319,7 +319,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
 
     // Cleanup timeout on unmount
     return () => clearTimeout(timeoutId);
-  }, [flow, isExecutingPhase, hasTriggeredInventory, assets.length, executeFlowPhase]);
+  }, [flow, isExecutingPhase, hasTriggeredInventory, assets.length, executeFlowPhase, needsClassification, refetchAssets, refreshFlow]);
 
   // Separate useEffect to handle classification needs without causing loops
   useEffect(() => {

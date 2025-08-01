@@ -1,31 +1,12 @@
 /**
- * Lazy Loading Provider - Context and hooks for lazy loading
+ * Lazy Loading Provider - React provider component for lazy loading
  */
 
 import React from 'react'
-import { createContext, useContext, useState } from 'react'
-import { useCallback, useEffect } from 'react'
-import type { LazyComponentOptions, LoadingState } from '@/types/lazy';
-import { LoadingPriority } from '@/types/lazy';
+import { useState, useCallback, useEffect } from 'react'
+import type { LazyComponentOptions } from '@/types/lazy';
 import { loadingManager } from '@/utils/lazy/loadingManager';
-
-interface LazyLoadingContextType {
-  loadComponent: <P extends Record<string, unknown> = Record<string, unknown>>(
-    componentId: string,
-    importFn: () => Promise<{ default: React.ComponentType<P> }>,
-    options?: LazyComponentOptions
-  ) => Promise<React.ComponentType<P>>;
-  preloadComponent: <P extends Record<string, unknown> = Record<string, unknown>>(
-    componentId: string,
-    importFn: () => Promise<{ default: React.ComponentType<P> }>,
-    options?: LazyComponentOptions
-  ) => void;
-  getLoadingState: (componentId: string) => LoadingState | null;
-  clearCaches: () => void;
-  getCacheEffectiveness: () => number;
-}
-
-export const LazyLoadingContext = createContext<LazyLoadingContextType | null>(null);
+import { LazyLoadingContext, type LazyLoadingContextType } from './LazyLoadingContext';
 
 interface LazyLoadingProviderProps {
   children: React.ReactNode;

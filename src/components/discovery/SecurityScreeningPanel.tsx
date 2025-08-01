@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useEffect } from 'react'
 import { Info } from 'lucide-react'
 import { Shield, AlertTriangle, CheckCircle, Eye, EyeOff, Lock } from 'lucide-react'
@@ -64,9 +64,9 @@ const SecurityScreeningPanel: React.FC<SecurityScreeningPanelProps> = ({
     if (dataImportId || flowId) {
       fetchSecurityScreening();
     }
-  }, [dataImportId, flowId, refreshTrigger]);
+  }, [dataImportId, flowId, refreshTrigger, fetchSecurityScreening]);
 
-  const fetchSecurityScreening = async (): Promise<void> => {
+  const fetchSecurityScreening = useCallback(async (): Promise<void> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -106,7 +106,7 @@ const SecurityScreeningPanel: React.FC<SecurityScreeningPanelProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getAuthHeaders, flowId, dataImportId]);
 
   const getRiskLevelColor = (level: string): unknown => {
     switch (level) {

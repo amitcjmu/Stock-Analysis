@@ -2,23 +2,16 @@ import * as React from "react"
 import type * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
 import type { ControllerProps, FieldPath, FieldValues, FieldError } from 'react-hook-form'
-import { Controller, FormProvider, useFormContext } from 'react-hook-form'
+import { Controller, FormProvider } from 'react-hook-form'
 
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
+import { FormFieldContext, FormItemContext } from "./formContext"
+import { useFormField } from "./formHooks"
 
 const Form = FormProvider
 
-interface FormFieldContextValue<
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
-> {
-  name: TName
-}
-
-const FormFieldContext = React.createContext<FormFieldContextValue>(
-  {} as FormFieldContextValue
-)
+// FormFieldContext imported from ./formContext
 
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
@@ -33,46 +26,9 @@ const FormField = <
   )
 }
 
-const useFormField = (): {
-  id: string;
-  name: string;
-  formItemId: string;
-  formDescriptionId: string;
-  formMessageId: string;
-  invalid: boolean;
-  isDirty: boolean;
-  isTouched: boolean;
-  error?: FieldError;
-} => {
-  const fieldContext = React.useContext(FormFieldContext)
-  const itemContext = React.useContext(FormItemContext)
-  const { getFieldState, formState } = useFormContext()
+// useFormField imported from ./formHooks
 
-  const fieldState = getFieldState(fieldContext.name, formState)
-
-  if (!fieldContext) {
-    throw new Error("useFormField should be used within <FormField>")
-  }
-
-  const { id } = itemContext
-
-  return {
-    id,
-    name: fieldContext.name,
-    formItemId: `${id}-form-item`,
-    formDescriptionId: `${id}-form-item-description`,
-    formMessageId: `${id}-form-item-message`,
-    ...fieldState,
-  }
-}
-
-interface FormItemContextValue {
-  id: string
-}
-
-const FormItemContext = React.createContext<FormItemContextValue>(
-  {} as FormItemContextValue
-)
+// FormItemContext imported from ./formContext
 
 const FormItem = React.forwardRef<
   HTMLDivElement,
@@ -169,7 +125,6 @@ const FormMessage = React.forwardRef<
 FormMessage.displayName = "FormMessage"
 
 export {
-  useFormField,
   Form,
   FormItem,
   FormLabel,

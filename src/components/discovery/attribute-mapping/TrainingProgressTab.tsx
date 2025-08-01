@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useEffect, useMemo } from 'react'
 import { Brain, TrendingUp, AlertCircle, CheckCircle, Clock, Target, Users, Bot } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -114,9 +114,9 @@ const TrainingProgressTab: React.FC<TrainingProgressTabProps> = ({
 
   useEffect(() => {
     fetchTrainingProgress();
-  }, [fieldMappings]);
+  }, [fetchTrainingProgress]);
 
-  const fetchTrainingProgress = async (): JSX.Element => {
+  const fetchTrainingProgress = useCallback(async (): Promise<void> => {
     try {
       setIsLoading(true);
 
@@ -140,7 +140,7 @@ const TrainingProgressTab: React.FC<TrainingProgressTabProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fieldMappings]);
 
   const getConfidenceColor = (confidence: number): unknown => {
     if (confidence >= 0.8) return 'text-green-600 bg-green-100';

@@ -271,7 +271,7 @@ export const withFeatureFlag = <P extends object>(
   WrappedComponent: React.ComponentType<P>,
   flagKey: keyof FeatureFlags,
   fallback?: React.ComponentType<P> | React.ReactElement | null
-) => {
+): React.ComponentType<P> => {
   return React.memo((props: P) => {
     const isEnabled = useFeatureFlag(flagKey);
 

@@ -9,6 +9,5 @@
  * Individual modules are located in ./AgentPlanningDashboard/ directory.
  */
 
-// Re-export everything from the modularized structure
-export * from './AgentPlanningDashboard/index';
-export { default } from './AgentPlanningDashboard/index';
+// Export the main component only - sub-components available from ./AgentPlanningDashboard/
+export { default } from './AgentPlanningDashboard/AgentPlanningDashboard';

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import type { UseQueryResult } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
 import masterFlowServiceExtended from '@/services/api/masterFlowService.extensions';
@@ -19,7 +20,7 @@ export interface DiscoveryFlow {
   updated_at: string;
 }
 
-export const useDiscoveryFlowList = () => {
+export const useDiscoveryFlowList = (): UseQueryResult<DiscoveryFlow[], Error> => {
   const { client, engagement } = useAuth();
 
   return useQuery<DiscoveryFlow[]>({

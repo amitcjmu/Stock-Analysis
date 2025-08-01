@@ -9,6 +9,5 @@
  * Individual modules are located in ./AgentClarificationPanel/ directory.
  */
 
-// Re-export everything from the modularized structure
-export * from './AgentClarificationPanel/index';
-export { default } from './AgentClarificationPanel/index';
+// Export the main component only - sub-components available from ./AgentClarificationPanel/
+export { default } from './AgentClarificationPanel/AgentClarificationPanel';

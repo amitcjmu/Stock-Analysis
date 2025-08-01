@@ -57,7 +57,22 @@ interface UseWebSocketOptions {
 /**
  * WebSocket hook for cache invalidation events
  */
-export const useWebSocket = (options: UseWebSocketOptions = {}) => {
+export const useWebSocket = (options: UseWebSocketOptions = {}): {
+  isConnected: boolean;
+  isConnecting: boolean;
+  error: string | null;
+  connectionId: string | null;
+  reconnectAttempts: number;
+  canReconnect: boolean;
+  lastEvent: WebSocketCacheMessage | null;
+  connect: () => void;
+  disconnect: () => void;
+  subscribe: (eventType: string, callback: (event: WebSocketCacheMessage) => void) => () => void;
+  updateSubscription: (events: string[]) => boolean;
+  sendMessage: (message: Partial<WebSocketCacheMessage>) => boolean;
+  getStats: () => boolean;
+  isFeatureEnabled: boolean;
+} => {
   const {
     clientAccountId,
     engagementId,

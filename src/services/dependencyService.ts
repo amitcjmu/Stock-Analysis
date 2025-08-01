@@ -97,7 +97,7 @@ export const createDependency = async (dependency: DependencyCreate): Promise<De
 /**
  * Get available applications for dependency mapping
  */
-export const getAvailableApplications = async () => {
+export const getAvailableApplications = async (): Promise<unknown> => {
   try {
     const response = await apiCall('/discovery/dependencies/applications', {
       headers: getAuthHeaders()
@@ -113,7 +113,7 @@ export const getAvailableApplications = async () => {
 /**
  * Get available servers for dependency mapping
  */
-export const getAvailableServers = async () => {
+export const getAvailableServers = async (): Promise<unknown> => {
   try {
     const response = await apiCall('/discovery/dependencies/servers', {
       headers: getAuthHeaders()

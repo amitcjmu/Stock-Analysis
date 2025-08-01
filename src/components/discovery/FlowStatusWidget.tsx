@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -83,7 +83,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
   const lastRequestTime = useRef(0);
   const REQUEST_DEBOUNCE_MS = 1000; // Prevent requests within 1 second of each other
 
-  const fetchFlowAnalysis = async (): JSX.Element => {
+  const fetchFlowAnalysis = useCallback(async (): Promise<void> => {
     if (!flowId) {
       console.warn('FlowStatusWidget: No flowId provided');
       return;
@@ -133,7 +133,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
       setLoading(false);
       requestInProgress.current = false;
     }
-  };
+  }, [flowId, client?.id, engagement?.id, user?.id]);
 
   useEffect(() => {
     // Add a small delay to prevent immediate execution on mount
@@ -142,7 +142,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [flowId]); // Only depend on flowId, not client/engagement which may change frequently
+  }, [fetchFlowAnalysis]);
 
   const handleNavigateToRecommendedPage = (): void => {
     if (!analysis?.routing_context?.target_page) {

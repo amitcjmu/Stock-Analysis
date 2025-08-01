@@ -74,7 +74,11 @@ export interface PerformanceOptions {
 /**
  * Initialize performance monitoring for the entire application
  */
-export const initializePerformance = (options: PerformanceOptions = {}) => {
+export const initializePerformance = (options: PerformanceOptions = {}): {
+  monitor: typeof performanceMonitor;
+  featureFlags: typeof featureFlagsManager;
+  toolkit: typeof performanceToolkit;
+} => {
   const {
     enableMonitoring = process.env.NODE_ENV === 'development',
     enableFeatureFlags = true,
