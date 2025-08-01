@@ -4,6 +4,7 @@
 
 // Core infrastructure
 export { LazyLoadingProvider } from './LazyLoadingProvider';
+export { LazyLoadingContext, type LazyLoadingContextType } from './LazyLoadingContext';
 export { useLazyLoading } from '../../hooks/lazy/useLazyLoading';
 export { LoadingFallback, ErrorFallback, SkeletonFallback, PreloadIndicator } from './LoadingFallback';
 export { PerformanceDashboard } from './PerformanceDashboard';

@@ -3,7 +3,7 @@
  */
 
 import { useContext } from 'react';
-import { LazyLoadingContext } from '@/components/lazy/LazyLoadingProvider';
+import { LazyLoadingContext } from '@/components/lazy/LazyLoadingContext';
 
 export const useLazyLoading = (): unknown => {
   const context = useContext(LazyLoadingContext);
