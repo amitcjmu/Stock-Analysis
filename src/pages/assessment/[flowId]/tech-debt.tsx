@@ -48,8 +48,8 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
 
   // Get current application data
   const currentAppComponents = selectedApp ? state.applicationComponents[selectedApp] || [] : [];
-  const currentAppTechDebt = useMemo(() => 
-    selectedApp ? state.techDebtAnalysis[selectedApp] || [] : [], 
+  const currentAppTechDebt = useMemo(() =>
+    selectedApp ? state.techDebtAnalysis[selectedApp] || [] : [],
     [selectedApp, state.techDebtAnalysis]
   );
 

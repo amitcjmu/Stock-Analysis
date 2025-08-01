@@ -6,5 +6,5 @@
 // Components
 export { ChatFeedbackProvider } from './ChatFeedbackContext/provider';
 
-// Types  
+// Types
 export type { ChatFeedbackContextType } from './ChatFeedbackContext/types';
