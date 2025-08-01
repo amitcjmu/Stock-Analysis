@@ -15,6 +15,7 @@ import { ClassificationCards } from './components/ClassificationCards';
 import { AssetTable } from './components/AssetTable';
 import { NextStepCard } from './components/NextStepCard';
 import EnhancedInventoryInsights from './EnhancedInventoryInsights';
+import { InventoryContentFallback } from './InventoryContentFallback';
 
 // Hooks
 import { useInventoryProgress } from './hooks/useInventoryProgress';
@@ -81,6 +82,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         // Check if the response indicates an error
         if (response && response.data_source === 'error') {
           console.warn('⚠️ Assets API returned error state. Backend may have failed to fetch assets.');
+          // Don't throw error, just return empty assets to show fallback UI
+          return [];
         }
 
         if (response && response.assets && response.assets.length > 0) {
@@ -125,9 +128,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         return flowAssets;
       } catch (error) {
         console.error('Error fetching assets:', error);
-        // Return flow assets on error
-        const flowAssets = getAssetsFromFlow();
-        return flowAssets;
+        // Don't throw, return empty array to show fallback UI
+        return [];
       }
     },
     enabled: !!client && !!engagement,
@@ -141,6 +143,9 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     if (assetsData && Array.isArray(assetsData.assets)) return assetsData.assets;
     return [];
   }, [assetsData]);
+
+  // Check if we have a backend error
+  const hasBackendError = assetsData === null || (assetsData && assetsData.data_source === 'error');
 
   // Get all available columns
   const allColumns = useMemo(() => {
@@ -346,6 +351,18 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
             </div>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // Show error fallback if backend is having issues
+  if (hasBackendError && !assetsLoading) {
+    return (
+      <div className={`${className}`}>
+        <InventoryContentFallback
+          error="Backend service is temporarily unavailable. Please try again in a few moments."
+          onRetry={() => refetchAssets()}
+        />
       </div>
     );
   }
