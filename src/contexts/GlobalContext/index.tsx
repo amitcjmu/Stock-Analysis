@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useReducer, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type {
   GlobalContextType,
@@ -16,9 +16,7 @@ import { contextStorage, preferencesStorage, featureFlagsStorage, maintainStorag
 import { performanceMonitor } from '../../utils/performance/monitoring';
 import { apiCall } from '../../config/api';
 import type { User, Client, Engagement, Flow } from '../AuthContext/types';
-
-// Create the context
-const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
+import { GlobalContext } from './context';
 
 /**
  * Global Context Provider - Consolidates all app state management
@@ -475,89 +473,14 @@ export const GlobalContextProvider: React.FC<GlobalContextProviderProps> = ({
   );
 };
 
-/**
- * Hook to use the Global Context
- */
-export const useGlobalContext = (): GlobalContextType => {
-  const context = useContext(GlobalContext);
-  if (context === undefined) {
-    throw new Error('useGlobalContext must be used within a GlobalContextProvider');
-  }
-  return context;
-};
+// Export hooks from separate file
+export {
+  useGlobalContext,
+  useGlobalAuth,
+  useGlobalUserContext,
+  useGlobalUIState,
+  useGlobalCacheState
+} from './hooks';
 
-/**
- * Hook to use auth state and actions
- */
-export const useGlobalAuth = () => {
-  const { state, login, logout, initializeAuth, isAuthenticated, isAdmin } = useGlobalContext();
-
-  return {
-    user: state.auth.user,
-    isLoading: state.auth.isLoading,
-    isInitialized: state.auth.isInitialized,
-    error: state.auth.error,
-    isDemoMode: state.auth.isDemoMode,
-    isAuthenticated,
-    isAdmin,
-    login,
-    logout,
-    initializeAuth,
-  };
-};
-
-/**
- * Hook to use context state and actions
- */
-export const useGlobalUserContext = () => {
-  const {
-    state,
-    switchClient,
-    switchEngagement,
-    switchFlow,
-    hasContext,
-    getAuthHeaders
-  } = useGlobalContext();
-
-  return {
-    client: state.context.client,
-    engagement: state.context.engagement,
-    flow: state.context.flow,
-    isLoading: state.context.isLoading,
-    error: state.context.error,
-    hasContext,
-    switchClient,
-    switchEngagement,
-    switchFlow,
-    getAuthHeaders,
-  };
-};
-
-/**
- * Hook to use performance monitoring
- */
-export const useGlobalPerformance = () => {
-  const { state, updatePerformanceMetrics } = useGlobalContext();
-
-  return {
-    metrics: state.performance,
-    enabled: state.featureFlags.enablePerformanceMonitoring,
-    updateMetrics: updatePerformanceMetrics,
-  };
-};
-
-/**
- * Hook to use notifications
- */
-export const useGlobalNotifications = () => {
-  const { state, addNotification, removeNotification } = useGlobalContext();
-
-  return {
-    notifications: state.ui.notifications,
-    addNotification,
-    removeNotification,
-  };
-};
-
-// Export types for convenience
+// Export types
 export type { GlobalState, GlobalAction, GlobalContextType } from './types';
