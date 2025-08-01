@@ -1,19 +1,10 @@
-import React from 'react'
-import { createContext, useContext, useState } from 'react'
-import { useEffect } from 'react'
-import { useLocation } from 'react-router-dom';
-
-interface ChatFeedbackContextType {
-  isChatOpen: boolean;
-  setIsChatOpen: (open: boolean) => void;
-  currentPageName: string;
-  breadcrumbPath: string;
-}
-
-const ChatFeedbackContext = createContext<ChatFeedbackContextType | undefined>(undefined);
+/**
+ * ChatFeedback Context Utilities
+ * Helper functions for chat feedback functionality
+ */
 
 // Utility function to generate human-readable page names and breadcrumbs from routes
-const generatePageContext = (pathname: string): { pageName: string; breadcrumb: string } => {
+export const generatePageContext = (pathname: string): { pageName: string; breadcrumb: string } => {
   const segments = pathname.split('/').filter(Boolean);
 
   // Route to human-readable name mapping
@@ -73,38 +64,4 @@ const generatePageContext = (pathname: string): { pageName: string; breadcrumb: 
   const pageName = breadcrumbParts[breadcrumbParts.length - 1];
 
   return { pageName, breadcrumb };
-};
-
-export const ChatFeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const location = useLocation();
-  const [currentPageName, setCurrentPageName] = useState('Dashboard');
-  const [breadcrumbPath, setBreadcrumbPath] = useState('Dashboard');
-
-  useEffect(() => {
-    const { pageName, breadcrumb } = generatePageContext(location.pathname);
-    setCurrentPageName(pageName);
-    setBreadcrumbPath(breadcrumb);
-  }, [location.pathname]);
-
-  const value: ChatFeedbackContextType = {
-    isChatOpen,
-    setIsChatOpen,
-    currentPageName,
-    breadcrumbPath
-  };
-
-  return (
-    <ChatFeedbackContext.Provider value={value}>
-      {children}
-    </ChatFeedbackContext.Provider>
-  );
-};
-
-export const useChatFeedback = (): ChatFeedbackContextType => {
-  const context = useContext(ChatFeedbackContext);
-  if (!context) {
-    throw new Error('useChatFeedback must be used within a ChatFeedbackProvider');
-  }
-  return context;
 };

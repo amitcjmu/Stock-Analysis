@@ -25,9 +25,21 @@ let initializationCount = 0;
 
 // Add session storage to persist initialization state across page refreshes
 const AUTH_INIT_KEY = 'auth_initialization_complete';
+const AUTH_INIT_TIMESTAMP_KEY = 'auth_initialization_timestamp';
+
 const getInitializationState = (): boolean => {
   try {
-    return sessionStorage.getItem(AUTH_INIT_KEY) === 'true';
+    const completed = sessionStorage.getItem(AUTH_INIT_KEY) === 'true';
+    const timestamp = sessionStorage.getItem(AUTH_INIT_TIMESTAMP_KEY);
+
+    // Check if initialization was completed within the last 5 minutes
+    if (completed && timestamp) {
+      const elapsed = Date.now() - parseInt(timestamp, 10);
+      if (elapsed < 5 * 60 * 1000) { // 5 minutes
+        return true;
+      }
+    }
+    return false;
   } catch {
     return false;
   }
@@ -37,8 +49,10 @@ const setInitializationState = (completed: boolean): unknown => {
   try {
     if (completed) {
       sessionStorage.setItem(AUTH_INIT_KEY, 'true');
+      sessionStorage.setItem(AUTH_INIT_TIMESTAMP_KEY, Date.now().toString());
     } else {
       sessionStorage.removeItem(AUTH_INIT_KEY);
+      sessionStorage.removeItem(AUTH_INIT_TIMESTAMP_KEY);
     }
   } catch {
     // Ignore storage errors
@@ -62,28 +76,43 @@ export const useAuthInitialization = ({
   useEffect(() => {
     initializationCount++;
     console.log(`🔍 useAuthInitialization effect triggered (count: ${initializationCount})`);
-    
+
+    // Critical: Check if we're in an infinite loop
+    if (initializationCount > 5) {
+      console.error('🚨 Auth initialization loop detected! Stopping to prevent infinite loop.');
+      setIsLoading(false);
+      return;
+    }
+
     // Guard against multiple initializations
     if (hasInitializedRef.current) {
       console.log('🔍 Auth initialization already completed by this instance, skipping');
       return;
     }
-    
+
+    // Check session state first - this is the most reliable check
+    if (getInitializationState()) {
+      console.log('🔍 Auth already initialized in this session (from sessionStorage), skipping');
+      hasInitializedRef.current = true;
+      setIsLoading(false);
+      return;
+    }
+
     // Check global initialization state
     if (globalAuthInitialized) {
       console.log('🔍 Auth already initialized globally, skipping');
       setIsLoading(false);
       return;
     }
-    
+
     // Check if already initializing
     if (isAuthInitializing) {
       console.log('🔍 Auth initialization already in progress, skipping');
       return;
     }
-    
+
     hasInitializedRef.current = true;
-    
+
     let isMounted = true;
 
     const initializeAuth = async (): Promise<void> => {
@@ -123,6 +152,8 @@ export const useAuthInitialization = ({
           await Promise.race([contextPromise, timeoutPromise]);
           console.log('✅ Context restored successfully');
           setIsLoading(false);
+          // Mark initialization as complete again
+          globalAuthInitialized = true;
           return;
         } catch (error) {
           console.warn('⚠️ Failed to restore context, clearing session and continuing with full init:', error);
@@ -133,6 +164,7 @@ export const useAuthInitialization = ({
           // Clear session state and continue with full initialization
           setInitializationState(false);
           globalAuthInitialized = false;
+          isAuthInitializing = false; // Reset this to allow reinit
           // Don't return, let it fall through to full initialization
         }
       }
@@ -372,6 +404,12 @@ export const useAuthInitialization = ({
       isMounted = false;
       // Don't reset hasInitializedRef on unmount - keep it true to prevent re-initialization
       console.log('🔍 useAuthInitialization unmounting');
+
+      // Reset the initialization counter if it's too high to allow recovery
+      if (initializationCount > 5) {
+        console.log('🔍 Resetting initialization counter on unmount');
+        initializationCount = 0;
+      }
     };
   }, []); // Empty dependency array - initialization should only run once per mount
 };

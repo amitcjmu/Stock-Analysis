@@ -1,33 +1,11 @@
 import React from 'react'
-import { createContext, useContext, useState } from 'react'
+import { useState } from 'react'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { apiCall } from '@/lib/api';
-
-export interface Client {
-  id: string;
-  name: string;
-  status: 'active' | 'inactive';
-  type: 'enterprise' | 'mid-market' | 'startup';
-  created_at: string;
-  updated_at: string;
-  metadata: Record<string, string | number | boolean | null>;
-}
-
-interface ClientContextType {
-  currentClient: Client | null;
-  availableClients: Client[];
-  isLoading: boolean;
-  error: Error | null;
-  selectClient: (id: string) => Promise<void>;
-  switchClient: (id: string) => Promise<void>;
-  clearClient: () => void;
-  getClientId: () => string | null;
-  setDemoClient: (client: Client) => void;
-}
-
-const ClientContext = createContext<ClientContextType | undefined>(undefined);
+import type { Client, ClientContextType } from './ClientContext/types';
+import { ClientContext } from './ClientContext/context';
 
 const CLIENT_KEY = 'current_client';
 
@@ -209,53 +187,8 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   return <ClientContext.Provider value={value}>{children}</ClientContext.Provider>;
 };
 
-export const useClient = (): unknown => {
-  const context = useContext(ClientContext);
-  if (context === undefined) {
-    throw new Error('useClient must be used within a ClientProvider');
-  }
-  return context;
-};
+// Re-export hooks and HOCs
+export { useClient, withClient } from './ClientContext/hooks';
 
-export const withClient = <P extends object>(
-  WrappedComponent: React.ComponentType<P>,
-  requireClient: boolean = true
-) => {
-  return function WithClientComponent(props: P): React.ReactElement | null {
-    const { currentClient, isLoading } = useClient();
-    const { user } = useAuth();
-    const navigate = useNavigate();
-
-    useEffect(() => {
-      if (!isLoading && requireClient && !currentClient) {
-        // Skip client requirement for admin routes
-        if (user?.role === 'admin' && window.location.pathname.startsWith('/admin')) {
-          return;
-        }
-
-        // For non-admin users or admin users on non-admin routes
-        if (!currentClient) {
-          navigate('/session/select');
-        }
-      }
-    }, [currentClient, isLoading, navigate, user?.role]);
-
-    if (isLoading) {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-            <p className="text-gray-600">Loading client...</p>
-          </div>
-        </div>
-      );
-    }
-
-    // Skip client requirement for admin routes
-    if (requireClient && !currentClient && !(user?.role === 'admin' && window.location.pathname.startsWith('/admin'))) {
-      return null;
-    }
-
-    return <WrappedComponent {...props} />;
-  };
-};
+// Re-export types for convenience
+export type { Client, ClientContextType } from './ClientContext/types';

@@ -4,7 +4,8 @@
  */
 
 import { useContext } from 'react';
-import { ObservabilityContext, type ObservabilityContextValue } from './ObservabilityContext';
+import { ObservabilityContext } from './context';
+import type { ObservabilityContextValue } from './ObservabilityContext';
 
 export const useObservability = (): ObservabilityContextValue => {
   const context = useContext(ObservabilityContext);

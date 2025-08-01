@@ -1,16 +1,15 @@
 import React from 'react'
-import { createContext, useContext, useState } from 'react'
+import { useState } from 'react'
 import { useCallback } from 'react'
 import type { AuthContextType } from './types'
 import type { User, Client, Engagement, Flow } from './types'
+import { AuthContext } from './context';
 import { tokenStorage, clearInvalidContextData } from './storage';
 import { useAuthHeaders } from './hooks/useAuthHeaders';
 import { useAuthInitialization } from './hooks/useAuthInitialization';
 import { useAuthService } from './services/authService';
 import { useDebugLogging } from './hooks/useDebugLogging';
 import { useApiContextSync } from './hooks/useApiContextSync';
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => tokenStorage.getUser());
@@ -95,13 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-export const useAuth = (): unknown => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+
 
 // Re-export types for convenience
 export type { AuthContextType, User, Client, Engagement, Session, Flow } from './types';

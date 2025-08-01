@@ -4,10 +4,11 @@
  */
 
 import React from 'react'
-import { createContext, useState } from 'react'
+import { useState } from 'react'
 import { useCallback } from 'react'
 import type { ReactNode } from 'react'
 import type { AgentCardData } from '../../../types/api/observability/agent-performance';
+import { ObservabilityContext } from './context';
 import { useAgentData } from '../hooks/useAgentData';
 import { useAgentFilters } from '../hooks/useAgentFilters';
 
@@ -49,7 +50,6 @@ export interface ObservabilityContextValue {
   setPeriod: (days: number) => void;
 }
 
-export const ObservabilityContext = createContext<ObservabilityContextValue | undefined>(undefined);
 
 interface ObservabilityProviderProps {
   children: ReactNode;
