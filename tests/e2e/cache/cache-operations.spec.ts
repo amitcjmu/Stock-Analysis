@@ -14,6 +14,14 @@
 import { test, expect, Page } from '@playwright/test';
 import { CacheTestUtils } from './utils/cache-test-utils';
 
+// WebSocket message type
+interface WebSocketMessage {
+  type: string;
+  event?: string;
+  data?: unknown;
+  timestamp?: string;
+}
+
 test.describe('Cache Operations', () => {
   let cacheUtils: CacheTestUtils;
   let page: Page;
@@ -146,7 +154,7 @@ test.describe('Cache Operations', () => {
 
   test('should handle WebSocket cache invalidation events', async () => {
     // Set up WebSocket connection for cache events
-    const wsMessages: any[] = [];
+    const wsMessages: WebSocketMessage[] = [];
 
     page.on('websocket', ws => {
       ws.on('message', data => {

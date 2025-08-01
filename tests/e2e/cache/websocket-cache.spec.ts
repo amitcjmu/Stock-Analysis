@@ -344,8 +344,8 @@ test.describe('WebSocket Cache Events', () => {
 
         // Respond with pong
         await page.evaluate(() => {
-          if ((window as any).cacheWebSocket && (window as any).cacheWebSocket.readyState === WebSocket.OPEN) {
-            (window as any).cacheWebSocket.send(JSON.stringify({
+          if ((window as WindowWithWebSocket).cacheWebSocket && (window as WindowWithWebSocket).cacheWebSocket.readyState === WebSocket.OPEN) {
+            (window as WindowWithWebSocket).cacheWebSocket.send(JSON.stringify({
               type: 'pong'
             }));
           }
@@ -495,7 +495,7 @@ test.describe('WebSocket Cache Events', () => {
     if (wsConnection) {
       // Send malformed message
       await page.evaluate(() => {
-        if ((window as any).cacheWebSocket && (window as any).cacheWebSocket.readyState === WebSocket.OPEN) {
+        if ((window as WindowWithWebSocket).cacheWebSocket && (window as WindowWithWebSocket).cacheWebSocket.readyState === WebSocket.OPEN) {
           // Send invalid JSON
           (window as WindowWithWebSocket).cacheWebSocket.send('invalid json message');
         }

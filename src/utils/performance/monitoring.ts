@@ -175,7 +175,7 @@ class PerformanceMonitor {
   /**
    * Mark the end of a performance measurement and record the event
    */
-  markEnd(label: string, metadata?: Record<string, any>): number | null {
+  markEnd(label: string, metadata?: Record<string, unknown>): number | null {
     if (!this.config.enabled || typeof window === 'undefined') return null;
 
     if (window.performance && window.performance.mark && window.performance.measure) {
@@ -309,7 +309,10 @@ export const performanceMonitor = new PerformanceMonitor();
 /**
  * React Hook for component render performance tracking
  */
-export const useRenderPerformance = (componentName: string) => {
+export const useRenderPerformance = (componentName: string): {
+  markStart: (label: string) => void;
+  markEnd: (label: string) => number | null;
+} => {
   const startTime = performance.now();
 
   React.useEffect(() => {
@@ -334,7 +337,7 @@ export const useRenderPerformance = (componentName: string) => {
 /**
  * Decorator for measuring function performance
  */
-export function measurePerformance(label?: string) {
+export function measurePerformance(label?: string): (target: object, propertyKey: string, descriptor: PropertyDescriptor) => PropertyDescriptor {
   return function (target: object, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     const measureLabel = label || `${target.constructor.name}.${propertyKey}`;
@@ -361,7 +364,7 @@ export function measurePerformance(label?: string) {
 export async function measureAsync<T>(
   label: string,
   operation: () => Promise<T>,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): Promise<T> {
   performanceMonitor.markStart(label);
   try {
@@ -380,7 +383,7 @@ export async function measureAsync<T>(
 export function measureSync<T>(
   label: string,
   operation: () => T,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): T {
   performanceMonitor.markStart(label);
   try {

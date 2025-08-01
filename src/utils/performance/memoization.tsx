@@ -162,7 +162,7 @@ export const useStableCallback = <T extends (...args: any[]) => any>(
 /**
  * Hook for expensive computations with memoization
  */
-export const useExpensiveMemo = <T>(
+export const useExpensiveMemo = <T,>(
   factory: () => T,
   deps: React.DependencyList,
   options: {

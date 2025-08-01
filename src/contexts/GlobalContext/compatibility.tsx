@@ -1,6 +1,15 @@
 import React from 'react';
 import { useGlobalAuth, useGlobalUserContext } from './index';
 import type { AuthContextType } from '../AuthContext/types';
+import {
+  hasContext,
+  getDebugState,
+  getPerformanceMetrics,
+  type AuthCompatReturn,
+  type ClientCompatReturn,
+  type EngagementCompatReturn,
+  type GlobalAuthState
+} from './compatibilityHelpers';
 
 /**
  * Compatibility hook that maintains the same interface as the original useAuth hook
@@ -86,7 +95,7 @@ export const useAuthCompat = (): AuthContextType => {
 /**
  * Compatibility hook for ClientContext
  */
-export const useClientCompat = () => {
+export const useClientCompat = (): ClientCompatReturn => {
   const { client, switchClient, hasContext } = useGlobalUserContext();
   const { user } = useGlobalAuth();
 
@@ -114,7 +123,7 @@ export const useClientCompat = () => {
 /**
  * Compatibility hook for EngagementContext
  */
-export const useEngagementCompat = () => {
+export const useEngagementCompat = (): EngagementCompatReturn => {
   const { engagement, switchEngagement } = useGlobalUserContext();
 
   return React.useMemo(() => ({
@@ -128,7 +137,7 @@ export const useEngagementCompat = () => {
       // This would need to be implemented in GlobalContext
     },
     getEngagementId: () => engagement?.id || null,
-    setDemoEngagement: (engagementData: any) => {
+    setDemoEngagement: (engagementData: unknown) => {
       // This would need to be implemented in GlobalContext
     },
   }), [engagement, switchEngagement]);
@@ -167,10 +176,10 @@ export const withContextMigration = <P extends object>(
     requireClient?: boolean;
     requireEngagement?: boolean;
   } = {}
-) => {
+): React.ComponentType<P> => {
   const { requireAuth = true, requireClient = false, requireEngagement = false } = options;
 
-  return React.memo((props: P) => {
+  return React.memo((props: P): React.ReactElement | null => {
     const { isAuthenticated, isLoading: authLoading } = useGlobalAuth();
     const { client, engagement, isLoading: contextLoading } = useGlobalUserContext();
 
@@ -230,7 +239,8 @@ export const withContextMigration = <P extends object>(
  * Context debugging tools
  */
 export const ContextDebugger: React.FC = () => {
-  const { state } = useGlobalAuth() as any; // Access to full global state
+  const auth = useGlobalAuth() as GlobalAuthState;
+  const state = getDebugState(auth.state);
   const [isVisible, setIsVisible] = React.useState(false);
 
   if (process.env.NODE_ENV !== 'development') {
@@ -270,7 +280,8 @@ export const ContextDebugger: React.FC = () => {
  * Performance debugging component
  */
 export const PerformanceDebugger: React.FC = () => {
-  const { metrics, enabled } = useGlobalAuth() as any; // Access to performance metrics
+  const auth = useGlobalAuth() as GlobalAuthState;
+  const { metrics, enabled } = getPerformanceMetrics(auth);
   const [isVisible, setIsVisible] = React.useState(false);
 
   if (process.env.NODE_ENV !== 'development' || !enabled) {

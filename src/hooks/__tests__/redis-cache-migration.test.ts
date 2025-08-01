@@ -52,12 +52,15 @@ vi.mock('@/contexts/AuthContext', () => ({
 }));
 
 // Mock fetch for API testing
-global.fetch = vi.fn();
+global.fetch = vi.fn() as unknown as typeof fetch;
+
+// Type for mocked fetch
+type MockedFetch = ReturnType<typeof vi.fn> & typeof fetch;
 
 describe('Redis Cache Migration - Week 4 Implementation', () => {
   let queryClient: QueryClient;
-  let mockIsCacheFeatureEnabled: any;
-  let mockUseWebSocket: any;
+  let mockIsCacheFeatureEnabled: ReturnType<typeof vi.fn>;
+  let mockUseWebSocket: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     // Create a fresh query client for each test
@@ -79,7 +82,7 @@ describe('Redis Cache Migration - Week 4 Implementation', () => {
     vi.clearAllMocks();
 
     // Reset fetch mock
-    (global.fetch as any).mockClear();
+    (global.fetch as MockedFetch).mockClear();
   });
 
   afterEach(() => {
@@ -120,7 +123,7 @@ describe('Redis Cache Migration - Week 4 Implementation', () => {
   describe('API Client Implementation', () => {
     beforeEach(() => {
       // Mock successful API response
-      (global.fetch as any).mockResolvedValue({
+      (global.fetch as MockedFetch).mockResolvedValue({
         ok: true,
         status: 200,
         json: () => Promise.resolve({ data: 'test' }),
@@ -228,7 +231,7 @@ describe('Redis Cache Migration - Week 4 Implementation', () => {
   });
 
   describe('WebSocket Cache Invalidation', () => {
-    let mockSubscribe: any;
+    let mockSubscribe: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
       mockSubscribe = vi.fn();
@@ -284,7 +287,7 @@ describe('Redis Cache Migration - Week 4 Implementation', () => {
 
     beforeEach(() => {
       // Mock successful API response for field mappings
-      (global.fetch as any).mockResolvedValue({
+      (global.fetch as MockedFetch).mockResolvedValue({
         ok: true,
         status: 200,
         json: () => Promise.resolve([
@@ -414,14 +417,17 @@ describe('Redis Cache Migration - Week 4 Implementation', () => {
       );
 
       // Check that window function is attached for backward compatibility
-      expect((window as any).__invalidateFieldMappings).toBeDefined();
-      expect(typeof (window as any).__invalidateFieldMappings).toBe('function');
+      interface WindowWithInvalidate extends Window {
+        __invalidateFieldMappings?: () => void;
+      }
+      expect((window as WindowWithInvalidate).__invalidateFieldMappings).toBeDefined();
+      expect(typeof (window as WindowWithInvalidate).__invalidateFieldMappings).toBe('function');
     });
   });
 
   describe('Error Handling', () => {
     it('should handle API client errors gracefully', async () => {
-      (global.fetch as any).mockRejectedValue(new Error('Network error'));
+      (global.fetch as MockedFetch).mockRejectedValue(new Error('Network error'));
 
       try {
         await apiClient.get('/test-endpoint');
