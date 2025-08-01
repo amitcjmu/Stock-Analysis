@@ -166,14 +166,14 @@ class CacheMiddleware(BaseHTTPMiddleware):
             try:
                 # Wait for the existing request to complete
                 future = self.pending_requests[cache_key]
-                response_data = await future
+                response = await future
 
-                # Return the deduplicated response
-                if response_data:
+                # The response is already complete, just return it
+                if response:
                     logger.debug(
-                        f"Request deduplication: returning shared result for {cache_key}"
+                        f"Request deduplication: returning shared response for {cache_key}"
                     )
-                    return self._create_cached_response(response_data, request)
+                    return response
             except Exception as e:
                 logger.warning(f"Request deduplication failed: {e}")
                 # Continue with normal request if deduplication fails
@@ -464,12 +464,38 @@ class CacheMiddleware(BaseHTTPMiddleware):
             logger.debug(f"Failed to cache response: {e}")
 
     async def _extract_response_body(self, response: Response) -> Optional[Any]:
-        """Extract JSON body from response."""
+        """Extract JSON body from response handling different response types."""
         try:
-            if hasattr(response, "body"):
+            from fastapi.responses import JSONResponse, StreamingResponse
+            
+            # Handle JSONResponse - get content directly
+            if isinstance(response, JSONResponse):
+                # For JSONResponse, we can access the content directly
+                if hasattr(response, 'body') and response.body:
+                    return json.loads(response.body.decode('utf-8'))
+                # Fallback: try to get from rendered content
+                elif hasattr(response, 'content'):
+                    return response.content
+            
+            # Handle StreamingResponse - consume the stream
+            elif isinstance(response, StreamingResponse):
+                # StreamingResponse body is already consumed, we can't extract it here
+                # This should be handled in _execute_and_cache_request before consumption
+                logger.debug("Cannot extract body from already consumed StreamingResponse")
+                return None
+                
+            # Handle regular Response with body attribute
+            elif hasattr(response, "body") and response.body:
                 body_bytes = response.body
-                if body_bytes:
+                if isinstance(body_bytes, bytes):
                     return json.loads(body_bytes.decode("utf-8"))
+                elif isinstance(body_bytes, str):
+                    return json.loads(body_bytes)
+                    
+            return None
+            
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            logger.debug(f"Failed to decode response body as JSON: {e}")
             return None
         except Exception as e:
             logger.debug(f"Failed to extract response body: {e}")
@@ -489,14 +515,116 @@ class CacheMiddleware(BaseHTTPMiddleware):
     async def _execute_and_cache_request(
         self, request: Request, call_next, cache_key: str, cache_config: Dict[str, Any]
     ) -> Response:
-        """Execute the request and cache the response."""
-        response = await call_next(request)
+        """Execute the request, buffer the response, and cache it."""
+        from fastapi.responses import JSONResponse, StreamingResponse
+        
+        # Execute the original request
+        original_response = await call_next(request)
 
-        # Cache successful responses
-        if response.status_code == 200:
-            await self._cache_response(cache_key, response, cache_config, request)
+        # Only process successful JSON responses for caching
+        if (original_response.status_code != 200 or 
+            not original_response.headers.get("content-type", "").startswith("application/json")):
+            return original_response
 
-        return response
+        response_body = None
+        
+        try:
+            # Handle different response types by buffering the content
+            if isinstance(original_response, JSONResponse):
+                # For JSONResponse, we can get content directly
+                if hasattr(original_response, 'body') and original_response.body:
+                    response_body = json.loads(original_response.body.decode('utf-8'))
+                elif hasattr(original_response, 'content'):
+                    response_body = original_response.content
+                    
+            elif isinstance(original_response, StreamingResponse):
+                # For StreamingResponse, we need to consume the stream and buffer it
+                chunks = []
+                async for chunk in original_response.body_iterator:
+                    if isinstance(chunk, bytes):
+                        chunks.append(chunk)
+                    elif isinstance(chunk, str):
+                        chunks.append(chunk.encode('utf-8'))
+                
+                if chunks:
+                    # Combine all chunks
+                    body_bytes = b''.join(chunks)
+                    response_body = json.loads(body_bytes.decode('utf-8'))
+                    
+            else:
+                # Handle regular Response
+                response_body = await self._extract_response_body(original_response)
+            
+            # If we successfully extracted the body, cache it and create new response
+            if response_body is not None:
+                # Cache the response data
+                await self._cache_response_data(cache_key, response_body, cache_config, request)
+                
+                # Create new response with cached data and proper headers
+                new_response = JSONResponse(content=response_body)
+                
+                # Copy important headers from original response
+                for header_name in ['content-type', 'content-encoding']:
+                    if header_name in original_response.headers:
+                        new_response.headers[header_name] = original_response.headers[header_name]
+                
+                # Add cache-specific headers
+                etag = self._generate_etag(response_body)
+                ttl = cache_config.get("ttl", 300)
+                new_response.headers["ETag"] = f'"{etag}"'
+                new_response.headers["Cache-Control"] = f"private, max-age={ttl}"
+                new_response.headers["Vary"] = "X-Client-Account-ID, X-Engagement-ID"
+                
+                return new_response
+                
+        except Exception as e:
+            logger.debug(f"Failed to buffer and cache response: {e}")
+            # If anything goes wrong, return the original response
+            
+        return original_response
+
+    async def _cache_response_data(
+        self,
+        cache_key: str,
+        response_data: Any,
+        cache_config: Dict[str, Any],
+        request: Request,
+    ):
+        """Cache response data directly in Redis."""
+        if not self.redis or not self.redis.enabled:
+            return
+
+        try:
+            # Generate ETag
+            etag = self._generate_etag(response_data)
+
+            # Prepare cache data
+            cache_data = {
+                "data": response_data,
+                "cached_at": datetime.utcnow().isoformat(),
+                "ttl": cache_config.get("ttl", 300),
+                "cache_type": cache_config.get("cache_type", "unknown"),
+                "endpoint": request.url.path,
+            }
+
+            # Store in Redis with TTL
+            ttl = cache_config.get("ttl", 300)
+            success = await self.circuit_breaker.async_call(
+                self.redis.set, cache_key, cache_data, ttl
+            )
+
+            if success:
+                # Store ETag separately for conditional requests
+                etag_key = f"{cache_key}:etag"
+                await self.circuit_breaker.async_call(
+                    self.redis.set, etag_key, etag, ttl
+                )
+
+                logger.debug(f"Cached response data for key: {cache_key}")
+
+        except Exception as e:
+            self.stats["cache_errors"] += 1
+            logger.debug(f"Failed to cache response data: {e}")
 
     def get_stats(self) -> Dict[str, Any]:
         """Get middleware statistics."""

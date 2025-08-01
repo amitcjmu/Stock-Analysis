@@ -503,6 +503,16 @@ if ENABLE_MIDDLEWARE:
         # Add security headers middleware last (will execute first after CORS)
         fastapi_app.add_middleware(SecurityHeadersMiddleware)
 
+        # Add Redis cache middleware (only for GET requests)
+        if settings.REDIS_ENABLED:
+            try:
+                from app.middleware.cache_middleware import CacheMiddleware, CacheInstrumentationMiddleware
+                fastapi_app.add_middleware(CacheMiddleware)
+                fastapi_app.add_middleware(CacheInstrumentationMiddleware)
+                logger.info("✅ Redis cache middleware added")
+            except ImportError as e:
+                logger.warning(f"Could not import cache middleware: {e}")
+
         logger.info("✅ Middleware loaded successfully")
     except Exception as e:
         logger.warning(f"Middleware could not be loaded: {e}", exc_info=True)
