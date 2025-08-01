@@ -141,7 +141,7 @@ const loadApplicationsFromBackend = async (contextHeaders: Record<string, string
   }
 };
 
-export const useApplications = (enabled = true): JSX.Element => {
+export const useApplications = (enabled = true) => {
   const queryClient = useQueryClient();
 
   const query = useQuery<Application[]>({
@@ -152,7 +152,7 @@ export const useApplications = (enabled = true): JSX.Element => {
     gcTime: 15 * 60 * 1000, // 15 minutes (cacheTime was renamed to gcTime in v5)
   });
 
-  const refetchApplications = (): unknown => {
+  const refetchApplications = () => {
     return queryClient.invalidateQueries({ queryKey: ['applications'] });
   };
 
@@ -164,7 +164,7 @@ export const useApplications = (enabled = true): JSX.Element => {
 };
 
 // Create a version of the hook that includes context headers
-export const useApplicationsWithContext = (contextHeaders: Record<string, string> = {}): JSX.Element => {
+export const useApplicationsWithContext = (contextHeaders: Record<string, string> = {}) => {
   const query = useQuery<Application[]>({
     queryKey: ['applications', contextHeaders],
     queryFn: () => loadApplicationsFromBackend(contextHeaders),

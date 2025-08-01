@@ -65,7 +65,7 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
 
   // Selected applications derived from IDs
   const selectedApplications = applications.filter(app =>
-    selectedApplicationIds.includes(app.id)
+    selectedApplicationIds.includes(String(app.id))
   );
 
   // Error handling
@@ -77,8 +77,10 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
   }
 
   // Handlers
-  const handleSelectApplications = useCallback((selectedIds: number[]) => {
-    setSelectedApplicationIds(selectedIds);
+  const handleSelectApplications = useCallback((selectedIds: string[] | number[]) => {
+    // Convert to strings for consistency
+    const stringIds = selectedIds.map(id => String(id));
+    setSelectedApplicationIds(stringIds);
   }, []);
 
   const handleTabChange = useCallback((tab: string) => {
@@ -205,7 +207,7 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
           {currentTab === 'selection' && (
             <ApplicationSelector
               applications={applications}
-              selectedApplications={selectedApplicationIds}
+              selectedApplications={selectedApplicationIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id))}
               onSelectionChange={handleSelectApplications}
               onStartAnalysis={(appIds, queueName) => {
                 // TODO: Implement analysis start logic
