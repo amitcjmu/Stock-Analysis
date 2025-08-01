@@ -546,7 +546,7 @@ export class SixRApiClient {
         });
       }
 
-      const endpoint = `/sixr${queryParams.toString() ? `?${queryParams}` : ''}`;
+      const endpoint = `/6r${queryParams.toString() ? `?${queryParams}` : ''}`;
       return await apiCall<SixRAnalysisResponse[]>(endpoint);
     } catch (error) {
       this.handleError('Failed to list analyses', error);
