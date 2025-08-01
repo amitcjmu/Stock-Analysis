@@ -372,14 +372,14 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   // Update subscription
   const updateSubscription = useCallback((events: CacheEventType[]) => {
     return sendMessage({
-      type: WS_MESSAGE_TYPES.SUBSCRIPTION_UPDATED as any,
-      data: { subscribed_events: events } as any
+      type: WS_MESSAGE_TYPES.SUBSCRIPTION_UPDATED,
+      data: { subscribed_events: events }
     });
   }, [sendMessage]);
 
   // Get connection stats
   const getStats = useCallback(() => {
-    return sendMessage({ type: WS_MESSAGE_TYPES.STATS as any });
+    return sendMessage({ type: WS_MESSAGE_TYPES.STATS });
   }, [sendMessage]);
 
   // Auto-connect on mount if feature is enabled

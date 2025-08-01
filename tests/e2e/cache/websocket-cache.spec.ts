@@ -16,8 +16,12 @@ import { CacheTestUtils } from './utils/cache-test-utils';
 
 interface WebSocketMessage {
   type: string;
-  data?: any;
+  data?: unknown;
   timestamp?: string;
+}
+
+interface WindowWithWebSocket extends Window {
+  cacheWebSocket?: WebSocket;
 }
 
 test.describe('WebSocket Cache Events', () => {
@@ -254,8 +258,8 @@ test.describe('WebSocket Cache Events', () => {
       await page.evaluate(() => {
         // Force close WebSocket connections
         // This simulates network interruption
-        if ((window as any).cacheWebSocket) {
-          (window as any).cacheWebSocket.close();
+        if ((window as WindowWithWebSocket).cacheWebSocket) {
+          (window as WindowWithWebSocket).cacheWebSocket.close();
         }
       });
 
@@ -293,8 +297,8 @@ test.describe('WebSocket Cache Events', () => {
 
       // Send subscription request
       await page.evaluate(() => {
-        if ((window as any).cacheWebSocket && (window as any).cacheWebSocket.readyState === WebSocket.OPEN) {
-          (window as any).cacheWebSocket.send(JSON.stringify({
+        if ((window as WindowWithWebSocket).cacheWebSocket && (window as WindowWithWebSocket).cacheWebSocket.readyState === WebSocket.OPEN) {
+          (window as WindowWithWebSocket).cacheWebSocket.send(JSON.stringify({
             type: 'subscribe',
             events: ['cache_invalidation', 'user_context_changed', 'field_mappings_updated']
           }));
@@ -493,7 +497,7 @@ test.describe('WebSocket Cache Events', () => {
       await page.evaluate(() => {
         if ((window as any).cacheWebSocket && (window as any).cacheWebSocket.readyState === WebSocket.OPEN) {
           // Send invalid JSON
-          (window as any).cacheWebSocket.send('invalid json message');
+          (window as WindowWithWebSocket).cacheWebSocket.send('invalid json message');
         }
       });
 
@@ -501,8 +505,8 @@ test.describe('WebSocket Cache Events', () => {
 
       // Send message with unknown type
       await page.evaluate(() => {
-        if ((window as any).cacheWebSocket && (window as any).cacheWebSocket.readyState === WebSocket.OPEN) {
-          (window as any).cacheWebSocket.send(JSON.stringify({
+        if ((window as WindowWithWebSocket).cacheWebSocket && (window as WindowWithWebSocket).cacheWebSocket.readyState === WebSocket.OPEN) {
+          (window as WindowWithWebSocket).cacheWebSocket.send(JSON.stringify({
             type: 'unknown_message_type',
             data: { test: true }
           }));
@@ -513,8 +517,8 @@ test.describe('WebSocket Cache Events', () => {
 
       // Connection should still be active after error conditions
       const isConnected = await page.evaluate(() => {
-        return (window as any).cacheWebSocket &&
-               (window as any).cacheWebSocket.readyState === WebSocket.OPEN;
+        return (window as WindowWithWebSocket).cacheWebSocket &&
+               (window as WindowWithWebSocket).cacheWebSocket.readyState === WebSocket.OPEN;
       });
 
       if (isConnected) {

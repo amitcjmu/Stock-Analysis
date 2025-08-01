@@ -15,6 +15,17 @@ import { test, expect, Page } from '@playwright/test';
 import { PerformanceMonitor } from './utils/performance-monitor';
 import { CacheTestUtils } from './utils/cache-test-utils';
 
+// Type for browser performance memory API
+interface PerformanceMemory {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit?: number;
+}
+
+interface ExtendedPerformance extends Performance {
+  memory?: PerformanceMemory;
+}
+
 test.describe('Cache Performance', () => {
   let monitor: PerformanceMonitor;
   let cacheUtils: CacheTestUtils;
@@ -219,7 +230,7 @@ test.describe('Cache Performance', () => {
     // Get initial memory usage
     const initialMemory = await page.evaluate(() => {
       if ('memory' in performance) {
-        const mem = (performance as any).memory;
+        const mem = (performance as ExtendedPerformance).memory!;
         return {
           used: mem.usedJSHeapSize,
           total: mem.totalJSHeapSize
@@ -261,7 +272,7 @@ test.describe('Cache Performance', () => {
     // Get final memory usage
     const finalMemory = await page.evaluate(() => {
       if ('memory' in performance) {
-        const mem = (performance as any).memory;
+        const mem = (performance as ExtendedPerformance).memory!;
         return {
           used: mem.usedJSHeapSize,
           total: mem.totalJSHeapSize

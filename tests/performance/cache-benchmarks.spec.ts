@@ -17,6 +17,17 @@ import { PerformanceMonitor } from '../e2e/cache/utils/performance-monitor';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Performance memory interface
+interface PerformanceMemory {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit?: number;
+}
+
+interface ExtendedPerformance extends Performance {
+  memory?: PerformanceMemory;
+}
+
 interface BenchmarkResult {
   name: string;
   baselineMetric: number;
@@ -25,7 +36,7 @@ interface BenchmarkResult {
   improvementPercent: number;
   target: number;
   passed: boolean;
-  details?: any;
+  details?: unknown;
 }
 
 interface BenchmarkSuite {
@@ -42,7 +53,12 @@ interface BenchmarkSuite {
 
 test.describe('Cache Performance Benchmarks', () => {
   const benchmarkResults: BenchmarkResult[] = [];
-  let baselineMetrics: any = null;
+  interface BaselineMetrics {
+    apiCallReduction?: number;
+    pageLoadImprovement?: number;
+    responseTimes?: number[];
+  }
+  let baselineMetrics: BaselineMetrics | null = null;
 
   test.beforeAll(async () => {
     console.log('Starting Cache Performance Benchmarks...');
@@ -368,7 +384,7 @@ test.describe('Cache Performance Benchmarks', () => {
     // Get initial memory
     const initialMemory = await page.evaluate(() => {
       if ('memory' in performance) {
-        const mem = (performance as any).memory;
+        const mem = (performance as ExtendedPerformance).memory!;
         return mem.usedJSHeapSize;
       }
       return 0;
@@ -397,7 +413,7 @@ test.describe('Cache Performance Benchmarks', () => {
     // Get final memory
     const finalMemory = await page.evaluate(() => {
       if ('memory' in performance) {
-        const mem = (performance as any).memory;
+        const mem = (performance as ExtendedPerformance).memory!;
         return mem.usedJSHeapSize;
       }
       return 0;

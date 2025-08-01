@@ -42,21 +42,21 @@ export const useAuthCompat = (): AuthContextType => {
     isAuthenticated,
     isAdmin,
     login,
-    register: async (userData: any) => {
+    register: async (userData: { email: string; password: string; name?: string }) => {
       // Placeholder for register functionality
       throw new Error('Register functionality not yet migrated to GlobalContext');
     },
     logout,
-    switchClient: async (clientId: string, clientData?: any) => {
+    switchClient: async (clientId: string, clientData?: Client) => {
       await switchClient(clientId, clientData);
     },
-    switchEngagement: async (engagementId: string, engagementData?: any) => {
+    switchEngagement: async (engagementId: string, engagementData?: Engagement) => {
       await switchEngagement(engagementId, engagementData);
     },
-    switchFlow: async (flowId: string, flowData?: any) => {
+    switchFlow: async (flowId: string, flowData?: Flow) => {
       await switchFlow(flowId, flowData);
     },
-    setCurrentFlow: (flow: any) => {
+    setCurrentFlow: (flow: Flow | null) => {
       if (flow) {
         switchFlow(flow.id, flow);
       }
@@ -105,7 +105,7 @@ export const useClientCompat = () => {
       // This would need to be implemented in GlobalContext
     },
     getClientId: () => client?.id || null,
-    setDemoClient: (clientData: any) => {
+    setDemoClient: (clientData: Client) => {
       // This would need to be implemented in GlobalContext
     },
   }), [client, switchClient, hasContext]);

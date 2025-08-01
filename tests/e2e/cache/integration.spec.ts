@@ -14,6 +14,14 @@
 import { test, expect, Page } from '@playwright/test';
 import { CacheTestUtils } from './utils/cache-test-utils';
 
+// WebSocket message type
+interface WebSocketMessage {
+  type: string;
+  event?: string;
+  data?: unknown;
+  timestamp?: string;
+}
+
 test.describe('Cache Integration', () => {
   let cacheUtils: CacheTestUtils;
   let page: Page;
@@ -288,7 +296,7 @@ test.describe('Cache Integration', () => {
   });
 
   test('should handle WebSocket reconnection for cache events', async () => {
-    const wsMessages: any[] = [];
+    const wsMessages: WebSocketMessage[] = [];
     let wsConnected = false;
 
     // Set up WebSocket monitoring

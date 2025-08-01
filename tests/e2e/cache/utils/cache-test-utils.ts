@@ -14,6 +14,25 @@
 import { Page, Request, Response } from '@playwright/test';
 import { expect } from '@playwright/test';
 
+// Extended performance types
+interface PerformanceResourceTimingExt extends PerformanceResourceTiming {
+  transferSize?: number;
+  encodedBodySize?: number;
+}
+
+interface NavigationMetrics {
+  domContentLoaded: number;
+  loadComplete: number;
+  totalTime: number;
+}
+
+interface ResourceMetrics {
+  name: string;
+  duration: number;
+  transferSize?: number;
+  encodedBodySize?: number;
+}
+
 export interface CacheMetrics {
   totalRequests: number;
   cacheHits: number;
@@ -36,7 +55,7 @@ export interface ApiCallTracker {
 
 export interface CacheState {
   key: string;
-  value: any;
+  value: unknown;
   ttl: number;
   tenant: string;
   cached_at: string;
@@ -85,7 +104,7 @@ export class CacheTestUtils {
           this.apiCalls[callIndex] = {
             ...this.apiCalls[callIndex],
             responseTime: Date.now() - this.apiCalls[callIndex].timestamp,
-            cacheStatus: cacheHeader as any,
+            cacheStatus: cacheHeader as 'HIT' | 'MISS' | 'ETAG_MATCH' | 'BYPASS',
             statusCode: response.status(),
             etag: response.headers()['etag']?.replace(/"/g, ''),
           };
@@ -380,8 +399,8 @@ export class CacheTestUtils {
    * Get detailed performance metrics
    */
   async getPerformanceMetrics(): Promise<{
-    navigation: any;
-    resources: any[];
+    navigation: NavigationMetrics | null;
+    resources: ResourceMetrics[];
     cacheEfficiency: number;
   }> {
     return await this.page.evaluate(() => {
@@ -389,10 +408,11 @@ export class CacheTestUtils {
       const resources = performance.getEntriesByType('resource');
 
       // Calculate cache efficiency from resource timing
-      const cachedResources = resources.filter(resource =>
-        (resource as any).transferSize === 0 ||
-        (resource as any).transferSize < (resource as any).encodedBodySize
-      );
+      const cachedResources = resources.filter(resource => {
+        const res = resource as PerformanceResourceTimingExt;
+        return res.transferSize === 0 ||
+          (res.transferSize !== undefined && res.encodedBodySize !== undefined && res.transferSize < res.encodedBodySize);
+      });
 
       const cacheEfficiency = resources.length > 0
         ? cachedResources.length / resources.length
@@ -407,8 +427,8 @@ export class CacheTestUtils {
         resources: resources.map(r => ({
           name: r.name,
           duration: r.duration,
-          transferSize: (r as any).transferSize,
-          encodedBodySize: (r as any).encodedBodySize,
+          transferSize: (r as PerformanceResourceTimingExt).transferSize,
+          encodedBodySize: (r as PerformanceResourceTimingExt).encodedBodySize,
         })),
         cacheEfficiency,
       };

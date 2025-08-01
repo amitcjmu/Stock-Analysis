@@ -10,8 +10,8 @@ export const useRenderPerformance = (componentName: string) => {
   const { enabled, updateMetrics } = useGlobalPerformance();
   const renderStartTime = useRef<number>(0);
   const renderCount = useRef<number>(0);
-  const lastPropsRef = useRef<any>(null);
-  const lastStateRef = useRef<any>(null);
+  const lastPropsRef = useRef<Record<string, unknown> | null>(null);
+  const lastStateRef = useRef<Record<string, unknown> | null>(null);
 
   // Start timing on each render
   if (enabled) {
@@ -69,7 +69,7 @@ export const useApiPerformance = () => {
   const trackApiCall = useCallback(async <T>(
     label: string,
     apiCall: () => Promise<T>,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<T> => {
     if (!enabled) {
       return apiCall();
@@ -122,7 +122,7 @@ export const useCachePerformance = () => {
   const cacheHits = useRef<number>(0);
   const cacheMisses = useRef<number>(0);
 
-  const trackCacheHit = useCallback((key: string, metadata?: Record<string, any>) => {
+  const trackCacheHit = useCallback((key: string, metadata?: Record<string, unknown>) => {
     if (!enabled) return;
 
     cacheHits.current += 1;
@@ -142,7 +142,7 @@ export const useCachePerformance = () => {
     updateMetrics({ cacheHitRate: hitRate });
   }, [enabled, updateMetrics]);
 
-  const trackCacheMiss = useCallback((key: string, metadata?: Record<string, any>) => {
+  const trackCacheMiss = useCallback((key: string, metadata?: Record<string, unknown>) => {
     if (!enabled) return;
 
     cacheMisses.current += 1;
@@ -275,7 +275,7 @@ export const useMemoryMonitoring = (intervalMs: number = 30000) => {
     if (!enabled || !('memory' in performance)) return;
 
     const checkMemory = () => {
-      const memory = (performance as any).memory;
+      const memory = (performance as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
       if (memory) {
         const stats = {
           usedJSHeapSize: memory.usedJSHeapSize,
@@ -318,7 +318,7 @@ export const useRoutePerformance = () => {
     performanceMonitor.markStart(`route-${routeName}`);
   }, [enabled]);
 
-  const endRouteTransition = useCallback((routeName: string, metadata?: Record<string, any>) => {
+  const endRouteTransition = useCallback((routeName: string, metadata?: Record<string, unknown>) => {
     if (!enabled) return null;
 
     const duration = performanceMonitor.markEnd(`route-${routeName}`, metadata);
@@ -376,7 +376,7 @@ export const useFormPerformance = (formName: string) => {
     });
   }, [enabled, formName]);
 
-  const completeForm = useCallback((success: boolean, metadata?: Record<string, any>) => {
+  const completeForm = useCallback((success: boolean, metadata?: Record<string, unknown>) => {
     if (!enabled) return null;
 
     const completionTime = performance.now() - formStartTime.current;
@@ -413,13 +413,13 @@ export const usePerformanceTracker = () => {
   const track = useCallback(<T>(
     label: string,
     operation: () => T | Promise<T>,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): T | Promise<T> => {
     if (!enabled) {
       return operation();
     }
 
-    if (operation instanceof Promise || (operation as any)?.then) {
+    if (operation instanceof Promise || (operation as { then?: unknown })?.then) {
       // Async operation
       performanceMonitor.markStart(label);
       return Promise.resolve(operation()).then(
@@ -435,7 +435,7 @@ export const usePerformanceTracker = () => {
           });
           throw error;
         }
-      ) as any;
+      ) as T;
     } else {
       // Sync operation
       performanceMonitor.markStart(label);

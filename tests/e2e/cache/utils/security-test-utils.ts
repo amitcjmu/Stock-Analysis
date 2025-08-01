@@ -15,6 +15,15 @@
 import { Page, BrowserContext, Browser } from '@playwright/test';
 import { expect } from '@playwright/test';
 
+// Window with user context
+interface WindowWithContext extends Window {
+  userContext?: {
+    user?: { id: string; role: string };
+    client?: { id: string };
+    engagement?: { id: string };
+  };
+}
+
 export interface TenantContext {
   clientAccountId: string;
   engagementId?: string;
@@ -28,7 +37,7 @@ export interface CacheSecurityViolation {
   type: 'unauthorized_access' | 'cache_poisoning' | 'data_leakage' | 'tenant_crossover';
   severity: 'critical' | 'high' | 'medium' | 'low';
   description: string;
-  evidence: any;
+  evidence: unknown;
   timestamp: number;
 }
 
@@ -68,7 +77,7 @@ export class SecurityTestUtils {
       // Extract user context from the page
       const userContext = await page.evaluate(() => {
         // Try to get user context from various sources
-        const context = (window as any).userContext ||
+        const context = (window as WindowWithContext).userContext ||
                        JSON.parse(localStorage.getItem('userContext') || '{}') ||
                        JSON.parse(sessionStorage.getItem('userContext') || '{}');
 
@@ -232,7 +241,7 @@ export class SecurityTestUtils {
   /**
    * Test cache poisoning prevention
    */
-  async testCachePoisoningPrevention(maliciousPayload: any): Promise<SecurityTestResult> {
+  async testCachePoisoningPrevention(maliciousPayload: unknown): Promise<SecurityTestResult> {
     const violations: CacheSecurityViolation[] = [];
     let testPassed = true;
 
@@ -474,7 +483,7 @@ export class SecurityTestUtils {
   /**
    * Get raw cache data for a specific key
    */
-  private async getRawCacheData(key: string): Promise<any> {
+  private async getRawCacheData(key: string): Promise<string | null> {
     try {
       const response = await this.page.request.get(`/api/v1/admin/cache/inspect/${encodeURIComponent(key)}`);
       if (response.ok()) {

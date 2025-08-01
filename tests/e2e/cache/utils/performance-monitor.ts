@@ -13,6 +13,33 @@
 
 import { Page, Request, Response } from '@playwright/test';
 
+// Extended window interface for performance monitoring
+interface PerformanceWindow extends Window {
+  __originalFetch?: typeof fetch;
+  __navigationTiming?: PerformanceNavigationTiming;
+  __paintTiming?: Record<string, number>;
+}
+
+// Performance memory interface
+interface PerformanceMemory {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit?: number;
+}
+
+interface ExtendedPerformance extends Performance {
+  memory?: PerformanceMemory;
+}
+
+// Endpoint breakdown interface
+interface EndpointBreakdown {
+  [endpoint: string]: {
+    calls: number;
+    avgResponseTime: number;
+    cacheHitRate: number;
+  };
+}
+
 export interface PerformanceMetrics {
   // API metrics
   totalApiCalls: number;
@@ -95,7 +122,7 @@ export class PerformanceMonitor {
     // Inject performance monitoring script
     await this.page.addInitScript(() => {
       // Store original fetch for comparison
-      (window as any).__originalFetch = window.fetch;
+      (window as PerformanceWindow).__originalFetch = window.fetch;
 
       // Enhanced performance observer for Web Vitals
       if ('PerformanceObserver' in window) {
@@ -103,10 +130,10 @@ export class PerformanceMonitor {
           const entries = list.getEntries();
           entries.forEach((entry) => {
             if (entry.entryType === 'navigation') {
-              (window as any).__navigationTiming = entry;
+              (window as PerformanceWindow).__navigationTiming = entry as PerformanceNavigationTiming;
             } else if (entry.entryType === 'paint') {
-              (window as any).__paintTiming = {
-                ...(window as any).__paintTiming,
+              (window as PerformanceWindow).__paintTiming = {
+                ...(window as PerformanceWindow).__paintTiming,
                 [entry.name]: entry.startTime,
               };
             }
@@ -171,7 +198,7 @@ export class PerformanceMonitor {
       size: contentLength,
       cached: ['HIT', 'ETAG_MATCH'].includes(cacheStatus),
       statusCode: response.status(),
-      cacheStatus: cacheStatus as any,
+      cacheStatus: cacheStatus as 'HIT' | 'MISS' | 'ETAG_MATCH' | 'BYPASS',
     };
   }
 
@@ -186,7 +213,7 @@ export class PerformanceMonitor {
 
     const timingData = await this.page.evaluate(() => {
       const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-      const paintTiming = (window as any).__paintTiming || {};
+      const paintTiming = (window as PerformanceWindow).__paintTiming || {};
 
       return {
         loadTime: navigation.loadEventEnd - navigation.fetchStart,
@@ -322,7 +349,7 @@ export class PerformanceMonitor {
     try {
       const memoryInfo = await this.page.evaluate(() => {
         if ('memory' in performance) {
-          const memory = (performance as any).memory;
+          const memory = (performance as ExtendedPerformance).memory!;
           return {
             used: memory.usedJSHeapSize,
             total: memory.totalJSHeapSize,
@@ -528,7 +555,7 @@ export class PerformanceMonitor {
     summary: PerformanceMetrics;
     requests: RequestMetric[];
     pageTimings: PageTimingMetric[];
-    endpointBreakdown: Record<string, any>;
+    endpointBreakdown: EndpointBreakdown;
   } {
     return {
       summary: this.getMetrics(),

@@ -56,8 +56,8 @@ test.describe('Redis Load Testing', () => {
 
     // Save report to file for CI/CD analysis
     if (process.env.CI) {
-      const fs = require('fs');
-      const path = require('path');
+      const fs = await import('fs');
+      const path = await import('path');
       const reportPath = path.join(process.cwd(), 'load-test-results.json');
       fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
     }
@@ -342,7 +342,7 @@ test.describe('Redis Load Testing', () => {
   test('should maintain cache coherence during high concurrency', async ({ browser }) => {
     const coherenceTestUsers = 20;
     const contexts: BrowserContext[] = [];
-    const coherenceResults: Array<{ userId: string; data: any; timestamp: number }> = [];
+    const coherenceResults: Array<{ userId: string; data: unknown; timestamp: number }> = [];
 
     console.log('Testing cache coherence with multiple concurrent users...');
 
@@ -421,7 +421,12 @@ test.describe('Redis Load Testing', () => {
       { name: 'spike_load', requests: 200, delay: 5 }
     ];
 
-    const patternResults: Record<string, any> = {};
+    interface PatternResult {
+      requests: number;
+      duration: number;
+      requestsPerSecond: number;
+    }
+    const patternResults: Record<string, PatternResult> = {};
 
     for (const pattern of loadPatterns) {
       console.log(`Executing ${pattern.name}...`);
@@ -543,8 +548,19 @@ async function simulateUserWorkflow(session: ConcurrentUserSession, endTime: num
 /**
  * Generate comprehensive load test report
  */
+interface LoadTestSummary {
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  averageResponseTime: number;
+  cacheHitRatio: number;
+  throughputRps: number;
+  successRate?: number;
+  message?: string;
+}
+
 function generateLoadTestReport(metrics: LoadTestMetrics[]): {
-  summary: any;
+  summary: LoadTestSummary;
   recommendations: string[];
   passFailCriteria: Record<string, boolean>;
 } {
@@ -575,7 +591,7 @@ function generateLoadTestReport(metrics: LoadTestMetrics[]): {
   // Calculate averages
   const count = metrics.length;
   Object.keys(avgMetrics).forEach(key => {
-    (avgMetrics as any)[key] = (avgMetrics as any)[key] / count;
+    (avgMetrics as LoadTestSummary & Record<string, number>)[key] = (avgMetrics as LoadTestSummary & Record<string, number>)[key] / count;
   });
 
   const successRate = avgMetrics.totalRequests > 0
