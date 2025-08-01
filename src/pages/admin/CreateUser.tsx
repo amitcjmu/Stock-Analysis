@@ -98,7 +98,7 @@ const CreateUser: React.FC = () => {
     } else {
       setFilteredEngagements(engagementsQuery.data || []);
     }
-  }, [formData.default_client_id, engagementsQuery.data]);
+  }, [formData.default_client_id, formData.default_engagement_id, engagementsQuery.data]);
 
   // Server state: useMutation for API interaction
   const createUserMutation = useMutation({

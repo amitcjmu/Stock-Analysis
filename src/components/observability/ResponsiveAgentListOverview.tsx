@@ -5,7 +5,7 @@
  */
 
 import React from 'react'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useEffect, useCallback } from 'react'
 import { cn } from '../../lib/utils';
 import { CardHeader, CardTitle } from '../ui/card'
@@ -113,12 +113,12 @@ const useAgentData = (refreshInterval?: number): JSX.Element => {
   });
 
   const [progressStage, setProgressStage] = useState(0);
-  const loadingStages = [
+  const loadingStages = useMemo(() => [
     'Connecting to monitoring service...',
     'Fetching agent registry...',
     'Loading performance data...',
     'Processing metrics...'
-  ];
+  ], []);
 
   const fetchAgents = useCallback(async (isRefresh = false) => {
     try {

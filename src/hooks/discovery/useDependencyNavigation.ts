@@ -16,7 +16,7 @@ export const useDependencyNavigation = (flowId?: string, dependencyData?: unknow
     } catch (error) {
       console.error('Failed to proceed to tech debt analysis:', error);
     }
-  }, [flow, updatePhase, navigate, dependencyData]);
+  }, [flow, updatePhase, navigate]);
 
   const handleNavigateToInventory = useCallback(() => {
     navigate('/discovery/inventory');

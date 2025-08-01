@@ -54,10 +54,17 @@ export const useAuthInitialization = ({
 }: UseAuthInitializationProps): void => {
   const navigate = useNavigate();
   const initRef = useRef(false);
+  const hasInitializedRef = useRef(false);
 
   useEffect(() => {
+    // Guard against multiple initializations
+    if (hasInitializedRef.current) {
+      console.log('🔍 Auth initialization already completed, skipping');
+      return;
+    }
+    hasInitializedRef.current = true;
+    
     let isMounted = true;
-
 
     const initializeAuth = async (): Promise<void> => {
       // Add a small delay to ensure React has fully mounted
@@ -344,5 +351,5 @@ export const useAuthInitialization = ({
     return () => {
       isMounted = false;
     };
-  }, [fetchDefaultContext, navigate, setClient, setEngagement, setFlow, setIsLoading, setUser]);
+  }, []); // Empty dependency array - initialization should only run once per mount
 };

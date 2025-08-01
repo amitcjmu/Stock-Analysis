@@ -4,7 +4,7 @@
  * Part of the Agent Observability Enhancement Phase 4A
  */
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useEffect } from 'react'
 
 export interface ResponsiveBreakpoints {
@@ -34,7 +34,7 @@ const defaultBreakpoints: ResponsiveBreakpoints = {
 };
 
 export const useResponsiveLayout = (customBreakpoints?: Partial<ResponsiveBreakpoints>): JSX.Element => {
-  const breakpoints = { ...defaultBreakpoints, ...customBreakpoints };
+  const breakpoints = useMemo(() => ({ ...defaultBreakpoints, ...customBreakpoints }), [customBreakpoints]);
 
   const [responsiveState, setResponsiveState] = useState<ResponsiveState>(() => {
     if (typeof window === 'undefined') {

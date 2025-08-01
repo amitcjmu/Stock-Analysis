@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useEffect } from 'react'
 import { Filter, ThumbsUp } from 'lucide-react'
 import { MessageSquare, Clock, User, Search, Star, AlertTriangle, CheckCircle } from 'lucide-react'
@@ -39,13 +39,13 @@ const FeedbackView: React.FC = () => {
 
   useEffect(() => {
     fetchFeedback();
-  }, []);
+  }, [fetchFeedback]);
 
   useEffect(() => {
     applyFilters();
-  }, [feedback, selectedPage, selectedRating, selectedStatus, selectedCategory, searchTerm]);
+  }, [applyFilters]);
 
-  const fetchFeedback = async (): JSX.Element => {
+  const fetchFeedback = useCallback(async (): JSX.Element => {
     try {
       setIsLoading(true);
       setError(null);
@@ -148,9 +148,9 @@ const FeedbackView: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [generateDemoFeedback]);
 
-  const generateDemoFeedback = (): JSX.Element => {
+  const generateDemoFeedback = useCallback((): JSX.Element => {
     const demoFeedback: FeedbackItem[] = [
       {
         id: '1',
@@ -256,9 +256,9 @@ const FeedbackView: React.FC = () => {
       byPage,
       byRating
     });
-  };
+  }, []);
 
-  const applyFilters = (): unknown => {
+  const applyFilters = useCallback((): unknown => {
     let filtered = feedback;
 
     if (selectedPage !== 'all') {
@@ -285,7 +285,7 @@ const FeedbackView: React.FC = () => {
     }
 
     setFilteredFeedback(filtered);
-  };
+  }, [feedback, selectedPage, selectedRating, selectedStatus, selectedCategory, searchTerm]);
 
   const getStatusColor = (status: string): unknown => {
     switch (status) {

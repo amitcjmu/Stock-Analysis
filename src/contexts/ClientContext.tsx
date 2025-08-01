@@ -145,7 +145,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setCurrentClient(null);
       setAvailableClients([]);
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, currentClient]);
 
   const switchClient = async (id: string): Promise<void> => {
     const client = availableClients.find(c => c.id === id);
