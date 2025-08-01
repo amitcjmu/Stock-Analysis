@@ -1,7 +1,9 @@
 /**
  * Agent Planning Dashboard - Index
  *
- * Centralized exports for all agent planning dashboard modules.
+ * Component exports for agent planning dashboard modules.
+ * Note: Non-component exports (types, utilities, API functions, demo data) are
+ * available in their respective files for direct import.
  */
 
 // Main component
@@ -16,15 +18,3 @@ export { default as HumanInputTab } from './HumanInputTab';
 export { default as CompletedTaskCard } from './CompletedTaskCard';
 export { default as NextActionsTab } from './NextActionsTab';
 export { default as StatusIcon } from './StatusIcon';
-
-// Types
-export type * from './types';
-
-// Utilities
-export * from './utils';
-
-// API functions
-export * from './api';
-
-// Demo data
-export { generateDemoPlan } from './demo-data';

@@ -1,7 +1,9 @@
 /**
  * Agent Clarification Panel - Index
  *
- * Centralized exports for all agent clarification panel modules.
+ * Component exports for agent clarification panel modules.
+ * Note: Non-component exports (types, utilities, API functions) are
+ * available in their respective files for direct import.
  */
 
 // Main component
@@ -16,12 +18,3 @@ export { default as EmptyState } from './EmptyState';
 export { default as LoadingState } from './LoadingState';
 export { default as ErrorState } from './ErrorState';
 export { default as PanelHeader } from './PanelHeader';
-
-// Types
-export type * from './types';
-
-// Utilities
-export * from './utils';
-
-// API functions
-export * from './api';

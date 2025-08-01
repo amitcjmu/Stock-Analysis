@@ -5,7 +5,7 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Play, Database } from 'lucide-react';
+import { Play, Database, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Modularized imports

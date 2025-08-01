@@ -91,7 +91,8 @@ services:
     container_name: migration_frontend
     working_dir: /app
     environment:
-      # Use Vite proxy (configured to use http://backend:8000)
+      # Docker environment indicator
+      - DOCKER_ENV=true
       - VITE_WS_BASE_URL=ws://localhost:8000/ws
       - NODE_ENV=development
       # NPM configuration to prevent null path errors
@@ -134,7 +135,7 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./redis/redis-simple.conf:/usr/local/etc/redis/redis.conf:ro
       - ./data/redis/logs:/var/log/redis
     command: redis-server /usr/local/etc/redis/redis.conf
     environment:

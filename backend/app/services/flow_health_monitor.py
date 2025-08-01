@@ -7,7 +7,7 @@ Monitors flow health and handles stuck flows automatically.
 import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import AsyncSessionLocal
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.discovery_flow import DiscoveryFlow
+from app.services.caching.redis_cache import get_redis_cache
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,7 @@ class FlowHealthMonitor:
     def __init__(self):
         self.running = False
         self.monitor_task = None
+        self.redis = get_redis_cache()
 
     async def start(self):
         """Start the health monitor"""
@@ -203,6 +205,49 @@ class FlowHealthMonitor:
         except Exception as e:
             logger.error(f"❌ Error handling timeout flow {flow.flow_id}: {e}")
 
+    async def _get_discovery_flow_by_master_id(
+        self, db: AsyncSession, master_flow_id: str
+    ) -> Optional[DiscoveryFlow]:
+        """Get discovery flow by master ID with caching"""
+        cache_key = f"v1:flow:discovery:by_master:{master_flow_id}"
+
+        # Try to get from cache first
+        if self.redis and self.redis.enabled:
+            cached_data = await self.redis.get(cache_key)
+            if cached_data:
+                # Reconstruct the DiscoveryFlow object from cached data
+                disc_stmt = select(DiscoveryFlow).where(
+                    DiscoveryFlow.id == cached_data["id"]
+                )
+                disc_result = await db.execute(disc_stmt)
+                return disc_result.scalar_one_or_none()
+
+        # Not in cache, query database
+        disc_stmt = (
+            select(DiscoveryFlow)
+            .where(DiscoveryFlow.master_flow_id == master_flow_id)
+            .order_by(DiscoveryFlow.created_at.desc())
+            .limit(1)
+        )
+        disc_result = await db.execute(disc_stmt)
+        discovery_flow = disc_result.scalar_one_or_none()
+
+        # Cache the result if found
+        if discovery_flow and self.redis and self.redis.enabled:
+            # Cache essential fields only - no PII/sensitive data
+            # Only caching flow metadata: IDs, status, and progress metrics
+            cache_data = {
+                "id": str(discovery_flow.id),
+                "flow_id": str(discovery_flow.flow_id),
+                "status": discovery_flow.status,
+                "progress_percentage": discovery_flow.progress_percentage,
+                "current_phase": discovery_flow.current_phase,
+            }
+            # CACHE_SECURITY: Non-sensitive flow metadata only
+            await self.redis.set(cache_key, cache_data, ttl=300)  # 5 minute TTL
+
+        return discovery_flow
+
     async def update_flow_metrics(self):
         """Update flow metrics in master flow records"""
         try:
@@ -216,15 +261,10 @@ class FlowHealthMonitor:
                 master_flows = result.scalars().all()
 
                 for master in master_flows:
-                    # Get associated discovery flow (get most recent if multiple exist)
-                    disc_stmt = (
-                        select(DiscoveryFlow)
-                        .where(DiscoveryFlow.master_flow_id == master.flow_id)
-                        .order_by(DiscoveryFlow.created_at.desc())
-                        .limit(1)
+                    # Get associated discovery flow with caching
+                    discovery_flow = await self._get_discovery_flow_by_master_id(
+                        db, str(master.flow_id)
                     )
-                    disc_result = await db.execute(disc_stmt)
-                    discovery_flow = disc_result.scalar_one_or_none()
 
                     if discovery_flow:
                         # Update metrics

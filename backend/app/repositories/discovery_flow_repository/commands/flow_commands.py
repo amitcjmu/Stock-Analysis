@@ -13,6 +13,7 @@ from sqlalchemy import and_, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.discovery_flow import DiscoveryFlow
+from app.services.caching.redis_cache import get_redis_cache
 
 from ..queries.flow_queries import FlowQueries
 
@@ -30,6 +31,7 @@ class FlowCommands:
         self.client_account_id = client_account_id
         self.engagement_id = engagement_id
         self.flow_queries = FlowQueries(db, client_account_id, engagement_id)
+        self.redis = get_redis_cache()
 
     def _ensure_uuid(self, flow_id: Any) -> uuid.UUID:
         """Ensure flow_id is a UUID object"""
@@ -40,6 +42,22 @@ class FlowCommands:
         except (ValueError, TypeError) as e:
             logger.error(f"❌ Invalid UUID: {flow_id}, error: {e}")
             raise ValueError(f"Invalid UUID: {flow_id}. Must be a valid UUID.")
+
+    async def _invalidate_flow_cache(self, flow: DiscoveryFlow):
+        """Invalidate cached data for a discovery flow"""
+        if not self.redis or not self.redis.enabled:
+            return
+
+        try:
+            # Invalidate cache by master flow ID
+            if flow.master_flow_id:
+                cache_key = f"v1:flow:discovery:by_master:{flow.master_flow_id}"
+                await self.redis.delete(cache_key)
+                logger.debug(
+                    f"Invalidated cache for master_flow_id: {flow.master_flow_id}"
+                )
+        except Exception as e:
+            logger.warning(f"Failed to invalidate flow cache: {e}")
 
     async def create_discovery_flow(
         self,
@@ -196,8 +214,12 @@ class FlowCommands:
         await self.db.execute(stmt)
         await self.db.commit()
 
-        # Return updated flow
-        return await self.flow_queries.get_by_flow_id(flow_id)
+        # Invalidate cache after update
+        updated_flow = await self.flow_queries.get_by_flow_id(flow_id)
+        if updated_flow:
+            await self._invalidate_flow_cache(updated_flow)
+
+        return updated_flow
 
     async def update_flow_status(
         self, flow_id: str, status: str, progress_percentage: Optional[float] = None
@@ -253,7 +275,12 @@ class FlowCommands:
         await self.db.execute(stmt)
         await self.db.commit()
 
-        return await self.flow_queries.get_by_flow_id(flow_id)
+        # Invalidate cache after update
+        updated_flow = await self.flow_queries.get_by_flow_id(flow_id)
+        if updated_flow:
+            await self._invalidate_flow_cache(updated_flow)
+
+        return updated_flow
 
     async def mark_flow_complete(self, flow_id: str) -> Optional[DiscoveryFlow]:
         """Mark flow as complete"""
@@ -301,7 +328,12 @@ class FlowCommands:
         await self.db.execute(stmt)
         await self.db.commit()
 
-        return await self.flow_queries.get_by_flow_id(flow_id)
+        # Invalidate cache after update
+        updated_flow = await self.flow_queries.get_by_flow_id(flow_id)
+        if updated_flow:
+            await self._invalidate_flow_cache(updated_flow)
+
+        return updated_flow
 
     async def delete_flow(self, flow_id: str) -> bool:
         """Delete discovery flow"""

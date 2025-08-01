@@ -234,3 +234,4 @@ const BulkAnalysisContainer: React.FC<BulkAnalysisProps> = ({
 };
 
 export default BulkAnalysisContainer;
+export { BulkAnalysisContainer as BulkAnalysis };

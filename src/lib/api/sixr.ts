@@ -1,4 +1,4 @@
-import type { apiCall } from '@/config/api';
+import { apiCall } from '@/config/api';
 import type { QuestionResponse, AnalysisProgressType, BulkAnalysisResult, BulkAnalysisSummary } from '../../components/sixr'
 import { SixRParameters, QualifyingQuestion, SixRRecommendation, AnalysisHistoryItem, BulkAnalysisJob } from '../../components/sixr'
 

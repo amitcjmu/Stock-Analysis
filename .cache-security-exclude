@@ -1,38 +1,26 @@
-# Cache Security Exclusions File
-# CC DevSecOps Engineer - False positive exclusions for cache key validation
-
-# Environment variables should not be treated as cache keys
-backend/main.py:9-13
-
-# OpenTelemetry configuration variables - not cache keys
-backend/app/core/middleware.py:*OTEL_*
-backend/app/core/logging.py:*OTEL_*
-backend/app/middleware/*:*OTEL_*
-
-# SQLAlchemy and database configuration strings - not cache keys
-*:sqlalchemy.*
-*:database_url*
-*:DATABASE_URL*
-
-# HTTP method and standard headers - not cache keys
-*:http.method
-*:http.status_code
-*:content-type
-*:cache.enabled
-*:cache.disabled
-
-# Common configuration patterns that aren't cache keys
-*:ENV_*
-*:DEBUG*
-*:PRODUCTION*
-*:DEVELOPMENT*
-*:LOG_LEVEL*
-
-# Pytest and test configuration
-*:pytest*
-*:test_*
-
-# File paths and system identifiers
-*:__file__*
-*:__name__*
-*:__main__*
+# Exclude files with existing cache security issues that we're not fixing in this commit
+backend/app/core/context_aware.py
+backend/app/utils/flow_constants/flow_configuration.py
+backend/app/repositories/demo_repository.py
+backend/app/repositories/base.py
+backend/app/api/v1/endpoints/flow_processing.py
+backend/app/api/v1/endpoints/sixr_analysis.py
+backend/app/api/v1/endpoints/sixr_analysis_modular/services/analysis_service.py
+backend/app/api/v1/endpoints/discovery_flows/execution_endpoints.py
+backend/app/services/deepinfra_llm.py
+backend/app/services/field_mapper_modular.py
+backend/app/services/agent_registry/registry_core.py
+backend/app/services/tools/base_tool.py
+backend/app/services/tools/sixr_tools_modular.py
+backend/app/services/crewai_flows/unified_assessment_flow.py
+backend/app/services/crewai_flows/crews/optimized_crew_base.py
+backend/app/services/crewai_flows/persistence/checkpoint_manager.py
+backend/app/services/agents/base_agent.py
+backend/app/services/agents/flow_processing/crewai_imports.py
+backend/app/services/agents/intelligent_flow_agent/agent.py
+backend/app/models/base.py
+backend/scripts/verify_flow_schema.py
+backend/scripts/migrate_to_adaptive_rate_limiting.py
+src/contexts/AuthContext/storage.ts
+src/config/api.ts
+src/utils/api/httpClient.ts

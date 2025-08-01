@@ -9,12 +9,13 @@ export default defineConfig(({ mode }) => ({
     port: 8081,  // Fixed port for frontend
     proxy: {
       '/api': {
-        // Use Docker service name when running in Docker, localhost otherwise
-        target: process.env.DOCKER_ENV ? 'http://backend:8000' : 'http://localhost:8000',
+        // Use backend:8000 in Docker, localhost otherwise
+        target: process.env.DOCKER_ENV === 'true' ? 'http://backend:8000' : 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => {
-          console.log(`Proxying ${path} to backend:8000`);
+          const target = process.env.DOCKER_ENV === 'true' ? 'http://backend:8000' : 'http://localhost:8000';
+          console.log(`Proxying ${path} to ${target}`);
           return path;
         }
       }

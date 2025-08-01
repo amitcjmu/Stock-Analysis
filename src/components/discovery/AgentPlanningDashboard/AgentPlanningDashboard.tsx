@@ -44,15 +44,6 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
     setModalOpen(isOpen);
   }, [isOpen]);
 
-  useEffect(() => {
-    if (modalOpen) {
-      fetchAgentPlan();
-      // Poll for updates every 30 seconds when modal is open
-      const interval = setInterval(fetchAgentPlan, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [pageContext, modalOpen, fetchAgentPlan]);
-
   const fetchAgentPlan = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
@@ -66,6 +57,15 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
       setLoading(false);
     }
   }, [pageContext]);
+
+  useEffect(() => {
+    if (modalOpen) {
+      fetchAgentPlan();
+      // Poll for updates every 30 seconds when modal is open
+      const interval = setInterval(fetchAgentPlan, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [pageContext, modalOpen, fetchAgentPlan]);
 
   const handleTaskApproval = async (taskId: string, approved: boolean): void => {
     try {

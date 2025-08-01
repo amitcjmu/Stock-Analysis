@@ -1,13 +1,23 @@
 {
-  "timestamp": "2025-08-01T01:38:49.417263",
+  "timestamp": "2025-08-01T16:51:47.821814",
   "redis_version": null,
   "deployment_type": "docker",
-  "total_issues": 11,
+  "total_issues": 12,
   "critical_issues": 1,
-  "high_issues": 1,
+  "high_issues": 2,
   "medium_issues": 3,
   "low_issues": 6,
   "issues": [
+    {
+      "severity": "high",
+      "category": "config",
+      "title": "Insecure Bind Configuration",
+      "description": "Redis is configured to bind to all interfaces (0.0.0.0)",
+      "remediation": "Bind only to specific interfaces: 'bind 127.0.0.1 ::1'",
+      "file_path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/redis/redis.conf",
+      "line_number": 15,
+      "cve_reference": null
+    },
     {
       "severity": "medium",
       "category": "acl",
@@ -119,7 +129,7 @@
       "cve_reference": null
     }
   ],
-  "compliance_score": 44,
+  "compliance_score": 34,
   "recommendations": [
     "Address all critical security issues immediately",
     "Resolve high-severity issues before production deployment",

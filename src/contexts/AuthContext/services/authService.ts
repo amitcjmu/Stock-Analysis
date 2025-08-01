@@ -229,10 +229,11 @@ export const useAuthService = (
         try {
           console.log('🔍 switchClient - Updating user defaults');
           const result = await updateUserDefaults({ client_id: clientId });
-          if (result.success) {
+          // The API returns a success response with message
+          if (result && result.message) {
             console.log('✅ Updated user default client:', clientId);
           } else {
-            console.warn('⚠️ Failed to update user default client (non-blocking):', result.message);
+            console.warn('⚠️ Failed to update user default client (non-blocking):', result);
           }
         } catch (defaultError) {
           console.warn('⚠️ Failed to update user default client (non-blocking):', defaultError);
@@ -303,10 +304,11 @@ export const useAuthService = (
             client_id: effectiveClientId,
             engagement_id: engagementId
           });
-          if (result.success) {
+          // The API returns a success response with message
+          if (result && result.message) {
             console.log('✅ Updated user defaults - client:', effectiveClientId, 'engagement:', engagementId);
           } else {
-            console.warn('⚠️ Failed to update user defaults (non-blocking):', result.message);
+            console.warn('⚠️ Failed to update user defaults (non-blocking):', result);
           }
         } else {
           console.warn('⚠️ Skipping user defaults update - engagement data missing client_id:', {

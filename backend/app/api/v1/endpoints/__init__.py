@@ -5,6 +5,7 @@ API endpoints package.
 # WebSocket module removed - using HTTP polling for Vercel+Railway compatibility
 from . import (
     agent_learning_endpoints,
+    analysis,
     assessment_events,
     assessment_flow,
     asset_inventory,
@@ -36,3 +37,4 @@ flow_processing_router = flow_processing.router
 assessment_flow_router = assessment_flow.router
 assessment_events_router = assessment_events.router
 agents_router = agents_router  # Use the imported agents_router
+analysis_router = analysis.router

@@ -22,7 +22,9 @@ import { Analysis } from '@/types/assessment'
 // Components
 import { AnalysisProgress as AnalysisProgressComponent } from '@/components/assessment'
 import { ParameterSliders, QualifyingQuestions, RecommendationDisplay, AnalysisHistory } from '@/components/assessment'
-import { Sidebar } from '@/components';
+import { ApplicationSelector } from '@/components/sixr';
+import Sidebar from '@/components/Sidebar';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 
 // Main component
 export const Treatment: React.FC = () => {
@@ -75,8 +77,8 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
   }
 
   // Handlers
-  const handleSelectApplications = useCallback((selected: Application[]) => {
-    setSelectedApplicationIds(selected.map(app => app.id));
+  const handleSelectApplications = useCallback((selectedIds: number[]) => {
+    setSelectedApplicationIds(selectedIds);
   }, []);
 
   const handleTabChange = useCallback((tab: string) => {
@@ -135,28 +137,82 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
 
   // Main render
   return (
-    <div className="flex h-screen">
-      <Sidebar>
-        {/* Navigation */}
-        <nav className="space-y-2">
-          <button
-            onClick={() => handleTabChange('selection')}
-            className={`w-full text-left px-4 py-2 rounded ${
-              currentTab === 'selection' ? 'bg-blue-100 text-blue-800' : ''
-            }`}
-          >
-            Application Selection
-          </button>
-          {/* Add other navigation buttons */}
-        </nav>
-      </Sidebar>
+    <div className="min-h-screen bg-gray-50 flex">
+      <Sidebar />
+      <div className="flex-1 ml-64">
+        <main className="p-8">
+          <div className="max-w-7xl mx-auto">
+            {/* Context Breadcrumbs */}
+            <ContextBreadcrumbs />
 
-      <main className="flex-1 overflow-auto">
-        <div className="p-6">
+            {/* Page header */}
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">6R Treatment Planning</h1>
+              <p className="text-gray-600">Analyze applications and determine optimal migration strategies</p>
+            </div>
+
+            {/* Tab navigation */}
+            <div className="mb-6">
+              <nav className="flex space-x-4">
+            <button
+              onClick={() => handleTabChange('selection')}
+              className={`px-4 py-2 rounded-lg font-medium ${
+                currentTab === 'selection'
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Application Selection
+            </button>
+            <button
+              onClick={() => handleTabChange('parameters')}
+              className={`px-4 py-2 rounded-lg font-medium ${
+                currentTab === 'parameters'
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+              disabled={selectedApplicationIds.length === 0}
+            >
+              Parameters
+            </button>
+            <button
+              onClick={() => handleTabChange('progress')}
+              className={`px-4 py-2 rounded-lg font-medium ${
+                currentTab === 'progress'
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+              disabled={!state.analysisProgress}
+            >
+              Progress
+            </button>
+            <button
+              onClick={() => handleTabChange('history')}
+              className={`px-4 py-2 rounded-lg font-medium ${
+                currentTab === 'history'
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              History
+            </button>
+              </nav>
+            </div>
+
+            {/* Content */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           {/* Tab content */}
-          {/* TODO: Implement ApplicationSelector or replace with alternative UI */}
           {currentTab === 'selection' && (
-            <div className="p-4 text-red-600">ApplicationSelector component is missing. Please implement or provide an alternative UI for application selection.</div>
+            <ApplicationSelector
+              applications={applications}
+              selectedApplications={selectedApplicationIds}
+              onSelectionChange={handleSelectApplications}
+              onStartAnalysis={(appIds, queueName) => {
+                // TODO: Implement analysis start logic
+                console.log('Starting analysis for:', appIds, 'with queue name:', queueName);
+                toast.success(`Starting analysis for ${appIds.length} applications`);
+              }}
+            />
           )}
 
           {currentTab === 'parameters' && state.parameters && (
@@ -199,8 +255,10 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
               onViewDetails={() => {}}
             />
           )}
-        </div>
-      </main>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 };

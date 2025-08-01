@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
-import type { apiCall } from '@/config/api'
-import { API_CONFIG } from '@/config/api'
+import { apiCall, API_CONFIG } from '@/config/api'
 import { SixRApiClient } from '@/lib/api/sixr';
 import type { Application } from '@/components/sixr';
 
@@ -35,11 +34,48 @@ interface BackendApplicationsResponse {
   applications: BackendApplicationData[];
 }
 
+interface AssetData {
+  asset_type?: string;
+  name: string;
+  description?: string;
+  department?: string;
+  business_unit?: string;
+  criticality?: string;
+  complexity_score?: number;
+  techStack?: string;
+  technology_stack?: string;
+  application_type?: string;
+  environment?: string;
+  sixr_ready?: boolean;
+  migration_complexity?: string;
+  original_asset_type?: string;
+  asset_id?: string;
+  id?: string;
+  compliance_requirements?: string[];
+  dependencies?: string[];
+}
+
+interface AssetsResponse {
+  assets?: AssetData[];
+}
+
 const loadApplicationsFromBackend = async (contextHeaders: Record<string, string> = {}): Promise<Application[]> => {
   try {
-    const data = await apiCall<BackendApplicationsResponse>(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS, {
+    // Load assets using paginated endpoint with larger page size to get applications
+    const assetsResponse = await apiCall<AssetsResponse>('assets/list/paginated?page_size=100', {
       headers: contextHeaders
     });
+
+    // Filter for application assets - backend returns lowercase
+    const applicationAssets = assetsResponse.assets?.filter((asset: AssetData) => {
+      const assetType = (asset.asset_type || '').toLowerCase();
+      return assetType === 'application';
+    }) || [];
+
+    // Transform to match expected format
+    const data: BackendApplicationsResponse = {
+      applications: applicationAssets
+    };
 
     // Also fetch current 6R analyses to determine status for each application
     const analysisStatusMap: Record<number, {

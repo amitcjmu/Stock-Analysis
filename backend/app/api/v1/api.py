@@ -11,6 +11,7 @@ from app.api.v1.auth.auth_utils import get_current_user
 from app.api.v1.endpoints import (
     agent_learning_router,
     agents_router,
+    analysis_router,
     assessment_events_router,
     assessment_flow_router,
     asset_inventory_router,
@@ -259,6 +260,7 @@ logger.info("--- Starting API Router Inclusion Process ---")
 
 # Core Discovery and Analysis
 api_router.include_router(sixr_router, prefix="/6r", tags=["6R Analysis"])
+api_router.include_router(analysis_router, prefix="/analysis", tags=["Analysis"])
 
 # Discovery API - Implemented via Unified Discovery Flow + Master Flow Orchestrator
 # Real CrewAI implementation available at /unified-discovery endpoint

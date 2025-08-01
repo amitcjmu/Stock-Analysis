@@ -50,7 +50,8 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
         <TableCell>
           <Checkbox
             checked={isSelected}
-            onChange={() => onSelectApplication(app.id)}
+            onCheckedChange={() => onSelectApplication(app.id)}
+            onClick={(e) => e.stopPropagation()}
           />
         </TableCell>
         <TableCell className="font-medium">{app.name}</TableCell>
@@ -124,7 +125,7 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
             <TableHead className="w-12">
               <Checkbox
                 checked={selectedApplications.length === applications.length && applications.length > 0}
-                onChange={onSelectAll}
+                onCheckedChange={onSelectAll}
               />
             </TableHead>
             <TableHead>Application</TableHead>

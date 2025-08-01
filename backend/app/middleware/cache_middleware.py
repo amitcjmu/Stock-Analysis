@@ -81,6 +81,10 @@ class CacheMiddleware(BaseHTTPMiddleware):
         # Asset and analysis endpoints (expensive to compute)
         r"/api/v1/assets/.*/inventory": {"ttl": 900, "cache_type": "asset_data"},
         r"/api/v1/assets/.*/dependencies": {"ttl": 1800, "cache_type": "asset_data"},
+        r"/api/v1/assets/list/paginated": {
+            "ttl": 300,
+            "cache_type": "asset_data",
+        },  # For Assess flow pages
         r"/api/v1/sixr-analysis/.*": {"ttl": 3600, "cache_type": "agent_results"},
         # Admin endpoints (relatively stable)
         r"/api/v1/admin/clients": {"ttl": 300, "cache_type": "admin_data"},

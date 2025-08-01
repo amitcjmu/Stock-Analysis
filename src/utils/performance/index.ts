@@ -37,7 +37,7 @@ export {
   useContextSelector
 } from './memoizationHooks';
 
-// Memoization helpers  
+// Memoization helpers
 export {
   isEqual,
   shallowEqual,

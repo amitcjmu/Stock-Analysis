@@ -104,14 +104,18 @@ class MigrationStateFixer:
         try:
             async with self.engine.connect() as conn:
                 # Try migration schema first, then public schema
-                for schema in ['migration', 'public']:
+                for schema in ["migration", "public"]:
                     try:
                         result = await conn.execute(
-                            text(f"SELECT version_num FROM {schema}.alembic_version LIMIT 1")
+                            text(
+                                f"SELECT version_num FROM {schema}.alembic_version LIMIT 1"
+                            )
                         )
                         row = result.fetchone()
                         version = row[0] if row else None
-                        logger.info(f"Current Alembic version in {schema} schema: {version or 'None'}")
+                        logger.info(
+                            f"Current Alembic version in {schema} schema: {version or 'None'}"
+                        )
                         return version
                     except Exception:
                         continue
@@ -148,10 +152,8 @@ class MigrationStateFixer:
         try:
             async with self.engine.connect() as conn:
                 # Create migration schema if it doesn't exist
-                await conn.execute(
-                    text("CREATE SCHEMA IF NOT EXISTS migration")
-                )
-                
+                await conn.execute(text("CREATE SCHEMA IF NOT EXISTS migration"))
+
                 await conn.execute(
                     text(
                         """
@@ -183,14 +185,18 @@ class MigrationStateFixer:
                 else:
                     # Try to clear existing version in migration schema first
                     try:
-                        await conn.execute(text("DELETE FROM migration.alembic_version"))
+                        await conn.execute(
+                            text("DELETE FROM migration.alembic_version")
+                        )
                     except Exception:
                         # Fall back to public schema
                         await conn.execute(text("DELETE FROM public.alembic_version"))
 
                 # Insert new version in migration schema
                 await conn.execute(
-                    text("INSERT INTO migration.alembic_version (version_num) VALUES (:version)"),
+                    text(
+                        "INSERT INTO migration.alembic_version (version_num) VALUES (:version)"
+                    ),
                     {"version": version},
                 )
                 await conn.commit()
@@ -320,7 +326,9 @@ class MigrationStateFixer:
                         )
                     )
                     await conn.commit()
-                    logger.info("✅ Altered migration.alembic_version version_num to VARCHAR(50)")
+                    logger.info(
+                        "✅ Altered migration.alembic_version version_num to VARCHAR(50)"
+                    )
                 except Exception:
                     # Fall back to public schema
                     await conn.execute(
@@ -329,7 +337,9 @@ class MigrationStateFixer:
                         )
                     )
                     await conn.commit()
-                    logger.info("✅ Altered public.alembic_version version_num to VARCHAR(50)")
+                    logger.info(
+                        "✅ Altered public.alembic_version version_num to VARCHAR(50)"
+                    )
         except Exception as e:
             logger.warning(f"Failed to alter version_num length: {e}")
 

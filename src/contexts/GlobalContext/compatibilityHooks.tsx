@@ -222,6 +222,6 @@ export const useContextDebug = (): { state: unknown; metrics: unknown; enabled: 
   const auth = useGlobalAuth() as GlobalAuthState;
   const state = getDebugState(auth.state);
   const { metrics, enabled } = getPerformanceMetrics(auth);
-  
+
   return { state, metrics, enabled };
 };
