@@ -20,6 +20,9 @@ interface UseAuthInitializationProps {
 let globalAuthInitialized = false;
 let isAuthInitializing = false;
 
+// Add a global counter to debug re-initialization
+let initializationCount = 0;
+
 // Add session storage to persist initialization state across page refreshes
 const AUTH_INIT_KEY = 'auth_initialization_complete';
 const getInitializationState = (): boolean => {
@@ -57,11 +60,28 @@ export const useAuthInitialization = ({
   const hasInitializedRef = useRef(false);
 
   useEffect(() => {
+    initializationCount++;
+    console.log(`🔍 useAuthInitialization effect triggered (count: ${initializationCount})`);
+    
     // Guard against multiple initializations
     if (hasInitializedRef.current) {
-      console.log('🔍 Auth initialization already completed, skipping');
+      console.log('🔍 Auth initialization already completed by this instance, skipping');
       return;
     }
+    
+    // Check global initialization state
+    if (globalAuthInitialized) {
+      console.log('🔍 Auth already initialized globally, skipping');
+      setIsLoading(false);
+      return;
+    }
+    
+    // Check if already initializing
+    if (isAuthInitializing) {
+      console.log('🔍 Auth initialization already in progress, skipping');
+      return;
+    }
+    
     hasInitializedRef.current = true;
     
     let isMounted = true;
@@ -350,6 +370,8 @@ export const useAuthInitialization = ({
 
     return () => {
       isMounted = false;
+      // Don't reset hasInitializedRef on unmount - keep it true to prevent re-initialization
+      console.log('🔍 useAuthInitialization unmounting');
     };
   }, []); // Empty dependency array - initialization should only run once per mount
 };

@@ -11,7 +11,6 @@
 // Import and re-export from the modular structure
 import { SidebarProvider } from './sidebar/sidebar-provider';
 import { SidebarContext } from './sidebar/sidebar-context'
-import { useSidebar } from './sidebar/sidebar-context'
 import { Sidebar, SidebarInset } from './sidebar/sidebar-core';
 import { SidebarTrigger, SidebarRail } from './sidebar/sidebar-interactions';
 import {
@@ -46,7 +45,6 @@ export {
   // Provider and context
   SidebarProvider,
   SidebarContext,
-  useSidebar,
 
   // Core components
   Sidebar,
@@ -83,5 +81,3 @@ export {
   SidebarMenuSubButton
 };
 
-// Re-export constants and types
-export * from './sidebar/sidebar-constants';

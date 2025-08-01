@@ -4,14 +4,14 @@
  */
 
 import React from 'react'
-import { createContext, useContext, useState } from 'react'
+import { createContext, useState } from 'react'
 import { useCallback } from 'react'
 import type { ReactNode } from 'react'
 import type { AgentCardData } from '../../../types/api/observability/agent-performance';
 import { useAgentData } from '../hooks/useAgentData';
 import { useAgentFilters } from '../hooks/useAgentFilters';
 
-interface ObservabilityContextValue {
+export interface ObservabilityContextValue {
   // Agent data
   agents: AgentCardData[];
   loading: boolean;
@@ -49,15 +49,7 @@ interface ObservabilityContextValue {
   setPeriod: (days: number) => void;
 }
 
-const ObservabilityContext = createContext<ObservabilityContextValue | undefined>(undefined);
-
-export const useObservability = (): unknown => {
-  const context = useContext(ObservabilityContext);
-  if (!context) {
-    throw new Error('useObservability must be used within ObservabilityProvider');
-  }
-  return context;
-};
+export const ObservabilityContext = createContext<ObservabilityContextValue | undefined>(undefined);
 
 interface ObservabilityProviderProps {
   children: ReactNode;
@@ -156,24 +148,3 @@ export const ObservabilityProvider: React.FC<ObservabilityProviderProps> = ({
   );
 };
 
-// Convenience hooks for specific parts of the context
-export const useAgentSelection = (): unknown => {
-  const context = useObservability();
-  return {
-    selectedAgents: context.selectedAgents,
-    selectAgent: context.selectAgent,
-    deselectAgent: context.deselectAgent,
-    toggleAgentSelection: context.toggleAgentSelection,
-    clearSelection: context.clearSelection
-  };
-};
-
-export const useViewPreferences = (): unknown => {
-  const context = useObservability();
-  return {
-    viewMode: context.viewMode,
-    setViewMode: context.setViewMode,
-    compactView: context.compactView,
-    setCompactView: context.setCompactView
-  };
-};

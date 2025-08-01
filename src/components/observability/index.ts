@@ -82,12 +82,12 @@ export { useRecommendations } from './hooks/useRecommendations';
 export { useAgentFilters } from './hooks/useAgentFilters';
 
 // Context
+export { ObservabilityProvider } from './context/ObservabilityContext';
 export {
-  ObservabilityProvider,
   useObservability,
   useAgentSelection,
   useViewPreferences
-} from './context/ObservabilityContext';
+} from './context/hooks';
 
 // Utilities
 export * from './utils/constants';
