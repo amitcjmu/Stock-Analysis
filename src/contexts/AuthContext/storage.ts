@@ -184,3 +184,41 @@ export const clearAllStoredData = (): unknown => {
   localStorage.removeItem('user_data');
   localStorage.removeItem('user_context_selection');
 };
+
+/**
+ * Sync context data from user_context_selection to individual localStorage keys
+ * This ensures the new API client can read client/engagement/flow data
+ */
+export const syncContextToIndividualKeys = (): void => {
+  try {
+    const contextData = contextStorage.getContext();
+    if (!contextData) {
+      console.log('🔄 No context data to sync');
+      return;
+    }
+
+    console.log('🔄 Syncing context data to individual localStorage keys:', contextData);
+
+    // Sync client data
+    if (contextData.client) {
+      persistClientData(contextData.client);
+      console.log('✅ Synced client data to localStorage');
+    }
+
+    // Sync engagement data
+    if (contextData.engagement) {
+      persistEngagementData(contextData.engagement);
+      console.log('✅ Synced engagement data to localStorage');
+    }
+
+    // Sync flow data
+    if (contextData.flow) {
+      localStorage.setItem('auth_flow', JSON.stringify(contextData.flow));
+      console.log('✅ Synced flow data to localStorage');
+    }
+
+    console.log('✅ Context synchronization completed');
+  } catch (error) {
+    console.error('❌ Failed to sync context to individual keys:', error);
+  }
+};

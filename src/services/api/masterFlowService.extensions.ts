@@ -36,7 +36,7 @@ export const masterFlowServiceExtended = {
       },
       {
         headers: {
-          'X-Client-Account-ID': clientAccountId,
+          'X-Client-Account-Id': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
           'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -59,7 +59,7 @@ export const masterFlowServiceExtended = {
       {},
       {
         headers: {
-          'X-Client-Account-ID': clientAccountId,
+          'X-Client-Account-Id': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
           'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -82,7 +82,7 @@ export const masterFlowServiceExtended = {
       {},
       {
         headers: {
-          'X-Client-Account-ID': clientAccountId,
+          'X-Client-Account-Id': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
           'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -104,7 +104,7 @@ export const masterFlowServiceExtended = {
       `/flows/${flowId}/validation-status`,
       {
         headers: {
-          'X-Client-Account-ID': clientAccountId,
+          'X-Client-Account-Id': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
           ...(token && { 'Authorization': `Bearer ${token}` }),
         },
@@ -125,7 +125,7 @@ export const masterFlowServiceExtended = {
       `/flows/${flowId}/agent-insights`,
       {
         headers: {
-          'X-Client-Account-ID': clientAccountId,
+          'X-Client-Account-Id': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
           ...(token && { 'Authorization': `Bearer ${token}` }),
         },
@@ -148,7 +148,7 @@ export const masterFlowServiceExtended = {
       {},
       {
         headers: {
-          'X-Client-Account-ID': clientAccountId,
+          'X-Client-Account-Id': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
           'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -170,7 +170,7 @@ export const masterFlowServiceExtended = {
       `/flows/metrics?flowType=discovery`,
       {
         headers: {
-          'X-Client-Account-ID': clientAccountId,
+          'X-Client-Account-Id': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
           ...(token && { 'Authorization': `Bearer ${token}` }),
         },
@@ -191,7 +191,7 @@ export const masterFlowServiceExtended = {
       `/flows/analytics/application-landscape`,
       {
         headers: {
-          'X-Client-Account-ID': clientAccountId,
+          'X-Client-Account-Id': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
           ...(token && { 'Authorization': `Bearer ${token}` }),
         },
@@ -212,7 +212,7 @@ export const masterFlowServiceExtended = {
       `/flows/analytics/infrastructure-landscape`,
       {
         headers: {
-          'X-Client-Account-ID': clientAccountId,
+          'X-Client-Account-Id': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
           ...(token && { 'Authorization': `Bearer ${token}` }),
         },

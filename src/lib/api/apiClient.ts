@@ -13,7 +13,7 @@ import { isCacheFeatureEnabled } from '@/constants/features';
 interface AuthHeaders {
   Authorization?: string;
   'X-User-ID'?: string;
-  'X-Client-Account-ID'?: string;
+  'X-Client-Account-Id'?: string;
   'X-Engagement-ID'?: string;
   'X-Flow-ID'?: string;
 }
@@ -39,7 +39,7 @@ const getAuthHeaders = (): AuthHeaders => {
     if (clientId && clientId !== 'null') {
       const client = JSON.parse(clientId);
       if (client?.id) {
-        headers['X-Client-Account-ID'] = client.id;
+        headers['X-Client-Account-Id'] = client.id;
       }
     }
 
