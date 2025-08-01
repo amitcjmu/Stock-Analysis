@@ -1,5 +1,5 @@
 import React from 'react'
-import { createContext, useContext, useState } from 'react'
+import { useState } from 'react'
 import { useCallback } from 'react'
 import type { ReactNode } from 'react'
 import {
@@ -24,65 +24,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Info } from 'lucide-react'
 import { AlertTriangle, CheckCircle, XCircle, Loader2 } from 'lucide-react'
-
-// Dialog types
-type DialogType = 'confirm' | 'alert' | 'prompt' | 'loading';
-
-interface BaseDialogOptions {
-  title?: string;
-  description?: string;
-  icon?: 'info' | 'warning' | 'success' | 'error' | 'loading';
-  className?: string;
-}
-
-interface ConfirmDialogOptions extends BaseDialogOptions {
-  confirmText?: string;
-  cancelText?: string;
-  variant?: 'default' | 'destructive';
-}
-
-interface AlertDialogOptions extends BaseDialogOptions {
-  confirmText?: string;
-}
-
-interface PromptDialogOptions extends BaseDialogOptions {
-  placeholder?: string;
-  defaultValue?: string;
-  confirmText?: string;
-  cancelText?: string;
-  validation?: (value: string) => string | null;
-}
-
-interface LoadingDialogOptions extends BaseDialogOptions {
-  progress?: number;
-  cancelable?: boolean;
-}
-
-interface DialogState {
-  id: string;
-  type: DialogType;
-  options: BaseDialogOptions;
-  resolve?: (value: boolean | string | undefined) => void;
-  reject?: (reason?: Error | string) => void;
-}
-
-interface DialogContextValue {
-  showConfirm: (options: ConfirmDialogOptions) => Promise<boolean>;
-  showAlert: (options: AlertDialogOptions) => Promise<void>;
-  showPrompt: (options: PromptDialogOptions) => Promise<string | null>;
-  showLoading: (options: LoadingDialogOptions) => { close: () => void; update: (options: Partial<LoadingDialogOptions>) => void };
-  closeDialog: (id: string) => void;
-}
-
-const DialogContext = createContext<DialogContextValue | undefined>(undefined);
-
-export const useDialog = (): unknown => {
-  const context = useContext(DialogContext);
-  if (!context) {
-    throw new Error('useDialog must be used within a DialogProvider');
-  }
-  return context;
-};
+import type {
+  DialogType,
+  DialogState,
+  DialogContextValue,
+  ConfirmDialogOptions,
+  AlertDialogOptions,
+  PromptDialogOptions,
+  LoadingDialogOptions
+} from './DialogContext/types';
+import { DialogContext } from './DialogContext/context';
 
 interface DialogProviderProps {
   children: ReactNode;
@@ -93,7 +44,7 @@ const PromptDialogComponent: React.FC<{
   dialog: DialogState;
   options: PromptDialogOptions;
   closeDialog: (id: string) => void;
-  getIcon: (icon?: DialogIcon) => JSX.Element;
+  getIcon: (icon?: string) => JSX.Element;
 }> = ({ dialog, options, closeDialog, getIcon }) => {
   const [value, setValue] = useState(options.defaultValue || '');
   const [error, setError] = useState<string | null>(null);
@@ -460,3 +411,15 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({ children }) => {
     </DialogContext.Provider>
   );
 };
+
+// Re-export types for convenience
+export type {
+  DialogType,
+  BaseDialogOptions,
+  ConfirmDialogOptions,
+  AlertDialogOptions,
+  PromptDialogOptions,
+  LoadingDialogOptions,
+  DialogState,
+  DialogContextValue
+} from './DialogContext/types';

@@ -5,8 +5,7 @@
  * for collection workflows with CrewAI integration.
  */
 
-import { useState } from 'react'
-import { useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -132,7 +131,7 @@ export const useAdaptiveFormFlow = (
   /**
    * Initialize the adaptive collection flow
    */
-  const initializeFlow = async (): Promise<void> => {
+  const initializeFlow = useCallback(async (): Promise<void> => {
     // Don't initialize if there are blocking flows or still checking
     if (checkingFlows || hasBlockingFlows) {
       console.log('🛑 Blocking flow initialization due to other incomplete flows or still checking');
@@ -353,7 +352,7 @@ export const useAdaptiveFormFlow = (
       // Always ensure loading state is cleared
       setState(prev => ({ ...prev, isLoading: false }));
     }
-  };
+  }, [checkingFlows, hasBlockingFlows, state.isLoading, flowIdFromUrl, setCurrentFlow, applicationId, user, toast]);
 
   /**
    * Handle field value changes
@@ -514,7 +513,7 @@ export const useAdaptiveFormFlow = (
     return () => {
       setCurrentFlow(null);
     };
-  }, [applicationId, flowIdFromUrl, checkingFlows, hasBlockingFlows, autoInitialize, state.formData, state.isLoading]);
+  }, [applicationId, flowIdFromUrl, checkingFlows, hasBlockingFlows, autoInitialize, state.formData, state.isLoading, initializeFlow, setCurrentFlow]);
 
   return {
     // State

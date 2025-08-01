@@ -15,7 +15,13 @@ export const useObservability = (): ObservabilityContextValue => {
   return context;
 };
 
-export const useAgentSelection = () => {
+export const useAgentSelection = (): {
+  selectedAgents: string[];
+  selectAgent: (agentId: string) => void;
+  deselectAgent: (agentId: string) => void;
+  toggleAgentSelection: (agentId: string) => void;
+  clearSelection: () => void;
+} => {
   const context = useObservability();
   return {
     selectedAgents: context.selectedAgents,
@@ -26,7 +32,12 @@ export const useAgentSelection = () => {
   };
 };
 
-export const useViewPreferences = () => {
+export const useViewPreferences = (): {
+  viewMode: 'grid' | 'list';
+  setViewMode: (mode: 'grid' | 'list') => void;
+  compactView: boolean;
+  setCompactView: (compact: boolean) => void;
+} => {
   const context = useObservability();
   return {
     viewMode: context.viewMode,

@@ -3,8 +3,7 @@
  * Custom hooks for accessing the Client context
  */
 
-import React from 'react';
-import { useContext, useEffect } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ClientContext } from './context';
 import type { ClientContextType } from './types';

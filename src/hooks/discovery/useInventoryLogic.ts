@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 import { masterFlowService } from '../../services/api/masterFlowService';
 import { useQuery } from '@tanstack/react-query';
@@ -37,11 +36,11 @@ export const useInventoryLogic = (flowId?: string): JSX.Element => {
 
   const typedFlowAssets = flowAssets as Asset[];
 
-  const inventoryProgress = {
+  const inventoryProgress = useMemo(() => ({
     total_assets: typedFlowAssets.length,
     classified_assets: typedFlowAssets.filter((asset: Asset) => asset.asset_type).length,
     classification_accuracy: typedFlowAssets.length > 0 ? (typedFlowAssets.filter((asset: Asset) => asset.asset_type).length / typedFlowAssets.length) * 100 : 0
-  };
+  }), [typedFlowAssets]);
 
   // Get real classification summary from backend
   const { data: classificationSummary, isLoading: isClassificationLoading } = useQuery({

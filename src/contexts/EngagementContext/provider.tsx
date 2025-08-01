@@ -1,38 +1,16 @@
-import React from 'react'
-import { createContext, useContext, useState } from 'react'
-import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom';
+/**
+ * Engagement Context Provider
+ * React context provider for engagement state management
+ */
+
+import React, { useState, useEffect } from 'react';
 import { apiCall } from '@/config/api';
-import { useAuth } from './AuthContext';
-import { useClient } from './ClientContext';
+import { useAuth } from '../AuthContext';
+import { useClient } from '../ClientContext';
 import { DEMO_USER_ID, DEMO_ENGAGEMENT_DATA } from '@/constants/demo';
-
-interface Engagement {
-  id: string;
-  name: string;
-  client_id: string;
-  status: 'planning' | 'active' | 'completed' | 'on_hold';
-  type: 'migration' | 'assessment' | 'modernization';
-  start_date: string;
-  end_date: string;
-  created_at: string;
-  updated_at: string;
-  metadata: Record<string, string | number | boolean | null>;
-}
-
-interface EngagementContextType {
-  currentEngagement: Engagement | null;
-  isLoading: boolean;
-  error: Error | null;
-  selectEngagement: (id: string) => Promise<void>;
-  clearEngagement: () => void;
-  getEngagementId: () => string | null;
-  setDemoEngagement: (engagement: Engagement) => void;
-}
-
-const EngagementContext = createContext<EngagementContextType | undefined>(undefined);
-
-const ENGAGEMENT_KEY = 'current_engagement';
+import { EngagementContext } from './context';
+import type { Engagement } from './types';
+import { ENGAGEMENT_KEY } from './types';
 
 export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentEngagement, setCurrentEngagement] = useState<Engagement | null>(null);
@@ -40,7 +18,6 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [error, setError] = useState<Error | null>(null);
   const { user, getContextHeaders } = useAuth();
   const { currentClient } = useClient();
-  const navigate = useNavigate();
 
   useEffect(() => {
     // If demo user, set demo engagement and skip fetch
@@ -113,7 +90,7 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
-  const clearEngagement = (): unknown => {
+  const clearEngagement = (): void => {
     sessionStorage.removeItem(ENGAGEMENT_KEY);
     setCurrentEngagement(null);
   };
@@ -122,7 +99,7 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return sessionStorage.getItem(ENGAGEMENT_KEY);
   };
 
-  const setDemoEngagement = (engagement: Engagement): unknown => {
+  const setDemoEngagement = (engagement: Engagement): void => {
     setCurrentEngagement(engagement);
     setIsLoading(false);
     setError(null);
@@ -139,45 +116,4 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   return <EngagementContext.Provider value={value}>{children}</EngagementContext.Provider>;
-};
-
-export const useEngagement = (): unknown => {
-  const context = useContext(EngagementContext);
-  if (context === undefined) {
-    throw new Error('useEngagement must be used within an EngagementProvider');
-  }
-  return context;
-};
-
-export const withEngagement = <P extends object>(
-  WrappedComponent: React.ComponentType<P>,
-  requireEngagement: boolean = true
-) => {
-  return function WithEngagementComponent(props: P): React.ReactElement | null {
-    const { currentEngagement, isLoading } = useEngagement();
-    const navigate = useNavigate();
-
-    useEffect(() => {
-      if (!isLoading && requireEngagement && !currentEngagement) {
-        navigate('/engagements');
-      }
-    }, [currentEngagement, isLoading, navigate]);
-
-    if (isLoading) {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-            <p className="text-gray-600">Loading engagement...</p>
-          </div>
-        </div>
-      );
-    }
-
-    if (requireEngagement && !currentEngagement) {
-      return null;
-    }
-
-    return <WrappedComponent {...props} />;
-  };
 };

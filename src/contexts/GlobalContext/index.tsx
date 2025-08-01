@@ -473,14 +473,7 @@ export const GlobalContextProvider: React.FC<GlobalContextProviderProps> = ({
   );
 };
 
-// Export hooks from separate file
-export {
-  useGlobalContext,
-  useGlobalAuth,
-  useGlobalUserContext,
-  useGlobalUIState,
-  useGlobalCacheState
-} from './hooks';
+// Hooks are exported from ./hooks/index.ts
 
 // Export types
 export type { GlobalState, GlobalAction, GlobalContextType } from './types';

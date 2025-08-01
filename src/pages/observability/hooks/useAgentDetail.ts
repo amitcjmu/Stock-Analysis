@@ -3,8 +3,7 @@
  * Extracted from AgentDetailPage.tsx for modularization
  */
 
-import { useState } from 'react'
-import { useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { agentObservabilityService } from '../../../services/api/agentObservabilityService';
 import type { AgentDetailData } from '../types/AgentDetailTypes';
 import { getAgentMetadataHelpers } from '../utils/agentMetadataHelpers';
@@ -26,7 +25,7 @@ export const useAgentDetail = (agentName: string | undefined, taskHistoryPage: n
 
   const { getAgentRole, getAgentSpecialization, getAgentCapabilities, getAgentEndpoints } = getAgentMetadataHelpers();
 
-  const loadAgentData = async (): Promise<void> => {
+  const loadAgentData = useCallback(async (): Promise<void> => {
     if (!agentName) return;
 
     try {
@@ -116,7 +115,7 @@ export const useAgentDetail = (agentName: string | undefined, taskHistoryPage: n
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [agentName, taskHistoryPage, getAgentRole, getAgentSpecialization, getAgentCapabilities, getAgentEndpoints]);
 
   const handleRefresh = async (): void => {
     setRefreshing(true);
@@ -130,7 +129,7 @@ export const useAgentDetail = (agentName: string | undefined, taskHistoryPage: n
     }
 
     loadAgentData();
-  }, [agentName]);
+  }, [agentName, loadAgentData]);
 
   return {
     agentData,

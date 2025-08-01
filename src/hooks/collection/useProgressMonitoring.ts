@@ -5,8 +5,7 @@
  * for collection workflows and flow management.
  */
 
-import { useState } from 'react'
-import { useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useToast } from '@/components/ui/use-toast';
 import type { ProgressMilestone } from '@/components/collection/types';
 import { collectionFlowApi } from '@/services/api/collection-flow';
@@ -294,7 +293,7 @@ export const useProgressMonitoring = (
   /**
    * Load initial data
    */
-  const loadData = async (): Promise<void> => {
+  const loadData = useCallback(async (): Promise<void> => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
@@ -388,7 +387,7 @@ export const useProgressMonitoring = (
         variant: 'destructive'
       });
     }
-  };
+  }, [flowId, toast]);
 
   /**
    * Refresh data (for manual refresh)
@@ -483,12 +482,12 @@ export const useProgressMonitoring = (
     }, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval, flowId]);
+  }, [autoRefresh, refreshInterval, flowId, loadData]);
 
   // Initial data load
   useEffect(() => {
     loadData();
-  }, [flowId]);
+  }, [flowId, loadData]);
 
   return {
     // State

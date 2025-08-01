@@ -147,4 +147,3 @@ export const ObservabilityProvider: React.FC<ObservabilityProviderProps> = ({
     </ObservabilityContext.Provider>
   );
 };
-

@@ -411,5 +411,9 @@ export const useAuthInitialization = ({
         initializationCount = 0;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - initialization should only run once per mount
+  // Intentionally excluding dependencies to prevent re-initialization loops.
+  // All functions (setUser, setClient, etc.) are stable from parent context and 
+  // this effect is designed to run exactly once on mount for authentication setup.
 };

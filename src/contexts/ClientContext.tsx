@@ -187,8 +187,5 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   return <ClientContext.Provider value={value}>{children}</ClientContext.Provider>;
 };
 
-// Re-export hooks and HOCs
-export { useClient, withClient } from './ClientContext/hooks';
-
 // Re-export types for convenience
 export type { Client, ClientContextType } from './ClientContext/types';

@@ -85,7 +85,7 @@ export const useFlowDetection = (): FlowDetectionResult => {
         attribute_mapping_completed: f.attribute_mapping_completed
       })));
     }
-  }, [urlFlowId, autoDetectedFlowId, effectiveFlowId, flowList, isFlowListLoading, flowListError, pathname]);
+  }, [urlFlowId, autoDetectedFlowId, effectiveFlowId, hasEffectiveFlow, flowList, isFlowListLoading, flowListError, pathname]);
 
   // Use unified discovery flow with effective flow ID or emergency fallback
   const finalFlowId = effectiveFlowId || emergencyFlowId;

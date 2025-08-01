@@ -191,7 +191,7 @@ export const useAttributeMappingActions = (
         (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast(errorMessage);
       }
     }
-  }, [fieldMappings, getAuthHeaders, user?.id, refetchFieldMappings]);
+  }, [fieldMappings, getAuthHeaders, refetchFieldMappings]);
 
   const handleRejectMapping = useCallback(async (mappingId: string, rejectionReason?: string) => {
     try {

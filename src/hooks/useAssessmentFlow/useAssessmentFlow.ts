@@ -95,7 +95,7 @@ export const useAssessmentFlow = (
       }));
       throw error;
     }
-  }, [clientAccountId, engagementId, navigate, getAuthHeaders]);
+  }, [clientAccountId, engagementId, navigate, getAuthHeaders, subscribeToUpdates]);
 
   // Resume flow from current phase
   const resumeFlow = useCallback(async (userInput: UserInput) => {
@@ -168,7 +168,7 @@ export const useAssessmentFlow = (
       }));
       throw error;
     }
-  }, [state.flowId, navigate]);
+  }, [state.flowId, navigate, canNavigateToPhase]);
 
   // Update architecture standards
   const updateArchitectureStandards = useCallback(async (
@@ -394,10 +394,10 @@ export const useAssessmentFlow = (
     return () => {
       unsubscribeFromUpdates();
     };
-  }, [state.flowId, clientAccountId]);
+  }, [state.flowId, clientAccountId, loadFlowState, subscribeToUpdates, unsubscribeFromUpdates]);
 
   // Load current flow state
-  const loadFlowState = async (): Promise<void> => {
+  const loadFlowState = useCallback(async (): Promise<void> => {
     if (!state.flowId) return;
 
     try {
@@ -428,10 +428,10 @@ export const useAssessmentFlow = (
         isLoading: false
       }));
     }
-  };
+  }, [state.flowId, loadPhaseData]);
 
   // Load phase-specific data
-  const loadPhaseData = async (phase: AssessmentPhase): JSX.Element => {
+  const loadPhaseData = useCallback(async (phase: AssessmentPhase): JSX.Element => {
     if (!state.flowId) return;
 
     try {
@@ -473,7 +473,7 @@ export const useAssessmentFlow = (
     } catch (error) {
       console.error(`Failed to load ${phase} data:`, error);
     }
-  };
+  }, [state.flowId]);
 
   // Helper function for navigation
   const getNextPhaseForNavigation = (currentPhase: AssessmentPhase): AssessmentPhase | null => {

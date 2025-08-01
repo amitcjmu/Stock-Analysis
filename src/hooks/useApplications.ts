@@ -141,7 +141,7 @@ const loadApplicationsFromBackend = async (contextHeaders: Record<string, string
   }
 };
 
-export const useApplications = (enabled = true) => {
+export const useApplications = (enabled = true): ReturnType<typeof useQuery<Application[]>> & { applications: Application[]; refetchApplications: () => Promise<void> } => {
   const queryClient = useQueryClient();
 
   const query = useQuery<Application[]>({
@@ -164,7 +164,7 @@ export const useApplications = (enabled = true) => {
 };
 
 // Create a version of the hook that includes context headers
-export const useApplicationsWithContext = (contextHeaders: Record<string, string> = {}) => {
+export const useApplicationsWithContext = (contextHeaders: Record<string, string> = {}): ReturnType<typeof useQuery<Application[]>> & { applications: Application[] } => {
   const query = useQuery<Application[]>({
     queryKey: ['applications', contextHeaders],
     queryFn: () => loadApplicationsFromBackend(contextHeaders),

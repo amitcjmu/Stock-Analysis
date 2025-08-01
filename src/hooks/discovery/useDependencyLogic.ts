@@ -176,7 +176,7 @@ export const useDependencyLogic = (flowId?: string): {
     };
 
     fetchAssetsDirectly();
-  }, [client?.id, engagement?.id, flow]);
+  }, [client?.id, engagement?.id, flow, additionalAssets.applications.length, additionalAssets.servers.length]);
 
   // Function to fetch persisted dependencies
   const fetchPersistedDependencies = useCallback(async () => {

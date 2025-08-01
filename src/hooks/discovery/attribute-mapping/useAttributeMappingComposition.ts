@@ -97,7 +97,7 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
   const refetchAgentic = useCallback(() => {
     console.log('🔄 Refreshing agentic data and field mappings');
     return Promise.all([refresh(), fieldMappingsHook.refetchFieldMappings()]);
-  }, [refresh, fieldMappingsHook.refetchFieldMappings]);
+  }, [refresh, fieldMappingsHook]);
 
   const refetchClarifications = useCallback(() => {
     return Promise.resolve();

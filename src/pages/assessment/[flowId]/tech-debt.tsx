@@ -363,12 +363,7 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
   );
 };
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  return {
-    props: {
-      flowId: context.params?.flowId as string
-    }
-  };
-};
+// eslint-disable-next-line react-refresh/only-export-components
+export { getServerSideProps } from './utils';
 
 export default TechDebtPage;

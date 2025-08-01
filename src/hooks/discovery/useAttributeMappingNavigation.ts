@@ -129,7 +129,7 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
         variant: "destructive"
       });
     }
-  }, [flow, flowState, updatePhase, navigate, mappingProgress, toast]);
+  }, [flow, flowState, navigate, mappingProgress, toast, client?.id, engagement?.id]);
 
   return {
     handleContinueToDataCleansing

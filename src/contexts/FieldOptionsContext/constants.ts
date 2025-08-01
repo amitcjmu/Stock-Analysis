@@ -1,30 +1,13 @@
-import React from 'react'
-import type { ReactNode } from 'react';
-import { createContext, useContext, useState } from 'react'
+/**
+ * Field Options Constants
+ * Static data for asset target fields
+ */
 
-// Types
-interface TargetField {
-  name: string;
-  type: string;
-  required: boolean;
-  description: string;
-  category: string;
-  is_custom?: boolean;
-}
-
-interface FieldOptionsContextType {
-  availableFields: TargetField[];
-  isLoading: boolean;
-  error: string | null;
-  refetchFields: () => Promise<void>;
-  lastUpdated: Date | null;
-}
-
-const FieldOptionsContext = createContext<FieldOptionsContextType | undefined>(undefined);
+import type { TargetField } from './types';
 
 // Complete asset fields list based on backend Asset model
 // This eliminates the need for API calls on every app start
-const ASSET_TARGET_FIELDS: TargetField[] = [
+export const ASSET_TARGET_FIELDS: TargetField[] = [
   // Identity fields(Critical for migration): any { name: 'name', type: 'string', required: true, description: 'Asset name', category: 'identification' },
   { name: 'asset_name', type: 'string', required: false, description: 'Asset display name', category: 'identification' },
   { name: 'hostname', type: 'string', required: false, description: 'Network hostname', category: 'identification' },
@@ -108,47 +91,3 @@ const ASSET_TARGET_FIELDS: TargetField[] = [
   { name: 'created_by', type: 'string', required: false, description: 'User who created the asset', category: 'system' },
   { name: 'updated_by', type: 'string', required: false, description: 'User who last updated the asset', category: 'system' }
 ];
-
-interface FieldOptionsProviderProps {
-  children: ReactNode;
-}
-
-export const FieldOptionsProvider: React.FC<FieldOptionsProviderProps> = ({ children }) => {
-  // Use hardcoded fields directly - no API calls needed
-  const [availableFields] = useState<TargetField[]>(ASSET_TARGET_FIELDS);
-  const [isLoading] = useState(false); // Always false since no API calls
-  const [error] = useState<string | null>(null); // Always null since no API calls
-  const [lastUpdated] = useState<Date | null>(new Date()); // Always current time
-
-  console.log('✅ FieldOptionsProvider - Using hardcoded asset fields list with', ASSET_TARGET_FIELDS.length, 'fields');
-
-  const refetchFields = async () =>  {
-    console.log('🔄 FieldOptionsProvider - Refetch requested but using hardcoded fields');
-    // No-op since we're using hardcoded fields
-  };
-
-  return (
-    <FieldOptionsContext.Provider
-      value={{
-        availableFields,
-        isLoading,
-        error,
-        refetchFields,
-        lastUpdated
-      }}
-    >
-      {children}
-    </FieldOptionsContext.Provider>
-  );
-};
-
-export const useFieldOptions = (): FieldOptionsContextType => {
-  const context = useContext(FieldOptionsContext);
-  if (context === undefined) {
-    throw new Error('useFieldOptions must be used within a FieldOptionsProvider');
-  }
-  return context;
-};
-
-// Export types for use in other components
-export type { TargetField };
