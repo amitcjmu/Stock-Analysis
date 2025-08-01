@@ -5,7 +5,7 @@
  */
 
 import React from 'react'
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useEffect, useMemo } from 'react'
 import { formatDistanceToNow } from 'date-fns';
 import { Brain, Filter, Search } from 'lucide-react'
@@ -206,22 +206,38 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
   const eventContainerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Load activity feed data
-  useEffect(() => {
-    loadActivityData();
-
-    if (isPlaying && realTime) {
-      intervalRef.current = setInterval(loadActivityData, refreshInterval);
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+  // Helper functions
+  const mapActivityType = (apiType: string): ActivityEvent['type'] => {
+    const mapping: Record<string, ActivityEvent['type']> = {
+      'task_completed': 'completion',
+      'task_failed': 'error',
+      'task_started': 'start',
+      'agent_activity': 'activity',
+      'system_event': 'system',
+      'user_action': 'user'
     };
-  }, [isPlaying, realTime, refreshInterval, filters.agent, filters.timeRange]);
+    return mapping[apiType] || 'activity';
+  };
 
-  const loadActivityData = async (): Promise<void> => {
+  const mapSeverity = (apiSeverity: string): ActivityEvent['severity'] => {
+    const mapping: Record<string, ActivityEvent['severity']> = {
+      'low': 'low',
+      'medium': 'medium',
+      'high': 'high',
+      'critical': 'critical'
+    };
+    return mapping[apiSeverity] || 'medium';
+  };
+
+  const playNotificationSound = (): void => {
+    if (audioRef.current) {
+      audioRef.current.play().catch(() => {
+        // Ignore audio play errors (may happen if user hasn't interacted with page)
+      });
+    }
+  };
+
+  const loadActivityData = useCallback(async (): Promise<void> => {
     try {
       setError(null);
 
@@ -266,39 +282,22 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters.agent, maxEvents, events, soundEnabled]);
 
-  // Helper functions
-  const mapActivityType = (apiType: string): ActivityEvent['type'] => {
-    const mapping: Record<string, ActivityEvent['type']> = {
-      'task_started': 'task_started',
-      'task_completed': 'task_completed',
-      'task_failed': 'task_failed',
-      'agent_error': 'agent_error',
-      'agent_status_change': 'agent_status_change',
-      'system_event': 'system_event',
-      'user_interaction': 'user_interaction'
-    };
-    return mapping[apiType] || 'system_event';
-  };
+  // Load activity feed data
+  useEffect(() => {
+    loadActivityData();
 
-  const mapSeverity = (apiSeverity: string): ActivityEvent['severity'] => {
-    const mapping: Record<string, ActivityEvent['severity']> = {
-      'info': 'info',
-      'success': 'success',
-      'warning': 'warning',
-      'error': 'error'
-    };
-    return mapping[apiSeverity] || 'info';
-  };
-
-  const playNotificationSound = (): unknown => {
-    if (audioRef.current) {
-      audioRef.current.play().catch(() => {
-        // Ignore audio play errors (user interaction required)
-      });
+    if (isPlaying && realTime) {
+      intervalRef.current = setInterval(loadActivityData, refreshInterval);
     }
-  };
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [loadActivityData, isPlaying, realTime, refreshInterval, filters.agent, filters.timeRange]);
 
   // Filter events based on current filters
   const filteredEvents = useMemo(() => {

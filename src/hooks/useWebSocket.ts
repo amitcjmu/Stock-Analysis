@@ -330,7 +330,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): {
     }
   }, [
     state.isConnecting,
-    state.reconnectAttempts,
     getWebSocketUrl,
     startPingInterval,
     clearPingInterval,
@@ -420,9 +419,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): {
 
   // Cleanup on unmount
   useEffect(() => {
+    const callbacks = eventCallbacksRef.current;
     return () => {
       disconnect();
-      eventCallbacksRef.current.clear();
+      callbacks.clear();
     };
   }, [disconnect]);
 

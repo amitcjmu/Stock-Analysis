@@ -221,7 +221,17 @@ class ApiClient {
       normalizedEndpoint = `/api/v1${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
     }
 
-    const url = `${this.baseUrl}${normalizedEndpoint}`;
+    // CRITICAL FIX: Always use relative URLs when running on port 8081 (Docker development)
+    // This prevents the browser from trying to access http://backend:8000 directly
+    let url: string;
+    if (typeof window !== 'undefined' && window.location.port === '8081') {
+      // Force relative URL for Docker development
+      url = normalizedEndpoint;
+      console.log(`🔧 Docker mode: Using relative URL ${url}`);
+    } else {
+      url = `${this.baseUrl}${normalizedEndpoint}`;
+    }
+    
     const method = (options.method || 'GET').toUpperCase();
 
     try {

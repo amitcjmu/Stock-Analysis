@@ -20,5 +20,5 @@ export const useDebugLogging = (
         expectedIsAdmin: user?.role === 'admin'
       });
     }
-  }, [isAuthenticated, user?.id, user?.role, isAdmin]); // Only log when authentication status or user actually changes
+  }, [isAuthenticated, user?.id, user?.role, user?.email, isAdmin]); // Only log when authentication status or user actually changes
 };

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useEffect } from 'react'
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,7 +23,7 @@ export const useUserType = (): JSX.Element => {
   const [error, setError] = useState<string | null>(null);
   const { getAuthHeaders, isAuthenticated } = useAuth();
 
-  const fetchUserType = async (): Promise<void> => {
+  const fetchUserType = useCallback(async (): Promise<void> => {
     if (!isAuthenticated) {
       setLoading(false);
       return;
@@ -66,11 +66,11 @@ export const useUserType = (): JSX.Element => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAuthHeaders, isAuthenticated]);
 
   useEffect(() => {
     fetchUserType();
-  }, [isAuthenticated]);
+  }, [fetchUserType]);
 
   return {
     userType,

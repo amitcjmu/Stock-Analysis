@@ -344,5 +344,5 @@ export const useAuthInitialization = ({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [fetchDefaultContext, navigate, setClient, setEngagement, setFlow, setIsLoading, setUser]);
 };

@@ -77,7 +77,7 @@ export const createEnhancedLazy = <P extends object>(
       return () => {
         endRouteTransition(bundleName, { bundleName });
       };
-    }, [startRouteTransition, endRouteTransition, bundleName]);
+    }, [startRouteTransition, endRouteTransition]);
 
     const ComponentWithFeatureFlag = featureFlag ? (
       <FeatureGate flag={featureFlag as keyof FeatureFlags} fallback={
@@ -181,7 +181,7 @@ export const createProgressiveLazy = <P extends object>(
       return () => {
         if (observer) observer.disconnect();
       };
-    }, [priority, threshold, rootMargin]);
+    }, []);
 
     // Load component when needed
     React.useEffect(() => {
@@ -192,14 +192,15 @@ export const createProgressiveLazy = <P extends object>(
           console.error(`Failed to load bundle "${bundleName}":`, error);
         });
       }
-    }, [shouldLoad, Component, importFn, bundleName]);
+    }, [shouldLoad, Component]);
 
     // Hover preloading for high priority components
+    const isHighPriority = priority === LoadingPriority.HIGH;
     const handleMouseEnter = React.useCallback(() => {
-      if (priority === LoadingPriority.HIGH && !shouldLoad) {
+      if (isHighPriority && !shouldLoad) {
         setShouldLoad(true);
       }
-    }, [priority, shouldLoad]);
+    }, [isHighPriority, shouldLoad]);
 
     if (!shouldLoad) {
       return (

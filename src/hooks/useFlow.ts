@@ -224,7 +224,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
       handleError(error as Error);
       throw error;
     }
-  }, [flowService, handleError, handleSuccess]);
+  }, [flowService, handleError, handleSuccess, refreshFlow]);
 
   const resumeFlow = useCallback(async (flowId: string): Promise<void> => {
     try {
@@ -244,7 +244,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
       handleError(error as Error);
       throw error;
     }
-  }, [flowService, handleError, handleSuccess]);
+  }, [flowService, handleError, handleSuccess, refreshFlow]);
 
   const deleteFlow = useCallback(async (flowId: string, reason?: string): Promise<void> => {
     try {

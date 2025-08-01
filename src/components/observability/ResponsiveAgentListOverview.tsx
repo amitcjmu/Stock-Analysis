@@ -199,7 +199,7 @@ const useAgentData = (refreshInterval?: number): JSX.Element => {
         setConnectionState(prev => ({ ...prev, isOnline: false }));
       }
     }
-  }, []);
+  }, [loadingStages]);
 
   const updateFilters = useCallback((newFilters: Partial<AgentListFilters>) => {
     setState(prev => {

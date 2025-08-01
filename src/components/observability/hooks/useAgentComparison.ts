@@ -113,9 +113,9 @@ export const useAgentComparison = (options: UseAgentComparisonOptions): {
     } finally {
       setLoading(false);
     }
-  }, [selectedAgents, period]);
+  }, [selectedAgents, period, calculateRankings]);
 
-  const calculateRankings = (data: AgentComparisonData[]): AgentComparisonData[] => {
+  const calculateRankings = useCallback((data: AgentComparisonData[]): AgentComparisonData[] => {
     const scoredData = data.map(agent => {
       const performanceScore =
         (agent.metrics.successRate * 0.3) +
@@ -138,9 +138,9 @@ export const useAgentComparison = (options: UseAgentComparisonOptions): {
         reliability: getRankByMetric(data, 'errorRate', agent.agentName, false)
       }
     }));
-  };
+  }, [getRankByMetric]);
 
-  const getRankByMetric = (
+  const getRankByMetric = useCallback((
     data: AgentComparisonData[],
     metric: keyof AgentComparisonData['metrics'],
     agentName: string,
@@ -150,7 +150,7 @@ export const useAgentComparison = (options: UseAgentComparisonOptions): {
       higherIsBetter ? b.metrics[metric] - a.metrics[metric] : a.metrics[metric] - b.metrics[metric]
     );
     return sorted.findIndex(agent => agent.agentName === agentName) + 1;
-  };
+  }, []);
 
   useEffect(() => {
     loadComparisonData();
