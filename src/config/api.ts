@@ -180,7 +180,7 @@ export const API_CONFIG = {
     },
     HEALTH: '/health',
     // SIXR Endpoints
-    SIXR_ANALYSIS: '/sixr/analyze'
+    SIXR_ANALYSIS: '/6r/analyze'
   }
 };
 

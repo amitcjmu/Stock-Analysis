@@ -214,7 +214,7 @@ export class SixRApiClient {
   async createAnalysis(request: CreateAnalysisRequest): Promise<number> {
     try {
       console.log('🔍 API createAnalysis called with:', request);
-      const response = await apiCall<{ analysis_id: number }>('/sixr/analyze', {
+      const response = await apiCall<{ analysis_id: number }>('/6r/analyze', {
         method: 'POST',
         body: JSON.stringify({
           application_ids: request.application_ids,
@@ -232,7 +232,7 @@ export class SixRApiClient {
 
   async getAnalysis(analysisId: number): Promise<SixRAnalysisResponse> {
     try {
-      const response = await apiCall<SixRAnalysisResponse>(`/sixr/${analysisId}`);
+      const response = await apiCall<SixRAnalysisResponse>(`/6r/${analysisId}`);
       return response;
     } catch (error) {
       this.handleError('Failed to get analysis', error);
@@ -242,7 +242,7 @@ export class SixRApiClient {
 
   async updateParameters(analysisId: number, parameters: SixRParameters): Promise<SixRAnalysisResponse> {
     try {
-      const response = await apiCall<SixRAnalysisResponse>(`/sixr/${analysisId}/parameters`, {
+      const response = await apiCall<SixRAnalysisResponse>(`/6r/${analysisId}/parameters`, {
         method: 'PUT',
         body: JSON.stringify({
           parameters,
@@ -259,7 +259,7 @@ export class SixRApiClient {
 
   async submitQuestions(analysisId: number, responses: QuestionResponse[], isPartial: boolean = false): Promise<SixRAnalysisResponse> {
     try {
-      const response = await apiCall<SixRAnalysisResponse>(`/sixr/${analysisId}/questions`, {
+      const response = await apiCall<SixRAnalysisResponse>(`/6r/${analysisId}/questions`, {
         method: 'POST',
         body: JSON.stringify({
           responses,
@@ -276,7 +276,7 @@ export class SixRApiClient {
 
   async iterateAnalysis(analysisId: number, iterationNotes: string): Promise<SixRAnalysisResponse> {
     try {
-      const response = await apiCall<SixRAnalysisResponse>(`/sixr/${analysisId}/iterate`, {
+      const response = await apiCall<SixRAnalysisResponse>(`/6r/${analysisId}/iterate`, {
         method: 'POST',
         body: JSON.stringify({
           iteration_reason: 'User-initiated iteration',
@@ -293,7 +293,7 @@ export class SixRApiClient {
 
   async getRecommendation(analysisId: number): Promise<SixRRecommendation> {
     try {
-      const response = await apiCall<SixRRecommendation>(`/sixr/${analysisId}/recommendation`);
+      const response = await apiCall<SixRRecommendation>(`/6r/${analysisId}/recommendation`);
       return response;
     } catch (error) {
       this.handleError('Failed to get recommendation', error);
@@ -303,7 +303,7 @@ export class SixRApiClient {
 
   async getQualifyingQuestions(analysisId: number): Promise<QualifyingQuestion[]> {
     try {
-      const response = await apiCall<QualifyingQuestion[]>(`/sixr/${analysisId}/questions`);
+      const response = await apiCall<QualifyingQuestion[]>(`/6r/${analysisId}/questions`);
       return response;
     } catch (error) {
       this.handleError('Failed to get qualifying questions', error);
@@ -329,7 +329,7 @@ export class SixRApiClient {
         });
       }
 
-      const endpoint = `/sixr/history${queryParams.toString() ? `?${queryParams}` : ''}`;
+      const endpoint = `/6r/history${queryParams.toString() ? `?${queryParams}` : ''}`;
       const response = await apiCall<AnalysisHistoryItem[]>(endpoint);
       return response;
     } catch (error) {
@@ -340,7 +340,7 @@ export class SixRApiClient {
 
   async deleteAnalysis(analysisId: number): Promise<{ success: boolean; message: string }> {
     try {
-      return await apiCall<{ success: boolean; message: string }>(`/sixr/${analysisId}`, {
+      return await apiCall<{ success: boolean; message: string }>(`/6r/${analysisId}`, {
         method: 'DELETE'
       });
     } catch (error) {
@@ -351,7 +351,7 @@ export class SixRApiClient {
 
   async archiveAnalysis(analysisId: number): Promise<{ success: boolean; message: string }> {
     try {
-      return await apiCall<{ success: boolean; message: string }>(`/sixr/${analysisId}/archive`, {
+      return await apiCall<{ success: boolean; message: string }>(`/6r/${analysisId}/archive`, {
         method: 'POST'
       });
     } catch (error) {
@@ -362,7 +362,7 @@ export class SixRApiClient {
 
   async createBulkAnalysis(request: BulkAnalysisRequest): Promise<string> {
     try {
-      const response = await apiCall<{ job_id: string }>('/sixr/bulk', {
+      const response = await apiCall<{ job_id: string }>('/6r/bulk', {
         method: 'POST',
         body: JSON.stringify(request)
       });
@@ -375,7 +375,7 @@ export class SixRApiClient {
 
   async getBulkJobs(): Promise<BulkAnalysisJob[]> {
     try {
-      return await apiCall<BulkAnalysisJob[]>('/sixr/bulk');
+      return await apiCall<BulkAnalysisJob[]>('/6r/bulk');
     } catch (error) {
       this.handleError('Failed to get bulk jobs', error);
       throw error;
@@ -384,7 +384,7 @@ export class SixRApiClient {
 
   async getBulkJobResults(jobId: string): Promise<BulkAnalysisResult[]> {
     try {
-      return await apiCall<BulkAnalysisResult[]>(`/sixr/bulk/${jobId}/results`);
+      return await apiCall<BulkAnalysisResult[]>(`/6r/bulk/${jobId}/results`);
     } catch (error) {
       this.handleError('Failed to get bulk job results', error);
       throw error;
@@ -393,7 +393,7 @@ export class SixRApiClient {
 
   async getBulkSummary(): Promise<BulkAnalysisSummary> {
     try {
-      return await apiCall<BulkAnalysisSummary>('/sixr/bulk/summary');
+      return await apiCall<BulkAnalysisSummary>('/6r/bulk/summary');
     } catch (error) {
       this.handleError('Failed to get bulk summary', error);
       throw error;
@@ -405,7 +405,7 @@ export class SixRApiClient {
     action: 'start' | 'pause' | 'cancel' | 'retry'
   ): Promise<{ success: boolean; message: string }> {
     try {
-      return await apiCall<{ success: boolean; message: string }>(`/sixr/bulk/${jobId}/${action}`, {
+      return await apiCall<{ success: boolean; message: string }>(`/6r/bulk/${jobId}/${action}`, {
         method: 'POST'
       });
     } catch (error) {
@@ -416,7 +416,7 @@ export class SixRApiClient {
 
   async deleteBulkJob(jobId: string): Promise<{ success: boolean; message: string }> {
     try {
-      return await apiCall<{ success: boolean; message: string }>(`/sixr/bulk/${jobId}`, {
+      return await apiCall<{ success: boolean; message: string }>(`/6r/bulk/${jobId}`, {
         method: 'DELETE'
       });
     } catch (error) {
@@ -430,7 +430,7 @@ export class SixRApiClient {
     format: 'csv' | 'pdf' | 'json'
   ): Promise<Blob> {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/sixr/export`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/6r/export`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -457,7 +457,7 @@ export class SixRApiClient {
     format: 'csv' | 'pdf' | 'json'
   ): Promise<Blob> {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/sixr/bulk/${jobId}/export`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/6r/bulk/${jobId}/export`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -485,7 +485,7 @@ export class SixRApiClient {
     onClose?: () => void
   ): WebSocket {
     return this.ws.connect(
-      `/sixr/${analysisId}`,
+      `/6r/${analysisId}`,
       onMessage,
       onError,
       onOpen,
@@ -501,7 +501,7 @@ export class SixRApiClient {
     onClose?: () => void
   ): WebSocket {
     return this.ws.connect(
-      `/sixr/bulk/${jobId}`,
+      `/6r/bulk/${jobId}`,
       onMessage,
       onError,
       onOpen,
