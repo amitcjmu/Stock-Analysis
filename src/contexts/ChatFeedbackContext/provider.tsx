@@ -2,9 +2,9 @@ import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom';
-import type { ChatFeedbackContextType } from './ChatFeedbackContext/types';
-import { ChatFeedbackContext } from './ChatFeedbackContext/context';
-import { generatePageContext } from './ChatFeedbackContext/utils';
+import type { ChatFeedbackContextType } from './types';
+import { ChatFeedbackContext } from './context';
+import { generatePageContext } from './utils';
 
 export const ChatFeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -34,4 +34,4 @@ export const ChatFeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
 
 // Re-export types for convenience
-export type { ChatFeedbackContextType } from './ChatFeedbackContext/types';
+export type { ChatFeedbackContextType } from './types';
