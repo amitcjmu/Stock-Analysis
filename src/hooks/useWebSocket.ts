@@ -338,6 +338,9 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       wsRef.current = null;
     }
 
+    // Reset reconnect attempts
+    reconnectAttemptsRef.current = 0;
+
     setState(prev => ({
       ...prev,
       isConnected: false,
