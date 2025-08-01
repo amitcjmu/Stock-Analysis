@@ -1,7 +1,7 @@
-import React from 'react'
-import { useState } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { useQueryClient } from '@tanstack/react-query'
+import React from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,8 +9,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
 
-import type { CreateEngagementData } from './types'
-import type { ClientAccount } from './types'
+import type { CreateEngagementData } from './types';
+import type { ClientAccount } from './types';
 
 // CC: API response interfaces for type safety
 interface ClientApiResponse {
@@ -50,28 +50,28 @@ export const CreateEngagementMain: React.FC = () => {
         return result.map((client: ClientApiResponse) => ({
           id: client.id,
           account_name: client.account_name,
-          industry: client.industry
+          industry: client.industry,
         }));
       } else if (result && result.items && Array.isArray(result.items)) {
         console.log('✅ Using items array format for clients');
         return result.items.map((client: ClientApiResponse) => ({
           id: client.id,
           account_name: client.account_name,
-          industry: client.industry
+          industry: client.industry,
         }));
       } else if (result && result.clients && Array.isArray(result.clients)) {
         console.log('✅ Using clients array format for clients');
         return result.clients.map((client: ClientApiResponse) => ({
           id: client.id,
           account_name: client.account_name,
-          industry: client.industry
+          industry: client.industry,
         }));
       } else if (result && result.data && Array.isArray(result.data)) {
         console.log('✅ Using data array format for clients');
         return result.data.map((client: ClientApiResponse) => ({
           id: client.id,
           account_name: client.account_name,
-          industry: client.industry
+          industry: client.industry,
         }));
       } else {
         console.warn('⚠️ Unexpected client accounts API response format:', result);
@@ -82,8 +82,8 @@ export const CreateEngagementMain: React.FC = () => {
     retry: 2,
     enabled: true,
     refetchOnMount: true,
-    staleTime: 0,  // Always consider data stale
-    cacheTime: 0   // Don't cache the data
+    staleTime: 0, // Always consider data stale
+    cacheTime: 0, // Don't cache the data
   });
   const clientAccounts = clientAccountsQuery.data || [];
   const accountsLoading = clientAccountsQuery.isLoading;
@@ -97,24 +97,24 @@ export const CreateEngagementMain: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(submissionData)
+        body: JSON.stringify(submissionData),
       });
     },
     // Pass engagement name via context for toast
     onSuccess: (_data, variables) => {
       toast({
-        title: "Engagement Created Successfully",
+        title: 'Engagement Created Successfully',
         description: `Engagement ${variables.engagement_name} has been created and is now active.`,
       });
       navigate('/admin/engagements');
     },
     onError: (error: unknown) => {
       toast({
-        title: "Error",
-        description: error?.message || "Failed to create engagement. Please try again.",
-        variant: "destructive"
+        title: 'Error',
+        description: error?.message || 'Failed to create engagement. Please try again.',
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   const [formData, setFormData] = useState<CreateEngagementData>({
@@ -135,19 +135,22 @@ export const CreateEngagementMain: React.FC = () => {
     scope_infrastructure: true,
     scope_data_migration: false,
     risk_level: 'medium',
-    compliance_requirements: []
+    compliance_requirements: [],
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Simple form handler - no useCallback to prevent re-renders
-  const handleFormChange = (field: keyof CreateEngagementData, value: string | number | boolean | string[]): void => {
-    setFormData(prev => ({
+  const handleFormChange = (
+    field: keyof CreateEngagementData,
+    value: string | number | boolean | string[]
+  ): void => {
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: '' }));
     }
   };
 
@@ -159,7 +162,8 @@ export const CreateEngagementMain: React.FC = () => {
     if (!formData.project_manager) newErrors.project_manager = 'Project manager is required';
     if (!formData.estimated_start_date) newErrors.estimated_start_date = 'Start date is required';
     if (!formData.estimated_end_date) newErrors.estimated_end_date = 'End date is required';
-    if (!formData.target_cloud_provider) newErrors.target_cloud_provider = 'Target cloud provider is required';
+    if (!formData.target_cloud_provider)
+      newErrors.target_cloud_provider = 'Target cloud provider is required';
     if (formData.estimated_start_date && formData.estimated_end_date) {
       if (new Date(formData.estimated_start_date) >= new Date(formData.estimated_end_date)) {
         newErrors.estimated_end_date = 'End date must be after start date';
@@ -173,9 +177,9 @@ export const CreateEngagementMain: React.FC = () => {
   const handleSubmit = (): JSX.Element => {
     if (!validateForm()) {
       toast({
-        title: "Validation Error",
-        description: "Please fix the errors in the form",
-        variant: "destructive"
+        title: 'Validation Error',
+        description: 'Please fix the errors in the form',
+        variant: 'destructive',
       });
       return;
     }
@@ -184,9 +188,17 @@ export const CreateEngagementMain: React.FC = () => {
     let migrationScope = 'application_portfolio'; // Default
     if (formData.scope_applications && formData.scope_databases && formData.scope_infrastructure) {
       migrationScope = 'full_datacenter';
-    } else if (formData.scope_applications && !formData.scope_databases && !formData.scope_infrastructure) {
+    } else if (
+      formData.scope_applications &&
+      !formData.scope_databases &&
+      !formData.scope_infrastructure
+    ) {
       migrationScope = 'selected_applications';
-    } else if (!formData.scope_applications && !formData.scope_databases && formData.scope_infrastructure) {
+    } else if (
+      !formData.scope_applications &&
+      !formData.scope_databases &&
+      formData.scope_infrastructure
+    ) {
       migrationScope = 'infrastructure_only';
     }
 
@@ -194,22 +206,30 @@ export const CreateEngagementMain: React.FC = () => {
     const submissionData = {
       engagement_name: formData.engagement_name,
       client_account_id: formData.client_account_id,
-      engagement_description: formData.description || `${formData.engagement_name} migration engagement`,
+      engagement_description:
+        formData.description || `${formData.engagement_name} migration engagement`,
       migration_scope: migrationScope,
       target_cloud_provider: formData.target_cloud_provider || 'aws',
       engagement_manager: formData.project_manager,
       technical_lead: formData.project_manager, // Use same person as default
-      planned_start_date: formData.estimated_start_date ? new Date(formData.estimated_start_date).toISOString() : null,
-      planned_end_date: formData.estimated_end_date ? new Date(formData.estimated_end_date).toISOString() : null,
+      planned_start_date: formData.estimated_start_date
+        ? new Date(formData.estimated_start_date).toISOString()
+        : null,
+      planned_end_date: formData.estimated_end_date
+        ? new Date(formData.estimated_end_date).toISOString()
+        : null,
       estimated_budget: formData.budget ? parseFloat(formData.budget.toString()) : null,
       team_preferences: {},
       agent_configuration: {},
       discovery_preferences: {},
-      assessment_criteria: {}
+      assessment_criteria: {},
     };
 
     // Ensure description is at least 10 characters to meet backend validation
-    if (!submissionData.engagement_description || submissionData.engagement_description.length < 10) {
+    if (
+      !submissionData.engagement_description ||
+      submissionData.engagement_description.length < 10
+    ) {
       submissionData.engagement_description = `${submissionData.engagement_name} migration engagement project`;
     }
 
@@ -245,7 +265,12 @@ export const CreateEngagementMain: React.FC = () => {
           <p>Client Accounts Count: {clientAccounts.length}</p>
           <p>Query Status: {clientAccountsQuery.status}</p>
           <p>Fetch Status: {clientAccountsQuery.fetchStatus}</p>
-          <p>Clients: {clientAccounts.length > 0 ? clientAccounts.map(c => c.account_name).join(', ') : 'None'}</p>
+          <p>
+            Clients:{' '}
+            {clientAccounts.length > 0
+              ? clientAccounts.map((c) => c.account_name).join(', ')
+              : 'None'}
+          </p>
         </div>
         <div className="flex gap-2 mt-2">
           <Button
@@ -268,7 +293,13 @@ export const CreateEngagementMain: React.FC = () => {
         </div>
       </div>
 
-      <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-6">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit();
+        }}
+        className="space-y-6"
+      >
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <EngagementBasicInfo
@@ -282,10 +313,7 @@ export const CreateEngagementMain: React.FC = () => {
               errors={errors}
               onFormChange={handleFormChange}
             />
-            <EngagementScope
-              formData={formData}
-              onFormChange={handleFormChange}
-            />
+            <EngagementScope formData={formData} onFormChange={handleFormChange} />
           </div>
 
           <div className="space-y-6">

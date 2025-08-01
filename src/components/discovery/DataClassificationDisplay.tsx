@@ -85,7 +85,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [pageContext, session?.id]);
+  }, [pageContext]);
 
   // Initial fetch and refresh when dependencies change
   useEffect(() => {

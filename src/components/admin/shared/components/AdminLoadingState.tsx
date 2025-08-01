@@ -12,13 +12,13 @@ export interface AdminLoadingStateProps {
 }
 
 export const AdminLoadingState: React.FC<AdminLoadingStateProps> = ({
-  message = "Loading Dashboard...",
+  message = 'Loading Dashboard...',
   fullScreen = false,
-  className = ''
+  className = '',
 }) => {
   const containerClasses = fullScreen
-    ? "flex items-center justify-center min-h-screen"
-    : "container mx-auto p-6";
+    ? 'flex items-center justify-center min-h-screen'
+    : 'container mx-auto p-6';
 
   return (
     <div className={`${containerClasses} ${className}`}>
@@ -37,19 +37,16 @@ export interface AdminErrorStateProps {
 }
 
 export const AdminErrorState: React.FC<AdminErrorStateProps> = ({
-  message = "Failed to load dashboard data. Please try again later.",
+  message = 'Failed to load dashboard data. Please try again later.',
   onRetry,
-  className = ''
+  className = '',
 }) => {
   return (
     <div className={`container mx-auto p-6 ${className}`}>
       <div className="text-center">
         <p className="text-red-500 mb-4">{message}</p>
         {onRetry && (
-          <button
-            onClick={onRetry}
-            className="text-blue-600 hover:text-blue-800 underline"
-          >
+          <button onClick={onRetry} className="text-blue-600 hover:text-blue-800 underline">
             Try Again
           </button>
         )}

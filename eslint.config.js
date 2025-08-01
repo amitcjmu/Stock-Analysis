@@ -35,7 +35,13 @@ export default tseslint.config(
       "*.tsbuildinfo",
       "tests/**/*.js",
       "tests/**/*.cjs",
-      "**/*.cjs"
+      "**/*.cjs",
+      "playwright-report/**/*",
+      "test-results/**/*",
+      "**/playwright-report/**",
+      "**/test-results/**",
+      "**/*.html",
+      "**/assets/**/*.js"
     ]
   },
 

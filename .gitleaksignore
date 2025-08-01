@@ -17,3 +17,4 @@ backend/ruff-report.txt:generic-api-key:792670
 backend/ruff-report.txt:generic-api-key:792679
 test-results/.playwright-artifacts-2/traces/resources/380bc360c04174c8b9784750590ab4f5b8dcb5ee.json:jwt:1
 test-results/.playwright-artifacts-2/traces/resources/7c1272b1e48a42bb605e2e81382e7b438e4d018b.json:jwt:1
+backend/app/tests/test_cache_integration.py:generic-api-key:188

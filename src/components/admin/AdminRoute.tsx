@@ -1,6 +1,6 @@
-import React from 'react'
-import type { ReactNode } from 'react'
-import { useEffect, useState, useRef } from 'react'
+import React from 'react';
+import type { ReactNode } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Shield, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +25,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     stateStabilized,
     userId: user?.id,
     userRole: user?.role,
-    location: location.pathname
+    location: location.pathname,
   });
 
   if (currentState !== lastLoggedStateRef.current) {
@@ -35,7 +35,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
       isLoading,
       stateStabilized,
       user: user ? { id: user.id, role: user.role, full_name: user.full_name } : null,
-      location: location.pathname
+      location: location.pathname,
     });
     lastLoggedStateRef.current = currentState;
   }
@@ -49,7 +49,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
         console.log('🛡️ AdminRoute State Stabilized:', {
           isAdmin,
           userRole: user?.role,
-          finalDecision: isAdmin || user?.role === 'admin' || user?.role === 'platform_admin'
+          finalDecision: isAdmin || user?.role === 'admin' || user?.role === 'platform_admin',
         });
       }, 100);
       return () => clearTimeout(timer);
@@ -87,7 +87,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
       isAdmin,
       userRole: user?.role,
       hasAdminAccess,
-      finalDecision: hasAdminAccess
+      finalDecision: hasAdminAccess,
     });
     lastLoggedStateRef.current += '-access';
   }
@@ -112,21 +112,19 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
               <span>Administrator privileges required</span>
             </div>
             <div className="text-sm text-gray-600 space-y-2">
-              <p>Current user: <strong>{user?.full_name}</strong> ({user?.role})</p>
-              <p>If you believe you should have access to this area, please contact your system administrator.</p>
+              <p>
+                Current user: <strong>{user?.full_name}</strong> ({user?.role})
+              </p>
+              <p>
+                If you believe you should have access to this area, please contact your system
+                administrator.
+              </p>
             </div>
             <div className="flex flex-col gap-2">
-              <Button
-                onClick={() => window.history.back()}
-                variant="outline"
-                className="w-full"
-              >
+              <Button onClick={() => window.history.back()} variant="outline" className="w-full">
                 Go Back
               </Button>
-              <Button
-                onClick={() => window.location.href = '/'}
-                className="w-full"
-              >
+              <Button onClick={() => (window.location.href = '/')} className="w-full">
                 Return to Platform
               </Button>
             </div>

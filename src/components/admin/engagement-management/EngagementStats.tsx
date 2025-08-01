@@ -1,6 +1,6 @@
 import React from 'react';
-import { Users, AlertTriangle } from 'lucide-react'
-import { Building2, DollarSign, CheckCircle, Clock } from 'lucide-react'
+import { Users, AlertTriangle } from 'lucide-react';
+import { Building2, DollarSign, CheckCircle, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Engagement } from './types';
 
@@ -11,54 +11,61 @@ interface EngagementStatsProps {
 export const EngagementStats: React.FC<EngagementStatsProps> = ({ engagements }) => {
   // Calculate statistics from engagements
   const totalEngagements = engagements.length;
-  const activeEngagements = engagements.filter(e => e.is_active).length;
-  const completedEngagements = engagements.filter(e => e.migration_phase === 'completed').length;
+  const activeEngagements = engagements.filter((e) => e.is_active).length;
+  const completedEngagements = engagements.filter((e) => e.migration_phase === 'completed').length;
   const totalBudget = engagements.reduce((sum, e) => sum + (e.estimated_budget || 0), 0);
-  const avgProgress = engagements.length > 0
-    ? engagements.reduce((sum, e) => sum + e.completion_percentage, 0) / engagements.length
-    : 0;
+  const avgProgress =
+    engagements.length > 0
+      ? engagements.reduce((sum, e) => sum + e.completion_percentage, 0) / engagements.length
+      : 0;
 
   // Phase distribution
-  const phaseDistribution = engagements.reduce((acc, engagement) => {
-    acc[engagement.migration_phase] = (acc[engagement.migration_phase] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const phaseDistribution = engagements.reduce(
+    (acc, engagement) => {
+      acc[engagement.migration_phase] = (acc[engagement.migration_phase] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   // Cloud provider distribution
-  const cloudProviderDistribution = engagements.reduce((acc, engagement) => {
-    acc[engagement.target_cloud_provider] = (acc[engagement.target_cloud_provider] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const cloudProviderDistribution = engagements.reduce(
+    (acc, engagement) => {
+      acc[engagement.target_cloud_provider] = (acc[engagement.target_cloud_provider] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const formatCurrency = (amount: number): unknown => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
   const getPhaseLabel = (phase: string): JSX.Element => {
     const labels: Record<string, string> = {
-      'planning': 'Planning',
-      'discovery': 'Discovery',
-      'assessment': 'Assessment',
-      'migration': 'Migration',
-      'optimization': 'Optimization',
-      'completed': 'Completed'
+      planning: 'Planning',
+      discovery: 'Discovery',
+      assessment: 'Assessment',
+      migration: 'Migration',
+      optimization: 'Optimization',
+      completed: 'Completed',
     };
     return labels[phase] || phase;
   };
 
   const getProviderLabel = (provider: string): JSX.Element => {
     const labels: Record<string, string> = {
-      'aws': 'AWS',
-      'azure': 'Azure',
-      'gcp': 'GCP',
-      'multi_cloud': 'Multi-Cloud',
-      'hybrid': 'Hybrid',
-      'private_cloud': 'Private Cloud'
+      aws: 'AWS',
+      azure: 'Azure',
+      gcp: 'GCP',
+      multi_cloud: 'Multi-Cloud',
+      hybrid: 'Hybrid',
+      private_cloud: 'Private Cloud',
     };
     return labels[provider] || provider.toUpperCase();
   };
@@ -73,9 +80,7 @@ export const EngagementStats: React.FC<EngagementStatsProps> = ({ engagements })
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{totalEngagements}</div>
-          <p className="text-xs text-muted-foreground">
-            {activeEngagements} active
-          </p>
+          <p className="text-xs text-muted-foreground">{activeEngagements} active</p>
         </CardContent>
       </Card>
 
@@ -88,7 +93,10 @@ export const EngagementStats: React.FC<EngagementStatsProps> = ({ engagements })
         <CardContent>
           <div className="text-2xl font-bold">{completedEngagements}</div>
           <p className="text-xs text-muted-foreground">
-            {totalEngagements > 0 ? ((completedEngagements / totalEngagements) * 100).toFixed(1) : 0}% completion rate
+            {totalEngagements > 0
+              ? ((completedEngagements / totalEngagements) * 100).toFixed(1)
+              : 0}
+            % completion rate
           </p>
         </CardContent>
       </Card>
@@ -101,9 +109,7 @@ export const EngagementStats: React.FC<EngagementStatsProps> = ({ engagements })
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{formatCurrency(totalBudget)}</div>
-          <p className="text-xs text-muted-foreground">
-            Across all engagements
-          </p>
+          <p className="text-xs text-muted-foreground">Across all engagements</p>
         </CardContent>
       </Card>
 
@@ -115,9 +121,7 @@ export const EngagementStats: React.FC<EngagementStatsProps> = ({ engagements })
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{avgProgress.toFixed(1)}%</div>
-          <p className="text-xs text-muted-foreground">
-            Overall completion
-          </p>
+          <p className="text-xs text-muted-foreground">Overall completion</p>
         </CardContent>
       </Card>
 

@@ -1,6 +1,5 @@
 import React from 'react'
-import { useState } from 'react'
-import { useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -53,7 +52,7 @@ const AgentLearningInsights: React.FC = () => {
   const [testField, setTestField] = useState('server_name');
   const [fieldSuggestion, setFieldSuggestion] = useState<FieldMappingSuggestion | null>(null);
 
-  const fetchLearningData = async (): Promise<void> => {
+  const fetchLearningData = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
 
@@ -98,7 +97,7 @@ const AgentLearningInsights: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getAuthHeaders]);
 
   const testFieldMapping = async (): Promise<void> => {
     if (!testField.trim()) return;
@@ -200,7 +199,7 @@ const AgentLearningInsights: React.FC = () => {
 
   useEffect(() => {
     fetchLearningData();
-  }, [context]);
+  }, [fetchLearningData]);
 
   if (isLoading) {
     return (

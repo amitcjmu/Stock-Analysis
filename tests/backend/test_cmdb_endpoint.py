@@ -3,8 +3,10 @@
 Test script for CMDB analysis endpoint.
 """
 
-import requests
 import time
+
+import requests
+
 
 def test_cmdb_analysis():
     """Test the CMDB analysis endpoint."""
@@ -38,12 +40,12 @@ DatabaseSrv,Server,Production,16,32,192.168.1.12"""
     test_request = {
         "filename": "test_cmdb_export.csv",
         "content": test_csv_content,
-        "fileType": "text/csv"
+        "fileType": "text/csv",
     }
 
     print("\n📊 Testing CMDB Analysis...")
     print(f"   File: {test_request['filename']}")
-    rows_count = len(test_csv_content.split('\n')) - 1
+    rows_count = len(test_csv_content.split("\n")) - 1
     print(f"   Rows: {rows_count}")
 
     try:
@@ -51,7 +53,7 @@ DatabaseSrv,Server,Production,16,32,192.168.1.12"""
         response = requests.post(
             "http://localhost:8000/api/v1/discovery/analyze-cmdb",
             json=test_request,
-            timeout=60  # 60 second timeout
+            timeout=60,  # 60 second timeout
         )
 
         print(f"   Status Code: {response.status_code}")
@@ -60,15 +62,17 @@ DatabaseSrv,Server,Production,16,32,192.168.1.12"""
             result = response.json()
             print("✅ Analysis completed successfully!")
             print(f"   Status: {result.get('status', 'unknown')}")
-            print(f"   Data Quality Score: {result.get('dataQuality', {}).get('score', 'N/A')}")
+            print(
+                f"   Data Quality Score: {result.get('dataQuality', {}).get('score', 'N/A')}"
+            )
             print(f"   Coverage: {result.get('coverage', {})}")
             print(f"   Missing Fields: {len(result.get('missingFields', []))}")
             print(f"   Ready for Import: {result.get('readyForImport', False)}")
 
             # Show some details
-            if result.get('dataQuality', {}).get('issues'):
+            if result.get("dataQuality", {}).get("issues"):
                 print(f"   Issues Found: {len(result['dataQuality']['issues'])}")
-                for issue in result['dataQuality']['issues'][:3]:  # Show first 3
+                for issue in result["dataQuality"]["issues"][:3]:  # Show first 3
                     print(f"     - {issue}")
 
             return True
@@ -86,6 +90,7 @@ DatabaseSrv,Server,Production,16,32,192.168.1.12"""
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
         return False
+
 
 if __name__ == "__main__":
     success = test_cmdb_analysis()

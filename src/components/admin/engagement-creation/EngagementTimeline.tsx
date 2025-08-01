@@ -3,9 +3,15 @@ import { AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { CreateEngagementData } from './types'
-import { Currencies } from './types'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type { CreateEngagementData } from './types';
+import { Currencies } from './types';
 
 interface EngagementTimelineProps {
   formData: CreateEngagementData;
@@ -16,7 +22,7 @@ interface EngagementTimelineProps {
 export const EngagementTimeline: React.FC<EngagementTimelineProps> = ({
   formData,
   errors,
-  onFormChange
+  onFormChange,
 }) => {
   return (
     <Card>
@@ -75,12 +81,15 @@ export const EngagementTimeline: React.FC<EngagementTimelineProps> = ({
 
           <div className="space-y-2">
             <Label htmlFor="budget_currency">Budget Currency</Label>
-            <Select value={formData.budget_currency} onValueChange={(value) => onFormChange('budget_currency', value)}>
+            <Select
+              value={formData.budget_currency}
+              onValueChange={(value) => onFormChange('budget_currency', value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select currency" />
               </SelectTrigger>
               <SelectContent>
-                {Currencies.map(currency => (
+                {Currencies.map((currency) => (
                   <SelectItem key={currency.value} value={currency.value}>
                     {currency.label}
                   </SelectItem>

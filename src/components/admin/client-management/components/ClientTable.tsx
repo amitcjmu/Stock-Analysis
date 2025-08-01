@@ -2,9 +2,21 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, Edit, Trash2, MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { Client } from '../types';
 
 interface ClientTableProps {
@@ -20,7 +32,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
   loading,
   actionLoading,
   onEditClient,
-  onDeleteClient
+  onDeleteClient,
 }) => {
   const getStatusBadge = (isActive: boolean): JSX.Element => {
     return isActive ? (
@@ -32,10 +44,10 @@ export const ClientTable: React.FC<ClientTableProps> = ({
 
   const getTierBadge = (tier: string): JSX.Element => {
     const tierStyles: Record<string, string> = {
-      'Enterprise': 'bg-purple-100 text-purple-800',
-      'Professional': 'bg-blue-100 text-blue-800',
-      'Standard': 'bg-gray-100 text-gray-800',
-      'Free Trial': 'bg-yellow-100 text-yellow-800'
+      Enterprise: 'bg-purple-100 text-purple-800',
+      Professional: 'bg-blue-100 text-blue-800',
+      Standard: 'bg-gray-100 text-gray-800',
+      'Free Trial': 'bg-yellow-100 text-yellow-800',
     };
     return <Badge className={tierStyles[tier] || 'bg-gray-100 text-gray-800'}>{tier}</Badge>;
   };
@@ -76,10 +88,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
           {clients.map((client) => (
             <TableRow key={client.id}>
               <TableCell className="font-medium">
-                <Link
-                  to={`/admin/clients/${client.id}`}
-                  className="hover:underline"
-                >
+                <Link to={`/admin/clients/${client.id}`} className="hover:underline">
                   {client.account_name}
                 </Link>
               </TableCell>
@@ -104,11 +113,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      disabled={actionLoading === client.id}
-                    >
+                    <Button variant="ghost" size="icon" disabled={actionLoading === client.id}>
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>

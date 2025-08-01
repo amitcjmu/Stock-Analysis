@@ -1,7 +1,9 @@
 import asyncio
 import signal
 import sys
-from app.services.crewai_flow_service import crewai_service
+
+from app.services.crewai_service_modular import crewai_service
+
 
 class TimeoutHandler:
     def __init__(self, timeout_seconds=30):
@@ -22,6 +24,7 @@ class TimeoutHandler:
     def __exit__(self, type, value, traceback):
         signal.alarm(0)
 
+
 async def test_task_execution_steps():
     """Test each step of task execution to find where it hangs."""
     print("🧪 Testing CrewAI Task Execution Steps")
@@ -40,9 +43,9 @@ async def test_task_execution_steps():
     # Step 2: Test simple data preparation
     print("\nStep 2: Preparing test data...")
     test_data = {
-        'filename': 'simple_test.csv',
-        'headers': ['Name', 'Type'],
-        'sample_data': [['Server01', 'Server']]
+        "filename": "simple_test.csv",
+        "headers": ["Name", "Type"],
+        "sample_data": [["Server01", "Server"]],
     }
     print("✅ Test data prepared")
 
@@ -57,6 +60,7 @@ async def test_task_execution_steps():
         print(f"❌ Analysis failed: {e}")
         return False
 
+
 async def test_direct_crew_execution():
     """Test direct crew execution to isolate the hanging."""
     print("\n🔧 Testing Direct Crew Execution")
@@ -66,7 +70,7 @@ async def test_direct_crew_execution():
         from crewai import Task
 
         # Get the CMDB analyst agent
-        agent = crewai_service.agents.get('cmdb_analyst')
+        agent = crewai_service.agents.get("cmdb_analyst")
         if not agent:
             print("❌ CMDB analyst agent not found")
             return False
@@ -77,7 +81,7 @@ async def test_direct_crew_execution():
         print("\nCreating simple task...")
         task = Task(
             description="Analyze this simple data: Name=Server01, Type=Server. What asset type is this?",
-            agent=agent
+            agent=agent,
         )
         print("✅ Task created")
 
@@ -92,7 +96,9 @@ async def test_direct_crew_execution():
         print(f"❌ Direct execution failed: {e}")
         return False
 
+
 if __name__ == "__main__":
+
     async def main():
         print("=" * 60)
         print("CrewAI Task Execution Debug Test")

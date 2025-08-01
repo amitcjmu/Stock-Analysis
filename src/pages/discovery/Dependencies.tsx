@@ -21,7 +21,7 @@ import { useDependenciesFlowDetection } from '../../hooks/discovery/useDiscovery
 import { useAuth } from '../../contexts/AuthContext';
 
 // Services
-import { createDependency, findAssetIdByName } from '../../services/dependencyService';
+import { createDependency, findAssetIdByName, type DependencyCreate } from '../../services/dependencyService';
 import { toast } from '@/components/ui/use-toast';
 
 const Dependencies: React.FC = () => {
@@ -258,7 +258,7 @@ const Dependencies: React.FC = () => {
                 <DependencyMappingPanel
                   data={dependencyData}
                   activeView={activeView}
-                  onCreateDependency={async (dependency: any) => {
+                  onCreateDependency={async (dependency: DependencyCreate) => {
                     console.log('Creating dependency:', dependency);
 
                     try {
@@ -305,11 +305,11 @@ const Dependencies: React.FC = () => {
 
                       // Refresh the dependency data
                       await analyzeDependencies();
-                    } catch (error: any) {
+                    } catch (error: unknown) {
                       console.error('Error creating dependency:', error);
                       toast({
                         title: "Error",
-                        description: error.message || "Failed to create dependency",
+                        description: error instanceof Error ? error.message : "Failed to create dependency",
                         variant: "destructive",
                       });
                     }

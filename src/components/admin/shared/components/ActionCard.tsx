@@ -33,7 +33,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({
   title,
   description,
   actions,
-  className = ''
+  className = '',
 }) => {
   return (
     <Card className={className}>
@@ -55,10 +55,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({
                   {action.icon && <action.icon className="w-4 h-4 mr-2" />}
                   <span className="flex-1">{action.label}</span>
                   {action.badge && (
-                    <Badge
-                      variant={action.badge.variant || 'secondary'}
-                      className="ml-2"
-                    >
+                    <Badge variant={action.badge.variant || 'secondary'} className="ml-2">
                       {action.badge.text}
                     </Badge>
                   )}
@@ -68,10 +65,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({
                   {action.icon && <action.icon className="w-4 h-4 mr-2" />}
                   <span className="flex-1">{action.label}</span>
                   {action.badge && (
-                    <Badge
-                      variant={action.badge.variant || 'secondary'}
-                      className="ml-2"
-                    >
+                    <Badge variant={action.badge.variant || 'secondary'} className="ml-2">
                       {action.badge.text}
                     </Badge>
                   )}
@@ -80,11 +74,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({
             </Button>
           );
 
-          return (
-            <div key={action.label}>
-              {ActionButton}
-            </div>
-          );
+          return <div key={action.label}>{ActionButton}</div>;
         })}
       </CardContent>
     </Card>

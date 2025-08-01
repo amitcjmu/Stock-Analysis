@@ -4,16 +4,17 @@ Test CrewAI with completely fresh agents and LLM instance that has thinking mode
 """
 
 import asyncio
-import time
-import sys
-import os
 import gc
+import os
+import sys
+import time
 
 # Add the backend directory to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "backend"))
 
-from app.services.deepinfra_llm import create_crewai_compatible_llm
 from app.core.config import settings
+from app.services.deepinfra_llm import create_crewai_compatible_llm
+
 
 async def test_completely_fresh_crewai():
     """Test CrewAI with completely fresh agents and LLM instance."""
@@ -29,7 +30,7 @@ async def test_completely_fresh_crewai():
         model_id=settings.DEEPINFRA_MODEL,
         temperature=0.1,
         max_tokens=100,  # Small for quick testing
-        reasoning_effort="none"  # Explicitly disable reasoning
+        reasoning_effort="none",  # Explicitly disable reasoning
     )
 
     print(f"✅ Fresh LLM created: {fresh_llm.model_id}")
@@ -58,7 +59,7 @@ async def test_completely_fresh_crewai():
     print("\n🔍 Step 2: Fresh CrewAI Agents Test")
     try:
         # Import CrewAI components fresh
-        from crewai import Agent, Task, Crew, Process
+        from crewai import Agent, Crew, Process, Task
 
         print("✅ CrewAI components imported")
 
@@ -70,7 +71,7 @@ async def test_completely_fresh_crewai():
             llm=fresh_llm,
             verbose=False,  # Disable verbose to reduce overhead
             allow_delegation=False,
-            memory=False  # Disable memory for faster execution
+            memory=False,  # Disable memory for faster execution
         )
 
         print("✅ Fresh agent created")
@@ -79,7 +80,7 @@ async def test_completely_fresh_crewai():
         simple_task = Task(
             description="What is 7+8? Answer with just the number.",
             agent=fresh_agent,
-            expected_output="A single number"
+            expected_output="A single number",
         )
 
         print("✅ Simple task created")
@@ -90,7 +91,7 @@ async def test_completely_fresh_crewai():
             tasks=[simple_task],
             process=Process.sequential,
             verbose=False,  # Disable verbose to reduce overhead
-            memory=False  # Disable memory for faster execution
+            memory=False,  # Disable memory for faster execution
         )
 
         print("✅ Fresh crew created")
@@ -106,15 +107,19 @@ async def test_completely_fresh_crewai():
             print("🎉 SUCCESS: Fresh CrewAI executed quickly without thinking mode!")
             return True
         else:
-            print(f"⚠️  Fresh CrewAI took {duration:.2f}s - might still have thinking mode issues")
+            print(
+                f"⚠️  Fresh CrewAI took {duration:.2f}s - might still have thinking mode issues"
+            )
             return False
 
     except Exception as e:
         duration = time.time() - start_time
         print(f"❌ Fresh CrewAI failed after {duration:.2f}s: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 async def test_fresh_cmdb_analysis():
     """Test CMDB analysis with completely fresh setup."""
@@ -130,11 +135,11 @@ async def test_fresh_cmdb_analysis():
             model_id=settings.DEEPINFRA_MODEL,
             temperature=0.1,
             max_tokens=200,  # Slightly larger for CMDB analysis
-            reasoning_effort="none"
+            reasoning_effort="none",
         )
 
         # Import fresh
-        from crewai import Agent, Task, Crew, Process
+        from crewai import Agent, Crew, Process, Task
 
         # Create a fresh CMDB analyst agent
         cmdb_agent = Agent(
@@ -144,7 +149,7 @@ async def test_fresh_cmdb_analysis():
             llm=cmdb_llm,
             verbose=False,
             allow_delegation=False,
-            memory=False
+            memory=False,
         )
 
         # Create CMDB analysis task
@@ -159,7 +164,7 @@ async def test_fresh_cmdb_analysis():
             Answer with just: "mixed" (since there are both applications and servers)
             """,
             agent=cmdb_agent,
-            expected_output="A single word indicating the asset type"
+            expected_output="A single word indicating the asset type",
         )
 
         # Create fresh crew for CMDB analysis
@@ -168,7 +173,7 @@ async def test_fresh_cmdb_analysis():
             tasks=[cmdb_task],
             process=Process.sequential,
             verbose=False,
-            memory=False
+            memory=False,
         )
 
         print("✅ Fresh CMDB analysis setup created")
@@ -191,10 +196,13 @@ async def test_fresh_cmdb_analysis():
         duration = time.time() - start_time
         print(f"❌ Fresh CMDB analysis failed after {duration:.2f}s: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
+
 if __name__ == "__main__":
+
     async def main():
         print("🔬 CrewAI Fresh Agent Test Suite")
         print("=" * 50)

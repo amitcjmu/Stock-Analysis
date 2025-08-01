@@ -24,7 +24,7 @@ Status: COMPLETE - All 6 core services implemented
 """
 
 from .ai_validation_service import AIValidationService
-from .business_context_analyzer import BusinessContextAnalyzer
+from .business_context_analyzer import BusinessAnalyzers
 
 # BusinessContextAnalyzerCompat import commented out - unused
 # from .business_context_analyzer_compat import (

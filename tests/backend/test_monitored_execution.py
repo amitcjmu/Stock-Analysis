@@ -1,9 +1,11 @@
 import asyncio
-import time
 import signal
 import sys
-from app.services.crewai_flow_service import crewai_service
+import time
+
 from app.services.agent_monitor import agent_monitor
+from app.services.crewai_service_modular import crewai_service
+
 
 class MonitoredTest:
     def __init__(self):
@@ -11,6 +13,7 @@ class MonitoredTest:
 
     def setup_signal_handler(self):
         """Setup signal handler for graceful shutdown."""
+
         def signal_handler(signum, frame):
             print(f"\n🛑 Test interrupted by signal {signum}")
             self.test_running = False
@@ -19,6 +22,7 @@ class MonitoredTest:
 
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
+
 
 async def test_with_monitoring():
     """Test CMDB analysis with comprehensive monitoring."""
@@ -40,12 +44,12 @@ async def test_with_monitoring():
 
     # Test data
     test_data = {
-        'filename': 'monitored_test.csv',
-        'headers': ['Name', 'CI_Type', 'Environment', 'CPU_Cores'],
-        'sample_data': [
-            ['WebServer01', 'Server', 'Production', '4'],
-            ['Database01', 'Database', 'Production', '8']
-        ]
+        "filename": "monitored_test.csv",
+        "headers": ["Name", "CI_Type", "Environment", "CPU_Cores"],
+        "sample_data": [
+            ["WebServer01", "Server", "Production", "4"],
+            ["Database01", "Database", "Production", "8"],
+        ],
     }
 
     print(f"\n📊 Test data prepared: {len(test_data['sample_data'])} assets")
@@ -76,6 +80,7 @@ async def test_with_monitoring():
         # Always print summary
         agent_monitor.print_summary()
 
+
 async def test_simple_task():
     """Test a simple task to isolate the issue."""
     print("\n🧪 Testing Simple Task Execution")
@@ -85,7 +90,7 @@ async def test_simple_task():
         from crewai import Task
 
         # Get agent
-        agent = crewai_service.agents.get('cmdb_analyst')
+        agent = crewai_service.agents.get("cmdb_analyst")
         if not agent:
             print("❌ Agent not available")
             return False
@@ -96,7 +101,7 @@ async def test_simple_task():
         task = Task(
             description="What type of asset is this: Name=Server01, Type=Server?",
             agent=agent,
-            expected_output="Asset type classification (e.g., Server, Database, Application)"
+            expected_output="Asset type classification (e.g., Server, Database, Application)",
         )
 
         print("🔄 Executing simple task...")
@@ -109,21 +114,28 @@ async def test_simple_task():
         print(f"❌ Simple task failed: {e}")
         return False
 
+
 async def monitor_status_loop():
     """Background task to print status updates."""
     while True:
         await asyncio.sleep(10)  # Every 10 seconds
         status = agent_monitor.get_status_report()
 
-        if status['active_tasks'] > 0:
+        if status["active_tasks"] > 0:
             print(f"\n📊 STATUS UPDATE: {status['active_tasks']} active tasks")
-            for task in status['active_task_details']:
-                if task['is_hanging']:
-                    print(f"🚨 HANGING: {task['agent']} - {task['elapsed']} - {task['description']}")
+            for task in status["active_task_details"]:
+                if task["is_hanging"]:
+                    print(
+                        f"🚨 HANGING: {task['agent']} - {task['elapsed']} - {task['description']}"
+                    )
                 else:
-                    print(f"⏳ RUNNING: {task['agent']} - {task['elapsed']} - {task['status']}")
+                    print(
+                        f"⏳ RUNNING: {task['agent']} - {task['elapsed']} - {task['status']}"
+                    )
+
 
 if __name__ == "__main__":
+
     async def main():
         print("🔬 CrewAI Monitored Execution Test")
         print("=" * 50)
@@ -137,7 +149,7 @@ if __name__ == "__main__":
             simple_success = await test_simple_task()
 
             if simple_success:
-                print("\n" + "="*50)
+                print("\n" + "=" * 50)
                 print("TEST 2: Full CMDB Analysis")
                 await test_with_monitoring()
             else:

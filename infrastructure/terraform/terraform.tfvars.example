@@ -1,0 +1,28 @@
+# Terraform Variables Configuration
+# Copy this file to terraform.tfvars and customize for your environment
+
+# Environment Configuration
+environment = "prod"  # Options: dev, staging, prod
+project_name = "ai-modernize-migration"
+
+# AWS Configuration
+aws_region = "us-east-1"
+terraform_state_bucket = "your-terraform-state-bucket"
+
+# Upstash Configuration (for production)
+upstash_api_key = "your-upstash-api-key"
+upstash_email = "your-email@example.com"
+
+# Redis Configuration
+redis_memory_limit = 1024  # MB
+enable_tls = true
+enable_persistence = true
+backup_retention_days = 30
+
+# Monitoring
+monitoring_enabled = true
+
+# Network Configuration
+# vpc_cidr = "10.0.0.0/16"
+# private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
+# public_subnets = ["10.0.101.0/24", "10.0.102.0/24"]

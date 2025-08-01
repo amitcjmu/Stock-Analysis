@@ -28,21 +28,27 @@ export const StatCard: React.FC<StatCardProps> = ({
   icon: Icon,
   iconColor = 'text-muted-foreground',
   change,
-  className = ''
+  className = '',
 }) => {
   const getChangeColor = (type: 'increase' | 'decrease' | 'neutral'): unknown => {
     switch (type) {
-      case 'increase': return 'text-green-600';
-      case 'decrease': return 'text-red-600';
-      case 'neutral': return 'text-muted-foreground';
+      case 'increase':
+        return 'text-green-600';
+      case 'decrease':
+        return 'text-red-600';
+      case 'neutral':
+        return 'text-muted-foreground';
     }
   };
 
   const getChangeIcon = (type: 'increase' | 'decrease' | 'neutral'): unknown => {
     switch (type) {
-      case 'increase': return '↗';
-      case 'decrease': return '↘';
-      case 'neutral': return '→';
+      case 'increase':
+        return '↗';
+      case 'decrease':
+        return '↘';
+      case 'neutral':
+        return '→';
     }
   };
 
@@ -54,15 +60,13 @@ export const StatCard: React.FC<StatCardProps> = ({
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
-        {description && (
-          <p className="text-xs text-muted-foreground">
-            {description}
-          </p>
-        )}
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
         {change && (
           <div className={`text-xs ${getChangeColor(change.type)} flex items-center gap-1 mt-1`}>
             <span>{getChangeIcon(change.type)}</span>
-            <span>{change.value}% {change.label}</span>
+            <span>
+              {change.value}% {change.label}
+            </span>
           </div>
         )}
       </CardContent>

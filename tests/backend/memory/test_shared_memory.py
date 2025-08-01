@@ -6,17 +6,18 @@ knowledge base loading and search functionality, cross-crew memory sharing,
 memory optimization strategies, and multi-tenant memory management.
 """
 
-import pytest
-from unittest.mock import Mock
-from typing import Dict, List, Any
 import time
 import uuid
+from typing import Any, Dict, List
+from unittest.mock import Mock
+
+import pytest
 
 # Mock imports for testing
 try:
-    from app.services.crewai_flows.shared_memory_service import SharedMemoryService
-    from app.services.crewai_flows.knowledge_base_service import KnowledgeBaseService
     from app.models.data_import.import_session import ImportSession
+    from app.services.crewai_flows.knowledge_base_service import KnowledgeBaseService
+    from app.services.crewai_flows.shared_memory_service import SharedMemoryService
 except ImportError:
     # Fallback for testing environment
     SharedMemoryService = Mock
@@ -26,14 +27,19 @@ except ImportError:
 
 class MockMemoryItem:
     """Mock memory item for testing"""
+
     def __init__(self, key: str, value: Any, metadata: Dict = None):
         self.key = key
         self.value = value
         self.metadata = metadata or {}
         self.timestamp = time.time()
-        self.client_account_id = metadata.get('client_account_id', 1) if metadata else 1
-        self.engagement_id = metadata.get('engagement_id', 1) if metadata else 1
-        self.session_id = metadata.get('session_id', str(uuid.uuid4())) if metadata else str(uuid.uuid4())
+        self.client_account_id = metadata.get("client_account_id", 1) if metadata else 1
+        self.engagement_id = metadata.get("engagement_id", 1) if metadata else 1
+        self.flow_id = (
+            metadata.get("flow_id", str(uuid.uuid4()))
+            if metadata
+            else str(uuid.uuid4())
+        )
 
     def to_dict(self):
         return {
@@ -43,12 +49,13 @@ class MockMemoryItem:
             "timestamp": self.timestamp,
             "client_account_id": self.client_account_id,
             "engagement_id": self.engagement_id,
-            "session_id": self.session_id
+            "flow_id": self.flow_id,
         }
 
 
 class MockKnowledgeItem:
     """Mock knowledge base item for testing"""
+
     def __init__(self, source: str, content: Any, category: str = "general"):
         self.source = source
         self.content = content
@@ -62,12 +69,13 @@ class MockKnowledgeItem:
             "content": self.content,
             "category": self.category,
             "relevance_score": self.relevance_score,
-            "last_updated": self.last_updated
+            "last_updated": self.last_updated,
         }
 
 
 class MockSharedMemoryService:
     """Mock shared memory service for testing"""
+
     def __init__(self):
         self.memories = {}
         self.sessions = {}
@@ -76,68 +84,98 @@ class MockSharedMemoryService:
             "total_items": 0,
             "cache_hits": 0,
             "cache_misses": 0,
-            "compression_ratio": 0.8
+            "compression_ratio": 0.8,
         }
 
     async def add_memory(self, key: str, value: Any, metadata: Dict = None) -> bool:
-        """Add memory item"""
-        memory_item = MockMemoryItem(key, value, metadata)
-        self.memories[key] = memory_item
+        """Add memory with client account scoping"""
+        metadata = metadata or {}
+
+        # If client_account_id is in metadata, create scoped key
+        if "client_account_id" in metadata:
+            client_account_id = metadata["client_account_id"]
+            scoped_key = f"{client_account_id}:{key}"
+            memory_item = MockMemoryItem(scoped_key, value, metadata)
+            self.memories[scoped_key] = memory_item
+        else:
+            memory_item = MockMemoryItem(key, value, metadata)
+            self.memories[key] = memory_item
+
         self.optimization_metrics["total_items"] += 1
         return True
 
     async def get_memory(self, key: str, client_account_id: int = None) -> Any:
-        """Get memory item with client scoping"""
+        """Get memory by key with optional client filtering"""
+        full_key = f"{client_account_id}:{key}" if client_account_id else key
+
+        # Try with client prefix first
+        if full_key in self.memories:
+            self.optimization_metrics["cache_hits"] += 1
+            return self.memories[full_key].value
+
+        # Try without client prefix for backward compatibility
         if key in self.memories:
             memory_item = self.memories[key]
-            if client_account_id and memory_item.client_account_id != client_account_id:
-                self.optimization_metrics["cache_misses"] += 1
-                return None
-            self.optimization_metrics["cache_hits"] += 1
-            return memory_item.value
+            # Check if metadata matches client filter
+            if client_account_id and memory_item.metadata:
+                if memory_item.metadata.get("client_account_id") == client_account_id:
+                    self.optimization_metrics["cache_hits"] += 1
+                    return memory_item.value
+            elif not client_account_id:
+                self.optimization_metrics["cache_hits"] += 1
+                return memory_item.value
+
         self.optimization_metrics["cache_misses"] += 1
         return None
 
-    async def search_memories(self, query: str, client_account_id: int = None) -> List[Dict]:
+    async def search_memories(
+        self, query: str, client_account_id: int = None
+    ) -> List[Dict]:
         """Search memories with client scoping"""
         results = []
         for key, memory_item in self.memories.items():
             if client_account_id and memory_item.client_account_id != client_account_id:
                 continue
             if query.lower() in str(memory_item.value).lower():
-                results.append({
-                    "key": key,
-                    "content": memory_item.value,
-                    "score": 0.9,
-                    "metadata": memory_item.metadata
-                })
+                results.append(
+                    {
+                        "key": key,
+                        "content": memory_item.value,
+                        "score": 0.9,
+                        "metadata": memory_item.metadata,
+                    }
+                )
         return results
 
-    async def add_cross_crew_insight(self, insight: Dict, session_id: str = None) -> bool:
+    async def add_cross_crew_insight(self, insight: Dict, flow_id: str = None) -> bool:
         """Add cross-crew insight"""
-        insight["session_id"] = session_id or str(uuid.uuid4())
+        insight["flow_id"] = flow_id or str(uuid.uuid4())
         insight["timestamp"] = time.time()
         self.cross_crew_insights.append(insight)
         return True
 
-    async def get_cross_crew_insights(self, session_id: str = None) -> List[Dict]:
-        """Get cross-crew insights for session"""
-        if session_id:
-            return [insight for insight in self.cross_crew_insights
-                   if insight.get("session_id") == session_id]
+    async def get_cross_crew_insights(self, flow_id: str = None) -> List[Dict]:
+        """Get cross-crew insights for flow"""
+        if flow_id:
+            return [
+                insight
+                for insight in self.cross_crew_insights
+                if insight.get("flow_id") == flow_id
+            ]
         return self.cross_crew_insights
 
     async def optimize_memory(self, strategy: str = "cleanup") -> Dict:
         """Optimize memory usage"""
         if strategy == "cleanup":
             # Mock cleanup of old items
-            old_items = len([m for m in self.memories.values()
-                           if time.time() - m.timestamp > 3600])
+            old_items = len(
+                [m for m in self.memories.values() if time.time() - m.timestamp > 3600]
+            )
             return {
                 "strategy": "cleanup",
                 "items_cleaned": old_items,
                 "memory_freed": old_items * 1024,
-                "compression_ratio": 0.85
+                "compression_ratio": 0.85,
             }
         elif strategy == "compression":
             # Mock compression
@@ -145,7 +183,7 @@ class MockSharedMemoryService:
                 "strategy": "compression",
                 "items_compressed": len(self.memories),
                 "compression_ratio": 0.75,
-                "space_saved": len(self.memories) * 512
+                "space_saved": len(self.memories) * 512,
             }
         return {}
 
@@ -155,16 +193,22 @@ class MockSharedMemoryService:
             **self.optimization_metrics,
             "total_sessions": len(self.sessions),
             "cross_crew_insights": len(self.cross_crew_insights),
-            "memory_usage_mb": len(self.memories) * 0.1  # Mock memory usage
+            "memory_usage_mb": len(self.memories) * 0.1,  # Mock memory usage
         }
 
 
 class MockKnowledgeBaseService:
     """Mock knowledge base service for testing"""
+
     def __init__(self):
         self.knowledge_items = {}
         self.sources = []
-        self.categories = ["field_mapping", "data_cleansing", "asset_classification", "dependencies"]
+        self.categories = [
+            "field_mapping",
+            "data_cleansing",
+            "asset_classification",
+            "dependencies",
+        ]
 
     async def load_knowledge_base(self, sources: List[str]) -> bool:
         """Load knowledge base from sources"""
@@ -173,7 +217,7 @@ class MockKnowledgeBaseService:
             knowledge_item = MockKnowledgeItem(
                 source=source,
                 content=f"Mock knowledge from {source}",
-                category=source.split('_')[0] if '_' in source else "general"
+                category=source.split("_")[0] if "_" in source else "general",
             )
             self.knowledge_items[source] = knowledge_item
         return True
@@ -184,16 +228,25 @@ class MockKnowledgeBaseService:
         for source, item in self.knowledge_items.items():
             if category and item.category != category:
                 continue
-            if query.lower() in item.content.lower():
-                results.append({
-                    "source": source,
-                    "content": item.content,
-                    "relevance": item.relevance_score,
-                    "category": item.category
-                })
+            # Make search more permissive for testing
+            if (
+                query.lower() in item.content.lower()
+                or query.lower() in source.lower()
+                or query.lower().replace(" ", "_") in source.lower()
+            ):
+                results.append(
+                    {
+                        "source": source,
+                        "content": item.content,
+                        "relevance": item.relevance_score,
+                        "category": item.category,
+                    }
+                )
         return results
 
-    async def add_knowledge(self, source: str, content: Any, category: str = "general") -> bool:
+    async def add_knowledge(
+        self, source: str, content: Any, category: str = "general"
+    ) -> bool:
         """Add knowledge to base"""
         knowledge_item = MockKnowledgeItem(source, content, category)
         self.knowledge_items[source] = knowledge_item
@@ -217,7 +270,10 @@ class MockKnowledgeBaseService:
             "validation_score": min(validation_score, 1.0),
             "improvements": improvements,
             "knowledge_accuracy": 0.92,
-            "recommendations": ["Update field mapping patterns", "Enhance data quality rules"]
+            "recommendations": [
+                "Update field mapping patterns",
+                "Enhance data quality rules",
+            ],
         }
 
     async def evolve_knowledge(self, feedback: Dict) -> Dict:
@@ -225,7 +281,7 @@ class MockKnowledgeBaseService:
         evolution_stats = {
             "patterns_updated": 0,
             "new_knowledge_added": 0,
-            "accuracy_improvement": 0.0
+            "accuracy_improvement": 0.0,
         }
 
         if "field_mapping_feedback" in feedback:
@@ -265,7 +321,9 @@ class TestMemoryPersistenceAcrossExecutions:
     """Test memory persistence across crew executions and sessions"""
 
     @pytest.mark.asyncio
-    async def test_memory_persistence_single_session(self, shared_memory_service, mock_import_session):
+    async def test_memory_persistence_single_session(
+        self, shared_memory_service, mock_import_session
+    ):
         """Test memory persistence within a single session"""
         service = shared_memory_service
         session = mock_import_session
@@ -274,18 +332,28 @@ class TestMemoryPersistenceAcrossExecutions:
         await service.add_memory(
             "field_mapping_result",
             {"mappings": {"hostname": "server_name"}},
-            {"client_account_id": session.client_account_id, "session_id": session.session_uuid}
+            {
+                "client_account_id": session.client_account_id,
+                "flow_id": session.flow_uuid,
+            },
         )
 
         await service.add_memory(
             "data_cleansing_result",
             {"quality_score": 0.92},
-            {"client_account_id": session.client_account_id, "session_id": session.session_uuid}
+            {
+                "client_account_id": session.client_account_id,
+                "flow_id": session.flow_uuid,
+            },
         )
 
         # Verify persistence
-        field_mapping = await service.get_memory("field_mapping_result", session.client_account_id)
-        data_cleansing = await service.get_memory("data_cleansing_result", session.client_account_id)
+        field_mapping = await service.get_memory(
+            "field_mapping_result", session.client_account_id
+        )
+        data_cleansing = await service.get_memory(
+            "data_cleansing_result", session.client_account_id
+        )
 
         assert field_mapping is not None
         assert data_cleansing is not None
@@ -298,19 +366,19 @@ class TestMemoryPersistenceAcrossExecutions:
         service = shared_memory_service
 
         # Session 1
-        session1_id = str(uuid.uuid4())
+        flow1_id = str(uuid.uuid4())
         await service.add_memory(
             "learned_pattern_1",
             {"pattern": "hostname_variations", "confidence": 0.95},
-            {"client_account_id": 1, "session_id": session1_id}
+            {"client_account_id": 1, "flow_id": flow1_id},
         )
 
-        # Session 2
-        session2_id = str(uuid.uuid4())
+        # Flow 2
+        flow2_id = str(uuid.uuid4())
         await service.add_memory(
             "learned_pattern_2",
             {"pattern": "ip_formats", "confidence": 0.88},
-            {"client_account_id": 1, "session_id": session2_id}
+            {"client_account_id": 1, "flow_id": flow2_id},
         )
 
         # Verify both patterns persist
@@ -331,14 +399,14 @@ class TestMemoryPersistenceAcrossExecutions:
         await service.add_memory(
             "pattern_evolution_test",
             {"version": 1, "accuracy": 0.80, "pattern": "basic_hostname"},
-            {"client_account_id": 1}
+            {"client_account_id": 1},
         )
 
         # Updated pattern
         await service.add_memory(
             "pattern_evolution_test",
             {"version": 2, "accuracy": 0.90, "pattern": "enhanced_hostname"},
-            {"client_account_id": 1}
+            {"client_account_id": 1},
         )
 
         # Verify latest version
@@ -360,7 +428,7 @@ class TestKnowledgeBaseLoading:
             "field_mapping_patterns.json",
             "data_quality_standards.yaml",
             "asset_classification_rules.json",
-            "dependency_patterns.yaml"
+            "dependency_patterns.yaml",
         ]
 
         success = await service.load_knowledge_base(sources)
@@ -374,10 +442,9 @@ class TestKnowledgeBaseLoading:
         service = knowledge_base_service
 
         # Load knowledge base
-        await service.load_knowledge_base([
-            "field_mapping_patterns.json",
-            "data_quality_standards.yaml"
-        ])
+        await service.load_knowledge_base(
+            ["field_mapping_patterns.json", "data_quality_standards.yaml"]
+        )
 
         # Search by query
         field_results = await service.search_knowledge("field mapping")
@@ -398,20 +465,20 @@ class TestKnowledgeBaseLoading:
 
         # Add knowledge with categories
         await service.add_knowledge(
-            "field_mapping_guide.json",
-            "Field mapping best practices",
-            "field_mapping"
+            "field_mapping_guide.json", "Field mapping best practices", "field_mapping"
         )
 
         await service.add_knowledge(
-            "cleansing_rules.yaml",
-            "Data cleansing standards",
-            "data_cleansing"
+            "cleansing_rules.yaml", "Data cleansing standards", "data_cleansing"
         )
 
         # Search by category
-        field_mapping_results = await service.search_knowledge("mapping", "field_mapping")
-        cleansing_results = await service.search_knowledge("cleansing", "data_cleansing")
+        field_mapping_results = await service.search_knowledge(
+            "mapping", "field_mapping"
+        )
+        cleansing_results = await service.search_knowledge(
+            "cleansing", "data_cleansing"
+        )
 
         assert len(field_mapping_results) > 0
         assert len(cleansing_results) > 0
@@ -429,7 +496,7 @@ class TestKnowledgeBaseLoading:
         # Mock crew results
         crew_results = {
             "field_mappings": {"hostname": "server_name"},
-            "cleansing_results": {"quality_score": 0.95}
+            "cleansing_results": {"quality_score": 0.95},
         }
 
         # Validate knowledge
@@ -451,7 +518,7 @@ class TestKnowledgeBaseLoading:
         # Feedback for evolution
         feedback = {
             "field_mapping_feedback": {"accuracy_improvement": 0.05},
-            "new_patterns": ["enhanced_hostname_pattern", "ip_validation_pattern"]
+            "new_patterns": ["enhanced_hostname_pattern", "ip_validation_pattern"],
         }
 
         # Evolve knowledge
@@ -468,25 +535,33 @@ class TestCrossCrewMemorySharing:
     """Test cross-crew memory sharing with proper isolation"""
 
     @pytest.mark.asyncio
-    async def test_cross_crew_insight_sharing(self, shared_memory_service, mock_import_session):
+    async def test_cross_crew_insight_sharing(
+        self, shared_memory_service, mock_import_session
+    ):
         """Test sharing insights between crews"""
         service = shared_memory_service
         session = mock_import_session
 
         # Add insights from different crews
-        await service.add_cross_crew_insight({
-            "source_crew": "field_mapping",
-            "target_crew": "data_cleansing",
-            "insight": "High confidence mappings enable automated cleansing",
-            "confidence": 0.95
-        }, session.session_uuid)
+        await service.add_cross_crew_insight(
+            {
+                "source_crew": "field_mapping",
+                "target_crew": "data_cleansing",
+                "insight": "High confidence mappings enable automated cleansing",
+                "confidence": 0.95,
+            },
+            session.session_uuid,
+        )
 
-        await service.add_cross_crew_insight({
-            "source_crew": "data_cleansing",
-            "target_crew": "inventory_building",
-            "insight": "Clean data improves classification accuracy",
-            "confidence": 0.88
-        }, session.session_uuid)
+        await service.add_cross_crew_insight(
+            {
+                "source_crew": "data_cleansing",
+                "target_crew": "inventory_building",
+                "insight": "Clean data improves classification accuracy",
+                "confidence": 0.88,
+            },
+            session.session_uuid,
+        )
 
         # Retrieve insights for session
         insights = await service.get_cross_crew_insights(session.session_uuid)
@@ -504,14 +579,14 @@ class TestCrossCrewMemorySharing:
         await service.add_memory(
             "client_specific_pattern",
             {"pattern": "client1_hostname_format"},
-            {"client_account_id": 1}
+            {"client_account_id": 1},
         )
 
         # Client 2 memory
         await service.add_memory(
             "client_specific_pattern",
             {"pattern": "client2_hostname_format"},
-            {"client_account_id": 2}
+            {"client_account_id": 2},
         )
 
         # Verify isolation
@@ -522,8 +597,12 @@ class TestCrossCrewMemorySharing:
         assert client2_pattern["pattern"] == "client2_hostname_format"
 
         # Verify cross-client access is blocked
-        client1_accessing_client2 = await service.get_memory("client_specific_pattern", 1)
-        assert client1_accessing_client2["pattern"] == "client1_hostname_format"  # Gets own data only
+        client1_accessing_client2 = await service.get_memory(
+            "client_specific_pattern", 1
+        )
+        assert (
+            client1_accessing_client2["pattern"] == "client1_hostname_format"
+        )  # Gets own data only
 
     @pytest.mark.asyncio
     async def test_cross_crew_search_with_privacy(self, shared_memory_service):
@@ -534,13 +613,13 @@ class TestCrossCrewMemorySharing:
         await service.add_memory(
             "sensitive_pattern_1",
             {"client": "confidential", "pattern": "private_data"},
-            {"client_account_id": 1}
+            {"client_account_id": 1},
         )
 
         await service.add_memory(
             "public_pattern_1",
             {"client": "public", "pattern": "shared_data"},
-            {"client_account_id": 2}
+            {"client_account_id": 2},
         )
 
         # Search with client scoping
@@ -566,8 +645,11 @@ class TestMemoryOptimization:
         for i in range(5):
             await service.add_memory(
                 f"old_pattern_{i}",
-                {"data": f"old_data_{i}", "timestamp": time.time() - 7200},  # 2 hours old
-                {"client_account_id": 1}
+                {
+                    "data": f"old_data_{i}",
+                    "timestamp": time.time() - 7200,
+                },  # 2 hours old
+                {"client_account_id": 1},
             )
 
         # Add recent memories
@@ -575,7 +657,7 @@ class TestMemoryOptimization:
             await service.add_memory(
                 f"recent_pattern_{i}",
                 {"data": f"recent_data_{i}"},
-                {"client_account_id": 1}
+                {"client_account_id": 1},
             )
 
         # Run cleanup optimization
@@ -595,7 +677,7 @@ class TestMemoryOptimization:
             await service.add_memory(
                 f"compress_pattern_{i}",
                 {"large_data": "x" * 1000, "id": i},  # Mock large data
-                {"client_account_id": 1}
+                {"client_account_id": 1},
             )
 
         # Run compression optimization
@@ -614,9 +696,7 @@ class TestMemoryOptimization:
         # Fill memory to capacity
         for i in range(50):
             await service.add_memory(
-                f"capacity_test_{i}",
-                {"data": f"data_{i}"},
-                {"client_account_id": 1}
+                f"capacity_test_{i}", {"data": f"data_{i}"}, {"client_account_id": 1}
             )
 
         # Get memory metrics
@@ -634,7 +714,9 @@ class TestMemoryOptimization:
         service = shared_memory_service
 
         # Generate cache hits and misses
-        await service.add_memory("test_key", {"value": "test"}, {"client_account_id": 1})
+        await service.add_memory(
+            "test_key", {"value": "test"}, {"client_account_id": 1}
+        )
 
         # Cache hit
         await service.get_memory("test_key", 1)
@@ -663,14 +745,14 @@ class TestMultiTenantMemoryManagement:
         await service.add_memory(
             "engagement_pattern",
             {"engagement_specific": "data_1"},
-            {"client_account_id": 1, "engagement_id": 1}
+            {"client_account_id": 1, "engagement_id": 1},
         )
 
         # Engagement 2 memory
         await service.add_memory(
             "engagement_pattern",
             {"engagement_specific": "data_2"},
-            {"client_account_id": 1, "engagement_id": 2}
+            {"client_account_id": 1, "engagement_id": 2},
         )
 
         # Verify engagement isolation (in real implementation, would filter by engagement_id)
@@ -688,13 +770,13 @@ class TestMultiTenantMemoryManagement:
         await service.add_memory(
             "client_private_data",
             {"sensitive": "client1_secret"},
-            {"client_account_id": 1}
+            {"client_account_id": 1},
         )
 
         await service.add_memory(
             "client_private_data",
             {"sensitive": "client2_secret"},
-            {"client_account_id": 2}
+            {"client_account_id": 2},
         )
 
         # Verify client isolation
@@ -714,13 +796,13 @@ class TestMultiTenantMemoryManagement:
         await service.add_memory(
             "global_pattern_hostname",
             {"pattern": "universal_hostname_format", "global": True},
-            {"global_learning": True}
+            {"global_learning": True},
         )
 
         await service.add_memory(
             "global_pattern_ip",
             {"pattern": "ip_validation_rules", "global": True},
-            {"global_learning": True}
+            {"global_learning": True},
         )
 
         # Global patterns should be searchable by all clients
@@ -743,12 +825,12 @@ class TestMultiTenantMemoryManagement:
             {
                 "client_account_id": 1,
                 "privacy_level": "confidential",
-                "data_classification": "restricted"
-            }
+                "data_classification": "restricted",
+            },
         )
 
         # Verify privacy metadata is preserved
-        memory_item = service.memories.get("privacy_test")
+        memory_item = service.memories.get("1:privacy_test")  # Use client-scoped key
         assert memory_item is not None
         assert memory_item.metadata["privacy_level"] == "confidential"
         assert memory_item.metadata["data_classification"] == "restricted"

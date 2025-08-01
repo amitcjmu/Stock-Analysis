@@ -10,7 +10,6 @@ from .deployment import (
     ServiceDetector,
     ServiceFactory,
     get_deployment_config,
-    get_service,
     get_service_factory,
 )
 from .telemetry import TelemetryService

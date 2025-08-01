@@ -3,18 +3,56 @@
  * Provides side-by-side session comparison with comprehensive diff visualization
  */
 
-import React from 'react'
-import { useState, useEffect, useCallback } from 'react'
+import React from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { TrendingUp, TrendingDown, Equal, Plus, Minus, Edit, DollarSign, AlertTriangle, Settings, Activity, BarChart3, PieChart, Clock, Database, Zap, Shield, Users, Building, Server, HardDrive, Globe, CheckCircle, XCircle, Info, ArrowRight } from 'lucide-react'
-import { GitCompare, Download, RefreshCw } from 'lucide-react'
+import {
+  TrendingUp,
+  TrendingDown,
+  Equal,
+  Plus,
+  Minus,
+  Edit,
+  DollarSign,
+  AlertTriangle,
+  Settings,
+  Activity,
+  BarChart3,
+  PieChart,
+  Clock,
+  Database,
+  Zap,
+  Shield,
+  Users,
+  Building,
+  Server,
+  HardDrive,
+  Globe,
+  CheckCircle,
+  XCircle,
+  Info,
+  ArrowRight,
+} from 'lucide-react';
+import { GitCompare, Download, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 // Types for session comparison
@@ -127,7 +165,7 @@ interface SessionComparisonProps {
 
 export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
   engagementId,
-  onComparisonComplete
+  onComparisonComplete,
 }) => {
   const [sessions, setSessions] = useState<SessionForComparison[]>([]);
   const [selectedSourceSession, setSelectedSourceSession] = useState<string>('');
@@ -154,7 +192,7 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
           quality_score: 78.5,
           estimated_cost_savings: 2500000,
           processing_time_hours: 2.5,
-          can_compare: true
+          can_compare: true,
         },
         {
           session_id: '2',
@@ -165,17 +203,17 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
           quality_score: 85.2,
           estimated_cost_savings: 2750000,
           processing_time_hours: 3.1,
-          can_compare: true
-        }
+          can_compare: true,
+        },
       ];
 
       setSessions(demoSessions);
     } catch (error) {
       console.error('Error loading sessions:', error);
       toast({
-        title: "Error",
-        description: "Failed to load sessions for comparison",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to load sessions for comparison',
+        variant: 'destructive',
       });
     } finally {
       setIsLoadingSessions(false);
@@ -191,8 +229,8 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
           source_session: 'Initial Discovery Session',
           target_session: 'Enhanced Data Import',
           generated_at: '2025-01-16T09:00:00Z',
-          overall_improvement: 8.5
-        }
+          overall_improvement: 8.5,
+        },
       ]);
     } catch (error) {
       console.error('Error loading comparison history:', error);
@@ -208,9 +246,9 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
   const performComparison = async (): void => {
     if (!selectedSourceSession || !selectedTargetSession) {
       toast({
-        title: "Selection Required",
-        description: "Please select both source and target sessions",
-        variant: "destructive"
+        title: 'Selection Required',
+        description: 'Please select both source and target sessions',
+        variant: 'destructive',
       });
       return;
     }
@@ -228,12 +266,14 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
           significant_changes: [
             { metric: 'Quality Score', change: 6.7, direction: 'improvement' },
             { metric: 'Total Assets', change: 130, direction: 'improvement' },
-            { metric: 'Cost Savings', change: 250000, direction: 'improvement' }
+            { metric: 'Cost Savings', change: 250000, direction: 'improvement' },
           ],
           overall_improvement: 8.5,
           overall_regression: 1.2,
-          source_session: sessions.find(s => s.session_id === selectedSourceSession)?.session_name || '',
-          target_session: sessions.find(s => s.session_id === selectedTargetSession)?.session_name || ''
+          source_session:
+            sessions.find((s) => s.session_id === selectedSourceSession)?.session_name || '',
+          target_session:
+            sessions.find((s) => s.session_id === selectedTargetSession)?.session_name || '',
         },
         key_metrics_diff: {
           quality_score: {
@@ -241,20 +281,20 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
             target_value: 85.2,
             difference: 6.7,
             percentage_change: 8.5,
-            improvement: true
+            improvement: true,
           },
           total_assets: {
             source_value: 1250,
             target_value: 1380,
             difference: 130,
             percentage_change: 10.4,
-            improvement: true
-          }
+            improvement: true,
+          },
         },
         assets_added_count: 130,
         assets_removed_count: 0,
         assets_modified_count: 45,
-        assets_unchanged_count: 1205
+        assets_unchanged_count: 1205,
       };
 
       setComparison(demoComparison);
@@ -264,15 +304,15 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
       }
 
       toast({
-        title: "Comparison Complete",
-        description: "Session comparison generated successfully"
+        title: 'Comparison Complete',
+        description: 'Session comparison generated successfully',
       });
     } catch (error) {
       console.error('Error performing comparison:', error);
       toast({
-        title: "Comparison Failed",
-        description: "Failed to generate session comparison",
-        variant: "destructive"
+        title: 'Comparison Failed',
+        description: 'Failed to generate session comparison',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -303,8 +343,9 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
           <div className={`flex justify-between text-sm font-medium ${colorClass}`}>
             <span>Change:</span>
             <span>
-              {diff.difference > 0 ? '+' : ''}{diff.difference.toLocaleString()}
-              ({diff.percentage_change > 0 ? '+' : ''}{diff.percentage_change.toFixed(1)}%)
+              {diff.difference > 0 ? '+' : ''}
+              {diff.difference.toLocaleString()}({diff.percentage_change > 0 ? '+' : ''}
+              {diff.percentage_change.toFixed(1)}%)
             </span>
           </div>
         </div>
@@ -364,19 +405,27 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
             <h4 className="font-medium mb-3">Asset Changes</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{comparison.assets_added_count}</div>
+                <div className="text-2xl font-bold text-green-600">
+                  {comparison.assets_added_count}
+                </div>
                 <div className="text-sm text-muted-foreground">Added</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{comparison.assets_modified_count}</div>
+                <div className="text-2xl font-bold text-blue-600">
+                  {comparison.assets_modified_count}
+                </div>
                 <div className="text-sm text-muted-foreground">Modified</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-gray-600">{comparison.assets_unchanged_count}</div>
+                <div className="text-2xl font-bold text-gray-600">
+                  {comparison.assets_unchanged_count}
+                </div>
                 <div className="text-sm text-muted-foreground">Unchanged</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">{comparison.assets_removed_count}</div>
+                <div className="text-2xl font-bold text-red-600">
+                  {comparison.assets_removed_count}
+                </div>
                 <div className="text-sm text-muted-foreground">Removed</div>
               </div>
             </div>
@@ -398,7 +447,10 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Object.entries(comparison.key_metrics_diff).map(([metric, diff]) => (
               <div key={metric}>
-                {renderMetricChange(metric.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()), diff)}
+                {renderMetricChange(
+                  metric.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+                  diff
+                )}
               </div>
             ))}
           </div>
@@ -426,11 +478,13 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
                   <SelectValue placeholder="Select source session" />
                 </SelectTrigger>
                 <SelectContent>
-                  {sessions.filter(s => s.can_compare).map(session => (
-                    <SelectItem key={session.session_id} value={session.session_id}>
-                      {session.session_name}
-                    </SelectItem>
-                  ))}
+                  {sessions
+                    .filter((s) => s.can_compare)
+                    .map((session) => (
+                      <SelectItem key={session.session_id} value={session.session_id}>
+                        {session.session_name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -442,11 +496,13 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
                   <SelectValue placeholder="Select target session" />
                 </SelectTrigger>
                 <SelectContent>
-                  {sessions.filter(s => s.can_compare && s.session_id !== selectedSourceSession).map(session => (
-                    <SelectItem key={session.session_id} value={session.session_id}>
-                      {session.session_name}
-                    </SelectItem>
-                  ))}
+                  {sessions
+                    .filter((s) => s.can_compare && s.session_id !== selectedSourceSession)
+                    .map((session) => (
+                      <SelectItem key={session.session_id} value={session.session_id}>
+                        {session.session_name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -489,13 +545,9 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="summary">
-            {renderComparisonSummary()}
-          </TabsContent>
+          <TabsContent value="summary">{renderComparisonSummary()}</TabsContent>
 
-          <TabsContent value="metrics">
-            {renderKeyMetrics()}
-          </TabsContent>
+          <TabsContent value="metrics">{renderKeyMetrics()}</TabsContent>
 
           <TabsContent value="history">
             <Card>
@@ -506,15 +558,21 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
                 {comparisonHistory.length > 0 ? (
                   <div className="space-y-2">
                     {comparisonHistory.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded">
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 border rounded"
+                      >
                         <div>
-                          <div className="font-medium">{item.source_session} vs {item.target_session}</div>
+                          <div className="font-medium">
+                            {item.source_session} vs {item.target_session}
+                          </div>
                           <div className="text-sm text-muted-foreground">
                             {new Date(item.generated_at).toLocaleDateString()}
                           </div>
                         </div>
                         <Badge variant="outline">
-                          {item.overall_improvement > 0 ? '+' : ''}{item.overall_improvement}%
+                          {item.overall_improvement > 0 ? '+' : ''}
+                          {item.overall_improvement}%
                         </Badge>
                       </div>
                     ))}

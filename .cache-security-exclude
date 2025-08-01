@@ -1,0 +1,38 @@
+# Cache Security Exclusions File
+# CC DevSecOps Engineer - False positive exclusions for cache key validation
+
+# Environment variables should not be treated as cache keys
+backend/main.py:9-13
+
+# OpenTelemetry configuration variables - not cache keys
+backend/app/core/middleware.py:*OTEL_*
+backend/app/core/logging.py:*OTEL_*
+backend/app/middleware/*:*OTEL_*
+
+# SQLAlchemy and database configuration strings - not cache keys
+*:sqlalchemy.*
+*:database_url*
+*:DATABASE_URL*
+
+# HTTP method and standard headers - not cache keys
+*:http.method
+*:http.status_code
+*:content-type
+*:cache.enabled
+*:cache.disabled
+
+# Common configuration patterns that aren't cache keys
+*:ENV_*
+*:DEBUG*
+*:PRODUCTION*
+*:DEVELOPMENT*
+*:LOG_LEVEL*
+
+# Pytest and test configuration
+*:pytest*
+*:test_*
+
+# File paths and system identifiers
+*:__file__*
+*:__name__*
+*:__main__*

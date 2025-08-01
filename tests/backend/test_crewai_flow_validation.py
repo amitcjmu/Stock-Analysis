@@ -3,10 +3,11 @@ CrewAI Flow End-to-End Validation Script
 Tests the complete CrewAI Flow system in Docker environment.
 """
 
-import pytest
-import requests
 import time
 from datetime import datetime
+
+import pytest
+import requests
 
 
 class TestCrewAIFlowValidation:
@@ -30,29 +31,29 @@ class TestCrewAIFlowValidation:
                     "environment": "production",
                     "cpu_cores": 8,
                     "memory_gb": 32,
-                    "os": "Ubuntu 20.04"
+                    "os": "Ubuntu 20.04",
                 },
                 {
                     "name": "customer-database",
                     "type": "database",
                     "environment": "production",
                     "engine": "PostgreSQL",
-                    "version": "13.5"
+                    "version": "13.5",
                 },
                 {
                     "name": "order-processing-app",
                     "type": "application",
                     "environment": "production",
                     "language": "Java",
-                    "framework": "Spring Boot"
-                }
+                    "framework": "Spring Boot",
+                },
             ],
             "metadata": {
                 "source": "validation_test",
                 "timestamp": datetime.utcnow().isoformat(),
                 "client_account_id": "test-client-validation",
-                "engagement_id": "test-engagement-validation"
-            }
+                "engagement_id": "test-engagement-validation",
+            },
         }
 
     def test_service_health_check(self, api_client):
@@ -77,33 +78,35 @@ class TestCrewAIFlowValidation:
         response = api_client.post(
             f"{self.BASE_URL}/api/v1/discovery/analyze",
             json=sample_cmdb_data,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         assert response.status_code == 200
         result = response.json()
 
         # Verify response structure
-        assert "session_id" in result
+        assert "flow_id" in result
         assert "status" in result
         assert "current_phase" in result
         assert result["status"] in ["running", "completed", "error"]
 
-        return result["session_id"]
+        return result["flow_id"]
 
     def test_workflow_state_retrieval(self, api_client, sample_cmdb_data):
         """Test retrieving workflow state."""
         # First initiate a workflow
-        session_id = self.test_discovery_workflow_initiation(api_client, sample_cmdb_data)
+        flow_id = self.test_discovery_workflow_initiation(api_client, sample_cmdb_data)
 
         # Then retrieve its state
-        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{session_id}")
+        response = api_client.get(
+            f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}"
+        )
 
         assert response.status_code == 200
         state = response.json()
 
         # Verify state structure
-        assert state["session_id"] == session_id
+        assert state["flow_id"] == flow_id
         assert "status" in state
         assert "current_phase" in state
         assert "phases_completed" in state
@@ -129,15 +132,12 @@ class TestCrewAIFlowValidation:
 
     def test_workflow_error_handling(self, api_client):
         """Test workflow error handling with invalid data."""
-        invalid_data = {
-            "file_data": None,
-            "metadata": {}
-        }
+        invalid_data = {"file_data": None, "metadata": {}}
 
         response = api_client.post(
             f"{self.BASE_URL}/api/v1/discovery/analyze",
             json=invalid_data,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         # Should handle error gracefully
@@ -150,7 +150,7 @@ class TestCrewAIFlowValidation:
 
     def test_concurrent_workflows(self, api_client, sample_cmdb_data):
         """Test handling multiple concurrent workflows."""
-        session_ids = []
+        flow_ids = []
 
         # Start multiple workflows concurrently
         for i in range(3):
@@ -160,12 +160,12 @@ class TestCrewAIFlowValidation:
             response = api_client.post(
                 f"{self.BASE_URL}/api/v1/discovery/analyze",
                 json=test_data,
-                headers={"Content-Type": "application/json"}
+                headers={"Content-Type": "application/json"},
             )
 
             assert response.status_code == 200
             result = response.json()
-            session_ids.append(result["session_id"])
+            flow_ids.append(result["flow_id"])
 
         # Verify all workflows are tracked
         response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/active")
@@ -175,8 +175,10 @@ class TestCrewAIFlowValidation:
         assert summary["total_active_flows"] >= 3
 
         # Verify each session can be retrieved
-        for session_id in session_ids:
-            response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{session_id}")
+        for flow_id in flow_ids:
+            response = api_client.get(
+                f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}"
+            )
             assert response.status_code == 200
 
     def test_fallback_execution_mode(self, api_client, sample_cmdb_data):
@@ -185,7 +187,7 @@ class TestCrewAIFlowValidation:
         response = api_client.post(
             f"{self.BASE_URL}/api/v1/discovery/analyze",
             json=sample_cmdb_data,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         assert response.status_code == 200
@@ -195,15 +197,20 @@ class TestCrewAIFlowValidation:
         assert result["status"] in ["running", "completed"]
 
         # Verify state can be retrieved
-        session_id = result["session_id"]
-        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{session_id}")
+        flow_id = result["flow_id"]
+        response = api_client.get(
+            f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}"
+        )
         assert response.status_code == 200
 
         state = response.json()
         assert "results" in state
 
         # In fallback mode, should have basic validation results
-        if "data_validation" in state and state["data_validation"]["status"] == "completed":
+        if (
+            "data_validation" in state
+            and state["data_validation"]["status"] == "completed"
+        ):
             validation_results = state["data_validation"]["results"]
             assert "total_records" in validation_results
             assert "method" in validation_results
@@ -214,26 +221,32 @@ class TestCrewAIFlowValidation:
         # Create a larger dataset
         large_dataset = []
         for i in range(100):
-            large_dataset.append({
-                "name": f"asset-{i:03d}",
-                "type": "server" if i % 3 == 0 else "application" if i % 3 == 1 else "database",
-                "environment": "production" if i % 2 == 0 else "staging",
-                "department": "IT" if i % 4 == 0 else "Sales"
-            })
+            large_dataset.append(
+                {
+                    "name": f"asset-{i:03d}",
+                    "type": (
+                        "server"
+                        if i % 3 == 0
+                        else "application" if i % 3 == 1 else "database"
+                    ),
+                    "environment": "production" if i % 2 == 0 else "staging",
+                    "department": "IT" if i % 4 == 0 else "Sales",
+                }
+            )
 
         large_data = {
             "file_data": large_dataset,
             "metadata": {
                 "source": "performance_test",
-                "timestamp": datetime.utcnow().isoformat()
-            }
+                "timestamp": datetime.utcnow().isoformat(),
+            },
         }
 
         start_time = time.time()
         response = api_client.post(
             f"{self.BASE_URL}/api/v1/discovery/analyze",
             json=large_data,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
         end_time = time.time()
 
@@ -249,24 +262,29 @@ class TestCrewAIFlowValidation:
         response = api_client.post(
             f"{self.BASE_URL}/api/v1/discovery/analyze",
             json=sample_cmdb_data,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         assert response.status_code == 200
         result = response.json()
-        session_id = result["session_id"]
+        flow_id = result["flow_id"]
 
         # Wait a moment for processing
         time.sleep(2)
 
         # Get final state
-        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{session_id}")
+        response = api_client.get(
+            f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}"
+        )
         assert response.status_code == 200
 
         state = response.json()
 
         # Verify data validation results
-        if "data_validation" in state and state["data_validation"]["status"] == "completed":
+        if (
+            "data_validation" in state
+            and state["data_validation"]["status"] == "completed"
+        ):
             validation = state["data_validation"]["results"]
             assert validation["total_records"] == 3
             assert validation["valid_records"] >= 0
@@ -277,18 +295,20 @@ class TestCrewAIFlowValidation:
         response = api_client.post(
             f"{self.BASE_URL}/api/v1/discovery/analyze",
             json=sample_cmdb_data,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         assert response.status_code == 200
         result = response.json()
-        session_id = result["session_id"]
+        flow_id = result["flow_id"]
 
         # Wait for processing
         time.sleep(3)
 
         # Get state
-        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{session_id}")
+        response = api_client.get(
+            f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}"
+        )
         assert response.status_code == 200
 
         state = response.json()
@@ -305,24 +325,29 @@ class TestCrewAIFlowValidation:
         response = api_client.post(
             f"{self.BASE_URL}/api/v1/discovery/analyze",
             json=sample_cmdb_data,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         assert response.status_code == 200
         result = response.json()
-        session_id = result["session_id"]
+        flow_id = result["flow_id"]
 
         # Wait for processing
         time.sleep(5)
 
         # Get state
-        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{session_id}")
+        response = api_client.get(
+            f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}"
+        )
         assert response.status_code == 200
 
         state = response.json()
 
         # Verify asset classification results
-        if "asset_classification" in state and state["asset_classification"]["status"] == "completed":
+        if (
+            "asset_classification" in state
+            and state["asset_classification"]["status"] == "completed"
+        ):
             classification = state["asset_classification"]["results"]
             assert "classified_assets" in classification
             assert "total_assets" in classification
@@ -353,7 +378,9 @@ class TestDockerIntegration:
     def test_database_connectivity(self):
         """Test database connectivity through the API."""
         try:
-            response = requests.get("http://localhost:8000/api/v1/discovery/flow/health", timeout=10)
+            response = requests.get(
+                "http://localhost:8000/api/v1/discovery/flow/health", timeout=10
+            )
             assert response.status_code == 200
 
             health = response.json()

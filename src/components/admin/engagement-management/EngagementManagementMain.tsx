@@ -1,9 +1,15 @@
-import React from 'react'
-import { useState } from 'react'
-import { useCallback } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { useQueryClient } from '@tanstack/react-query'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React from 'react';
+import { useState } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,8 +20,8 @@ import { EngagementFilters } from './EngagementFilters';
 import { EngagementStats } from './EngagementStats';
 import { EngagementList } from './EngagementList';
 import { EngagementForm } from './EngagementForm';
-import type { EngagementFormData } from './types'
-import type { Engagement, Client } from './types'
+import type { EngagementFormData } from './types';
+import type { Engagement, Client } from './types';
 
 const EngagementManagementMain: React.FC = () => {
   const { toast } = useToast();
@@ -47,7 +53,9 @@ const EngagementManagementMain: React.FC = () => {
         const queryString = params.toString();
         console.log('🔍 Fetching engagements with query:', queryString);
 
-        const result = await apiCall(`/api/v1/admin/engagements/${queryString ? '?' + queryString : ''}`);
+        const result = await apiCall(
+          `/api/v1/admin/engagements/${queryString ? '?' + queryString : ''}`
+        );
         console.log('🔍 Engagements API result:', result);
         console.log('🔍 Engagements API result type:', typeof result);
         console.log('🔍 Engagements API result keys:', result ? Object.keys(result) : 'null');
@@ -73,7 +81,7 @@ const EngagementManagementMain: React.FC = () => {
         console.error('❌ Error fetching engagements:', {
           error: error.message || error,
           status: error.status,
-          endpoint: `/api/v1/admin/engagements/${queryString ? '?' + queryString : ''}`
+          endpoint: `/api/v1/admin/engagements/${queryString ? '?' + queryString : ''}`,
         });
 
         // If 404 or other error, still try to return empty array but log the issue
@@ -88,11 +96,11 @@ const EngagementManagementMain: React.FC = () => {
       }
       return failureCount < 2;
     },
-    enabled: true,  // Force query to be enabled
-    refetchOnMount: true,  // Force refetch on mount
-    refetchOnWindowFocus: false,  // Prevent excessive refetches
-    staleTime: 0,  // Always consider data stale
-    cacheTime: 0   // Don't cache the data
+    enabled: true, // Force query to be enabled
+    refetchOnMount: true, // Force refetch on mount
+    refetchOnWindowFocus: false, // Prevent excessive refetches
+    staleTime: 0, // Always consider data stale
+    cacheTime: 0, // Don't cache the data
   });
   const engagements = engagementsQuery.data || [];
   const engagementsLoading = engagementsQuery.isLoading;
@@ -108,9 +116,18 @@ const EngagementManagementMain: React.FC = () => {
       queryFetchStatus: engagementsQuery.fetchStatus,
       queryIsStale: engagementsQuery.isStale,
       queryIsEnabled: engagementsQuery.isEnabled,
-      queryKey: engagementsQuery.queryKey
+      queryKey: engagementsQuery.queryKey,
     });
-  }, [engagementsLoading, engagementsError, engagements.length, engagementsQuery.status, engagementsQuery.fetchStatus, engagementsQuery.isStale, engagementsQuery.isEnabled, engagementsQuery.queryKey]);
+  }, [
+    engagementsLoading,
+    engagementsError,
+    engagements.length,
+    engagementsQuery.status,
+    engagementsQuery.fetchStatus,
+    engagementsQuery.isStale,
+    engagementsQuery.isEnabled,
+    engagementsQuery.queryKey,
+  ]);
 
   const clientsQuery = useQuery<Client[]>({
     queryKey: ['clients'],
@@ -138,8 +155,8 @@ const EngagementManagementMain: React.FC = () => {
     retry: 2,
     enabled: true,
     refetchOnMount: true,
-    staleTime: 0,  // Always consider data stale
-    cacheTime: 0   // Don't cache the data
+    staleTime: 0, // Always consider data stale
+    cacheTime: 0, // Don't cache the data
   });
   const clients = clientsQuery.data || [];
   const clientsLoading = clientsQuery.isLoading;
@@ -160,16 +177,19 @@ const EngagementManagementMain: React.FC = () => {
     budget: 0,
     budget_currency: 'USD',
     team_preferences: {},
-    stakeholder_preferences: {}
+    stakeholder_preferences: {},
   });
 
   // Handle form changes
-  const handleFormChange = useCallback((field: keyof EngagementFormData, value: EngagementFormData[keyof EngagementFormData]) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  }, []);
+  const handleFormChange = useCallback(
+    (field: keyof EngagementFormData, value: EngagementFormData[keyof EngagementFormData]) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    },
+    []
+  );
 
   // Handle engagement update
   const handleUpdateEngagement = async (): void => {
@@ -186,13 +206,15 @@ const EngagementManagementMain: React.FC = () => {
         current_phase: formData.migration_phase, // Map migration_phase to current_phase
         engagement_manager: formData.engagement_manager,
         technical_lead: formData.technical_lead,
-        planned_start_date: formData.start_date ? new Date(formData.start_date).toISOString() : null,
+        planned_start_date: formData.start_date
+          ? new Date(formData.start_date).toISOString()
+          : null,
         planned_end_date: formData.end_date ? new Date(formData.end_date).toISOString() : null,
         estimated_budget: formData.budget || null,
         team_preferences: formData.team_preferences || {},
         agent_configuration: {},
         discovery_preferences: {},
-        assessment_criteria: {}
+        assessment_criteria: {},
       };
 
       console.log('Updating engagement with data:', JSON.stringify(submissionData, null, 2));
@@ -202,13 +224,13 @@ const EngagementManagementMain: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(submissionData)
+        body: JSON.stringify(submissionData),
       });
 
       if (result && result.message) {
         toast({
-          title: "Success",
-          description: result.message || "Engagement updated successfully.",
+          title: 'Success',
+          description: result.message || 'Engagement updated successfully.',
         });
         // Refetch engagements after successful update
         engagementsQuery.refetch();
@@ -216,17 +238,17 @@ const EngagementManagementMain: React.FC = () => {
         resetForm();
       } else {
         toast({
-          title: "Error",
-          description: "Failed to update engagement.",
-          variant: "destructive",
+          title: 'Error',
+          description: 'Failed to update engagement.',
+          variant: 'destructive',
         });
       }
     } catch (error) {
       console.error('Error updating engagement:', error);
       toast({
-        title: "Error",
-        description: "Failed to update engagement. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to update engagement. Please try again.',
+        variant: 'destructive',
       });
     }
   };
@@ -239,7 +261,7 @@ const EngagementManagementMain: React.FC = () => {
       confirmText: 'Delete',
       cancelText: 'Cancel',
       variant: 'destructive',
-      icon: 'warning'
+      icon: 'warning',
     });
 
     if (!confirmed) {
@@ -248,28 +270,28 @@ const EngagementManagementMain: React.FC = () => {
 
     try {
       const result = await apiCall(`/api/v1/admin/engagements/${engagementId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
       if (result && result.message) {
         toast({
-          title: "Success",
-          description: result.message || "Engagement deleted successfully.",
+          title: 'Success',
+          description: result.message || 'Engagement deleted successfully.',
         });
         // Refetch engagements after successful deletion
         engagementsQuery.refetch();
       } else {
         toast({
-          title: "Error",
-          description: "Failed to delete engagement.",
-          variant: "destructive",
+          title: 'Error',
+          description: 'Failed to delete engagement.',
+          variant: 'destructive',
         });
       }
     } catch (error) {
       console.error('Error deleting engagement:', error);
       toast({
-        title: "Error",
-        description: "Failed to delete engagement. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to delete engagement. Please try again.',
+        variant: 'destructive',
       });
     }
   };
@@ -295,7 +317,7 @@ const EngagementManagementMain: React.FC = () => {
       estimated_asset_count: 0,
       completion_percentage: 0,
       team_preferences: {},
-      stakeholder_preferences: {}
+      stakeholder_preferences: {},
     });
   }, []);
 
@@ -320,7 +342,7 @@ const EngagementManagementMain: React.FC = () => {
       budget: engagement.estimated_budget || engagement.budget || 0,
       budget_currency: engagement.budget_currency || 'USD',
       team_preferences: engagement.team_preferences || {},
-      stakeholder_preferences: {}
+      stakeholder_preferences: {},
     });
     setEditingEngagement(engagement);
   }, []);
@@ -328,12 +350,12 @@ const EngagementManagementMain: React.FC = () => {
   // Utility functions
   const getPhaseColor = useCallback((phase: string) => {
     const colors: Record<string, string> = {
-      'planning': 'bg-yellow-100 text-yellow-800',
-      'discovery': 'bg-blue-100 text-blue-800',
-      'assessment': 'bg-purple-100 text-purple-800',
-      'migration': 'bg-orange-100 text-orange-800',
-      'optimization': 'bg-green-100 text-green-800',
-      'completed': 'bg-gray-100 text-gray-800'
+      planning: 'bg-yellow-100 text-yellow-800',
+      discovery: 'bg-blue-100 text-blue-800',
+      assessment: 'bg-purple-100 text-purple-800',
+      migration: 'bg-orange-100 text-orange-800',
+      optimization: 'bg-green-100 text-green-800',
+      completed: 'bg-gray-100 text-gray-800',
     };
     return colors[phase] || 'bg-gray-100 text-gray-800';
   }, []);
@@ -344,30 +366,31 @@ const EngagementManagementMain: React.FC = () => {
       return new Intl.NumberFormat('en-US', {
         style: 'decimal',
         minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+        maximumFractionDigits: 2,
       }).format(amount);
     }
 
     try {
       return new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: currency
+        currency: currency,
       }).format(amount);
     } catch (error) {
       // Fallback to decimal format if currency is invalid
       return new Intl.NumberFormat('en-US', {
         style: 'decimal',
         minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+        maximumFractionDigits: 2,
       }).format(amount);
     }
   }, []);
 
   // Filter engagements based on search term (already filtered by query, but keep for UI search)
-  const filteredEngagements = engagements.filter(engagement =>
-    engagement.engagement_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    engagement.client_account_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    engagement.engagement_manager?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredEngagements = engagements.filter(
+    (engagement) =>
+      engagement.engagement_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      engagement.client_account_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      engagement.engagement_manager?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -384,13 +407,12 @@ const EngagementManagementMain: React.FC = () => {
           <p>Clients Loading: {clientsLoading ? 'true' : 'false'}</p>
           <p>Clients Error: {clientsError ? 'true' : 'false'}</p>
           <p>Clients Count: {clients.length}</p>
-          <p>Clients: {clients.length > 0 ? clients.map(c => c.account_name).join(', ') : 'None'}</p>
+          <p>
+            Clients: {clients.length > 0 ? clients.map((c) => c.account_name).join(', ') : 'None'}
+          </p>
         </div>
         <div className="flex gap-2 mt-2">
-          <Button
-            onClick={() => engagementsQuery.refetch()}
-            disabled={engagementsQuery.isFetching}
-          >
+          <Button onClick={() => engagementsQuery.refetch()} disabled={engagementsQuery.isFetching}>
             {engagementsQuery.isFetching ? 'Fetching...' : 'Manual Refetch'}
           </Button>
           <Button
@@ -439,7 +461,10 @@ const EngagementManagementMain: React.FC = () => {
       />
 
       {/* Edit Engagement Dialog */}
-      <Dialog open={!!editingEngagement} onOpenChange={(open) => !open && setEditingEngagement(null)}>
+      <Dialog
+        open={!!editingEngagement}
+        onOpenChange={(open) => !open && setEditingEngagement(null)}
+      >
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Edit Engagement: {editingEngagement?.engagement_name}</DialogTitle>
@@ -449,12 +474,16 @@ const EngagementManagementMain: React.FC = () => {
           </DialogHeader>
           <EngagementForm formData={formData} onFormChange={handleFormChange} clients={clients} />
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => {setEditingEngagement(null); resetForm();}}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditingEngagement(null);
+                resetForm();
+              }}
+            >
               Cancel
             </Button>
-            <Button onClick={handleUpdateEngagement}>
-              Update Engagement
-            </Button>
+            <Button onClick={handleUpdateEngagement}>Update Engagement</Button>
           </div>
         </DialogContent>
       </Dialog>

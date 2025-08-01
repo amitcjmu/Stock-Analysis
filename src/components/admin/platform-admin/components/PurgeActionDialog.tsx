@@ -4,13 +4,20 @@
  */
 
 import React from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Trash2, RotateCcw } from 'lucide-react';
-import { getItemTypeColor } from '@/components/admin/shared/utils/adminFormatters'
-import { formatDate, getItemTypeLabel } from '@/components/admin/shared/utils/adminFormatters'
+import { getItemTypeColor } from '@/components/admin/shared/utils/adminFormatters';
+import { formatDate, getItemTypeLabel } from '@/components/admin/shared/utils/adminFormatters';
 import type { SoftDeletedItem } from './PlatformStats';
 
 export interface PurgeAction {
@@ -32,7 +39,7 @@ export const PurgeActionDialog: React.FC<PurgeActionDialogProps> = ({
   purgeAction,
   onClose,
   onExecute,
-  onNotesChange
+  onNotesChange,
 }) => {
   if (!purgeAction) return null;
 
@@ -49,8 +56,7 @@ export const PurgeActionDialog: React.FC<PurgeActionDialogProps> = ({
           <DialogDescription>
             {isApprove
               ? `You are about to permanently delete "${purgeAction.item.item_name}". This action cannot be undone.`
-              : `You are about to restore "${purgeAction.item.item_name}" and reject the deletion request.`
-            }
+              : `You are about to restore "${purgeAction.item.item_name}" and reject the deletion request.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -64,7 +70,8 @@ export const PurgeActionDialog: React.FC<PurgeActionDialogProps> = ({
               <span className="font-medium">{purgeAction.item.item_name}</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Deleted by {purgeAction.item.deleted_by_name} on {formatDate(purgeAction.item.deleted_at)}
+              Deleted by {purgeAction.item.deleted_by_name} on{' '}
+              {formatDate(purgeAction.item.deleted_at)}
             </p>
             {purgeAction.item.delete_reason && (
               <p className="text-sm">
@@ -80,9 +87,10 @@ export const PurgeActionDialog: React.FC<PurgeActionDialogProps> = ({
             </label>
             <Textarea
               id="admin-notes"
-              placeholder={isApprove
-                ? "Add any notes about this approval..."
-                : "Explain why this deletion is being rejected..."
+              placeholder={
+                isApprove
+                  ? 'Add any notes about this approval...'
+                  : 'Explain why this deletion is being rejected...'
               }
               value={purgeAction.notes}
               onChange={(e) => onNotesChange(e.target.value)}
@@ -96,7 +104,7 @@ export const PurgeActionDialog: React.FC<PurgeActionDialogProps> = ({
             Cancel
           </Button>
           <Button
-            variant={isApprove ? "destructive" : "default"}
+            variant={isApprove ? 'destructive' : 'default'}
             onClick={onExecute}
             disabled={isReject && !purgeAction.notes?.trim()}
           >

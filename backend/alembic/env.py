@@ -7,6 +7,62 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+from app.core.database import Base
+
+# Import all models explicitly for Alembic auto-detection
+# flake8: noqa: F401
+from app.models.agent_communication import AgentInsight, AgentQuestion, DataItem
+from app.models.agent_discovered_patterns import AgentDiscoveredPatterns
+from app.models.agent_performance_daily import AgentPerformanceDaily
+from app.models.agent_task_history import AgentTaskHistory
+from app.models.assessment import Assessment, WavePlan
+from app.models.assessment_flow import (
+    ApplicationArchitectureOverride,
+    ApplicationComponent,
+    AssessmentFlow,
+    AssessmentLearningFeedback,
+    ComponentTreatment,
+    EngagementArchitectureStandard,
+    SixRDecision,
+    TechDebtAnalysis,
+)
+from app.models.asset import Asset, AssetDependency
+from app.models.client_account import (
+    ClientAccount,
+    Engagement,
+    User,
+    UserAccountAssociation,
+)
+from app.models.collected_data_inventory import CollectedDataInventory
+from app.models.collection_data_gap import CollectionDataGap
+from app.models.collection_flow import (
+    AutomationTier,
+    CollectionFlow,
+    CollectionFlowStatus,
+)
+from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models.data_import.core import DataImport, RawImportRecord
+from app.models.data_import.mapping import ImportFieldMapping
+from app.models.discovery_flow import DiscoveryFlow
+from app.models.feedback import Feedback
+from app.models.flow_deletion_audit import FlowDeletionAudit
+from app.models.llm_usage import LLMUsageLog, LLMUsageSummary
+from app.models.migration import Migration
+from app.models.platform_adapter import AdapterStatus, PlatformAdapter
+from app.models.platform_credentials import (
+    CredentialAccessLog,
+    CredentialPermission,
+    CredentialRotationHistory,
+    CredentialStatus,
+    CredentialType,
+    PlatformCredential,
+)
+from app.models.rbac import AccessLevel, ClientAccess, UserRole
+from app.models.security_audit import RoleChangeApproval, SecurityAuditLog
+from app.models.sixr_analysis import SixRAnalysis
+from app.models.tags import AssetTag, Tag
+from app.models.user_active_flows import UserActiveFlow
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -25,8 +81,6 @@ if config.config_file_name is not None:
 # Import all models to ensure they are registered with SQLAlchemy
 # The following import is critical for Alembic to detect model changes.
 # It assumes that your models/__init__.py file imports all your model modules.
-from app.core.database import Base
-from app.models import *  # noqa: F403 - Import all models for Alembic auto-detection
 
 target_metadata = Base.metadata
 

@@ -1,0 +1,356 @@
+/**
+ * Simplified API Client - Redis Cache Migration
+ *
+ * This client removes custom caching and relies on backend Redis caching
+ * while maintaining request deduplication for optimal performance.
+ *
+ * CC Generated API Client for AI Force Migration Platform
+ */
+
+import { isCacheFeatureEnabled } from '@/constants/features';
+
+// Auth utilities
+interface AuthHeaders {
+  Authorization?: string;
+  'X-User-ID'?: string;
+  'X-Client-Account-ID'?: string;
+  'X-Engagement-ID'?: string;
+  'X-Flow-ID'?: string;
+}
+
+const getAuthHeaders = (): AuthHeaders => {
+  const headers: AuthHeaders = {};
+
+  try {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const userId = localStorage.getItem('auth_user');
+    if (userId && userId !== 'null') {
+      const user = JSON.parse(userId);
+      if (user?.id) {
+        headers['X-User-ID'] = user.id;
+      }
+    }
+
+    const clientId = localStorage.getItem('auth_client');
+    if (clientId && clientId !== 'null') {
+      const client = JSON.parse(clientId);
+      if (client?.id) {
+        headers['X-Client-Account-ID'] = client.id;
+      }
+    }
+
+    const engagementId = localStorage.getItem('auth_engagement');
+    if (engagementId && engagementId !== 'null') {
+      const engagement = JSON.parse(engagementId);
+      if (engagement?.id) {
+        headers['X-Engagement-ID'] = engagement.id;
+      }
+    }
+
+    const flowId = localStorage.getItem('auth_flow');
+    if (flowId && flowId !== 'null') {
+      const flow = JSON.parse(flowId);
+      if (flow?.id) {
+        headers['X-Flow-ID'] = flow.id;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to get auth headers:', error);
+  }
+
+  return headers;
+};
+
+// API Error class
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public statusText: string,
+    public response?: any,
+    public requestId?: string
+  ) {
+    super(`API Error ${status}: ${statusText}`);
+    this.name = 'ApiError';
+  }
+}
+
+// Request options interface
+export interface RequestOptions extends Omit<RequestInit, 'body'> {
+  timeout?: number;
+  body?: any;
+}
+
+// Base URL configuration
+const getBaseUrl = (): string => {
+  // Force proxy usage for development - Docker container on port 8081
+  if (typeof window !== 'undefined' && window.location.port === '8081') {
+    return '';
+  }
+
+  // Priority 1: Explicit VITE_BACKEND_URL (for production deployments)
+  if (import.meta.env.VITE_BACKEND_URL) {
+    return import.meta.env.VITE_BACKEND_URL;
+  }
+
+  // Priority 2: Legacy VITE_API_BASE_URL
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+
+  // Priority 3: Check if we're in production mode with Vercel
+  if (import.meta.env.PROD && typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname.includes('.vercel.app')) {
+      console.warn('Production deployment detected. Ensure VITE_BACKEND_URL is set to your Railway backend URL.');
+      return window.location.origin;
+    }
+  }
+
+  // Priority 4: Development mode - use empty string to utilize Vite proxy
+  if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
+    return '';  // Empty string means use same origin with proxy
+  }
+
+  // Final fallback
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return '';
+    }
+    return window.location.origin;
+  }
+
+  return '';
+};
+
+/**
+ * Simplified API Client with request deduplication only
+ */
+class ApiClient {
+  private pendingRequests = new Map<string, Promise<any>>();
+  private baseUrl: string;
+
+  constructor() {
+    this.baseUrl = getBaseUrl();
+  }
+
+  /**
+   * GET request with deduplication
+   */
+  async get<T>(endpoint: string, options?: RequestOptions): Promise<T> {
+    const requestKey = `GET:${endpoint}`;
+
+    // Request deduplication only (no caching)
+    if (this.pendingRequests.has(requestKey)) {
+      return this.pendingRequests.get(requestKey);
+    }
+
+    const request = this.executeRequest<T>(endpoint, {
+      ...options,
+      method: 'GET'
+    }).finally(() => {
+      this.pendingRequests.delete(requestKey);
+    });
+
+    this.pendingRequests.set(requestKey, request);
+    return request;
+  }
+
+  /**
+   * POST request
+   */
+  async post<T>(endpoint: string, data?: any, options?: RequestOptions): Promise<T> {
+    return this.executeRequest<T>(endpoint, {
+      ...options,
+      method: 'POST',
+      body: data
+    });
+  }
+
+  /**
+   * PUT request
+   */
+  async put<T>(endpoint: string, data?: any, options?: RequestOptions): Promise<T> {
+    return this.executeRequest<T>(endpoint, {
+      ...options,
+      method: 'PUT',
+      body: data
+    });
+  }
+
+  /**
+   * PATCH request
+   */
+  async patch<T>(endpoint: string, data?: any, options?: RequestOptions): Promise<T> {
+    return this.executeRequest<T>(endpoint, {
+      ...options,
+      method: 'PATCH',
+      body: data
+    });
+  }
+
+  /**
+   * DELETE request
+   */
+  async delete<T>(endpoint: string, options?: RequestOptions): Promise<T> {
+    return this.executeRequest<T>(endpoint, {
+      ...options,
+      method: 'DELETE'
+    });
+  }
+
+  /**
+   * Execute HTTP request
+   */
+  private async executeRequest<T>(
+    endpoint: string,
+    options: RequestInit & { timeout?: number; body?: any }
+  ): Promise<T> {
+    const requestId = Math.random().toString(36).substring(2, 8);
+    const startTime = performance.now();
+
+    // Normalize endpoint
+    let normalizedEndpoint: string;
+    if (endpoint.startsWith('/api/v1') || endpoint.startsWith('/api/v2')) {
+      normalizedEndpoint = endpoint;
+    } else {
+      normalizedEndpoint = `/api/v1${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    }
+
+    const url = `${this.baseUrl}${normalizedEndpoint}`;
+    const method = (options.method || 'GET').toUpperCase();
+
+    try {
+      console.log(`🚀 API Request [${requestId}] ${method} ${url}`);
+
+      // Prepare headers
+      const headers: HeadersInit = {
+        'X-Request-ID': requestId,
+        ...getAuthHeaders(),
+        ...options.headers,
+      };
+
+      // Only set default Content-Type for non-FormData requests
+      if (!(options.body instanceof FormData) && method !== 'GET') {
+        headers['Content-Type'] = 'application/json';
+      }
+
+      // Prepare body
+      let body: string | FormData | undefined;
+      if (options.body !== undefined) {
+        if (options.body instanceof FormData) {
+          body = options.body;
+        } else if (typeof options.body === 'string') {
+          body = options.body;
+        } else {
+          body = JSON.stringify(options.body);
+        }
+      }
+
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutMs = options.timeout || 60000; // Default 1 minute
+
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, timeoutMs);
+
+      // Make the request
+      const response = await fetch(url, {
+        ...options,
+        method,
+        headers,
+        body,
+        credentials: 'include',
+        signal: controller.signal,
+        // Honor backend cache headers if feature is enabled
+        cache: isCacheFeatureEnabled('ENABLE_CACHE_HEADERS') ? 'default' : 'no-store',
+      }).finally(() => {
+        clearTimeout(timeoutId);
+      });
+
+      const endTime = performance.now();
+      const duration = (endTime - startTime).toFixed(2);
+
+      // Parse response
+      let data: T;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        data = await response.text() as T;
+      }
+
+      console.log(`✅ API Response [${requestId}] ${response.status} (${duration}ms)`);
+
+      if (!response.ok) {
+        throw new ApiError(response.status, response.statusText, data, requestId);
+      }
+
+      return data;
+
+    } catch (error) {
+      const endTime = performance.now();
+      const duration = (endTime - startTime).toFixed(2);
+
+      if (error.name === 'AbortError') {
+        console.error(`⏱️ API Timeout [${requestId}] after ${duration}ms`);
+        throw new ApiError(408, 'Request Timeout', undefined, requestId);
+      }
+
+      if (error instanceof ApiError) {
+        console.error(`❌ API Error [${requestId}] ${error.status} (${duration}ms):`, error.message);
+
+        // Handle auth errors
+        if (error.status === 401) {
+          console.warn('🔐 Token expired, clearing auth data');
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+          localStorage.removeItem('auth_client');
+          localStorage.removeItem('auth_engagement');
+          localStorage.removeItem('auth_flow');
+          sessionStorage.removeItem('auth_initialization_complete');
+
+          // Redirect to login if in browser
+          if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+        }
+
+        throw error;
+      }
+
+      console.error(`❌ API Request Failed [${requestId}] (${duration}ms):`, error);
+      throw new ApiError(500, 'Network Error', error, requestId);
+    }
+  }
+}
+
+// Export singleton instance
+export const apiClient = new ApiClient();
+
+// Export backward compatibility function
+export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+  const method = (options.method || 'GET').toUpperCase();
+
+  switch (method) {
+    case 'GET':
+      return apiClient.get(endpoint, options);
+    case 'POST':
+      return apiClient.post(endpoint, options.body, options);
+    case 'PUT':
+      return apiClient.put(endpoint, options.body, options);
+    case 'PATCH':
+      return apiClient.patch(endpoint, options.body, options);
+    case 'DELETE':
+      return apiClient.delete(endpoint, options);
+    default:
+      return apiClient.get(endpoint, options);
+  }
+};
+
+export default apiClient;

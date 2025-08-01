@@ -112,7 +112,7 @@ export const CloudProviders = [
   { value: 'gcp', label: 'Google Cloud Platform (GCP)' },
   { value: 'multi_cloud', label: 'Multi-Cloud Strategy' },
   { value: 'hybrid', label: 'Hybrid Cloud' },
-  { value: 'private_cloud', label: 'Private Cloud' }
+  { value: 'private_cloud', label: 'Private Cloud' },
 ];
 
 export const BusinessPriorities = [
@@ -121,21 +121,32 @@ export const BusinessPriorities = [
   { value: 'security_compliance', label: 'Security & Compliance' },
   { value: 'innovation', label: 'Innovation' },
   { value: 'scalability', label: 'Scalability' },
-  { value: 'reliability', label: 'Reliability' }
+  { value: 'reliability', label: 'Reliability' },
 ];
 
 export const Industries = [
-  'Technology', 'Healthcare', 'Finance', 'Manufacturing', 'Retail',
-  'Education', 'Government', 'Energy', 'Transportation', 'Other'
+  'Technology',
+  'Healthcare',
+  'Finance',
+  'Manufacturing',
+  'Retail',
+  'Education',
+  'Government',
+  'Energy',
+  'Transportation',
+  'Other',
 ];
 
 export const CompanySizes = [
-  'Small (1-100)', 'Medium (101-1000)', 'Large (1001-5000)', 'Enterprise (5000+)'
+  'Small (1-100)',
+  'Medium (101-1000)',
+  'Large (1001-5000)',
+  'Enterprise (5000+)',
 ];
 
 export const SubscriptionTiers = [
   { value: 'basic', label: 'Basic' },
   { value: 'professional', label: 'Professional' },
   { value: 'enterprise', label: 'Enterprise' },
-  { value: 'premium', label: 'Premium' }
+  { value: 'premium', label: 'Premium' },
 ];

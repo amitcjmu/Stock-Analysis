@@ -36,10 +36,13 @@ export interface AgentConfiguration {
     timeout_seconds?: number;
     retry_attempts?: number;
   };
-  custom_configurations?: Record<string, {
-    enabled: boolean;
-    settings: Record<string, string | number | boolean>;
-  }>;
+  custom_configurations?: Record<
+    string,
+    {
+      enabled: boolean;
+      settings: Record<string, string | number | boolean>;
+    }
+  >;
 }
 
 // Discovery Preferences Interface
@@ -180,7 +183,7 @@ export const MigrationScopes = [
   { value: 'infrastructure_only', label: 'Infrastructure Only' },
   { value: 'selected_applications', label: 'Selected Applications' },
   { value: 'pilot_migration', label: 'Pilot Migration' },
-  { value: 'hybrid_cloud', label: 'Hybrid Cloud Setup' }
+  { value: 'hybrid_cloud', label: 'Hybrid Cloud Setup' },
 ];
 
 export const CloudProviders = [
@@ -189,7 +192,7 @@ export const CloudProviders = [
   { value: 'gcp', label: 'Google Cloud Platform (GCP)' },
   { value: 'multi_cloud', label: 'Multi-Cloud Strategy' },
   { value: 'hybrid', label: 'Hybrid Cloud' },
-  { value: 'private_cloud', label: 'Private Cloud' }
+  { value: 'private_cloud', label: 'Private Cloud' },
 ];
 
 export const MigrationPhases = [
@@ -198,7 +201,7 @@ export const MigrationPhases = [
   { value: 'assessment', label: 'Assessment' },
   { value: 'migration', label: 'Migration' },
   { value: 'optimization', label: 'Optimization' },
-  { value: 'completed', label: 'Completed' }
+  { value: 'completed', label: 'Completed' },
 ];
 
 export const Currencies = [
@@ -208,5 +211,5 @@ export const Currencies = [
   { value: 'CAD', label: 'Canadian Dollar (CAD)' },
   { value: 'AUD', label: 'Australian Dollar (AUD)' },
   { value: 'JPY', label: 'Japanese Yen (JPY)' },
-  { value: 'INR', label: 'Indian Rupee (INR)' }
+  { value: 'INR', label: 'Indian Rupee (INR)' },
 ];

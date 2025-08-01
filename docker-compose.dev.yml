@@ -112,7 +112,7 @@ services:
     networks:
       - migration_dev
 
-  # Redis (Development - Optional for caching)
+  # Redis (Development - Secure Configuration)
   redis:
     image: redis:7-alpine
     container_name: migration_redis_dev
@@ -120,13 +120,39 @@ services:
       - "6379:6379"
     volumes:
       - redis_dev_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./redis/logs:/var/log/redis
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-secure_dev_password_change_in_production}
     networks:
       - migration_dev
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      test: ["CMD", "redis-cli", "--pass", "${REDIS_PASSWORD:-secure_dev_password_change_in_production}", "ping"]
+      interval: 5s
       timeout: 3s
-      retries: 3
+      retries: 5
+      start_period: 10s
+    command: >
+      sh -c "
+        mkdir -p /var/log/redis &&
+        chown redis:redis /var/log/redis &&
+        redis-server /usr/local/etc/redis/redis.conf
+      "
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp
+      - /var/run
 
   # Adminer (Database Management UI)
   adminer:
@@ -141,11 +167,36 @@ services:
     environment:
       - ADMINER_DEFAULT_SERVER=postgres
 
+  # Redis Commander (Development GUI)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: migration_redis_commander_dev
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:${REDIS_PASSWORD:-secure_dev_password_change_in_production}
+      - HTTP_USER=admin
+      - HTTP_PASSWORD=${REDIS_COMMANDER_PASSWORD:-admin123}
+      - PORT=8081
+    ports:
+      - "8081:8081"
+    networks:
+      - migration_dev
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles:
+      - debug
+    restart: unless-stopped
+
 volumes:
   postgres_dev_data:
     name: migration_dev_postgres_data
   redis_dev_data:
     name: migration_dev_redis_data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/redis
   dev_logs:
     name: migration_dev_logs
   dev_frontend_cache:

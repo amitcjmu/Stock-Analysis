@@ -3,8 +3,8 @@
  * Provides common data fetching patterns for admin components
  */
 
-import { useState } from 'react'
-import { useCallback } from 'react'
+import { useState } from 'react';
+import { useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
 import { useAdminToasts } from './useAdminToasts';
@@ -43,10 +43,14 @@ export const useAdminData = <T>(
       setError(null);
 
       // Admin calls don't need tenant context - use false as third parameter
-      const response = await apiCall(endpoint, {
-        method: 'GET',
-        headers: getAuthHeaders?.() || {}
-      }, false);
+      const response = await apiCall(
+        endpoint,
+        {
+          method: 'GET',
+          headers: getAuthHeaders?.() || {},
+        },
+        false
+      );
 
       if (response.status === 'success') {
         setIsUsingDemoData(false);
@@ -64,7 +68,15 @@ export const useAdminData = <T>(
       setIsUsingDemoData(true);
       return demoData;
     }
-  }, [endpoint, isAuthenticated, user, getAuthHeaders, demoData, options.showDemoWarning, showDemoDataWarningToast]);
+  }, [
+    endpoint,
+    isAuthenticated,
+    user,
+    getAuthHeaders,
+    demoData,
+    options.showDemoWarning,
+    showDemoDataWarningToast,
+  ]);
 
   const refetch = useCallback(async () => {
     try {
@@ -84,7 +96,7 @@ export const useAdminData = <T>(
     error,
     isUsingDemoData,
     refetch,
-    fetchData
+    fetchData,
   };
 };
 
@@ -98,29 +110,29 @@ export const useAdminDashboardStats = (): unknown => {
     clients: {
       total: 12,
       active: 10,
-      byIndustry: { "Technology": 4, "Healthcare": 3, "Finance": 3, "Manufacturing": 2 },
-      bySize: { "Enterprise": 6, "Large": 4, "Medium": 2 },
-      recentRegistrations: []
+      byIndustry: { Technology: 4, Healthcare: 3, Finance: 3, Manufacturing: 2 },
+      bySize: { Enterprise: 6, Large: 4, Medium: 2 },
+      recentRegistrations: [],
     },
     engagements: {
       total: 25,
       active: 18,
-      byPhase: { "Discovery": 8, "Assessment": 5, "Planning": 3, "Migration": 2 },
-      byScope: { "Full Datacenter": 5, "Application Portfolio": 12, "Selected Apps": 8 },
+      byPhase: { Discovery: 8, Assessment: 5, Planning: 3, Migration: 2 },
+      byScope: { 'Full Datacenter': 5, 'Application Portfolio': 12, 'Selected Apps': 8 },
       completionRate: 72.5,
       budgetUtilization: 65.8,
-      recentActivity: []
+      recentActivity: [],
     },
     users: {
       total: 45,
       pending: 8,
       approved: 37,
-      recentRequests: []
-    }
+      recentRequests: [],
+    },
   };
 
   return useAdminData('/admin/dashboard/stats', demoStats, {
-    showDemoWarning: true
+    showDemoWarning: true,
   });
 };
 
@@ -138,9 +150,11 @@ export const usePendingPurgeItems = (): unknown => {
       deleted_by_email: 'john.admin@company.com',
       deleted_at: '2025-01-05T14:30:00Z',
       delete_reason: 'Client requested account closure after migration completion',
-      status: 'pending_review'
-    }
+      status: 'pending_review',
+    },
   ];
 
-  return useAdminData('admin/platform/platform-admin/pending-purge-items', { pending_items: demoItems });
+  return useAdminData('admin/platform/platform-admin/pending-purge-items', {
+    pending_items: demoItems,
+  });
 };

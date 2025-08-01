@@ -12,7 +12,7 @@ export const formatDate = (dateString: string): string => {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   });
 };
 
@@ -24,7 +24,7 @@ export const formatCurrency = (amount: number): string => {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 0,
-    maximumFractionDigits: 0
+    maximumFractionDigits: 0,
   }).format(amount);
 };
 
@@ -66,7 +66,7 @@ export const getItemTypeColor = (itemType: string): string => {
  * Format item type labels
  */
 export const getItemTypeLabel = (itemType: string): string => {
-  return itemType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  return itemType.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 };
 
 /**
@@ -74,12 +74,12 @@ export const getItemTypeLabel = (itemType: string): string => {
  */
 export const getPhaseLabel = (phase: string): string => {
   const labels: Record<string, string> = {
-    'planning': 'Planning',
-    'discovery': 'Discovery',
-    'assessment': 'Assessment',
-    'migration': 'Migration',
-    'optimization': 'Optimization',
-    'completed': 'Completed'
+    planning: 'Planning',
+    discovery: 'Discovery',
+    assessment: 'Assessment',
+    migration: 'Migration',
+    optimization: 'Optimization',
+    completed: 'Completed',
   };
   return labels[phase] || phase;
 };
@@ -89,12 +89,12 @@ export const getPhaseLabel = (phase: string): string => {
  */
 export const getProviderLabel = (provider: string): string => {
   const labels: Record<string, string> = {
-    'aws': 'AWS',
-    'azure': 'Azure',
-    'gcp': 'GCP',
-    'multi_cloud': 'Multi-Cloud',
-    'hybrid': 'Hybrid',
-    'private_cloud': 'Private Cloud'
+    aws: 'AWS',
+    azure: 'Azure',
+    gcp: 'GCP',
+    multi_cloud: 'Multi-Cloud',
+    hybrid: 'Hybrid',
+    private_cloud: 'Private Cloud',
   };
   return labels[provider] || provider.toUpperCase();
 };

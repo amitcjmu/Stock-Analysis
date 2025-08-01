@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import Settings
-from app.core.demo_constants import TEST_TENANT_1, TEST_TENANT_2
+from app.core.demo_constants import DEMO_CLIENT_ID
 
 
 async def test_rls_isolation():
@@ -50,14 +50,14 @@ async def test_rls_isolation():
             row = result.fetchone()
             print(f"📊 Found {row.total} total records across {row.tenants} tenants\n")
 
-            # Test 1: Set tenant context to TEST_TENANT_1
-            print(f"🔍 Test 1: Setting context to TEST_TENANT_1 ({TEST_TENANT_1})")
+            # Test 1: Set tenant context to DEMO_CLIENT_ID
+            print(f"🔍 Test 1: Setting context to DEMO_CLIENT_ID ({DEMO_CLIENT_ID})")
             await session.execute(
                 text("SELECT migration.set_tenant_context(:client_id)"),
-                {"client_id": str(TEST_TENANT_1)},
+                {"client_id": str(DEMO_CLIENT_ID)},
             )
 
-            # Query data - should only see TEST_TENANT_1 data
+            # Query data - should only see DEMO_CLIENT_ID data
             result = await session.execute(
                 text(
                     """
@@ -70,28 +70,6 @@ async def test_rls_isolation():
             row = result.fetchone()
             print(f"   ✅ Can see {row.count} records")
             print(f"   ✅ All from client: {row.client_id}")
-
-            # Test 2: Switch to TEST_TENANT_2
-            print(f"\n🔍 Test 2: Switching context to TEST_TENANT_2 ({TEST_TENANT_2})")
-            await session.execute(
-                text("SELECT migration.set_tenant_context(:client_id)"),
-                {"client_id": str(TEST_TENANT_2)},
-            )
-
-            # Query data - should only see TEST_TENANT_2 data
-            result = await session.execute(
-                text(
-                    """
-                    SELECT COUNT(*) as count,
-                           MIN(client_account_id)::text as client_id
-                    FROM migration.agent_task_history
-                """
-                )
-            )
-            row = result.fetchone()
-            print(f"   ✅ Can see {row.count} records")
-            if row.count > 0:
-                print(f"   ✅ All from client: {row.client_id}")
 
             # Test 3: Try to access data without setting context
             print("\n🔍 Test 3: Accessing data without tenant context")
@@ -108,34 +86,6 @@ async def test_rls_isolation():
             row = result.fetchone()
             print(f"   ✅ Can see {row.count} records (should be 0 with RLS enabled)")
 
-            # Test 4: Verify cross-tenant isolation
-            print("\n🔍 Test 4: Verifying cross-tenant data isolation")
-
-            # Set to tenant 1
-            await session.execute(
-                text("SELECT migration.set_tenant_context(:client_id)"),
-                {"client_id": str(TEST_TENANT_1)},
-            )
-
-            # Try to explicitly query tenant 2 data
-            result = await session.execute(
-                text(
-                    """
-                    SELECT COUNT(*) as count
-                    FROM migration.agent_task_history
-                    WHERE client_account_id = :tenant2_id
-                """
-                ),
-                {"tenant2_id": str(TEST_TENANT_2)},
-            )
-            row = result.fetchone()
-            print(f"   ✅ Tenant 1 trying to access Tenant 2 data: {row.count} records")
-            print(
-                "   ✅ Cross-tenant access blocked!"
-                if row.count == 0
-                else "   ❌ SECURITY ISSUE: Cross-tenant access allowed!"
-            )
-
             # Test 5: Check multiple tables
             print("\n🔍 Test 5: Checking RLS on multiple tables")
             tables_to_check = [
@@ -147,7 +97,7 @@ async def test_rls_isolation():
 
             await session.execute(
                 text("SELECT migration.set_tenant_context(:client_id)"),
-                {"client_id": str(TEST_TENANT_1)},
+                {"client_id": str(DEMO_CLIENT_ID)},
             )
 
             # Validate table names

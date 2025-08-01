@@ -3,8 +3,8 @@ import { Calendar, DollarSign, Target, Save } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import type { CreateEngagementData , ClientAccount} from './types'
-import { CloudProviders } from './types'
+import type { CreateEngagementData, ClientAccount } from './types';
+import { CloudProviders } from './types';
 
 interface EngagementSummaryProps {
   formData: CreateEngagementData;
@@ -19,9 +19,9 @@ export const EngagementSummary: React.FC<EngagementSummaryProps> = ({
   clientAccounts,
   loading,
   onCancel,
-  onSubmit
+  onSubmit,
 }) => {
-  const selectedClient = clientAccounts.find(client => client.id === formData.client_account_id);
+  const selectedClient = clientAccounts.find((client) => client.id === formData.client_account_id);
 
   return (
     <div className="space-y-6">
@@ -39,13 +39,16 @@ export const EngagementSummary: React.FC<EngagementSummaryProps> = ({
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm">
-                {formData.estimated_start_date ? formData.estimated_start_date : 'Start Date'} - {formData.estimated_end_date ? formData.estimated_end_date : 'End Date'}
+                {formData.estimated_start_date ? formData.estimated_start_date : 'Start Date'} -{' '}
+                {formData.estimated_end_date ? formData.estimated_end_date : 'End Date'}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm">
-                {formData.budget ? `${formData.budget} ${formData.budget_currency}` : 'No budget set'}
+                {formData.budget
+                  ? `${formData.budget} ${formData.budget_currency}`
+                  : 'No budget set'}
               </span>
             </div>
           </div>
@@ -55,22 +58,25 @@ export const EngagementSummary: React.FC<EngagementSummaryProps> = ({
           <div className="space-y-2">
             <h4 className="font-medium">Client</h4>
             <p className="text-sm text-muted-foreground">
-              {selectedClient ? `${selectedClient.account_name} (${selectedClient.industry})` : 'Not selected'}
+              {selectedClient
+                ? `${selectedClient.account_name} (${selectedClient.industry})`
+                : 'Not selected'}
             </p>
           </div>
 
           <div className="space-y-2">
             <h4 className="font-medium">Project Manager</h4>
-            <p className="text-sm text-muted-foreground">{formData.project_manager || 'Not assigned'}</p>
+            <p className="text-sm text-muted-foreground">
+              {formData.project_manager || 'Not assigned'}
+            </p>
           </div>
 
           <div className="space-y-2">
             <h4 className="font-medium">Cloud Provider</h4>
             <p className="text-sm text-muted-foreground">
               {formData.target_cloud_provider
-                ? CloudProviders.find(p => p.value === formData.target_cloud_provider)?.label
-                : 'Not selected'
-              }
+                ? CloudProviders.find((p) => p.value === formData.target_cloud_provider)?.label
+                : 'Not selected'}
             </p>
           </div>
 
@@ -81,8 +87,10 @@ export const EngagementSummary: React.FC<EngagementSummaryProps> = ({
                 formData.scope_applications && 'Applications',
                 formData.scope_databases && 'Databases',
                 formData.scope_infrastructure && 'Infrastructure',
-                formData.scope_data_migration && 'Data Migration'
-              ].filter(Boolean).join(', ') || 'None selected'}
+                formData.scope_data_migration && 'Data Migration',
+              ]
+                .filter(Boolean)
+                .join(', ') || 'None selected'}
             </p>
           </div>
         </CardContent>
@@ -91,20 +99,10 @@ export const EngagementSummary: React.FC<EngagementSummaryProps> = ({
       <Card>
         <CardContent className="pt-6">
           <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              className="flex-1"
-            >
+            <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
               Cancel
             </Button>
-            <Button
-              type="button"
-              disabled={loading}
-              onClick={onSubmit}
-              className="flex-1"
-            >
+            <Button type="button" disabled={loading} onClick={onSubmit} className="flex-1">
               {loading ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               ) : (

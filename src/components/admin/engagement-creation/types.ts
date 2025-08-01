@@ -30,7 +30,7 @@ export const CloudProviders = [
   { value: 'azure', label: 'Microsoft Azure' },
   { value: 'gcp', label: 'Google Cloud Platform (GCP)' },
   { value: 'multi_cloud', label: 'Multi-Cloud Strategy' },
-  { value: 'hybrid', label: 'Hybrid Cloud' }
+  { value: 'hybrid', label: 'Hybrid Cloud' },
 ];
 
 export const EngagementStatuses = [
@@ -39,7 +39,7 @@ export const EngagementStatuses = [
   { value: 'assessment', label: 'Assessment' },
   { value: 'active', label: 'Active' },
   { value: 'on_hold', label: 'On Hold' },
-  { value: 'completed', label: 'Completed' }
+  { value: 'completed', label: 'Completed' },
 ];
 
 export const Phases = [
@@ -47,14 +47,14 @@ export const Phases = [
   { value: 'assessment', label: 'Assessment' },
   { value: 'planning', label: 'Planning' },
   { value: 'execution', label: 'Execution' },
-  { value: 'optimization', label: 'Optimization' }
+  { value: 'optimization', label: 'Optimization' },
 ];
 
 export const RiskLevels = [
   { value: 'low', label: 'Low' },
   { value: 'medium', label: 'Medium' },
   { value: 'high', label: 'High' },
-  { value: 'critical', label: 'Critical' }
+  { value: 'critical', label: 'Critical' },
 ];
 
 export const Currencies = [
@@ -62,5 +62,5 @@ export const Currencies = [
   { value: 'EUR', label: 'EUR' },
   { value: 'GBP', label: 'GBP' },
   { value: 'CAD', label: 'CAD' },
-  { value: 'AUD', label: 'AUD' }
+  { value: 'AUD', label: 'AUD' },
 ];

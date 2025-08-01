@@ -41,7 +41,7 @@ export interface InventoryAsset {
   name?: string;
   asset_name?: string;
   type: string;
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
 }
 
 export interface DependencyData {
@@ -59,10 +59,10 @@ export interface DependencyData {
     mapped_dependencies: number;
     completion_percentage: number;
   };
-  dependency_relationships?: any[];
-  dependency_matrix?: Record<string, any>;
-  critical_dependencies?: any[];
-  orphaned_assets?: any[];
+  dependency_relationships?: unknown[];
+  dependency_matrix?: Record<string, unknown>;
+  critical_dependencies?: unknown[];
+  orphaned_assets?: unknown[];
   dependency_complexity_score?: number;
   recommendations?: string[];
 }

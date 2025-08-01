@@ -15,10 +15,10 @@ import {
   Trash2,
   RotateCcw,
   Eye,
-  CheckCircle
+  CheckCircle,
 } from 'lucide-react';
-import { getItemTypeColor } from '@/components/admin/shared/utils/adminFormatters'
-import { formatDate, getItemTypeLabel } from '@/components/admin/shared/utils/adminFormatters'
+import { getItemTypeColor } from '@/components/admin/shared/utils/adminFormatters';
+import { formatDate, getItemTypeLabel } from '@/components/admin/shared/utils/adminFormatters';
 import type { SoftDeletedItem } from './PlatformStats';
 
 export interface PendingItemsListProps {
@@ -36,7 +36,7 @@ export const PendingItemsList: React.FC<PendingItemsListProps> = ({
   onViewDetails,
   onApprove,
   onReject,
-  className = ''
+  className = '',
 }) => {
   const getItemTypeIcon = (itemType: string): JSX.Element => {
     switch (itemType) {
@@ -126,11 +126,7 @@ export const PendingItemsList: React.FC<PendingItemsListProps> = ({
 
                   {/* Action Buttons */}
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onViewDetails(item)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => onViewDetails(item)}>
                       <Eye className="w-4 h-4 mr-1" />
                       Details
                     </Button>

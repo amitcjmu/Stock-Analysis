@@ -2,6 +2,9 @@ import { useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall } from '../../../config/api';
+import { apiClient } from '../../../lib/api/apiClient';
+import { useWebSocket } from '../../useWebSocket';
+import { isCacheFeatureEnabled } from '@/constants/features';
 import type { FormFieldValue } from '@/types/shared/form-types';
 
 interface RawFieldMapping {
@@ -81,6 +84,7 @@ export const useFieldMappings = (
 ): FieldMappingsResult => {
   const { getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
+  const { subscribe } = useWebSocket();
 
   // Get field mappings using the import ID
   const {
@@ -100,14 +104,16 @@ export const useFieldMappings = (
       console.log('🔍 Fetching field mappings for import ID:', importId);
 
       try {
-        // First, get all field mappings (including filtered ones)
-        const mappings = await apiCall(`/api/v1/data-import/field-mapping/imports/${importId}/field-mappings`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeaders()
-          }
-        });
+        // Use new API client if custom cache is disabled, otherwise use legacy
+        const mappings = isCacheFeatureEnabled('DISABLE_CUSTOM_CACHE')
+          ? await apiClient.get(`/data-import/field-mapping/imports/${importId}/field-mappings`)
+          : await apiCall(`/api/v1/data-import/field-mapping/imports/${importId}/field-mappings`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders()
+              }
+            });
 
         console.log('✅ Fetched field mappings from API:', {
           import_id: importId,
@@ -117,13 +123,15 @@ export const useFieldMappings = (
 
         // Now try to get the raw import data to see all original CSV fields
         try {
-          const rawImportData = await apiCall(`/api/v1/data-import/imports/${importId}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              ...getAuthHeaders()
-            }
-          });
+          const rawImportData = isCacheFeatureEnabled('DISABLE_CUSTOM_CACHE')
+            ? await apiClient.get(`/data-import/imports/${importId}`)
+            : await apiCall(`/api/v1/data-import/imports/${importId}`, {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...getAuthHeaders()
+                }
+              });
 
           console.log('📊 Raw import data retrieved:', {
             has_raw_data: !!rawImportData?.raw_data,
@@ -216,8 +224,8 @@ export const useFieldMappings = (
       }
     },
     enabled: !!importData?.import_metadata?.import_id,
-    staleTime: 30 * 1000, // Cache for 30 seconds to ensure fresh data after approval
-    cacheTime: 2 * 60 * 1000, // Keep in cache for 2 minutes
+    staleTime: isCacheFeatureEnabled('REACT_QUERY_OPTIMIZATIONS') ? 2 * 60 * 1000 : 30 * 1000, // 2 minutes with optimizations, 30 seconds legacy
+    cacheTime: isCacheFeatureEnabled('REACT_QUERY_OPTIMIZATIONS') ? 5 * 60 * 1000 : 2 * 60 * 1000, // 5 minutes with optimizations, 2 minutes legacy
     retry: (failureCount, error) => {
       // Allow retries on 429 (Too Many Requests) with longer delays
       if (error && typeof error === 'object' && 'status' in error) {
@@ -401,21 +409,42 @@ export const useFieldMappings = (
     return [];
   }, [fieldMappingData, realFieldMappings]);
 
-  // Set up cache invalidation function
+  // Set up WebSocket cache invalidation listener
   useEffect(() => {
     const importId = importData?.import_metadata?.import_id;
     if (!importId) return;
 
-    // Create cache invalidation function
+    // WebSocket cache invalidation (if enabled)
+    let unsubscribeWebSocket: (() => void) | null = null;
+
+    if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_CACHE') && subscribe) {
+      console.log('🔗 Setting up WebSocket cache invalidation for field mappings:', importId);
+
+      unsubscribeWebSocket = subscribe('field_mappings_updated', (event) => {
+        console.log('🔄 WebSocket cache invalidation event received:', event);
+
+        // Check if the event is for this specific import
+        if (event.entity_id === importId || event.metadata?.import_id === importId) {
+          console.log('🔄 Invalidating field mappings cache for import:', importId);
+
+          queryClient.invalidateQueries({
+            queryKey: ['field-mappings', importId],
+            exact: true
+          });
+        }
+      });
+    }
+
+    // Legacy cache invalidation function for bulk operations
     const invalidateFieldMappings = async () => {
-      console.log('🔄 Invalidating field mappings cache for import:', importId);
+      console.log('🔄 Manual invalidation of field mappings cache for import:', importId);
       await queryClient.invalidateQueries({
         queryKey: ['field-mappings', importId],
         exact: true
       });
     };
 
-    // Attach to window for bulk operations to use
+    // Attach to window for bulk operations to use (backward compatibility)
     interface WindowWithInvalidate extends Window {
       __invalidateFieldMappings?: () => Promise<void>;
     }
@@ -425,11 +454,17 @@ export const useFieldMappings = (
 
     // Cleanup on unmount
     return () => {
+      // Unsubscribe from WebSocket events
+      if (unsubscribeWebSocket) {
+        unsubscribeWebSocket();
+      }
+
+      // Clean up window function
       if (typeof window !== 'undefined') {
         delete (window as WindowWithInvalidate).__invalidateFieldMappings;
       }
     };
-  }, [importData?.import_metadata?.import_id, queryClient]);
+  }, [importData?.import_metadata?.import_id, queryClient, subscribe]);
 
   return {
     fieldMappings,

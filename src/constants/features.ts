@@ -91,6 +91,15 @@ export const FEATURES = {
     THIRD_PARTY_TOOLS: true
   },
 
+  // Cache and Performance features
+  CACHE: {
+    USE_GLOBAL_CONTEXT: false,
+    DISABLE_CUSTOM_CACHE: false,
+    ENABLE_WEBSOCKET_CACHE: false,
+    ENABLE_CACHE_HEADERS: false,
+    REACT_QUERY_OPTIMIZATIONS: false
+  },
+
   // Experimental features
   EXPERIMENTAL: {
     BETA_FEATURES: false,
@@ -116,6 +125,13 @@ export const FEATURES = {
 export const FEATURE_ENVIRONMENTS = {
   DEVELOPMENT: {
     ...FEATURES,
+    CACHE: {
+      ...FEATURES.CACHE,
+      DISABLE_CUSTOM_CACHE: true,  // Use new API client with Redis backend caching
+      ENABLE_WEBSOCKET_CACHE: true,
+      ENABLE_CACHE_HEADERS: true,
+      REACT_QUERY_OPTIMIZATIONS: true
+    },
     EXPERIMENTAL: {
       ...FEATURES.EXPERIMENTAL,
       BETA_FEATURES: true
@@ -124,6 +140,11 @@ export const FEATURE_ENVIRONMENTS = {
 
   STAGING: {
     ...FEATURES,
+    CACHE: {
+      ...FEATURES.CACHE,
+      ENABLE_WEBSOCKET_CACHE: true,
+      ENABLE_CACHE_HEADERS: true
+    },
     EXPERIMENTAL: {
       ...FEATURES.EXPERIMENTAL,
       BETA_FEATURES: true
@@ -168,4 +189,17 @@ export const isFeatureEnabled = (featurePath: string): boolean => {
 // Helper function to get features for current environment
 export const getFeaturesForEnvironment = (env: 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION' = 'PRODUCTION'): unknown => {
   return FEATURE_ENVIRONMENTS[env];
+};
+
+// Helper function to get current environment features
+export const getCurrentFeatures = (): unknown => {
+  const env = import.meta.env.MODE === 'development' ? 'DEVELOPMENT' :
+             import.meta.env.MODE === 'staging' ? 'STAGING' : 'PRODUCTION';
+  return getFeaturesForEnvironment(env);
+};
+
+// Helper function to check cache features specifically
+export const isCacheFeatureEnabled = (featureName: keyof typeof FEATURES.CACHE): boolean => {
+  const currentFeatures = getCurrentFeatures() as typeof FEATURES;
+  return currentFeatures.CACHE[featureName];
 };

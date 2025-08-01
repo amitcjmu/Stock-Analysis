@@ -4,9 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { CreateEngagementData , ClientAccount} from './types'
-import { EngagementStatuses, Phases, RiskLevels } from './types'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type { CreateEngagementData, ClientAccount } from './types';
+import { EngagementStatuses, Phases, RiskLevels } from './types';
 
 interface EngagementBasicInfoProps {
   formData: CreateEngagementData;
@@ -19,7 +25,7 @@ export const EngagementBasicInfo: React.FC<EngagementBasicInfoProps> = ({
   formData,
   clientAccounts,
   errors,
-  onFormChange
+  onFormChange,
 }) => {
   return (
     <Card>
@@ -48,12 +54,15 @@ export const EngagementBasicInfo: React.FC<EngagementBasicInfoProps> = ({
 
           <div className="space-y-2">
             <Label htmlFor="client_account_id">Client Account *</Label>
-            <Select value={formData.client_account_id} onValueChange={(value) => onFormChange('client_account_id', value)}>
+            <Select
+              value={formData.client_account_id}
+              onValueChange={(value) => onFormChange('client_account_id', value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select client account" />
               </SelectTrigger>
               <SelectContent>
-                {clientAccounts.map(client => (
+                {clientAccounts.map((client) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.account_name} ({client.industry})
                   </SelectItem>
@@ -87,13 +96,18 @@ export const EngagementBasicInfo: React.FC<EngagementBasicInfoProps> = ({
 
           <div className="space-y-2">
             <Label htmlFor="engagement_status">Status</Label>
-            <Select value={formData.engagement_status} onValueChange={(value) => onFormChange('engagement_status', value)}>
+            <Select
+              value={formData.engagement_status}
+              onValueChange={(value) => onFormChange('engagement_status', value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                {EngagementStatuses.map(status => (
-                  <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                {EngagementStatuses.map((status) => (
+                  <SelectItem key={status.value} value={status.value}>
+                    {status.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -106,8 +120,10 @@ export const EngagementBasicInfo: React.FC<EngagementBasicInfoProps> = ({
                 <SelectValue placeholder="Select phase" />
               </SelectTrigger>
               <SelectContent>
-                {Phases.map(phase => (
-                  <SelectItem key={phase.value} value={phase.value}>{phase.label}</SelectItem>
+                {Phases.map((phase) => (
+                  <SelectItem key={phase.value} value={phase.value}>
+                    {phase.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -115,13 +131,18 @@ export const EngagementBasicInfo: React.FC<EngagementBasicInfoProps> = ({
 
           <div className="space-y-2">
             <Label htmlFor="risk_level">Risk Level</Label>
-            <Select value={formData.risk_level} onValueChange={(value) => onFormChange('risk_level', value)}>
+            <Select
+              value={formData.risk_level}
+              onValueChange={(value) => onFormChange('risk_level', value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select risk level" />
               </SelectTrigger>
               <SelectContent>
-                {RiskLevels.map(risk => (
-                  <SelectItem key={risk.value} value={risk.value}>{risk.label}</SelectItem>
+                {RiskLevels.map((risk) => (
+                  <SelectItem key={risk.value} value={risk.value}>
+                    {risk.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
