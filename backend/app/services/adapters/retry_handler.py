@@ -293,11 +293,21 @@ class ErrorClassifier:
 
     def update_pattern(self, error_type: ErrorType, **kwargs):
         """Update an existing error pattern"""
+        from app.core.security.secure_setattr import secure_setattr, SAFE_ATTRIBUTES
+        
         for pattern in self._error_patterns:
             if pattern.error_type == error_type:
+                # Define allowed attributes for error pattern updates
+                allowed_attrs = SAFE_ATTRIBUTES | {
+                    'retry_count', 'max_retries', 'backoff_factor', 'max_delay',
+                    'error_type', 'pattern', 'enabled', 'last_retry'
+                }
+                
                 for key, value in kwargs.items():
                     if hasattr(pattern, key):
-                        setattr(pattern, key, value)
+                        # Use secure attribute setting to prevent sensitive data exposure
+                        if not secure_setattr(pattern, key, value, allowed_attrs, strict_mode=False):
+                            logger.warning(f"Skipped updating potentially sensitive attribute: {key}")
                 break
 
 
