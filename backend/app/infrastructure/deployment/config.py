@@ -218,6 +218,7 @@ class DeploymentSettings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"
 
 
 def get_deployment_config() -> DeploymentConfig:

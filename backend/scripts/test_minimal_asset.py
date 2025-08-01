@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script for AssetMinimal model.
+Test script for Asset model.
 Tests basic CRUD operations with only essential fields.
 """
 
@@ -13,26 +13,26 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 
 from app.core.database import AsyncSessionLocal
-from app.models.asset_minimal import (
-    AssetMinimal,
-    AssetStatusEnum,
-    AssetTypeEnum,
-    SixRStrategyEnum,
+from app.models.asset import (
+    Asset,
+    AssetStatus,
+    AssetType,
+    SixRStrategy,
 )
 
 
 async def test_minimal_asset_creation():
     """Test creating a minimal asset record with only essential fields."""
 
-    print("🧪 Testing AssetMinimal model...")
+    print("🧪 Testing Asset model...")
 
     async with AsyncSessionLocal() as db:
         try:
             # Create a test asset with minimal required fields
-            test_asset = AssetMinimal(
+            test_asset = Asset(
                 migration_id=1,  # Assuming migration ID 1 exists
                 name="test-asset-minimal",
-                asset_type=AssetTypeEnum.SERVER,
+                asset_type=AssetType.SERVER,
                 description="Test asset for minimal model validation",
                 hostname="test-host-minimal",
                 ip_address="192.168.1.100",
@@ -42,21 +42,21 @@ async def test_minimal_asset_creation():
                 assessment_readiness="not_ready",
             )
 
-            print(f"✅ Created AssetMinimal object: {test_asset}")
+            print(f"✅ Created Asset object: {test_asset}")
 
             # Add to database
             db.add(test_asset)
             await db.commit()
             await db.refresh(test_asset)
 
-            print(f"✅ Successfully inserted AssetMinimal with ID: {test_asset.id}")
+            print(f"✅ Successfully inserted Asset with ID: {test_asset.id}")
             print(f"   Name: {test_asset.name}")
             print(f"   Type: {test_asset.asset_type}")
             print(f"   Status: {test_asset.status}")
             print(f"   Discovery Status: {test_asset.discovery_status}")
 
             # Test reading the asset
-            retrieved_asset = await db.get(AssetMinimal, test_asset.id)
+            retrieved_asset = await db.get(Asset, test_asset.id)
             if retrieved_asset:
                 print(f"✅ Successfully retrieved asset: {retrieved_asset.name}")
                 print(f"   Asset dict: {retrieved_asset.to_dict()}")
@@ -66,7 +66,7 @@ async def test_minimal_asset_creation():
 
             # Test updating the asset
             retrieved_asset.description = "Updated description for minimal test"
-            retrieved_asset.status = AssetStatusEnum.ASSESSED
+            retrieved_asset.status = AssetStatus.ASSESSED
             await db.commit()
 
             print("✅ Successfully updated asset")
@@ -75,7 +75,7 @@ async def test_minimal_asset_creation():
             from sqlalchemy import select
 
             result = await db.execute(
-                select(AssetMinimal).where(AssetMinimal.name.like("test-asset%"))
+                select(Asset).where(Asset.name.like("test-asset%"))
             )
             assets = result.scalars().all()
             print(f"✅ Found {len(assets)} test assets")
@@ -88,7 +88,7 @@ async def test_minimal_asset_creation():
             return True
 
         except Exception as e:
-            print(f"❌ Error during AssetMinimal testing: {str(e)}")
+            print(f"❌ Error during Asset testing: {str(e)}")
             print(f"   Error type: {type(e).__name__}")
             import traceback
 
@@ -104,10 +104,10 @@ async def test_workflow_status_fields():
     async with AsyncSessionLocal() as db:
         try:
             # Create asset with different workflow statuses
-            test_asset = AssetMinimal(
+            test_asset = Asset(
                 migration_id=1,
                 name="test-workflow-asset",
-                asset_type=AssetTypeEnum.APPLICATION,
+                asset_type=AssetType.APPLICATION,
                 discovery_status="completed",
                 mapping_status="in_progress",
                 cleanup_status="pending",
@@ -145,26 +145,26 @@ async def test_enum_fields():
             # Test all enum combinations
             test_combinations = [
                 (
-                    AssetTypeEnum.SERVER,
-                    AssetStatusEnum.DISCOVERED,
-                    SixRStrategyEnum.REHOST,
+                    AssetType.SERVER,
+                    AssetStatus.DISCOVERED,
+                    SixRStrategy.REHOST,
                 ),
                 (
-                    AssetTypeEnum.DATABASE,
-                    AssetStatusEnum.ASSESSED,
-                    SixRStrategyEnum.REPLATFORM,
+                    AssetType.DATABASE,
+                    AssetStatus.ASSESSED,
+                    SixRStrategy.REPLATFORM,
                 ),
                 (
-                    AssetTypeEnum.APPLICATION,
-                    AssetStatusEnum.PLANNED,
-                    SixRStrategyEnum.REFACTOR,
+                    AssetType.APPLICATION,
+                    AssetStatus.PLANNED,
+                    SixRStrategy.REFACTOR,
                 ),
             ]
 
             created_assets = []
 
             for i, (asset_type, status, strategy) in enumerate(test_combinations):
-                test_asset = AssetMinimal(
+                test_asset = Asset(
                     migration_id=1,
                     name=f"test-enum-{i}",
                     asset_type=asset_type,
@@ -195,7 +195,7 @@ async def test_enum_fields():
 
 async def main():
     """Run all tests."""
-    print("🚀 Starting AssetMinimal CRUD tests...")
+    print("🚀 Starting Asset CRUD tests...")
 
     tests = [test_minimal_asset_creation, test_workflow_status_fields, test_enum_fields]
 
@@ -214,7 +214,7 @@ async def main():
     print(f"\n📊 Test Results: {passed}/{total} tests passed")
 
     if passed == total:
-        print("🎉 All AssetMinimal tests passed! Database model alignment is working.")
+        print("🎉 All Asset tests passed! Database model alignment is working.")
         return True
     else:
         print("❌ Some tests failed. Model-database alignment needs more work.")

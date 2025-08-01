@@ -3,14 +3,15 @@
 Test CrewAI with LiteLLM configuration for DeepInfra.
 """
 
-import time
-import sys
 import os
+import sys
+import time
 
 # Add the backend directory to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "backend"))
 
 from app.core.config import settings
+
 
 def test_crewai_with_litellm():
     """Test CrewAI with LiteLLM configuration for DeepInfra."""
@@ -19,7 +20,7 @@ def test_crewai_with_litellm():
 
     try:
         # Import LiteLLM and CrewAI
-        from crewai import Agent, Task, Crew, Process, LLM
+        from crewai import LLM, Agent, Crew, Process, Task
 
         # Configure LiteLLM for DeepInfra
         print("🔧 Configuring LiteLLM for DeepInfra...")
@@ -29,7 +30,7 @@ def test_crewai_with_litellm():
             model="deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
             api_key=settings.DEEPINFRA_API_KEY,
             temperature=0.1,
-            max_tokens=100
+            max_tokens=100,
         )
 
         print("✅ LiteLLM configured for DeepInfra")
@@ -45,7 +46,7 @@ def test_crewai_with_litellm():
             llm=llm,
             verbose=False,
             allow_delegation=False,
-            memory=False
+            memory=False,
         )
 
         print("✅ Agent created with LiteLLM")
@@ -54,7 +55,7 @@ def test_crewai_with_litellm():
         task = Task(
             description="What is 9+9? Answer with just the number.",
             agent=agent,
-            expected_output="A single number"
+            expected_output="A single number",
         )
 
         print("✅ Task created")
@@ -65,7 +66,7 @@ def test_crewai_with_litellm():
             tasks=[task],
             process=Process.sequential,
             verbose=False,
-            memory=False
+            memory=False,
         )
 
         print("✅ Crew created")
@@ -87,8 +88,10 @@ def test_crewai_with_litellm():
     except Exception as e:
         print(f"❌ LiteLLM test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def test_direct_litellm():
     """Test direct LiteLLM call to DeepInfra."""
@@ -108,7 +111,7 @@ def test_direct_litellm():
             messages=[{"role": "user", "content": "What is 4+4? Just the number."}],
             api_key=settings.DEEPINFRA_API_KEY,
             temperature=0.1,
-            max_tokens=50
+            max_tokens=50,
         )
 
         duration = time.time() - start_time
@@ -126,8 +129,10 @@ def test_direct_litellm():
     except Exception as e:
         print(f"❌ Direct LiteLLM failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 if __name__ == "__main__":
     print("🔬 CrewAI LiteLLM Test Suite")

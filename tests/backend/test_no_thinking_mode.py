@@ -4,15 +4,16 @@ Test to verify that thinking mode is disabled and LLM responds quickly.
 """
 
 import asyncio
-import time
-import sys
 import os
+import sys
+import time
 
 # Add the backend directory to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "backend"))
 
-from app.services.deepinfra_llm import create_deepinfra_llm
 from app.core.config import settings
+from app.services.deepinfra_llm import create_deepinfra_llm
+
 
 async def test_no_thinking_mode():
     """Test that LLM responds quickly without thinking mode."""
@@ -24,7 +25,7 @@ async def test_no_thinking_mode():
         api_token=settings.DEEPINFRA_API_KEY,
         model_id=settings.DEEPINFRA_MODEL,
         temperature=0.1,  # Lower temperature for faster, more deterministic responses
-        max_new_tokens=50  # Much smaller for quick testing
+        max_new_tokens=50,  # Much smaller for quick testing
     )
 
     print(f"✅ LLM created: {llm.model_id}")
@@ -35,7 +36,7 @@ async def test_no_thinking_mode():
     test_prompts = [
         "What is 2+2? Answer with just the number.",
         "Name one color. Just the color name.",
-        "What day comes after Monday? Just the day name."
+        "What day comes after Monday? Just the day name.",
     ]
 
     for i, prompt in enumerate(test_prompts, 1):
@@ -49,7 +50,9 @@ async def test_no_thinking_mode():
             print(f"✅ Response in {duration:.2f}s: {result.strip()}")
 
             if duration > 10:
-                print(f"⚠️  Response took {duration:.2f}s - might still be using thinking mode")
+                print(
+                    f"⚠️  Response took {duration:.2f}s - might still be using thinking mode"
+                )
             else:
                 print("🚀 Fast response - thinking mode likely disabled")
 
@@ -59,6 +62,7 @@ async def test_no_thinking_mode():
 
     print("\n" + "=" * 50)
     print("Test completed!")
+
 
 if __name__ == "__main__":
     asyncio.run(test_no_thinking_mode())

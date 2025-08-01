@@ -6,27 +6,27 @@ data handoff validation between crews, shared memory integration,
 and cross-crew collaboration patterns.
 """
 
-import pytest
-from unittest.mock import Mock
-from typing import Dict, List, Any
 import time
+from typing import Any, Dict, List
+from unittest.mock import Mock
+
+import pytest
 
 # Mock imports for testing
 try:
-    from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
-    from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
     from app.models.data_import.import_session import ImportSession
-    from app.models.workflow_state import WorkflowState
+    from app.models.discovery_workflow import DiscoveryWorkflow
+    from app.services.crewai_flows.discovery_flow_service import DiscoveryFlowService
 except ImportError:
     # Fallback for testing environment
-    UnifiedDiscoveryFlow = Mock
-    UnifiedDiscoveryFlowState = Mock
+    DiscoveryFlowService = Mock
     ImportSession = Mock
-    WorkflowState = Mock
+    DiscoveryWorkflow = Mock
 
 
 class MockFlowResult:
     """Mock result from crew execution"""
+
     def __init__(self, crew_type: str, success: bool = True):
         self.crew_type = crew_type
         self.success = success
@@ -36,17 +36,29 @@ class MockFlowResult:
         if crew_type == "field_mapping":
             self.data = {
                 "field_mappings": {
-                    "hostname": {"confidence": 0.95, "target": "server_name", "semantic_type": "identifier"},
-                    "ip_address": {"confidence": 0.90, "target": "network_address", "semantic_type": "network"},
-                    "cpu_count": {"confidence": 0.85, "target": "processor_count", "semantic_type": "technical"}
+                    "hostname": {
+                        "confidence": 0.95,
+                        "target": "server_name",
+                        "semantic_type": "identifier",
+                    },
+                    "ip_address": {
+                        "confidence": 0.90,
+                        "target": "network_address",
+                        "semantic_type": "network",
+                    },
+                    "cpu_count": {
+                        "confidence": 0.85,
+                        "target": "processor_count",
+                        "semantic_type": "technical",
+                    },
                 },
                 "schema_analysis": {
                     "total_fields": 15,
                     "mapped_fields": 12,
                     "unmapped_fields": 3,
-                    "confidence_threshold": 0.8
+                    "confidence_threshold": 0.8,
                 },
-                "insights": {"readiness_for_cleansing": True}
+                "insights": {"readiness_for_cleansing": True},
             }
         elif crew_type == "data_cleansing":
             self.data = {
@@ -54,13 +66,13 @@ class MockFlowResult:
                     "standardized_records": 1250,
                     "validation_errors": 15,
                     "duplicate_records": 8,
-                    "data_quality_score": 0.92
+                    "data_quality_score": 0.92,
                 },
                 "standardization_mapping": {
                     "server_name": "hostname_standardized",
-                    "network_address": "ip_standardized"
+                    "network_address": "ip_standardized",
                 },
-                "insights": {"readiness_for_inventory": True}
+                "insights": {"readiness_for_inventory": True},
             }
         elif crew_type == "inventory_building":
             self.data = {
@@ -68,43 +80,52 @@ class MockFlowResult:
                     "servers_classified": 450,
                     "applications_discovered": 180,
                     "devices_catalogued": 85,
-                    "classification_accuracy": 0.89
+                    "classification_accuracy": 0.89,
                 },
                 "asset_categories": {
-                    "servers": {"count": 450, "types": ["physical", "virtual", "cloud"]},
-                    "applications": {"count": 180, "types": ["web", "database", "middleware"]},
-                    "devices": {"count": 85, "types": ["network", "storage", "security"]}
+                    "servers": {
+                        "count": 450,
+                        "types": ["physical", "virtual", "cloud"],
+                    },
+                    "applications": {
+                        "count": 180,
+                        "types": ["web", "database", "middleware"],
+                    },
+                    "devices": {
+                        "count": 85,
+                        "types": ["network", "storage", "security"],
+                    },
                 },
-                "insights": {"readiness_for_dependencies": True}
+                "insights": {"readiness_for_dependencies": True},
             }
         elif crew_type == "app_server_dependency":
             self.data = {
                 "dependency_results": {
                     "app_server_relationships": 320,
                     "infrastructure_dependencies": 240,
-                    "topology_accuracy": 0.87
+                    "topology_accuracy": 0.87,
                 },
                 "relationship_types": {
                     "hosting": 180,
                     "database_connection": 85,
-                    "service_dependency": 55
+                    "service_dependency": 55,
                 },
-                "insights": {"readiness_for_app_dependencies": True}
+                "insights": {"readiness_for_app_dependencies": True},
             }
         elif crew_type == "app_app_dependency":
             self.data = {
                 "dependency_results": {
                     "app_app_relationships": 150,
                     "api_dependencies": 95,
-                    "integration_patterns": 65
+                    "integration_patterns": 65,
                 },
                 "communication_types": {
                     "rest_api": 60,
                     "database_shared": 35,
                     "message_queue": 30,
-                    "file_transfer": 25
+                    "file_transfer": 25,
                 },
-                "insights": {"readiness_for_tech_debt": True}
+                "insights": {"readiness_for_tech_debt": True},
             }
         elif crew_type == "technical_debt":
             self.data = {
@@ -112,15 +133,15 @@ class MockFlowResult:
                     "legacy_technologies": 45,
                     "modernization_candidates": 38,
                     "risk_score": 0.72,
-                    "effort_estimate": "medium"
+                    "effort_estimate": "medium",
                 },
                 "debt_categories": {
                     "technology_obsolescence": 15,
                     "security_vulnerabilities": 12,
                     "performance_issues": 10,
-                    "compliance_gaps": 8
+                    "compliance_gaps": 8,
                 },
-                "insights": {"readiness_for_integration": True}
+                "insights": {"readiness_for_integration": True},
             }
         elif crew_type == "integration":
             self.data = {
@@ -128,14 +149,14 @@ class MockFlowResult:
                     "comprehensive_analysis": True,
                     "data_consistency_score": 0.94,
                     "cross_crew_insights": 6,
-                    "discovery_completeness": 0.91
+                    "discovery_completeness": 0.91,
                 },
                 "final_insights": {
                     "total_assets": 715,
                     "total_dependencies": 470,
                     "migration_readiness": "high",
-                    "recommended_strategy": "hybrid_approach"
-                }
+                    "recommended_strategy": "hybrid_approach",
+                },
             }
 
     def to_dict(self):
@@ -143,12 +164,13 @@ class MockFlowResult:
             "crew_type": self.crew_type,
             "success": self.success,
             "timestamp": self.timestamp,
-            "data": self.data
+            "data": self.data,
         }
 
 
 class MockSharedMemory:
     """Mock shared memory system for testing"""
+
     def __init__(self):
         self.memories = {}
         self.cross_crew_insights = []
@@ -186,8 +208,8 @@ def mock_import_session():
         "columns": ["hostname", "ip_address", "cpu_count", "memory_gb", "os_type"],
         "sample_data": [
             ["server01", "192.168.1.10", "8", "32", "Linux"],
-            ["server02", "192.168.1.11", "16", "64", "Windows"]
-        ]
+            ["server02", "192.168.1.11", "16", "64", "Windows"],
+        ],
     }
     return session
 
@@ -197,7 +219,7 @@ def mock_discovery_workflow():
     """Create mock discovery workflow for testing"""
     workflow = Mock(spec=DiscoveryWorkflow)
     workflow.id = 456
-    workflow.import_session_id = 123
+    workflow.data_import_id = 123
     workflow.status = "running"
     workflow.current_phase = "field_mapping"
     return workflow
@@ -212,38 +234,56 @@ def mock_discovery_flow_service():
     # Mock crew execution methods
     async def mock_execute_field_mapping(session):
         result = MockFlowResult("field_mapping")
-        service.shared_memory.add("field_mapping_result", result.to_dict())
-        service.shared_memory.add("field_mapping_to_data_cleansing_handoff", {"ready": True})
+        # Handle memory failure gracefully
+        if service.shared_memory is not None:
+            service.shared_memory.add("field_mapping_result", result.to_dict())
+            service.shared_memory.add(
+                "field_mapping_to_data_cleansing_handoff", {"ready": True}
+            )
+        else:
+            # Fallback behavior when memory system fails
+            result.data["insights"]["memory_failure"] = True
+            result.data["insights"]["fallback_mode"] = True
         return result.to_dict()
 
     async def mock_execute_data_cleansing(session, field_mapping_result):
         result = MockFlowResult("data_cleansing")
         service.shared_memory.add("data_cleansing_result", result.to_dict())
-        service.shared_memory.add("data_cleansing_to_inventory_building_handoff", {"ready": True})
+        service.shared_memory.add(
+            "data_cleansing_to_inventory_building_handoff", {"ready": True}
+        )
         return result.to_dict()
 
     async def mock_execute_inventory_building(session, previous_results):
         result = MockFlowResult("inventory_building")
         service.shared_memory.add("inventory_building_result", result.to_dict())
-        service.shared_memory.add("inventory_building_to_app_server_dependency_handoff", {"ready": True})
+        service.shared_memory.add(
+            "inventory_building_to_app_server_dependency_handoff", {"ready": True}
+        )
         return result.to_dict()
 
     async def mock_execute_app_server_dependency(session, previous_results):
         result = MockFlowResult("app_server_dependency")
         service.shared_memory.add("app_server_dependency_result", result.to_dict())
-        service.shared_memory.add("app_server_dependency_to_app_app_dependency_handoff", {"ready": True})
+        service.shared_memory.add(
+            "app_server_dependency_to_app_app_dependency_handoff", {"ready": True}
+        )
         return result.to_dict()
 
     async def mock_execute_app_app_dependency(session, previous_results):
         result = MockFlowResult("app_app_dependency")
         service.shared_memory.add("app_app_dependency_result", result.to_dict())
-        service.shared_memory.add("app_app_dependency_to_technical_debt_handoff", {"ready": True})
+        service.shared_memory.add(
+            "app_app_dependency_to_technical_debt_handoff", {"ready": True}
+        )
         return result.to_dict()
 
     async def mock_execute_technical_debt(session, previous_results):
         result = MockFlowResult("technical_debt")
         service.shared_memory.add("technical_debt_result", result.to_dict())
-        service.shared_memory.add("technical_debt_to_integration_handoff", {"ready": True})
+        service.shared_memory.add(
+            "technical_debt_to_integration_handoff", {"ready": True}
+        )
         return result.to_dict()
 
     async def mock_execute_integration(session, all_results):
@@ -266,7 +306,9 @@ class TestCompleteFlowExecution:
     """Test complete flow execution sequence"""
 
     @pytest.mark.asyncio
-    async def test_complete_flow_sequence(self, mock_discovery_flow_service, mock_import_session):
+    async def test_complete_flow_sequence(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test complete discovery flow execution from start to finish"""
         service = mock_discovery_flow_service
         session = mock_import_session
@@ -281,19 +323,25 @@ class TestCompleteFlowExecution:
         assert "field_mappings" in field_mapping_result["data"]
 
         # Phase 2: Data Cleansing
-        data_cleansing_result = await service.execute_data_cleansing_crew(session, field_mapping_result)
+        data_cleansing_result = await service.execute_data_cleansing_crew(
+            session, field_mapping_result
+        )
         results["data_cleansing"] = data_cleansing_result
         assert data_cleansing_result["success"] is True
         assert "cleansing_results" in data_cleansing_result["data"]
 
         # Phase 3: Inventory Building
-        inventory_result = await service.execute_inventory_building_crew(session, results)
+        inventory_result = await service.execute_inventory_building_crew(
+            session, results
+        )
         results["inventory_building"] = inventory_result
         assert inventory_result["success"] is True
         assert "inventory_results" in inventory_result["data"]
 
         # Phase 4: App-Server Dependencies
-        app_server_result = await service.execute_app_server_dependency_crew(session, results)
+        app_server_result = await service.execute_app_server_dependency_crew(
+            session, results
+        )
         results["app_server_dependency"] = app_server_result
         assert app_server_result["success"] is True
         assert "dependency_results" in app_server_result["data"]
@@ -321,7 +369,9 @@ class TestCompleteFlowExecution:
         assert all(result["success"] for result in results.values())
 
     @pytest.mark.asyncio
-    async def test_flow_timing_and_performance(self, mock_discovery_flow_service, mock_import_session):
+    async def test_flow_timing_and_performance(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test flow execution timing and performance metrics"""
         service = mock_discovery_flow_service
         session = mock_import_session
@@ -332,7 +382,9 @@ class TestCompleteFlowExecution:
         field_mapping_result = await service.execute_field_mapping_crew(session)
         field_mapping_time = time.time() - start_time
 
-        data_cleansing_result = await service.execute_data_cleansing_crew(session, field_mapping_result)
+        data_cleansing_result = await service.execute_data_cleansing_crew(
+            session, field_mapping_result
+        )
         data_cleansing_time = time.time() - start_time - field_mapping_time
 
         total_time = time.time() - start_time
@@ -351,7 +403,9 @@ class TestDataHandoffValidation:
     """Test data handoff validation between crews"""
 
     @pytest.mark.asyncio
-    async def test_field_mapping_to_data_cleansing_handoff(self, mock_discovery_flow_service, mock_import_session):
+    async def test_field_mapping_to_data_cleansing_handoff(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test data handoff from field mapping to data cleansing"""
         service = mock_discovery_flow_service
         session = mock_import_session
@@ -360,58 +414,83 @@ class TestDataHandoffValidation:
         field_mapping_result = await service.execute_field_mapping_crew(session)
 
         # Verify handoff readiness
-        handoff_ready = service.shared_memory.validate_data_handoff("field_mapping", "data_cleansing")
+        handoff_ready = service.shared_memory.validate_data_handoff(
+            "field_mapping", "data_cleansing"
+        )
         assert handoff_ready is True
 
         # Verify required data is available
         assert "field_mappings" in field_mapping_result["data"]
         assert "schema_analysis" in field_mapping_result["data"]
-        assert field_mapping_result["data"]["insights"]["readiness_for_cleansing"] is True
+        assert (
+            field_mapping_result["data"]["insights"]["readiness_for_cleansing"] is True
+        )
 
     @pytest.mark.asyncio
-    async def test_data_cleansing_to_inventory_handoff(self, mock_discovery_flow_service, mock_import_session):
+    async def test_data_cleansing_to_inventory_handoff(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test data handoff from data cleansing to inventory building"""
         service = mock_discovery_flow_service
         session = mock_import_session
 
         # Execute prerequisites
         field_mapping_result = await service.execute_field_mapping_crew(session)
-        data_cleansing_result = await service.execute_data_cleansing_crew(session, field_mapping_result)
+        data_cleansing_result = await service.execute_data_cleansing_crew(
+            session, field_mapping_result
+        )
 
         # Verify handoff readiness
-        handoff_ready = service.shared_memory.validate_data_handoff("data_cleansing", "inventory_building")
+        handoff_ready = service.shared_memory.validate_data_handoff(
+            "data_cleansing", "inventory_building"
+        )
         assert handoff_ready is True
 
         # Verify required data is available
         assert "cleansing_results" in data_cleansing_result["data"]
         assert "standardization_mapping" in data_cleansing_result["data"]
-        assert data_cleansing_result["data"]["insights"]["readiness_for_inventory"] is True
+        assert (
+            data_cleansing_result["data"]["insights"]["readiness_for_inventory"] is True
+        )
 
     @pytest.mark.asyncio
-    async def test_inventory_to_dependencies_handoff(self, mock_discovery_flow_service, mock_import_session):
+    async def test_inventory_to_dependencies_handoff(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test data handoff from inventory building to dependency analysis"""
         service = mock_discovery_flow_service
         session = mock_import_session
 
         # Execute prerequisites
         field_mapping_result = await service.execute_field_mapping_crew(session)
-        data_cleansing_result = await service.execute_data_cleansing_crew(session, field_mapping_result)
-        inventory_result = await service.execute_inventory_building_crew(session, {
-            "field_mapping": field_mapping_result,
-            "data_cleansing": data_cleansing_result
-        })
+        data_cleansing_result = await service.execute_data_cleansing_crew(
+            session, field_mapping_result
+        )
+        inventory_result = await service.execute_inventory_building_crew(
+            session,
+            {
+                "field_mapping": field_mapping_result,
+                "data_cleansing": data_cleansing_result,
+            },
+        )
 
         # Verify handoff readiness
-        handoff_ready = service.shared_memory.validate_data_handoff("inventory_building", "app_server_dependency")
+        handoff_ready = service.shared_memory.validate_data_handoff(
+            "inventory_building", "app_server_dependency"
+        )
         assert handoff_ready is True
 
         # Verify required data is available
         assert "inventory_results" in inventory_result["data"]
         assert "asset_categories" in inventory_result["data"]
-        assert inventory_result["data"]["insights"]["readiness_for_dependencies"] is True
+        assert (
+            inventory_result["data"]["insights"]["readiness_for_dependencies"] is True
+        )
 
     @pytest.mark.asyncio
-    async def test_dependency_to_tech_debt_handoff(self, mock_discovery_flow_service, mock_import_session):
+    async def test_dependency_to_tech_debt_handoff(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test data handoff from dependency analysis to technical debt evaluation"""
         service = mock_discovery_flow_service
         session = mock_import_session
@@ -424,7 +503,9 @@ class TestDataHandoffValidation:
         app_app_result = await service.execute_app_app_dependency_crew(session, {})
 
         # Verify handoff readiness
-        handoff_ready = service.shared_memory.validate_data_handoff("app_app_dependency", "technical_debt")
+        handoff_ready = service.shared_memory.validate_data_handoff(
+            "app_app_dependency", "technical_debt"
+        )
         assert handoff_ready is True
 
         # Verify required data is available
@@ -437,7 +518,9 @@ class TestSharedMemoryIntegration:
     """Test shared memory integration across entire flow"""
 
     @pytest.mark.asyncio
-    async def test_memory_persistence_across_flow(self, mock_discovery_flow_service, mock_import_session):
+    async def test_memory_persistence_across_flow(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test memory persistence across entire flow execution"""
         service = mock_discovery_flow_service
         session = mock_import_session
@@ -462,28 +545,36 @@ class TestSharedMemoryIntegration:
         assert stored_inventory["crew_type"] == "inventory_building"
 
     @pytest.mark.asyncio
-    async def test_cross_crew_insight_building(self, mock_discovery_flow_service, mock_import_session):
+    async def test_cross_crew_insight_building(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test cumulative insight building across crews"""
         service = mock_discovery_flow_service
 
         # Add cross-crew insights during execution
-        service.shared_memory.add_cross_crew_insight({
-            "source": "field_mapping",
-            "insight": "High confidence field mappings enable automated cleansing",
-            "impact": "data_cleansing"
-        })
+        service.shared_memory.add_cross_crew_insight(
+            {
+                "source": "field_mapping",
+                "insight": "High confidence field mappings enable automated cleansing",
+                "impact": "data_cleansing",
+            }
+        )
 
-        service.shared_memory.add_cross_crew_insight({
-            "source": "data_cleansing",
-            "insight": "Clean data improves asset classification accuracy",
-            "impact": "inventory_building"
-        })
+        service.shared_memory.add_cross_crew_insight(
+            {
+                "source": "data_cleansing",
+                "insight": "Clean data improves asset classification accuracy",
+                "impact": "inventory_building",
+            }
+        )
 
-        service.shared_memory.add_cross_crew_insight({
-            "source": "inventory_building",
-            "insight": "Well-classified assets simplify dependency mapping",
-            "impact": "dependency_analysis"
-        })
+        service.shared_memory.add_cross_crew_insight(
+            {
+                "source": "inventory_building",
+                "insight": "Well-classified assets simplify dependency mapping",
+                "impact": "dependency_analysis",
+            }
+        )
 
         # Verify insights are accumulated
         insights = service.shared_memory.get_cross_crew_insights()
@@ -496,7 +587,9 @@ class TestSharedMemoryIntegration:
         assert "inventory_building" in sources
 
     @pytest.mark.asyncio
-    async def test_memory_search_functionality(self, mock_discovery_flow_service, mock_import_session):
+    async def test_memory_search_functionality(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test memory search across accumulated data"""
         service = mock_discovery_flow_service
         session = mock_import_session
@@ -521,7 +614,9 @@ class TestSuccessCriteriaValidation:
     """Test success criteria validation at each phase"""
 
     @pytest.mark.asyncio
-    async def test_field_mapping_success_criteria(self, mock_discovery_flow_service, mock_import_session):
+    async def test_field_mapping_success_criteria(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test success criteria validation for field mapping phase"""
         service = mock_discovery_flow_service
         session = mock_import_session
@@ -540,14 +635,18 @@ class TestSuccessCriteriaValidation:
             assert "semantic_type" in mapping
 
     @pytest.mark.asyncio
-    async def test_data_cleansing_success_criteria(self, mock_discovery_flow_service, mock_import_session):
+    async def test_data_cleansing_success_criteria(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test success criteria validation for data cleansing phase"""
         service = mock_discovery_flow_service
         session = mock_import_session
 
         # Execute prerequisites
         field_mapping_result = await service.execute_field_mapping_crew(session)
-        result = await service.execute_data_cleansing_crew(session, field_mapping_result)
+        result = await service.execute_data_cleansing_crew(
+            session, field_mapping_result
+        )
 
         # Verify success criteria
         assert result["success"] is True
@@ -556,7 +655,9 @@ class TestSuccessCriteriaValidation:
         assert result["data"]["cleansing_results"]["standardized_records"] > 0
 
     @pytest.mark.asyncio
-    async def test_inventory_building_success_criteria(self, mock_discovery_flow_service, mock_import_session):
+    async def test_inventory_building_success_criteria(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test success criteria validation for inventory building phase"""
         service = mock_discovery_flow_service
         session = mock_import_session
@@ -578,7 +679,9 @@ class TestErrorHandlingAndRecovery:
     """Test error handling and recovery mechanisms"""
 
     @pytest.mark.asyncio
-    async def test_phase_failure_recovery(self, mock_discovery_flow_service, mock_import_session):
+    async def test_phase_failure_recovery(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test recovery from phase failure"""
         service = mock_discovery_flow_service
         session = mock_import_session
@@ -593,14 +696,18 @@ class TestErrorHandlingAndRecovery:
         field_mapping_result = await service.execute_field_mapping_crew(session)
         assert field_mapping_result["success"] is True
 
-        data_cleansing_result = await service.execute_data_cleansing_crew(session, field_mapping_result)
+        data_cleansing_result = await service.execute_data_cleansing_crew(
+            session, field_mapping_result
+        )
         assert data_cleansing_result["success"] is False
 
         # Verify graceful handling
         assert data_cleansing_result["crew_type"] == "data_cleansing"
 
     @pytest.mark.asyncio
-    async def test_data_handoff_failure_handling(self, mock_discovery_flow_service, mock_import_session):
+    async def test_data_handoff_failure_handling(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test handling of data handoff failures"""
         service = mock_discovery_flow_service
         session = mock_import_session
@@ -609,14 +716,20 @@ class TestErrorHandlingAndRecovery:
         await service.execute_field_mapping_crew(session)
 
         # Remove handoff data to simulate failure
-        service.shared_memory.memories.pop("field_mapping_to_data_cleansing_handoff", None)
+        service.shared_memory.memories.pop(
+            "field_mapping_to_data_cleansing_handoff", None
+        )
 
         # Verify handoff validation fails
-        handoff_ready = service.shared_memory.validate_data_handoff("field_mapping", "data_cleansing")
+        handoff_ready = service.shared_memory.validate_data_handoff(
+            "field_mapping", "data_cleansing"
+        )
         assert handoff_ready is False
 
     @pytest.mark.asyncio
-    async def test_memory_system_failure_handling(self, mock_discovery_flow_service, mock_import_session):
+    async def test_memory_system_failure_handling(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test handling of memory system failures"""
         service = mock_discovery_flow_service
         session = mock_import_session
@@ -626,23 +739,23 @@ class TestErrorHandlingAndRecovery:
         service.shared_memory = None
 
         # Should handle gracefully
-        try:
-            result = await service.execute_field_mapping_crew(session)
-            # If no exception, verify fallback behavior
-            assert isinstance(result, dict)
-        except Exception as e:
-            # Should be a handled exception
-            assert "memory" in str(e).lower()
-        finally:
-            # Restore memory for cleanup
-            service.shared_memory = original_memory
+        result = await service.execute_field_mapping_crew(session)
+        # Verify fallback behavior
+        assert isinstance(result, dict)
+        assert result["data"]["insights"]["memory_failure"] is True
+        assert result["data"]["insights"]["fallback_mode"] is True
+
+        # Restore memory for cleanup
+        service.shared_memory = original_memory
 
 
 class TestPerformanceOptimization:
     """Test performance optimization across flow"""
 
     @pytest.mark.asyncio
-    async def test_concurrent_crew_execution(self, mock_discovery_flow_service, mock_import_session):
+    async def test_concurrent_crew_execution(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test concurrent execution where possible"""
         service = mock_discovery_flow_service
         session = mock_import_session
@@ -672,7 +785,9 @@ class TestPerformanceOptimization:
         assert execution_time < 1.0
 
     @pytest.mark.asyncio
-    async def test_memory_optimization_during_flow(self, mock_discovery_flow_service, mock_import_session):
+    async def test_memory_optimization_during_flow(
+        self, mock_discovery_flow_service, mock_import_session
+    ):
         """Test memory optimization during long flow execution"""
         service = mock_discovery_flow_service
         session = mock_import_session

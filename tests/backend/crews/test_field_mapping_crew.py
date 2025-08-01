@@ -5,14 +5,17 @@ This module tests the Field Mapping Crew's coordination, agent collaboration,
 shared memory integration, and tool usage following CrewAI best practices.
 """
 
-import pytest
+from typing import Any, Dict, List
 from unittest.mock import Mock
-from typing import Dict, List, Any
+
+import pytest
 
 # Mock imports for testing
 try:
-    from app.services.crewai_flows.discovery_crews.field_mapping_crew import FieldMappingCrew
     from app.models.data_import.import_session import ImportSession
+    from app.services.crewai_flows.discovery_crews.field_mapping_crew import (
+        FieldMappingCrew,
+    )
 except ImportError:
     # Fallback for testing environment
     FieldMappingCrew = Mock
@@ -21,62 +24,78 @@ except ImportError:
 
 class MockAgent:
     """Mock CrewAI Agent for testing"""
+
     def __init__(self, role: str, goal: str, backstory: str, **kwargs):
         self.role = role
         self.goal = goal
         self.backstory = backstory
-        self.tools = kwargs.get('tools', [])
-        self.memory = kwargs.get('memory')
-        self.knowledge_base = kwargs.get('knowledge_base')
-        self.manager = kwargs.get('manager', False)
-        self.allow_delegation = kwargs.get('allow_delegation', False)
-        self.collaboration_instructions = kwargs.get('collaboration_instructions', "")
+        self.tools = kwargs.get("tools", [])
+        self.memory = kwargs.get("memory")
+        self.knowledge_base = kwargs.get("knowledge_base")
+        self.manager = kwargs.get("manager", False)
+        self.allow_delegation = kwargs.get("allow_delegation", False)
+        self.collaboration_instructions = kwargs.get("collaboration_instructions", "")
 
 
 class MockTask:
     """Mock CrewAI Task for testing"""
+
     def __init__(self, description: str, agent: MockAgent, **kwargs):
         self.description = description
         self.agent = agent
-        self.expected_output = kwargs.get('expected_output', "")
-        self.tools = kwargs.get('tools', [])
-        self.context = kwargs.get('context', [])
+        self.expected_output = kwargs.get("expected_output", "")
+        self.tools = kwargs.get("tools", [])
+        self.context = kwargs.get("context", [])
 
 
 class MockCrew:
     """Mock CrewAI Crew for testing"""
+
     def __init__(self, agents: List[MockAgent], tasks: List[MockTask], **kwargs):
         self.agents = agents
         self.tasks = tasks
-        self.process = kwargs.get('process', 'hierarchical')
-        self.manager_agent = kwargs.get('manager_agent')
-        self.memory = kwargs.get('memory')
-        self.knowledge_base = kwargs.get('knowledge_base')
+        self.process = kwargs.get("process", "hierarchical")
+        self.manager_agent = kwargs.get("manager_agent")
+        self.memory = kwargs.get("memory")
+        self.knowledge_base = kwargs.get("knowledge_base")
 
     async def kickoff_async(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Mock crew execution"""
         return {
             "field_mappings": {
-                "hostname": {"confidence": 0.95, "target": "server_name", "semantic_type": "identifier"},
-                "ip_address": {"confidence": 0.90, "target": "network_address", "semantic_type": "network"},
-                "cpu_count": {"confidence": 0.85, "target": "processor_count", "semantic_type": "technical"}
+                "hostname": {
+                    "confidence": 0.95,
+                    "target": "server_name",
+                    "semantic_type": "identifier",
+                },
+                "ip_address": {
+                    "confidence": 0.90,
+                    "target": "network_address",
+                    "semantic_type": "network",
+                },
+                "cpu_count": {
+                    "confidence": 0.85,
+                    "target": "processor_count",
+                    "semantic_type": "technical",
+                },
             },
             "schema_analysis": {
                 "total_fields": 15,
                 "mapped_fields": 12,
                 "unmapped_fields": 3,
-                "confidence_threshold": 0.8
+                "confidence_threshold": 0.8,
             },
             "collaboration_insights": {
                 "manager_coordination": "Effective task delegation",
                 "specialist_interaction": "High collaboration score",
-                "cross_crew_preparation": "Ready for data cleansing crew"
-            }
+                "cross_crew_preparation": "Ready for data cleansing crew",
+            },
         }
 
 
 class MockLongTermMemory:
     """Mock CrewAI LongTermMemory for testing"""
+
     def __init__(self, storage_type: str = "vector"):
         self.storage_type = storage_type
         self.memories = {}
@@ -93,6 +112,7 @@ class MockLongTermMemory:
 
 class MockKnowledgeBase:
     """Mock CrewAI KnowledgeBase for testing"""
+
     def __init__(self, sources: List[str]):
         self.sources = sources
         self.knowledge = {}
@@ -115,8 +135,8 @@ def mock_import_session():
         "columns": ["hostname", "ip_address", "cpu_count", "memory_gb", "os_type"],
         "sample_data": [
             ["server01", "192.168.1.10", "8", "32", "Linux"],
-            ["server02", "192.168.1.11", "16", "64", "Windows"]
-        ]
+            ["server02", "192.168.1.11", "16", "64", "Windows"],
+        ],
     }
     return session
 
@@ -139,31 +159,36 @@ def field_mapping_crew(mock_crewai_service):
     crew = Mock()
     crew.crewai_service = mock_crewai_service
     crew.shared_memory = MockLongTermMemory()
-    crew.field_mapping_knowledge = MockKnowledgeBase([
-        "migration_field_patterns.json",
-        "cmdb_schema_standards.yaml"
-    ])
+    crew.field_mapping_knowledge = MockKnowledgeBase(
+        ["migration_field_patterns.json", "cmdb_schema_standards.yaml"]
+    )
 
     # Add necessary methods
-    crew._create_field_mapping_manager = Mock(return_value=MockAgent(
-        role="Field Mapping Manager",
-        goal="Coordinate field mapping analysis",
-        backstory="Expert coordinator",
-        manager=True,
-        allow_delegation=True
-    ))
+    crew._create_field_mapping_manager = Mock(
+        return_value=MockAgent(
+            role="Field Mapping Manager",
+            goal="Coordinate field mapping analysis",
+            backstory="Expert coordinator",
+            manager=True,
+            allow_delegation=True,
+        )
+    )
 
-    crew._create_schema_analysis_expert = Mock(return_value=MockAgent(
-        role="Schema Analysis Expert",
-        goal="Perform semantic understanding analysis",
-        backstory="Schema expert"
-    ))
+    crew._create_schema_analysis_expert = Mock(
+        return_value=MockAgent(
+            role="Schema Analysis Expert",
+            goal="Perform semantic understanding analysis",
+            backstory="Schema expert",
+        )
+    )
 
-    crew._create_attribute_mapping_specialist = Mock(return_value=MockAgent(
-        role="Attribute Mapping Specialist",
-        goal="Create confidence scoring mappings",
-        backstory="Mapping specialist"
-    ))
+    crew._create_attribute_mapping_specialist = Mock(
+        return_value=MockAgent(
+            role="Attribute Mapping Specialist",
+            goal="Create confidence scoring mappings",
+            backstory="Mapping specialist",
+        )
+    )
 
     crew._create_crew = Mock(return_value=MockCrew([], []))
     crew._create_tasks = Mock(return_value=[])
@@ -189,8 +214,8 @@ class TestFieldMappingCrewInitialization:
         crew.field_mapping_knowledge = MockKnowledgeBase([])
 
         assert crew.crewai_service == mock_crewai_service
-        assert hasattr(crew, 'shared_memory')
-        assert hasattr(crew, 'field_mapping_knowledge')
+        assert hasattr(crew, "shared_memory")
+        assert hasattr(crew, "field_mapping_knowledge")
 
     def test_memory_integration(self, field_mapping_crew):
         """Test shared memory integration"""
@@ -235,7 +260,10 @@ class TestManagerAgentCoordination:
         # Verify manager coordination results
         assert "field_mappings" in result
         assert "collaboration_insights" in result
-        assert result["collaboration_insights"]["manager_coordination"] == "Effective task delegation"
+        assert (
+            result["collaboration_insights"]["manager_coordination"]
+            == "Effective task delegation"
+        )
 
     def test_hierarchical_process(self, field_mapping_crew):
         """Test hierarchical process with manager coordination"""
@@ -317,19 +345,24 @@ class TestSharedMemoryIntegration:
     async def test_memory_persistence(self, field_mapping_crew, mock_import_session):
         """Test memory persistence across crew execution"""
         # Add initial memory
-        field_mapping_crew.shared_memory.add("session_context", {
-            "session_id": mock_import_session.id,
-            "previous_mappings": {"server": "hostname"}
-        })
+        field_mapping_crew.shared_memory.add(
+            "flow_context",
+            {
+                "flow_id": str(mock_import_session.id),
+                "previous_mappings": {"server": "hostname"},
+            },
+        )
 
         # Retrieve memory
-        context = field_mapping_crew.shared_memory.get("session_context")
+        context = field_mapping_crew.shared_memory.get("flow_context")
 
-        assert context["session_id"] == 123
+        assert context["flow_id"] == "123"
         assert context["previous_mappings"]["server"] == "hostname"
 
     @pytest.mark.asyncio
-    async def test_cross_crew_memory_sharing(self, field_mapping_crew, mock_import_session):
+    async def test_cross_crew_memory_sharing(
+        self, field_mapping_crew, mock_import_session
+    ):
         """Test memory sharing preparation for next crews"""
         result = await field_mapping_crew.execute_field_mapping(mock_import_session)
 
@@ -358,7 +391,9 @@ class TestAgentCollaboration:
     """Test agent collaboration patterns"""
 
     @pytest.mark.asyncio
-    async def test_intra_crew_collaboration(self, field_mapping_crew, mock_import_session):
+    async def test_intra_crew_collaboration(
+        self, field_mapping_crew, mock_import_session
+    ):
         """Test collaboration between manager and specialists"""
         result = await field_mapping_crew.execute_field_mapping(mock_import_session)
 
@@ -367,7 +402,9 @@ class TestAgentCollaboration:
         assert insights["specialist_interaction"] == "High collaboration score"
 
     @pytest.mark.asyncio
-    async def test_cross_crew_communication(self, field_mapping_crew, mock_import_session):
+    async def test_cross_crew_communication(
+        self, field_mapping_crew, mock_import_session
+    ):
         """Test communication setup for subsequent crews"""
         result = await field_mapping_crew.execute_field_mapping(mock_import_session)
 
@@ -375,20 +412,24 @@ class TestAgentCollaboration:
         assert "cross_crew_preparation" in result["collaboration_insights"]
 
     @pytest.mark.asyncio
-    async def test_bidirectional_feedback(self, field_mapping_crew, mock_import_session):
+    async def test_bidirectional_feedback(
+        self, field_mapping_crew, mock_import_session
+    ):
         """Test bidirectional feedback between agents"""
         # Mock agent feedback loop
         feedback_data = {
             "manager_feedback": "Schema analysis complete",
             "specialist_feedback": "Mapping confidence acceptable",
-            "validation_feedback": "Ready for next phase"
+            "validation_feedback": "Ready for next phase",
         }
 
         field_mapping_crew.shared_memory.add("agent_feedback", feedback_data)
         retrieved_feedback = field_mapping_crew.shared_memory.get("agent_feedback")
 
         assert retrieved_feedback["manager_feedback"] == "Schema analysis complete"
-        assert retrieved_feedback["specialist_feedback"] == "Mapping confidence acceptable"
+        assert (
+            retrieved_feedback["specialist_feedback"] == "Mapping confidence acceptable"
+        )
 
 
 class TestTaskExecution:
@@ -402,7 +443,9 @@ class TestTaskExecution:
         assert isinstance(tasks, list)
 
     @pytest.mark.asyncio
-    async def test_success_criteria_validation(self, field_mapping_crew, mock_import_session):
+    async def test_success_criteria_validation(
+        self, field_mapping_crew, mock_import_session
+    ):
         """Test success criteria validation"""
         result = await field_mapping_crew.execute_field_mapping(mock_import_session)
 
@@ -447,7 +490,9 @@ class TestErrorHandling:
             assert "data_preview" in str(e).lower() or "session" in str(e).lower()
 
     @pytest.mark.asyncio
-    async def test_memory_failure_handling(self, field_mapping_crew, mock_import_session):
+    async def test_memory_failure_handling(
+        self, field_mapping_crew, mock_import_session
+    ):
         """Test handling of memory system failures"""
         # Mock memory failure
         field_mapping_crew.shared_memory = None
@@ -469,7 +514,7 @@ class TestToolIntegration:
         # Mock tool usage
         tool_result = {
             "semantic_types": ["identifier", "network", "technical"],
-            "confidence_scores": [0.95, 0.90, 0.85]
+            "confidence_scores": [0.95, 0.90, 0.85],
         }
 
         field_mapping_crew.shared_memory.add("semantic_analysis", tool_result)
@@ -484,7 +529,7 @@ class TestToolIntegration:
         # Mock pattern matching results
         pattern_result = {
             "matched_patterns": ["hostname_pattern", "ip_pattern"],
-            "confidence": 0.88
+            "confidence": 0.88,
         }
 
         field_mapping_crew.shared_memory.add("pattern_matching", pattern_result)

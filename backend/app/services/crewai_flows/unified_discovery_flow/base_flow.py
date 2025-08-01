@@ -182,7 +182,14 @@ class UnifiedDiscoveryFlow(Flow):
 
         self.unified_flow_management = UnifiedFlowManagement(self.state)
 
-        self.coordinator = CrewCoordinator(self.crewai_service, self.context)
+        # Initialize UnifiedFlowCrewManager instead of CrewCoordinator
+        from ..handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
+
+        self.crew_manager = UnifiedFlowCrewManager(
+            self.crewai_service, self.state, callback_handler=None, context=self.context
+        )
+        # Keep coordinator as alias for backward compatibility
+        self.coordinator = self.crew_manager
         self.flow_manager = FlowManager(
             self.state, self.state_manager, self.unified_flow_management
         )

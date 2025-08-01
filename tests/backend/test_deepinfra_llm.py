@@ -4,14 +4,15 @@ Test script for DeepInfra Llama 4 Maverick LLM integration.
 """
 
 import asyncio
-import sys
 import os
+import sys
 
 # Add the backend directory to the Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app.services.deepinfra_llm import create_deepinfra_llm
 from app.core.config import settings
+from app.services.deepinfra_llm import create_deepinfra_llm
+
 
 async def test_deepinfra_llm():
     """Test the DeepInfra LLM integration."""
@@ -63,13 +64,14 @@ async def test_deepinfra_llm():
         print(f"❌ Error during testing: {e}")
         return False
 
+
 async def test_crewai_integration():
     """Test CrewAI integration with DeepInfra LLM."""
     print("\n🤖 Testing CrewAI Integration")
     print("=" * 40)
 
     try:
-        from app.services.crewai_flow_service import CrewAIService
+        from app.services.crewai_service_modular import CrewAIService
 
         # Initialize service
         service = CrewAIService()
@@ -99,7 +101,9 @@ async def test_crewai_integration():
         print(f"❌ Error in CrewAI integration: {e}")
         return False
 
+
 if __name__ == "__main__":
+
     async def main():
         print("🚀 Starting DeepInfra LLM Tests\n")
 

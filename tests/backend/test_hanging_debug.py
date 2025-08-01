@@ -5,25 +5,27 @@ This test provides step-by-step monitoring to isolate the exact hanging point.
 """
 
 import asyncio
-import time
+import os
 import signal
 import sys
-import os
+import time
 
 # Add the backend directory to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "backend"))
 
 # Test imports first
 try:
     import crewai
+
     print(f"✅ CrewAI imported successfully: {crewai.__version__}")
     CREWAI_AVAILABLE = True
 except ImportError as e:
     print(f"❌ CrewAI import failed: {e}")
     CREWAI_AVAILABLE = False
 
-from app.services.crewai_flow_service import crewai_service
 from app.services.agent_monitor import agent_monitor
+from app.services.crewai_service_modular import crewai_service
+
 
 class HangingDebugger:
     def __init__(self):
@@ -32,6 +34,7 @@ class HangingDebugger:
 
     def setup_signal_handler(self):
         """Setup signal handler for graceful shutdown."""
+
         def signal_handler(signum, frame):
             print(f"\n🛑 Test interrupted by signal {signum}")
             self.print_debug_info()
@@ -43,9 +46,9 @@ class HangingDebugger:
 
     def print_debug_info(self):
         """Print detailed debug information."""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("🔍 HANGING DEBUG INFORMATION")
-        print("="*60)
+        print("=" * 60)
 
         if self.start_time:
             elapsed = time.time() - self.start_time
@@ -59,9 +62,9 @@ class HangingDebugger:
         print(f"  Active tasks: {status['active_tasks']}")
         print(f"  Hanging tasks: {status['hanging_tasks']}")
 
-        if status['hanging_task_details']:
+        if status["hanging_task_details"]:
             print("\n🚨 HANGING TASK ANALYSIS:")
-            for task in status['hanging_task_details']:
+            for task in status["hanging_task_details"]:
                 print(f"  Task ID: {task['task_id']}")
                 print(f"  Agent: {task['agent']}")
                 print(f"  Elapsed: {task['elapsed']}")
@@ -73,6 +76,7 @@ class HangingDebugger:
                 print(f"  Last Thinking: {task['last_thinking']}")
                 print()
 
+
 async def test_step_by_step():
     """Test CrewAI execution step by step with detailed monitoring."""
     debugger = HangingDebugger()
@@ -80,10 +84,10 @@ async def test_step_by_step():
     debugger.start_time = time.time()
 
     print("🔬 HANGING DEBUG TEST")
-    print("="*50)
+    print("=" * 50)
     print("This test will show exactly where the hanging occurs...")
     print("Press Ctrl+C at any time to see debug info")
-    print("="*50)
+    print("=" * 50)
 
     # Step 1: Verify monitoring
     print("\n📊 STEP 1: Verify Monitoring")
@@ -105,7 +109,7 @@ async def test_step_by_step():
 
     # Step 3: Test simple agent access
     print("\n🧠 STEP 3: Test Agent Access")
-    cmdb_agent = crewai_service.agents.get('cmdb_analyst')
+    cmdb_agent = crewai_service.agents.get("cmdb_analyst")
     if not cmdb_agent:
         print("❌ CMDB analyst agent not found!")
         print(f"Available agents: {list(crewai_service.agents.keys())}")
@@ -125,7 +129,7 @@ async def test_step_by_step():
         simple_task = Task(
             description="What is 2+2? Answer with just the number.",
             agent=cmdb_agent,
-            expected_output="A single number"
+            expected_output="A single number",
         )
         print("✅ Task created successfully")
 
@@ -142,11 +146,13 @@ async def test_step_by_step():
         while debugger.test_running:
             await asyncio.sleep(5)
             status = agent_monitor.get_status_report()
-            if status['active_tasks'] > 0:
+            if status["active_tasks"] > 0:
                 print(f"\n⏱️  STATUS: {status['active_tasks']} active tasks")
-                for task in status['active_task_details']:
-                    print(f"   {task['agent']}: {task['status']} ({task['elapsed']}) - {task['description'][:50]}...")
-                    if task['is_hanging']:
+                for task in status["active_task_details"]:
+                    print(
+                        f"   {task['agent']}: {task['status']} ({task['elapsed']}) - {task['description'][:50]}..."
+                    )
+                    if task["is_hanging"]:
                         print(f"   🚨 HANGING: {task['hanging_reason']}")
 
     monitor_task = asyncio.create_task(status_monitor())
@@ -176,10 +182,11 @@ async def test_step_by_step():
         except asyncio.CancelledError:
             pass
 
+
 async def test_direct_llm():
     """Test direct LLM call to isolate the issue."""
     print("\n🔧 DIRECT LLM TEST")
-    print("="*30)
+    print("=" * 30)
 
     try:
         llm = crewai_service.llm
@@ -196,9 +203,9 @@ async def test_direct_llm():
 
         # This will depend on the LLM interface
         try:
-            if hasattr(llm, 'invoke'):
+            if hasattr(llm, "invoke"):
                 result = llm.invoke("What is 2+2?")
-            elif hasattr(llm, '__call__'):
+            elif hasattr(llm, "__call__"):
                 result = llm("What is 2+2?")
             else:
                 print(f"❌ Unknown LLM interface: {dir(llm)}")
@@ -218,7 +225,9 @@ async def test_direct_llm():
         print(f"❌ LLM test failed: {e}")
         return False
 
+
 if __name__ == "__main__":
+
     async def main():
         print("🔬 CrewAI Hanging Debug Test")
         print("=" * 50)
@@ -228,7 +237,7 @@ if __name__ == "__main__":
         llm_success = await test_direct_llm()
 
         if llm_success:
-            print("\n" + "="*50)
+            print("\n" + "=" * 50)
             print("TEST 2: Step-by-Step CrewAI Execution")
             await test_step_by_step()
         else:

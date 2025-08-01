@@ -57,7 +57,7 @@ class BasePhaseExecutor(ABC):
             f"Fallback execution attempted for {phase_name}. All phases must use CrewAI agents."
         )
 
-    async def execute(self, previous_result) -> str:
+    async def execute(self, previous_result) -> Dict[str, Any]:
         """Main execution method - template pattern with PostgreSQL persistence"""
         phase_name = self.get_phase_name()
         logger.info(f"🔍 Starting {phase_name} execution")
@@ -208,7 +208,8 @@ class BasePhaseExecutor(ABC):
                 logger.warning(f"Failed to send phase completion notification: {e}")
 
             logger.info(f"✅ {phase_name} completed successfully")
-            return f"{phase_name}_completed"
+            # Return the actual results dict instead of just a string
+            return results
 
         except Exception as e:
             logger.error(f"❌ {phase_name} execution failed: {e}")
@@ -227,7 +228,8 @@ class BasePhaseExecutor(ABC):
                         f"⚠️ State sync failed during error handling: {sync_error}"
                     )
 
-            return f"{phase_name}_failed"
+            # Return error result dict
+            return {"error": str(e), "status": "failed", "phase": phase_name}
 
     def _get_crew_context(self) -> Dict[str, Any]:
         """Get context data for crew creation - override in subclasses"""

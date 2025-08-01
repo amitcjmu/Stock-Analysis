@@ -4,22 +4,22 @@ Comprehensive test suite for the CrewAI Agentic System.
 Tests all components including memory, agents, crews, and learning.
 """
 
-import sys
-import os
 import asyncio
-import tempfile
+import os
 import shutil
+import sys
+import tempfile
 from pathlib import Path
 
 # Add backend to path
 backend_path = Path(__file__).parent.parent.parent / "backend"
 sys.path.insert(0, str(backend_path))
 
-from app.services.crewai_flow_service import CrewAIService
-from app.services.memory import AgentMemory
 from app.services.agents import AgentManager
 from app.services.analysis import IntelligentAnalyzer, PlaceholderAnalyzer
+from app.services.crewai_service_modular import CrewAIService
 from app.services.feedback import FeedbackProcessor
+from app.services.memory import AgentMemory
 
 
 class TestCrewAISystem:
@@ -63,7 +63,7 @@ class TestCrewAISystem:
         test_experience = {
             "filename": "test_cmdb.csv",
             "asset_type_detected": "server",
-            "confidence": 0.85
+            "confidence": 0.85,
         }
 
         self.memory.add_experience("analysis_attempt", test_experience)
@@ -124,13 +124,30 @@ class TestCrewAISystem:
         test_cmdb_data = {
             "filename": "test_servers.csv",
             "structure": {
-                "columns": ["Name", "CI_Type", "IP_Address", "OS", "CPU_Cores", "Memory_GB"],
-                "row_count": 50
+                "columns": [
+                    "Name",
+                    "CI_Type",
+                    "IP_Address",
+                    "OS",
+                    "CPU_Cores",
+                    "Memory_GB",
+                ],
+                "row_count": 50,
             },
             "sample_data": [
-                {"Name": "WebServer01", "CI_Type": "Server", "IP_Address": "192.168.1.10", "OS": "Linux"},
-                {"Name": "AppServer02", "CI_Type": "Server", "IP_Address": "192.168.1.11", "OS": "Windows"}
-            ]
+                {
+                    "Name": "WebServer01",
+                    "CI_Type": "Server",
+                    "IP_Address": "192.168.1.10",
+                    "OS": "Linux",
+                },
+                {
+                    "Name": "AppServer02",
+                    "CI_Type": "Server",
+                    "IP_Address": "192.168.1.11",
+                    "OS": "Windows",
+                },
+            ],
         }
 
         # Test intelligent analysis
@@ -161,13 +178,13 @@ class TestCrewAISystem:
             "user_corrections": {
                 "analysis_issues": "These are servers, not applications. CI_TYPE field clearly indicates Server.",
                 "missing_fields_feedback": "IP Address and OS Version are required for servers.",
-                "comments": "Please improve server detection logic."
+                "comments": "Please improve server detection logic.",
             },
             "asset_type_override": "server",
             "original_analysis": {
                 "asset_type_detected": "application",
-                "confidence_level": 0.75
-            }
+                "confidence_level": 0.75,
+            },
         }
 
         # Test feedback processing
@@ -185,7 +202,9 @@ class TestCrewAISystem:
 
         # Test feedback trends
         trends = processor.analyze_feedback_trends()
-        print(f"   ✅ Feedback trends analyzed: {trends['total_feedback']} feedback items")
+        print(
+            f"   ✅ Feedback trends analyzed: {trends['total_feedback']} feedback items"
+        )
 
         return True
 
@@ -198,19 +217,18 @@ class TestCrewAISystem:
         asset_data = {
             "name": "WebApp01",
             "asset_type": "application",
-            "business_criticality": "high"
+            "business_criticality": "high",
         }
 
         result_6r = PlaceholderAnalyzer.placeholder_6r_analysis(asset_data)
         assert "recommended_strategy" in result_6r
         assert result_6r["placeholder_mode"] is True
-        print(f"   ✅ 6R Analysis: {result_6r['recommended_strategy']} strategy recommended")
+        print(
+            f"   ✅ 6R Analysis: {result_6r['recommended_strategy']} strategy recommended"
+        )
 
         # Test risk assessment
-        migration_data = {
-            "total_assets": 150,
-            "timeline_days": 60
-        }
+        migration_data = {"total_assets": 150, "timeline_days": 60}
 
         result_risk = PlaceholderAnalyzer.placeholder_risk_assessment(migration_data)
         assert "overall_risk_level" in result_risk
@@ -237,12 +255,12 @@ class TestCrewAISystem:
             "filename": "integration_test.csv",
             "structure": {
                 "columns": ["Name", "Type", "Environment", "CPU", "Memory"],
-                "row_count": 25
+                "row_count": 25,
             },
             "sample_data": [
                 {"Name": "TestApp", "Type": "Application", "Environment": "Prod"},
-                {"Name": "TestServer", "Type": "Server", "Environment": "Prod"}
-            ]
+                {"Name": "TestServer", "Type": "Server", "Environment": "Prod"},
+            ],
         }
 
         result = await self.service.analyze_cmdb_data(test_data)
@@ -257,7 +275,7 @@ class TestCrewAISystem:
             "user_corrections": {
                 "analysis_issues": "Mixed asset types need better classification"
             },
-            "original_analysis": result
+            "original_analysis": result,
         }
 
         feedback_result = await self.service.process_user_feedback(feedback_data)
@@ -268,12 +286,14 @@ class TestCrewAISystem:
         asset_data = {
             "name": "TestAsset",
             "asset_type": "application",
-            "business_criticality": "medium"
+            "business_criticality": "medium",
         }
 
         strategy_result = await self.service.analyze_asset_6r_strategy(asset_data)
         assert "recommended_strategy" in strategy_result
-        print(f"   ✅ 6R Strategy: {strategy_result.get('recommended_strategy', 'N/A')}")
+        print(
+            f"   ✅ 6R Strategy: {strategy_result.get('recommended_strategy', 'N/A')}"
+        )
 
         return True
 
@@ -283,10 +303,7 @@ class TestCrewAISystem:
         print("-" * 40)
 
         # Add some test data
-        test_data = {
-            "filename": "persistence_test.csv",
-            "result": "test_result"
-        }
+        test_data = {"filename": "persistence_test.csv", "result": "test_result"}
 
         self.memory.add_experience("analysis_attempt", test_data)
         original_stats = self.memory.get_memory_stats()
@@ -319,9 +336,9 @@ class TestCrewAISystem:
                 "filename": f"learning_test_{i}.csv",
                 "user_corrections": {
                     "analysis_issues": f"Test issue {i}",
-                    "missing_fields_feedback": "Test field feedback"
+                    "missing_fields_feedback": "Test field feedback",
                 },
-                "asset_type_override": "server"
+                "asset_type_override": "server",
             }
 
             processor.intelligent_feedback_processing(feedback_data)
@@ -332,7 +349,9 @@ class TestCrewAISystem:
         assert effectiveness["total_feedback_processed"] == 3
         assert effectiveness["patterns_learned"] > 0
         print(f"   ✅ Learning effectiveness: {effectiveness['learning_quality']}")
-        print(f"   ✅ Patterns per feedback: {effectiveness['patterns_per_feedback']:.2f}")
+        print(
+            f"   ✅ Patterns per feedback: {effectiveness['patterns_per_feedback']:.2f}"
+        )
 
         return True
 
@@ -353,7 +372,7 @@ class TestCrewAISystem:
                 ("Placeholder Analyzers", self.test_placeholder_analyzers),
                 ("CrewAI Service", self.test_crewai_service),
                 ("Memory Persistence", self.test_memory_persistence),
-                ("Learning Effectiveness", self.test_learning_effectiveness)
+                ("Learning Effectiveness", self.test_learning_effectiveness),
             ]
 
             passed = 0

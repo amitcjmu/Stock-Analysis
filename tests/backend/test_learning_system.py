@@ -4,21 +4,21 @@ Comprehensive test suite for the Learning Effectiveness System.
 Tests feedback processing, pattern extraction, and continuous improvement.
 """
 
-import sys
-import os
 import asyncio
-import tempfile
+import os
 import shutil
+import sys
+import tempfile
 from pathlib import Path
 
 # Add backend to path
 backend_path = Path(__file__).parent.parent.parent / "backend"
 sys.path.insert(0, str(backend_path))
 
-from app.services.memory import AgentMemory
-from app.services.feedback import FeedbackProcessor
 from app.services.analysis import IntelligentAnalyzer
-from app.services.crewai_flow_service import CrewAIService
+from app.services.crewai_service_modular import CrewAIService
+from app.services.feedback import FeedbackProcessor
+from app.services.memory import AgentMemory
 
 
 class TestLearningSystem:
@@ -63,13 +63,13 @@ class TestLearningSystem:
             "user_corrections": {
                 "analysis_issues": "These are servers, not applications. CI_TYPE field clearly indicates Server.",
                 "missing_fields_feedback": "IP Address and OS Version are required for servers.",
-                "comments": "Please improve server detection logic."
+                "comments": "Please improve server detection logic.",
             },
             "asset_type_override": "server",
             "original_analysis": {
                 "asset_type_detected": "application",
-                "confidence_level": 0.75
-            }
+                "confidence_level": 0.75,
+            },
         }
 
         # Process feedback
@@ -99,29 +99,38 @@ class TestLearningSystem:
                 "filename": "server_inventory.csv",
                 "user_corrections": {
                     "analysis_issues": "CI_Type field shows 'Server' - this is clearly server data",
-                    "comments": "Look for CI_Type field to determine asset type"
+                    "comments": "Look for CI_Type field to determine asset type",
                 },
                 "asset_type_override": "server",
-                "original_analysis": {"asset_type_detected": "application", "confidence_level": 0.6}
+                "original_analysis": {
+                    "asset_type_detected": "application",
+                    "confidence_level": 0.6,
+                },
             },
             {
                 "filename": "application_list.csv",
                 "user_corrections": {
                     "analysis_issues": "These are applications, not servers. Application field indicates software assets",
-                    "comments": "Application field is key indicator"
+                    "comments": "Application field is key indicator",
                 },
                 "asset_type_override": "application",
-                "original_analysis": {"asset_type_detected": "server", "confidence_level": 0.7}
+                "original_analysis": {
+                    "asset_type_detected": "server",
+                    "confidence_level": 0.7,
+                },
             },
             {
                 "filename": "database_systems.csv",
                 "user_corrections": {
                     "analysis_issues": "Database Type field shows these are database assets",
-                    "comments": "Database Type field is definitive"
+                    "comments": "Database Type field is definitive",
                 },
                 "asset_type_override": "database",
-                "original_analysis": {"asset_type_detected": "server", "confidence_level": 0.65}
-            }
+                "original_analysis": {
+                    "asset_type_detected": "server",
+                    "confidence_level": 0.65,
+                },
+            },
         ]
 
         all_patterns = []
@@ -159,11 +168,15 @@ class TestLearningSystem:
             "filename": "confidence_test.csv",
             "structure": {
                 "columns": ["Name", "CI_Type", "Environment"],
-                "row_count": 10
+                "row_count": 10,
             },
             "sample_data": [
-                {"Name": "WebServer01", "CI_Type": "Server", "Environment": "Production"}
-            ]
+                {
+                    "Name": "WebServer01",
+                    "CI_Type": "Server",
+                    "Environment": "Production",
+                }
+            ],
         }
 
         # Get initial analysis
@@ -177,14 +190,16 @@ class TestLearningSystem:
             "filename": "confidence_test.csv",
             "user_corrections": {
                 "analysis_issues": "Correct! CI_Type field clearly shows Server type",
-                "comments": "Good analysis - this pattern should be reinforced"
+                "comments": "Good analysis - this pattern should be reinforced",
             },
             "asset_type_override": initial_result["asset_type_detected"],
-            "original_analysis": initial_result
+            "original_analysis": initial_result,
         }
 
         # Process feedback
-        feedback_result = self.feedback_processor.intelligent_feedback_processing(feedback_data)
+        feedback_result = self.feedback_processor.intelligent_feedback_processing(
+            feedback_data
+        )
         confidence_boost = feedback_result["confidence_boost"]
 
         print(f"   ✅ Confidence boost from feedback: {confidence_boost:.2f}")
@@ -220,23 +235,32 @@ class TestLearningSystem:
 
         for i, (outcome, predicted, actual) in enumerate(scenarios):
             # Record analysis attempt
-            self.memory.add_experience("analysis_attempt", {
-                "filename": f"test_file_{i}.csv",
-                "asset_type_detected": predicted,
-                "confidence": 0.8,
-                "actual_type": actual
-            })
+            self.memory.add_experience(
+                "analysis_attempt",
+                {
+                    "filename": f"test_file_{i}.csv",
+                    "asset_type_detected": predicted,
+                    "confidence": 0.8,
+                    "actual_type": actual,
+                },
+            )
 
             # Update metrics
-            self.memory.update_learning_metrics("total_analyses",
-                                               self.memory.learning_metrics.get("total_analyses", 0) + 1)
+            self.memory.update_learning_metrics(
+                "total_analyses",
+                self.memory.learning_metrics.get("total_analyses", 0) + 1,
+            )
 
             if outcome == "correct":
-                self.memory.update_learning_metrics("correct_predictions",
-                                                   self.memory.learning_metrics.get("correct_predictions", 0) + 1)
+                self.memory.update_learning_metrics(
+                    "correct_predictions",
+                    self.memory.learning_metrics.get("correct_predictions", 0) + 1,
+                )
             else:
-                self.memory.update_learning_metrics("user_corrections",
-                                                   self.memory.learning_metrics.get("user_corrections", 0) + 1)
+                self.memory.update_learning_metrics(
+                    "user_corrections",
+                    self.memory.learning_metrics.get("user_corrections", 0) + 1,
+                )
 
             print(f"   ✅ Recorded {outcome} prediction: {predicted} -> {actual}")
 
@@ -251,7 +275,9 @@ class TestLearningSystem:
 
         # Verify metrics
         assert total == len(scenarios), "Should track all analyses"
-        assert correct == 3, "Should track correct predictions"  # 3 correct in scenarios
+        assert (
+            correct == 3
+        ), "Should track correct predictions"  # 3 correct in scenarios
         assert accuracy == 0.6, "Accuracy should be 60%"
 
         return True
@@ -272,11 +298,14 @@ class TestLearningSystem:
         ]
 
         for feedback_type, content in feedback_types:
-            self.memory.add_experience("user_feedback", {
-                "feedback_type": feedback_type,
-                "content": content,
-                "timestamp": "2025-01-27T12:00:00Z"
-            })
+            self.memory.add_experience(
+                "user_feedback",
+                {
+                    "feedback_type": feedback_type,
+                    "content": content,
+                    "timestamp": "2025-01-27T12:00:00Z",
+                },
+            )
             print(f"   ✅ Added {feedback_type} feedback")
 
         # Analyze trends
@@ -289,13 +318,19 @@ class TestLearningSystem:
         assert "improvement_areas" in trends, "Should suggest improvements"
 
         print(f"   ✅ Total feedback analyzed: {trends['total_feedback']}")
-        print(f"   ✅ Feedback categories: {list(trends['feedback_categories'].keys())}")
+        print(
+            f"   ✅ Feedback categories: {list(trends['feedback_categories'].keys())}"
+        )
         print(f"   ✅ Common issues identified: {len(trends['common_issues'])}")
         print(f"   ✅ Improvement areas: {len(trends['improvement_areas'])}")
 
         # Check specific trends
-        assert trends["total_feedback"] == len(feedback_types), "Should count all feedback"
-        assert "asset_type_correction" in trends["feedback_categories"], "Should identify correction category"
+        assert trends["total_feedback"] == len(
+            feedback_types
+        ), "Should count all feedback"
+        assert (
+            "asset_type_correction" in trends["feedback_categories"]
+        ), "Should identify correction category"
 
         return True
 
@@ -309,17 +344,24 @@ class TestLearningSystem:
             "filename": "learning_cycle_test.csv",
             "structure": {
                 "columns": ["Name", "CI_Type", "Environment", "Application"],
-                "row_count": 5
+                "row_count": 5,
             },
             "sample_data": [
-                {"Name": "WebApp01", "CI_Type": "Application", "Environment": "Production", "Application": "Web Portal"}
-            ]
+                {
+                    "Name": "WebApp01",
+                    "CI_Type": "Application",
+                    "Environment": "Production",
+                    "Application": "Web Portal",
+                }
+            ],
         }
 
         print("   🔄 Step 1: Initial analysis")
         try:
             initial_result = await self.service.analyze_cmdb_data(test_data)
-            print(f"   ✅ Initial analysis: {initial_result.get('asset_type_detected', 'unknown')}")
+            print(
+                f"   ✅ Initial analysis: {initial_result.get('asset_type_detected', 'unknown')}"
+            )
         except Exception as e:
             print(f"   ⚠️  Using fallback analysis: {e}")
             initial_result = self.analyzer.intelligent_placeholder_analysis(test_data)
@@ -330,18 +372,22 @@ class TestLearningSystem:
             "filename": "learning_cycle_test.csv",
             "user_corrections": {
                 "analysis_issues": "CI_Type field shows Application - this is correct",
-                "comments": "Application field confirms this is application data"
+                "comments": "Application field confirms this is application data",
             },
             "asset_type_override": "application",
-            "original_analysis": initial_result
+            "original_analysis": initial_result,
         }
 
         try:
             feedback_result = await self.service.process_user_feedback(feedback_data)
-            print(f"   ✅ Feedback processed: {feedback_result.get('learning_applied', False)}")
+            print(
+                f"   ✅ Feedback processed: {feedback_result.get('learning_applied', False)}"
+            )
         except Exception as e:
             print(f"   ⚠️  Using fallback feedback processing: {e}")
-            feedback_result = self.feedback_processor.intelligent_feedback_processing(feedback_data)
+            feedback_result = self.feedback_processor.intelligent_feedback_processing(
+                feedback_data
+            )
 
         # Step 3: Second analysis (should show improvement)
         print("   🔄 Step 3: Second analysis with learning")
@@ -349,7 +395,9 @@ class TestLearningSystem:
 
         try:
             second_result = await self.service.analyze_cmdb_data(test_data)
-            print(f"   ✅ Second analysis: {second_result.get('asset_type_detected', 'unknown')}")
+            print(
+                f"   ✅ Second analysis: {second_result.get('asset_type_detected', 'unknown')}"
+            )
         except Exception as e:
             print(f"   ⚠️  Using fallback analysis: {e}")
             second_result = self.analyzer.intelligent_placeholder_analysis(test_data)

@@ -7,6 +7,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+from app.core.database import Base
+from app.models import *  # noqa: F403, F401 - Import all models for Alembic auto-detection
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -25,8 +27,6 @@ if config.config_file_name is not None:
 # Import all models to ensure they are registered with SQLAlchemy
 # The following import is critical for Alembic to detect model changes.
 # It assumes that your models/__init__.py file imports all your model modules.
-from app.core.database import Base
-from app.models import *  # noqa: F403 - Import all models for Alembic auto-detection
 
 target_metadata = Base.metadata
 

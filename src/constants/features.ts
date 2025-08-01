@@ -127,6 +127,7 @@ export const FEATURE_ENVIRONMENTS = {
     ...FEATURES,
     CACHE: {
       ...FEATURES.CACHE,
+      DISABLE_CUSTOM_CACHE: true,  // Use new API client with Redis backend caching
       ENABLE_WEBSOCKET_CACHE: true,
       ENABLE_CACHE_HEADERS: true,
       REACT_QUERY_OPTIMIZATIONS: true

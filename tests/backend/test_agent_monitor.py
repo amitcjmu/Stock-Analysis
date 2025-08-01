@@ -4,16 +4,16 @@ Comprehensive test suite for the Agent Monitoring System.
 Tests real-time monitoring, task tracking, and hanging detection.
 """
 
-import sys
 import asyncio
+import sys
 from pathlib import Path
 
 # Add backend to path
 backend_path = Path(__file__).parent.parent.parent / "backend"
 sys.path.insert(0, str(backend_path))
 
-from app.services.agent_monitor import agent_monitor, TaskStatus
-from app.services.crewai_flow_service import crewai_service
+from app.services.agent_monitor import TaskStatus, agent_monitor
+from app.services.crewai_service_modular import crewai_service
 
 
 class TestAgentMonitor:
@@ -130,25 +130,41 @@ class TestAgentMonitor:
         # Manually set start time to simulate hanging and set status to running
         if task_id in agent_monitor.active_tasks:
             from datetime import datetime, timedelta
+
             from app.services.agent_monitor import TaskStatus
-            agent_monitor.active_tasks[task_id].start_time = datetime.utcnow() - timedelta(seconds=35)
-            agent_monitor.active_tasks[task_id].last_activity = datetime.utcnow() - timedelta(seconds=35)
-            agent_monitor.active_tasks[task_id].status = TaskStatus.RUNNING  # Must be in running state to be considered hanging
+
+            agent_monitor.active_tasks[task_id].start_time = (
+                datetime.utcnow() - timedelta(seconds=35)
+            )
+            agent_monitor.active_tasks[task_id].last_activity = (
+                datetime.utcnow() - timedelta(seconds=35)
+            )
+            agent_monitor.active_tasks[task_id].status = (
+                TaskStatus.RUNNING
+            )  # Must be in running state to be considered hanging
 
         print(f"   ✅ Simulated hanging task: {task_id}")
 
         # Check hanging detection
         status = agent_monitor.get_status_report()
-        hanging_tasks = [task for task in status["active_task_details"] if task["is_hanging"]]
+        hanging_tasks = [
+            task for task in status["active_task_details"] if task["is_hanging"]
+        ]
 
         print(f"   🔍 Debug: Hanging tasks found: {len(hanging_tasks)}")
         if status["active_task_details"]:
             for task in status["active_task_details"]:
-                print(f"   🔍 Debug: Task {task['task_id']}: hanging={task['is_hanging']}, reason={task['hanging_reason']}")
+                print(
+                    f"   🔍 Debug: Task {task['task_id']}: hanging={task['is_hanging']}, reason={task['hanging_reason']}"
+                )
 
-        assert len(hanging_tasks) > 0, f"Should detect hanging task, found {len(hanging_tasks)}"
+        assert (
+            len(hanging_tasks) > 0
+        ), f"Should detect hanging task, found {len(hanging_tasks)}"
         hanging_task = hanging_tasks[0]
-        assert hanging_task["task_id"] == task_id, "Should identify correct hanging task"
+        assert (
+            hanging_task["task_id"] == task_id
+        ), "Should identify correct hanging task"
 
         # Check that it's detected as hanging (the reason might vary)
         assert hanging_task["is_hanging"] is True, "Task should be marked as hanging"
@@ -189,19 +205,31 @@ class TestAgentMonitor:
         if status["active_task_details"]:
             task_detail = status["active_task_details"][0]
             print(f"   🔍 Debug: LLM calls in status: {task_detail['llm_calls']}")
-            print(f"   🔍 Debug: Thinking phases in status: {task_detail['thinking_phases']}")
+            print(
+                f"   🔍 Debug: Thinking phases in status: {task_detail['thinking_phases']}"
+            )
 
-            assert task_detail["llm_calls"] == 2, f"Should track 2 LLM calls, got {task_detail['llm_calls']}"
-            assert task_detail["thinking_phases"] == 1, f"Should track 1 thinking phase, got {task_detail['thinking_phases']}"
+            assert (
+                task_detail["llm_calls"] == 2
+            ), f"Should track 2 LLM calls, got {task_detail['llm_calls']}"
+            assert (
+                task_detail["thinking_phases"] == 1
+            ), f"Should track 1 thinking phase, got {task_detail['thinking_phases']}"
         else:
             # Check the task directly if not in status report
             task = agent_monitor.active_tasks.get(task_id)
             if task:
                 print(f"   🔍 Debug: Direct task LLM calls: {len(task.llm_calls)}")
-                print(f"   🔍 Debug: Direct task thinking phases: {len(task.thinking_phases)}")
+                print(
+                    f"   🔍 Debug: Direct task thinking phases: {len(task.thinking_phases)}"
+                )
 
-                assert len(task.llm_calls) == 2, f"Should track 2 LLM calls, got {len(task.llm_calls)}"
-                assert len(task.thinking_phases) == 1, f"Should track 1 thinking phase, got {len(task.thinking_phases)}"
+                assert (
+                    len(task.llm_calls) == 2
+                ), f"Should track 2 LLM calls, got {len(task.llm_calls)}"
+                assert (
+                    len(task.thinking_phases) == 1
+                ), f"Should track 1 thinking phase, got {len(task.thinking_phases)}"
             else:
                 raise AssertionError("Task not found in active tasks")
 
@@ -211,8 +239,10 @@ class TestAgentMonitor:
             llm_count = len(task.llm_calls)
             thinking_count = len(task.thinking_phases)
         else:
-            llm_count = task_detail['llm_calls'] if 'task_detail' in locals() else 0
-            thinking_count = task_detail['thinking_phases'] if 'task_detail' in locals() else 0
+            llm_count = task_detail["llm_calls"] if "task_detail" in locals() else 0
+            thinking_count = (
+                task_detail["thinking_phases"] if "task_detail" in locals() else 0
+            )
 
         print(f"   ✅ LLM calls tracked: {llm_count}")
         print(f"   ✅ Thinking phases tracked: {thinking_count}")
@@ -242,8 +272,12 @@ class TestAgentMonitor:
         print(f"   🔍 Debug: Active tasks count: {status['active_tasks']}")
         print(f"   🔍 Debug: Task details count: {len(status['active_task_details'])}")
 
-        assert status["active_tasks"] == len(task_ids), f"Should have {len(task_ids)} active tasks, got {status['active_tasks']}"
-        assert len(status["active_task_details"]) == len(task_ids), f"Should track all task details, got {len(status['active_task_details'])}"
+        assert status["active_tasks"] == len(
+            task_ids
+        ), f"Should have {len(task_ids)} active tasks, got {status['active_tasks']}"
+        assert len(status["active_task_details"]) == len(
+            task_ids
+        ), f"Should track all task details, got {len(status['active_task_details'])}"
 
         # Verify each task is tracked correctly
         tracked_task_ids = {task["task_id"] for task in status["active_task_details"]}
@@ -256,7 +290,9 @@ class TestAgentMonitor:
             agent_monitor.complete_task(task_id, f"Result {i+1}")
             status = agent_monitor.get_status_report()
             expected_active = len(task_ids) - (i + 1)
-            assert status["active_tasks"] == expected_active, f"Should have {expected_active} active tasks"
+            assert (
+                status["active_tasks"] == expected_active
+            ), f"Should have {expected_active} active tasks"
 
         print("   ✅ All tasks completed successfully")
 
@@ -269,16 +305,16 @@ class TestAgentMonitor:
 
         # Test data for CMDB analysis
         test_data = {
-            'filename': 'monitor_integration_test.csv',
-            'structure': {
-                'columns': ['Name', 'CI_Type', 'Environment'],
-                'total_rows': 2,
-                'total_columns': 3
+            "filename": "monitor_integration_test.csv",
+            "structure": {
+                "columns": ["Name", "CI_Type", "Environment"],
+                "total_rows": 2,
+                "total_columns": 3,
             },
-            'sample_data': [
-                {'Name': 'TestServer', 'CI_Type': 'Server', 'Environment': 'Test'},
-                {'Name': 'TestApp', 'CI_Type': 'Application', 'Environment': 'Test'}
-            ]
+            "sample_data": [
+                {"Name": "TestServer", "CI_Type": "Server", "Environment": "Test"},
+                {"Name": "TestApp", "CI_Type": "Application", "Environment": "Test"},
+            ],
         }
 
         print("   🔄 Starting CMDB analysis with monitoring...")
@@ -297,8 +333,9 @@ class TestAgentMonitor:
             final_status = agent_monitor.get_status_report()
 
             # Should have completed at least one task
-            assert final_status["completed_tasks"] > initial_status.get("completed_tasks", 0), \
-                "Should have completed tasks during analysis"
+            assert final_status["completed_tasks"] > initial_status.get(
+                "completed_tasks", 0
+            ), "Should have completed tasks during analysis"
 
             print(f"   ✅ Tasks completed: {final_status['completed_tasks']}")
             print("   ✅ Integration working correctly")

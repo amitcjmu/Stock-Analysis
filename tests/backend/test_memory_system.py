@@ -4,10 +4,10 @@ Comprehensive test suite for the Agent Memory System.
 Tests memory persistence, pattern learning, and experience tracking.
 """
 
-import sys
 import os
-import tempfile
 import shutil
+import sys
+import tempfile
 from pathlib import Path
 
 # Add backend to path
@@ -49,12 +49,18 @@ class TestMemorySystem:
 
         # Test basic initialization
         assert self.memory.data_dir == self.temp_dir, "Data directory should be set"
-        assert isinstance(self.memory.experiences, dict), "Experiences should be a dictionary"
-        assert isinstance(self.memory.learning_metrics, dict), "Learning metrics should be a dictionary"
+        assert isinstance(
+            self.memory.experiences, dict
+        ), "Experiences should be a dictionary"
+        assert isinstance(
+            self.memory.learning_metrics, dict
+        ), "Learning metrics should be a dictionary"
 
         print(f"   ✅ Data directory: {self.memory.data_dir}")
         print(f"   ✅ Experiences initialized: {len(self.memory.experiences)} types")
-        print(f"   ✅ Learning metrics initialized: {len(self.memory.learning_metrics)} metrics")
+        print(
+            f"   ✅ Learning metrics initialized: {len(self.memory.learning_metrics)} metrics"
+        )
 
         return True
 
@@ -71,8 +77,8 @@ class TestMemorySystem:
                     "filename": "test_servers.csv",
                     "asset_type_detected": "server",
                     "confidence": 0.85,
-                    "timestamp": "2025-01-27T12:00:00Z"
-                }
+                    "timestamp": "2025-01-27T12:00:00Z",
+                },
             },
             {
                 "experience_type": "user_feedback",
@@ -80,17 +86,17 @@ class TestMemorySystem:
                     "filename": "test_servers.csv",
                     "correction": "These are actually applications",
                     "asset_type_override": "application",
-                    "timestamp": "2025-01-27T12:05:00Z"
-                }
+                    "timestamp": "2025-01-27T12:05:00Z",
+                },
             },
             {
                 "experience_type": "learned_patterns",
                 "data": {
                     "pattern": "CI_Type field with 'Application' indicates application assets",
                     "confidence_boost": 0.15,
-                    "timestamp": "2025-01-27T12:10:00Z"
-                }
-            }
+                    "timestamp": "2025-01-27T12:10:00Z",
+                },
+            },
         ]
 
         for exp in test_experiences:
@@ -100,7 +106,9 @@ class TestMemorySystem:
         # Test retrieval
         for exp in test_experiences:
             experiences = self.memory.experiences.get(exp["experience_type"], [])
-            assert len(experiences) > 0, f"Should have {exp['experience_type']} experiences"
+            assert (
+                len(experiences) > 0
+            ), f"Should have {exp['experience_type']} experiences"
 
             # Check the data was stored correctly
             stored_data = experiences[-1]  # Get the last added
@@ -128,7 +136,7 @@ class TestMemorySystem:
             experience = {
                 "filename": filename,
                 "asset_type_detected": asset_type,
-                "confidence": confidence
+                "confidence": confidence,
             }
             self.memory.add_experience("analysis_attempt", experience)
 
@@ -140,7 +148,9 @@ class TestMemorySystem:
         assert len(relevant) > 0, "Should find relevant experiences"
 
         # Should prioritize server-related experiences
-        server_experiences = [exp for exp in relevant if "server" in exp.get("filename", "").lower()]
+        server_experiences = [
+            exp for exp in relevant if "server" in exp.get("filename", "").lower()
+        ]
         assert len(server_experiences) > 0, "Should find server-related experiences"
 
         print(f"   ✅ Found {len(relevant)} relevant experiences")
@@ -163,15 +173,21 @@ class TestMemorySystem:
 
         for metric, value in metrics_to_test:
             self.memory.update_learning_metrics(metric, value)
-            assert self.memory.learning_metrics[metric] == value, f"Metric {metric} should be {value}"
+            assert (
+                self.memory.learning_metrics[metric] == value
+            ), f"Metric {metric} should be {value}"
             print(f"   ✅ Updated {metric}: {value}")
 
         # Test calculated metrics
-        accuracy = self.memory.learning_metrics.get("correct_predictions", 0) / max(self.memory.learning_metrics.get("total_analyses", 1), 1)
+        accuracy = self.memory.learning_metrics.get("correct_predictions", 0) / max(
+            self.memory.learning_metrics.get("total_analyses", 1), 1
+        )
         expected_accuracy = 4 / 5  # 0.8
 
         print(f"   ✅ Calculated accuracy: {accuracy:.2f}")
-        assert abs(accuracy - expected_accuracy) < 0.01, "Accuracy calculation should be correct"
+        assert (
+            abs(accuracy - expected_accuracy) < 0.01
+        ), "Accuracy calculation should be correct"
 
         return True
 
@@ -185,7 +201,7 @@ class TestMemorySystem:
             "filename": "persistence_test.csv",
             "asset_type_detected": "server",
             "confidence": 0.88,
-            "test_marker": "persistence_test"
+            "test_marker": "persistence_test",
         }
 
         self.memory.add_experience("analysis_attempt", test_experience)
@@ -202,15 +218,25 @@ class TestMemorySystem:
 
         # Check data persistence
         analysis_experiences = new_memory.experiences.get("analysis_attempt", [])
-        persistence_experiences = [exp for exp in analysis_experiences if exp.get("test_marker") == "persistence_test"]
+        persistence_experiences = [
+            exp
+            for exp in analysis_experiences
+            if exp.get("test_marker") == "persistence_test"
+        ]
 
         assert len(persistence_experiences) > 0, "Should find persisted experience"
-        assert persistence_experiences[0]["confidence"] == 0.88, "Data should be preserved"
-        assert new_memory.learning_metrics.get("persistence_test") == 42, "Metrics should be preserved"
+        assert (
+            persistence_experiences[0]["confidence"] == 0.88
+        ), "Data should be preserved"
+        assert (
+            new_memory.learning_metrics.get("persistence_test") == 42
+        ), "Metrics should be preserved"
 
         print("   ✅ Data successfully persisted and loaded")
         print(f"   ✅ Found {len(persistence_experiences)} persisted experiences")
-        print(f"   ✅ Metrics preserved: {new_memory.learning_metrics.get('persistence_test')}")
+        print(
+            f"   ✅ Metrics preserved: {new_memory.learning_metrics.get('persistence_test')}"
+        )
 
         return True
 
@@ -224,7 +250,7 @@ class TestMemorySystem:
             experience = {
                 "filename": f"test_file_{i}.csv",
                 "asset_type_detected": "server" if i % 2 == 0 else "application",
-                "confidence": 0.7 + (i * 0.02)  # Increasing confidence
+                "confidence": 0.7 + (i * 0.02),  # Increasing confidence
             }
             self.memory.add_experience("analysis_attempt", experience)
 
@@ -232,7 +258,7 @@ class TestMemorySystem:
         for i in range(3):
             feedback = {
                 "filename": f"feedback_file_{i}.csv",
-                "correction": "Improved classification"
+                "correction": "Improved classification",
             }
             self.memory.add_experience("user_feedback", feedback)
 
@@ -246,14 +272,24 @@ class TestMemorySystem:
         assert "experience_types" in stats, "Should include experience types"
         assert "learning_metrics" in stats, "Should include learning metrics"
 
-        assert stats["total_experiences"] >= 13, "Should count all experiences"  # 10 + 3
-        assert "analysis_attempt" in stats["experience_types"], "Should include analysis attempts"
-        assert "user_feedback" in stats["experience_types"], "Should include user feedback"
+        assert (
+            stats["total_experiences"] >= 13
+        ), "Should count all experiences"  # 10 + 3
+        assert (
+            "analysis_attempt" in stats["experience_types"]
+        ), "Should include analysis attempts"
+        assert (
+            "user_feedback" in stats["experience_types"]
+        ), "Should include user feedback"
 
         print(f"   ✅ Total experiences: {stats['total_experiences']}")
         print(f"   ✅ Experience types: {list(stats['experience_types'].keys())}")
-        print(f"   ✅ Analysis attempts: {stats['experience_types'].get('analysis_attempt', 0)}")
-        print(f"   ✅ User feedback: {stats['experience_types'].get('user_feedback', 0)}")
+        print(
+            f"   ✅ Analysis attempts: {stats['experience_types'].get('analysis_attempt', 0)}"
+        )
+        print(
+            f"   ✅ User feedback: {stats['experience_types'].get('user_feedback', 0)}"
+        )
 
         return True
 
@@ -267,18 +303,18 @@ class TestMemorySystem:
             {
                 "pattern": "Files with 'server' in name are usually server assets",
                 "confidence_boost": 0.1,
-                "evidence_count": 5
+                "evidence_count": 5,
             },
             {
                 "pattern": "CI_Type field with 'Application' indicates application assets",
                 "confidence_boost": 0.15,
-                "evidence_count": 8
+                "evidence_count": 8,
             },
             {
                 "pattern": "Database files often have 'db' or 'database' in filename",
                 "confidence_boost": 0.12,
-                "evidence_count": 3
-            }
+                "evidence_count": 3,
+            },
         ]
 
         for pattern in patterns:

@@ -10,7 +10,7 @@ from app.core.context import RequestContext
 from app.services.ai_analysis import (
     AdaptiveQuestionnaireGenerator,
     AIValidationService,
-    BusinessContextAnalyzer,
+    BusinessAnalyzers,
     ConfidenceScorer,
     GapAnalysisAgent,
 )
