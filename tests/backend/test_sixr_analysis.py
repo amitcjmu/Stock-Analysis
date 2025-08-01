@@ -227,272 +227,10 @@ class TestSixRDecisionEngine:
         assert top_strategy in ["refactor", "rearchitect", "rewrite"]
 
 
-# TODO: Implement SixRAgentOrchestrator before enabling these tests
-# class TestSixRAgentOrchestrator:
-#     """Test suite for the 6R Agent Orchestrator"""
-#
-#     @pytest.fixture
-#     def orchestrator(self):
-#         return SixRAgentOrchestrator()
-#
+# NOTE: SixRAgentOrchestrator tests are disabled pending implementation
+# The SixRAgentOrchestrator class is not yet implemented, so these tests
+# are commented out to prevent test failures during development.
 
-#     @pytest.fixture
-#     def sample_cmdb_data(self):
-#        return {
-#            "application_id": 1,
-#            "name": "Test Application",
-#            "technology_stack": ["Java 8", "Spring", "MySQL"],
-#            "department": "Finance",
-#            "business_unit": "Customer Service",
-#            "criticality": "high",
-#            "complexity_score": 7,
-#            "user_count": 1500,
-#            "data_volume": "500GB",
-#            "compliance_requirements": ["PCI-DSS", "SOX"],
-#            "dependencies": ["Payment Gateway", "CRM System"],
-#        }
-
-#    @pytest.mark.asyncio
-#    async def test_agent_initialization(self, orchestrator):
-#        """Test that all agents are properly initialized"""
-#        agents = orchestrator.get_all_agents()
-
-#        expected_agents = [
-#            "discovery",
-#            "initial_analysis",
-#            "question_generator",
-#            "input_processor",
-#            "refinement",
-#            "validation",
-#        ]
-
-#        for agent_name in expected_agents:
-#            assert agent_name in agents
-#            agent = agents[agent_name]
-#            assert agent.role is not None
-#            assert agent.backstory is not None
-
-#    @pytest.mark.asyncio
-#    async def test_discovery_agent(self, orchestrator, sample_cmdb_data):
-#        """Test the Discovery Agent functionality"""
-#        with patch.object(
-#            orchestrator, "_execute_agent_task", new_callable=AsyncMock
-#        ) as mock_execute:
-#            mock_execute.return_value = {
-#                "technology_analysis": {
-#                    "primary_language": "Java",
-#                    "framework": "Spring",
-#                    "database": "MySQL",
-#                    "modernization_potential": "high",
-#                },
-#                "dependency_analysis": {
-#                    "external_dependencies": 2,
-#                    "complexity_score": 7,
-#                    "migration_risk": "medium",
-#                },
-#                "business_context": {
-#                    "criticality": "high",
-#                    "user_impact": "high",
-#                    "compliance_requirements": ["PCI-DSS", "SOX"],
-#                },
-#            }
-
-#            result = await orchestrator.run_discovery_agent(sample_cmdb_data)
-
-#            assert "technology_analysis" in result
-#            assert "dependency_analysis" in result
-#            assert "business_context" in result
-#            mock_execute.assert_called_once()
-
-#    @pytest.mark.asyncio
-#    async def test_initial_analysis_agent(self, orchestrator, sample_cmdb_data):
-#        """Test the Initial Analysis Agent functionality"""
-#        discovery_results = {
-#            "technology_analysis": {"modernization_potential": "high"},
-#            "dependency_analysis": {"complexity_score": 7},
-#            "business_context": {"criticality": "high"},
-#        }
-
-#        parameters = SixRParameters(
-#            business_value=7,
-#            technical_complexity=5,
-#            migration_urgency=6,
-#            compliance_requirements=4,
-#            cost_sensitivity=5,
-#            risk_tolerance=6,
-#            innovation_priority=8,
-#            application_type=ApplicationType.CUSTOM,
-#        )
-
-#        with patch.object(
-#            orchestrator, "_execute_agent_task", new_callable=AsyncMock
-#        ) as mock_execute:
-#            mock_execute.return_value = {
-#                "preliminary_recommendation": "refactor",
-#                "confidence_score": 0.75,
-#                "key_factors": ["High innovation priority", "Moderate complexity"],
-#                "data_gaps": ["Code quality assessment", "Performance metrics"],
-#            }
-
-#            result = await orchestrator.run_initial_analysis_agent(
-#                sample_cmdb_data, discovery_results, parameters
-#            )
-
-#            assert "preliminary_recommendation" in result
-#            assert "confidence_score" in result
-#            assert "data_gaps" in result
-#            mock_execute.assert_called_once()
-
-#    @pytest.mark.asyncio
-#    async def test_question_generator_agent(self, orchestrator):
-#        """Test the Question Generator Agent functionality"""
-#        analysis_results = {
-#            "data_gaps": [
-#                "Code quality assessment",
-#                "Performance metrics",
-#                "Team expertise",
-#            ],
-#            "preliminary_recommendation": "refactor",
-#            "confidence_score": 0.65,
-#        }
-
-#        with patch.object(
-#            orchestrator, "_execute_agent_task", new_callable=AsyncMock
-#        ) as mock_execute:
-#            mock_execute.return_value = {
-#                "questions": [
-#                    {
-#                        "id": "code_quality",
-#                        "question": "How would you rate the current code quality?",
-#                        "question_type": "select",
-#                        "category": "Technical Assessment",
-#                        "priority": 1,
-#                        "required": True,
-#                        "options": [
-#                            {"value": "excellent", "label": "Excellent"},
-#                            {"value": "good", "label": "Good"},
-#                            {"value": "fair", "label": "Fair"},
-#                            {"value": "poor", "label": "Poor"},
-#                        ],
-#                    }
-#                ],
-#                "question_rationale": {
-#                    "code_quality": "Needed to assess refactoring feasibility"
-#                },
-#            }
-
-#            result = await orchestrator.run_question_generator_agent(analysis_results)
-
-#            assert "questions" in result
-#            assert len(result["questions"]) > 0
-#            assert "question_rationale" in result
-#            mock_execute.assert_called_once()
-
-#    @pytest.mark.asyncio
-#    async def test_input_processor_agent(self, orchestrator):
-#        """Test the Input Processor Agent functionality"""
-#        responses = [
-#            QuestionResponse(
-#                question_id="code_quality",
-#                response="good",
-#                confidence=0.8,
-#                source="user_input",
-#                timestamp=datetime.now(),
-#            )
-#        ]
-
-#        with patch.object(
-#            orchestrator, "_execute_agent_task", new_callable=AsyncMock
-#        ) as mock_execute:
-#            mock_execute.return_value = {
-#                "processed_responses": {
-#                    "code_quality": {
-#                        "value": "good",
-#                        "impact_on_recommendation": "positive",
-#                        "confidence_adjustment": 0.1,
-#                    }
-#                },
-#                "updated_confidence": 0.75,
-#                "recommendation_adjustments": {"refactor": 0.1, "replatform": -0.05},
-#            }
-
-#            result = await orchestrator.run_input_processor_agent(responses)
-
-#            assert "processed_responses" in result
-#            assert "updated_confidence" in result
-#            assert "recommendation_adjustments" in result
-#            mock_execute.assert_called_once()
-
-#    @pytest.mark.asyncio
-#    async def test_refinement_agent(self, orchestrator):
-#        """Test the Refinement Agent functionality"""
-#        initial_recommendation = {
-#            "recommended_strategy": "refactor",
-#            "confidence_score": 0.75,
-#            "strategy_scores": {"refactor": 8.2, "replatform": 7.1},
-#        }
-
-#        processed_responses = {
-#            "code_quality": {"value": "good", "impact_on_recommendation": "positive"}
-#        }
-
-#        with patch.object(
-#            orchestrator, "_execute_agent_task", new_callable=AsyncMock
-#        ) as mock_execute:
-#            mock_execute.return_value = {
-#                "refined_recommendation": "refactor",
-#                "updated_confidence": 0.82,
-#                "refined_scores": {"refactor": 8.5, "replatform": 7.0},
-#                "refinement_rationale": [
-#                    "Improved confidence due to good code quality"
-#                ],
-#            }
-
-#            result = await orchestrator.run_refinement_agent(
-#                initial_recommendation, processed_responses
-#            )
-
-#            assert "refined_recommendation" in result
-#            assert "updated_confidence" in result
-#            assert "refined_scores" in result
-#            mock_execute.assert_called_once()
-
-#    @pytest.mark.asyncio
-#    async def test_validation_agent(self, orchestrator):
-#        """Test the Validation Agent functionality"""
-#        final_recommendation = {
-#            "recommended_strategy": "refactor",
-#            "confidence_score": 0.82,
-#            "strategy_scores": {"refactor": 8.5, "replatform": 7.0},
-#        }
-
-#        with patch.object(
-#            orchestrator, "_execute_agent_task", new_callable=AsyncMock
-#        ) as mock_execute:
-#            mock_execute.return_value = {
-#                "validation_result": "approved",
-#                "validation_confidence": 0.85,
-#                "validation_notes": ["Recommendation aligns with business objectives"],
-#                "final_recommendation": final_recommendation,
-#            }
-
-#            result = await orchestrator.run_validation_agent(final_recommendation)
-
-#            assert "validation_result" in result
-#            assert "validation_confidence" in result
-#            assert "final_recommendation" in result
-#            mock_execute.assert_called_once()
-
-#    @pytest.mark.asyncio
-#    async def test_error_handling(self, orchestrator, sample_cmdb_data):
-#        """Test error handling in agent execution"""
-#        with patch.object(
-#            orchestrator, "_execute_agent_task", new_callable=AsyncMock
-#        ) as mock_execute:
-#            mock_execute.side_effect = Exception("Agent execution failed")
-
-#            with pytest.raises(Exception):
-#                await orchestrator.run_discovery_agent(sample_cmdb_data)
 
 
 class TestSixRTools:
@@ -740,12 +478,12 @@ class TestIntegrationScenarios:
         decision_engine = SixRDecisionEngine()
 
         # Sample data
-        # TODO: Use cmdb_data when SixRAgentOrchestrator is implemented
-        # cmdb_data = {
-        #     "application_id": 1,
-        #     "name": "Test Application",
-        #     "technology_stack": ["Java 8", "Spring", "MySQL"],
-        # }
+        # Sample CMDB data for future orchestrator testing
+        cmdb_data = {
+            "application_id": 1,
+            "name": "Test Application",
+            "technology_stack": ["Java 8", "Spring", "MySQL"],
+        }
 
         parameters = SixRParameters(
             business_value=7,
@@ -759,21 +497,8 @@ class TestIntegrationScenarios:
         )
 
         # Test that the workflow can be executed without errors
-        # TODO: Uncomment when SixRAgentOrchestrator is implemented
-        # with patch.object(
-        #     orchestrator, "_execute_agent_task", new_callable=AsyncMock
-        # ) as mock_execute:
-        #     mock_execute.return_value = {"status": "success"}
-        #
-        #     # This would be the actual workflow execution
-        #     discovery_result = await orchestrator.run_discovery_agent(cmdb_data)
-        #     assert discovery_result is not None
-        #
-        #     initial_analysis = await orchestrator.run_initial_analysis_agent(
-        #         cmdb_data, discovery_result, parameters
-        #     )
-        #     assert initial_analysis is not None
-        pass  # Placeholder until orchestrator is implemented
+        # Full workflow testing will be enabled when SixRAgentOrchestrator is implemented
+        # For now, we test the decision engine directly which is the core component
 
         # Generate final recommendation
         recommendation = decision_engine.get_recommendation(parameters)

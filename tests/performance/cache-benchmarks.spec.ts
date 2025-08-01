@@ -41,7 +41,7 @@ interface BenchmarkSuite {
 }
 
 test.describe('Cache Performance Benchmarks', () => {
-  let benchmarkResults: BenchmarkResult[] = [];
+  const benchmarkResults: BenchmarkResult[] = [];
   let baselineMetrics: any = null;
 
   test.beforeAll(async () => {

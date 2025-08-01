@@ -406,7 +406,7 @@ export class PerformanceMonitor {
     cacheHitRatio: number;
     successRate: number;
   }> {
-    const results: { responseTime: number; cached: boolean; success: boolean }[] = [];
+    const results: Array<{ responseTime: number; cached: boolean; success: boolean }> = [];
 
     for (let i = 0; i < iterations; i++) {
       const promises = Array.from({ length: concurrent }, async () => {

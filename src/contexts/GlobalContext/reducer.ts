@@ -1,4 +1,4 @@
-import { GlobalState, GlobalAction, PerformanceMetrics } from './types';
+import type { GlobalState, GlobalAction, PerformanceMetrics } from './types';
 
 // Initial state
 export const createInitialState = (enablePerformanceMonitoring = false): GlobalState => ({
@@ -248,7 +248,7 @@ export function globalReducer(state: GlobalState, action: GlobalAction): GlobalS
         },
       };
 
-    case 'UI_ADD_NOTIFICATION':
+    case 'UI_ADD_NOTIFICATION': {
       const newNotification = {
         ...action.payload,
         id: generateNotificationId(),
@@ -261,6 +261,7 @@ export function globalReducer(state: GlobalState, action: GlobalAction): GlobalS
           notifications: [...state.ui.notifications, newNotification],
         },
       };
+    }
 
     case 'UI_REMOVE_NOTIFICATION':
       return {
@@ -337,7 +338,7 @@ export function globalReducer(state: GlobalState, action: GlobalAction): GlobalS
 
     default:
       if (process.env.NODE_ENV === 'development') {
-        console.warn('Unknown action type:', (action as any).type);
+        console.warn('Unknown action type:', (action as { type: string }).type);
       }
       return state;
   }

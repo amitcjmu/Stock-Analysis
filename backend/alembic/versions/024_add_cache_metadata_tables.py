@@ -40,7 +40,9 @@ def table_exists(table_name):
         return result
     except Exception as e:
         print(f"Error checking if table {table_name} exists: {e}")
-        return True
+        # Return False when we can't check - this will cause table creation to proceed
+        # which is safer than assuming table exists and skipping creation
+        return False
 
 
 def create_table_if_not_exists(table_name, *columns, **kwargs):

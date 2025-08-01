@@ -9,10 +9,11 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { isCacheFeatureEnabled } from '@/constants/features';
-import {
+import type {
   CacheInvalidationEvent,
   WebSocketCacheMessage,
-  CacheEventType,
+  CacheEventType} from '@/types/websocket';
+import {
   CACHE_EVENT_TYPES,
   WS_MESSAGE_TYPES,
   isWelcomeMessage,
@@ -345,7 +346,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     if (!eventCallbacksRef.current.has(eventType)) {
       eventCallbacksRef.current.set(eventType, new Set());
     }
-    eventCallbacksRef.current.get(eventType)!.add(callback);
+    eventCallbacksRef.current.get(eventType).add(callback);
 
     // Return unsubscribe function
     return () => {

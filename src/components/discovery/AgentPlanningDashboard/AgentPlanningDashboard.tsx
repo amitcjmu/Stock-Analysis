@@ -5,8 +5,7 @@
  */
 
 import React from 'react'
-import { useState } from 'react'
-import { useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -52,9 +51,9 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
       const interval = setInterval(fetchAgentPlan, 30000);
       return () => clearInterval(interval);
     }
-  }, [pageContext, modalOpen]);
+  }, [pageContext, modalOpen, fetchAgentPlan]);
 
-  const fetchAgentPlan = async (): Promise<void> => {
+  const fetchAgentPlan = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
@@ -66,7 +65,7 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [pageContext]);
 
   const handleTaskApproval = async (taskId: string, approved: boolean): void => {
     try {

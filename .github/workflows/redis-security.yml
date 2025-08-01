@@ -46,7 +46,7 @@ jobs:
           REDIS_ADMIN_PASSWORD: ${{ secrets.REDIS_ADMIN_PASSWORD_TEST }}
 
       - name: Upload Security Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: redis-security-audit-report
@@ -113,9 +113,16 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports:
+          - 6379:6379
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install Redis tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y redis-tools redis-server
 
       - name: Validate Redis Configuration
         run: |
@@ -290,7 +297,7 @@ jobs:
           fi
 
       - name: Upload Security Results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: redis-security-scan-results

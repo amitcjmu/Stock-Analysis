@@ -38,7 +38,7 @@ interface ConcurrentUserSession {
 }
 
 test.describe('Redis Load Testing', () => {
-  let loadTestMetrics: LoadTestMetrics[] = [];
+  const loadTestMetrics: LoadTestMetrics[] = [];
 
   test.beforeAll(async () => {
     console.log('Starting Redis Load Testing Suite...');
@@ -280,7 +280,7 @@ test.describe('Redis Load Testing', () => {
     const testDurationSeconds = 10;
     const totalRequests = requestsPerSecond * testDurationSeconds;
 
-    const results: { status: number; time: number; rateLimited: boolean }[] = [];
+    const results: Array<{ status: number; time: number; rateLimited: boolean }> = [];
     const startTime = Date.now();
 
     // Send requests as fast as possible
@@ -342,7 +342,7 @@ test.describe('Redis Load Testing', () => {
   test('should maintain cache coherence during high concurrency', async ({ browser }) => {
     const coherenceTestUsers = 20;
     const contexts: BrowserContext[] = [];
-    const coherenceResults: { userId: string; data: any; timestamp: number }[] = [];
+    const coherenceResults: Array<{ userId: string; data: any; timestamp: number }> = [];
 
     console.log('Testing cache coherence with multiple concurrent users...');
 

@@ -20,7 +20,7 @@ export const useDependencyLogic = (flowId?: string) => {
 
   // Local UI state
   const [activeView, setActiveView] = useState<'app-server' | 'app-app'>('app-server');
-  const [additionalAssets, setAdditionalAssets] = useState<{servers: any[], applications: any[], databases: any[]}>({
+  const [additionalAssets, setAdditionalAssets] = useState<{servers: unknown[], applications: unknown[], databases: unknown[]}>({
     servers: [],
     applications: [],
     databases: []
@@ -109,7 +109,10 @@ export const useDependencyLogic = (flowId?: string) => {
   }, [flow, additionalAssets]);
 
   // State for persisted dependencies
-  const [persistedDependencies, setPersistedDependencies] = useState<any>({
+  const [persistedDependencies, setPersistedDependencies] = useState<{
+    app_server_mapping: unknown[];
+    cross_application_mapping: unknown[];
+  }>({
     app_server_mapping: [],
     cross_application_mapping: []
   });
@@ -130,9 +133,9 @@ export const useDependencyLogic = (flowId?: string) => {
         const response = await apiCall('/assets/list/paginated?page=1&page_size=50');
 
         if (response.assets) {
-          const servers = response.assets.filter((asset: any) => asset.asset_type === 'server');
-          const applications = response.assets.filter((asset: any) => asset.asset_type === 'application');
-          const databases = response.assets.filter((asset: any) => asset.asset_type === 'database');
+          const servers = response.assets.filter((asset: { asset_type: string }) => asset.asset_type === 'server');
+          const applications = response.assets.filter((asset: { asset_type: string }) => asset.asset_type === 'application');
+          const databases = response.assets.filter((asset: { asset_type: string }) => asset.asset_type === 'database');
 
           console.log('✅ Fetched assets for dependencies:', {
             servers: servers.length,

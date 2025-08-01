@@ -1,5 +1,5 @@
 import React from 'react';
-import { PerformanceConfig, PerformanceMetrics } from '../../contexts/GlobalContext/types';
+import type { PerformanceConfig, PerformanceMetrics } from '../../contexts/GlobalContext/types';
 
 // Performance monitoring configuration
 const DEFAULT_CONFIG: PerformanceConfig = {
@@ -14,7 +14,7 @@ export interface PerformanceEvent {
   name: string;
   duration: number;
   timestamp: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Render performance tracker
@@ -33,7 +33,7 @@ class PerformanceMonitor {
   private config: PerformanceConfig;
   private events: PerformanceEvent[] = [];
   private renderHistory: RenderPerformance[] = [];
-  private observers: ((metrics: PerformanceMetrics) => void)[] = [];
+  private observers: Array<(metrics: PerformanceMetrics) => void> = [];
   private reportTimer: NodeJS.Timer | null = null;
 
   constructor(config: Partial<PerformanceConfig> = {}) {
@@ -78,7 +78,7 @@ class PerformanceMonitor {
               timestamp: entry.startTime,
               metadata: {
                 name: entry.name,
-                size: (entry as any).transferSize,
+                size: (entry as PerformanceResourceTiming).transferSize,
               },
             });
           }
@@ -335,11 +335,11 @@ export const useRenderPerformance = (componentName: string) => {
  * Decorator for measuring function performance
  */
 export function measurePerformance(label?: string) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: object, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     const measureLabel = label || `${target.constructor.name}.${propertyKey}`;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       performanceMonitor.markStart(measureLabel);
       try {
         const result = await originalMethod.apply(this, args);
@@ -395,5 +395,5 @@ export function measureSync<T>(
 
 // Export for debugging in development
 if (process.env.NODE_ENV === 'development') {
-  (window as any).__performanceMonitor = performanceMonitor;
+  (window as typeof window & { __performanceMonitor?: unknown }).__performanceMonitor = performanceMonitor;
 }

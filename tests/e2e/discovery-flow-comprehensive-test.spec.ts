@@ -4,7 +4,7 @@ import path from 'path';
 test.describe('Discovery Flow Comprehensive E2E Test', () => {
   let flowId: string | null = null;
   const consoleErrors: string[] = [];
-  const networkErrors: { url: string; status: number; error?: string }[] = [];
+  const networkErrors: Array<{ url: string; status: number; error?: string }> = [];
 
   test.beforeEach(async ({ page }) => {
     // Set up console error capturing

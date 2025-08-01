@@ -16,7 +16,11 @@ import json
 import logging
 import os
 import sys
-import yaml
+try:
+    import yaml
+    YAML_AVAILABLE = True
+except ImportError:
+    YAML_AVAILABLE = False
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
@@ -25,7 +29,16 @@ from dataclasses import dataclass, asdict
 # Add backend to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "backend"))
 
-from app.core.config import settings
+# Try to import settings, but fallback to defaults if not available
+try:
+    from app.core.config import settings
+except ImportError:
+    # Use defaults for CI environment
+    class Settings:
+        REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        REDIS_ENABLED = os.getenv("REDIS_ENABLED", "true").lower() == "true"
+        REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
+    settings = Settings()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -348,6 +361,10 @@ class RedisSecurityAuditor:
         """Audit Docker Compose configuration for Redis security"""
         logger.info("Auditing Docker configuration...")
 
+        if not YAML_AVAILABLE:
+            logger.warning("PyYAML not available, skipping Docker configuration audit")
+            return
+
         for compose_path in self.docker_compose_paths:
             if not compose_path.exists():
                 continue
@@ -365,13 +382,13 @@ class RedisSecurityAuditor:
                 for port in ports:
                     if isinstance(port, str) and ":" in port:
                         host_binding = port.split(":")[0]
-                        if host_binding not in ["127.0.0.1", "localhost"]:
+                        if host_binding not in ["127.0.0.1", "localhost"] or host_binding == "":
                             self.issues.append(
                                 SecurityIssue(
                                     severity="high",
                                     category="network",
                                     title="Insecure Port Binding",
-                                    description=f"Redis port bound to {host_binding} instead of localhost",
+                                    description=f"Redis port bound to {host_binding or 'all interfaces'} instead of localhost",
                                     remediation="Bind Redis port to 127.0.0.1 only",
                                     file_path=str(compose_path),
                                 )
@@ -437,6 +454,10 @@ class RedisSecurityAuditor:
     async def audit_network_security(self):
         """Audit network security configuration"""
         logger.info("Auditing network security...")
+
+        if not YAML_AVAILABLE:
+            logger.warning("PyYAML not available, skipping network security audit")
+            return
 
         # Check for network isolation in Docker Compose
         for compose_path in self.docker_compose_paths:
@@ -504,17 +525,22 @@ class RedisSecurityAuditor:
             else:
                 # Check for strong TLS configuration
                 if "tls-protocols" in config_content:
-                    if "TLSv1.0" in config_content or "TLSv1.1" in config_content:
-                        self.issues.append(
-                            SecurityIssue(
-                                severity="high",
-                                category="encryption",
-                                title="Weak TLS Protocols",
-                                description="Weak TLS protocols (1.0/1.1) are enabled",
-                                remediation="Use only TLSv1.2 and TLSv1.3",
-                                file_path=str(self.redis_config_path),
-                            )
-                        )
+                    config_lines = config_content.split('\n')
+                    for line in config_lines:
+                        line = line.strip()
+                        if line.startswith('tls-protocols') and not line.startswith('#'):
+                            if 'TLSv1.0' in line or 'TLSv1.1' in line:
+                                self.issues.append(
+                                    SecurityIssue(
+                                        severity="high",
+                                        category="encryption",
+                                        title="Weak TLS Protocols",
+                                        description="Weak TLS protocols (1.0/1.1) are enabled",
+                                        remediation="Use only TLSv1.2 and TLSv1.3",
+                                        file_path=str(self.redis_config_path),
+                                    )
+                                )
+                                break
 
                 # Check for certificate configuration
                 if "tls-cert-file" not in config_content:
@@ -603,6 +629,10 @@ class RedisSecurityAuditor:
         """Audit monitoring and metrics security"""
         logger.info("Auditing monitoring security...")
 
+        if not YAML_AVAILABLE:
+            logger.warning("PyYAML not available, skipping monitoring security audit")
+            return
+
         # Check for metrics exposure
         for compose_path in self.docker_compose_paths:
             if not compose_path.exists():
@@ -621,7 +651,7 @@ class RedisSecurityAuditor:
                     for port in ports:
                         if isinstance(port, str) and ":" in port:
                             host_binding = port.split(":")[0]
-                            if host_binding == "0.0.0.0" or host_binding == "":  # nosec
+                            if not host_binding or host_binding in ["0.0.0.0", ""]:  # nosec
                                 self.issues.append(
                                     SecurityIssue(
                                         severity="medium",

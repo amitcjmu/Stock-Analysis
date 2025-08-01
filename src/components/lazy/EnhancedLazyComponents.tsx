@@ -1,7 +1,9 @@
-import React, { Suspense, lazy, ComponentType, LazyExoticComponent } from 'react';
+import React, { Suspense, lazy, LazyExoticComponent } from 'react';
+import type { ComponentType } from 'react';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { useBundlePerformance, useRoutePerformance } from '../../utils/performance/hooks';
 import { FeatureGate } from '../../utils/performance/featureFlags';
+import type { FeatureFlags } from '../../contexts/GlobalContext/types';
 
 // Enhanced loading fallback with performance tracking
 const LoadingFallbackWithPerformance: React.FC<{
@@ -125,7 +127,7 @@ export const createEnhancedLazy = <P extends object>(
     }, []);
 
     const ComponentWithFeatureFlag = featureFlag ? (
-      <FeatureGate flag={featureFlag as any} fallback={
+      <FeatureGate flag={featureFlag as keyof FeatureFlags} fallback={
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-xl font-semibold mb-2">Feature Not Available</h2>
@@ -326,7 +328,7 @@ export const BundleAnalyzer: React.FC = () => {
 export const RoutePreloader: React.FC<{
   routes: Array<{
     path: string;
-    importFn: () => Promise<any>;
+    importFn: () => Promise<{ default: ComponentType<unknown> }>;
     priority: LoadingPriority;
   }>;
 }> = ({ routes }) => {

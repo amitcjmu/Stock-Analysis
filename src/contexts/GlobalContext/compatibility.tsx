@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGlobalAuth, useGlobalUserContext } from './index';
-import { AuthContextType } from '../AuthContext/types';
+import type { AuthContextType } from '../AuthContext/types';
 
 /**
  * Compatibility hook that maintains the same interface as the original useAuth hook

@@ -1,5 +1,5 @@
-import { ContextStorageData } from './types';
-import { User, Client, Engagement, Flow } from '../AuthContext/types';
+import type { ContextStorageData } from './types';
+import type { User, Client, Engagement, Flow } from '../AuthContext/types';
 
 // Storage keys with versioning
 const STORAGE_VERSION = 'v1';
@@ -168,18 +168,18 @@ export const contextStorage = {
  */
 export const preferencesStorage = {
   get<T>(key: string, defaultValue: T): T {
-    const prefs = storage.get<Record<string, any>>(STORAGE_KEYS.USER_PREFERENCES) || {};
-    return prefs[key] !== undefined ? prefs[key] : defaultValue;
+    const prefs = storage.get<Record<string, unknown>>(STORAGE_KEYS.USER_PREFERENCES) || {};
+    return prefs[key] !== undefined ? prefs[key] as T : defaultValue;
   },
 
-  set(key: string, value: any): boolean {
-    const prefs = storage.get<Record<string, any>>(STORAGE_KEYS.USER_PREFERENCES) || {};
+  set(key: string, value: unknown): boolean {
+    const prefs = storage.get<Record<string, unknown>>(STORAGE_KEYS.USER_PREFERENCES) || {};
     prefs[key] = value;
     return storage.set(STORAGE_KEYS.USER_PREFERENCES, prefs);
   },
 
   remove(key: string): boolean {
-    const prefs = storage.get<Record<string, any>>(STORAGE_KEYS.USER_PREFERENCES) || {};
+    const prefs = storage.get<Record<string, unknown>>(STORAGE_KEYS.USER_PREFERENCES) || {};
     delete prefs[key];
     return storage.set(STORAGE_KEYS.USER_PREFERENCES, prefs);
   },
@@ -193,11 +193,11 @@ export const preferencesStorage = {
  * Performance metrics storage
  */
 export const performanceStorage = {
-  getMetrics(): any | null {
+  getMetrics(): unknown | null {
     return storage.get(STORAGE_KEYS.PERFORMANCE_METRICS);
   },
 
-  setMetrics(metrics: any): boolean {
+  setMetrics(metrics: unknown): boolean {
     return storage.set(STORAGE_KEYS.PERFORMANCE_METRICS, metrics, 86400000); // 24 hours
   },
 
@@ -252,7 +252,7 @@ export const hasValidStoredContext = (): boolean => {
  * Export storage for debugging in development
  */
 if (process.env.NODE_ENV === 'development') {
-  (window as any).__globalContextStorage = {
+  (window as typeof window & { __globalContextStorage?: unknown }).__globalContextStorage = {
     storage,
     contextStorage,
     preferencesStorage,

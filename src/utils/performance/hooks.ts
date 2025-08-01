@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { performanceMonitor, RenderPerformance } from './monitoring';
+import type { RenderPerformance } from './monitoring';
+import { performanceMonitor } from './monitoring';
 import { useGlobalPerformance } from '../../contexts/GlobalContext';
 
 /**

@@ -2,15 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useGlobalContext } from './index';
 import { performanceMonitor } from '../../utils/performance/monitoring';
 import { featureFlagsManager } from '../../utils/performance/featureFlags';
+import type { GlobalState } from './types';
+import type { FeatureFlags } from './types';
 
 // Context debugging interface
 interface ContextDebugInfo {
   timestamp: number;
-  state: any;
+  state: GlobalState;
   lastAction: string;
-  performanceMetrics: any;
-  featureFlags: any;
-  cacheStatus: any;
+  performanceMetrics: Record<string, unknown>;
+  featureFlags: FeatureFlags;
+  cacheStatus: Record<string, unknown>;
 }
 
 // Debug log entry
@@ -18,7 +20,7 @@ interface DebugLogEntry {
   timestamp: number;
   type: 'action' | 'render' | 'error' | 'cache' | 'api';
   message: string;
-  data?: any;
+  data?: unknown;
   duration?: number;
 }
 
@@ -31,11 +33,6 @@ export const ContextDebugger: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'state' | 'logs' | 'performance' | 'flags'>('state');
   const [logs, setLogs] = useState<DebugLogEntry[]>([]);
   const [isPaused, setIsPaused] = useState(false);
-
-  // Only show in development
-  if (process.env.NODE_ENV !== 'development') {
-    return null;
-  }
 
   // Log state changes
   useEffect(() => {
@@ -99,6 +96,11 @@ export const ContextDebugger: React.FC = () => {
   const clearCache = () => {
     dispatch({ type: 'CACHE_CLEAR_PENDING_INVALIDATIONS' });
   };
+
+  // Only show in development
+  if (process.env.NODE_ENV !== 'development') {
+    return null;
+  }
 
   if (!isVisible) {
     return (

@@ -80,7 +80,7 @@ export const smartMemo = <P extends object>(
   Component: React.ComponentType<P>,
   options: {
     deep?: boolean;
-    ignoreKeys?: (keyof P)[];
+    ignoreKeys?: Array<keyof P>;
     displayName?: string;
   } = {}
 ) => {
@@ -108,14 +108,14 @@ export const smartMemo = <P extends object>(
  */
 export const stableMemo = <P extends object>(
   Component: React.ComponentType<P>,
-  stableKeys: (keyof P)[] = [],
+  stableKeys: Array<keyof P> = [],
   displayName?: string
 ) => {
   const componentName = displayName || Component.displayName || Component.name || 'Anonymous';
 
   const propsAreEqual = (prevProps: P, nextProps: P): boolean => {
-    const prevEntries = Object.entries(prevProps) as [keyof P, any][];
-    const nextEntries = Object.entries(nextProps) as [keyof P, any][];
+    const prevEntries = Object.entries(prevProps) as Array<[keyof P, any]>;
+    const nextEntries = Object.entries(nextProps) as Array<[keyof P, any]>;
 
     if (prevEntries.length !== nextEntries.length) return false;
 

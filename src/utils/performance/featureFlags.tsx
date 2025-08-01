@@ -1,4 +1,4 @@
-import { FeatureFlags } from '../../contexts/GlobalContext/types';
+import type { FeatureFlags } from '../../contexts/GlobalContext/types';
 import { featureFlagsStorage } from '../../contexts/GlobalContext/storage';
 
 // Default feature flags configuration
@@ -38,7 +38,7 @@ interface RemoteFeatureFlags {
  */
 class FeatureFlagsManager {
   private flags: FeatureFlags;
-  private listeners: ((flags: FeatureFlags) => void)[] = [];
+  private listeners: Array<(flags: FeatureFlags) => void> = [];
   private remoteFlags: RemoteFeatureFlags[] = [];
 
   constructor() {
@@ -61,7 +61,7 @@ class FeatureFlagsManager {
     // Apply environment overrides
     Object.entries(ENV_OVERRIDES).forEach(([key, value]) => {
       if (value !== undefined) {
-        (flags as any)[key] = value;
+        (flags as Record<string, unknown>)[key] = value;
       }
     });
 
@@ -338,8 +338,8 @@ export const canaryUtils = {
 
 // Export for debugging in development
 if (process.env.NODE_ENV === 'development') {
-  (window as any).__featureFlagsManager = featureFlagsManager;
-  (window as any).__featureFlags = {
+  (window as typeof window & { __featureFlagsManager?: unknown; __featureFlags?: unknown }).__featureFlagsManager = featureFlagsManager;
+  (window as typeof window & { __featureFlagsManager?: unknown; __featureFlags?: unknown }).__featureFlags = {
     manager: featureFlagsManager,
     canaryUtils,
     DEFAULT_FEATURE_FLAGS,

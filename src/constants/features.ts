@@ -192,7 +192,7 @@ export const getFeaturesForEnvironment = (env: 'DEVELOPMENT' | 'STAGING' | 'PROD
 };
 
 // Helper function to get current environment features
-export const getCurrentFeatures = () => {
+export const getCurrentFeatures = (): unknown => {
   const env = import.meta.env.MODE === 'development' ? 'DEVELOPMENT' :
              import.meta.env.MODE === 'staging' ? 'STAGING' : 'PRODUCTION';
   return getFeaturesForEnvironment(env);

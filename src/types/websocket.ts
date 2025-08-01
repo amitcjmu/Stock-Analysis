@@ -109,7 +109,7 @@ export interface AssetInventoryUpdatedEvent extends BaseCacheInvalidationEvent {
 // Generic cache invalidation event (fallback)
 export interface GenericCacheInvalidationEvent extends BaseCacheInvalidationEvent {
   event_type: typeof CACHE_EVENT_TYPES.CACHE_INVALIDATION;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Union type for all cache invalidation events
@@ -163,7 +163,7 @@ export interface SubscriptionUpdateData {
 export interface ErrorData {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 // Ping/Pong data

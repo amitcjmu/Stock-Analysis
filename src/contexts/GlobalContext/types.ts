@@ -1,5 +1,5 @@
-import { ReactNode } from 'react';
-import { User, Client, Engagement, Flow } from '../AuthContext/types';
+import type { ReactNode } from 'react';
+import type { User, Client, Engagement, Flow } from '../AuthContext/types';
 
 // Performance monitoring types
 export interface PerformanceMetrics {

@@ -1,19 +1,21 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
+import type {
   GlobalContextType,
-  GlobalState,
-  GlobalAction,
   GlobalContextProviderProps,
-  FeatureFlags,
   Notification,
   PerformanceMetrics
+} from './types';
+import {
+  GlobalState,
+  GlobalAction,
+  FeatureFlags
 } from './types';
 import { globalReducer, createInitialState, selectIsAuthenticated, selectIsAdmin, selectHasContext } from './reducer';
 import { contextStorage, preferencesStorage, featureFlagsStorage, maintainStorage } from './storage';
 import { performanceMonitor } from '../../utils/performance/monitoring';
 import { apiCall } from '../../config/api';
-import { User, Client, Engagement, Flow } from '../AuthContext/types';
+import type { User, Client, Engagement, Flow } from '../AuthContext/types';
 
 // Create the context
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
@@ -66,7 +68,7 @@ export const GlobalContextProvider: React.FC<GlobalContextProviderProps> = ({
         dispatch({
           type: 'AUTH_INIT_SUCCESS',
           payload: {
-            user: storedContext.user!,
+            user: storedContext.user,
             client: storedContext.client || undefined,
             engagement: storedContext.engagement || undefined,
             flow: storedContext.flow || undefined,
