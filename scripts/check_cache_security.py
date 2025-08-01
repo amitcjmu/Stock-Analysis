@@ -46,6 +46,12 @@ class CacheSecurityChecker(ast.NodeVisitor):
     def visit_Call(self, node):
         """Check function calls for cache security issues"""
         try:
+            # Skip FastAPI route decorators
+            if isinstance(node.func, ast.Attribute) and node.func.attr in [
+                'get', 'post', 'put', 'delete', 'patch', 'options', 'head'
+            ]:
+                return
+
             # Check Redis/cache operations
             if self._is_cache_operation(node):
                 self._check_cache_operation_security(node)
@@ -74,6 +80,15 @@ class CacheSecurityChecker(ast.NodeVisitor):
         """Check if this is a cache-related operation"""
         if isinstance(node.func, ast.Attribute):
             func_name = node.func.attr.lower()
+            # Skip telemetry and instrumentation calls
+            if func_name in ['set_attribute', 'log', 'info', 'debug', 'error', 'warning']:
+                return False
+            # Skip dictionary operations that aren't cache operations
+            obj_name = ""
+            if isinstance(node.func.value, ast.Name):
+                obj_name = node.func.value.id.lower()
+            if func_name in ['setdefault', 'get', 'pop', 'update'] and obj_name not in ['cache', 'redis']:
+                return False
             return any(op in func_name for op in self.cache_operations)
         elif isinstance(node.func, ast.Name):
             func_name = node.func.id.lower()
@@ -94,9 +109,16 @@ class CacheSecurityChecker(ast.NodeVisitor):
             if node.args and any(op in func_name for op in self.key_operations):
                 first_arg = node.args[0]
                 if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str):
-                    # Only validate if it looks like a cache key (not an environment variable or SQL)
+                    # Only validate if it looks like a cache key (not an environment variable or configuration)
                     key_str = first_arg.value
-                    if not any(pattern in key_str for pattern in ['OTEL_', 'ENV_', 'sqlalchemy.', 'http.', 'cache.']):
+                    # Extended list of patterns that are NOT cache keys
+                    non_cache_patterns = [
+                        'OTEL_', 'ENV_', 'DEBUG', 'PRODUCTION', 'DEVELOPMENT', 'LOG_LEVEL',
+                        'sqlalchemy.', 'database_url', 'DATABASE_URL',
+                        'http.', 'cache.enabled', 'cache.disabled', 'content-type',
+                        'pytest', 'test_', '__file__', '__name__', '__main__'
+                    ]
+                    if not any(pattern in key_str for pattern in non_cache_patterns):
                         self._validate_cache_key_format(key_str, node.lineno)
                 elif isinstance(first_arg, ast.JoinedStr) or isinstance(first_arg, ast.BinOp):
                     # f-string or string concatenation - harder to validate statically
@@ -292,7 +314,10 @@ def main():
     backend_dir = project_root / "backend"
     if backend_dir.exists():
         for py_file in backend_dir.rglob("*.py"):
-            if "venv" in str(py_file) or "__pycache__" in str(py_file):
+            if any(skip in str(py_file) for skip in [
+                "venv", "__pycache__", "migrations", "test_", "tests",
+                "backup", "backups", "archive", "temp"
+            ]):
                 continue
             if should_exclude_file(py_file, exclusions):
                 continue

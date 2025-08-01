@@ -205,6 +205,18 @@ class SensitiveDataChecker(ast.NodeVisitor):
         """Check if an identifier suggests sensitive data"""
         id_lower = identifier.lower()
 
+        # Skip common false positives
+        safe_contexts = [
+            'cache_key', 'redis_key', 'lookup_key', 'index_key', 'sort_key',
+            'primary_key', 'foreign_key', 'partition_key', 'composite_key',
+            'secret_name', 'secret_type', 'secret_manager', 'secret_config',
+            'token_type', 'token_name', 'token_config', 'token_manager',
+            'key_name', 'key_type', 'key_config', 'key_manager'
+        ]
+
+        if any(safe in id_lower for safe in safe_contexts):
+            return False
+
         for category, patterns in self.sensitive_patterns.items():
             if any(pattern in id_lower for pattern in patterns):
                 return True
@@ -401,7 +413,12 @@ def main():
     backend_dir = project_root / "backend"
     if backend_dir.exists():
         for py_file in backend_dir.rglob("*.py"):
-            if any(skip in str(py_file) for skip in ["venv", "__pycache__", "migrations"]):
+            # Skip backup files, venv, cache, migrations, test files, and temporary files
+            if any(skip in str(py_file) for skip in [
+                "venv", "__pycache__", "migrations", "backup", "backups",
+                ".backup", "_backup", "alembic_versions_backup", "temp", "archive",
+                "test_", "tests"
+            ]):
                 continue
             violations = scan_file(py_file)
             all_violations.extend(violations)

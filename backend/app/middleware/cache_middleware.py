@@ -467,23 +467,25 @@ class CacheMiddleware(BaseHTTPMiddleware):
         """Extract JSON body from response handling different response types."""
         try:
             from fastapi.responses import JSONResponse, StreamingResponse
-            
+
             # Handle JSONResponse - get content directly
             if isinstance(response, JSONResponse):
                 # For JSONResponse, we can access the content directly
-                if hasattr(response, 'body') and response.body:
-                    return json.loads(response.body.decode('utf-8'))
+                if hasattr(response, "body") and response.body:
+                    return json.loads(response.body.decode("utf-8"))
                 # Fallback: try to get from rendered content
-                elif hasattr(response, 'content'):
+                elif hasattr(response, "content"):
                     return response.content
-            
+
             # Handle StreamingResponse - consume the stream
             elif isinstance(response, StreamingResponse):
                 # StreamingResponse body is already consumed, we can't extract it here
                 # This should be handled in _execute_and_cache_request before consumption
-                logger.debug("Cannot extract body from already consumed StreamingResponse")
+                logger.debug(
+                    "Cannot extract body from already consumed StreamingResponse"
+                )
                 return None
-                
+
             # Handle regular Response with body attribute
             elif hasattr(response, "body") and response.body:
                 body_bytes = response.body
@@ -491,9 +493,9 @@ class CacheMiddleware(BaseHTTPMiddleware):
                     return json.loads(body_bytes.decode("utf-8"))
                 elif isinstance(body_bytes, str):
                     return json.loads(body_bytes)
-                    
+
             return None
-            
+
         except (json.JSONDecodeError, UnicodeDecodeError) as e:
             logger.debug(f"Failed to decode response body as JSON: {e}")
             return None
@@ -517,26 +519,27 @@ class CacheMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         """Execute the request, buffer the response, and cache it."""
         from fastapi.responses import JSONResponse, StreamingResponse
-        
+
         # Execute the original request
         original_response = await call_next(request)
 
         # Only process successful JSON responses for caching
-        if (original_response.status_code != 200 or 
-            not original_response.headers.get("content-type", "").startswith("application/json")):
+        if original_response.status_code != 200 or not original_response.headers.get(
+            "content-type", ""
+        ).startswith("application/json"):
             return original_response
 
         response_body = None
-        
+
         try:
             # Handle different response types by buffering the content
             if isinstance(original_response, JSONResponse):
                 # For JSONResponse, we can get content directly
-                if hasattr(original_response, 'body') and original_response.body:
-                    response_body = json.loads(original_response.body.decode('utf-8'))
-                elif hasattr(original_response, 'content'):
+                if hasattr(original_response, "body") and original_response.body:
+                    response_body = json.loads(original_response.body.decode("utf-8"))
+                elif hasattr(original_response, "content"):
                     response_body = original_response.content
-                    
+
             elif isinstance(original_response, StreamingResponse):
                 # For StreamingResponse, we need to consume the stream and buffer it
                 chunks = []
@@ -544,43 +547,47 @@ class CacheMiddleware(BaseHTTPMiddleware):
                     if isinstance(chunk, bytes):
                         chunks.append(chunk)
                     elif isinstance(chunk, str):
-                        chunks.append(chunk.encode('utf-8'))
-                
+                        chunks.append(chunk.encode("utf-8"))
+
                 if chunks:
                     # Combine all chunks
-                    body_bytes = b''.join(chunks)
-                    response_body = json.loads(body_bytes.decode('utf-8'))
-                    
+                    body_bytes = b"".join(chunks)
+                    response_body = json.loads(body_bytes.decode("utf-8"))
+
             else:
                 # Handle regular Response
                 response_body = await self._extract_response_body(original_response)
-            
+
             # If we successfully extracted the body, cache it and create new response
             if response_body is not None:
                 # Cache the response data
-                await self._cache_response_data(cache_key, response_body, cache_config, request)
-                
+                await self._cache_response_data(
+                    cache_key, response_body, cache_config, request
+                )
+
                 # Create new response with cached data and proper headers
                 new_response = JSONResponse(content=response_body)
-                
+
                 # Copy important headers from original response
-                for header_name in ['content-type', 'content-encoding']:
+                for header_name in ["content-type", "content-encoding"]:
                     if header_name in original_response.headers:
-                        new_response.headers[header_name] = original_response.headers[header_name]
-                
+                        new_response.headers[header_name] = original_response.headers[
+                            header_name
+                        ]
+
                 # Add cache-specific headers
                 etag = self._generate_etag(response_body)
                 ttl = cache_config.get("ttl", 300)
                 new_response.headers["ETag"] = f'"{etag}"'
                 new_response.headers["Cache-Control"] = f"private, max-age={ttl}"
                 new_response.headers["Vary"] = "X-Client-Account-ID, X-Engagement-ID"
-                
+
                 return new_response
-                
+
         except Exception as e:
             logger.debug(f"Failed to buffer and cache response: {e}")
             # If anything goes wrong, return the original response
-            
+
         return original_response
 
     async def _cache_response_data(

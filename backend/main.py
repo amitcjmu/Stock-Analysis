@@ -3,9 +3,19 @@ AI Modernize Migration Platform - FastAPI Backend
 Main application entry point with CORS, routing, and WebSocket support.
 """
 
-# Disable OpenTelemetry before any other imports to prevent connection errors
+# Standard library imports
+import logging
 import os
+import uuid
+from contextlib import asynccontextmanager
 
+# Third-party imports
+import uvicorn
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+
+# Disable OpenTelemetry before any other app imports to prevent connection errors
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 os.environ.setdefault("OTEL_TRACES_EXPORTER", "none")
 os.environ.setdefault("OTEL_METRICS_EXPORTER", "none")
@@ -13,18 +23,9 @@ os.environ.setdefault("OTEL_LOGS_EXPORTER", "none")
 os.environ.setdefault("OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", "all")
 
 # Configure Rich console early to prevent display conflicts
-from app.core.rich_config import configure_rich_for_backend
+from app.core.rich_config import configure_rich_for_backend  # noqa: E402
 
 configure_rich_for_backend()
-
-import logging
-import uuid
-from contextlib import asynccontextmanager
-
-import uvicorn
-from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 
 # Import error handlers
 try:
@@ -38,9 +39,12 @@ except ImportError:
 # Load environment variables
 load_dotenv()
 
-# Import and apply DeepInfra response fix early in startup
+# Import DeepInfra response fix for early startup application
+# Note: patch_litellm_response_parsing is applied automatically on import
 try:
-    from app.services.deepinfra_response_fixer import patch_litellm_response_parsing
+    from app.services.deepinfra_response_fixer import (
+        patch_litellm_response_parsing,
+    )  # noqa: F401
 
     logger = logging.getLogger(__name__)
     logger.info("✅ DeepInfra response fixer module loaded")
@@ -278,7 +282,7 @@ except Exception as e:
 
 # Try to import database components
 try:
-    import app.models.data_import  # noqa: F401
+    import app.models.data_import  # noqa: F401,F811
     from app.core.database import SQLALCHEMY_AVAILABLE, Base, engine
 
     DATABASE_ENABLED = SQLALCHEMY_AVAILABLE
@@ -506,7 +510,11 @@ if ENABLE_MIDDLEWARE:
         # Add Redis cache middleware (only for GET requests)
         if settings.REDIS_ENABLED:
             try:
-                from app.middleware.cache_middleware import CacheMiddleware, CacheInstrumentationMiddleware
+                from app.middleware.cache_middleware import (
+                    CacheMiddleware,
+                    CacheInstrumentationMiddleware,
+                )
+
                 fastapi_app.add_middleware(CacheMiddleware)
                 fastapi_app.add_middleware(CacheInstrumentationMiddleware)
                 logger.info("✅ Redis cache middleware added")
@@ -700,8 +708,8 @@ def create_app():
     return fastapi_app
 
 
-# Direct alias for deployment
-app = fastapi_app
+# Direct alias for deployment (replacing previous definition at line 281)
+app = fastapi_app  # Final app definition for deployment compatibility  # noqa: F811
 
 if __name__ == "__main__":
     # Port assignment - Use Railway PORT or default to 8000 for local development

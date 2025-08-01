@@ -31,11 +31,14 @@ export const useIncompleteFlowDetectionV2 = (): unknown => {
     queryKey: ['incomplete-flows', client?.id, engagement?.id],
     queryFn: async () => {
       try {
-        console.log('🔍 [DEBUG] Fetching incomplete flows for:', { client: client?.id, engagement: engagement?.id });
+        // Log only in development
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('Fetching incomplete flows for:', { client: client?.id, engagement: engagement?.id });
+        }
 
         // Require proper UUIDs from auth context
         if (!client?.id || !engagement?.id) {
-          console.warn('❌ [DEBUG] Missing client or engagement context for flow operations');
+          // This is expected when context is not yet loaded
           return { flows: [] };
         }
 
@@ -43,11 +46,11 @@ export const useIncompleteFlowDetectionV2 = (): unknown => {
         const engagementId = engagement.id;
 
         // Try the active flows endpoint first
-        console.log('🔍 [DEBUG] Calling getActiveFlows with:', { clientAccountId, engagementId, flowType: 'discovery' });
+        // Call getActiveFlows API
         const response = await masterFlowService.getActiveFlows(clientAccountId, engagementId, 'discovery');
-        console.log('✅ [DEBUG] Active flows response:', response);
+        // Process response
         const allFlows = Array.isArray(response) ? response : (response.flows || []);
-        console.log('📋 [DEBUG] All flows found:', allFlows.length);
+        // Filter flows
 
         // Filter for incomplete flows (not completed or failed)
         const incompleteFlows = allFlows.filter((flow: unknown) =>
@@ -58,9 +61,12 @@ export const useIncompleteFlowDetectionV2 = (): unknown => {
           // Get the flow ID from various possible fields
           const flowId = flow.master_flow_id || flow.flowId || flow.flow_id;
 
-          // If no flow ID exists, log an error and skip this flow
+          // If no flow ID exists, skip this flow silently (common for flows in initial state)
           if (!flowId) {
-            console.error('❌ [DEBUG] Flow missing ID, skipping:', flow);
+            // Only log in development mode to reduce console noise
+            if (process.env.NODE_ENV === 'development') {
+              console.debug('Flow missing ID, skipping:', flow);
+            }
             return null;
           }
 
@@ -99,13 +105,12 @@ export const useIncompleteFlowDetectionV2 = (): unknown => {
         });
         }).filter(flow => flow !== null); // Remove flows without IDs
 
-        console.log('📋 [DEBUG] Transformed incomplete flows:', incompleteFlows);
-        console.log('📋 [DEBUG] Final result:', { flows: incompleteFlows });
+        // Return filtered flows
         return {
           flows: incompleteFlows
         };
       } catch (error) {
-        console.error('❌ [DEBUG] Failed to fetch active flows, returning empty list:', error);
+        console.error('Failed to fetch active flows:', error);
         return { flows: [] };
       }
     },

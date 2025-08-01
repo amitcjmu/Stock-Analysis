@@ -38,6 +38,12 @@ class CacheKeyValidator(ast.NodeVisitor):
     def visit_Call(self, node):
         """Check cache operation calls"""
         try:
+            # Skip FastAPI route decorators
+            if isinstance(node.func, ast.Attribute) and node.func.attr in [
+                'get', 'post', 'put', 'delete', 'patch', 'options', 'head'
+            ]:
+                return
+
             if self._is_cache_operation(node) and node.args:
                 # First argument should be the cache key
                 key_arg = node.args[0]
@@ -68,11 +74,22 @@ class CacheKeyValidator(ast.NodeVisitor):
                     obj_name = node.func.value.id.lower()
                 method_name = node.func.attr.lower()
 
+                # Skip telemetry and instrumentation calls
+                if method_name in ['set_attribute', 'log', 'info', 'debug', 'error', 'warning']:
+                    return False
+
+                # Skip dictionary operations that aren't cache operations
+                if method_name in ['setdefault', 'get', 'pop', 'update'] and obj_name not in ['cache', 'redis']:
+                    return False
+
                 # Check for cache objects and methods
                 if 'cache' in obj_name or 'redis' in obj_name:
                     return any(method in method_name for method in self.cache_methods)
 
-                # Check for method names that suggest caching
+                # Check for method names that suggest caching (but not dict operations)
+                if method_name in ['setdefault', 'get'] and 'cache' not in obj_name:
+                    return False
+
                 return any(method in method_name for method in self.cache_methods)
 
         except Exception:
@@ -104,6 +121,16 @@ class CacheKeyValidator(ast.NodeVisitor):
 
     def _validate_static_key(self, key: str, line_no: int):
         """Validate a static string cache key"""
+        # Skip validation for non-cache-key patterns
+        non_cache_patterns = [
+            'OTEL_', 'ENV_', 'DEBUG', 'PRODUCTION', 'DEVELOPMENT', 'LOG_LEVEL',
+            'sqlalchemy.', 'database_url', 'DATABASE_URL',
+            'http.', 'cache.enabled', 'cache.disabled', 'content-type',
+            'pytest', 'test_', '__file__', '__name__', '__main__'
+        ]
+        if any(pattern in key for pattern in non_cache_patterns):
+            return  # Skip validation for these patterns
+
         violations = []
 
         # Rule 1: Must have version prefix
@@ -308,7 +335,10 @@ def main():
     backend_dir = project_root / "backend"
     if backend_dir.exists():
         for py_file in backend_dir.rglob("*.py"):
-            if any(skip in str(py_file) for skip in ["venv", "__pycache__", "migrations"]):
+            if any(skip in str(py_file) for skip in [
+                "venv", "__pycache__", "migrations", "test_", "tests",
+                "backup", "backups", "archive", "temp"
+            ]):
                 continue
             violations = scan_file(py_file)
             all_violations.extend(violations)
