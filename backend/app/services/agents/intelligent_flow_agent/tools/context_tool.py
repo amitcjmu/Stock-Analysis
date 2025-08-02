@@ -24,13 +24,20 @@ except ImportError:
         def __init__(self, **kwargs):
             # Define allowed attributes for this fallback tool
             allowed_attrs = SAFE_ATTRIBUTES | {
-                'name', 'description', 'tool_type', 'enabled'
+                "name",
+                "description",
+                "tool_type",
+                "enabled",
             }
-            
+
             for key, value in kwargs.items():
                 # Use secure_setattr to prevent sensitive data exposure
-                if not secure_setattr(self, key, value, allowed_attrs, strict_mode=False):
-                    logging.warning(f"Skipped setting potentially sensitive attribute: {key}")
+                if not secure_setattr(
+                    self, key, value, allowed_attrs, strict_mode=False
+                ):
+                    logging.warning(
+                        f"Skipped setting potentially sensitive attribute: {key}"
+                    )
 
         def _run(self, *args, **kwargs):
             return "CrewAI not available - using fallback"

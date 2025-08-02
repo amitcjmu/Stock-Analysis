@@ -190,15 +190,21 @@ class RedisCache:
             return True
         except Exception as e:
             # Sanitize error logging to prevent sensitive data exposure
-            sanitized_value = sanitize_for_logging(value) if isinstance(value, dict) else "***DATA***"
-            logger.error(f"Redis set error for key {key}: {str(e)} (value type: {type(value).__name__})")
+            logger.error(
+                f"Redis set error for key {key}: {str(e)} (value type: {type(value).__name__})"
+            )
             return False
-    
-    async def set_secure(self, key: str, value: Any, ttl: Optional[int] = None, 
-                        force_encrypt: bool = False) -> bool:
+
+    async def set_secure(
+        self,
+        key: str,
+        value: Any,
+        ttl: Optional[int] = None,
+        force_encrypt: bool = False,
+    ) -> bool:
         """Set value in cache with automatic encryption for sensitive data"""
         return await self.secure_cache.set(key, value, ttl, force_encrypt)
-    
+
     async def get_secure(self, key: str) -> Optional[Any]:
         """Get value from cache with automatic decryption"""
         return await self.secure_cache.get(key)

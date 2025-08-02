@@ -1,6 +1,6 @@
 /**
  * Lazy Loading Utilities
- * 
+ *
  * Non-component utilities for enhanced lazy loading functionality.
  * Separated from components to maintain react-refresh compatibility.
  */

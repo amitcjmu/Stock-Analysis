@@ -21,8 +21,29 @@ except ImportError:
         description: str = "Fallback tool when CrewAI not available"
 
         def __init__(self, **kwargs):
+            from app.core.security.secure_setattr import secure_setattr, SAFE_ATTRIBUTES
+
+            # Define allowed attributes for validation tool updates
+            allowed_attrs = SAFE_ATTRIBUTES | {
+                "name",
+                "description",
+                "return_direct",
+                "verbose",
+                "args_schema",
+                "response_format",
+                "handle_tool_error",
+                "handle_validation_error",
+                "enabled",
+            }
+
             for key, value in kwargs.items():
-                setattr(self, key, value)
+                # Use secure_setattr to prevent sensitive data exposure
+                if not secure_setattr(
+                    self, key, value, allowed_attrs, strict_mode=False
+                ):
+                    logging.warning(
+                        f"Skipped setting potentially sensitive attribute: {key}"
+                    )
 
         def _run(self, *args, **kwargs):
             return "CrewAI not available - using fallback"

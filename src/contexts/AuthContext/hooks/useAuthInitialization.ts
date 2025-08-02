@@ -78,14 +78,6 @@ export const useAuthInitialization = ({
     initializationCount++;
     console.log(`🔍 useAuthInitialization effect triggered (count: ${initializationCount})`);
 
-    // Fallback timeout to ensure isLoading gets set to false
-    if (!fallbackTimeoutRef.current) {
-      fallbackTimeoutRef.current = setTimeout(() => {
-        console.warn('⚠️ Auth initialization fallback timeout triggered');
-        setIsLoading(false);
-      }, 5000); // 5 second timeout
-    }
-
     // Critical: Check if we're in an infinite loop
     if (initializationCount > 10) {
       console.error('🚨 Auth initialization loop detected! Stopping to prevent infinite loop.');
@@ -94,12 +86,27 @@ export const useAuthInitialization = ({
       globalAuthInitialized = false;
       isAuthInitializing = false;
       setInitializationState(false);
+      // Clear any existing timeout to prevent race conditions
       if (fallbackTimeoutRef.current) {
         clearTimeout(fallbackTimeoutRef.current);
         fallbackTimeoutRef.current = null;
       }
       return;
     }
+
+    // Clear any existing timeout before setting a new one to prevent race conditions
+    if (fallbackTimeoutRef.current) {
+      clearTimeout(fallbackTimeoutRef.current);
+      fallbackTimeoutRef.current = null;
+    }
+
+    // Set up a new fallback timeout for this effect run
+    fallbackTimeoutRef.current = setTimeout(() => {
+      console.warn('⚠️ Auth initialization fallback timeout triggered');
+      setIsLoading(false);
+      // Clear the timeout reference after it fires
+      fallbackTimeoutRef.current = null;
+    }, 5000); // 5 second timeout
 
     // Guard against multiple initializations
     if (hasInitializedRef.current) {
@@ -170,7 +177,10 @@ export const useAuthInitialization = ({
           console.log('✅ Context restored successfully');
 
           // CRITICAL: Sync context to individual localStorage keys for new API client
-          syncContextToIndividualKeys();
+          const syncSuccess = syncContextToIndividualKeys();
+          if (!syncSuccess) {
+            console.warn('⚠️ Context synchronization failed during auth restoration - some features may not work properly');
+          }
 
           setIsLoading(false);
           // Mark initialization as complete again
@@ -321,7 +331,10 @@ export const useAuthInitialization = ({
             if (userContext.client && userContext.engagement) {
               console.log('✅ Complete user context loaded from API - auth initialization successful');
               // CRITICAL: Sync context to individual localStorage keys for new API client
-              syncContextToIndividualKeys();
+              const syncSuccess = syncContextToIndividualKeys();
+              if (!syncSuccess) {
+                console.warn('⚠️ Context synchronization failed - some API features may not work properly');
+              }
             } else {
               console.warn('⚠️ Incomplete user context from API, missing client or engagement');
               console.log('🔍 User context missing client/engagement, fetching defaults');
@@ -441,7 +454,7 @@ export const useAuthInitialization = ({
       }
 
       // Reset the initialization counter if it's too high to allow recovery
-      if (initializationCount > 5) {
+      if (initializationCount > 10) {
         console.log('🔍 Resetting initialization counter on unmount');
         initializationCount = 0;
       }

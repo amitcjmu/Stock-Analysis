@@ -1,6 +1,6 @@
 /**
  * Enhanced Lazy Components
- * 
+ *
  * React components for enhanced lazy loading functionality.
  * Factory functions and utilities are in separate files for react-refresh compatibility.
  */

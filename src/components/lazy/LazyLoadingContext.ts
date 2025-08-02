@@ -1,6 +1,6 @@
 /**
  * Lazy Loading Context - Context definitions for lazy loading
- * 
+ *
  * Separated from provider component to maintain react-refresh compatibility.
  */
 
