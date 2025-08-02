@@ -72,14 +72,20 @@ export interface GlobalState {
 // Action types for the reducer
 export type GlobalAction =
   | { type: 'AUTH_INIT_START' }
-  | { type: 'AUTH_INIT_SUCCESS'; payload: { user: User; client?: Client; engagement?: Engagement; flow?: Flow } }
+  | {
+      type: 'AUTH_INIT_SUCCESS';
+      payload: { user: User; client?: Client; engagement?: Engagement; flow?: Flow };
+    }
   | { type: 'AUTH_INIT_ERROR'; payload: string }
   | { type: 'AUTH_LOGIN_START' }
   | { type: 'AUTH_LOGIN_SUCCESS'; payload: User }
   | { type: 'AUTH_LOGIN_ERROR'; payload: string }
   | { type: 'AUTH_LOGOUT' }
   | { type: 'CONTEXT_UPDATE_START' }
-  | { type: 'CONTEXT_UPDATE_SUCCESS'; payload: { client?: Client; engagement?: Engagement; flow?: Flow } }
+  | {
+      type: 'CONTEXT_UPDATE_SUCCESS';
+      payload: { client?: Client; engagement?: Engagement; flow?: Flow };
+    }
   | { type: 'CONTEXT_UPDATE_ERROR'; payload: string }
   | { type: 'CONTEXT_SWITCH_CLIENT'; payload: Client }
   | { type: 'CONTEXT_SWITCH_ENGAGEMENT'; payload: Engagement }
@@ -116,6 +122,11 @@ export interface GlobalContextType {
   removeNotification: (id: string) => void;
   updatePerformanceMetrics: (metrics: Partial<PerformanceMetrics>) => void;
   getAuthHeaders: () => Record<string, string>;
+  prefetchUserContext: (
+    userId: string,
+    recentClientIds?: string[],
+    recentEngagementIds?: string[]
+  ) => Promise<void>;
 }
 
 // Provider props
