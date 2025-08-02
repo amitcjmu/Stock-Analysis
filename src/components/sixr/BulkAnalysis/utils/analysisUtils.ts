@@ -18,13 +18,17 @@ export const priorityColors = {
 };
 
 export const strategyColors = {
+  // Migration Lift and Shift
   rehost: 'bg-blue-100 text-blue-800',
-  replatform: 'bg-green-100 text-green-800',
+
+  // Legacy Modernization Treatments
+  replatform: 'bg-yellow-100 text-yellow-800',
   refactor: 'bg-yellow-100 text-yellow-800',
-  rearchitect: 'bg-purple-100 text-purple-800',
-  rewrite: 'bg-indigo-100 text-indigo-800',
-  replace: 'bg-orange-100 text-orange-800',
-  retire: 'bg-red-100 text-red-800'
+  rearchitect: 'bg-yellow-100 text-yellow-800',
+
+  // Cloud Native
+  replace: 'bg-purple-100 text-purple-800',
+  rewrite: 'bg-purple-100 text-purple-800'
 };
 
 // Utility functions for job management
