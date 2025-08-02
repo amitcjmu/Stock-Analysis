@@ -4,10 +4,10 @@
  */
 
 // Components
-// eslint-disable-next-line react-refresh/only-export-components
 export { AuthProvider } from './AuthContext/provider';
 
 // Hooks
+// eslint-disable-next-line react-refresh/only-export-components
 export { useAuth } from './AuthContext/useAuth';
 
 // Types
