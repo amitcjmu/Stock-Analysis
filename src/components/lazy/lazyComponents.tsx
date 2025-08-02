@@ -1,6 +1,6 @@
 /**
  * Lazy Loading Internal Components
- * 
+ *
  * Internal components used by lazy factories.
  * Separated from factory functions to maintain react-refresh compatibility.
  */

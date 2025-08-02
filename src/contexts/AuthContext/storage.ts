@@ -184,3 +184,81 @@ export const clearAllStoredData = (): unknown => {
   localStorage.removeItem('user_data');
   localStorage.removeItem('user_context_selection');
 };
+
+/**
+ * Sync context data from user_context_selection to individual localStorage keys
+ * This ensures the new API client can read client/engagement/flow data
+ */
+export const syncContextToIndividualKeys = (): boolean => {
+  try {
+    const contextData = contextStorage.getContext();
+    if (!contextData) {
+      console.log('🔄 No context data to sync');
+      return false;
+    }
+
+    console.log('🔄 Syncing context data to individual localStorage keys:', contextData);
+
+    let hasFailures = false;
+    const results = {
+      client: false,
+      engagement: false,
+      flow: false,
+    };
+
+    // Sync client data with individual error handling
+    if (contextData.client) {
+      try {
+        persistClientData(contextData.client);
+        results.client = true;
+        console.log('✅ Synced client data to localStorage');
+      } catch (clientError) {
+        hasFailures = true;
+        console.error('❌ Failed to sync client data:', clientError);
+      }
+    }
+
+    // Sync engagement data with individual error handling
+    if (contextData.engagement) {
+      try {
+        persistEngagementData(contextData.engagement);
+        results.engagement = true;
+        console.log('✅ Synced engagement data to localStorage');
+      } catch (engagementError) {
+        hasFailures = true;
+        console.error('❌ Failed to sync engagement data:', engagementError);
+      }
+    }
+
+    // Sync flow data with individual error handling
+    if (contextData.flow) {
+      try {
+        localStorage.setItem('auth_flow', JSON.stringify(contextData.flow));
+        results.flow = true;
+        console.log('✅ Synced flow data to localStorage');
+      } catch (flowError) {
+        hasFailures = true;
+        console.error('❌ Failed to sync flow data:', flowError);
+      }
+    }
+
+    if (hasFailures) {
+      console.warn('⚠️ Context synchronization completed with failures:', results);
+      // Return false to indicate partial failure, but don't throw
+      return false;
+    } else {
+      console.log('✅ Context synchronization completed successfully:', results);
+      return true;
+    }
+  } catch (error) {
+    console.error('❌ Critical failure in context synchronization:', error);
+    // For critical failures, we should probably clear corrupted data
+    try {
+      console.log('🧹 Clearing potentially corrupted context data');
+      contextStorage.clearContext();
+    } catch (clearError) {
+      console.error('❌ Failed to clear corrupted context data:', clearError);
+    }
+    return false;
+  }
+};

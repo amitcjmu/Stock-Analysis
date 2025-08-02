@@ -282,9 +282,29 @@ class EnhancedBaseAdapter(BaseAdapter, ABC):
             new_ttl = min(3600, self.config.cache_ttl_seconds * 2)
             optimization_changes["cache_ttl_seconds"] = new_ttl
 
-        # Apply optimization changes
+        # Apply optimization changes using secure attribute setting
+        from app.core.security.secure_setattr import secure_setattr, SAFE_ATTRIBUTES
+
+        # Define allowed attributes for adapter config updates
+        allowed_attrs = SAFE_ATTRIBUTES | {
+            "cache_ttl_seconds",
+            "rate_limit_per_minute",
+            "max_retries",
+            "timeout_seconds",
+            "batch_size",
+            "parallel_requests",
+            "backoff_factor",
+            "circuit_breaker_threshold",
+            "enabled",
+        }
+
         for key, value in optimization_changes.items():
-            setattr(self.config, key, value)
+            if not secure_setattr(
+                self.config, key, value, allowed_attrs, strict_mode=False
+            ):
+                self.logger.warning(
+                    f"Skipped updating potentially sensitive config attribute: {key}"
+                )
 
         return {
             "optimization_applied": len(optimization_changes) > 0,

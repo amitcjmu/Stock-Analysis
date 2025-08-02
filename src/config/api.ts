@@ -490,10 +490,10 @@ export const apiCall = async (
           }
 
           if (currentContext?.client?.id && currentContext.client.id !== 'null') {
-            headers['X-Client-Account-ID'] = currentContext.client.id;
+            headers['X-Client-Account-Id'] = currentContext.client.id;
             console.log(`🏢 API Call [${requestId}] - Added client ID: ${currentContext.client.id}`);
           } else {
-            console.warn(`⚠️ API Call [${requestId}] - No client or client_id available for X-Client-Account-ID header`);
+            console.warn(`⚠️ API Call [${requestId}] - No client or client_id available for X-Client-Account-Id header`);
           }
 
           if (currentContext?.engagement?.id && currentContext.engagement.id !== 'null') {

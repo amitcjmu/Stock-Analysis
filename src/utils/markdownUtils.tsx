@@ -3,7 +3,7 @@ import React from 'react';
 /**
  * Simple markdown renderer utility functions
  * Handles basic markdown formatting: bold, italic, code, bullet points, headings
- * 
+ *
  * Separated from component file to maintain react-refresh compatibility.
  */
 

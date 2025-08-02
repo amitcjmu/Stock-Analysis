@@ -27,7 +27,7 @@ interface GuardedFunction {
   (...args: unknown[]): Promise<unknown>;
   isRunning?: boolean;
 }
-import { tokenStorage, contextStorage, persistClientData, persistEngagementData } from '../storage'
+import { tokenStorage, contextStorage, persistClientData, persistEngagementData, syncContextToIndividualKeys } from '../storage'
 
 export const useAuthService = (
   user: User | null,
@@ -105,6 +105,9 @@ export const useAuthService = (
             timestamp: Date.now(),
             source: 'login_backend'
           });
+
+          // CRITICAL: Sync context to individual localStorage keys for new API client
+          syncContextToIndividualKeys();
 
           if (context.user && context.user.role) {
             actualUserRole = context.user.role;
@@ -242,6 +245,9 @@ export const useAuthService = (
 
       console.log('🔍 switchClient - Completed successfully');
 
+      // CRITICAL: Sync context to individual localStorage keys for new API client
+      syncContextToIndividualKeys();
+
     } catch (error) {
       console.error('Error switching client:', error);
       throw error;
@@ -321,6 +327,9 @@ export const useAuthService = (
       }
 
       console.log('🔍 switchEngagement - Completed successfully');
+
+      // CRITICAL: Sync context to individual localStorage keys for new API client
+      syncContextToIndividualKeys();
 
     } catch (error) {
       console.error('Error switching engagement:', error);

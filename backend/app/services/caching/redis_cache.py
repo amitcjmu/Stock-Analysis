@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional
 
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.core.security.cache_encryption import SecureCache, sanitize_for_logging
 
 logger = get_logger(__name__)
 
@@ -98,6 +99,8 @@ class RedisCache:
 
         # Try to initialize Redis client
         self._initialize_client()
+        # Initialize secure cache wrapper for sensitive data
+        self.secure_cache = SecureCache(self)
 
     def _initialize_client(self):
         """Initialize the appropriate Redis client based on configuration"""
@@ -186,8 +189,25 @@ class RedisCache:
 
             return True
         except Exception as e:
-            logger.error(f"Redis set error for key {key}: {str(e)}")
+            # Sanitize error logging to prevent sensitive data exposure
+            logger.error(
+                f"Redis set error for key {key}: {str(e)} (value type: {type(value).__name__})"
+            )
             return False
+
+    async def set_secure(
+        self,
+        key: str,
+        value: Any,
+        ttl: Optional[int] = None,
+        force_encrypt: bool = False,
+    ) -> bool:
+        """Set value in cache with automatic encryption for sensitive data"""
+        return await self.secure_cache.set(key, value, ttl, force_encrypt)
+
+    async def get_secure(self, key: str) -> Optional[Any]:
+        """Get value from cache with automatic decryption"""
+        return await self.secure_cache.get(key)
 
     @redis_fallback
     async def delete(self, key: str) -> bool:

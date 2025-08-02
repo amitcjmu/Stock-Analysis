@@ -1,6 +1,6 @@
 /**
  * Button Variants
- * 
+ *
  * Variant styles for button components.
  * Separated from component file to maintain react-refresh compatibility.
  */

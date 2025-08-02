@@ -9,7 +9,7 @@ export function createMultiTenantHeaders(context: MultiTenantContext): MultiTena
   const headers: MultiTenantHeaders = {};
 
   if (context.clientAccountId) {
-    headers['X-Client-Account-ID'] = context.clientAccountId;
+    headers['X-Client-Account-Id'] = context.clientAccountId;
   }
 
   if (context.engagementId) {
@@ -29,7 +29,7 @@ export function createMultiTenantHeaders(context: MultiTenantContext): MultiTena
 
 export function extractTenantContext(headers: Record<string, string>): MultiTenantContext {
   return {
-    clientAccountId: headers['X-Client-Account-ID'] || headers['x-client-account-id'],
+    clientAccountId: headers['X-Client-Account-Id'] || headers['x-client-account-id'],
     engagementId: headers['X-Engagement-ID'] || headers['x-engagement-id'],
     userId: headers['X-User-ID'] || headers['x-user-id'],
     userRole: headers['X-User-Role'] || headers['x-user-role']

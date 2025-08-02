@@ -968,14 +968,36 @@ class CollectionDiscoveryHandoffProtocol:
             retry_attempts=self.default_criteria.retry_attempts,
         )
 
-        # Apply overrides
+        # Apply overrides using secure attribute setting
         if criteria_overrides:
+            from app.core.security.secure_setattr import secure_setattr, SAFE_ATTRIBUTES
+
+            # Define allowed attributes for handoff criteria updates
+            allowed_attrs = SAFE_ATTRIBUTES | {
+                "validation_level",
+                "required_confidence",
+                "timeout_seconds",
+                "max_attempts",
+                "error_threshold",
+                "success_criteria",
+                "failure_criteria",
+                "enabled",
+                "priority",
+            }
+
             for key, value in criteria_overrides.items():
                 if hasattr(criteria, key):
                     if key == "validation_level":
-                        setattr(criteria, key, ValidationLevel(value))
+                        processed_value = ValidationLevel(value)
                     else:
-                        setattr(criteria, key, value)
+                        processed_value = value
+
+                    if not secure_setattr(
+                        criteria, key, processed_value, allowed_attrs, strict_mode=False
+                    ):
+                        self.logger.warning(
+                            f"Skipped updating potentially sensitive criteria attribute: {key}"
+                        )
 
         return criteria
 

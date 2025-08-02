@@ -1,6 +1,6 @@
 /**
  * Navigation Menu Styles
- * 
+ *
  * Style variants for navigation menu components.
  * Separated from component file to maintain react-refresh compatibility.
  */

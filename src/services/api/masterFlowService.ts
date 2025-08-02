@@ -117,7 +117,7 @@ const getMultiTenantHeaders = (
 ): unknown => {
   const token = localStorage.getItem('auth_token');
   return {
-    'X-Client-Account-ID': clientAccountId,
+    'X-Client-Account-Id': clientAccountId,
     ...(engagementId && { 'X-Engagement-ID': engagementId }),
     ...(userId && { 'X-User-ID': userId }),
     'Content-Type': 'application/json',

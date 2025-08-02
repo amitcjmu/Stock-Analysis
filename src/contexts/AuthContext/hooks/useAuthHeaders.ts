@@ -33,7 +33,7 @@ export const useAuthHeaders = (
     }
 
     if (client && client.id) {
-      headers['X-Client-Account-ID'] = client.id;
+      headers['X-Client-Account-Id'] = client.id;
     }
 
     if (engagement && engagement.id) {

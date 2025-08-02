@@ -1,6 +1,6 @@
 /**
  * Lazy Component Factories
- * 
+ *
  * Factory functions for creating enhanced lazy components.
  * Separated from main component file to maintain react-refresh compatibility.
  */

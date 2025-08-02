@@ -170,7 +170,7 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
       `/discovery/flows/${flowId}/status`,
       {
         headers: {
-          'X-Client-Account-ID': clientAccountId,
+          'X-Client-Account-Id': clientAccountId,
           'X-Engagement-ID': engagementId
         }
       }
@@ -194,7 +194,7 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
       },
       {
         headers: {
-          'X-Client-Account-ID': clientAccountId,
+          'X-Client-Account-Id': clientAccountId,
           'X-Engagement-ID': engagementId
         }
       }
@@ -216,7 +216,7 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
       },
       {
         headers: {
-          'X-Client-Account-ID': clientAccountId,
+          'X-Client-Account-Id': clientAccountId,
           'X-Engagement-ID': engagementId
         }
       }
@@ -234,7 +234,7 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
       {},
       {
         headers: {
-          'X-Client-Account-ID': clientAccountId,
+          'X-Client-Account-Id': clientAccountId,
           'X-Engagement-ID': engagementId
         }
       }
