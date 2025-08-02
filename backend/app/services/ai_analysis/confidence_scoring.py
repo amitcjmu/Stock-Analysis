@@ -35,12 +35,12 @@ class SixRStrategy(str, Enum):
 
     # Migration Lift and Shift
     REHOST = "rehost"
-    
+
     # Legacy Modernization Treatments
     REPLATFORM = "replatform"
     REFACTOR = "refactor"
     REARCHITECT = "rearchitect"
-    
+
     # Cloud Native
     REPLACE = "replace"
     REWRITE = "rewrite"
@@ -362,7 +362,10 @@ class ConfidenceScorer:
                         all_critical_attributes - critical_available
                     ),
                 },
-                description=f"Data completeness: {len(critical_available)}/{len(all_critical_attributes)} critical attributes",
+                description=(
+                    f"Data completeness: {len(critical_available)}/"
+                    f"{len(all_critical_attributes)} critical attributes"
+                ),
             )
 
         except Exception as e:

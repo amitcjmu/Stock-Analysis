@@ -1,12 +1,12 @@
 export const strategyColors = {
   // Migration Lift and Shift
   rehost: 'bg-blue-100 text-blue-800',
-  
-  // Legacy Modernization Treatments  
+
+  // Legacy Modernization Treatments
   replatform: 'bg-yellow-100 text-yellow-800',
   refactor: 'bg-yellow-100 text-yellow-800',
   rearchitect: 'bg-yellow-100 text-yellow-800',
-  
+
   // Cloud Native
   replace: 'bg-purple-100 text-purple-800',
   rewrite: 'bg-purple-100 text-purple-800'
@@ -29,12 +29,12 @@ export const effortColors = {
 export const strategyLabels: Record<string, string> = {
   // Migration Lift and Shift
   rehost: 'REHOST',
-  
+
   // Legacy Modernization Treatments
   replatform: 'REPLATFORM',
-  refactor: 'REFACTOR',  
+  refactor: 'REFACTOR',
   rearchitect: 'RE-ARCHITECT',
-  
+
   // Cloud Native
   replace: 'REPLACE',
   rewrite: 'RE-WRITE'
