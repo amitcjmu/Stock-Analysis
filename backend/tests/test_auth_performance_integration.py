@@ -25,10 +25,33 @@ from app.services.caching.auth_cache_service import (
     UserContext,
 )
 from app.services.data_import.storage_manager import ImportStorageManager
+from app.services.monitoring.cache_performance_monitor import (
+    shutdown_cache_performance_monitor,
+)
 
 
 class TestAuthPerformanceIntegration:
     """Test auth performance optimization components working together"""
+
+    @pytest.fixture(autouse=True)
+    async def setup_and_cleanup(self):
+        """Setup and cleanup for each test to ensure proper resource management"""
+        # Setup - clear any existing state
+        yield
+
+        # Cleanup after each test
+        try:
+            # Shutdown monitoring components to prevent resource leaks
+            await shutdown_cache_performance_monitor()
+
+            # Force garbage collection to clean up any remaining objects
+            import gc
+
+            gc.collect()
+
+        except Exception as e:
+            # Log cleanup errors but don't fail the test
+            print(f"Warning: Error during test cleanup: {e}")
 
     @pytest.fixture
     def mock_redis_cache(self):

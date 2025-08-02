@@ -204,12 +204,15 @@ class CachePerformanceMonitor:
             "utilization_critical": 95.0,  # Critical if utilization > 95%
         }
 
-        # Background monitoring
+        # Background monitoring with proper lifecycle management
         self._monitoring_executor = ThreadPoolExecutor(
             max_workers=2, thread_name_prefix="cache-monitor"
         )
         self._last_health_check = time.time()
         self._health_check_interval = 60  # seconds
+        self._shutdown_event = asyncio.Event()
+        self._background_tasks = set()  # Track background tasks for cleanup
+        self._monitoring_active = False
 
         logger.info(
             "CachePerformanceMonitor initialized with max_events=%d", max_events
@@ -219,25 +222,59 @@ class CachePerformanceMonitor:
         self._start_background_monitoring()
 
     def _start_background_monitoring(self) -> None:
-        """Start background monitoring tasks"""
+        """Start background monitoring tasks with proper lifecycle management"""
+        if self._monitoring_active:
+            return
 
-        def background_monitor():
-            while True:
-                try:
-                    # Periodic health checks and stats collection
-                    if (
-                        time.time() - self._last_health_check
-                        > self._health_check_interval
-                    ):
-                        asyncio.create_task(self._collect_cache_health_metrics())
-                        self._last_health_check = time.time()
+        self._monitoring_active = True
+        self._shutdown_event.clear()
 
-                    time.sleep(30)  # Check every 30 seconds
-                except Exception as e:
-                    logger.error("Error in background cache monitoring: %s", e)
-                    time.sleep(60)  # Wait longer on error
+        async def background_monitor():
+            """Async background monitoring task with proper cleanup"""
+            try:
+                while not self._shutdown_event.is_set():
+                    try:
+                        # Periodic health checks and stats collection
+                        if (
+                            time.time() - self._last_health_check
+                            > self._health_check_interval
+                        ):
+                            await self._collect_cache_health_metrics()
+                            self._last_health_check = time.time()
 
-        self._monitoring_executor.submit(background_monitor)
+                        # Use asyncio.sleep with timeout to allow for shutdown
+                        try:
+                            await asyncio.wait_for(
+                                self._shutdown_event.wait(), timeout=30.0
+                            )
+                            break  # Shutdown requested
+                        except asyncio.TimeoutError:
+                            continue  # Continue monitoring
+
+                    except Exception as e:
+                        logger.error("Error in background cache monitoring: %s", e)
+                        try:
+                            await asyncio.wait_for(
+                                self._shutdown_event.wait(), timeout=60.0
+                            )
+                            break  # Shutdown requested
+                        except asyncio.TimeoutError:
+                            continue  # Continue monitoring after error
+
+            except asyncio.CancelledError:
+                logger.info("Background cache monitoring task cancelled")
+            except Exception as e:
+                logger.error("Fatal error in background cache monitoring: %s", e)
+            finally:
+                self._monitoring_active = False
+                logger.info("Background cache monitoring stopped")
+
+        # Create and track the background task
+        task = asyncio.create_task(background_monitor())
+        self._background_tasks.add(task)
+
+        # Remove from tracking when done
+        task.add_done_callback(self._background_tasks.discard)
 
     async def _collect_cache_health_metrics(self) -> None:
         """Collect health metrics from cache services"""
@@ -860,12 +897,51 @@ class CachePerformanceMonitor:
 
         return removed_count
 
+    async def shutdown(self) -> None:
+        """Gracefully shutdown the monitoring system"""
+        logger.info("Shutting down CachePerformanceMonitor...")
+
+        # Signal background tasks to stop
+        if not self._shutdown_event.is_set():
+            self._shutdown_event.set()
+
+        # Cancel all background tasks
+        if self._background_tasks:
+            logger.info(
+                "Cancelling %d background tasks...", len(self._background_tasks)
+            )
+            for task in self._background_tasks.copy():
+                if not task.done():
+                    task.cancel()
+
+            # Wait for tasks to complete or timeout
+            if self._background_tasks:
+                try:
+                    await asyncio.wait_for(
+                        asyncio.gather(*self._background_tasks, return_exceptions=True),
+                        timeout=5.0,
+                    )
+                except asyncio.TimeoutError:
+                    logger.warning(
+                        "Some background tasks did not complete within timeout"
+                    )
+
+        # Shutdown thread pool executor
+        if self._monitoring_executor:
+            logger.info("Shutting down monitoring executor...")
+            self._monitoring_executor.shutdown(wait=True, timeout=10.0)
+
+        self._monitoring_active = False
+        logger.info("CachePerformanceMonitor shutdown complete")
+
     def get_monitor_health(self) -> Dict[str, Any]:
         """Get monitor health status"""
         return {
-            "status": "healthy",
+            "status": "healthy" if self._monitoring_active else "inactive",
             "total_events": len(self.events),
             "active_operations": len(self.active_operations),
+            "background_tasks": len(self._background_tasks),
+            "monitoring_active": self._monitoring_active,
             "memory_usage": {
                 "events_capacity": self.max_events,
                 "events_used": len(self.events),
@@ -892,6 +968,14 @@ def get_cache_performance_monitor() -> CachePerformanceMonitor:
     if _cache_performance_monitor is None:
         _cache_performance_monitor = CachePerformanceMonitor()
     return _cache_performance_monitor
+
+
+async def shutdown_cache_performance_monitor() -> None:
+    """Shutdown the global cache performance monitor instance"""
+    global _cache_performance_monitor
+    if _cache_performance_monitor is not None:
+        await _cache_performance_monitor.shutdown()
+        _cache_performance_monitor = None
 
 
 def track_cache_operation_performance(

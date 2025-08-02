@@ -20,6 +20,7 @@ Run this module manually when:
 import asyncio
 import logging
 import os
+import random
 import uuid
 from datetime import datetime, timezone
 from typing import Dict
@@ -92,8 +93,6 @@ class PlatformRequirements:
     @staticmethod
     def create_demo_uuid() -> uuid.UUID:
         """Create UUID with -def0-def0-def0- pattern for easy identification (DEFault/DEmo)"""
-        import random
-
         start = "".join(random.choices("0123456789abcdef", k=8))
         end = "".join(random.choices("0123456789abcdef", k=12))
         uuid_string = f"{start}-def0-def0-def0-{end}"

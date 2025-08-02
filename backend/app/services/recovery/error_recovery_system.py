@@ -28,6 +28,7 @@ that maintain data consistency and service availability during failures.
 """
 
 import asyncio
+import random
 import time
 import uuid
 from collections import defaultdict, deque
@@ -624,8 +625,6 @@ class ErrorRecoverySystem:
 
         # Add jitter if enabled
         if operation.jitter_enabled:
-            import random
-
             jitter = delay * 0.1 * random.uniform(-1, 1)  # ±10% jitter
             delay += jitter
 
@@ -637,8 +636,6 @@ class ErrorRecoverySystem:
         """Perform consistency check on recovered data"""
         try:
             # Sample-based consistency checking
-            import random
-
             if random.random() > self.consistency_check_sample_rate:
                 return True  # Skip this check
 

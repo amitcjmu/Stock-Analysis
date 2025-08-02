@@ -12,21 +12,26 @@ Tests to validate the 80-90% performance improvements and ensure system meets ta
 """
 
 import asyncio
+import os
 import pytest
-import time
+import random
 import statistics
+import time
+from datetime import datetime
+from typing import Dict, Any
+from unittest.mock import AsyncMock, patch
+
 import gc
 import psutil
-import os
-from datetime import datetime
-from unittest.mock import AsyncMock, patch
-from typing import Dict, Any
 
 from app.services.caching.auth_cache_service import (
     AuthCacheService,
     UserSession,
     UserContext,
     InMemoryFallbackCache,
+)
+from app.services.monitoring.cache_performance_monitor import (
+    shutdown_cache_performance_monitor,  # noqa: F401 - Used in cleanup fixtures
 )
 
 
@@ -95,14 +100,64 @@ class TestAuthPerformanceBenchmarks:
         return PerformanceBenchmark()
 
     @pytest.fixture
-    def optimized_redis_mock(self):
-        """Mock Redis with optimized performance characteristics"""
+    def performance_config(self):
+        """Configurable performance baselines and realistic Redis timings"""
+        return {
+            # Realistic Redis performance characteristics (based on AWS ElastiCache)
+            "redis_timings": {
+                "local_redis_ms": {"min": 0.1, "avg": 0.5, "max": 2.0},  # Local Redis
+                "cloud_redis_ms": {"min": 0.5, "avg": 2.0, "max": 8.0},  # Cloud Redis
+                "cross_az_redis_ms": {
+                    "min": 1.0,
+                    "avg": 4.0,
+                    "max": 15.0,
+                },  # Cross-AZ Redis
+            },
+            # Configurable performance baselines (from environment or defaults)
+            "baselines": {
+                "login_baseline_ms": float(
+                    os.getenv("LOGIN_BASELINE_MS", "2500")
+                ),  # 2.5s baseline
+                "context_switch_baseline_ms": float(
+                    os.getenv("CONTEXT_SWITCH_BASELINE_MS", "1200")
+                ),  # 1.2s baseline
+                "cache_operation_baseline_ms": float(
+                    os.getenv("CACHE_BASELINE_MS", "50")
+                ),  # 50ms baseline
+            },
+            # Target improvements (configurable via environment)
+            "targets": {
+                "login_target_ms": float(
+                    os.getenv("LOGIN_TARGET_MS", "300")
+                ),  # 300ms target
+                "context_switch_target_ms": float(
+                    os.getenv("CONTEXT_SWITCH_TARGET_MS", "150")
+                ),  # 150ms target
+                "min_improvement_factor": float(
+                    os.getenv("MIN_IMPROVEMENT_FACTOR", "5.0")
+                ),  # 5x improvement
+            },
+            # Network conditions for testing
+            "network_conditions": {
+                "optimal": "local_redis_ms",
+                "typical": "cloud_redis_ms",
+                "degraded": "cross_az_redis_ms",
+            },
+        }
+
+    @pytest.fixture
+    def optimized_redis_mock(self, performance_config):
+        """Mock Redis with realistic performance characteristics and variance"""
         mock = AsyncMock()
         mock.enabled = True
 
-        # Simulate high-performance Redis (sub-5ms operations)
-        async def fast_get(*args, **kwargs):
-            await asyncio.sleep(0.002)  # 2ms latency
+        # Use typical cloud Redis performance by default
+        redis_timing = performance_config["redis_timings"]["cloud_redis_ms"]
+
+        async def realistic_get(*args, **kwargs):
+            # Add realistic variance to response times
+            latency = random.uniform(redis_timing["min"], redis_timing["max"]) / 1000
+            await asyncio.sleep(latency)
             return {
                 "user_id": "benchmark_user",
                 "email": "benchmark@example.com",
@@ -114,19 +169,22 @@ class TestAuthPerformanceBenchmarks:
                 "associations": [],
             }
 
-        async def fast_set(*args, **kwargs):
-            await asyncio.sleep(0.001)  # 1ms latency
+        async def realistic_set(*args, **kwargs):
+            # Write operations typically slightly faster than reads
+            latency = random.uniform(redis_timing["min"], redis_timing["avg"]) / 1000
+            await asyncio.sleep(latency)
             return True
 
-        async def fast_delete(*args, **kwargs):
-            await asyncio.sleep(0.001)
+        async def realistic_delete(*args, **kwargs):
+            latency = random.uniform(redis_timing["min"], redis_timing["avg"]) / 1000
+            await asyncio.sleep(latency)
             return True
 
-        mock.get.side_effect = fast_get
-        mock.get_secure.side_effect = fast_get
-        mock.set.side_effect = fast_set
-        mock.set_secure.side_effect = fast_set
-        mock.delete.side_effect = fast_delete
+        mock.get.side_effect = realistic_get
+        mock.get_secure.side_effect = realistic_get
+        mock.set.side_effect = realistic_set
+        mock.set_secure.side_effect = realistic_set
+        mock.delete.side_effect = realistic_delete
 
         return mock
 
@@ -140,18 +198,27 @@ class TestAuthPerformanceBenchmarks:
             return AuthCacheService()
 
     @pytest.mark.asyncio
-    async def test_login_performance_benchmark(self, auth_service, benchmark):
+    async def test_login_performance_benchmark(
+        self, auth_service, benchmark, performance_config
+    ):
         """
-        Benchmark login performance
-        Target: 200-500ms (from 2-4s baseline) = 80-90% improvement
+        Benchmark login performance with configurable baselines
+        Uses realistic Redis timings and environment-configurable targets
         """
-        print("\n🚀 LOGIN PERFORMANCE BENCHMARK")
+        config = performance_config
+        baseline_ms = config["baselines"]["login_baseline_ms"]
+        target_ms = config["targets"]["login_target_ms"]
+        min_improvement = config["targets"]["min_improvement_factor"]
 
-        # Test scenarios
+        print(f"\n🚀 LOGIN PERFORMANCE BENCHMARK")
+        print(f"   📊 Baseline: {baseline_ms}ms, Target: {target_ms}ms")
+        print(f"   🎯 Min improvement: {min_improvement}x faster")
+
+        # Test scenarios with configurable targets
         scenarios = [
-            {"name": "cold_login", "cache_data": False, "target_ms": 500},
-            {"name": "warm_login", "cache_data": True, "target_ms": 200},
-            {"name": "hot_login", "cache_data": True, "target_ms": 100},
+            {"name": "cold_login", "cache_data": False, "target_ms": target_ms * 1.5},
+            {"name": "warm_login", "cache_data": True, "target_ms": target_ms},
+            {"name": "hot_login", "cache_data": True, "target_ms": target_ms * 0.7},
         ]
 
         user_data = {
@@ -208,7 +275,8 @@ class TestAuthPerformanceBenchmarks:
                 "p95_ms": p95_time,
                 "p99_ms": p99_time,
                 "target_ms": scenario["target_ms"],
-                "improvement_factor": 3000 / avg_time,  # Assuming 3s baseline
+                "improvement_factor": baseline_ms
+                / avg_time,  # Use configurable baseline
                 "memory_delta_mb": metrics["memory_delta_mb"],
             }
 
@@ -235,8 +303,8 @@ class TestAuthPerformanceBenchmarks:
         # Overall improvement validation
         warm_improvement = results["warm_login"]["improvement_factor"]
         assert (
-            warm_improvement >= 5.0
-        ), f"Warm login improvement {warm_improvement:.1f}x < 5x target"
+            warm_improvement >= min_improvement
+        ), f"Warm login improvement {warm_improvement:.1f}x < {min_improvement}x target"
 
         print("\n🎯 LOGIN BENCHMARK SUMMARY:")
         for name, data in results.items():

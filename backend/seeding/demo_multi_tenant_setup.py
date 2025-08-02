@@ -20,6 +20,7 @@ All engagements have "Demo" prefix
 
 import asyncio
 import hashlib
+import random
 import uuid
 from datetime import datetime, timezone
 
@@ -38,8 +39,6 @@ def get_password_hash(password: str) -> str:
 def create_demo_uuid() -> uuid.UUID:
     """Create UUID with -def0-def0-def0- pattern in the middle for easy identification"""
     # Generate random hex for start and end
-    import random
-
     start = "".join(random.choices("0123456789abcdef", k=8))
     end = "".join(random.choices("0123456789abcdef", k=12))
 
