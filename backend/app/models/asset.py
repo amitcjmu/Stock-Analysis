@@ -83,16 +83,19 @@ class AssetStatus(str, enum.Enum):
 
 
 class SixRStrategy(str, enum.Enum):
-    """6R migration strategy based on AWS/Azure/GCP recommendations."""
+    """5R cloud migration strategy framework."""
 
-    REHOST = "rehost"  # Lift and shift
-    REPLATFORM = "replatform"  # Lift, tinker, and shift
-    REFACTOR = "refactor"  # Re-architect
-    REARCHITECT = "rearchitect"  # Rebuild
-    REPLACE = "replace"  # Replace with SaaS or cloud-native
-    REPURCHASE = "repurchase"  # Drop and shop
-    RETIRE = "retire"  # Decommission
-    RETAIN = "retain"  # Keep as-is
+    # Migration Lift and Shift
+    REHOST = "rehost"  # Like to Like Migration: Lift and Shift (P2V/V2V), Reconfigure using IAAS
+    
+    # Legacy Modernization Treatments
+    REPLATFORM = "replatform"  # Reconfigure as PaaS/IAAS treatment, framework upgrades, containerize
+    REFACTOR = "refactor"  # Modify/extend code base for cloud VM/container deployment
+    REARCHITECT = "rearchitect"  # Modify/extend for native container/cloud native services, microservices
+    
+    # Cloud Native
+    REPLACE = "replace"  # Applications identified to be retired/modernized, replace with COTS/SaaS
+    REWRITE = "rewrite"  # Re-write application in cloud native code
 
 
 class Asset(Base):

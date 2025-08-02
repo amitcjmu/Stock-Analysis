@@ -85,13 +85,6 @@ const strategyConfig = {
     color: 'bg-orange-500',
     modernization: 'Variable'
   },
-  retire: {
-    label: 'Retire',
-    description: 'Decommission the application',
-    icon: '🗑️',
-    color: 'bg-red-500',
-    modernization: 'N/A'
-  }
 };
 
 const getConfidenceLevel = (score: number): { level: string; color: string; icon: React.ReactNode } => {

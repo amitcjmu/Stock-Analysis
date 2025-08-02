@@ -31,14 +31,19 @@ class ConfidenceFactorType(str, Enum):
 
 
 class SixRStrategy(str, Enum):
-    """6R Migration Strategies"""
+    """5R cloud migration strategy framework"""
 
+    # Migration Lift and Shift
     REHOST = "rehost"
+    
+    # Legacy Modernization Treatments
     REPLATFORM = "replatform"
     REFACTOR = "refactor"
-    REPURCHASE = "repurchase"
-    RETIRE = "retire"
-    RETAIN = "retain"
+    REARCHITECT = "rearchitect"
+    
+    # Cloud Native
+    REPLACE = "replace"
+    REWRITE = "rewrite"
 
 
 @dataclass
@@ -152,7 +157,26 @@ class ConfidenceScorer:
                 },
                 "minimum_confidence_threshold": 85.0,
             },
-            SixRStrategy.REPURCHASE: {
+            SixRStrategy.REARCHITECT: {
+                "critical_attributes": [
+                    "application_name",
+                    "technology_stack",
+                    "architecture_complexity",
+                    "microservices_suitability",
+                    "cloud_native_requirements",
+                    "integration_points",
+                    "data_flows",
+                    "scalability_requirements",
+                ],
+                "importance_weights": {
+                    "application": 0.5,
+                    "dependencies": 0.3,
+                    "infrastructure": 0.1,
+                    "operational": 0.1,
+                },
+                "minimum_confidence_threshold": 85.0,
+            },
+            SixRStrategy.REPLACE: {
                 "critical_attributes": [
                     "business_function",
                     "user_count",
@@ -171,39 +195,24 @@ class ConfidenceScorer:
                 },
                 "minimum_confidence_threshold": 70.0,
             },
-            SixRStrategy.RETIRE: {
+            SixRStrategy.REWRITE: {
                 "critical_attributes": [
-                    "business_value",
-                    "user_activity",
-                    "last_access_date",
-                    "business_criticality",
-                    "dependencies",
-                    "data_retention_requirements",
+                    "application_name",
+                    "business_logic_complexity",
+                    "technology_stack",
+                    "cloud_native_requirements",
+                    "development_resources",
+                    "time_to_market",
+                    "legacy_constraints",
+                    "modernization_goals",
                 ],
                 "importance_weights": {
-                    "operational": 0.5,
-                    "application": 0.25,
-                    "dependencies": 0.2,
-                    "infrastructure": 0.05,
+                    "application": 0.6,
+                    "operational": 0.2,
+                    "dependencies": 0.1,
+                    "infrastructure": 0.1,
                 },
-                "minimum_confidence_threshold": 65.0,
-            },
-            SixRStrategy.RETAIN: {
-                "critical_attributes": [
-                    "business_justification",
-                    "cost_analysis",
-                    "risk_assessment",
-                    "compliance_requirements",
-                    "operational_metrics",
-                    "maintenance_cost",
-                ],
-                "importance_weights": {
-                    "operational": 0.6,
-                    "application": 0.2,
-                    "infrastructure": 0.15,
-                    "dependencies": 0.05,
-                },
-                "minimum_confidence_threshold": 70.0,
+                "minimum_confidence_threshold": 80.0,
             },
         }
 
