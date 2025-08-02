@@ -748,9 +748,7 @@ class TestPerformanceRegressionSafeguards:
             )
             context_switch_time = time.time() - start_time
 
-            assert (
-                context_switch_time < performance_targets["context_switch"]
-            ), (
+            assert context_switch_time < performance_targets["context_switch"], (
                 f"Context switch took {context_switch_time*1000:.2f}ms, "
                 f"target: {performance_targets['context_switch']*1000}ms"
             )
@@ -760,9 +758,7 @@ class TestPerformanceRegressionSafeguards:
             await service.invalidate_user_caches("test_user")
             invalidation_time = time.time() - start_time
 
-            assert (
-                invalidation_time < performance_targets["cache_invalidation"]
-            ), (
+            assert invalidation_time < performance_targets["cache_invalidation"], (
                 f"Cache invalidation took {invalidation_time*1000:.2f}ms, "
                 f"target: {performance_targets['cache_invalidation']*1000}ms"
             )
