@@ -46,7 +46,7 @@ pydantic>=2.4.0
 pydantic-settings>=2.0.0
 
 # Authentication and security
-python-jose[cryptography]>=3.3.0
+pyjwt[crypto]>=2.10.1
 passlib[bcrypt]>=1.7.4
 cryptography==45.0.5  # Critical security update
 

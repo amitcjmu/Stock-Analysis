@@ -43,7 +43,7 @@ pydantic==2.11.7  # Updated from >=2.4.0, security improvements
 pydantic-settings==2.10.1  # Updated from >=2.0.0
 
 # Authentication and security - UPDATED FOR SECURITY
-python-jose[cryptography]==3.5.0  # Updated from >=3.3.0
+pyjwt[crypto]==2.10.1  # Updated from python-jose for security
 passlib[bcrypt]==1.7.4  # Current version is secure
 cryptography==45.0.5  # Critical security update
 

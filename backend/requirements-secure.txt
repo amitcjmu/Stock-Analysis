@@ -17,7 +17,7 @@ attrs>=25.3.0
 bcrypt>=4.3.0  # Latest security patches
 cryptography>=45.0.5  # Critical security updates
 passlib[bcrypt]>=1.7.4
-python-jose[cryptography]>=3.5.0
+pyjwt[crypto]>=2.10.1
 python-multipart>=0.0.20
 
 # Web Framework
