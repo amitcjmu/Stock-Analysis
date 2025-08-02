@@ -397,7 +397,7 @@ class StorageManager:
                 while (
                     self.processing_times
                     and len(self.processing_times) > 0
-                    and self.processing_times[0] < cutoff_timestamp
+                    and self.processing_times[0][0] < cutoff_timestamp
                 ):
                     self.processing_times.popleft()
 
@@ -1022,12 +1022,11 @@ class StorageManager:
             else:
                 self.stats.average_batch_size = batch_size
 
-            # Update average processing time
-            self.processing_times.append(result.duration_ms)
+            # Update average processing time - store timestamps with processing times for cleanup logic
+            self.processing_times.append((time.time(), result.duration_ms))
             if self.processing_times:
-                self.stats.average_processing_time_ms = sum(
-                    self.processing_times
-                ) / len(self.processing_times)
+                durations = [entry[1] for entry in self.processing_times]
+                self.stats.average_processing_time_ms = sum(durations) / len(durations)
 
     async def get_stats(self) -> StorageStats:
         """Get current storage statistics"""

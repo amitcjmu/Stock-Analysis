@@ -34,7 +34,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.constants.cache_keys import CACHE_VERSION, CacheKeys, CacheKeyType
 from app.core.config import settings
-from app.core.database import get_db
 from app.core.logging import get_logger
 from app.models.cache_metadata import CacheMetadata
 from app.services.caching.redis_cache import RedisCache
@@ -197,9 +196,11 @@ class CacheConsistencyChecker:
     - Multi-tenant isolation and security
     """
 
-    def __init__(self, redis_cache: RedisCache, db_session: AsyncSession):
+    def __init__(
+        self, redis_cache: RedisCache, db_session: Optional[AsyncSession] = None
+    ):
         self.redis_cache = redis_cache
-        self.db_session = db_session
+        self.db_session = db_session  # Optional - will create on-demand if None
         self.metrics = ConsistencyMetrics()
 
         # Configuration
@@ -235,6 +236,16 @@ class CacheConsistencyChecker:
         self._shutdown_event = asyncio.Event()
 
         logger.info("CacheConsistencyChecker initialized")
+
+    async def _get_db_session(self) -> AsyncSession:
+        """Get database session with proper resource management"""
+        if self.db_session is not None:
+            return self.db_session
+
+        # Create on-demand session with proper cleanup
+        from app.core.database import AsyncSessionLocal
+
+        return AsyncSessionLocal()
 
     async def start_scheduled_audits(self) -> None:
         """Start scheduled consistency audits"""
@@ -819,11 +830,13 @@ class CacheConsistencyChecker:
         self, user_id: str, client_account_id: Optional[str]
     ) -> Optional[Dict[str, Any]]:
         """Extract user data from database"""
+        session = None
         try:
             from app.models.user import User
 
+            session = await self._get_db_session()
             stmt = select(User).where(User.id == user_id)
-            result = await self.db_session.execute(stmt)
+            result = await session.execute(stmt)
             user = result.scalar_one_or_none()
 
             if not user:
@@ -839,16 +852,22 @@ class CacheConsistencyChecker:
         except Exception as e:
             logger.error(f"Failed to extract user data for {user_id}: {e}")
             return None
+        finally:
+            # Close session if it was created on-demand
+            if session is not None and self.db_session is None:
+                await session.close()
 
     async def _extract_client_data(
         self, client_id: str, client_account_id: Optional[str]
     ) -> Optional[Dict[str, Any]]:
         """Extract client data from database"""
+        session = None
         try:
             from app.models.client_account import ClientAccount
 
+            session = await self._get_db_session()
             stmt = select(ClientAccount).where(ClientAccount.id == client_id)
-            result = await self.db_session.execute(stmt)
+            result = await session.execute(stmt)
             client = result.scalar_one_or_none()
 
             if not client:
@@ -862,16 +881,22 @@ class CacheConsistencyChecker:
         except Exception as e:
             logger.error(f"Failed to extract client data for {client_id}: {e}")
             return None
+        finally:
+            # Close session if it was created on-demand
+            if session is not None and self.db_session is None:
+                await session.close()
 
     async def _extract_engagement_data(
         self, engagement_id: str, client_account_id: Optional[str]
     ) -> Optional[Dict[str, Any]]:
         """Extract engagement data from database"""
+        session = None
         try:
             from app.models.engagement import Engagement
 
+            session = await self._get_db_session()
             stmt = select(Engagement).where(Engagement.id == engagement_id)
-            result = await self.db_session.execute(stmt)
+            result = await session.execute(stmt)
             engagement = result.scalar_one_or_none()
 
             if not engagement:
@@ -886,6 +911,10 @@ class CacheConsistencyChecker:
         except Exception as e:
             logger.error(f"Failed to extract engagement data for {engagement_id}: {e}")
             return None
+        finally:
+            # Close session if it was created on-demand
+            if session is not None and self.db_session is None:
+                await session.close()
 
     async def _extract_flow_data(
         self, flow_id: str, client_account_id: Optional[str]
@@ -980,12 +1009,14 @@ class CacheConsistencyChecker:
 
     async def _get_all_cache_keys(self, client_account_id: Optional[str]) -> List[str]:
         """Get all cache keys for consistency checking"""
+        session = None
         try:
             # This would require Redis SCAN functionality
             # For now, return a subset based on known patterns
             cache_keys = []
 
             # Get cache metadata from database
+            session = await self._get_db_session()
             stmt = (
                 select(CacheMetadata.cache_key)
                 .where(
@@ -1001,7 +1032,7 @@ class CacheConsistencyChecker:
                 .limit(1000)
             )  # Limit for performance
 
-            result = await self.db_session.execute(stmt)
+            result = await session.execute(stmt)
             cache_keys = [row[0] for row in result.fetchall()]
 
             return cache_keys
@@ -1009,6 +1040,10 @@ class CacheConsistencyChecker:
         except Exception as e:
             logger.error(f"Failed to get cache keys: {e}")
             return []
+        finally:
+            # Close session if it was created on-demand
+            if session is not None and self.db_session is None:
+                await session.close()
 
     async def _repair_inconsistencies(
         self, results: List[ConsistencyCheckResult]
@@ -1133,11 +1168,7 @@ async def create_cache_consistency_checker(
     db_session: Optional[AsyncSession] = None,
 ) -> CacheConsistencyChecker:
     """Create CacheConsistencyChecker with dependencies"""
-    if db_session is None:
-        async for session in get_db():
-            db_session = session
-            break
-
+    # Pass the session as-is, let the class manage session lifecycle
     return CacheConsistencyChecker(redis_cache, db_session)
 
 

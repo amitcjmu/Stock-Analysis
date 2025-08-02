@@ -37,6 +37,25 @@ class PerformanceBenchmark:
         self.results = {}
         self.process = psutil.Process(os.getpid())
 
+    @staticmethod
+    def calculate_percentile(times, percentile: float) -> float:
+        """Calculate percentile safely for any data size"""
+        if len(times) < 2:
+            return max(times) if times else 0.0
+
+        # Use appropriate number of quantiles based on data size
+        n_quantiles = min(100, len(times))
+        quantiles_list = statistics.quantiles(times, n=n_quantiles)
+
+        # Calculate the appropriate index for the percentile
+        index = max(
+            0,
+            min(
+                len(quantiles_list) - 1, int((percentile / 100.0) * len(quantiles_list))
+            ),
+        )
+        return quantiles_list[index]
+
     def start_benchmark(self, name: str):
         """Start timing a benchmark"""
         self.results[name] = {
@@ -181,8 +200,8 @@ class TestAuthPerformanceBenchmarks:
 
             # Calculate statistics
             avg_time = statistics.mean(times)
-            p95_time = statistics.quantiles(times, n=20)[18]  # 95th percentile
-            p99_time = statistics.quantiles(times, n=100)[98]  # 99th percentile
+            p95_time = benchmark.calculate_percentile(times, 95)
+            p99_time = benchmark.calculate_percentile(times, 99)
 
             results[scenario["name"]] = {
                 "avg_ms": avg_time,
@@ -310,8 +329,8 @@ class TestAuthPerformanceBenchmarks:
 
             # Calculate statistics
             avg_time = statistics.mean(times)
-            p95_time = statistics.quantiles(times, n=20)[18]
-            p99_time = statistics.quantiles(times, n=100)[98]
+            p95_time = benchmark.calculate_percentile(times, 95)
+            p99_time = benchmark.calculate_percentile(times, 99)
 
             results[scenario["name"]] = {
                 "avg_ms": avg_time,
@@ -428,8 +447,8 @@ class TestAuthPerformanceBenchmarks:
 
             # Calculate statistics
             avg_time = statistics.mean(times)
-            p95_time = statistics.quantiles(times, n=20)[18]
-            p99_time = statistics.quantiles(times, n=100)[98]
+            p95_time = benchmark.calculate_percentile(times, 95)
+            p99_time = benchmark.calculate_percentile(times, 99)
             max_time = max(times)
 
             results[operation["name"]] = {
@@ -542,8 +561,8 @@ class TestAuthPerformanceBenchmarks:
             success_count = sum(1 for r in user_results if r["success"])
 
             avg_duration = statistics.mean(durations)
-            p95_duration = statistics.quantiles(durations, n=20)[18]
-            p99_duration = statistics.quantiles(durations, n=100)[98]
+            p95_duration = benchmark.calculate_percentile(durations, 95)
+            p99_duration = benchmark.calculate_percentile(durations, 99)
             max_duration = max(durations)
 
             # Performance assertions
@@ -708,8 +727,8 @@ class TestAuthPerformanceBenchmarks:
             statistics.mean(operation_times) * 1000 if operation_times else 0
         )
         p95_operation_time = (
-            statistics.quantiles(operation_times, n=20)[18] * 1000
-            if len(operation_times) >= 20
+            benchmark.calculate_percentile(operation_times, 95) * 1000
+            if operation_times
             else 0
         )
         error_rate = (errors / total_operations) * 100
@@ -908,11 +927,7 @@ class TestAuthPerformanceBenchmarks:
 
                 # Calculate statistics
                 avg_time = statistics.mean(times)
-                p95_time = (
-                    statistics.quantiles(times, n=20)[18]
-                    if len(times) >= 20
-                    else max(times)
-                )
+                p95_time = benchmark.calculate_percentile(times, 95)
                 success_rate = (success_count / 50) * 100
 
                 # Performance assertions
@@ -1023,7 +1038,10 @@ class TestPerformanceRegression:
 
             assert (
                 login_improvement >= targets["login_improvement"]["min_improvement"]
-            ), f"Login improvement {login_improvement:.1f}x below target {targets['login_improvement']['min_improvement']}x"
+            ), (
+                f"Login improvement {login_improvement:.1f}x below target "
+                f"{targets['login_improvement']['min_improvement']}x"
+            )
 
             # Test context switch performance
             print("\n📊 Testing context switch performance target...")
@@ -1057,12 +1075,18 @@ class TestPerformanceRegression:
             # Assert context switch performance target
             assert (
                 avg_context_time <= targets["context_switch_improvement"]["target_ms"]
-            ), f"Context switch time {avg_context_time:.1f}ms exceeds target {targets['context_switch_improvement']['target_ms']}ms"
+            ), (
+                f"Context switch time {avg_context_time:.1f}ms exceeds target "
+                f"{targets['context_switch_improvement']['target_ms']}ms"
+            )
 
             assert (
                 context_improvement
                 >= targets["context_switch_improvement"]["min_improvement"]
-            ), f"Context switch improvement {context_improvement:.1f}x below target {targets['context_switch_improvement']['min_improvement']}x"
+            ), (
+                f"Context switch improvement {context_improvement:.1f}x below target "
+                f"{targets['context_switch_improvement']['min_improvement']}x"
+            )
 
             # Test individual cache operations
             print("\n📊 Testing cache operations performance target...")
@@ -1088,9 +1112,10 @@ class TestPerformanceRegression:
 
                 print(f"   ✅ {op_name} operation: {avg_op_time:.1f}ms")
 
-                assert (
-                    avg_op_time <= targets["cache_operations"]["target_ms"]
-                ), f"{op_name} operation {avg_op_time:.1f}ms exceeds target {targets['cache_operations']['target_ms']}ms"
+                assert avg_op_time <= targets["cache_operations"]["target_ms"], (
+                    f"{op_name} operation {avg_op_time:.1f}ms exceeds target "
+                    f"{targets['cache_operations']['target_ms']}ms"
+                )
 
         print("\n🎉 ALL PERFORMANCE TARGETS VALIDATED!")
         print(

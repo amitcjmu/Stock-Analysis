@@ -418,14 +418,18 @@ class ServiceHealthManager:
     ) -> Tuple[bool, Optional[str], Dict[str, Any]]:
         """Check database service health"""
         try:
-            from app.core.database import get_db
+            from app.core.database import AsyncSessionLocal
 
-            # Test database connection with timeout
+            # Test database connection with timeout and proper session management
             async def db_check():
-                async for db in get_db():
-                    # Simple query to test connection
-                    result = await db.execute("SELECT 1")
+                session = None
+                try:
+                    session = AsyncSessionLocal()
+                    result = await session.execute("SELECT 1")
                     return result is not None
+                finally:
+                    if session:
+                        await session.close()
 
             is_healthy = await asyncio.wait_for(db_check(), timeout=timeout_seconds)
 

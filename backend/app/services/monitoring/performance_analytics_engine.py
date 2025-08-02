@@ -205,12 +205,22 @@ class PerformanceAnalyticsEngine:
 
     def _start_background_analytics(self) -> None:
         """Start background analytics processing"""
+        # Store reference to the main event loop for thread-safe async scheduling
+        self._main_loop = asyncio.get_event_loop()
 
         def background_analyzer():
             while True:
                 try:
                     if time.time() - self._last_analysis > self._analysis_interval:
-                        asyncio.create_task(self._run_background_analysis())
+                        # Properly schedule async task from sync thread using run_coroutine_threadsafe
+                        future = asyncio.run_coroutine_threadsafe(
+                            self._run_background_analysis(), self._main_loop
+                        )
+                        # Wait for completion to ensure proper error handling
+                        try:
+                            future.result(timeout=60)  # 60 second timeout
+                        except Exception as e:
+                            logger.error("Background analysis failed: %s", e)
                         self._last_analysis = time.time()
 
                     time.sleep(60)  # Check every minute
