@@ -608,7 +608,7 @@ class AIValidationService:
     def _hash_content(self, content: Dict[str, Any]) -> str:
         """Generate hash for content caching"""
         content_str = json.dumps(content, sort_keys=True)
-        return hashlib.md5(content_str.encode()).hexdigest()
+        return hashlib.sha256(content_str.encode()).hexdigest()[:32]
 
     def _get_cached_validation(self, content_hash: str) -> Optional[ValidationResult]:
         """Retrieve cached validation result"""

@@ -247,7 +247,8 @@ class TestAuthCacheService:
         mock_redis_cache.set_secure.assert_called_once()
         args, kwargs = mock_redis_cache.set_secure.call_args
         assert args[0] == "v1:user:test_123:session"
-        assert kwargs.get("ttl") == AuthCacheService.TTL_USER_SESSION
+        # TTL is passed as third positional argument
+        assert len(args) >= 3 and args[2] == AuthCacheService.TTL_USER_SESSION
 
         # Test getting session from cache (simulate cache hit)
         session_data = {
@@ -349,7 +350,8 @@ class TestAuthCacheService:
         mock_redis_cache.set.assert_called()
         args, kwargs = mock_redis_cache.set.call_args
         assert args[0] == "v1:user:test_123:clients"
-        assert kwargs.get("ttl") == AuthCacheService.TTL_CLIENT_LIST
+        # TTL is passed as third positional argument
+        assert len(args) >= 3 and args[2] == AuthCacheService.TTL_CLIENT_LIST
 
         # Test getting clients from cache
         mock_redis_cache.get.return_value = clients
@@ -374,7 +376,8 @@ class TestAuthCacheService:
         mock_redis_cache.set.assert_called()
         args, kwargs = mock_redis_cache.set.call_args
         assert args[0] == "v1:client:client_123:engagements"
-        assert kwargs.get("ttl") == AuthCacheService.TTL_ENGAGEMENTS
+        # TTL is passed as third positional argument
+        assert len(args) >= 3 and args[2] == AuthCacheService.TTL_ENGAGEMENTS
 
         # Test getting engagements from cache
         mock_redis_cache.get.return_value = engagements
@@ -554,8 +557,9 @@ class TestAuthCacheService:
     @pytest.mark.asyncio
     async def test_corrupted_cache_handling(self, auth_cache_service, mock_redis_cache):
         """Test handling of corrupted cache data"""
-        # Return corrupted data
-        mock_redis_cache.get_secure.return_value = "invalid_json_data"
+        # Return corrupted data that will cause UserSession construction to fail
+        corrupted_data = {"user_id": "test_123", "invalid_field": "value"}
+        mock_redis_cache.get_secure.return_value = corrupted_data
 
         # Should handle gracefully and return None
         session = await auth_cache_service.get_user_session("test_123")

@@ -22,4 +22,4 @@ class LearningContext:
             context_str = (
                 f"{self.client_account_id}:{self.engagement_id}:{self.flow_id}"
             )
-            self.context_hash = hashlib.md5(context_str.encode()).hexdigest()[:16]
+            self.context_hash = hashlib.sha256(context_str.encode()).hexdigest()[:16]

@@ -45,14 +45,16 @@ class ResponseCache:
             "agent_id": context.get("agent_id"),
             "data_hash": self._hash_data(context.get("page_data", {})),
         }
-        return hashlib.md5(json.dumps(cache_data, sort_keys=True).encode()).hexdigest()
+        return hashlib.sha256(
+            json.dumps(cache_data, sort_keys=True).encode()
+        ).hexdigest()[:32]
 
     def _hash_data(self, data: Dict[str, Any]) -> str:
         """Create hash of data for cache key"""
         try:
             relevant_fields = ["assets", "fields", "dependencies", "tech_debt"]
             filtered_data = {k: v for k, v in data.items() if k in relevant_fields}
-            return hashlib.md5(
+            return hashlib.sha256(
                 json.dumps(filtered_data, sort_keys=True).encode()
             ).hexdigest()[:16]
         except Exception:
