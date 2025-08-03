@@ -7,7 +7,7 @@ Handles agent orchestration and crew management for the Unified Discovery Flow.
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .flow_config import FlowConfig, PhaseNames
 
@@ -311,6 +311,89 @@ class CrewCoordinator:
         # Merge base config with agent-specific config
         specific_config = agent_configs.get(agent_name, {})
         return {**base_config, **specific_config}
+
+    def create_crew_on_demand(self, crew_type: str, **kwargs) -> Optional[Any]:
+        """
+        Create a crew on-demand with proper error handling.
+        This method provides compatibility with the UnifiedFlowCrewManager interface.
+
+        Args:
+            crew_type: Type of crew to create
+            **kwargs: Additional parameters for crew creation
+
+        Returns:
+            Created crew instance or None if failed
+        """
+        try:
+            logger.info(f"🤖 Creating crew on-demand for type: {crew_type}")
+
+            # Map crew types to agent methods for compatibility
+            crew_type_mapping = {
+                "data_import_validation": "data_import_validation_agent",
+                "data_import": "data_import_validation_agent",
+                "attribute_mapping": "attribute_mapping_agent",
+                "field_mapping": "attribute_mapping_agent",
+                "data_cleansing": "data_cleansing_agent",
+                "inventory": "asset_inventory_agent",
+                "asset_inventory": "asset_inventory_agent",
+                "dependencies": "dependency_analysis_agent",
+                "dependency_analysis": "dependency_analysis_agent",
+                "tech_debt": "tech_debt_analysis_agent",
+                "tech_debt_analysis": "tech_debt_analysis_agent",
+            }
+
+            agent_name = crew_type_mapping.get(crew_type)
+            if not agent_name:
+                logger.warning(f"⚠️ Unknown crew type: {crew_type}")
+                return None
+
+            # For now, return a mock crew that can be executed
+            # This provides compatibility while the real CrewAI integration is being used elsewhere
+            class MockCrew:
+                def __init__(self, agent_name: str, coordinator: "CrewCoordinator"):
+                    self.agent_name = agent_name
+                    self.coordinator = coordinator
+
+                async def execute(
+                    self, inputs: Dict[str, Any] = None
+                ) -> Dict[str, Any]:
+                    """Execute the mock crew by delegating to the coordinator's agent methods"""
+                    logger.info(f"🚀 Executing mock crew for agent: {self.agent_name}")
+
+                    # Find the appropriate phase for this agent
+                    phase_name = None
+                    for (
+                        phase,
+                        mapped_agent,
+                    ) in self.coordinator._phase_agent_mapping.items():
+                        if mapped_agent == self.agent_name:
+                            phase_name = phase
+                            break
+
+                    if not phase_name:
+                        logger.error(f"❌ No phase found for agent: {self.agent_name}")
+                        return {
+                            "status": "error",
+                            "message": f"No phase found for agent: {self.agent_name}",
+                        }
+
+                    # Execute the phase agent
+                    try:
+                        result = await self.coordinator.execute_phase_agent(
+                            phase_name, inputs or {}, kwargs.get("context_data", {})
+                        )
+                        return result
+                    except Exception as e:
+                        logger.error(f"❌ Mock crew execution failed: {str(e)}")
+                        return {"status": "error", "message": str(e)}
+
+            mock_crew = MockCrew(agent_name, self)
+            logger.info(f"✅ Created mock crew for agent: {agent_name}")
+            return mock_crew
+
+        except Exception as e:
+            logger.error(f"❌ Failed to create crew on-demand: {str(e)}")
+            return None
 
     async def validate_agent_health(self) -> Dict[str, bool]:
         """Validate that all required agents are healthy"""
