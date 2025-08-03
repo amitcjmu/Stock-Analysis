@@ -73,29 +73,8 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
     fieldMappingsHook.fieldMappingsError
   );
 
-  // Debug import data loading (only in development to reduce console spam)
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      if (importDataHook.importDataError) {
-        console.error('❌ Import data error:', importDataHook.importDataError);
-      }
-
-      if (importData && !importDataHook.isImportDataLoading) {
-        console.log('✅ Import data available:', {
-          import_id: importData?.import_metadata?.import_id,
-          flow_id: importData?.flow_id,
-          status: importData?.status,
-          has_metadata: !!importData?.import_metadata,
-          metadata_keys: importData?.import_metadata ? Object.keys(importData.import_metadata) : []
-        });
-      }
-    }
-  }, [importData?.flow_id, importDataHook.importDataError, importDataHook.isImportDataLoading]); // Reduced dependencies
-
+  // Debug import data loading - removed to prevent console spam
   const refetchAgentic = useCallback(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔄 Refreshing agentic data and field mappings');
-    }
     return Promise.all([refresh(), fieldMappingsHook.refetchFieldMappings()]);
   }, [refresh, fieldMappingsHook]);
 

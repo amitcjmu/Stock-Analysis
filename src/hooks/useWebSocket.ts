@@ -182,10 +182,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): {
   const connect = useCallback(() => {
     // Check if WebSocket cache is enabled
     if (!isCacheFeatureEnabled('ENABLE_WEBSOCKET_CACHE')) {
-      if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_DEBUG')) {
-        console.log('🔇 WebSocket cache events disabled by feature flag');
-      }
-      return;
+      return; // Silent return to prevent console spam
     }
 
     if (wsRef.current?.readyState === WebSocket.OPEN || state.isConnecting) {
@@ -195,13 +192,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): {
     // Throttle connection attempts to prevent spam
     const now = Date.now();
     const timeSinceLastAttempt = now - lastConnectionAttemptRef.current;
-    const minConnectionInterval = 5000; // 5 seconds minimum between attempts
+    const minConnectionInterval = 30000; // 30 seconds minimum between attempts
 
     if (timeSinceLastAttempt < minConnectionInterval) {
-      if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_DEBUG')) {
-        console.log(`⏳ WebSocket connection throttled. Wait ${Math.ceil((minConnectionInterval - timeSinceLastAttempt) / 1000)}s`);
-      }
-      return;
+      return; // Silent throttling to prevent console spam
     }
 
     lastConnectionAttemptRef.current = now;
@@ -209,8 +203,8 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): {
 
     try {
       const url = getWebSocketUrl();
-      // Only log connection attempts in development or when feature is specifically enabled
-      if (process.env.NODE_ENV === 'development' || isCacheFeatureEnabled('ENABLE_WEBSOCKET_DEBUG')) {
+      // Only log connection attempts when debug is specifically enabled
+      if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_DEBUG')) {
         console.log('🔗 Connecting to WebSocket cache events:', url);
       }
 
@@ -352,7 +346,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): {
 
           // Only log reconnection attempts if debug is enabled (reduce spam)
           if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_DEBUG')) {
-            console.log(`🔄 Attempting reconnect ${currentAttempt + 1}/${maxReconnectAttempts} (health: ${connectionHealthRef.current})`);
+            console.log(`🔄 Attempting reconnect ${currentAttempt + 1}/${maxReconnectAttempts}`);
           }
 
           // Increment reconnect attempts
@@ -365,11 +359,11 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): {
             baseDelay *= 2; // Longer delays for failed connections
           }
 
-          // Use exponential backoff with health-aware delays
+          // Use exponential backoff with longer delays to reduce spam
           const backoffDelay = baseDelay * Math.pow(2, currentAttempt);
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
-          }, Math.min(backoffDelay, 60000)); // Cap at 60 seconds for failed connections
+          }, Math.min(backoffDelay, 300000)); // Cap at 5 minutes for failed connections
         } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
           if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_DEBUG')) {
             console.warn(`🚫 Max WebSocket reconnection attempts (${maxReconnectAttempts}) reached. Giving up.`);
@@ -464,16 +458,17 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): {
     return sendMessage({ type: WS_MESSAGE_TYPES.STATS });
   }, [sendMessage]);
 
-  // Auto-connect on mount if feature is enabled
+  // Auto-connect on mount if feature is enabled (disabled by default to prevent spam)
   useEffect(() => {
-    if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_CACHE')) {
-      connect();
-    }
+    // Commented out to prevent automatic connections that cause console spam
+    // if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_CACHE')) {
+    //   connect();
+    // }
 
     return () => {
       disconnect();
     };
-  }, [connect, disconnect]);
+  }, [disconnect]); // Removed connect dependency to prevent loops
 
   // Cleanup on unmount
   useEffect(() => {

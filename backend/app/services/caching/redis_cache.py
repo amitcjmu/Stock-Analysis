@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.core.security.cache_encryption import SecureCache, sanitize_for_logging
+from app.core.security.cache_encryption import SecureCache
 
 logger = get_logger(__name__)
 

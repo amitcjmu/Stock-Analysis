@@ -129,8 +129,8 @@ export const FEATURE_ENVIRONMENTS = {
     CACHE: {
       ...FEATURES.CACHE,
       DISABLE_CUSTOM_CACHE: true,  // Use new API client with Redis backend caching
-      ENABLE_WEBSOCKET_CACHE: true,
-      ENABLE_WEBSOCKET_DEBUG: true,  // Enable debug logging in development
+      ENABLE_WEBSOCKET_CACHE: false,  // Disabled to prevent console spam
+      ENABLE_WEBSOCKET_DEBUG: false,  // Disabled to prevent console spam
       ENABLE_CACHE_HEADERS: true,
       REACT_QUERY_OPTIMIZATIONS: true
     },
@@ -144,7 +144,7 @@ export const FEATURE_ENVIRONMENTS = {
     ...FEATURES,
     CACHE: {
       ...FEATURES.CACHE,
-      ENABLE_WEBSOCKET_CACHE: true,
+      ENABLE_WEBSOCKET_CACHE: false,  // Disabled to prevent console spam
       ENABLE_CACHE_HEADERS: true
     },
     EXPERIMENTAL: {
