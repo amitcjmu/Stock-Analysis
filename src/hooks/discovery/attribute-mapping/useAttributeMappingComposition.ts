@@ -73,29 +73,29 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
     fieldMappingsHook.fieldMappingsError
   );
 
-  // Debug import data loading (after import data is defined)
+  // Debug import data loading (only in development to reduce console spam)
   useEffect(() => {
-    if (importDataHook.importDataError) {
-      console.error('❌ Import data error:', importDataHook.importDataError);
-    }
+    if (process.env.NODE_ENV === 'development') {
+      if (importDataHook.importDataError) {
+        console.error('❌ Import data error:', importDataHook.importDataError);
+      }
 
-    if (importData) {
-      console.log('✅ Import data available:', {
-        import_id: importData?.import_metadata?.import_id,
-        flow_id: importData?.flow_id,
-        status: importData?.status,
-        has_metadata: !!importData?.import_metadata,
-        metadata_keys: importData?.import_metadata ? Object.keys(importData.import_metadata) : []
-      });
+      if (importData && !importDataHook.isImportDataLoading) {
+        console.log('✅ Import data available:', {
+          import_id: importData?.import_metadata?.import_id,
+          flow_id: importData?.flow_id,
+          status: importData?.status,
+          has_metadata: !!importData?.import_metadata,
+          metadata_keys: importData?.import_metadata ? Object.keys(importData.import_metadata) : []
+        });
+      }
     }
-
-    if (importDataHook.isImportDataLoading) {
-      console.log('⏳ Import data loading...');
-    }
-  }, [importData, importDataHook.importDataError, importDataHook.isImportDataLoading]);
+  }, [importData?.flow_id, importDataHook.importDataError, importDataHook.isImportDataLoading]); // Reduced dependencies
 
   const refetchAgentic = useCallback(() => {
-    console.log('🔄 Refreshing agentic data and field mappings');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 Refreshing agentic data and field mappings');
+    }
     return Promise.all([refresh(), fieldMappingsHook.refetchFieldMappings()]);
   }, [refresh, fieldMappingsHook]);
 

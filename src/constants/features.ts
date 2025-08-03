@@ -96,6 +96,7 @@ export const FEATURES = {
     USE_GLOBAL_CONTEXT: false,
     DISABLE_CUSTOM_CACHE: false,
     ENABLE_WEBSOCKET_CACHE: false,
+    ENABLE_WEBSOCKET_DEBUG: false,
     ENABLE_CACHE_HEADERS: false,
     REACT_QUERY_OPTIMIZATIONS: false
   },
@@ -129,6 +130,7 @@ export const FEATURE_ENVIRONMENTS = {
       ...FEATURES.CACHE,
       DISABLE_CUSTOM_CACHE: true,  // Use new API client with Redis backend caching
       ENABLE_WEBSOCKET_CACHE: true,
+      ENABLE_WEBSOCKET_DEBUG: true,  // Enable debug logging in development
       ENABLE_CACHE_HEADERS: true,
       REACT_QUERY_OPTIMIZATIONS: true
     },

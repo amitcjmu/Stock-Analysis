@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAttributeMappingFlowDetection } from '../useDiscoveryFlowAutoDetection';
 
@@ -62,41 +62,49 @@ export const useFlowDetection = (): FlowDetectionResult => {
     return null;
   }, [effectiveFlowId, pathname]);
 
-  // Enhanced debugging for flow detection
+  // Optimized debugging for flow detection (only log when values change)
   useEffect(() => {
-    console.log('🎯 Flow Detection Debug:', {
-      urlFlowId,
-      autoDetectedFlowId,
-      effectiveFlowId,
-      hasEffectiveFlow,
-      flowListLength: flowList?.length,
-      isFlowListLoading,
-      flowListError: flowListError?.message,
-      pathname
-    });
+    // Only log in development mode or when specifically debugging
+    if (process.env.NODE_ENV === 'development' && flowList && !isFlowListLoading) {
+      console.log('🎯 Flow Detection Debug:', {
+        urlFlowId,
+        autoDetectedFlowId,
+        effectiveFlowId,
+        hasEffectiveFlow,
+        flowListLength: flowList?.length,
+        pathname
+      });
 
-    if (flowList && flowList.length > 0) {
-      console.log('📋 Available flows for attribute mapping:', flowList.map(f => ({
-        flow_id: f.id,
-        status: f.status,
-        current_phase: f.current_phase,
-        next_phase: f.next_phase,
-        data_import_completed: f.data_import_completed,
-        attribute_mapping_completed: f.attribute_mapping_completed
-      })));
+      if (flowList.length > 0) {
+        console.log('📋 Available flows for attribute mapping:', flowList.map(f => ({
+          flow_id: f.id,
+          status: f.status,
+          current_phase: f.current_phase,
+          next_phase: f.next_phase,
+          data_import_completed: f.data_import_completed,
+          attribute_mapping_completed: f.attribute_mapping_completed
+        })));
+      }
     }
-  }, [urlFlowId, autoDetectedFlowId, effectiveFlowId, hasEffectiveFlow, flowList, isFlowListLoading, flowListError, pathname]);
+  }, [effectiveFlowId, hasEffectiveFlow, flowList?.length, isFlowListLoading]); // Reduced dependencies to prevent excessive re-renders
 
   // Use unified discovery flow with effective flow ID or emergency fallback
   const finalFlowId = effectiveFlowId || emergencyFlowId;
 
-  console.log('🎯 Final Flow ID Resolution:', {
-    effectiveFlowId,
-    emergencyFlowId,
-    finalFlowId,
-    urlFlowId,
-    autoDetectedFlowId
-  });
+  // Only log final flow resolution when it changes (prevent spam)
+  const finalFlowIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (finalFlowIdRef.current !== finalFlowId && process.env.NODE_ENV === 'development') {
+      console.log('🎯 Final Flow ID Resolution:', {
+        effectiveFlowId,
+        emergencyFlowId,
+        finalFlowId,
+        urlFlowId,
+        autoDetectedFlowId
+      });
+      finalFlowIdRef.current = finalFlowId;
+    }
+  }, [finalFlowId, effectiveFlowId, emergencyFlowId, urlFlowId, autoDetectedFlowId]);
 
   return {
     urlFlowId,

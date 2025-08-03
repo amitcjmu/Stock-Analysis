@@ -67,21 +67,23 @@ export const useAttributeMapping = (): JSX.Element => {
     (flowList && flowList.length > 0)
   );
 
-  // Debug data availability
-  console.log('🔍 AttributeMapping Data Check:', {
-    hasData,
-    agenticDataAttributes: agenticData?.attributes?.length || 0,
-    fieldMappingsLength: fieldMappings?.length || 0,
-    flowStateFieldMappings: flowState?.field_mappings?.length || 0,
-    flowStateDataImportCompleted: flowState?.data_import_completed,
-    availableDataImportsLength: availableDataImports?.length || 0,
-    isLoading,
-    isAgenticLoading,
-    hasError,
-    errorMessage,
-    effectiveFlowId,
-    hasEffectiveFlow
-  });
+  // Debug data availability (only in development to reduce console spam)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 AttributeMapping Data Check:', {
+      hasData,
+      agenticDataAttributes: agenticData?.attributes?.length || 0,
+      fieldMappingsLength: fieldMappings?.length || 0,
+      flowStateFieldMappings: flowState?.field_mappings?.length || 0,
+      flowStateDataImportCompleted: flowState?.data_import_completed,
+      availableDataImportsLength: availableDataImports?.length || 0,
+      isLoading,
+      isAgenticLoading,
+      hasError,
+      errorMessage,
+      effectiveFlowId,
+      hasEffectiveFlow
+    });
+  }
 
   // Enhanced flow detection - more lenient approach
   const isFlowNotFound = (errorMessage?.includes('Flow not found') ||
