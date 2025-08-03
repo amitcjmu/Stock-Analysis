@@ -387,6 +387,24 @@ class CrewCoordinator:
                         logger.error(f"❌ Mock crew execution failed: {str(e)}")
                         return {"status": "error", "message": str(e)}
 
+                def kickoff(self, inputs: Dict[str, Any] = None) -> Dict[str, Any]:
+                    """Synchronous kickoff method for CrewAI compatibility"""
+                    logger.info(f"🚀 Kicking off mock crew for agent: {self.agent_name}")
+                    
+                    # For sync kickoff, return a simple success result
+                    # Real CrewAI integration would handle this properly
+                    return {
+                        "status": "success",
+                        "agent": self.agent_name,
+                        "result": "Mock crew execution completed",
+                        "inputs": inputs or {},
+                        "timestamp": datetime.utcnow().isoformat(),
+                    }
+
+                async def kickoff_async(self, inputs: Dict[str, Any] = None) -> Dict[str, Any]:
+                    """Async kickoff method for CrewAI compatibility"""
+                    return await self.execute(inputs)
+
             mock_crew = MockCrew(agent_name, self)
             logger.info(f"✅ Created mock crew for agent: {agent_name}")
             return mock_crew
