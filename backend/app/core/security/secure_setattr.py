@@ -5,7 +5,7 @@ Provides safe alternatives to dynamic attribute setting that could
 expose sensitive information through caching or logging.
 """
 
-from typing import Any, Set
+from typing import Any, Dict, Set
 
 from app.core.logging import get_logger
 

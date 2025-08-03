@@ -42,7 +42,7 @@ sse-starlette==2.3.6
 
 # Security and Authentication
 cryptography==45.0.5
-python-jose[cryptography]==3.5.0
+pyjwt[crypto]==2.10.1
 passlib[bcrypt]==1.7.4
 certifi==2025.6.15
 

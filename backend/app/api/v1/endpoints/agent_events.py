@@ -259,9 +259,9 @@ async def get_flow_status_with_etag(
     if hasattr(flow_state, "agent_decisions") and flow_state.agent_decisions:
         response_data["latest_agent_decision"] = flow_state.agent_decisions[-1]
 
-    # Generate ETag from response data
+    # Generate ETag from response data - using SHA-256 for security
     state_json = json.dumps(response_data, sort_keys=True, default=str)
-    etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+    etag = f'"{hashlib.sha256(state_json.encode()).hexdigest()[:32]}"'
 
     # Check if content has changed
     if if_none_match == etag:

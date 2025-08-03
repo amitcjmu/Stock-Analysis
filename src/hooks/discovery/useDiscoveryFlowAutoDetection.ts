@@ -52,11 +52,16 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
   // Auto-detect the most relevant flow based on current page context
   const autoDetectedFlowId = useMemo(() => {
     if (!flowList || flowList.length === 0) {
-      SecureLogger.debug('No flows available for auto-detection', { flowListLength: flowList?.length });
+      // Only log in development to reduce production noise
+      if (process.env.NODE_ENV === 'development') {
+        SecureLogger.debug('No flows available for auto-detection', { flowListLength: flowList?.length });
+      }
 
       // Emergency fallback: try to extract flow ID from URL with validation
       const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
-      SecureLogger.debug('Checking for emergency flow ID fallback from URL');
+      if (process.env.NODE_ENV === 'development') {
+        SecureLogger.debug('Checking for emergency flow ID fallback from URL');
+      }
 
       // Look for flow ID patterns in current URL with secure validation
       const flowIdPattern = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}/i;
@@ -66,7 +71,9 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
         const rawFlowId = urlMatch[0];
         const validatedFlowId = SecureStorage.validateUrlFlowId(rawFlowId);
         if (validatedFlowId) {
-          SecureLogger.debug('Found emergency flow ID from URL pattern');
+          if (process.env.NODE_ENV === 'development') {
+            SecureLogger.debug('Found emergency flow ID from URL pattern');
+          }
           return validatedFlowId;
         }
       }
@@ -74,11 +81,14 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
       return null;
     }
 
-    SecureLogger.debug(`Auto-detecting flow for phase: ${currentPhase}`, {
-      totalFlows: flowList.length,
-      preferredStatuses,
-      fallbackToAnyRunning
-    });
+    // Only log flow detection in development to reduce spam
+    if (process.env.NODE_ENV === 'development') {
+      SecureLogger.debug(`Auto-detecting flow for phase: ${currentPhase}`, {
+        totalFlows: flowList.length,
+        preferredStatuses,
+        fallbackToAnyRunning
+      });
+    }
 
     // Priority 1: Flow currently in the specified phase (next_phase matches or current_phase matches)
     if (currentPhase) {
@@ -87,7 +97,9 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
       );
       if (currentPhaseFlow) {
         const flowId = currentPhaseFlow.flow_id || currentPhaseFlow.id;
-        SecureLogger.debug(`Found flow needing ${currentPhase} phase`);
+        if (process.env.NODE_ENV === 'development') {
+          SecureLogger.debug(`Found flow needing ${currentPhase} phase`);
+        }
         return flowId;
       }
     }
@@ -112,7 +124,9 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
 
       if (dataImportCompleteFlow) {
         const flowId = dataImportCompleteFlow.flow_id || dataImportCompleteFlow.id;
-        SecureLogger.debug('Found flow with completed data_import ready for attribute_mapping');
+        if (process.env.NODE_ENV === 'development') {
+          SecureLogger.debug('Found flow with completed data_import ready for attribute_mapping');
+        }
         return flowId;
       }
     }
@@ -135,18 +149,23 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
         const dataCleansingNotCompleted = flow.phases?.data_cleansing !== true &&
                                         flow.data_cleansing_completed !== true;
 
-        SecureLogger.debug(`Checking flow readiness for data_cleansing`, {
-          fieldMappingCompleted,
-          isPreferredStatus,
-          dataCleansingNotCompleted
-        });
+        // Only log in development to reduce console spam
+        if (process.env.NODE_ENV === 'development') {
+          SecureLogger.debug(`Checking flow readiness for data_cleansing`, {
+            fieldMappingCompleted,
+            isPreferredStatus,
+            dataCleansingNotCompleted
+          });
+        }
 
         return fieldMappingCompleted && isPreferredStatus && dataCleansingNotCompleted;
       });
 
       if (fieldMappingCompleteFlow) {
         const flowId = fieldMappingCompleteFlow.flow_id || fieldMappingCompleteFlow.id;
-        SecureLogger.debug('Found flow with completed field_mapping ready for data_cleansing');
+        if (process.env.NODE_ENV === 'development') {
+          SecureLogger.debug('Found flow with completed field_mapping ready for data_cleansing');
+        }
         return flowId;
       }
     }
@@ -161,17 +180,22 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
 
         const isPreferredStatus = preferredStatuses.includes(flow.status);
 
-        SecureLogger.debug(`Checking flow completion for ${currentPhase}`, {
-          isPhaseCompleted,
-          isPreferredStatus
-        });
+        // Only log in development to reduce console spam
+        if (process.env.NODE_ENV === 'development') {
+          SecureLogger.debug(`Checking flow completion for ${currentPhase}`, {
+            isPhaseCompleted,
+            isPreferredStatus
+          });
+        }
 
         return isPhaseCompleted && isPreferredStatus;
       });
 
       if (completedPhaseFlow) {
         const flowId = completedPhaseFlow.flow_id || completedPhaseFlow.id;
-        SecureLogger.debug(`Found flow with completed ${currentPhase} phase`);
+        if (process.env.NODE_ENV === 'development') {
+          SecureLogger.debug(`Found flow with completed ${currentPhase} phase`);
+        }
         return flowId;
       }
     }
@@ -183,7 +207,9 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
       );
       if (runningFlow) {
         const flowId = runningFlow.flow_id || runningFlow.id;
-        SecureLogger.debug('Found flow in preferred status');
+        if (process.env.NODE_ENV === 'development') {
+          SecureLogger.debug('Found flow in preferred status');
+        }
         return flowId;
       }
     }
@@ -197,32 +223,40 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
 
     if (sortedFlows.length > 0) {
       const flowId = sortedFlows[0].flow_id || sortedFlows[0].id;
-      SecureLogger.debug('Using most recent flow');
+      if (process.env.NODE_ENV === 'development') {
+        SecureLogger.debug('Using most recent flow');
+      }
       return flowId;
     }
 
     // Priority 5: Any flow at all (last resort)
     if (flowList.length > 0) {
       const flowId = flowList[0].flow_id || flowList[0].id;
-      SecureLogger.debug('Using first available flow as last resort');
+      if (process.env.NODE_ENV === 'development') {
+        SecureLogger.debug('Using first available flow as last resort');
+      }
       return flowId;
     }
 
-    SecureLogger.warn('No suitable flow found for auto-detection');
+    if (process.env.NODE_ENV === 'development') {
+      SecureLogger.warn('No suitable flow found for auto-detection');
+    }
     return null;
   }, [flowList, currentPhase, preferredStatuses, fallbackToAnyRunning]);
 
   // Use URL flow ID if provided, otherwise use auto-detected flow ID
   const effectiveFlowId = urlFlowId || autoDetectedFlowId;
 
-  SecureLogger.debug(`Flow detection result for ${currentPhase}`, {
-    hasUrlFlowId: !!urlFlowId,
-    hasAutoDetectedFlowId: !!autoDetectedFlowId,
-    hasEffectiveFlowId: !!effectiveFlowId,
-    flowListLength: flowList?.length || 0,
-    isFlowListLoading,
-    hasFlowListError: !!flowListError
-  });
+  // Only log flow detection results in development to reduce spam
+  if (process.env.NODE_ENV === 'development' && !isFlowListLoading) {
+    SecureLogger.debug(`Flow detection result for ${currentPhase}`, {
+      hasUrlFlowId: !!urlFlowId,
+      hasAutoDetectedFlowId: !!autoDetectedFlowId,
+      hasEffectiveFlowId: !!effectiveFlowId,
+      flowListLength: flowList?.length || 0,
+      hasFlowListError: !!flowListError
+    });
+  }
 
   return {
     // Flow IDs

@@ -484,7 +484,9 @@ class EnhancedAgentMemory:
         """Generate cache key for query results"""
         query_str = json.dumps(query, sort_keys=True)
         context_str = str(context.context_hash) if context else "global"
-        return hashlib.md5(f"{query_str}:{context_str}".encode()).hexdigest()
+        return hashlib.sha256(
+            f"{query_str}:{context_str}".encode()
+        ).hexdigest()  # Use full 64-character SHA-256 hash
 
     async def _get_cached_result(self, cache_key: str) -> Optional[List[MemoryItem]]:
         """Get cached query result"""

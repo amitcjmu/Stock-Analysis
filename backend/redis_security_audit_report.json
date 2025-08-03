@@ -1,0 +1,142 @@
+{
+  "timestamp": "2025-08-02T07:52:58.172082",
+  "redis_version": null,
+  "deployment_type": "docker",
+  "total_issues": 12,
+  "critical_issues": 1,
+  "high_issues": 2,
+  "medium_issues": 3,
+  "low_issues": 6,
+  "issues": [
+    {
+      "severity": "high",
+      "category": "config",
+      "title": "Insecure Bind Configuration",
+      "description": "Redis is configured to bind to all interfaces (0.0.0.0)",
+      "remediation": "Bind only to specific interfaces: 'bind 127.0.0.1 ::1'",
+      "file_path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/redis/redis.conf",
+      "line_number": 15,
+      "cve_reference": null
+    },
+    {
+      "severity": "medium",
+      "category": "acl",
+      "title": "Missing Service User: app_service",
+      "description": "Service user app_service not defined in ACL",
+      "remediation": "Define user app_service with appropriate permissions",
+      "file_path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/redis/users.acl",
+      "line_number": null,
+      "cve_reference": null
+    },
+    {
+      "severity": "medium",
+      "category": "acl",
+      "title": "Missing Service User: monitor_user",
+      "description": "Service user monitor_user not defined in ACL",
+      "remediation": "Define user monitor_user with appropriate permissions",
+      "file_path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/redis/users.acl",
+      "line_number": null,
+      "cve_reference": null
+    },
+    {
+      "severity": "medium",
+      "category": "acl",
+      "title": "Missing Service User: backup_user",
+      "description": "Service user backup_user not defined in ACL",
+      "remediation": "Define user backup_user with appropriate permissions",
+      "file_path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/redis/users.acl",
+      "line_number": null,
+      "cve_reference": null
+    },
+    {
+      "severity": "high",
+      "category": "network",
+      "title": "Insecure Port Binding",
+      "description": "Redis port bound to 6379 instead of localhost",
+      "remediation": "Bind Redis port to 127.0.0.1 only",
+      "file_path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/docker-compose.dev.yml",
+      "line_number": null,
+      "cve_reference": null
+    },
+    {
+      "severity": "critical",
+      "category": "config",
+      "title": "Missing Required Environment Variables",
+      "description": "Required environment variables not set: REDIS_PASSWORD, REDIS_APP_PASSWORD, REDIS_ADMIN_PASSWORD",
+      "remediation": "Set all required environment variables with secure values",
+      "file_path": null,
+      "line_number": null,
+      "cve_reference": null
+    },
+    {
+      "severity": "low",
+      "category": "container",
+      "title": "COPY Without Ownership",
+      "description": "COPY command without explicit ownership",
+      "remediation": "Use --chown flag with COPY commands",
+      "file_path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/Dockerfile",
+      "line_number": 25,
+      "cve_reference": null
+    },
+    {
+      "severity": "low",
+      "category": "container",
+      "title": "COPY Without Ownership",
+      "description": "COPY command without explicit ownership",
+      "remediation": "Use --chown flag with COPY commands",
+      "file_path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/Dockerfile",
+      "line_number": 32,
+      "cve_reference": null
+    },
+    {
+      "severity": "low",
+      "category": "container",
+      "title": "COPY Without Ownership",
+      "description": "COPY command without explicit ownership",
+      "remediation": "Use --chown flag with COPY commands",
+      "file_path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/Dockerfile",
+      "line_number": 35,
+      "cve_reference": null
+    },
+    {
+      "severity": "low",
+      "category": "container",
+      "title": "COPY Without Ownership",
+      "description": "COPY command without explicit ownership",
+      "remediation": "Use --chown flag with COPY commands",
+      "file_path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/Dockerfile",
+      "line_number": 36,
+      "cve_reference": null
+    },
+    {
+      "severity": "low",
+      "category": "container",
+      "title": "COPY Without Ownership",
+      "description": "COPY command without explicit ownership",
+      "remediation": "Use --chown flag with COPY commands",
+      "file_path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/Dockerfile",
+      "line_number": 25,
+      "cve_reference": null
+    },
+    {
+      "severity": "low",
+      "category": "container",
+      "title": "COPY Without Ownership",
+      "description": "COPY command without explicit ownership",
+      "remediation": "Use --chown flag with COPY commands",
+      "file_path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/Dockerfile",
+      "line_number": 32,
+      "cve_reference": null
+    }
+  ],
+  "compliance_score": 34,
+  "recommendations": [
+    "Address all critical security issues immediately",
+    "Resolve high-severity issues before production deployment",
+    "Implement comprehensive security hardening",
+    "Regularly rotate Redis passwords and certificates",
+    "Monitor Redis security logs for suspicious activity",
+    "Implement network segmentation for Redis traffic",
+    "Regular security audits and penetration testing"
+  ]
+}

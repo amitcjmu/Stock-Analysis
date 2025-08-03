@@ -106,6 +106,8 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): {
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const eventCallbacksRef = useRef<Map<string, Set<CacheEventCallback>>>(new Map());
   const reconnectAttemptsRef = useRef<number>(0);
+  const lastConnectionAttemptRef = useRef<number>(0);
+  const connectionHealthRef = useRef<'healthy' | 'degraded' | 'failed'>('healthy');
 
   // Get auth token for WebSocket connection
   const getAuthToken = useCallback(() => {
@@ -135,11 +137,13 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): {
   // Build WebSocket URL
   const getWebSocketUrl = useCallback(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
+    // Fix: Use backend port 8000 instead of frontend port
+    const host = window.location.hostname;
+    const port = process.env.NODE_ENV === 'development' ? '8000' : window.location.port || '8000';
     const clientId = getClientAccountId();
     const token = getAuthToken();
 
-    let url = `${protocol}//${host}/api/v1/ws-cache/events?client_account_id=${clientId}`;
+    let url = `${protocol}//${host}:${port}/api/v1/ws-cache/events?client_account_id=${clientId}`;
 
     if (engagementId) {
       url += `&engagement_id=${engagementId}`;
@@ -178,7 +182,9 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): {
   const connect = useCallback(() => {
     // Check if WebSocket cache is enabled
     if (!isCacheFeatureEnabled('ENABLE_WEBSOCKET_CACHE')) {
-      console.log('🔇 WebSocket cache events disabled by feature flag');
+      if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_DEBUG')) {
+        console.log('🔇 WebSocket cache events disabled by feature flag');
+      }
       return;
     }
 
@@ -186,19 +192,38 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): {
       return;
     }
 
+    // Throttle connection attempts to prevent spam
+    const now = Date.now();
+    const timeSinceLastAttempt = now - lastConnectionAttemptRef.current;
+    const minConnectionInterval = 5000; // 5 seconds minimum between attempts
+
+    if (timeSinceLastAttempt < minConnectionInterval) {
+      if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_DEBUG')) {
+        console.log(`⏳ WebSocket connection throttled. Wait ${Math.ceil((minConnectionInterval - timeSinceLastAttempt) / 1000)}s`);
+      }
+      return;
+    }
+
+    lastConnectionAttemptRef.current = now;
     setState(prev => ({ ...prev, isConnecting: true, error: null }));
 
     try {
       const url = getWebSocketUrl();
-      console.log('🔗 Connecting to WebSocket cache events:', url);
+      // Only log connection attempts in development or when feature is specifically enabled
+      if (process.env.NODE_ENV === 'development' || isCacheFeatureEnabled('ENABLE_WEBSOCKET_DEBUG')) {
+        console.log('🔗 Connecting to WebSocket cache events:', url);
+      }
 
       wsRef.current = new WebSocket(url);
 
       wsRef.current.onopen = () => {
-        console.log('✅ WebSocket cache events connected');
+        if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_DEBUG')) {
+          console.log('✅ WebSocket cache events connected');
+        }
 
         // Reset reconnect attempts on successful connection
         reconnectAttemptsRef.current = 0;
+        connectionHealthRef.current = 'healthy';
 
         setState(prev => ({
           ...prev,
@@ -286,14 +311,30 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): {
       };
 
       wsRef.current.onerror = (error) => {
-        console.error('❌ WebSocket error:', error);
+        connectionHealthRef.current = 'failed';
+
+        if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_DEBUG')) {
+          console.error('❌ WebSocket error:', error);
+        }
+
         const errorMessage = 'WebSocket connection error';
         setState(prev => ({ ...prev, error: errorMessage }));
         onError?.(errorMessage);
       };
 
       wsRef.current.onclose = (event) => {
-        console.log('🔌 WebSocket disconnected:', event.code, event.reason);
+        if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_DEBUG')) {
+          console.log('🔌 WebSocket disconnected:', event.code, event.reason);
+        }
+
+        // Update connection health based on close code
+        if (event.code === 1000) {
+          connectionHealthRef.current = 'healthy'; // Clean close
+        } else if (event.code >= 1001 && event.code <= 1015) {
+          connectionHealthRef.current = 'degraded'; // Temporary issues
+        } else {
+          connectionHealthRef.current = 'failed'; // Serious issues
+        }
 
         setState(prev => ({
           ...prev,
@@ -308,15 +349,32 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): {
         // Attempt to reconnect if enabled and not a clean close
         if (autoReconnect && event.code !== 1000 && reconnectAttemptsRef.current < maxReconnectAttempts) {
           const currentAttempt = reconnectAttemptsRef.current;
-          console.log(`🔄 Attempting reconnect ${currentAttempt + 1}/${maxReconnectAttempts}`);
+
+          // Only log reconnection attempts if debug is enabled (reduce spam)
+          if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_DEBUG')) {
+            console.log(`🔄 Attempting reconnect ${currentAttempt + 1}/${maxReconnectAttempts} (health: ${connectionHealthRef.current})`);
+          }
 
           // Increment reconnect attempts
           reconnectAttemptsRef.current += 1;
           setState(prev => ({ ...prev, reconnectAttempts: reconnectAttemptsRef.current }));
 
+          // Adjust backoff based on connection health
+          let baseDelay = reconnectInterval;
+          if (connectionHealthRef.current === 'failed') {
+            baseDelay *= 2; // Longer delays for failed connections
+          }
+
+          // Use exponential backoff with health-aware delays
+          const backoffDelay = baseDelay * Math.pow(2, currentAttempt);
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
-          }, reconnectInterval * Math.pow(1.5, currentAttempt)); // Exponential backoff using current value
+          }, Math.min(backoffDelay, 60000)); // Cap at 60 seconds for failed connections
+        } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+          if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_DEBUG')) {
+            console.warn(`🚫 Max WebSocket reconnection attempts (${maxReconnectAttempts}) reached. Giving up.`);
+          }
+          connectionHealthRef.current = 'failed';
         }
       };
 

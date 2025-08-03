@@ -43,8 +43,8 @@ load_dotenv()
 # Note: patch_litellm_response_parsing is applied automatically on import
 try:
     from app.services.deepinfra_response_fixer import (
-        patch_litellm_response_parsing,
-    )  # noqa: F401
+        patch_litellm_response_parsing,  # noqa: F401
+    )
 
     logger = logging.getLogger(__name__)
     logger.info("✅ DeepInfra response fixer module loaded")
@@ -52,6 +52,15 @@ except ImportError as e:
     print(f"Warning: Could not load DeepInfra response fixer: {e}")
 
 # Database migrations will be handled by entrypoint.sh in Railway deployment
+
+# Import context dependencies
+try:
+    from app.core.context import RequestContext, get_current_context_dependency
+
+    CONTEXT_AVAILABLE = True
+except ImportError:
+    CONTEXT_AVAILABLE = False
+    print("Warning: Context dependencies not available")
 
 # Import our structured logging module
 try:
@@ -409,7 +418,6 @@ if ENABLE_MIDDLEWARE:
         # Import request tracking middleware
         from starlette.middleware.base import BaseHTTPMiddleware
 
-        from app.core.context import RequestContext, get_current_context_dependency
         from app.core.middleware import ContextMiddleware, RequestLoggingMiddleware
         from app.middleware.adaptive_rate_limit_middleware import (
             AdaptiveRateLimitMiddleware,

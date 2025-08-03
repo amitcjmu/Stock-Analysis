@@ -116,7 +116,7 @@ class EmbeddingService:
         # Create deterministic mock embedding based on text hash
         import hashlib
 
-        text_hash = hashlib.md5(text.encode()).hexdigest()
+        text_hash = hashlib.sha256(text.encode()).hexdigest()[:32]
 
         # Use hash to seed random generator for consistent results
         random.seed(text_hash)
