@@ -195,20 +195,24 @@ def downgrade() -> None:
                 for new_strategy, old_strategy in REVERSE_STRATEGY_MAP.items():
                     # Use safe table name mapping to avoid SQL injection
                     if table_name == "assessment_flow_states":
-                        update_query = text("""
-                            UPDATE assessment_flow_states 
-                            SET recommended_strategy = :old_strategy 
+                        update_query = text(
+                            """
+                            UPDATE assessment_flow_states
+                            SET recommended_strategy = :old_strategy
                             WHERE recommended_strategy = :new_strategy
-                        """)
+                        """
+                        )
                     elif table_name == "assessment_results":
-                        update_query = text("""
-                            UPDATE assessment_results 
-                            SET recommended_strategy = :old_strategy 
+                        update_query = text(
+                            """
+                            UPDATE assessment_results
+                            SET recommended_strategy = :old_strategy
                             WHERE recommended_strategy = :new_strategy
-                        """)
+                        """
+                        )
                     else:
                         continue  # Skip unknown tables
-                    
+
                     connection.execute(
                         update_query,
                         {"old_strategy": old_strategy, "new_strategy": new_strategy},

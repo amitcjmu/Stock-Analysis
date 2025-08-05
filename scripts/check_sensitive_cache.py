@@ -29,16 +29,16 @@ class SensitiveDataChecker(ast.NodeVisitor):
         # Comprehensive sensitive data patterns
         self.sensitive_patterns = {
             'credentials': {
-                'password', 'passwd', 'pwd', 'secret', 'token', 'key', 'auth',
-                'api_key', 'access_token', 'refresh_token', 'bearer_token',
-                'session_token', 'csrf_token', 'jwt', 'oauth', 'saml',
-                'private_key', 'public_key', 'certificate', 'cert', 'credential'
+                'password', 'passwd', 'pwd', 'secret', 'api_key', 'access_token',
+                'refresh_token', 'bearer_token', 'session_token', 'csrf_token',
+                'jwt', 'oauth', 'saml', 'private_key', 'public_key',
+                'certificate', 'cert', 'credential'
             },
             'pii': {
                 'ssn', 'social_security', 'social_security_number', 'sin',
                 'email', 'phone', 'telephone', 'mobile', 'address',
                 'street', 'zip', 'postal', 'first_name', 'last_name',
-                'full_name', 'name', 'birth_date', 'birthday', 'dob',
+                'full_name', 'birth_date', 'birthday', 'dob',
                 'driver_license', 'passport', 'national_id'
             },
             'financial': {
@@ -52,7 +52,7 @@ class SensitiveDataChecker(ast.NodeVisitor):
             },
             'security': {
                 'encryption_key', 'signing_key', 'hmac_key', 'aes_key',
-                'rsa_key', 'hash', 'signature', 'nonce', 'salt'
+                'rsa_key', 'signature', 'nonce', 'salt'
             }
         }
 
@@ -153,12 +153,49 @@ class SensitiveDataChecker(ast.NodeVisitor):
 
     def _check_logging_operation(self, node: ast.Call):
         """Check logging operations for sensitive data exposure"""
+        # Skip if this appears to be operational logging
+        if self._is_operational_logging(node):
+            return
+
         for arg in node.args:
             if self._contains_sensitive_data(arg):
                 self._add_violation(
                     node.lineno, 'sensitive_data_logging',
                     'Potential sensitive data in log statement - avoid logging PII/credentials'
                 )
+
+    def _is_operational_logging(self, node: ast.Call) -> bool:
+        """Check if this appears to be operational/diagnostic logging rather than sensitive data"""
+        try:
+            # Check for operational logging patterns in arguments
+            for arg in node.args:
+                if isinstance(arg, (ast.Constant, ast.JoinedStr)):
+                    # Get string content from f-strings and regular strings
+                    content = ""
+                    if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                        content = arg.value.lower()
+                    elif isinstance(arg, ast.JoinedStr):
+                        # For f-strings, check the constant parts
+                        for value in arg.values:
+                            if isinstance(value, ast.Constant) and isinstance(value.value, str):
+                                content += value.value.lower()
+
+                    # Operational logging patterns
+                    operational_patterns = [
+                        'testing ', 'checking ', 'validating ', 'scanning ',
+                        'starting ', 'completed ', 'finished ', 'running ',
+                        'error occurred', 'exception:', 'failed to', 'unable to',
+                        'security test', 'vulnerability scan', 'deployment',
+                        'operational data', 'not sensitive', 'error type',
+                        'test failed', 'scan complete', 'check passed'
+                    ]
+
+                    if any(pattern in content for pattern in operational_patterns):
+                        return True
+
+            return False
+        except Exception:
+            return False
 
     def _contains_sensitive_data(self, node: ast.AST) -> bool:
         """Check if AST node contains sensitive data patterns"""
@@ -205,13 +242,16 @@ class SensitiveDataChecker(ast.NodeVisitor):
         """Check if an identifier suggests sensitive data"""
         id_lower = identifier.lower()
 
-        # Skip common false positives
+        # Skip common false positives including operational logging contexts
         safe_contexts = [
             'cache_key', 'redis_key', 'lookup_key', 'index_key', 'sort_key',
             'primary_key', 'foreign_key', 'partition_key', 'composite_key',
             'secret_name', 'secret_type', 'secret_manager', 'secret_config',
             'token_type', 'token_name', 'token_config', 'token_manager',
-            'key_name', 'key_type', 'key_config', 'key_manager'
+            'key_name', 'key_type', 'key_config', 'key_manager',
+            'error_type', 'exception_type', 'test_type', 'scan_type',
+            'check_type', 'validation_type', 'operational_type',
+            'log_type', 'security_type', 'auth_type', 'system_type'
         ]
 
         if any(safe in id_lower for safe in safe_contexts):

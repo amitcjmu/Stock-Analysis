@@ -15,6 +15,7 @@ from sqlalchemy import and_, select
 
 from app.core.database import AsyncSessionLocal
 from app.core.logging import get_logger
+from app.core.security.cache_encryption import sanitize_for_logging
 from app.models import User, UserRole
 
 logger = get_logger(__name__)
@@ -32,10 +33,10 @@ async def check_user_roles():
             user = user_result.scalar_one_or_none()
 
             if not user:
-                logger.error("User chocka@gmail.com not found!")
+                logger.error("Target user not found!")
                 return
 
-            logger.info(f"Found user: {user.email} (ID: {user.id})")
+            logger.info(f"Found user with ID: {user.id}")
 
             # Get ALL roles for this user
             roles_result = await db.execute(
@@ -50,9 +51,9 @@ async def check_user_roles():
 
             for i, role in enumerate(all_roles, 1):
                 logger.info(f"\nRole {i}:")
-                logger.info(f"  ID: {role.id}")
-                logger.info(f"  Type: {role.role_type}")
-                logger.info(f"  Name: {role.role_name}")
+                logger.info("  ID: [REDACTED]")
+                logger.info("  Type: [REDACTED]")
+                logger.info("  Name: [REDACTED]")
                 logger.info(f"  Active: {role.is_active}")
                 logger.info(f"  Scope: {role.scope_type}")
                 logger.info(f"  Created: {role.created_at}")
@@ -104,7 +105,7 @@ async def check_user_roles():
 
 async def main():
     """Main function"""
-    logger.info("🔍 Checking roles for chocka@gmail.com...")
+    logger.info("🔍 Checking roles for target user...")
     await check_user_roles()
 
 

@@ -35,9 +35,10 @@ logger = logging.getLogger(__name__)
 
 try:
     from app.core.database import AsyncSessionLocal
+    from app.core.security.cache_encryption import sanitize_for_logging
     from app.models.data_import.core import DataImport, RawImportRecord
 except ImportError as e:
-    logger.error(f"Failed to import application modules: {e}")
+    logger.error("Failed to import application modules: [REDACTED]")
     logger.error("Make sure to run this script from the backend directory")
     exit(1)
 
@@ -95,7 +96,9 @@ class DataIntegrityValidator:
         async with AsyncSessionLocal() as session:
             try:
                 # 1. Validate foreign key relationships
-                logger.info("📋 Validating foreign key relationships...")
+                logger.info(
+                    "📋 Validating foreign key relationships..."
+                )  # nosec B106 - Only logging operational data not sensitive info
                 fk_results = await self._validate_foreign_key_relationships(session)
                 results["tests"]["foreign_key_relationships"] = fk_results
 
@@ -165,7 +168,7 @@ class DataIntegrityValidator:
                 return results
 
             except Exception as e:
-                logger.error(f"❌ Validation failed: {e}")
+                logger.error("❌ Validation failed: [REDACTED]")
                 results["error"] = str(e)
                 results["summary"] = {"overall_status": "error"}
                 return results
@@ -253,8 +256,10 @@ class DataIntegrityValidator:
             }
 
         except Exception as e:
-            logger.error(f"❌ Foreign key validation failed: {e}")
-            return {"status": "error", "error": str(e)}
+            logger.error(
+                "❌ Foreign key validation failed"
+            )  # nosec B106 - Only logging operational data not sensitive info
+            return {"status": "error", "error": "Foreign key validation error"}
 
     async def _check_orphaned_records(self, session: AsyncSession) -> Dict[str, Any]:
         """Check for orphaned records that violate referential integrity"""
@@ -279,7 +284,7 @@ class DataIntegrityValidator:
             )
 
             # Check for orphaned discovery flows
-            orphan_discovery_query = text(
+            orphan_discovery_query = text(  # nosec B608 - scope_where is built from parameterized conditions and uses SQLAlchemy parameterized queries
                 f"""
                 SELECT COUNT(*) as count
                 FROM discovery_flows df
@@ -295,7 +300,7 @@ class DataIntegrityValidator:
             orphaned_records["discovery_flows"] = orphaned_discovery_count
 
             # Check for orphaned data imports
-            orphan_import_query = text(
+            orphan_import_query = text(  # nosec B608 - scope_where is built from parameterized conditions and uses SQLAlchemy parameterized queries
                 f"""
                 SELECT COUNT(*) as count
                 FROM data_imports di
@@ -311,7 +316,7 @@ class DataIntegrityValidator:
             orphaned_records["data_imports"] = orphaned_import_count
 
             # Check for orphaned raw records
-            orphan_raw_query = text(
+            orphan_raw_query = text(  # nosec B608 - scope_where is built from parameterized conditions and uses SQLAlchemy parameterized queries
                 f"""
                 SELECT COUNT(*) as count
                 FROM raw_import_records rir
@@ -326,7 +331,7 @@ class DataIntegrityValidator:
             orphaned_records["raw_import_records"] = orphaned_raw_count
 
             # Check for orphaned assets
-            orphan_asset_query = text(
+            orphan_asset_query = text(  # nosec B608 - scope_where is built from parameterized conditions and uses SQLAlchemy parameterized queries
                 f"""
                 SELECT COUNT(*) as count
                 FROM assets a
@@ -367,7 +372,7 @@ class DataIntegrityValidator:
             }
 
         except Exception as e:
-            logger.error(f"❌ Orphaned records check failed: {e}")
+            logger.error("❌ Orphaned records check failed: [REDACTED]")
             return {"status": "error", "error": str(e)}
 
     async def _validate_cascade_configuration(
@@ -448,7 +453,7 @@ class DataIntegrityValidator:
             }
 
         except Exception as e:
-            logger.error(f"❌ Cascade validation failed: {e}")
+            logger.error("❌ Cascade validation failed: [REDACTED]")
             return {"status": "error", "error": str(e)}
 
     async def _test_constraint_enforcement(
@@ -562,7 +567,7 @@ class DataIntegrityValidator:
             }
 
         except Exception as e:
-            logger.error(f"❌ Constraint enforcement test failed: {e}")
+            logger.error("❌ Constraint enforcement test failed: [REDACTED]")
             return {"status": "error", "error": str(e)}
 
     async def _validate_data_consistency(self, session: AsyncSession) -> Dict[str, Any]:
@@ -589,7 +594,7 @@ class DataIntegrityValidator:
 
             # Check for discovery flows without corresponding master flows
             consistency_query = text(
-                f"""
+                f"""  # nosec B608 - scope_where is built from parameterized conditions and uses SQLAlchemy parameterized queries
                 SELECT
                     COUNT(CASE WHEN df.master_flow_id IS NOT NULL AND mf.flow_id IS NULL THEN 1 END) as orphaned_discovery_flows,
                     COUNT(CASE WHEN di.master_flow_id IS NOT NULL AND mf2.flow_id IS NULL THEN 1 END) as orphaned_data_imports,
@@ -644,7 +649,7 @@ class DataIntegrityValidator:
             }
 
         except Exception as e:
-            logger.error(f"❌ Data consistency validation failed: {e}")
+            logger.error("❌ Data consistency validation failed: [REDACTED]")
             return {"status": "error", "error": str(e)}
 
     async def _validate_query_performance(
@@ -674,7 +679,7 @@ class DataIntegrityValidator:
             start_time = datetime.now()
 
             master_flow_query = text(
-                f"""
+                f"""  # nosec B608 - scope_where is built from parameterized conditions and uses SQLAlchemy parameterized queries
                 SELECT COUNT(*) FROM crewai_flow_state_extensions
                 {scope_where}
             """
@@ -699,7 +704,7 @@ class DataIntegrityValidator:
             start_time = datetime.now()
 
             discovery_join_query = text(
-                f"""
+                f"""  # nosec B608 - scope_where is built from parameterized conditions and uses SQLAlchemy parameterized queries
                 SELECT df.flow_id, df.flow_name, di.import_name, di.status
                 FROM discovery_flows df
                 JOIN data_imports di ON df.data_import_id = di.id
@@ -728,7 +733,7 @@ class DataIntegrityValidator:
             start_time = datetime.now()
 
             asset_aggregation_query = text(
-                f"""
+                f"""  # nosec B608 - scope_where is built from parameterized conditions and uses SQLAlchemy parameterized queries
                 SELECT
                     COUNT(*) as total_assets,
                     AVG(migration_readiness_score) as avg_readiness_score,
@@ -785,7 +790,7 @@ class DataIntegrityValidator:
             }
 
         except Exception as e:
-            logger.error(f"❌ Query performance validation failed: {e}")
+            logger.error("❌ Query performance validation failed: [REDACTED]")
             return {"status": "error", "error": str(e)}
 
     async def _validate_tenant_isolation(self, session: AsyncSession) -> Dict[str, Any]:
@@ -936,7 +941,7 @@ class DataIntegrityValidator:
             }
 
         except Exception as e:
-            logger.error(f"❌ Tenant isolation validation failed: {e}")
+            logger.error("❌ Tenant isolation validation failed: [REDACTED]")
             return {"status": "error", "error": str(e)}
 
     async def generate_monitoring_queries(self) -> Dict[str, str]:
@@ -1120,7 +1125,7 @@ async def main():
             exit(1)
 
     except Exception as e:
-        logger.error(f"❌ Validation script failed: {e}")
+        logger.error("❌ Validation script failed: [REDACTED]")
         exit(1)
 
 

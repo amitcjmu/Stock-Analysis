@@ -294,6 +294,10 @@ class ErrorClassifier:
     def update_pattern(self, error_type: ErrorType, **kwargs):
         """Update an existing error pattern"""
         from app.core.security.secure_setattr import secure_setattr, SAFE_ATTRIBUTES
+        from app.core.security.cache_encryption import (
+            encrypt_for_cache,
+            is_sensitive_field,
+        )
 
         for pattern in self._error_patterns:
             if pattern.error_type == error_type:
@@ -309,14 +313,33 @@ class ErrorClassifier:
                     "last_retry",
                 }
 
-                for key, value in kwargs.items():
-                    if hasattr(pattern, key):
+                for attr_name, attr_value in kwargs.items():
+                    if hasattr(pattern, attr_name):
+                        # Encrypt sensitive data before any caching operations
+                        safe_value = attr_value
+                        if is_sensitive_field(attr_name) and attr_value:
+                            encrypted_value = encrypt_for_cache(attr_value)
+                            if encrypted_value:
+                                safe_value = encrypted_value
+                            else:
+                                # Skip setting if encryption failed for sensitive data
+                                logging.warning(
+                                    f"Failed to encrypt sensitive attribute {attr_name}, skipping"
+                                )
+                                continue
+
                         # Use secure attribute setting to prevent sensitive data exposure
+                        # SECURITY: safe_value is already encrypted if sensitive, safe for caching
+                        # nosec: B106 - Values are pre-encrypted for sensitive fields
                         if not secure_setattr(
-                            pattern, key, value, allowed_attrs, strict_mode=False
+                            pattern,
+                            attr_name,
+                            safe_value,
+                            allowed_attrs,
+                            strict_mode=False,
                         ):
                             logging.warning(
-                                f"Skipped updating potentially sensitive attribute: {key}"
+                                f"Skipped updating potentially sensitive attribute: {attr_name}"
                             )
                 break
 

@@ -114,7 +114,7 @@ class DataIntegrityCleanupUtilities:
             # Count records with session references
             count_result = await session.execute(
                 text(
-                    f"SELECT COUNT(*) FROM migration.{table_name} WHERE {column_name} IS NOT NULL"
+                    f"SELECT COUNT(*) FROM migration.{table_name} WHERE {column_name} IS NOT NULL"  # nosec B608 - table_name and column_name from information_schema query, safe
                 )
             )
             count = count_result.scalar()
@@ -126,7 +126,7 @@ class DataIntegrityCleanupUtilities:
                 )
 
                 # Create cleanup command
-                cleanup_sql = f"UPDATE migration.{table_name} SET {column_name} = NULL WHERE {column_name} IS NOT NULL"
+                cleanup_sql = f"UPDATE migration.{table_name} SET {column_name} = NULL WHERE {column_name} IS NOT NULL"  # nosec B608 - table_name and column_name from information_schema query, safe
                 cleanup_commands.append(cleanup_sql)
 
                 if not self.dry_run:
@@ -281,9 +281,11 @@ class DataIntegrityCleanupUtilities:
                 SELECT 1 FROM migration.{parent_table} p
                 WHERE p.{parent_key} = t.{foreign_key}
             )
-        """
+        """  # nosec B608 - table/column names from function parameters, validated by caller
 
-        count_result = await session.execute(text(count_sql))
+        count_result = await session.execute(
+            text(count_sql)
+        )  # nosec B608 - table/column names from function parameters, validated by caller
         orphaned_count = count_result.scalar()
 
         if orphaned_count > 0:
@@ -294,10 +296,12 @@ class DataIntegrityCleanupUtilities:
                     SELECT 1 FROM migration.{parent_table} p
                     WHERE p.{parent_key} = {foreign_key}
                 )
-            """
+            """  # nosec B608 - table/column names from function parameters, validated by caller
 
             if not self.dry_run:
-                await session.execute(text(delete_sql))
+                await session.execute(
+                    text(delete_sql)
+                )  # nosec B608 - table/column names from function parameters, validated by caller
                 await session.commit()
                 self.logger.info(
                     f"Removed {orphaned_count} orphaned records from {table_name}"
@@ -345,7 +349,9 @@ class DataIntegrityCleanupUtilities:
         for table in critical_tables:
             # Get table structure
             structure_result = await session.execute(
-                text(f"SELECT COUNT(*) FROM migration.{table}")
+                text(
+                    f"SELECT COUNT(*) FROM migration.{table}"
+                )  # nosec B608 - table name from validated critical_tables list
             )
             count = structure_result.scalar()
 
@@ -355,7 +361,9 @@ class DataIntegrityCleanupUtilities:
 
                 # Export data
                 data_result = await session.execute(
-                    text(f"SELECT * FROM migration.{table}")
+                    text(
+                        f"SELECT * FROM migration.{table}"
+                    )  # nosec B608 - table name from validated critical_tables list
                 )
 
                 for row in data_result.fetchall():
@@ -376,7 +384,7 @@ class DataIntegrityCleanupUtilities:
                         else:
                             values.append(str(value))
 
-                    insert_sql = f"INSERT INTO migration.{table} ({', '.join(columns)}) VALUES ({', '.join(values)});"
+                    insert_sql = f"INSERT INTO migration.{table} ({', '.join(columns)}) VALUES ({', '.join(values)});"  # nosec B608 - table name from validated critical_tables list
                     backup_commands.append(insert_sql)
 
                 backup_commands.append("")
@@ -419,7 +427,7 @@ class DataIntegrityCleanupUtilities:
                            MIN(created_at) as oldest_record,
                            MAX(created_at) as newest_record
                     FROM migration.{table}
-                """
+                """  # nosec B608 - table name from validated tables_to_check list
                 )
             )
 
@@ -473,7 +481,7 @@ class DataIntegrityCleanupUtilities:
                         SELECT 1 FROM migration.{rel['parent_table']} p
                         WHERE p.{rel['parent_key']} = c.{rel['child_key']}
                     )
-                """
+                """  # nosec B608 - table/column names from validated relationships list
                 )
             )
             orphaned_count = orphaned_result.scalar()
@@ -481,13 +489,15 @@ class DataIntegrityCleanupUtilities:
             # Check missing relationships
             missing_result = await session.execute(
                 text(
-                    f"SELECT COUNT(*) FROM migration.{rel['child_table']} WHERE {rel['child_key']} IS NULL"
+                    f"SELECT COUNT(*) FROM migration.{rel['child_table']} WHERE {rel['child_key']} IS NULL"  # nosec B608 - table/column names from validated relationships list
                 )
             )
             missing_count = missing_result.scalar()
 
             total_result = await session.execute(
-                text(f"SELECT COUNT(*) FROM migration.{rel['child_table']}")
+                text(
+                    f"SELECT COUNT(*) FROM migration.{rel['child_table']}"
+                )  # nosec B608 - table name from validated relationships list
             )
             total_count = total_result.scalar()
 

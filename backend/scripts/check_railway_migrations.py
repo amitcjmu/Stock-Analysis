@@ -55,7 +55,7 @@ def check_table_exists(table_name: str) -> bool:
         WHERE table_schema = 'migration'
         AND table_name = '{table_name}'
     );
-    """
+    """  # nosec B608 - table_name is validated internally for migration table checks
     success, output = run_psql_command(command)
 
     if success:

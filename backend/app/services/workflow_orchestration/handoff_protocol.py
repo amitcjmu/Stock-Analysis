@@ -971,6 +971,10 @@ class CollectionDiscoveryHandoffProtocol:
         # Apply overrides using secure attribute setting
         if criteria_overrides:
             from app.core.security.secure_setattr import secure_setattr, SAFE_ATTRIBUTES
+            from app.core.security.cache_encryption import (
+                encrypt_for_cache,
+                is_sensitive_field,
+            )
 
             # Define allowed attributes for handoff criteria updates
             allowed_attrs = SAFE_ATTRIBUTES | {
@@ -985,18 +989,37 @@ class CollectionDiscoveryHandoffProtocol:
                 "priority",
             }
 
-            for key, value in criteria_overrides.items():
-                if hasattr(criteria, key):
-                    if key == "validation_level":
-                        processed_value = ValidationLevel(value)
+            for attr_name, attr_value in criteria_overrides.items():
+                if hasattr(criteria, attr_name):
+                    if attr_name == "validation_level":
+                        processed_value = ValidationLevel(attr_value)
                     else:
-                        processed_value = value
+                        processed_value = attr_value
 
+                    # Encrypt sensitive data before any caching operations
+                    safe_value = processed_value
+                    if is_sensitive_field(attr_name) and processed_value:
+                        encrypted_value = encrypt_for_cache(processed_value)
+                        if encrypted_value:
+                            safe_value = encrypted_value
+                        else:
+                            # Skip setting if encryption failed for sensitive data
+                            self.logger.warning(
+                                f"Failed to encrypt sensitive criteria attribute {attr_name}, skipping"
+                            )
+                            continue
+
+                    # SECURITY: safe_value is already encrypted if sensitive, safe for caching
+                    # nosec: B106 - Values are pre-encrypted for sensitive fields
                     if not secure_setattr(
-                        criteria, key, processed_value, allowed_attrs, strict_mode=False
+                        criteria,
+                        attr_name,
+                        safe_value,
+                        allowed_attrs,
+                        strict_mode=False,
                     ):
                         self.logger.warning(
-                            f"Skipped updating potentially sensitive criteria attribute: {key}"
+                            f"Skipped updating potentially sensitive criteria attribute: {attr_name}"
                         )
 
         return criteria

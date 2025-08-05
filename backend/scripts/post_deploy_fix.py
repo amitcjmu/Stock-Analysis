@@ -121,7 +121,7 @@ async def fix_railway_schema():
                     logger.info(f"  ✅ Added {col}")
                     changes_made = True
                 except Exception as e:
-                    logger.error(f"  ❌ Failed to add {col}: {e}")
+                    logger.error(f"  ❌ Failed to add {col}: [REDACTED]")
             else:
                 logger.info(f"  ℹ️  {col} already exists")
 
@@ -134,7 +134,7 @@ async def fix_railway_schema():
                     logger.info(f"  ✅ Added {col}")
                     changes_made = True
                 except Exception as e:
-                    logger.error(f"  ❌ Failed to add {col}: {e}")
+                    logger.error(f"  ❌ Failed to add {col}: [REDACTED]")
             else:
                 logger.info(f"  ℹ️  {col} already exists")
 
@@ -199,19 +199,34 @@ async def fix_railway_schema():
                 },
             }
 
+            # Define allowed columns for security (prevent SQL injection)
+            ALLOWED_CLIENT_COLUMNS = {
+                "settings",
+                "branding",
+                "business_objectives",
+                "it_guidelines",
+                "decision_criteria",
+                "agent_preferences",
+            }
+
             for col, default_val in json_defaults.items():
+                # Security: Validate column name against allowlist
+                if col not in ALLOWED_CLIENT_COLUMNS:
+                    logger.warning(f"  ⚠️  Skipping unauthorized column: {col}")
+                    continue
+
                 try:
-                    await conn.execute(
-                        f"""
+                    # Safe SQL construction with validated column name
+                    # nosec B608 - Column name validated against ALLOWED_CLIENT_COLUMNS allowlist
+                    query = f"""
                         UPDATE client_accounts
                         SET {col} = $1::json
                         WHERE {col} IS NULL
-                    """,
-                        json.dumps(default_val),
-                    )
+                    """
+                    await conn.execute(query, json.dumps(default_val))
                     logger.info(f"  ✅ Set {col} defaults")
                 except Exception as e:
-                    logger.error(f"  ❌ Failed to set {col}: {e}")
+                    logger.error(f"  ❌ Failed to set {col}: [REDACTED]")
 
             # Set engagement defaults
             engagement_defaults = {
@@ -236,19 +251,31 @@ async def fix_railway_schema():
                 },
             }
 
+            # Define allowed columns for security (prevent SQL injection)
+            ALLOWED_ENGAGEMENT_COLUMNS = {
+                "migration_scope",
+                "technical_requirements",
+                "stakeholder_info",
+            }
+
             for col, default_val in engagement_defaults.items():
+                # Security: Validate column name against allowlist
+                if col not in ALLOWED_ENGAGEMENT_COLUMNS:
+                    logger.warning(f"  ⚠️  Skipping unauthorized column: {col}")
+                    continue
+
                 try:
-                    await conn.execute(
-                        f"""
+                    # Safe SQL construction with validated column name
+                    # nosec B608 - Column name validated against ALLOWED_ENGAGEMENT_COLUMNS allowlist
+                    query = f"""
                         UPDATE engagements
                         SET {col} = $1::json
                         WHERE {col} IS NULL
-                    """,
-                        json.dumps(default_val),
-                    )
+                    """
+                    await conn.execute(query, json.dumps(default_val))
                     logger.info(f"  ✅ Set {col} defaults")
                 except Exception as e:
-                    logger.error(f"  ❌ Failed to set {col}: {e}")
+                    logger.error(f"  ❌ Failed to set {col}: [REDACTED]")
 
         logger.info("🎉 Post-deploy schema fix completed successfully!")
 

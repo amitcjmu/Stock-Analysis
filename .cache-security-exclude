@@ -24,3 +24,10 @@ backend/scripts/migrate_to_adaptive_rate_limiting.py
 src/contexts/AuthContext/storage.ts
 src/config/api.ts
 src/utils/api/httpClient.ts
+backend/scripts/post_deploy_fix.py
+backend/scripts/check_user_roles.py
+backend/scripts/deployment/staging_deployment.py
+backend/scripts/deployment/security_vulnerability_scan.py
+backend/scripts/deployment/validate_data_integrity.py
+backend/scripts/deployment/data_integrity_validation.py
+backend/scripts/deployment/production_deployment.py

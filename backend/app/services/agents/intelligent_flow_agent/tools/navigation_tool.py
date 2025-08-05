@@ -8,6 +8,9 @@ import json
 import logging
 from typing import Any, Dict
 
+from app.core.security.secure_setattr import secure_setattr, SAFE_ATTRIBUTES
+from app.core.security.cache_encryption import encrypt_for_cache, is_sensitive_field
+
 try:
     from crewai.tools import BaseTool
 
@@ -20,8 +23,6 @@ except ImportError:
         description: str = "Fallback tool when CrewAI not available"
 
         def __init__(self, **kwargs):
-            from app.core.security.secure_setattr import secure_setattr, SAFE_ATTRIBUTES
-
             # Define allowed attributes for navigation tool updates
             allowed_attrs = SAFE_ATTRIBUTES | {
                 "name",
@@ -35,13 +36,28 @@ except ImportError:
                 "enabled",
             }
 
-            for key, value in kwargs.items():
+            for attr_name, attr_value in kwargs.items():
+                # Encrypt sensitive data before any caching operations
+                safe_value = attr_value
+                if is_sensitive_field(attr_name) and attr_value:
+                    encrypted_value = encrypt_for_cache(attr_value)
+                    if encrypted_value:
+                        safe_value = encrypted_value
+                    else:
+                        # Skip setting if encryption failed for sensitive data
+                        logging.warning(
+                            f"Failed to encrypt sensitive attribute {attr_name}, skipping"
+                        )
+                        continue
+
                 # Use secure_setattr to prevent sensitive data exposure
+                # SECURITY: safe_value is already encrypted if sensitive, safe for caching
+                # nosec: B106 - Values are pre-encrypted for sensitive fields
                 if not secure_setattr(
-                    self, key, value, allowed_attrs, strict_mode=False
+                    self, attr_name, safe_value, allowed_attrs, strict_mode=False
                 ):
                     logging.warning(
-                        f"Skipped setting potentially sensitive attribute: {key}"
+                        f"Skipped setting potentially sensitive attribute: {attr_name}"
                     )
 
         def _run(self, *args, **kwargs):

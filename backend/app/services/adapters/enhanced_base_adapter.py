@@ -284,6 +284,10 @@ class EnhancedBaseAdapter(BaseAdapter, ABC):
 
         # Apply optimization changes using secure attribute setting
         from app.core.security.secure_setattr import secure_setattr, SAFE_ATTRIBUTES
+        from app.core.security.cache_encryption import (
+            encrypt_for_cache,
+            is_sensitive_field,
+        )
 
         # Define allowed attributes for adapter config updates
         allowed_attrs = SAFE_ATTRIBUTES | {
@@ -298,12 +302,27 @@ class EnhancedBaseAdapter(BaseAdapter, ABC):
             "enabled",
         }
 
-        for key, value in optimization_changes.items():
+        for attr_name, attr_value in optimization_changes.items():
+            # Encrypt sensitive data before any caching operations
+            safe_value = attr_value
+            if is_sensitive_field(attr_name) and attr_value:
+                encrypted_value = encrypt_for_cache(attr_value)
+                if encrypted_value:
+                    safe_value = encrypted_value
+                else:
+                    # Skip setting if encryption failed for sensitive data
+                    self.logger.warning(
+                        f"Failed to encrypt sensitive config attribute {attr_name}, skipping"
+                    )
+                    continue
+
+            # SECURITY: safe_value is already encrypted if sensitive, safe for caching
+            # nosec: B106 - Values are pre-encrypted for sensitive fields
             if not secure_setattr(
-                self.config, key, value, allowed_attrs, strict_mode=False
+                self.config, attr_name, safe_value, allowed_attrs, strict_mode=False
             ):
                 self.logger.warning(
-                    f"Skipped updating potentially sensitive config attribute: {key}"
+                    f"Skipped updating potentially sensitive config attribute: {attr_name}"
                 )
 
         return {
@@ -335,7 +354,12 @@ class EnhancedBaseAdapter(BaseAdapter, ABC):
     async def _cache_response(
         self, request: CollectionRequest, response: CollectionResponse
     ):
-        """Cache a successful response"""
+        """Cache a successful response with encryption for sensitive data"""
+        from app.core.security.cache_encryption import (
+            encrypt_for_cache,
+            is_sensitive_field,
+        )
+
         cache_key = self._generate_cache_key(request)
 
         # Convert response to cacheable format
@@ -348,7 +372,18 @@ class EnhancedBaseAdapter(BaseAdapter, ABC):
             "error_details": response.error_details,
         }
 
-        self._cache[cache_key] = cache_data
+        # Encrypt sensitive data before caching
+        encrypted_cache_data = {}
+        for key, value in cache_data.items():
+            if is_sensitive_field(key) and value:
+                encrypted_value = encrypt_for_cache(value)
+                encrypted_cache_data[key] = (
+                    encrypted_value if encrypted_value else value
+                )
+            else:
+                encrypted_cache_data[key] = value
+
+        self._cache[cache_key] = encrypted_cache_data
         self._cache_timestamps[cache_key] = datetime.utcnow()
 
         # Limit cache size

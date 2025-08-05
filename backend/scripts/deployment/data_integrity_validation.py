@@ -20,6 +20,12 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+# Add project root to path for imports
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+from app.core.security.cache_encryption import sanitize_for_logging
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -162,7 +168,7 @@ class DataIntegrityValidator:
                 return False
 
         except Exception as e:
-            logger.error(f"❌ Data integrity validation failed: {e}")
+            logger.error("❌ Data integrity validation failed: [REDACTED]")
             await self._handle_validation_failure(e)
             return False
         finally:
@@ -219,15 +225,42 @@ class DataIntegrityValidator:
 
                 # Get total record count
                 total_records = 0
+                # Define expected table names for security validation
+                ALLOWED_TABLES = {
+                    "crewai_flow_state_extensions",
+                    "discovery_flows",
+                    "assessment_flows",
+                    "unified_discovery_flow_state",
+                    "client_accounts",
+                    "engagements",
+                    "users",
+                    "roles",
+                    "subscriptions",
+                    "agent_discovered_patterns",
+                    "flow_configurations",
+                    "dependencies",
+                    "assessments",
+                }
+
                 for table in tables:
+                    # Security: Validate table name against expected schema
+                    if table not in ALLOWED_TABLES:
+                        logger.warning(f"Skipping unexpected table: {table}")
+                        continue
+
                     try:
+                        # nosec B608 - Table name validated against ALLOWED_TABLES allowlist
                         count_result = await session.execute(
-                            sa.text(f"SELECT COUNT(*) FROM {table}")
+                            sa.text(
+                                f"SELECT COUNT(*) FROM {table}"
+                            )  # nosec B608 - Table name validated against ALLOWED_TABLES allowlist
                         )
                         count = count_result.scalar()
                         total_records += count
                     except Exception as e:
-                        logger.warning(f"Could not count records in table {table}: {e}")
+                        logger.warning(
+                            f"Could not count records in table {table}: [REDACTED]"
+                        )
 
                 self.validation_results["database_info"][
                     "total_records"
@@ -239,7 +272,7 @@ class DataIntegrityValidator:
                 return True
 
         except Exception as e:
-            logger.error(f"❌ Database connectivity validation failed: {e}")
+            logger.error("❌ Database connectivity validation failed: [REDACTED]")
             self._add_issue(
                 "referential_integrity",
                 "critical",
@@ -329,8 +362,8 @@ class DataIntegrityValidator:
                         self._add_issue(
                             "referential_integrity",
                             "warning",
-                            f"Could not validate {check['name']}: {str(e)}",
-                            {"check": check["name"], "error": str(e)},
+                            f"Could not validate {check['name']}",
+                            {"check": check["name"]},
                         )
 
             self.validation_results["validation_checks"]["referential_integrity"][
@@ -339,7 +372,7 @@ class DataIntegrityValidator:
             logger.info("✅ Referential integrity validation completed")
 
         except Exception as e:
-            logger.error(f"❌ Referential integrity validation failed: {e}")
+            logger.error("❌ Referential integrity validation failed: [REDACTED]")
             self.validation_results["validation_checks"]["referential_integrity"][
                 "status"
             ] = "failed"
@@ -479,8 +512,8 @@ class DataIntegrityValidator:
                         self._add_issue(
                             "data_consistency",
                             "warning",
-                            f"Could not validate {check['name']}: {str(e)}",
-                            {"check": check["name"], "error": str(e)},
+                            f"Could not validate {check['name']}",
+                            {"check": check["name"]},
                         )
 
             self.validation_results["validation_checks"]["data_consistency"][
@@ -489,7 +522,7 @@ class DataIntegrityValidator:
             logger.info("✅ Data consistency validation completed")
 
         except Exception as e:
-            logger.error(f"❌ Data consistency validation failed: {e}")
+            logger.error("❌ Data consistency validation failed: [REDACTED]")
             self.validation_results["validation_checks"]["data_consistency"][
                 "status"
             ] = "failed"
@@ -574,8 +607,8 @@ class DataIntegrityValidator:
                         self._add_issue(
                             "master_flow_orchestrator",
                             "warning",
-                            f"Could not validate {check['name']}: {str(e)}",
-                            {"check": check["name"], "error": str(e)},
+                            f"Could not validate {check['name']}",
+                            {"check": check["name"]},
                         )
 
                 # Check flow ID format consistency
@@ -605,7 +638,7 @@ class DataIntegrityValidator:
             logger.info("✅ Master Flow Orchestrator validation completed")
 
         except Exception as e:
-            logger.error(f"❌ Master Flow Orchestrator validation failed: {e}")
+            logger.error("❌ Master Flow Orchestrator validation failed: [REDACTED]")
             self.validation_results["validation_checks"]["master_flow_orchestrator"][
                 "status"
             ] = "failed"
@@ -717,7 +750,7 @@ class DataIntegrityValidator:
             logger.info("✅ Flow relationship validation completed")
 
         except Exception as e:
-            logger.error(f"❌ Flow relationship validation failed: {e}")
+            logger.error("❌ Flow relationship validation failed: [REDACTED]")
             self.validation_results["validation_checks"]["flow_relationships"][
                 "status"
             ] = "failed"
@@ -817,7 +850,7 @@ class DataIntegrityValidator:
             logger.info("✅ Audit trail validation completed")
 
         except Exception as e:
-            logger.error(f"❌ Audit trail validation failed: {e}")
+            logger.error("❌ Audit trail validation failed: [REDACTED]")
             self.validation_results["validation_checks"]["audit_trails"][
                 "status"
             ] = "failed"
@@ -925,7 +958,7 @@ class DataIntegrityValidator:
             logger.info("✅ Performance metrics validation completed")
 
         except Exception as e:
-            logger.error(f"❌ Performance metrics validation failed: {e}")
+            logger.error("❌ Performance metrics validation failed: [REDACTED]")
             self.validation_results["validation_checks"]["performance_metrics"][
                 "status"
             ] = "failed"
@@ -1004,7 +1037,7 @@ class DataIntegrityValidator:
                             "orphaned_records",
                             "warning",
                             f"Could not check {check['name']}: {str(e)}",
-                            {"check": check["name"], "error": str(e)},
+                            {"check": check["name"]},
                         )
 
                 if total_orphans == 0:
@@ -1016,7 +1049,7 @@ class DataIntegrityValidator:
             logger.info("✅ Orphaned records detection completed")
 
         except Exception as e:
-            logger.error(f"❌ Orphaned records detection failed: {e}")
+            logger.error("❌ Orphaned records detection failed: [REDACTED]")
             self.validation_results["validation_checks"]["orphaned_records"][
                 "status"
             ] = "failed"
@@ -1093,7 +1126,7 @@ class DataIntegrityValidator:
                             "duplicate_detection",
                             "warning",
                             f"Could not check {check['name']}: {str(e)}",
-                            {"check": check["name"], "error": str(e)},
+                            {"check": check["name"]},
                         )
 
                 if total_duplicates == 0:
@@ -1105,7 +1138,7 @@ class DataIntegrityValidator:
             logger.info("✅ Duplicate detection completed")
 
         except Exception as e:
-            logger.error(f"❌ Duplicate detection failed: {e}")
+            logger.error("❌ Duplicate detection failed: [REDACTED]")
             self.validation_results["validation_checks"]["duplicate_detection"][
                 "status"
             ] = "failed"
@@ -1145,17 +1178,36 @@ class DataIntegrityValidator:
                     },
                 ]
 
+                # Define allowed table/field combinations for security
+                ALLOWED_JSON_CHECKS = {
+                    ("crewai_flow_state_extensions", "flow_configuration"),
+                    ("crewai_flow_state_extensions", "flow_persistence_data"),
+                    ("crewai_flow_state_extensions", "agent_collaboration_log"),
+                }
+
                 for check in json_checks:
+                    table_name = check["table"]
+                    field_name = check["field"]
+
+                    # Security: Validate table/field combination
+                    if (table_name, field_name) not in ALLOWED_JSON_CHECKS:
+                        logger.warning(  # nosec B106 - Only logging operational data not sensitive info
+                            f"Skipping unauthorized check: {table_name}.{field_name}"
+                        )
+                        continue
+
                     try:
-                        # Check for invalid JSON
+                        # Check for invalid JSON - safe after validation
+                        # nosec B608 - Table/field names validated against ALLOWED_JSON_CHECKS allowlist
                         result = await session.execute(
                             sa.text(
-                                f"""
-                            SELECT COUNT(*) FROM {check['table']}
-                            WHERE {check['field']} IS NOT NULL
+                                f"""  # nosec B608 - Table/field names validated against ALLOWED_JSON_CHECKS allowlist
+# nosec B608 - Table/field names validated against ALLOWED_JSON_CHECKS allowlist
+                            SELECT COUNT(*) FROM {table_name}
+                            WHERE {field_name} IS NOT NULL
                             AND NOT (
-                                {check['field']}::text ~ '^[\\s]*[\\[\\{{].*[\\]\\}}][\\s]*$'
-                                OR {check['field']}::text IN ('null', '{{}}', '[]')
+                                {field_name}::text ~ '^[\\s]*[\\[\\{{].*[\\]\\}}][\\s]*$'
+                                OR {field_name}::text IN ('null', '{{}}', '[]')
                             )
                         """
                             )
@@ -1180,8 +1232,8 @@ class DataIntegrityValidator:
                         self._add_issue(
                             "data_types",
                             "warning",
-                            f"Could not validate {check['name']}: {str(e)}",
-                            {"check": check["name"], "error": str(e)},
+                            f"Could not validate {check['name']}",
+                            {"check": check["name"]},
                         )
 
                 # Check UUID format for flow IDs
@@ -1211,20 +1263,22 @@ class DataIntegrityValidator:
             logger.info("✅ Data type validation completed")
 
         except Exception as e:
-            logger.error(f"❌ Data type validation failed: {e}")
+            logger.error("❌ Data type validation failed: [REDACTED]")
             self.validation_results["validation_checks"]["data_types"][
                 "status"
             ] = "failed"
             self._add_issue(
                 "data_types",
                 "critical",
-                f"Data type validation failed: {str(e)}",
-                {"error": str(e)},
+                "Data type validation failed",
+                {},
             )
 
     async def _validate_business_rules(self) -> None:
         """Validate business rules and constraints"""
-        logger.info("🔍 Phase 11: Business rules validation")
+        logger.info(
+            "🔍 Phase 11: Business rules validation"
+        )  # nosec B106 - Only logging operational data not sensitive info
 
         try:
             self.validation_results["validation_checks"]["business_rules"][
@@ -1308,17 +1362,21 @@ class DataIntegrityValidator:
                         self._add_issue(
                             "business_rules",
                             "warning",
-                            f"Could not validate {check['name']}: {str(e)}",
-                            {"check": check["name"], "error": str(e)},
+                            f"Could not validate {check['name']}",
+                            {"check": check["name"]},
                         )
 
             self.validation_results["validation_checks"]["business_rules"][
                 "status"
             ] = "completed"
-            logger.info("✅ Business rules validation completed")
+            logger.info(
+                "✅ Business rules validation completed"
+            )  # nosec B106 - Only logging operational data not sensitive info
 
         except Exception as e:
-            logger.error(f"❌ Business rules validation failed: {e}")
+            logger.error(
+                "❌ Business rules validation failed"
+            )  # nosec B106 - Only logging operational data not sensitive info
             self.validation_results["validation_checks"]["business_rules"][
                 "status"
             ] = "failed"
@@ -1451,7 +1509,7 @@ class DataIntegrityValidator:
                 if status == "completed" and issue_count == 0
                 else "⚠️" if issue_count > 0 else "❌"
             )
-            logger.info(
+            logger.info(  # nosec B106 - Only logging operational data not sensitive info
                 f"  {check_name}: {status_icon} {status} ({issue_count} issues)"
             )
 
@@ -1612,7 +1670,7 @@ class DataIntegrityValidator:
         logger.error("=" * 80)
         logger.error("❌ DATA INTEGRITY VALIDATION FAILED")
         logger.error("=" * 80)
-        logger.error(f"Error: {error}")
+        logger.error("Error: [REDACTED]")
         logger.error(f"Failure report saved: {failure_report_file}")
         logger.error("=" * 80)
 
@@ -1635,7 +1693,9 @@ async def main():
         logger.info("⏹️  Data integrity validation interrupted by user")
         sys.exit(1)
     except Exception as e:
-        logger.error(f"❌ Data integrity validation failed with unexpected error: {e}")
+        logger.error(
+            "❌ Data integrity validation failed with unexpected error: [REDACTED]"
+        )
         sys.exit(1)
 
 
