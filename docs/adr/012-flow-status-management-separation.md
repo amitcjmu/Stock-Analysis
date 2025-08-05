@@ -22,7 +22,7 @@ The current flow status management system has been causing significant architect
 
 - Frontend `useUnifiedDiscoveryFlow` hook calls master flow status endpoint instead of discovery flow status
 - Agent decision framework receives master flow status when it should use child flow status
-- API endpoints `/api/v1/unified-discovery/flow/{flow_id}/status` vs `/api/v1/discovery/flow/status` return different status sources
+- API endpoints `/api/v1/unified-discovery/flow/{flow_id}/status` vs `/api/v1/unified-discovery/flow/status` return different status sources
 - The Eaton Corp discovery flow stuck in "failed" state due to master flow showing "processing" while child flow shows "failed"
 
 ## Decision

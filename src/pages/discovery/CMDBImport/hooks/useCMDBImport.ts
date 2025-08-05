@@ -6,8 +6,8 @@ import { useFileUpload } from './useFileUpload';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  useIncompleteFlowDetectionV2,
-  useFlowResumptionV2
+  useIncompleteFlowDetection,
+  useFlowResumption
 } from '@/hooks/discovery/useFlowOperations';
 import { useFlowDeletion } from '@/hooks/useFlowDeletion';
 import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
@@ -53,8 +53,8 @@ export const useCMDBImport = (): JSX.Element => {
   } = useUnifiedDiscoveryFlow(activeFlowId);
 
   // Flow Management hooks - only run when we have proper authentication context
-  const { data: incompleteFlowsData, isLoading: checkingFlows, refetch: refetchIncompleteFlows } = useIncompleteFlowDetectionV2();
-  const flowResumption = useFlowResumptionV2();
+  const { data: incompleteFlowsData, isLoading: checkingFlows, refetch: refetchIncompleteFlows } = useIncompleteFlowDetection();
+  const flowResumption = useFlowResumption();
   const [deletionState, deletionActions] = useFlowDeletion(
     // onDeletionComplete callback
     () => {

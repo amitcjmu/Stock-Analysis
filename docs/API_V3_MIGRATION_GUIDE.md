@@ -76,8 +76,8 @@ New: https://api.example.com/api/v3
 |-----------|-------------|--------------|
 | Create Flow | `POST /api/v1/unified-discovery/flow/initialize` | `POST /api/v3/discovery-flow/flows` |
 | Get Flow Status | `GET /api/v1/unified-discovery/flow/status/{session_id}` | `GET /api/v3/discovery-flow/flows/{flow_id}/status` |
-| List Flows | `GET /api/v1/discovery-flows` | `GET /api/v3/discovery-flow/flows` |
-| Delete Flow | `DELETE /api/v1/discovery-flows/{session_id}` | `DELETE /api/v3/discovery-flow/flows/{flow_id}` |
+| List Flows | `GET /api/v1/unified-discovery-flows` | `GET /api/v3/discovery-flow/flows` |
+| Delete Flow | `DELETE /api/v1/unified-discovery-flows/{session_id}` | `DELETE /api/v3/discovery-flow/flows/{flow_id}` |
 
 ### Data Import Endpoints
 

@@ -26,7 +26,7 @@ export const useInventoryLogic = (flowId?: string): JSX.Element => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
 
-  // Get asset inventory data from V2 flow (now from assets table)
+  // Get asset inventory data from unified flow (now from assets table)
   const flowAssets = assets || [];
   const summary = { total: flowAssets.length };
   interface Asset {

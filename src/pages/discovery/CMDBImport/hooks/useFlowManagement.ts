@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom';
 import {
-  useIncompleteFlowDetectionV2,
-  useFlowResumptionV2,
-  useBulkFlowOperationsV2
+  useIncompleteFlowDetection,
+  useFlowResumption,
+  useBulkFlowOperations
 } from '@/hooks/discovery/useFlowOperations';
 import { useFlowDeletion } from '@/hooks/useFlowDeletion';
 import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
@@ -17,8 +17,8 @@ export const useFlowManagement = (): JSX.Element => {
   const { toast } = useToast();
 
   // Flow Management State
-  const { data: incompleteFlowsData, isLoading: checkingFlows } = useIncompleteFlowDetectionV2();
-  const flowResumption = useFlowResumptionV2();
+  const { data: incompleteFlowsData, isLoading: checkingFlows } = useIncompleteFlowDetection();
+  const flowResumption = useFlowResumption();
   const [deletionState, deletionActions] = useFlowDeletion(
     // onDeletionComplete callback
     () => {
@@ -35,7 +35,7 @@ export const useFlowManagement = (): JSX.Element => {
       });
     }
   );
-  const bulkFlowOperations = useBulkFlowOperationsV2();
+  const bulkFlowOperations = useBulkFlowOperations();
 
   const [showFlowManager, setShowFlowManager] = useState(false);
   interface ConflictFlow {

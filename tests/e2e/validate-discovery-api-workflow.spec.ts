@@ -67,7 +67,7 @@ test.describe('Discovery Workflow API Validation', () => {
 
     // Step 2: Initialize discovery flow
     console.log('\n📋 Step 2: Initializing discovery flow');
-    const initResponse = await request.post('/api/v1/discovery/flows/initialize', {
+    const initResponse = await request.post('/api/v1/unified-discovery/flows/initialize', {
       headers: {
         'Authorization': `Bearer ${authToken}`,
         'X-Client-Account-ID': CLIENT_ID,
@@ -125,7 +125,7 @@ test.describe('Discovery Workflow API Validation', () => {
 
     // Step 4: Check flow status
     console.log('\n📋 Step 4: Checking flow progress');
-    const statusResponse = await request.get(`/api/v1/discovery/flow/status/${flowId}`, {
+    const statusResponse = await request.get(`/api/v1/unified-discovery/flow/status/${flowId}`, {
       headers: {
         'Authorization': `Bearer ${authToken}`,
         'X-Client-Account-ID': CLIENT_ID,
