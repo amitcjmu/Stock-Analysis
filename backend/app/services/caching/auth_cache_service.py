@@ -32,7 +32,7 @@ from dataclasses import dataclass, asdict
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.core.security.cache_encryption import sanitize_for_logging
+from app.core.security.cache_encryption import sanitize_for_logging, secure_setattr
 from app.services.caching.redis_cache import get_redis_cache
 
 logger = get_logger(__name__)
@@ -478,7 +478,7 @@ class AuthCacheService:
             # Update existing context
             for field, value in updates.items():
                 if hasattr(context, field):
-                    setattr(context, field, value)
+                    secure_setattr(context, field, value)
 
         return await self.set_user_context(context)
 

@@ -22,6 +22,7 @@ from .flow_management import FlowManager
 from .notification_utilities import NotificationUtilities
 from .phase_handlers import PhaseHandlers
 from .state_management import StateManager
+from app.core.security.cache_encryption import secure_setattr
 
 # CrewAI Flow imports - REAL AGENTS ONLY
 logger = logging.getLogger(__name__)
@@ -273,7 +274,7 @@ class UnifiedDiscoveryFlow(Flow):
             executor_instance = executor_class(
                 self._flow_state, self.crew_manager, self.flow_bridge
             )
-            setattr(self, attr_name, executor_instance)
+            secure_setattr(self, attr_name, executor_instance)
 
         logger.info("✅ Phase executors initialized with state and crew manager")
 

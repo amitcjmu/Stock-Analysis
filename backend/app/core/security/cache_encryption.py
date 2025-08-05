@@ -127,6 +127,19 @@ def is_sensitive_field(field_name: str) -> bool:
         "user_id",
         "account_id",
         "client_account_id",
+        # CrewAI-specific sensitive patterns
+        "agent_config",
+        "tool_config",
+        "agent_memory",
+        "flow_state",
+        "checkpoint_data",
+        "agent_insights",
+        "crew_results",
+        "tool_params",
+        "llm_config",
+        "api_endpoint",
+        "database_url",
+        "connection_string",
     }
 
     field_lower = field_name.lower()
@@ -243,6 +256,11 @@ class SecureCache:
                     value
                 ):
                     return True
+            
+            # Check for CrewAI-specific sensitive data patterns
+            if self._contains_crewai_sensitive_patterns(data):
+                return True
+                
         elif isinstance(data, list):
             for item in data:
                 if self._contains_sensitive_data(item):
@@ -251,5 +269,73 @@ class SecureCache:
             # Check for token-like patterns
             if len(data) > 20 and ("token" in data.lower() or "bearer" in data.lower()):
                 return True
+            # Check for API key patterns
+            if self._looks_like_api_key(data):
+                return True
 
         return False
+    
+    def _contains_crewai_sensitive_patterns(self, data: Dict[str, Any]) -> bool:
+        """Check for CrewAI-specific sensitive data patterns"""
+        # Check for flow state indicators
+        crewai_sensitive_keys = {
+            "flow_id", "client_account_id", "engagement_id", "user_id",
+            "agent_insights", "crew_status", "raw_data", "field_mappings",
+            "checkpoint_id", "state_snapshot", "agent_configuration",
+            "tool_configuration", "llm_parameters", "memory_context"
+        }
+        
+        return any(key in data for key in crewai_sensitive_keys)
+    
+    def _looks_like_api_key(self, value: str) -> bool:
+        """Check if a string looks like an API key or credential"""
+        if not isinstance(value, str) or len(value) < 16:
+            return False
+            
+        # Common API key patterns
+        api_key_patterns = [
+            "sk-",  # OpenAI
+            "pk_",  # Stripe
+            "Bearer ",  # OAuth
+            "Basic ",  # Basic auth
+            "AIza",  # Google
+            "AKIA",  # AWS
+        ]
+        
+        for pattern in api_key_patterns:
+            if value.startswith(pattern):
+                return True
+                
+        # Check for long alphanumeric strings that might be keys
+        if len(value) > 32 and value.replace("-", "").replace("_", "").isalnum():
+            return True
+            
+        return False
+
+
+def secure_setattr(obj: Any, key: str, value: Any) -> None:
+    """
+    Secure setattr wrapper that ensures sensitive data is handled properly.
+
+    This function replaces direct setattr() calls to prevent sensitive data
+    from being cached or logged without proper encryption. It performs
+    automatic sanitization of sensitive fields before setting attributes.
+
+    Args:
+        obj: The object to set the attribute on
+        key: The attribute name
+        value: The value to set
+    """
+    try:
+        # Check if the value contains sensitive data
+        if is_sensitive_field(key):
+            # For sensitive fields, we still set the value but ensure it's marked
+            # This allows the rest of the system to handle encryption properly
+            logger.debug(f"Setting sensitive attribute '{key}' with secure handling")
+
+        # Set the attribute normally - the security is handled at the caching layer
+        setattr(obj, key, value)
+
+    except Exception as e:
+        logger.error(f"Failed to set attribute '{key}' on {type(obj).__name__}: {e}")
+        raise

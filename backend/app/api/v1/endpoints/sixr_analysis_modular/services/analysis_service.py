@@ -17,6 +17,7 @@ from app.models.sixr_analysis import SixRAnalysisParameters as SixRParametersMod
 from app.models.sixr_analysis import SixRRecommendation as SixRRecommendationModel
 from app.schemas.sixr_analysis import AnalysisStatus, SixRParameterBase
 from app.services.sixr_engine_modular import SixRDecisionEngine
+from app.core.security.cache_encryption import secure_setattr
 
 logger = logging.getLogger(__name__)
 
@@ -489,7 +490,7 @@ class AnalysisService:
                     if "parameters" in request_data:
                         for key, value in request_data["parameters"].items():
                             if hasattr(current_params, key):
-                                setattr(current_params, key, value)
+                                secure_setattr(current_params, key, value)
 
                     # Convert to parameter object
                     param_dict = {

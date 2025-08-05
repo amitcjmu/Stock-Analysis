@@ -12,6 +12,7 @@ from sqlalchemy.future import select
 from sqlalchemy.sql import Select
 
 from app.core.context import get_current_context
+from app.core.security.cache_encryption import secure_setattr
 
 from .context_aware_repository import ContextAwareRepository
 
@@ -146,7 +147,7 @@ class DeduplicatingRepository(ContextAwareRepository[ModelType]):
 
         # If the model supports flow_id and the repo is scoped, set it.
         if self.flow_id and self.has_flow:
-            setattr(instance, "flow_id", self.flow_id)
+            secure_setattr(instance, "flow_id", self.flow_id)
 
         self.db.add(instance)
         await self.db.commit()

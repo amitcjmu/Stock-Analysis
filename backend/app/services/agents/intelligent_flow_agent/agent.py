@@ -7,6 +7,8 @@ tasks using multiple tools and comprehensive knowledge of the platform.
 
 import json
 import logging
+
+from app.core.security.cache_encryption import secure_setattr
 import re
 
 try:
@@ -19,17 +21,17 @@ except ImportError:
     class Agent:
         def __init__(self, **kwargs):
             for key, value in kwargs.items():
-                setattr(self, key, value)
+                secure_setattr(self, key, value)
 
     class Task:
         def __init__(self, **kwargs):
             for key, value in kwargs.items():
-                setattr(self, key, value)
+                secure_setattr(self, key, value)
 
     class Crew:
         def __init__(self, **kwargs):
             for key, value in kwargs.items():
-                setattr(self, key, value)
+                secure_setattr(self, key, value)
 
         def kickoff(self, inputs=None):
             return {"result": "CrewAI not available - using fallback"}

@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.sql import Select
 
+from app.core.security.cache_encryption import secure_setattr
+
 logger = logging.getLogger(__name__)
 
 # Type variable for model classes
@@ -104,11 +106,11 @@ class ContextAwareRepository(Generic[ModelType]):
         """
         # Set client account if supported and provided
         if self.has_client_account and self.client_account_id:
-            setattr(instance, "client_account_id", self.client_account_id)
+            secure_setattr(instance, "client_account_id", self.client_account_id)
 
         # Set engagement if supported and provided
         if self.has_engagement and self.engagement_id:
-            setattr(instance, "engagement_id", self.engagement_id)
+            secure_setattr(instance, "engagement_id", self.engagement_id)
 
         return instance
 
@@ -225,7 +227,7 @@ class ContextAwareRepository(Generic[ModelType]):
         # Update fields
         for field_name, value in data.items():
             if hasattr(instance, field_name):
-                setattr(instance, field_name, value)
+                secure_setattr(instance, field_name, value)
 
         # Ensure context is maintained
         instance = self._apply_context_to_instance(instance)

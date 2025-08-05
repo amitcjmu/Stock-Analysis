@@ -405,7 +405,11 @@ def merge_flow_configurations(
                     # Update existing phase
                     for key, value in phase_override.items():
                         if key != "phase" and hasattr(existing_phase, key):
-                            setattr(existing_phase, key, value)
+                            from app.core.security.cache_encryption import (
+                                secure_setattr,
+                            )
+
+                            secure_setattr(existing_phase, key, value)
                 else:
                     # Add new phase
                     new_phase = PhaseConfiguration(

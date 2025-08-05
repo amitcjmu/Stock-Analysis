@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from app.core.database import AsyncSessionLocal
+from app.core.security.cache_encryption import secure_setattr
 
 logger = logging.getLogger(__name__)
 
@@ -326,21 +327,21 @@ class CheckpointManager:
                         if format_type == "json":
                             # New JSON format
                             deserialized = json.loads(value["data"])
-                            setattr(state, key, deserialized)
+                            secure_setattr(state, key, deserialized)
                         elif format_type == "str":
                             # String representation
-                            setattr(state, key, value["data"])
+                            secure_setattr(state, key, value["data"])
                         else:
                             # Legacy pickle format - only for backward compatibility
                             deserialized = pickle.loads(
                                 base64.b64decode(value["data"])
                             )  # nosec B301
-                            setattr(state, key, deserialized)
+                            secure_setattr(state, key, deserialized)
                     except Exception:
                         logger.warning(f"Could not deserialize attribute: {key}")
-                        setattr(state, key, None)
+                        secure_setattr(state, key, None)
                 else:
-                    setattr(state, key, value)
+                    secure_setattr(state, key, value)
 
             return state
 

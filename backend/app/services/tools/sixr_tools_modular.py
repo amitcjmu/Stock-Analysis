@@ -6,6 +6,7 @@ Specialized tools for CMDB analysis, parameter scoring, question generation, and
 import logging
 from typing import Any, Dict, List, Optional
 
+from app.core.security.cache_encryption import secure_setattr
 from .sixr_handlers import ToolManager
 
 logger = logging.getLogger(__name__)
@@ -256,7 +257,7 @@ except ImportError as e:
 
             def __init__(self, **kwargs):
                 for key, value in kwargs.items():
-                    setattr(self, key, value)
+                    secure_setattr(self, key, value)
 
         class CMDBAnalysisInput(BaseModel):
             """Input schema for CMDB analysis tool."""
@@ -383,7 +384,7 @@ except ImportError as e:
 
             def __init__(self, **kwargs):
                 for key, value in kwargs.items():
-                    setattr(self, key, value)
+                    secure_setattr(self, key, value)
 
         # Define basic fallback classes without Pydantic
         CMDBAnalysisInput = dict

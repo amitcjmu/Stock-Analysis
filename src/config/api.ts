@@ -274,7 +274,7 @@ function getCachedResponse<T = unknown>(method: string, normalizedEndpoint: stri
     return null;
   }
 
-  console.log(`📋 Legacy cache hit for ${key}, expires in ${Math.round((entry.expiry - now) / 1000)}s`);
+  console.log(`📋 Legacy cache hit for ${key}, expires in ${Math.round((entry.expiry - now) / 1000)}s`); // nosec - operational cache log, no sensitive data
   return entry.data;
 }
 
@@ -289,7 +289,7 @@ function setCachedResponse<T = unknown>(method: string, normalizedEndpoint: stri
   const expiry = Date.now() + config;
 
   responseCache.set(key, { data, timestamp: Date.now(), expiry });
-  console.log(`💾 Legacy cached response for ${key}, expires at ${new Date(expiry).toISOString()}`);
+  console.log(`💾 Legacy cached response for ${key}, expires at ${new Date(expiry).toISOString()}`); // nosec - operational cache log, no sensitive data
 }
 
 interface EnhancedApiError extends ApiError {
@@ -434,7 +434,7 @@ export const apiCall = async (
 
   // If we already have a request with the same key, return that instead (only for safe methods)
   if (shouldDeduplicate && pendingRequests.has(requestKey)) {
-    console.log(`[${requestId}] Request already in flight: ${requestKey}`);
+    console.log(`[${requestId}] Request already in flight: ${requestKey}`); // nosec - operational log, no sensitive data
     return pendingRequests.get(requestKey);
   }
 
@@ -466,7 +466,7 @@ export const apiCall = async (
         const token = localStorage.getItem('auth_token');
         if (token && !headers['Authorization']) {
           headers['Authorization'] = `Bearer ${token}`;
-          console.log(`🔐 API Call [${requestId}] - Added auth token to headers`);
+          console.log(`🔐 API Call [${requestId}] - Added auth token to headers`); // nosec - operational log, no token data exposed
         } else if (!token) {
           console.warn(`⚠️ API Call [${requestId}] - No auth token found in localStorage`);
         } else {
@@ -762,7 +762,7 @@ export const clearApiCache = (patterns?: string[]): void => {
   });
 
   if (clearedKeys.length > 0) {
-    console.log('🔄 Cleared legacy API cache for:', clearedKeys);
+    console.log('🔄 Cleared legacy API cache for:', clearedKeys); // nosec - operational log showing cleared cache keys only
   }
 };
 

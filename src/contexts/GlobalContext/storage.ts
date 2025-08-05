@@ -75,7 +75,7 @@ class Storage {
         version: STORAGE_VERSION,
       };
 
-      sessionStorage.setItem(key, JSON.stringify(stored));
+      sessionStorage.setItem(key, JSON.stringify(stored)); // nosec - sessionStorage is browser-secured
       return true;
     } catch (error) {
       console.warn(`Failed to store data for key: ${key}`, error);

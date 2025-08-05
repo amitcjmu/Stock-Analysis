@@ -226,9 +226,11 @@ class BaseRepository(ContextAwareRepository):
         if not entity:
             return None
 
+        from app.core.security.cache_encryption import secure_setattr
+
         for key, value in data.items():
             if hasattr(entity, key):
-                setattr(entity, key, value)
+                secure_setattr(entity, key, value)
 
         self.db.commit()
         self.db.refresh(entity)

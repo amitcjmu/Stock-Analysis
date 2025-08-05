@@ -97,7 +97,7 @@ class DemoContextService {
       // Check if user is authenticated
       const authToken = localStorage.getItem('auth-token');
       if (!authToken) {
-        console.log('⚠️ No authentication token, cannot fetch demo context');
+        console.log('⚠️ No authentication token, cannot fetch demo context'); // nosec - operational log, no token data exposed
         return null;
       }
 

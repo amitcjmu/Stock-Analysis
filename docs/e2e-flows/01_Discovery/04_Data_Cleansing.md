@@ -7,7 +7,7 @@ This document provides a complete, end-to-end data flow analysis for the `Data C
 
 **Core Architecture:**
 *   **Orchestrator-Driven:** The entire phase is managed by the `MasterFlowOrchestrator`. The frontend's only role is to send the signal to begin this phase.
-*   **Agentic Enrichment First:** The primary strategy is not just to "clean" data but to perform **agentic asset enrichment**, where a specialized crew of agents proactively enhances the data. A simpler "cleansing" crew is only used as a fallback.
+	*   **Agentic Enrichment Only (Fail-Fast):** The system exclusively uses a sophisticated crew of agents for asset enrichment. There is no fallback to a simpler or rule-based cleansing mechanism. This design choice ensures that only high-quality, AI-driven results are produced, and it avoids the complexity and potential for misleading results from a separate fallback system.
 *   **State-Based Results:** All results, including quality metrics and enriched data, are stored directly within the flow's state object in the database, not in separate tables.
 
 ---
@@ -42,9 +42,8 @@ When the orchestrator transitions the flow to the `data_cleansing` phase, it tri
     *   The executor's first choice is to call the `enrich_assets_with_agentic_intelligence` service.
     *   This service converts the raw data records from the previous phase into structured asset profiles.
     *   It then deploys a specialized crew of agents (e.g., **Data Validation Expert**, **Data Standardization Specialist**) to analyze and enrich these profiles in parallel. The agents fill in missing information, standardize values, and calculate quality scores.
-3.  **Fallback Strategy: Basic Cleansing Crew:**
-    *   If the primary agentic enrichment process fails for any reason (e.g., LLM timeout, data format issue), the executor has a fallback mechanism.
-    *   It will then instantiate and run a simpler `data_cleansing` crew, which performs more basic validation and standardization without the deep enrichment.
+3.  **Error Handling: Fail-Fast:**
+    *   If the primary agentic enrichment process fails for any reason (e.g., LLM timeout, data format issue), the executor is designed to **fail fast**. It will raise an exception and halt the flow, preventing the system from proceeding with low-quality data.
 4.  **State Persistence:**
     *   The results of the process (either the enriched assets or the cleansed data) are saved back into the `crewai_flow_state_extensions` table as part of the flow's JSON state object.
     *   Specifically, the results are stored in attributes like `cleaned_data` and `data_quality_metrics`. There is no separate `data_quality_issues` table.
@@ -73,5 +72,5 @@ When the orchestrator transitions the flow to the `data_cleansing` phase, it tri
 | Stage      | Potential Failure Point                                                                                                      | Diagnostic Checks                                                                                                                                                                                                                                                                        |
 |------------|------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Frontend** | **"Trigger" button is disabled or does not advance:** The frontend state does not recognize that the previous phase (`attribute_mapping`) is complete. | **React DevTools:** Inspect the `flowState` object provided by the `useUnifiedDiscoveryFlow` hook. Check the `current_phase` and `phase_completion` properties to ensure the flow is ready to be advanced.                                                              |
-| **Backend**  | **Agentic Enrichment Fails:** The primary enrichment crew fails, and the system does not correctly fall back to the basic cleansing crew. <br/> **Incorrect Results:** The agents produce incorrect or poorly formatted data. | **Docker Logs:** Monitor `migration_backend` logs for errors from the `DataCleansingExecutor` or the `enrich_assets_with_agentic_intelligence` service. Look for the "Falling back to basic crew processing" warning to see if the fallback was triggered. |
+| **Backend**  | **Agentic Enrichment Fails:** The primary enrichment crew fails. <br/> **Incorrect Results:** The agents produce incorrect or poorly formatted data. | **Docker Logs:** Monitor `migration_backend` logs for errors from the `DataCleansingExecutor` or the `enrich_assets_with_agentic_intelligence` service. The system is designed to fail fast, so any error here should be investigated as a critical issue. |
 | **Database** | **State Object Not Updating:** The `state` JSON object in the `crewai_flow_state_extensions` table is not being updated with the `cleaned_data`. | **Direct DB Query:** Connect to the database and inspect the `state` column for the `flow_id`: `SELECT state -> 'cleaned_data' FROM crewai_flow_state_extensions WHERE flow_id = 'your-flow-id';`. Check if the JSON is present and correctly structured. | 

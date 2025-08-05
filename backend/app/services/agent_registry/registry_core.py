@@ -9,6 +9,7 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from app.core.security.cache_encryption import secure_setattr
 from .base import AgentPhase, AgentRegistration, AgentStatus
 
 logger = logging.getLogger(__name__)
@@ -62,7 +63,7 @@ class AgentRegistryCore:
             # Update metrics if provided
             for key, value in kwargs.items():
                 if hasattr(agent, key):
-                    setattr(agent, key, value)
+                    secure_setattr(agent, key, value)
 
     def get_phase_summary(self) -> Dict[str, Dict[str, int]]:
         """Get summary of agents by phase and status"""

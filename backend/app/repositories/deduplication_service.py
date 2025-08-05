@@ -10,6 +10,8 @@ from sqlalchemy import and_, desc, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from app.core.security.cache_encryption import secure_setattr
+
 logger = logging.getLogger(__name__)
 
 # Type variable for model classes
@@ -149,7 +151,7 @@ class DeduplicationService:
             instance = model_class()
             for column in model_class.__table__.columns:
                 if hasattr(row, column.name):
-                    setattr(instance, column.name, getattr(row, column.name))
+                    secure_setattr(instance, column.name, getattr(row, column.name))
             records.append(instance)
 
         logger.info(
@@ -342,7 +344,7 @@ class DeduplicationService:
             instance = model_class()
             for column in model_class.__table__.columns:
                 if hasattr(row, column.name):
-                    setattr(instance, column.name, getattr(row, column.name))
+                    secure_setattr(instance, column.name, getattr(row, column.name))
             records.append(instance)
 
         logger.info(

@@ -253,16 +253,20 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
                 AssetDependency.depends_on_asset_id == server_id,
             )
         )
-        
+
         # Apply context filtering through joined Asset tables
         existing_query = existing_query.join(
             Asset, Asset.id == AssetDependency.asset_id
         )
         if self.client_account_id:
-            existing_query = existing_query.where(Asset.client_account_id == self.client_account_id)
+            existing_query = existing_query.where(
+                Asset.client_account_id == self.client_account_id
+            )
         if self.engagement_id:
-            existing_query = existing_query.where(Asset.engagement_id == self.engagement_id)
-        
+            existing_query = existing_query.where(
+                Asset.engagement_id == self.engagement_id
+            )
+
         existing = await self.db.execute(existing_query)
 
         # Apply context filtering through joined Asset tables

@@ -10,6 +10,8 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security.cache_encryption import secure_setattr
+
 logger = logging.getLogger(__name__)
 
 
@@ -100,7 +102,7 @@ class ParameterManagementHandler:
             # Update parameters
             for param_name, param_value in parameter_updates.items():
                 if hasattr(current_params, param_name):
-                    setattr(current_params, param_name, param_value)
+                    secure_setattr(current_params, param_name, param_value)
 
             current_params.updated_by = "system"
             await db.commit()
@@ -238,7 +240,7 @@ class ParameterManagementHandler:
                 if current_params:
                     for param_name, param_value in parameter_updates.items():
                         if hasattr(current_params, param_name):
-                            setattr(current_params, param_name, param_value)
+                            secure_setattr(current_params, param_name, param_value)
 
                     current_params.updated_by = "system"
                     await db.commit()

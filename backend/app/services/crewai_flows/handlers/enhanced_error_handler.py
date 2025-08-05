@@ -10,6 +10,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, List
 
 from ..monitoring.flow_health_monitor import flow_health_monitor
+from app.core.security.cache_encryption import secure_setattr
 from ..persistence.checkpoint_manager import checkpoint_manager
 from ..utils.retry_utils import (
     ErrorCategory,
@@ -240,7 +241,7 @@ class EnhancedErrorHandler:
                 # Copy restored attributes to current state
                 for attr in ["raw_data", "field_mappings", "cleaned_data"]:
                     if hasattr(restored_state, attr):
-                        setattr(state, attr, getattr(restored_state, attr))
+                        secure_setattr(state, attr, getattr(restored_state, attr))
 
                 logger.info(f"✅ Restored from checkpoint: {checkpoint['phase']}")
 

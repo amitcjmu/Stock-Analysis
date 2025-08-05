@@ -75,6 +75,7 @@ from app.models.assessment_flow import (
 )
 from app.services.crewai_flows.flow_state_manager import FlowStateManager
 from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
+from app.core.security.cache_encryption import secure_setattr
 
 
 class FlowContext:
@@ -228,7 +229,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
             if CREWAI_FLOW_AVAILABLE and hasattr(super(), "state"):
                 # Copy attributes from initial state to managed state
                 for key, value in initial_state.__dict__.items():
-                    setattr(self.state, key, value)
+                    secure_setattr(self.state, key, value)
             else:
                 self.state = initial_state
 

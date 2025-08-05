@@ -16,6 +16,7 @@ from app.schemas.admin_schemas import (
     ClientAccountResponse,
     ClientAccountUpdate,
 )
+from app.core.security.cache_encryption import secure_setattr
 
 # Import models with fallback
 try:
@@ -201,7 +202,7 @@ class ClientCRUDHandler:
                 ):
                     value = update_dict[frontend_field]
                     if hasattr(client, db_field):
-                        setattr(client, db_field, value)
+                        secure_setattr(client, db_field, value)
 
             # Handle complex fields that need special processing
             if "business_objectives" in update_dict:

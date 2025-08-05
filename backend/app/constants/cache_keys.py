@@ -36,6 +36,10 @@ class CacheKeyType(Enum):
     IMPORT_DATA = "import_data"
     ADMIN_DATA = "admin_data"
     AGENT_RESULTS = "agent_results"
+    AGENT_CONFIG = "agent_config"
+    CREWAI_STATE = "crewai_state"
+    AGENT_TOOLS = "agent_tools"
+    FLOW_CHECKPOINTS = "flow_checkpoints"
     STATS = "stats"
 
 
@@ -93,7 +97,12 @@ CACHE_TYPE_PATTERNS: Dict[str, CacheKeyType] = {
     "asset:*": CacheKeyType.ASSET_DATA,
     "import:*": CacheKeyType.IMPORT_DATA,
     "admin:*": CacheKeyType.ADMIN_DATA,
-    "agent:*": CacheKeyType.AGENT_RESULTS,
+    "agent:*:results": CacheKeyType.AGENT_RESULTS,
+    "agent:*:config": CacheKeyType.AGENT_CONFIG,
+    "agent:*:tools": CacheKeyType.AGENT_TOOLS,
+    "crewai:*:state": CacheKeyType.CREWAI_STATE,
+    "crewai:*:checkpoint": CacheKeyType.FLOW_CHECKPOINTS,
+    "crew:*:state": CacheKeyType.CREWAI_STATE,
     "stats:*": CacheKeyType.STATS,
     "analytics:*": CacheKeyType.STATS,
 }
@@ -409,6 +418,68 @@ class CacheKeys:
         return f"{CACHE_VERSION}:client:{client_id}:crew:{crew_id}:flow:{flow_id}:state"
 
     # ========================================
+    # CREWAI SECURITY-SENSITIVE CACHING
+    # ========================================
+
+    @staticmethod
+    def agent_configuration(
+        agent_id: str, agent_type: str, client_id: str
+    ) -> str:
+        """
+        Cache key for agent configuration (REQUIRES ENCRYPTION).
+        Contains sensitive tool configurations and API keys.
+        TTL: 1 hour
+        Invalidation: on agent config updates
+        """
+        return f"{CACHE_VERSION}:client:{client_id}:agent:{agent_type}:config:{agent_id}"
+
+    @staticmethod
+    def agent_tool_config(
+        agent_id: str, tool_name: str, client_id: str
+    ) -> str:
+        """
+        Cache key for agent tool configuration (REQUIRES ENCRYPTION).
+        Contains API keys, credentials, and sensitive parameters.
+        TTL: 30 minutes
+        Invalidation: on tool config updates
+        """
+        return f"{CACHE_VERSION}:client:{client_id}:agent:{agent_id}:tool:{tool_name}:config"
+
+    @staticmethod
+    def flow_checkpoint(
+        flow_id: str, checkpoint_id: str, client_id: str, engagement_id: str
+    ) -> str:
+        """
+        Cache key for flow checkpoints (REQUIRES ENCRYPTION).
+        TTL: 2 hours, Invalidation: on checkpoint updates
+        """
+        return f"{CACHE_VERSION}:client:{client_id}:engagement:{engagement_id}:flow:{flow_id}:checkpoint:{checkpoint_id}"
+
+    @staticmethod
+    def agent_memory_context(
+        agent_id: str, context_key: str, client_id: str
+    ) -> str:
+        """
+        Cache key for agent memory and context (REQUIRES ENCRYPTION).
+        Contains learned patterns and sensitive analysis data.
+        TTL: 4 hours
+        Invalidation: on memory updates
+        """
+        return f"{CACHE_VERSION}:client:{client_id}:agent:{agent_id}:memory:{context_key}"
+
+    @staticmethod
+    def crewai_flow_state(
+        flow_id: str, phase: str, client_id: str, engagement_id: str
+    ) -> str:
+        """
+        Cache key for complete CrewAI flow state (REQUIRES ENCRYPTION).
+        Contains all flow data including sensitive tenant information.
+        TTL: 5 minutes
+        Invalidation: on flow state changes
+        """
+        return f"{CACHE_VERSION}:client:{client_id}:engagement:{engagement_id}:crewai:flow:{flow_id}:state:{phase}"
+
+    # ========================================
     # CACHE PATTERN UTILITIES
     # ========================================
 
@@ -599,10 +670,29 @@ class CacheKeys:
             CacheKeyType.IMPORT_DATA: 300,  # 5 minutes
             CacheKeyType.ADMIN_DATA: 300,  # 5 minutes
             CacheKeyType.AGENT_RESULTS: 1800,  # 30 minutes (default for unknown agents)
+            CacheKeyType.AGENT_CONFIG: 3600,  # 1 hour (sensitive, encrypted)
+            CacheKeyType.CREWAI_STATE: 300,  # 5 minutes (sensitive, encrypted)
+            CacheKeyType.AGENT_TOOLS: 1800,  # 30 minutes (sensitive, encrypted)
+            CacheKeyType.FLOW_CHECKPOINTS: 7200,  # 2 hours (expensive to regenerate)
             CacheKeyType.STATS: 1800,  # 30 minutes
         }
 
-        return ttl_map.get(cache_type, 600)  # Default 10 minutes
+        return ttl_map.get(cache_type, 600)  # Default 10 min
+
+    @staticmethod
+    def agent_result(
+        agent_id: str,
+        agent_name: str,
+        flow_id: str,
+        client_account_id: str,
+        engagement_id: str,
+    ) -> str:
+        """
+        Cache key for agent execution results.
+        TTL: varies by agent type (see AgentCacheStrategy)
+        Invalidation: on agent re-execution, flow reset
+        """
+        return f"{CACHE_VERSION}:client:{client_account_id}:engagement:{engagement_id}:agent:{agent_name}:flow:{flow_id}:result:{agent_id}"
 
     @staticmethod
     def agent_result_with_ttl(
@@ -648,6 +738,11 @@ class AgentCacheStrategy:
     }
 
     @classmethod
+    def get_agent_ttl(cls, agent_type: str) -> int:
+        """Alias for get_ttl_for_agent for backward compatibility"""
+        return cls.get_ttl_for_agent(agent_type)
+
+    @classmethod
     def get_ttl_for_agent(cls, agent_type: str) -> int:
         """
         Get recommended TTL for specific agent results.
@@ -689,5 +784,102 @@ class AgentCacheStrategy:
         return agent_type in expensive_agents
 
 
+class SensitiveDataMarkers:
+    """
+    Markers to identify cache keys that contain sensitive data requiring encryption.
+    Used by SecureCache to automatically encrypt/decrypt sensitive data.
+    """
+
+    # Cache key patterns that always contain sensitive data
+    SENSITIVE_PATTERNS = {
+        ":agent:",
+        ":crewai:",
+        ":flow:",
+        ":user:",
+        ":client:",
+        "config",
+        "tool",
+        "memory",
+        "state",
+        "checkpoint",
+        "context",
+        "settings",
+    }
+
+    # Cache key segments that indicate sensitive data
+    SENSITIVE_SEGMENTS = {
+        "config",
+        "credential",
+        "token",
+        "secret",
+        "memory",
+        "checkpoint",
+        "context",
+        "settings",
+    }
+
+    @classmethod
+    def requires_encryption(cls, cache_key: str) -> bool:
+        """
+        Determine if a cache key contains sensitive data requiring encryption.
+
+        Args:
+            cache_key: The cache key to analyze
+
+        Returns:
+            True if the key contains sensitive data
+        """
+        # Check against sensitive patterns
+        for pattern in cls.SENSITIVE_PATTERNS:
+            if pattern in cache_key:
+                return True
+
+        # Check for sensitive segments
+        key_lower = cache_key.lower()
+        for segment in cls.SENSITIVE_SEGMENTS:
+            if f":{segment}:" in key_lower or key_lower.endswith(f":{segment}"):
+                return True
+
+        return False
+
+    @classmethod
+    def get_encryption_context(cls, cache_key: str) -> Dict[str, str]:
+        """
+        Extract encryption context from cache key for additional security.
+
+        Args:
+            cache_key: The cache key to analyze
+
+        Returns:
+            Dictionary with encryption context metadata
+        """
+        parts = cache_key.split(":")
+        context = {}
+
+        # Extract tenant context for encryption key derivation
+        if "client:" in cache_key:
+            client_idx = parts.index("client") if "client" in parts else -1
+            if client_idx >= 0 and client_idx + 1 < len(parts):
+                context["client_id"] = parts[client_idx + 1]
+
+        if "engagement:" in cache_key:
+            engagement_idx = parts.index("engagement") if "engagement" in parts else -1
+            if engagement_idx >= 0 and engagement_idx + 1 < len(parts):
+                context["engagement_id"] = parts[engagement_idx + 1]
+
+        if "user:" in cache_key:
+            user_idx = parts.index("user") if "user" in parts else -1
+            if user_idx >= 0 and user_idx + 1 < len(parts):
+                context["user_id"] = parts[user_idx + 1]
+
+        return context
+
+
 # Export commonly used cache key generators for easy imports
-__all__ = ["CACHE_VERSION", "CacheKeys", "CacheKeyType", "AgentCacheStrategy"]
+__all__ = [
+    "CACHE_VERSION", 
+    "CacheKeys", 
+    "CacheKeyType", 
+    "AgentCacheStrategy",
+    "SensitiveDataMarkers"
+]

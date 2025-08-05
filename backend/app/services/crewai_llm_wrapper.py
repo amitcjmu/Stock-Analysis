@@ -9,6 +9,7 @@ from functools import wraps
 
 from app.services.llm_config import LLM
 from app.services.llm_rate_limiter import llm_rate_limiter
+from app.core.security.cache_encryption import secure_setattr
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class RateLimitedLLM:
         # Copy all attributes from base LLM
         for attr in dir(base_llm):
             if not attr.startswith("_") and not hasattr(self, attr):
-                setattr(self, attr, getattr(base_llm, attr))
+                secure_setattr(self, attr, getattr(base_llm, attr))
 
     def __getattr__(self, name):
         """Delegate attribute access to base LLM"""

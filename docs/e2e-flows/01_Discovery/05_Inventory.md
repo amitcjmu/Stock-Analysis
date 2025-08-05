@@ -8,7 +8,7 @@ This document provides a complete, end-to-end data flow analysis for the `Asset 
 **Core Architecture:**
 *   **State-Driven UI:** The frontend is a direct reflection of the flow's state. The entire asset inventory is read from the `asset_inventory` key within the flow's main state object. There are no separate API calls to fetch assets.
 *   **Orchestrated Agent Execution:** The inventory is built by a specialized CrewAI crew, which is executed as a distinct phase (`inventory`) within the `MasterFlowOrchestrator`.
-*   **Resilient Fallback:** The backend includes a non-AI fallback mechanism that performs a simple, rule-based asset classification if the primary CrewAI agents fail, ensuring the flow can continue.
+*   **Fail-Fast Execution:** The backend is designed to fail fast. If the primary CrewAI agents fail, the process halts. There is no fallback to a non-AI or rule-based classification system.
 
 ---
 
@@ -45,7 +45,7 @@ The inventory is built by the `AssetInventoryExecutor`, which is triggered when 
         *   **Application Discovery Expert:** Identifies software and applications.
         *   **Device Classification Expert:** Handles other network devices.
         *   **Inventory Manager:** Consolidates the findings from all agents into a single, unified asset list.
-3.  **Fallback Execution:** If the `inventory` crew fails for any reason (e.g., LLM timeout), the `execute_fallback` method is triggered. This method performs a simple, rule-based classification based on keywords in the data, ensuring a basic inventory is always produced.
+3.  **Error Handling: Fail-Fast:** If the `inventory` crew fails for any reason (e.g., LLM timeout), the `execute_fallback` method is triggered, which raises a `RuntimeError` and halts the flow. This prevents the system from continuing with an incomplete or inaccurate inventory.
 4.  **State Persistence:**
     *   The `_store_results` method takes the final asset list (either from the crew or the fallback).
     *   It saves this entire list as a JSON object to the `asset_inventory` key within the main `state` object of the flow.
@@ -73,5 +73,5 @@ The inventory is built by the `AssetInventoryExecutor`, which is triggered when 
 | Stage      | Potential Failure Point                                                                                                                                  | Diagnostic Checks                                                                                                                                                                                                                                                                        |
 |------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Frontend** | **Inventory is Empty or Stale:** The page loads, but the asset table is empty. This means the `asset_inventory` key in the flow's state object is missing or empty. | **React DevTools:** Inspect the `flowState` object from the `useUnifiedDiscoveryFlow` hook. Does the `asset_inventory` key exist? Does it contain an array of assets?                                                                                                       |
-| **Backend**  | **Incomplete Inventory:** The inventory is missing assets or has incorrect classifications. This suggests an issue with one of the agents in the `inventory` crew. | **Docker Logs:** Check `migration_backend` logs for errors from the `AssetInventoryExecutor`. Look for the "using fallback" warning to see if the main crew failed.                                                                                                    |
+| **Backend**  | **Incomplete Inventory:** The inventory is missing assets or has incorrect classifications. This suggests an issue with one of the agents in the `inventory` crew. | **Docker Logs:** Check `migration_backend` logs for errors from the `AssetInventoryExecutor`. The system is designed to fail fast, so any error here should be investigated as a critical issue. |
 | **Database** | **State Not Updating:** The `asset_inventory` data is not being correctly saved to the flow's state in the database.                                          | **Direct DB Query:** Connect to the database and inspect the `state` column for your `flow_id`: `SELECT state -> 'asset_inventory' FROM crewai_flow_state_extensions WHERE flow_id = 'your-flow-id';`. Verify that the JSON data is present and structured correctly. | 

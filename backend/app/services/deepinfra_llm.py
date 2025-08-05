@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
+from app.core.security.cache_encryption import secure_setattr
+
 try:
     from langchain_core.callbacks.manager import CallbackManagerForLLMRun
     from langchain_core.language_models.llms import LLM
@@ -191,7 +193,7 @@ class DeepInfraLlama4LLM(LLM if LANGCHAIN_AVAILABLE else object):
     def __setstate__(self, state: Dict[str, Any]) -> None:
         """Custom pickle deserialization."""
         for key, value in state.items():
-            setattr(self, key, value)
+            secure_setattr(self, key, value)
 
 
 def create_deepinfra_llm(**kwargs) -> DeepInfraLlama4LLM:

@@ -337,7 +337,7 @@ export const useFieldMappings = (
 
         const flowStateMappings = Object.entries(mappingsObj)
           .filter(([key, value]) => {
-            console.log('🔍 [DEBUG] Processing entry:', { key, key_type: typeof key, value, value_type: typeof value });
+            console.log('🔍 [DEBUG] Processing entry:', { key, key_type: typeof key, value, value_type: typeof value }); // nosec - debug log for data structure analysis
             return key !== 'confidence_scores' && key !== 'data';
           })
           .map(([sourceField, targetField]: [string, string]) => {

@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.sql import Select
 
+from app.core.security.cache_encryption import secure_setattr
+
 logger = logging.getLogger(__name__)
 
 # Type variable for model classes
@@ -365,7 +367,7 @@ class EnhancedContextRepository(Generic[ModelType]):
         # Update fields
         for field_name, value in data.items():
             if hasattr(instance, field_name):
-                setattr(instance, field_name, value)
+                secure_setattr(instance, field_name, value)
 
         await self.db.commit()
         await self.db.refresh(instance)
@@ -397,18 +399,18 @@ class EnhancedContextRepository(Generic[ModelType]):
 
         # Perform soft delete
         if self.has_is_deleted:
-            setattr(instance, "is_deleted", True)
+            secure_setattr(instance, "is_deleted", True)
             if hasattr(instance, "deleted_at"):
                 from datetime import datetime
 
-                setattr(instance, "deleted_at", datetime.utcnow())
+                secure_setattr(instance, "deleted_at", datetime.utcnow())
             if hasattr(instance, "deleted_by"):
-                setattr(instance, "deleted_by", self.user_id)
+                secure_setattr(instance, "deleted_by", self.user_id)
             if hasattr(instance, "delete_reason"):
-                setattr(instance, "delete_reason", reason)
+                secure_setattr(instance, "delete_reason", reason)
         elif self.has_is_active:
             # Fallback to marking inactive
-            setattr(instance, "is_active", False)
+            secure_setattr(instance, "is_active", False)
 
         await self.db.commit()
 
@@ -455,14 +457,16 @@ class EnhancedContextRepository(Generic[ModelType]):
         # Set client account if supported and user has scope
         if self.has_client_account and user_profile.scope_client_account_id:
             if user_profile.data_scope in [DataScope.CLIENT, DataScope.ENGAGEMENT]:
-                setattr(
+                secure_setattr(
                     instance, "client_account_id", user_profile.scope_client_account_id
                 )
 
         # Set engagement if supported and user has scope
         if self.has_engagement and user_profile.scope_engagement_id:
             if user_profile.data_scope == DataScope.ENGAGEMENT:
-                setattr(instance, "engagement_id", user_profile.scope_engagement_id)
+                secure_setattr(
+                    instance, "engagement_id", user_profile.scope_engagement_id
+                )
 
         return instance
 

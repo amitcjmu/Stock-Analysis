@@ -7,6 +7,8 @@ implementations when CrewAI is not available.
 
 import logging
 
+from app.core.security.cache_encryption import secure_setattr
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -23,21 +25,21 @@ except ImportError:
 
         def __init__(self, **kwargs):
             for key, value in kwargs.items():
-                setattr(self, key, value)
+                secure_setattr(self, key, value)
 
     class Task:
         """Fallback Task class when CrewAI is not available"""
 
         def __init__(self, **kwargs):
             for key, value in kwargs.items():
-                setattr(self, key, value)
+                secure_setattr(self, key, value)
 
     class Crew:
         """Fallback Crew class when CrewAI is not available"""
 
         def __init__(self, **kwargs):
             for key, value in kwargs.items():
-                setattr(self, key, value)
+                secure_setattr(self, key, value)
 
         def kickoff(self, inputs=None):
             return {"result": "CrewAI not available - using fallback"}
@@ -55,7 +57,7 @@ except ImportError:
 
         def __init__(self, **kwargs):
             for key, value in kwargs.items():
-                setattr(self, key, value)
+                secure_setattr(self, key, value)
 
         def _run(self, *args, **kwargs):
             return "CrewAI not available - using fallback"

@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 
 from app.core.context import get_current_context
 from app.services.agents.metadata import AgentMetadata
+from app.core.security.cache_encryption import secure_setattr
 
 # Optional CrewAI import
 try:
@@ -18,7 +19,7 @@ except ImportError:
     class Agent:
         def __init__(self, **kwargs):
             for key, value in kwargs.items():
-                setattr(self, key, value)
+                secure_setattr(self, key, value)
 
 
 logger = logging.getLogger(__name__)

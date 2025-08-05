@@ -7,6 +7,8 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.core.security.cache_encryption import secure_setattr
+
 try:
     from sqlalchemy import delete, select, update
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -162,7 +164,7 @@ async def update_migration(
     # Update fields
     update_data = migration_data.dict(exclude_unset=True)
     for field, value in update_data.items():
-        setattr(migration, field, value)
+        secure_setattr(migration, field, value)
 
     await db.commit()
     await db.refresh(migration)

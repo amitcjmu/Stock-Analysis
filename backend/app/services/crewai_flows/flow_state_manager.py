@@ -17,6 +17,7 @@ from .persistence.postgres_store import (
     PostgresFlowStateStore,
     StateValidationError,
 )
+from .persistence.secure_checkpoint_manager import SecureCheckpointManager
 from .persistence.state_recovery import FlowStateRecovery, StateRecoveryError
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,8 @@ class FlowStateManager:
         self.store = PostgresFlowStateStore(db, context)
         self.validator = FlowStateValidator()
         self.recovery = FlowStateRecovery(db, context)
+        # Use secure checkpoint manager instead of insecure one
+        self.secure_checkpoint_manager = SecureCheckpointManager(context)
 
     async def create_flow_state(
         self, flow_id: str, initial_data: Dict[str, Any]
@@ -90,9 +93,13 @@ class FlowStateManager:
                 flow_id=flow_id, state=flow_state, phase="initialization"
             )
 
-            # Create initial checkpoint
-            checkpoint_id = await self.store.create_checkpoint(
-                flow_id, "initialization"
+            # Create initial secure checkpoint
+            checkpoint_id = await self.secure_checkpoint_manager.create_checkpoint(
+                flow_id=flow_id,
+                phase="initialization",
+                state=flow_state,
+                metadata={"initial_creation": True},
+                context=self.context,
             )
 
             logger.info(f"✅ Flow state created: {flow_id}")
@@ -290,8 +297,14 @@ class FlowStateManager:
                     f"⚡ Forced phase transition allowed: {current_phase} -> {new_phase}"
                 )
 
-            # Create checkpoint before transition
-            checkpoint_id = await self.store.create_checkpoint(flow_id, current_phase)
+            # Create secure checkpoint before transition
+            checkpoint_id = await self.secure_checkpoint_manager.create_checkpoint(
+                flow_id=flow_id,
+                phase=current_phase,
+                state=current_state,
+                metadata={"transition_from": current_phase, "transition_to": new_phase},
+                context=self.context,
+            )
 
             # Update state for new phase
             current_state["current_phase"] = new_phase
@@ -432,8 +445,14 @@ class FlowStateManager:
                 }
             )
 
-            # Create checkpoint after completion
-            checkpoint_id = await self.store.create_checkpoint(flow_id, phase)
+            # Create secure checkpoint after completion
+            checkpoint_id = await self.secure_checkpoint_manager.create_checkpoint(
+                flow_id=flow_id,
+                phase=phase,
+                state=current_state,
+                metadata={"phase_completed": True, "results_summary": results.get("status")},
+                context=self.context,
+            )
 
             # Save updated state
             await self.store.save_state(

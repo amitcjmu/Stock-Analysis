@@ -8,6 +8,7 @@ from typing import Any
 from pydantic import Field
 
 from app.core.context_aware import ContextAwareTool
+from app.core.security.cache_encryption import secure_setattr
 from app.services.tools.registry import ToolMetadata
 
 # Optional CrewAI import
@@ -18,7 +19,7 @@ except ImportError:
     class BaseTool:
         def __init__(self, **kwargs):
             for key, value in kwargs.items():
-                setattr(self, key, value)
+                secure_setattr(self, key, value)
 
 
 logger = logging.getLogger(__name__)

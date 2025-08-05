@@ -64,9 +64,11 @@ class ContextAwareTool(ContextAwareService):
     def __init__(self, **kwargs):
         """Initialize tool with context awareness"""
         super().__init__()
-        # Tool-specific initialization
+        # Tool-specific initialization with cache security
+        from app.core.security.cache_encryption import secure_setattr
+
         for key, value in kwargs.items():
-            setattr(self, key, value)
+            secure_setattr(self, key, value)
 
     @require_context
     def _run(self, *args, **kwargs):

@@ -9,6 +9,7 @@ This document provides a complete, end-to-end data flow analysis for the `Depend
 *   **Parallel Execution:** The Dependency Analysis and Technical Debt Analysis phases are executed **in parallel** by the `CrewCoordinator` to optimize performance. The results are stored in the flow's state as they become available.
 *   **State-Driven Visualization:** The frontend dependency graph is a direct visualization of the `dependencies` object stored within the flow's main state. The frontend does not fetch dependency data separately.
 *   **Orchestrated Agent Execution:** A dedicated `DependencyAnalysisExecutor` manages the execution of a specialized CrewAI crew to perform the analysis.
+*   **Fail-Fast Execution:** The backend is designed to fail fast. If the primary CrewAI agents fail, the process halts. There is no fallback to a non-AI or rule-based classification system.
 
 ---
 

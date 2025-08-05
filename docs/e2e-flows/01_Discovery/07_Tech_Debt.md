@@ -9,6 +9,7 @@ This document provides a complete, end-to-end data flow analysis for the `Techni
 *   **Parallel Execution:** This phase is executed **in parallel** with the Dependency Analysis phase to optimize performance. The `MasterFlowOrchestrator` triggers both via the `CrewCoordinator` after the Asset Inventory phase is complete.
 *   **State-Driven UI:** The frontend is a direct reflection of the flow's state. All technical debt data is read from the `technical_debt` key within the flow's main state object.
 *   **Orchestrated Agent Execution:** A dedicated `TechDebtExecutor` manages the execution of a specialized CrewAI crew to perform the analysis.
+*   **Fail-Fast Execution:** The backend is designed to fail fast. If the primary CrewAI agents fail, the process halts. There is no fallback to a non-AI or rule-based classification system.
 
 ---
 

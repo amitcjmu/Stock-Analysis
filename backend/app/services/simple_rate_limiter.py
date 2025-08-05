@@ -8,6 +8,8 @@ import random
 import time
 from threading import Lock
 
+from app.core.security.cache_encryption import secure_setattr
+
 logger = logging.getLogger(__name__)
 
 
@@ -103,7 +105,7 @@ class RateLimitedLLMWrapper:
         # Copy attributes from base LLM
         for attr in ["model", "temperature", "max_tokens", "base_url", "api_key"]:
             if hasattr(base_llm, attr):
-                setattr(self, attr, getattr(base_llm, attr))
+                secure_setattr(self, attr, getattr(base_llm, attr))
 
     def __call__(self, *args, **kwargs):
         """

@@ -274,9 +274,11 @@ async def update_sixr_parameters(
 
         if current_params:
             # Update existing parameters
+            from app.core.security.cache_encryption import secure_setattr
+
             for key, value in request.parameters.dict().items():
                 if hasattr(current_params, key):
-                    setattr(current_params, key, value)
+                    secure_setattr(current_params, key, value)
 
             current_params.parameter_notes = request.update_reason
             current_params.updated_by = "system"

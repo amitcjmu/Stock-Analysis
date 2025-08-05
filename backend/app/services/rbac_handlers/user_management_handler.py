@@ -11,6 +11,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.orm import selectinload
 
 from .base_handler import BaseRBACHandler
+from app.core.security.cache_encryption import secure_setattr
 
 # Import RBAC models with fallback
 try:
@@ -673,14 +674,16 @@ class UserManagementHandler(BaseRBACHandler):
                         ]:
                             # Special handling for UUID fields - convert 'none' to None
                             if value == "none" or value == "":
-                                setattr(user_profile.user, db_field, None)
+                                secure_setattr(user_profile.user, db_field, None)
                             else:
                                 # Validate UUID format
                                 try:
                                     import uuid
 
                                     uuid_value = uuid.UUID(value)
-                                    setattr(user_profile.user, db_field, uuid_value)
+                                    secure_setattr(
+                                        user_profile.user, db_field, uuid_value
+                                    )
 
                                     # Track new assignments for access creation
                                     if frontend_field == "default_client_id":
@@ -695,7 +698,7 @@ class UserManagementHandler(BaseRBACHandler):
                                     # Skip invalid UUIDs but don't fail the entire update
                                     continue
                         elif db_field and hasattr(user_profile.user, db_field):
-                            setattr(user_profile.user, db_field, value)
+                            secure_setattr(user_profile.user, db_field, value)
 
             # Update UserProfile model fields
             for frontend_field, db_field in profile_field_mapping.items():
@@ -705,7 +708,7 @@ class UserManagementHandler(BaseRBACHandler):
                 ):
                     value = profile_updates[frontend_field]
                     if hasattr(user_profile, db_field):
-                        setattr(user_profile, db_field, value)
+                        secure_setattr(user_profile, db_field, value)
 
             # Update the updated_at timestamp
             from datetime import datetime

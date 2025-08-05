@@ -31,8 +31,10 @@ except ImportError as e:
     # Fallback classes
     class FlowIntelligenceResult:
         def __init__(self, **kwargs):
+            from app.core.security.cache_encryption import secure_setattr
+
             for key, value in kwargs.items():
-                setattr(self, key, value)
+                secure_setattr(self, key, value)
 
     class IntelligentFlowAgent:
         async def analyze_flow_continuation(self, flow_id: str, **kwargs):

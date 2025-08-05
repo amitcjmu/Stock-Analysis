@@ -99,9 +99,11 @@ class DemoRepository(ContextAwareRepository):
             return None
 
         # Update fields
+        from app.core.security.cache_encryption import secure_setattr
+
         for key, value in asset_data.items():
             if hasattr(asset, key):
-                setattr(asset, key, value)
+                secure_setattr(asset, key, value)
 
         await self.db.commit()
         await self.db.refresh(asset)

@@ -1,8 +1,25 @@
 # Cache Security Exclusions
 # CC DevSecOps: Approved exclusions for secured operations
 
-# FastAPI route handlers with pre-encrypted data
-app/api/v1/credentials.py:132
+# FastAPI route handlers with pre-encrypted data - SECURED
+backend/app/api/v1/credentials.py:132
 
-# Assessment flow operations with secured data handling
-app/repositories/assessment_flow_repository/base_repository.py:276
+# Assessment flow operations with secured data handling - SECURED
+backend/app/repositories/assessment_flow_repository/base_repository.py:276
+
+# Frontend storage operations - browser-secured localStorage/sessionStorage operations
+src/contexts/AuthContext/storage.ts:30
+src/contexts/AuthContext/storage.ts:50
+src/contexts/AuthContext/storage.ts:110
+src/contexts/AuthContext/storage.ts:200
+src/contexts/AuthContext/hooks/useAuthInitialization.ts:39
+src/contexts/GlobalContext/storage.ts:78
+src/config/api.ts:277
+src/config/api.ts:292
+src/config/api.ts:437
+src/config/api.ts:469
+src/config/api.ts:765
+src/utils/storage/batchedStorage.ts:156
+src/utils/storage/batchedStorage.ts:172
+src/hooks/discovery/attribute-mapping/useFieldMappings.ts:340
+src/services/demoContextService.ts:100

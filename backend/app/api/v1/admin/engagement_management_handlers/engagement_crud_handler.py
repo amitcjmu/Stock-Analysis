@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.client_account import Engagement
 from app.schemas.admin_schemas import AdminSuccessResponse, EngagementResponse
+from app.core.security.cache_encryption import secure_setattr
 
 logger = logging.getLogger(__name__)
 
@@ -436,7 +437,7 @@ class EngagementCRUDHandler:
                     engagement.client_account_id = value
                 elif hasattr(engagement, field):
                     # Direct field exists on model
-                    setattr(engagement, field, value)
+                    secure_setattr(engagement, field, value)
 
             # Update the updated_at timestamp
             engagement.updated_at = datetime.utcnow()

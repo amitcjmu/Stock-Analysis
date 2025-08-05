@@ -33,21 +33,17 @@ class TechDebtExecutor(BasePhaseExecutor):
         return self._process_crew_result(crew_result)
 
     async def execute_fallback(self) -> Dict[str, Any]:
-        # 🚀 DATA VALIDATION: Check if we have data to process
-        asset_inventory = getattr(self.state, "asset_inventory", {})
-        if not asset_inventory or asset_inventory.get("total_assets", 0) == 0:
-            return {"status": "skipped", "reason": "no_data", "recommendations": []}
-
-        # Basic tech debt analysis based on asset inventory
-        total_assets = asset_inventory.get("total_assets", 0)
-        return {
-            "debt_scores": {"fallback_used": True},
-            "modernization_recommendations": [],
-            "risk_assessments": {"fallback_used": True},
-            "six_r_preparation": {"fallback_used": True},
-            "fallback_used": True,
-            "assets_analyzed": total_assets,
-        }
+        """
+        Fallback execution is disabled for this phase.
+        This design choice ensures that the system relies on the more capable
+        CrewAI-driven analysis and avoids producing potentially misleading or
+        superficial results from a rule-based fallback.
+        """
+        # self.logger.warning("FALLBACK EXECUTION DISABLED for tech debt analysis.")
+        raise RuntimeError(
+            "Tech Debt Analysis fallback disabled. "
+            "CrewAI execution is required for this phase."
+        )
 
     def _prepare_crew_input(self) -> Dict[str, Any]:
         return {"asset_inventory": getattr(self.state, "asset_inventory", {})}

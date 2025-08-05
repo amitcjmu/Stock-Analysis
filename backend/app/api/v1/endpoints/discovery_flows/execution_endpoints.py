@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import get_crewai_flow_service
 from app.core.context import RequestContext, get_current_context
+from app.core.security.cache_encryption import secure_setattr
 from app.core.database import get_db
 from app.services.crewai_flow_service import CrewAIFlowService
 
@@ -611,7 +612,7 @@ async def execute_flow_phase(
             # Load state data
             for key, value in state_dict.items():
                 if hasattr(state, key):
-                    setattr(state, key, value)
+                    secure_setattr(state, key, value)
 
             # Create crew manager
             crew_manager = UnifiedFlowCrewManager(state, crewai_service)
@@ -665,7 +666,7 @@ async def execute_flow_phase(
 
             # Update flow state with results
             if result and hasattr(state, execution_phase):
-                setattr(state, execution_phase, result)
+                secure_setattr(state, execution_phase, result)
 
             # Save updated state
             await flow_bridge.save_state(str(flow_id), state.model_dump())

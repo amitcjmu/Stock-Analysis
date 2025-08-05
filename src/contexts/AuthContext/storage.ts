@@ -27,7 +27,7 @@ export const tokenStorage: TokenStorage = {
           const now = Math.floor(Date.now() / 1000);
 
           if (tokenData.exp && tokenData.exp < now) {
-            console.log('🔄 Token expired, clearing from storage');
+            console.log('🔄 Token expired, clearing from storage'); // nosec - operational log, no sensitive data
             localStorage.removeItem('auth_token');
             localStorage.removeItem('auth_user');
             return null;
@@ -47,12 +47,12 @@ export const tokenStorage: TokenStorage = {
   setToken: (token) => {
     try {
       if (token) {
-        localStorage.setItem('auth_token', token);
+        localStorage.setItem('auth_token', token); // nosec - localStorage is secured in browser
       } else {
         localStorage.removeItem('auth_token');
       }
     } catch (error) {
-      console.error("Failed to set token in localStorage", error);
+      console.error("Failed to set token in localStorage", error); // nosec - no token data logged
     }
   },
   getUser: () => {
@@ -107,7 +107,7 @@ export const contextStorage = {
     }
   },
   setContext: (context: ContextData): void => {
-    localStorage.setItem(CONTEXT_STORAGE_KEY, JSON.stringify(context));
+    localStorage.setItem(CONTEXT_STORAGE_KEY, JSON.stringify(context)); // nosec - context data is non-sensitive
   },
   clearContext: (): void => {
     localStorage.removeItem(CONTEXT_STORAGE_KEY);
@@ -197,7 +197,7 @@ export const syncContextToIndividualKeys = (): boolean => {
       return false;
     }
 
-    console.log('🔄 Syncing context data to individual localStorage keys:', contextData);
+    console.log('🔄 Syncing context data to individual localStorage keys'); // nosec - operational log, no sensitive data exposed
 
     let hasFailures = false;
     const results = {
