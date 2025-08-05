@@ -189,8 +189,8 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
 
   const handleReset = (): void => {
     setCurrentClient(null);
-    auth.switchClient('', null);
-    auth.switchEngagement('', null);
+    auth.switchClient(null, null);
+    auth.switchEngagement(null, null);
     toast({
       title: "Context Reset",
       description: "Context cleared"

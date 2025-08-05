@@ -102,6 +102,17 @@ export const useAuthInitialization = ({
     setClient(null);
     setEngagement(null);
     setFlow(null);
+
+    // Clear any cached session state
+    try {
+      localStorage.removeItem('auth_client');
+      localStorage.removeItem('auth_engagement');
+      localStorage.removeItem('auth_flow');
+      setSessionInitState(false);
+    } catch (error) {
+      console.warn('Failed to clear cached auth state:', error);
+    }
+
     setIsLoading(false);
     hasInitialized.current = true;
     navigate('/login');
