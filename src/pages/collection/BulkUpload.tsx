@@ -146,61 +146,105 @@ const BulkUpload: React.FC = () => {
     setUploadProgress(0);
 
     try {
-      // Simulate file processing with progress updates
-      const totalSteps = 100;
-      for (let i = 0; i <= totalSteps; i += 10) {
-        setUploadProgress(i);
-        await new Promise(resolve => setTimeout(resolve, 100));
+      setUploadProgress(10);
+
+      // Read and parse CSV file
+      const fileContent = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onerror = (e) => reject(new Error('Failed to read file'));
+        reader.readAsText(file);
+      });
+
+      setUploadProgress(30);
+
+      // Parse CSV content
+      const lines = fileContent.trim().split('\n');
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      const dataRows = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+        const row: Record<string, any> = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index] || '';
+        });
+        return row;
+      });
+
+      setUploadProgress(50);
+
+      // Call real backend API
+      const response = await fetch('/api/v1/data-import/store-import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          filename: file.name,
+          data: dataRows,
+          file_metadata: {
+            filename: file.name,
+            file_size: file.size,
+            upload_timestamp: new Date().toISOString(),
+            headers: headers,
+            row_count: dataRows.length
+          }
+        })
+      });
+
+      setUploadProgress(80);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail?.message || `Upload failed: ${response.statusText}`);
       }
 
-      // Mock processing results
-      const mockResult: BulkUploadResult = {
-        uploadId: `upload-${Date.now()}`,
-        status: 'completed',
-        totalRows: 150,
-        successfulRows: 142,
-        failedRows: 8,
-        validationIssues: [
-          {
-            fieldId: 'name',
-            fieldLabel: 'Application Name',
-            errorCode: 'REQUIRED_FIELD_MISSING',
-            errorMessage: 'Application name is required',
-            severity: 'error'
-          },
-          {
-            fieldId: 'type',
-            fieldLabel: 'Application Type',
-            errorCode: 'INVALID_VALUE',
-            errorMessage: 'Invalid application type specified',
-            severity: 'warning'
-          }
-        ],
-        processingTime: 45000,
-        dataQualityScore: 94.7
+      const result = await response.json();
+      setUploadProgress(100);
+
+      // Create BulkUploadResult from API response
+      const uploadResult: BulkUploadResult = {
+        uploadId: result.data_import_id || `upload-${Date.now()}`,
+        status: result.success ? 'completed' : 'failed',
+        totalRows: result.records_stored || dataRows.length,
+        successfulRows: result.records_stored || 0,
+        failedRows: Math.max(0, dataRows.length - (result.records_stored || 0)),
+        validationIssues: result.validation_issues || [],
+        processingTime: 2500, // Estimated processing time
+        dataQualityScore: 95 // Default score
       };
 
-      // Mock applications data
-      const mockApplications: ApplicationSummary[] = Array.from({ length: 142 }, (_, i) => ({
-        id: `app-${i + 1}`,
-        name: `Application ${i + 1}`,
-        technology: ['Java', '.NET', 'Python', 'Node.js'][i % 4],
-        architecturePattern: ['Monolithic', 'Microservices', 'SOA'][i % 3],
-        businessCriticality: ['Critical', 'Important', 'Moderate', 'Low'][i % 4]
+      // Create applications from uploaded data
+      const uploadedApplications: ApplicationSummary[] = dataRows.map((row, index) => ({
+        id: `app-${index + 1}`,
+        name: row.name || row['Application Name'] || `Application ${index + 1}`,
+        technology: row.technology || row['Primary Technology'] || 'Unknown',
+        architecturePattern: 'Unknown',
+        businessCriticality: row.criticality || row['Business Criticality'] || 'Unknown'
       }));
 
-      setUploadResults([mockResult]);
-      setApplications(mockApplications);
+      setUploadResults([uploadResult]);
+      setApplications(uploadedApplications);
 
       toast({
         title: 'Upload Successful',
-        description: `Processed ${mockResult.successfulRows} of ${mockResult.totalRows} applications successfully.`
+        description: `Successfully uploaded ${uploadResult.successfulRows} applications. ${result.flow_id ? 'Discovery flow started.' : ''}`
       });
 
+      // If there's a warning about flow creation, show it
+      if (result.warning) {
+        toast({
+          title: 'Flow Creation Notice',
+          description: result.warning,
+          variant: 'default'
+        });
+      }
+
     } catch (error) {
+      console.error('Upload error:', error);
       toast({
         title: 'Upload Failed',
-        description: 'Failed to process the uploaded file. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to process the uploaded file. Please try again.',
         variant: 'destructive'
       });
     } finally {

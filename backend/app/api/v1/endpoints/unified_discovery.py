@@ -254,10 +254,10 @@ async def get_discovery_flow_status(
                 raise ValueError(f"Discovery flow not found: {flow_id}")
 
         # Get field mappings
-        from app.models.field_mapping import FieldMapping
+        from app.models.data_import.mapping import ImportFieldMapping
 
-        field_mappings_stmt = select(FieldMapping).where(
-            FieldMapping.flow_id == flow_id
+        field_mappings_stmt = select(ImportFieldMapping).where(
+            ImportFieldMapping.master_flow_id == flow_id
         )
         field_mappings_result = await db.execute(field_mappings_stmt)
         field_mappings = field_mappings_result.scalars().all()
@@ -281,9 +281,17 @@ async def get_discovery_flow_status(
                 or False,
                 "tech_debt_assessment_completed": discovery_flow.tech_debt_assessment_completed
                 or False,
-                "total_records": discovery_flow.total_records or 0,
-                "records_processed": discovery_flow.records_processed or 0,
-                "quality_score": discovery_flow.quality_score or 0,
+                "total_records": (
+                    len(discovery_flow.crewai_state_data.get("raw_data", []))
+                    if discovery_flow.crewai_state_data
+                    else 0
+                ),
+                "records_processed": len(field_mappings),
+                "quality_score": (
+                    discovery_flow.progress_percentage / 100.0
+                    if discovery_flow.progress_percentage
+                    else 0.0
+                ),
             },
             "created_at": (
                 discovery_flow.created_at.isoformat()

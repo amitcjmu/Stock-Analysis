@@ -774,10 +774,10 @@ POST   /api/v1/auth/*                               # Authentication endpoints
 GET    /api/v1/context/*                            # Context establishment endpoints
 ```
 
-#### 4. Discovery Flow (Legacy Compatibility)
+#### 4. Discovery Flow (Unified API)
 ```
-GET    /api/v1/discovery/flows/active               # Get active discovery flows
-POST   /api/v1/discovery/flows                      # Create discovery flow
+GET    /api/v1/unified-discovery/flows/active       # Get active discovery flows
+POST   /api/v1/unified-discovery/flows              # Create discovery flow
 ```
 
 #### 5. Assessment & Analysis

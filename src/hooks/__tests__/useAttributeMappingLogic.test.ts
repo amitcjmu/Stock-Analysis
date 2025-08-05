@@ -2,15 +2,15 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import type { MockedFunction } from 'vitest'
 import { vi, describe, it, expect, beforeEach, Mock } from 'vitest'
 import { useAttributeMappingLogic } from '../discovery/useAttributeMappingLogic';
-import { useDiscoveryFlowV2 } from '../discovery/useDiscoveryFlowV2';
+import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 import { useAttributeMappingFlowDetection } from '../discovery/useDiscoveryFlowAutoDetection';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiCall } from '../../config/api';
 import { useNavigate } from 'react-router-dom';
 
 // Mock dependencies
-vi.mock('../discovery/useDiscoveryFlowV2', () => ({
-  useDiscoveryFlowV2: vi.fn(),
+vi.mock('../useUnifiedDiscoveryFlow', () => ({
+  useUnifiedDiscoveryFlow: vi.fn(),
   useDiscoveryFlowList: vi.fn()
 }));
 
@@ -26,8 +26,8 @@ vi.mock('../../config/api', () => ({
   API_CONFIG: {
     ENDPOINTS: {
       DISCOVERY: {
-        CONTEXT_FIELD_MAPPINGS: '/api/v1/discovery/field-mappings',
-        AGENT_CLARIFICATIONS: '/api/v1/discovery/clarifications'
+        CONTEXT_FIELD_MAPPINGS: '/api/v1/unified-discovery/field-mappings',
+        AGENT_CLARIFICATIONS: '/api/v1/unified-discovery/clarifications'
       }
     }
   },
@@ -119,7 +119,7 @@ const mockFlowList = [
 ];
 
 describe('useAttributeMappingLogic', () => {
-  let mockUseDiscoveryFlowV2: MockedFunction<typeof useDiscoveryFlowV2>;
+  let mockUseUnifiedDiscoveryFlow: MockedFunction<typeof useUnifiedDiscoveryFlow>;
   let mockUseAttributeMappingFlowDetection: MockedFunction<typeof useAttributeMappingFlowDetection>;
   let mockUseAuth: MockedFunction<typeof useAuth>;
   let mockApiCall: MockedFunction<typeof apiCall>;
@@ -129,7 +129,7 @@ describe('useAttributeMappingLogic', () => {
     vi.clearAllMocks();
 
     // Use imported mocked modules
-    mockUseDiscoveryFlowV2 = useDiscoveryFlowV2;
+    mockUseUnifiedDiscoveryFlow = useUnifiedDiscoveryFlow;
     mockUseAttributeMappingFlowDetection = useAttributeMappingFlowDetection as MockedFunction<typeof useAttributeMappingFlowDetection>;
     mockUseAuth = useAuth as MockedFunction<typeof useAuth>;
     mockApiCall = apiCall as MockedFunction<typeof apiCall>;
@@ -146,12 +146,11 @@ describe('useAttributeMappingLogic', () => {
       hasEffectiveFlow: true
     });
 
-    mockUseDiscoveryFlowV2.mockReturnValue({
-      flow: mockFlow,
+    mockUseUnifiedDiscoveryFlow.mockReturnValue({
+      flowState: mockFlow,
       isLoading: false,
       error: null,
-      updatePhase: vi.fn(),
-      refresh: vi.fn()
+      refreshFlow: vi.fn()
     });
 
     mockUseAuth.mockReturnValue({
@@ -189,9 +188,9 @@ describe('useAttributeMappingLogic', () => {
     });
 
     const mockRefresh = vi.fn();
-    mockUseDiscoveryFlowV2.mockReturnValue({
-      ...mockUseDiscoveryFlowV2(),
-      refresh: mockRefresh
+    mockUseUnifiedDiscoveryFlow.mockReturnValue({
+      ...mockUseUnifiedDiscoveryFlow(),
+      refreshFlow: mockRefresh
     });
 
     const { result } = renderHook(() => useAttributeMappingLogic());
@@ -230,9 +229,9 @@ describe('useAttributeMappingLogic', () => {
     });
 
     const mockRefresh = vi.fn();
-    mockUseDiscoveryFlowV2.mockReturnValue({
-      ...mockUseDiscoveryFlowV2(),
-      refresh: mockRefresh
+    mockUseUnifiedDiscoveryFlow.mockReturnValue({
+      ...mockUseUnifiedDiscoveryFlow(),
+      refreshFlow: mockRefresh
     });
 
     const { result } = renderHook(() => useAttributeMappingLogic());
@@ -299,12 +298,11 @@ describe('useAttributeMappingLogic', () => {
   });
 
   it('should handle loading states correctly', () => {
-    mockUseDiscoveryFlowV2.mockReturnValue({
-      flow: null,
+    mockUseUnifiedDiscoveryFlow.mockReturnValue({
+      flowState: null,
       isLoading: true,
       error: null,
-      updatePhase: vi.fn(),
-      refresh: vi.fn()
+      refreshFlow: vi.fn()
     });
 
     const { result } = renderHook(() => useAttributeMappingLogic());
@@ -316,12 +314,11 @@ describe('useAttributeMappingLogic', () => {
 
   it('should handle error states correctly', () => {
     const testError = new Error('API Error');
-    mockUseDiscoveryFlowV2.mockReturnValue({
-      flow: null,
+    mockUseUnifiedDiscoveryFlow.mockReturnValue({
+      flowState: null,
       isLoading: false,
       error: testError,
-      updatePhase: vi.fn(),
-      refresh: vi.fn()
+      refreshFlow: vi.fn()
     });
 
     const { result } = renderHook(() => useAttributeMappingLogic());
@@ -368,9 +365,9 @@ describe('useAttributeMappingLogic', () => {
 
   it('should trigger field mapping crew correctly', async () => {
     const mockRefresh = vi.fn();
-    mockUseDiscoveryFlowV2.mockReturnValue({
-      ...mockUseDiscoveryFlowV2(),
-      refresh: mockRefresh
+    mockUseUnifiedDiscoveryFlow.mockReturnValue({
+      ...mockUseUnifiedDiscoveryFlow(),
+      refreshFlow: mockRefresh
     });
 
     // Mock the masterFlowService import

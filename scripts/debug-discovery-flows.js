@@ -20,10 +20,10 @@ async function testDiscoveryFlowEndpoints() {
     return headers;
   };
 
-  // Test endpoint 1: /api/v1/discovery/flows/active
-  console.log('📍 Testing: /api/v1/discovery/flows/active');
+  // Test endpoint 1: /api/v1/unified-discovery/flows/active
+  console.log('📍 Testing: /api/v1/unified-discovery/flows/active');
   try {
-    const response1 = await fetch('/api/v1/discovery/flows/active', {
+    const response1 = await fetch('/api/v1/unified-discovery/flows/active', {
       method: 'GET',
       headers: getAuthHeaders(),
       credentials: 'include'

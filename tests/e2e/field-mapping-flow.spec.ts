@@ -219,7 +219,7 @@ test.describe('Field Mapping Flow', () => {
 
   test('should handle loading states correctly', async ({ page }) => {
     // Mock slow API response
-    await page.route('**/api/v1/discovery/field-mappings**', async route => {
+    await page.route('**/api/v1/unified-discovery/field-mappings**', async route => {
       // Delay response by 2 seconds
       await new Promise(resolve => setTimeout(resolve, 2000));
       await route.fulfill({

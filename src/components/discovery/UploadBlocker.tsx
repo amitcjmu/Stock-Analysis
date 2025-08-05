@@ -8,13 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import type { IncompleteFlowV2 } from '@/hooks/discovery/useFlowOperations';
+import type { IncompleteFlow } from '@/hooks/discovery/useFlowOperations';
 import { useFlowCleanup } from '@/hooks/useFlowDeletion';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface UploadBlockerProps {
-  incompleteFlows: IncompleteFlowV2[];
+  incompleteFlows: IncompleteFlow[];
   onContinueFlow: (flowId: string) => void;
   onDeleteFlow: (flowId: string) => void;
   onViewDetails: (flowId: string, phase: string) => void;

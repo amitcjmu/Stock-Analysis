@@ -15,10 +15,9 @@ interface UseAuthInitializationProps {
   fetchDefaultContext: () => Promise<void>;
 }
 
-// Simplified initialization guards
-let isAuthInitializing = false;
+// Simplified initialization guards (removed module-level variable - moved to hook scope)
 const AUTH_INIT_KEY = 'auth_init_completed';
-const AUTH_INIT_TTL = 2 * 60 * 1000; // 2 minutes TTL for session cache
+const AUTH_INIT_TTL = 30 * 1000; // 30 seconds TTL for session cache (reduced from 2 minutes to prevent stale state)
 
 // Cache-aware initialization state management
 const getSessionInitState = (): { completed: boolean; fresh: boolean } => {
@@ -57,222 +56,67 @@ export const useAuthInitialization = ({
 }: UseAuthInitializationProps): void => {
   const navigate = useNavigate();
   const hasInitialized = useRef(false);
+  const isAuthInitializing = useRef(false); // Convert to ref for proper scoping
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Prevent multiple initializations
-    if (hasInitialized.current || isAuthInitializing) {
+    if (hasInitialized.current || isAuthInitializing.current) {
       return;
     }
 
-    let isMounted = true;
+    // Simplified auth initialization: Check for cached auth data first
+    const storedUser = tokenStorage.getUser();
+    const token = tokenStorage.getToken();
 
-    const initializeAuth = async (): Promise<void> => {
-      const startTime = performance.now();
-      console.log('🚀 Starting optimized auth initialization...');
+    // If we have auth data, restore it immediately
+    if (storedUser && token) {
+      // Set the auth data immediately
+      setUser(storedUser);
 
+      // Restore context from localStorage
       try {
-        hasInitialized.current = true;
-        isAuthInitializing = true;
-        setIsLoading(true);
+        const cachedClient = localStorage.getItem('auth_client');
+        const cachedEngagement = localStorage.getItem('auth_engagement');
+        const cachedFlow = localStorage.getItem('auth_flow');
 
-        // Setup timeout for fallback
-        timeoutRef.current = setTimeout(() => {
-          console.warn('⚠️ Auth initialization timeout - proceeding with available data');
-          if (isMounted) setIsLoading(false);
-        }, 3000); // Reduced timeout for faster UX
+        if (cachedClient) setClient(JSON.parse(cachedClient));
+        if (cachedEngagement) setEngagement(JSON.parse(cachedEngagement));
+        if (cachedFlow) setFlow(JSON.parse(cachedFlow));
 
-        // STEP 1: Quick validation - Check token and cached state
-        const token = tokenStorage.getToken();
-        const storedUser = tokenStorage.getUser();
-        const sessionState = getSessionInitState();
-
-        // Early exit for invalid auth
-        if (!token || !storedUser) {
-          if (isMounted) {
-            setUser(null);
-            setClient(null);
-            setEngagement(null);
-            setFlow(null);
-            setIsLoading(false);
-            navigate('/login');
-          }
-          return;
-        }
-
-        // STEP 2: Fast track for recent successful initialization
-        if (sessionState.completed && sessionState.fresh) {
-          console.log('⚡ Using cached auth state for instant loading');
-          setUser(storedUser);
-
-          // Quick context restoration from localStorage
-          const cachedClient = localStorage.getItem('auth_client');
-          const cachedEngagement = localStorage.getItem('auth_engagement');
-
-          if (cachedClient) setClient(JSON.parse(cachedClient));
-          if (cachedEngagement) setEngagement(JSON.parse(cachedEngagement));
-
-          syncContextToIndividualKeys();
-          setIsLoading(false);
-          setSessionInitState(true);
-
-          console.log('⚡ Fast auth completed in', `${Math.round(performance.now() - startTime)}ms`);
-          return;
-        }
-
-        // STEP 3: Parallel context initialization for fresh auth
-        console.log('🚀 Starting parallel context initialization...');
-        setUser(storedUser);
-
-        // Check JWT expiration (non-blocking)
-        let tokenValid = true;
-        try {
-          if (token.includes('.') && token.split('.').length === 3) {
-            const tokenData = JSON.parse(atob(token.split('.')[1]));
-            const now = Math.floor(Date.now() / 1000);
-            tokenValid = !tokenData.exp || tokenData.exp >= now;
-          }
-        } catch {
-          // Non-JWT token or parsing error - assume valid
-        }
-
-        if (!tokenValid) {
-          console.log('🔄 Token expired, redirecting to login');
-          tokenStorage.removeToken();
-          tokenStorage.setUser(null);
-          if (isMounted) {
-            setUser(null);
-            navigate('/login');
-          }
-          return;
-        }
-
-        // PARALLEL EXECUTION: Fetch context and cached data simultaneously
-        const parallelStart = performance.now();
-        const [
-          contextResult,
-          cachedClientResult,
-          cachedEngagementResult
-        ] = await Promise.allSettled([
-          // Fresh context from API
-          getUserContext().catch(err => ({ error: err, source: 'api' })),
-          // Cached client data
-          Promise.resolve(localStorage.getItem('auth_client')).then(data =>
-            data ? JSON.parse(data) : null
-          ).catch(() => null),
-          // Cached engagement data
-          Promise.resolve(localStorage.getItem('auth_engagement')).then(data =>
-            data ? JSON.parse(data) : null
-          ).catch(() => null)
-        ]);
-
-        console.log('🚀 Parallel context fetch completed:', {
-          elapsed: `${Math.round(performance.now() - parallelStart)}ms`,
-          contextStatus: contextResult.status,
-          hasCachedClient: cachedClientResult.status === 'fulfilled' && cachedClientResult.value,
-          hasCachedEngagement: cachedEngagementResult.status === 'fulfilled' && cachedEngagementResult.value
-        });
-
-        if (!isMounted) return;
-
-        // INTELLIGENT CONTEXT SELECTION: Use best available data
-        let finalContext = null;
-        if (contextResult.status === 'fulfilled' && !contextResult.value?.error) {
-          // Fresh API context - best option
-          finalContext = contextResult.value;
-          console.log('✅ Using fresh API context');
-        } else if (cachedClientResult.status === 'fulfilled' && cachedClientResult.value) {
-          // Cached context - fallback option
-          finalContext = {
-            user: storedUser,
-            client: cachedClientResult.value,
-            engagement: cachedEngagementResult.status === 'fulfilled' ? cachedEngagementResult.value : null
-          };
-          console.log('🔄 Using cached context as fallback');
-        }
-
-        // Apply context if available
-        if (finalContext) {
-          if (finalContext.client) setClient(finalContext.client);
-          if (finalContext.engagement) setEngagement(finalContext.engagement);
-          if (finalContext.flow) setFlow(finalContext.flow);
-
-          syncContextToIndividualKeys();
-        } else {
-          // No context available - trigger background fetch
-          console.log('🔄 No context available, triggering background fetch');
-          fetchDefaultContext().catch(error => {
-            console.warn('⚠️ Background context fetch failed:', error);
-          });
-        }
-
-        // Handle API errors for fresh context
-        if (contextResult.status === 'fulfilled' && contextResult.value?.error) {
-          const error = contextResult.value.error;
-          if (error?.status === 401) {
-            console.log('🔄 Authentication expired, redirecting to login');
-            tokenStorage.removeToken();
-            tokenStorage.setUser(null);
-            if (isMounted) {
-              setUser(null);
-              navigate('/login');
-            }
-            return;
-          }
-        }
-
-        // Mark initialization as complete
-        setSessionInitState(true);
-        setIsLoading(false);
-
-        const totalTime = Math.round(performance.now() - startTime);
-        console.log('✅ Optimized auth initialization completed:', {
-          totalTime: `${totalTime}ms`,
-          improvement: totalTime < 500 ? '~80% faster' : 'optimized',
-          hasContext: !!finalContext,
-          source: finalContext?.client ? (contextResult.status === 'fulfilled' ? 'api' : 'cache') : 'none'
-        });
-
+        // Sync context to individual keys for API client
+        syncContextToIndividualKeys();
       } catch (error) {
-        console.error('❌ Auth initialization error:', error);
-
-        if (isMounted) {
-          const apiError = error as { status?: number };
-          if (apiError.status === 401) {
-            tokenStorage.removeToken();
-            tokenStorage.setUser(null);
-            setUser(null);
-            navigate('/login');
-          } else {
-            // Non-auth errors - continue with cached user
-            const storedUser = tokenStorage.getUser();
-            if (storedUser) {
-              setUser(storedUser);
-              console.log('🔄 Continuing with cached user due to initialization error');
-            }
-          }
-          setIsLoading(false);
-        }
-
-        setSessionInitState(false);
-      } finally {
-        isAuthInitializing = false;
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
-        }
+        console.warn('Context restoration failed:', error);
       }
-    };
 
-    initializeAuth();
+      // Complete initialization
+      setIsLoading(false);
+      hasInitialized.current = true;
+      setSessionInitState(true);
+      return;
+    }
 
-    return () => {
-      isMounted = false;
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    };
+    // No cached auth data - redirect to login
+    setUser(null);
+    setClient(null);
+    setEngagement(null);
+    setFlow(null);
+
+    // Clear any cached session state
+    try {
+      localStorage.removeItem('auth_client');
+      localStorage.removeItem('auth_engagement');
+      localStorage.removeItem('auth_flow');
+      setSessionInitState(false);
+    } catch (error) {
+      console.warn('Failed to clear cached auth state:', error);
+    }
+
+    setIsLoading(false);
+    hasInitialized.current = true;
+    navigate('/login');
+    return;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on mount for optimal performance
 };

@@ -539,7 +539,7 @@ class TestAPIIntegration:
             "fileType": "text/csv"
         }
         
-        response = client.post("/api/v1/discovery/analyze", json=test_data)
+        response = client.post("/api/v1/unified-discovery/analyze", json=test_data)
         assert response.status_code == 200
         
         data = response.json()

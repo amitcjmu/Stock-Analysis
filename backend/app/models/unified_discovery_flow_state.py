@@ -145,6 +145,12 @@ class UnifiedDiscoveryFlowState(BaseModel):
     # Data validation results (from DataImportValidationAgent)
     data_validation_results: Dict[str, Any] = Field(default_factory=dict)
 
+    # Validation results - used by phase handlers for storing validation outputs
+    validation_results: Dict[str, Any] = Field(default_factory=dict)
+
+    # User approval fields for workflow management - handled by CrewAI Flow state
+    # needs_approval removed - this should be managed by the flow's built-in state management
+
     # Data cleansing results
     cleaned_data: List[Dict[str, Any]] = Field(default_factory=list)
     data_quality_metrics: Dict[str, Any] = Field(default_factory=dict)

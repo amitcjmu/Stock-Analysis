@@ -227,7 +227,6 @@ class ApiClient {
     if (typeof window !== 'undefined' && window.location.port === '8081') {
       // Force relative URL for Docker development
       url = normalizedEndpoint;
-      console.log(`🔧 Docker mode: Using relative URL ${url}`);
     } else {
       url = `${this.baseUrl}${normalizedEndpoint}`;
     }
@@ -235,7 +234,7 @@ class ApiClient {
     const method = (options.method || 'GET').toUpperCase();
 
     try {
-      console.log(`🚀 API Request [${requestId}] ${method} ${url}`);
+      // API Request logged
 
       // Prepare headers
       const headers: HeadersInit = {
@@ -295,7 +294,7 @@ class ApiClient {
         data = await response.text() as T;
       }
 
-      console.log(`✅ API Response [${requestId}] ${response.status} (${duration}ms)`);
+      // API Response logged
 
       if (!response.ok) {
         throw new ApiError(response.status, response.statusText, data, requestId);

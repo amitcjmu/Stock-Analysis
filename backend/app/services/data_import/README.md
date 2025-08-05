@@ -11,9 +11,9 @@ ImportStorageHandler (Main Orchestrator)
 ├── ImportValidator          - Data validation and conflict checking
 ├── ImportStorageManager     - Database operations and CRUD
 ├── FlowTriggerService       - Flow creation and triggering
-├── ImportTransactionManager - Transaction handling and rollback
+├── TransactionManager       - Transaction handling and rollback
 ├── BackgroundExecutionService - Async flow execution
-└── ImportResponseBuilder    - Response formatting
+└── ResponseBuilder         - Response formatting
 ```
 
 ## Modular Components

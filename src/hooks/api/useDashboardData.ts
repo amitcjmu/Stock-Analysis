@@ -62,7 +62,7 @@ export const useDashboardData = (): JSX.Element => {
       // Fetch discovery flows and latest import in parallel but through React Query
       const [discoveryFlowsResponse, dataImportsResponse] = await Promise.allSettled([
         // Get active Discovery flows
-        apiCall('/api/v1/discovery/flows/active', {
+        apiCall('/api/v1/unified-discovery/flows/active', {
           method: 'GET',
           headers: getAuthHeaders({ user, client, engagement })
         }),

@@ -1,4 +1,5 @@
 import { apiCall } from '@/config/api';
+import { apiClient } from '@/lib/api/apiClient';
 import type { QuestionResponse, AnalysisProgressType, BulkAnalysisResult, BulkAnalysisSummary } from '../../components/sixr'
 import { SixRParameters, QualifyingQuestion, SixRRecommendation, AnalysisHistoryItem, BulkAnalysisJob } from '../../components/sixr'
 
@@ -214,13 +215,10 @@ export class SixRApiClient {
   async createAnalysis(request: CreateAnalysisRequest): Promise<number> {
     try {
       console.log('🔍 API createAnalysis called with:', request);
-      const response = await apiCall<{ analysis_id: number }>('/6r/analyze', {
-        method: 'POST',
-        body: JSON.stringify({
-          application_ids: request.application_ids,
-          initial_parameters: request.parameters,
-          analysis_name: request.queue_name || `Analysis ${Date.now()}`
-        })
+      const response = await apiClient.post<{ analysis_id: number }>('/6r/analyze', {
+        application_ids: request.application_ids,
+        initial_parameters: request.parameters,
+        analysis_name: request.queue_name || `Analysis ${Date.now()}`
       });
 
       return response.analysis_id;
@@ -232,7 +230,7 @@ export class SixRApiClient {
 
   async getAnalysis(analysisId: number): Promise<SixRAnalysisResponse> {
     try {
-      const response = await apiCall<SixRAnalysisResponse>(`/6r/${analysisId}`);
+      const response = await apiClient.get<SixRAnalysisResponse>(`/6r/${analysisId}`);
       return response;
     } catch (error) {
       this.handleError('Failed to get analysis', error);
@@ -242,12 +240,9 @@ export class SixRApiClient {
 
   async updateParameters(analysisId: number, parameters: SixRParameters): Promise<SixRAnalysisResponse> {
     try {
-      const response = await apiCall<SixRAnalysisResponse>(`/6r/${analysisId}/parameters`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          parameters,
-          trigger_reanalysis: true
-        })
+      const response = await apiClient.put<SixRAnalysisResponse>(`/6r/${analysisId}/parameters`, {
+        parameters,
+        trigger_reanalysis: true
       });
 
       return response;
@@ -259,12 +254,9 @@ export class SixRApiClient {
 
   async submitQuestions(analysisId: number, responses: QuestionResponse[], isPartial: boolean = false): Promise<SixRAnalysisResponse> {
     try {
-      const response = await apiCall<SixRAnalysisResponse>(`/6r/${analysisId}/questions`, {
-        method: 'POST',
-        body: JSON.stringify({
-          responses,
-          is_partial: isPartial
-        })
+      const response = await apiClient.post<SixRAnalysisResponse>(`/6r/${analysisId}/questions`, {
+        responses,
+        is_partial: isPartial
       });
 
       return response;
@@ -276,12 +268,9 @@ export class SixRApiClient {
 
   async iterateAnalysis(analysisId: number, iterationNotes: string): Promise<SixRAnalysisResponse> {
     try {
-      const response = await apiCall<SixRAnalysisResponse>(`/6r/${analysisId}/iterate`, {
-        method: 'POST',
-        body: JSON.stringify({
-          iteration_reason: 'User-initiated iteration',
-          stakeholder_feedback: iterationNotes
-        })
+      const response = await apiClient.post<SixRAnalysisResponse>(`/6r/${analysisId}/iterate`, {
+        iteration_reason: 'User-initiated iteration',
+        stakeholder_feedback: iterationNotes
       });
 
       return response;
@@ -293,7 +282,7 @@ export class SixRApiClient {
 
   async getRecommendation(analysisId: number): Promise<SixRRecommendation> {
     try {
-      const response = await apiCall<SixRRecommendation>(`/6r/${analysisId}/recommendation`);
+      const response = await apiClient.get<SixRRecommendation>(`/6r/${analysisId}/recommendation`);
       return response;
     } catch (error) {
       this.handleError('Failed to get recommendation', error);
@@ -303,7 +292,7 @@ export class SixRApiClient {
 
   async getQualifyingQuestions(analysisId: number): Promise<QualifyingQuestion[]> {
     try {
-      const response = await apiCall<QualifyingQuestion[]>(`/6r/${analysisId}/questions`);
+      const response = await apiClient.get<QualifyingQuestion[]>(`/6r/${analysisId}/questions`);
       return response;
     } catch (error) {
       this.handleError('Failed to get qualifying questions', error);
@@ -330,7 +319,7 @@ export class SixRApiClient {
       }
 
       const endpoint = `/6r/history${queryParams.toString() ? `?${queryParams}` : ''}`;
-      const response = await apiCall<AnalysisHistoryItem[]>(endpoint);
+      const response = await apiClient.get<AnalysisHistoryItem[]>(endpoint);
       return response;
     } catch (error) {
       this.handleError('Failed to get analysis history', error);
@@ -340,9 +329,7 @@ export class SixRApiClient {
 
   async deleteAnalysis(analysisId: number): Promise<{ success: boolean; message: string }> {
     try {
-      return await apiCall<{ success: boolean; message: string }>(`/6r/${analysisId}`, {
-        method: 'DELETE'
-      });
+      return await apiClient.delete<{ success: boolean; message: string }>(`/6r/${analysisId}`);
     } catch (error) {
       this.handleError('Failed to delete analysis', error);
       throw error;
@@ -351,9 +338,7 @@ export class SixRApiClient {
 
   async archiveAnalysis(analysisId: number): Promise<{ success: boolean; message: string }> {
     try {
-      return await apiCall<{ success: boolean; message: string }>(`/6r/${analysisId}/archive`, {
-        method: 'POST'
-      });
+      return await apiClient.post<{ success: boolean; message: string }>(`/6r/${analysisId}/archive`, {});
     } catch (error) {
       this.handleError('Failed to archive analysis', error);
       throw error;
@@ -362,10 +347,7 @@ export class SixRApiClient {
 
   async createBulkAnalysis(request: BulkAnalysisRequest): Promise<string> {
     try {
-      const response = await apiCall<{ job_id: string }>('/6r/bulk', {
-        method: 'POST',
-        body: JSON.stringify(request)
-      });
+      const response = await apiClient.post<{ job_id: string }>('/6r/bulk', request);
       return response.job_id;
     } catch (error) {
       this.handleError('Failed to create bulk analysis', error);
@@ -375,7 +357,7 @@ export class SixRApiClient {
 
   async getBulkJobs(): Promise<BulkAnalysisJob[]> {
     try {
-      return await apiCall<BulkAnalysisJob[]>('/6r/bulk');
+      return await apiClient.get<BulkAnalysisJob[]>('/6r/bulk');
     } catch (error) {
       this.handleError('Failed to get bulk jobs', error);
       throw error;
@@ -384,7 +366,7 @@ export class SixRApiClient {
 
   async getBulkJobResults(jobId: string): Promise<BulkAnalysisResult[]> {
     try {
-      return await apiCall<BulkAnalysisResult[]>(`/6r/bulk/${jobId}/results`);
+      return await apiClient.get<BulkAnalysisResult[]>(`/6r/bulk/${jobId}/results`);
     } catch (error) {
       this.handleError('Failed to get bulk job results', error);
       throw error;
@@ -393,7 +375,7 @@ export class SixRApiClient {
 
   async getBulkSummary(): Promise<BulkAnalysisSummary> {
     try {
-      return await apiCall<BulkAnalysisSummary>('/6r/bulk/summary');
+      return await apiClient.get<BulkAnalysisSummary>('/6r/bulk/summary');
     } catch (error) {
       this.handleError('Failed to get bulk summary', error);
       throw error;
@@ -405,9 +387,7 @@ export class SixRApiClient {
     action: 'start' | 'pause' | 'cancel' | 'retry'
   ): Promise<{ success: boolean; message: string }> {
     try {
-      return await apiCall<{ success: boolean; message: string }>(`/6r/bulk/${jobId}/${action}`, {
-        method: 'POST'
-      });
+      return await apiClient.post<{ success: boolean; message: string }>(`/6r/bulk/${jobId}/${action}`, {});
     } catch (error) {
       this.handleError('Failed to control bulk job', error);
       throw error;
@@ -416,9 +396,7 @@ export class SixRApiClient {
 
   async deleteBulkJob(jobId: string): Promise<{ success: boolean; message: string }> {
     try {
-      return await apiCall<{ success: boolean; message: string }>(`/6r/bulk/${jobId}`, {
-        method: 'DELETE'
-      });
+      return await apiClient.delete<{ success: boolean; message: string }>(`/6r/bulk/${jobId}`);
     } catch (error) {
       this.handleError('Failed to delete bulk job', error);
       throw error;
@@ -430,7 +408,19 @@ export class SixRApiClient {
     format: 'csv' | 'pdf' | 'json'
   ): Promise<Blob> {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/6r/export`, {
+      // Use the same base URL logic as the main API client to ensure proxy usage in Docker
+      const getBaseUrl = (): string => {
+        // Force proxy usage for development - Docker container on port 8081
+        if (typeof window !== 'undefined' && window.location.port === '8081') {
+          return '';
+        }
+        return import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BACKEND_URL || '';
+      };
+
+      const baseUrl = getBaseUrl();
+      const url = `${baseUrl}/api/v1/6r/export`;
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -457,7 +447,19 @@ export class SixRApiClient {
     format: 'csv' | 'pdf' | 'json'
   ): Promise<Blob> {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/6r/bulk/${jobId}/export`, {
+      // Use the same base URL logic as the main API client to ensure proxy usage in Docker
+      const getBaseUrl = (): string => {
+        // Force proxy usage for development - Docker container on port 8081
+        if (typeof window !== 'undefined' && window.location.port === '8081') {
+          return '';
+        }
+        return import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BACKEND_URL || '';
+      };
+
+      const baseUrl = getBaseUrl();
+      const url = `${baseUrl}/api/v1/6r/bulk/${jobId}/export`;
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -547,7 +549,8 @@ export class SixRApiClient {
       }
 
       const endpoint = `/6r${queryParams.toString() ? `?${queryParams}` : ''}`;
-      return await apiCall<SixRAnalysisResponse[]>(endpoint);
+      // Use the new API client directly to ensure proper URL handling in Docker
+      return await apiClient.get<SixRAnalysisResponse[]>(endpoint);
     } catch (error) {
       this.handleError('Failed to list analyses', error);
       throw error;

@@ -7,7 +7,7 @@ Handles agent orchestration and crew management for the Unified Discovery Flow.
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .flow_config import FlowConfig, PhaseNames
 
@@ -311,6 +311,30 @@ class CrewCoordinator:
         # Merge base config with agent-specific config
         specific_config = agent_configs.get(agent_name, {})
         return {**base_config, **specific_config}
+
+    def create_crew_on_demand(self, crew_type: str, **kwargs) -> Optional[Any]:
+        """
+        DEPRECATED: This method is no longer used.
+        CrewCoordinator should not create crews - use UnifiedFlowCrewManager instead.
+
+        This method exists only for backward compatibility and will raise an error
+        to help identify where the wrong crew manager is being used.
+        """
+        logger.error(
+            f"❌ ARCHITECTURAL ERROR: CrewCoordinator.create_crew_on_demand() called for {crew_type}"
+        )
+        logger.error(
+            "❌ This indicates UnifiedFlowCrewManager is not being used properly"
+        )
+        logger.error(
+            "❌ Phase executors should use UnifiedFlowCrewManager with real CrewAI crews"
+        )
+
+        raise RuntimeError(
+            f"CrewCoordinator should not create crews. "
+            f"Use UnifiedFlowCrewManager for {crew_type} crew creation. "
+            f"This error indicates an architectural inconsistency."
+        )
 
     async def validate_agent_health(self) -> Dict[str, bool]:
         """Validate that all required agents are healthy"""

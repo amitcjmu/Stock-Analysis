@@ -22,6 +22,14 @@ from app.api.v1.endpoints import (
     sixr_router,
     test_discovery_router,
 )
+
+# Analysis endpoints (including queues)
+try:
+    from app.api.v1.endpoints.analysis import router as analysis_queues_router
+
+    ANALYSIS_QUEUES_AVAILABLE = True
+except ImportError:
+    ANALYSIS_QUEUES_AVAILABLE = False
 from app.api.v1.endpoints.context import get_user_context
 from app.api.v1.endpoints.context_establishment import (
     router as context_establishment_router,
@@ -261,6 +269,15 @@ logger.info("--- Starting API Router Inclusion Process ---")
 # Core Discovery and Analysis
 api_router.include_router(sixr_router, prefix="/6r", tags=["6R Analysis"])
 api_router.include_router(analysis_router, prefix="/analysis", tags=["Analysis"])
+
+# Analysis Queues (for batch 6R analysis)
+if ANALYSIS_QUEUES_AVAILABLE:
+    api_router.include_router(
+        analysis_queues_router, prefix="/analysis", tags=["Analysis"]
+    )
+    logger.info("✅ Analysis Queues router included at /analysis/queues")
+else:
+    logger.warning("⚠️ Analysis Queues router not available")
 
 # Discovery API - Implemented via Unified Discovery Flow + Master Flow Orchestrator
 # Real CrewAI implementation available at /unified-discovery endpoint

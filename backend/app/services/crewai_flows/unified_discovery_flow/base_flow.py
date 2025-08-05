@@ -223,10 +223,9 @@ class UnifiedDiscoveryFlow(Flow):
             FieldMappingExecutor,
             TechDebtExecutor,
         )
-        from .crew_coordination import CrewCoordinator
 
-        # Initialize crew manager
-        self.crew_manager = CrewCoordinator(self.crewai_service, self.context)
+        # Keep the existing UnifiedFlowCrewManager - don't overwrite it
+        # self.crew_manager is already initialized in _initialize_components()
 
         # Note: We'll initialize the actual phase executors later when state is available
         # For now, store the executor classes

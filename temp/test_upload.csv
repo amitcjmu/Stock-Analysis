@@ -1,4 +1,0 @@
-Asset Name,Asset Type,Environment,Business Owner,Criticality
-CRM-PROD-01,Application,Production,Finance Team,Critical
-DB-PROD-01,Database,Production,Finance Team,Critical
-WEB-PROD-01,Server,Production,IT Operations,High

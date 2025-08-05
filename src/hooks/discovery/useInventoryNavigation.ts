@@ -33,7 +33,7 @@ export const useInventoryNavigation = (flowId?: string): unknown => {
   }) => {
     try {
       if (flow && flow.flow_id) {
-        // Update to dependency analysis phase using V2 API
+        // Update to dependency analysis phase using unified API
         await updatePhase('dependency_analysis', {
           completed_phases: [...(flow.phases ? Object.keys(flow.phases).filter(p => flow.phases[p]) : []), 'inventory'],
           current_phase: 'dependency_analysis',

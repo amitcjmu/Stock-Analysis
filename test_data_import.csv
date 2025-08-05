@@ -1,0 +1,9 @@
+name,ip_address,os_version,department
+Alice Johnson,192.168.1.101,Windows 11 Pro,Engineering
+Bob Smith,192.168.1.102,macOS Monterey,Marketing
+Carol Davis,192.168.1.103,Ubuntu 22.04 LTS,Finance
+David Wilson,192.168.1.104,Windows 10 Enterprise,HR
+Emma Brown,192.168.1.105,macOS Big Sur,Operations
+Frank Miller,192.168.1.106,CentOS 8,IT Support
+Grace Lee,192.168.1.107,Windows 11 Home,Sales
+Henry Clark,192.168.1.108,Debian 11,Research

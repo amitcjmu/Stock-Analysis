@@ -152,7 +152,7 @@ test.describe('Discovery Flow Comprehensive E2E Test', () => {
       console.log('  ✗ No upload success indicator found');
 
       // Check API response
-      const apiErrors = networkErrors.filter(e => e.url.includes('/api/v1/discovery'));
+      const apiErrors = networkErrors.filter(e => e.url.includes('/api/v1/unified-discovery'));
       if (apiErrors.length > 0) {
         console.log('  ✗ Discovery API errors detected:');
         apiErrors.forEach(e => console.log(`    - ${e.status}: ${e.url}`));
@@ -324,7 +324,7 @@ test.describe('Discovery Flow Comprehensive E2E Test', () => {
       criticalIssues.push('Flow ID not created after upload');
     }
 
-    if (networkErrors.some(e => e.url.includes('/api/v1/discovery') && e.status >= 500)) {
+    if (networkErrors.some(e => e.url.includes('/api/v1/unified-discovery') && e.status >= 500)) {
       criticalIssues.push('Server errors in Discovery API');
     }
 

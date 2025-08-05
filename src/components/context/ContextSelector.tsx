@@ -1,8 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
-import { AlertCircle } from 'lucide-react'
-import { ChevronDown, Building2, Calendar, Database, Eye, Layers, RefreshCw, Check, X } from 'lucide-react'
+import { ChevronDown, Building2, Calendar, Layers, RefreshCw, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -14,14 +13,11 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useClient } from '@/contexts/ClientContext';
-import { useEngagement } from '@/contexts/EngagementContext';
-import { useSession } from '@/contexts/SessionContext';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { getContextHeaders } from '@/utils/contextUtils';
 
 interface Client {
   id: string;
@@ -34,12 +30,6 @@ interface Engagement {
   client_id: string;
 }
 
-interface Session {
-  id: string;
-  session_name: string;
-  session_display_name?: string;
-  engagement_id: string;
-}
 
 interface ContextSelectorProps {
   className?: string;
@@ -50,8 +40,6 @@ interface ContextSelectorProps {
 const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compact = false, onSelectionChange }) => {
   const auth = useAuth();
   const { currentClient, setCurrentClient } = useClient();
-  const { currentEngagement, setCurrentEngagement } = useEngagement();
-  const { currentSession, setCurrentSession, viewMode, setViewMode } = useSession();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -59,9 +47,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
 
   // Staging selections (local state for preview)
   const [stagedClient, setStagedClient] = useState<Client | null>(currentClient);
-  const [stagedEngagement, setStagedEngagement] = useState<Engagement | null>(currentEngagement);
-  const [stagedSession, setStagedSession] = useState<Session | null>(currentSession);
-  const [stagedViewMode, setStagedViewMode] = useState<'session_view' | 'engagement_view'>(viewMode);
+  const [stagedEngagement, setStagedEngagement] = useState<Engagement | null>(auth.engagement);
 
   // Queries for data fetching
   const { data: clients = [] } = useQuery({
@@ -92,56 +78,22 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
     enabled: !!stagedClient?.id
   });
 
-  const { data: sessions = [] } = useQuery({
-    queryKey: ['sessions', stagedEngagement?.id],
-    queryFn: async () => {
-      if (!stagedEngagement?.id) return [];
-      const response = await apiCall(`/api/v1/context-establishment/engagements/${stagedEngagement.id}/sessions`, {
-        method: 'GET',
-        headers: auth.getAuthHeaders()
-      }, false); // Don't include context - we're establishing it
-      return response.sessions;
-    },
-    enabled: !!stagedEngagement?.id
-  });
-
   // Update staged selections when current context changes
   useEffect(() => {
     setStagedClient(currentClient);
-    setStagedEngagement(currentEngagement);
-    setStagedSession(currentSession);
-    setStagedViewMode(viewMode);
-  }, [currentClient, currentEngagement, currentSession, viewMode]);
+    setStagedEngagement(auth.engagement);
+  }, [currentClient, auth.engagement]);
 
   // Staging handlers
   const handleStagedClientChange = (clientId: string): void => {
     const selectedClient = clients.find(c => c.id === clientId);
     setStagedClient(selectedClient || null);
     setStagedEngagement(null);
-    setStagedSession(null);
   };
 
   const handleStagedEngagementChange = (engagementId: string): void => {
     const selectedEngagement = engagements.find(e => e.id === engagementId);
     setStagedEngagement(selectedEngagement || null);
-    setStagedSession(null);
-  };
-
-  const handleStagedSessionChange = (sessionId: string): void => {
-    if (sessionId === 'no-session') {
-      setStagedSession(null);
-      setStagedViewMode('engagement_view');
-    } else {
-      const selectedSession = sessions.find(s => s.id === sessionId);
-      setStagedSession(selectedSession || null);
-      if (selectedSession) {
-        setStagedViewMode('session_view');
-      }
-    }
-  };
-
-  const handleStagedViewModeChange = (mode: 'session_view' | 'engagement_view'): void => {
-    setStagedViewMode(mode);
   };
 
   // Confirm the staged selections and apply to global context
@@ -188,18 +140,10 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
       if (stagedClient) {
         setCurrentClient(stagedClient);
       }
-      if (stagedEngagement) {
-        setCurrentEngagement(stagedEngagement);
-      }
-      if (stagedSession) {
-        setCurrentSession(stagedSession);
-      }
-      setViewMode(stagedViewMode);
 
       const contextParts = [];
       if (stagedClient) contextParts.push(stagedClient.name);
       if (stagedEngagement) contextParts.push(stagedEngagement.name);
-      if (stagedSession) contextParts.push(stagedSession.session_display_name || stagedSession.session_name);
 
       toast({
         title: "Context Switched",
@@ -220,9 +164,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
   // Cancel staged selections and revert to current context
   const handleCancelSelection = (): void => {
     setStagedClient(currentClient);
-    setStagedEngagement(currentEngagement);
-    setStagedSession(currentSession);
-    setStagedViewMode(viewMode);
+    setStagedEngagement(auth.engagement);
     onSelectionChange?.();
   };
 
@@ -230,9 +172,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
   const hasChanges = (): unknown => {
     return (
       stagedClient?.id !== currentClient?.id ||
-      stagedEngagement?.id !== currentEngagement?.id ||
-      stagedSession?.id !== currentSession?.id ||
-      stagedViewMode !== viewMode
+      stagedEngagement?.id !== auth.engagement?.id
     );
   };
 
@@ -240,9 +180,6 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
     queryClient.invalidateQueries({ queryKey: ['clients'] });
     if (stagedClient?.id) {
       queryClient.invalidateQueries({ queryKey: ['engagements', stagedClient.id] });
-    }
-    if (stagedEngagement?.id) {
-      queryClient.invalidateQueries({ queryKey: ['sessions', stagedEngagement.id] });
     }
     toast({
       title: "Context Refreshed",
@@ -252,9 +189,8 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
 
   const handleReset = (): void => {
     setCurrentClient(null);
-    setCurrentEngagement(null);
-    setCurrentSession(null);
-    setViewMode('engagement_view');
+    auth.switchClient(null, null);
+    auth.switchEngagement(null, null);
     toast({
       title: "Context Reset",
       description: "Context cleared"
@@ -268,14 +204,9 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
         <Badge variant="outline" className="bg-blue-50">
           {currentClient?.name || 'No Client'}
         </Badge>
-        {currentEngagement && (
+        {auth.engagement && (
           <Badge variant="outline" className="bg-green-50">
-            {currentEngagement.name}
-          </Badge>
-        )}
-        {currentSession && viewMode === 'session_view' && (
-          <Badge variant="outline" className="bg-purple-50">
-            {currentSession.session_display_name || currentSession.session_name}
+            {auth.engagement.name}
           </Badge>
         )}
         <Button
@@ -383,73 +314,6 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
             </Select>
           </div>
 
-          {/* Session Selection */}
-          <div className="space-y-2">
-            <label className="flex items-center text-sm font-medium text-gray-700">
-              <Database className="h-4 w-4 mr-2" />
-              Session (Optional)
-            </label>
-            <Select
-              value={stagedSession?.id || 'no-session'}
-              onValueChange={handleStagedSessionChange}
-              disabled={!stagedEngagement}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={stagedEngagement ? "Select a session (optional)..." : "Select an engagement first"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="no-session">
-                  <div className="flex items-center">
-                    <Eye className="h-4 w-4 mr-2" />
-                    Engagement View (No specific session)
-                  </div>
-                </SelectItem>
-                {sessions.map((session) => (
-                  <SelectItem key={session.id} value={session.id}>
-                    <div className="flex items-center">
-                      <Database className="h-4 w-4 mr-2" />
-                      {session.session_display_name || session.session_name}
-                      <Badge variant="outline" className="ml-2 text-xs">
-                        {session.status}
-                      </Badge>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* View Mode Selection (when session is selected) */}
-          {stagedSession && (
-            <div className="space-y-2">
-              <label className="flex items-center text-sm font-medium text-gray-700">
-                <Eye className="h-4 w-4 mr-2" />
-                View Mode
-              </label>
-              <Select
-                value={stagedViewMode}
-                onValueChange={handleStagedViewModeChange}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="engagement_view">
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Engagement View
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="session_view">
-                    <div className="flex items-center">
-                      <Database className="h-4 w-4 mr-2" />
-                      Session View
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
         </div>
 
         {/* Action Buttons */}
@@ -479,7 +343,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
         </div>
 
         {/* Preview of staged context */}
-        {(stagedClient || stagedEngagement || stagedSession) && (
+        {(stagedClient || stagedEngagement) && (
           <div className="mt-4 p-3 bg-gray-50 rounded-lg">
             <div className="text-sm font-medium text-gray-700 mb-2">Preview:</div>
             <div className="flex flex-wrap gap-2">
@@ -495,16 +359,6 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
                   {stagedEngagement.name}
                 </Badge>
               )}
-              {stagedSession && (
-                <Badge variant="outline" className="bg-purple-50">
-                  <Database className="h-3 w-3 mr-1" />
-                  {stagedSession.session_display_name || stagedSession.session_name}
-                </Badge>
-              )}
-              <Badge variant="outline" className="bg-yellow-50">
-                <Eye className="h-3 w-3 mr-1" />
-                {stagedViewMode === 'session_view' ? 'Session View' : 'Engagement View'}
-              </Badge>
             </div>
           </div>
         )}

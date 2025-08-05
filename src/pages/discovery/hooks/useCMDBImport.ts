@@ -155,7 +155,7 @@ export const useDiscoveryFlow = (): JSX.Element => {
         };
 
         console.log('🚀 Sending request to backend:', {
-          endpoint: '/api/v1/discovery/flow/run-redesigned',
+          endpoint: '/api/v1/unified-discovery/flow/run-redesigned',
           flow_id: flowId,
           filename: file.name,
           headers_count: headers.length,
@@ -163,7 +163,7 @@ export const useDiscoveryFlow = (): JSX.Element => {
         });
 
         // Call the redesigned backend endpoint with proper crew implementation
-        const response = await apiCall('/api/v1/discovery/flow/run-redesigned', {
+        const response = await apiCall('/api/v1/unified-discovery/flow/run-redesigned', {
           method: 'POST',
           body: JSON.stringify(requestBody),
         }) as DiscoveryFlowResponse;
@@ -193,7 +193,7 @@ export const useDiscoveryFlowStatus = (flowId: string | null): JSX.Element => {
 
       // Use the public status endpoint that doesn't require authentication
       const response = await apiCall(
-        `/api/v1/discovery/flow/agentic-analysis/status-public?flow_id=${flowId}`
+        `/api/v1/unified-discovery/flow/agentic-analysis/status-public?flow_id=${flowId}`
       ) as AnalysisStatusResponse;
 
       // Extract the actual workflow status from the backend response

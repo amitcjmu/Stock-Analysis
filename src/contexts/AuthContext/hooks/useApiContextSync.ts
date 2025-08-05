@@ -8,13 +8,13 @@ export const useApiContextSync = (
   client: Client | null,
   engagement: Engagement | null,
   flow: Flow | null
-): JSX.Element => {
+): void => {
   const lastContextRef = useRef<string>('');
 
   useEffect(() => {
     // Don't sync context if we don't have a user yet
     if (!user) {
-      console.log('🔄 API Context sync - skipping, no user available');
+      // API Context sync - skipping, no user available
       return;
     }
 
@@ -28,12 +28,7 @@ export const useApiContextSync = (
 
     // Only update if context actually changed
     if (contextHash !== lastContextRef.current) {
-      console.log('🔄 API Context sync - updating context:', {
-        user: user?.id,
-        client: client?.id,
-        engagement: engagement?.id,
-        flow: flow?.id
-      });
+      // API Context sync - updating context
 
       updateApiContext({
         user,

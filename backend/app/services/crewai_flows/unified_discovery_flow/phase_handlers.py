@@ -122,7 +122,9 @@ class PhaseHandlers:
 
             # Update state with mapping suggestions
             self.flow.state.field_mappings = mapping_result.get("field_mappings", {})
-            self.flow.state.needs_approval = True
+            # Use the approved field in the flow state instead of needs_approval
+            self.flow.state.awaiting_user_approval = True
+            self.flow.state.status = "waiting_for_user_approval"
 
             return mapping_result
 

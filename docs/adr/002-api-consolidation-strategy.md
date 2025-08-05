@@ -8,7 +8,7 @@ The AI Modernize Migration Platform has evolved multiple API versions and endpoi
 
 ### Current API Landscape
 - **`/api/v1/unified-discovery/`** - Original unified approach with session-based operations
-- **`/api/v1/discovery/`** - Legacy discovery endpoints with mixed patterns
+- **`/api/v1/unified-discovery/`** - Legacy discovery endpoints with mixed patterns
 - **`/api/v2/discovery-flows/`** - Partial v2 implementation with incomplete coverage
 - **Various standalone endpoints** - Scattered utility endpoints
 

@@ -46,7 +46,7 @@ const apiClient = createApiClient({
 export async function getDiscoveryFlow(flowId: string): Promise<DiscoveryFlowData> {
   try {
     const response: ApiResponse<DiscoveryFlowData> = await apiClient.get(
-      `/api/v1/discovery/flows/${flowId}`
+      `/api/v1/unified-discovery/flows/${flowId}`
     );
 
     if (response.success) {

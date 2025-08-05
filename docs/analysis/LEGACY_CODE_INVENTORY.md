@@ -55,8 +55,8 @@
 
 | File Path | Code Element | Type | Reason for Flagging | Confidence Score | Recommendation |
 |-----------|--------------|------|--------------------|------------------|----------------|
-| `backend/app/api/v1/discovery/testing_endpoints.py` | TestingEndpoints | API | Not imported in main router | 95% | Remove |
-| `backend/app/api/v1/discovery/database_test.py` | DatabaseTest | API | No imports found | 95% | Remove |
+| `backend/app/api/v1/unified-discovery/testing_endpoints.py` | TestingEndpoints | API | Not imported in main router | 95% | Remove |
+| `backend/app/api/v1/unified-discovery/database_test.py` | DatabaseTest | API | No imports found | 95% | Remove |
 | `backend/app/api/v1/endpoints/workflow_integration.py` | WorkflowIntegration | API | No imports, replaced by MFO | 95% | Remove |
 | `backend/app/api/v1/endpoints/discovery_escalation.py` | DiscoveryEscalation | API | Not imported anywhere | 90% | Remove |
 | `backend/app/api/v1/admin/session_comparison_modular.py` | SessionComparisonModular | API | No imports, duplicate implementation | 95% | Remove |
@@ -72,7 +72,7 @@
 | File Path | Code Element | Type | Reason for Flagging | Confidence Score | Recommendation |
 |-----------|--------------|------|--------------------|------------------|----------------|
 | `backend/app/api/v1/endpoints/simple_admin.py` | SimpleAdmin | API | Conditionally imported | 70% | Investigate Further |
-| `backend/app/api/v1/discovery_flow_v2.py` | DiscoveryFlowV2 | API | Commented out in router | 80% | Deprecate |
+| `backend/app/api/v1/unified-discovery_flow_v2.py` | DiscoveryFlowV2 | API | Commented out in router | 80% | Deprecate |
 | `backend/app/services/multi_model_service.py` | MultiModelService | Service | May be used by CrewAI | 70% | Investigate Further |
 | `backend/app/services/analysis_modular.py` | AnalysisModular | Service | May be used by analysis endpoints | 65% | Investigate Further |
 

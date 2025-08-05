@@ -9,7 +9,7 @@ import type { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Type definitions
-export interface IncompleteFlowV2 {
+export interface IncompleteFlow {
   flowId: string;
   status: string;
   current_phase: string;
@@ -24,7 +24,7 @@ export interface IncompleteFlowV2 {
 }
 
 // Hook to detect incomplete flows
-export const useIncompleteFlowDetectionV2 = (): unknown => {
+export const useIncompleteFlowDetection = (): unknown => {
   const { client, engagement } = useAuth();
 
   return useQuery({
@@ -123,7 +123,7 @@ export const useIncompleteFlowDetectionV2 = (): unknown => {
 };
 
 // Hook for resuming flows
-export const useFlowResumptionV2 = (): unknown => {
+export const useFlowResumption = (): unknown => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -184,7 +184,7 @@ export const useFlowResumptionV2 = (): unknown => {
 
 // Hook for deleting flows
 // @deprecated Use useFlowDeletion from '@/hooks/useFlowDeletion' instead
-export const useFlowDeletionV2 = (): unknown => {
+export const useFlowDeletion = (): unknown => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { client, engagement } = useAuth();
@@ -223,7 +223,7 @@ export const useFlowDeletionV2 = (): unknown => {
 
 // Hook for bulk flow operations
 // @deprecated Use useFlowDeletion from '@/hooks/useFlowDeletion' instead
-export const useBulkFlowOperationsV2 = (): unknown => {
+export const useBulkFlowOperations = (): unknown => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { client, engagement } = useAuth();
@@ -265,3 +265,9 @@ export const useBulkFlowOperationsV2 = (): unknown => {
     }
   };
 };
+
+// Backward compatibility exports
+export const useIncompleteFlowDetectionV2 = useIncompleteFlowDetection;
+export const useFlowResumptionV2 = useFlowResumption;
+export const useFlowDeletionV2 = useFlowDeletion;
+export const useBulkFlowOperationsV2 = useBulkFlowOperations;

@@ -16,7 +16,7 @@ vi.mock('../../src/config/api', () => ({
   API_CONFIG: {
     ENDPOINTS: {
       DISCOVERY: {
-        ASSETS: '/api/v1/discovery/assets'
+        ASSETS: '/api/v1/unified-discovery/assets'
       }
     }
   }

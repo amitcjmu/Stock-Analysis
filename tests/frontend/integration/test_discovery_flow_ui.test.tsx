@@ -106,7 +106,7 @@ const renderWithProviders = (component: React.ReactElement) => {
 
 // Mock API responses
 const mockApiResponses = {
-  '/api/v1/discovery/flow/initialize': {
+  '/api/v1/unified-discovery/flow/initialize': {
     method: 'POST',
     response: {
       flow_id: 'flow_123',
@@ -122,7 +122,7 @@ const mockApiResponses = {
       ]
     }
   },
-  '/api/v1/discovery/flow/flow_123/status': {
+  '/api/v1/unified-discovery/flow/flow_123/status': {
     method: 'GET',
     response: mockFlowData
   },
@@ -197,7 +197,7 @@ describe('Discovery Flow Frontend Integration Tests', () => {
     // Assert
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/discovery/flow/initialize'),
+        expect.stringContaining('/api/v1/unified-discovery/flow/initialize'),
         expect.objectContaining({
           method: 'POST'
         })
@@ -513,7 +513,7 @@ describe('Discovery Flow Frontend Integration Tests', () => {
     // Assert state is restored
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/discovery/flow/flow_123/status'),
+        expect.stringContaining('/api/v1/unified-discovery/flow/flow_123/status'),
         expect.any(Object)
       );
     });
