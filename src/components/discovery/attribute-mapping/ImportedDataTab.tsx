@@ -22,10 +22,8 @@ interface ImportedDataTabProps {
 }
 
 interface ImportRecord {
-  id: string;
-  row_number: number;
-  record_id: string;
-  raw_data: Record<string, unknown>;
+  id: string; // Internal ID for React keys only
+  raw_data: Record<string, unknown>; // Original uploaded data only
   processed_data?: Record<string, unknown>;
   is_processed: boolean;
   is_valid: boolean;
@@ -160,12 +158,10 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
       };
     }
 
-    // Transform the raw data array into ImportRecord format
+    // Transform the raw data array into ImportRecord format - preserve original data only
     const transformedData = (importResponse.data || []).map((rawRecord: unknown, index: number) => ({
-      id: `row_${index + 1}`,
-      row_number: index + 1,
-      record_id: rawRecord.Asset_ID || rawRecord.hostname || rawRecord.asset_name || `row_${index + 1}`,
-      raw_data: rawRecord,
+      id: `record_${index}`, // Internal ID for React keys only, not displayed
+      raw_data: rawRecord, // Only the original uploaded data
       is_processed: true,
       is_valid: true,
       created_at: new Date().toISOString()
@@ -385,9 +381,6 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Row #
-              </th>
               {selectedColumns.map(column => (
                 <th key={column} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {column}
@@ -396,11 +389,8 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {paginatedData.map((record, index) => (
+            {paginatedData.map((record) => (
               <tr key={record.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm text-gray-900">
-                  {(currentPage - 1) * recordsPerPage + index + 1}
-                </td>
                 {selectedColumns.map(column => (
                   <td key={column} className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
                     {String(record.raw_data[column] || '')}

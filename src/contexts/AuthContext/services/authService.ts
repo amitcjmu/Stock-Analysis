@@ -56,7 +56,7 @@ export const useAuthService = (
 
     // Clear the initialization state so user can log back in
     try {
-      sessionStorage.removeItem('auth_initialization_complete');
+      sessionStorage.removeItem('auth_init_completed');
     } catch {
       // Ignore storage errors
     }
@@ -70,7 +70,7 @@ export const useAuthService = (
       setIsLoginInProgress(true);
       setError(null);
 
-      console.log('🚀 Starting parallel authentication flow...');
+      // Starting parallel authentication flow...
       const startTime = performance.now();
 
       // CRITICAL PATH: Only login authentication is blocking
@@ -85,12 +85,7 @@ export const useAuthService = (
       tokenStorage.setUser(response.user);
       setUser(response.user);
 
-      console.log('🔐 Login Step 1 - Authentication completed:', {
-        user: response.user,
-        role: response.user.role,
-        token: response.token.access_token.substring(0, 20) + '...',
-        elapsed: `${Math.round(performance.now() - startTime)}ms`
-      });
+      // Login Step 1 - Authentication completed
 
       // PARALLEL ENHANCEMENT: Start all context-related operations simultaneously
       const parallelStartTime = performance.now();

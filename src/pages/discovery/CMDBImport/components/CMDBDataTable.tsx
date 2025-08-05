@@ -46,7 +46,12 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
   const file = actualFiles[0]; // Assuming one file at a time for now
 
   // Map flow states to display statuses
-  const mapFlowStatusToDisplayStatus = (flowStatus: string, fileStatus: string): string => {
+  const mapFlowStatusToDisplayStatus = (flowStatus: string, fileStatus: string, currentPhase: string, progress: number): string => {
+    // If flow is active but stuck in resuming phase with no progress, treat as ready
+    if (flowStatus === 'active' && currentPhase === 'resuming' && progress === 0) {
+      return 'approved';
+    }
+
     const flowStatusMapping: Record<string, string> = {
       'running': 'processing',
       'active': 'processing',
@@ -67,9 +72,9 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
     return fileStatus || 'processing';
   };
 
-  const currentStatus = mapFlowStatusToDisplayStatus(flowState?.status, file.status);
   const progress = flowState?.progress_percentage || 0;
   const currentPhase = flowState?.current_phase || file.current_phase;
+  const currentStatus = mapFlowStatusToDisplayStatus(flowState?.status, file.status, currentPhase, progress);
   const StatusIcon = getStatusIcon(currentStatus);
 
   // Extract agent insights from flow state

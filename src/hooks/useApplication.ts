@@ -31,7 +31,7 @@ export const useApplication = (applicationId: string): JSX.Element => {
     queryKey: ['application', applicationId],
     queryFn: async () => {
       try {
-        const response = await apiCall(`/api/v1/discovery/applications/${applicationId}`);
+        const response = await apiCall(`/api/v1/unified-discovery/applications/${applicationId}`);
         return response.data;
       } catch (error) {
         // Handle 404 and 403 errors gracefully - endpoint may not exist yet
@@ -61,7 +61,7 @@ export const useUpdateApplication = (): JSX.Element => {
 
   return useMutation({
     mutationFn: async ({ applicationId, data }: { applicationId: string; data: Partial<Application> }) => {
-      const response = await apiCall(`/api/v1/discovery/applications/${applicationId}`, {
+      const response = await apiCall(`/api/v1/unified-discovery/applications/${applicationId}`, {
         method: 'PUT',
         body: JSON.stringify(data)
       });

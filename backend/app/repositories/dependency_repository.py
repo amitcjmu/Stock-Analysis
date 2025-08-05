@@ -27,6 +27,9 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
     ):
         """Initialize dependency repository with context."""
         super().__init__(db, AssetDependency, client_account_id, engagement_id)
+        # Override context filtering since AssetDependency doesn't have context fields
+        self.has_client_account = False
+        self.has_engagement = False
 
     async def get_app_server_dependencies(self) -> List[Dict[str, Any]]:
         """Get all application-to-server dependencies."""
@@ -69,7 +72,14 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
             )
         )
 
-        query = self._apply_context_filter(query)
+        # Apply context filtering through the Asset tables
+        if self.client_account_id:
+            query = query.where(AppAsset.client_account_id == self.client_account_id)
+            query = query.where(ServerAsset.client_account_id == self.client_account_id)
+        if self.engagement_id:
+            query = query.where(AppAsset.engagement_id == self.engagement_id)
+            query = query.where(ServerAsset.engagement_id == self.engagement_id)
+
         result = await self.db.execute(query)
         rows = result.all()
 
@@ -132,7 +142,18 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
             )
         )
 
-        query = self._apply_context_filter(query)
+        # Apply context filtering through the Asset tables
+        if self.client_account_id:
+            query = query.where(
+                SourceAppAsset.client_account_id == self.client_account_id
+            )
+            query = query.where(
+                TargetAppAsset.client_account_id == self.client_account_id
+            )
+        if self.engagement_id:
+            query = query.where(SourceAppAsset.engagement_id == self.engagement_id)
+            query = query.where(TargetAppAsset.engagement_id == self.engagement_id)
+
         result = await self.db.execute(query)
         rows = result.all()
 
@@ -160,7 +181,11 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
             Asset.id, Asset.name, Asset.application_name, Asset.description
         ).where(Asset.asset_type == AssetType.APPLICATION)
 
-        query = self._apply_context_filter(query)
+        # Apply context filtering manually for Asset table
+        if self.client_account_id:
+            query = query.where(Asset.client_account_id == self.client_account_id)
+        if self.engagement_id:
+            query = query.where(Asset.engagement_id == self.engagement_id)
         result = await self.db.execute(query)
         rows = result.all()
 
@@ -180,7 +205,11 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
             Asset.asset_type == AssetType.SERVER
         )
 
-        query = self._apply_context_filter(query)
+        # Apply context filtering manually for Asset table
+        if self.client_account_id:
+            query = query.where(Asset.client_account_id == self.client_account_id)
+        if self.engagement_id:
+            query = query.where(Asset.engagement_id == self.engagement_id)
         result = await self.db.execute(query)
         rows = result.all()
 
@@ -217,6 +246,23 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
         if not app.scalar() or not server.scalar():
             raise ValueError("Invalid application or server ID")
 
+        # Check if dependency already exists
+        existing = await self.db.execute(
+            select(AssetDependency).where(
+                and_(
+                    AssetDependency.asset_id == app_id,
+                    AssetDependency.depends_on_asset_id == server_id,
+                )
+            )
+        )
+
+        existing_dep = existing.scalar()
+        if existing_dep:
+            logger.info(
+                f"Dependency already exists between {app_id} and {server_id}, returning existing"
+            )
+            return existing_dep
+
         return await self.create(
             asset_id=app_id,
             depends_on_asset_id=server_id,
@@ -244,6 +290,23 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
 
         if len(list(apps.scalars())) != 2:
             raise ValueError("Invalid application IDs")
+
+        # Check if dependency already exists
+        existing = await self.db.execute(
+            select(AssetDependency).where(
+                and_(
+                    AssetDependency.asset_id == source_app_id,
+                    AssetDependency.depends_on_asset_id == target_app_id,
+                )
+            )
+        )
+
+        existing_dep = existing.scalar()
+        if existing_dep:
+            logger.info(
+                f"Dependency already exists between {source_app_id} and {target_app_id}, returning existing"
+            )
+            return existing_dep
 
         return await self.create(
             asset_id=source_app_id,

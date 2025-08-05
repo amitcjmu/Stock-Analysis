@@ -88,26 +88,38 @@ def create_fast_field_mapping_crew(
         # 🎯 SINGLE OPTIMIZED TASK: Direct field mapping
         mapping_task = Task(
             description=f"""
-            Rapidly map {len(sample_fields)} data fields to standard migration attributes.
+            Map these {len(sample_fields)} CSV fields to standard migration attributes:
 
-            Source fields: {sample_fields}
+            CSV Fields Found: {sample_fields}
 
-            Map to these standard attributes:
+            Standard Target Attributes:
             - asset_name, asset_id, asset_type
             - hostname, ip_address, operating_system
             - cpu_cores, memory_gb, storage_gb
             - location, environment, criticality
             - application, owner, cost_center
 
-            Provide ONLY:
-            1. Field mappings in format: source_field -> target_attribute
-            2. Confidence score (0-100)
-            3. Status: COMPLETE
+            REQUIRED OUTPUT FORMAT - You must provide each mapping on a separate line:
+            Asset_ID -> asset_id
+            Asset_Name -> asset_name
+            Asset_Type -> asset_type
+            IP_Address -> ip_address
+            Operating_System -> operating_system
+            CPU_Cores -> cpu_cores
+            RAM_GB -> memory_gb
+            Storage_GB -> storage_gb
+            Location_DataCenter -> location
+            Application_Service -> application
+            Application_Owner -> owner
 
-            Work quickly and avoid extensive analysis.
+            Then add:
+            Confidence score: [0-100]
+            Status: COMPLETE
+
+            CRITICAL: Each mapping must be in exact format "source_field -> target_attribute" on separate lines.
             """,
             agent=field_mapping_specialist,
-            expected_output="Concise field mappings with confidence score",
+            expected_output="Field mappings in format 'source -> target', one per line, followed by confidence score and status",
             max_execution_time=12,  # Task-level timeout
         )
 

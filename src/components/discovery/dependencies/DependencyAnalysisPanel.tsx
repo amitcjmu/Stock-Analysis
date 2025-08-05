@@ -29,7 +29,8 @@ const DependencyAnalysisPanel: React.FC<DependencyAnalysisPanelProps> = ({
 
   const renderAppServerAnalysis = (): JSX.Element => {
     const { hosting_relationships = [], suggested_mappings = [], confidence_scores = {} } = data?.app_server_mapping || {};
-    const confirmedCount = hosting_relationships.filter(r => r?.status === 'confirmed').length;
+    // CRITICAL FIX: Dependencies from database don't have status field, treat them as confirmed
+    const confirmedCount = hosting_relationships.filter(r => r?.status === 'confirmed' || !r?.status).length;
     const pendingCount = hosting_relationships.filter(r => r?.status === 'pending').length;
     const confidenceValues = Object.values(confidence_scores || {});
     const averageConfidence = confidenceValues.length > 0 ? confidenceValues.reduce((a, b) => (a || 0) + (b || 0), 0) / confidenceValues.length : 0;
@@ -50,6 +51,32 @@ const DependencyAnalysisPanel: React.FC<DependencyAnalysisPanelProps> = ({
           </div>
         </div>
 
+        {/* CRITICAL FIX: Show actual existing dependencies */}
+        <div>
+          <h3 className="text-sm font-medium mb-2">Existing Dependencies</h3>
+          <div className="space-y-2">
+            {hosting_relationships.length > 0 ? (
+              hosting_relationships.slice(0, 5).map((relationship, index) => (
+                <div key={relationship?.dependency_id || index} className="bg-green-50 p-2 rounded-lg border-l-4 border-green-400">
+                  <div className="text-sm font-medium text-green-700">
+                    {relationship?.application_name || 'Unknown App'} → {relationship?.server_info?.name || relationship?.server_info?.hostname || 'Unknown Server'}
+                  </div>
+                  <div className="text-xs text-green-600">
+                    Type: {relationship?.dependency_type || 'runtime'} • Status: Confirmed
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-gray-500 italic">No dependencies found</div>
+            )}
+            {hosting_relationships.length > 5 && (
+              <div className="text-xs text-gray-500 text-center">
+                ... and {hosting_relationships.length - 5} more dependencies
+              </div>
+            )}
+          </div>
+        </div>
+
         <div>
           <h3 className="text-sm font-medium mb-2">Suggested Mappings</h3>
           <div className="space-y-2">
@@ -63,6 +90,9 @@ const DependencyAnalysisPanel: React.FC<DependencyAnalysisPanelProps> = ({
                 </div>
               </div>
             ))}
+            {suggested_mappings.length === 0 && (
+              <div className="text-sm text-gray-500 italic">No new suggestions available</div>
+            )}
           </div>
         </div>
 
@@ -81,7 +111,8 @@ const DependencyAnalysisPanel: React.FC<DependencyAnalysisPanelProps> = ({
 
   const renderAppAppAnalysis = (): JSX.Element => {
     const { cross_app_dependencies = [], application_clusters = [], suggested_patterns = [], confidence_scores = {} } = data?.cross_application_mapping || {};
-    const confirmedCount = cross_app_dependencies.filter(d => d?.status === 'confirmed').length;
+    // CRITICAL FIX: Dependencies from database don't have status field, treat them as confirmed
+    const confirmedCount = cross_app_dependencies.filter(d => d?.status === 'confirmed' || !d?.status).length;
     const pendingCount = cross_app_dependencies.filter(d => d?.status === 'pending').length;
     const confidenceValues = Object.values(confidence_scores || {});
     const averageConfidence = confidenceValues.length > 0 ? confidenceValues.reduce((a, b) => (a || 0) + (b || 0), 0) / confidenceValues.length : 0;
@@ -99,6 +130,32 @@ const DependencyAnalysisPanel: React.FC<DependencyAnalysisPanelProps> = ({
               <div className="text-2xl font-bold text-yellow-600">{pendingCount}</div>
               <div className="text-sm text-yellow-700">Pending</div>
             </div>
+          </div>
+        </div>
+
+        {/* CRITICAL FIX: Show actual existing dependencies */}
+        <div>
+          <h3 className="text-sm font-medium mb-2">Existing Dependencies</h3>
+          <div className="space-y-2">
+            {cross_app_dependencies.length > 0 ? (
+              cross_app_dependencies.slice(0, 5).map((dependency, index) => (
+                <div key={dependency?.dependency_id || index} className="bg-green-50 p-2 rounded-lg border-l-4 border-green-400">
+                  <div className="text-sm font-medium text-green-700">
+                    {dependency?.source_app_name || 'Unknown App'} → {dependency?.target_app_info?.name || dependency?.target_app_info?.application_name || 'Unknown App'}
+                  </div>
+                  <div className="text-xs text-green-600">
+                    Type: {dependency?.dependency_type || 'communication'} • Status: Confirmed
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-gray-500 italic">No dependencies found</div>
+            )}
+            {cross_app_dependencies.length > 5 && (
+              <div className="text-xs text-gray-500 text-center">
+                ... and {cross_app_dependencies.length - 5} more dependencies
+              </div>
+            )}
           </div>
         </div>
 

@@ -52,6 +52,13 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 "CrewAI field mapping crew creation failed. This is a critical error that needs to be fixed."
             )
 
+        # Log crew input for debugging
+        logger.info(f"🔍 DEBUG: Crew input data: {crew_input}")
+        logger.info(f"🔍 DEBUG: Columns being passed: {crew_input.get('columns', [])}")
+        logger.info(
+            f"🔍 DEBUG: Sample data count: {len(crew_input.get('sample_data', []))}"
+        )
+
         # Execute crew (this is synchronous)
         crew_result = crew.kickoff(inputs=crew_input)
         logger.info(f"Field mapping crew completed: {type(crew_result)}")

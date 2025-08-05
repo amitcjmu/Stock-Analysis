@@ -147,11 +147,9 @@ class UnifiedDiscoveryFlowState(BaseModel):
 
     # Validation results - used by phase handlers for storing validation outputs
     validation_results: Dict[str, Any] = Field(default_factory=dict)
-    
-    # User approval fields for workflow management
-    needs_approval: bool = Field(default=False, description="Whether the current phase requires user approval")
-    approval_requested_at: Optional[str] = None
-    approval_received_at: Optional[str] = None
+
+    # User approval fields for workflow management - handled by CrewAI Flow state
+    # needs_approval removed - this should be managed by the flow's built-in state management
 
     # Data cleansing results
     cleaned_data: List[Dict[str, Any]] = Field(default_factory=list)

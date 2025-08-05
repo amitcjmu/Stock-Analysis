@@ -13,7 +13,6 @@ export const useFileUpload = (): JSX.Element => {
   const [isDragging, setIsDragging] = useState(false);
 
   interface CsvRecord {
-    row_index: number;
     [key: string]: string | number;
   }
 
@@ -29,7 +28,7 @@ export const useFileUpload = (): JSX.Element => {
     const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     const records = lines.slice(1).map((line, index) => {
       const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
-      const record: CsvRecord = { row_index: index + 1 };
+      const record: CsvRecord = {};
       headers.forEach((header, headerIndex) => {
         record[header] = values[headerIndex] || '';
       });

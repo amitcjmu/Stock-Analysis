@@ -206,21 +206,32 @@ export const useDependencyLogic = (flowId?: string): {
     fetchPersistedDependencies();
   }, [fetchPersistedDependencies, flow?.flow_id]);
 
+
   // Extract dependency analysis data from flow state AND persisted dependencies
   const dependencyData = {
-    // Merge persisted dependencies with flow state dependencies
-    cross_application_mapping: persistedDependencies?.cross_application_mapping?.cross_app_dependencies ||
-      flow?.results?.dependency_analysis?.cross_application_mapping ||
-      flow?.dependency_analysis?.cross_application_mapping || [],
-    app_server_mapping: persistedDependencies?.app_server_mapping?.hosting_relationships ||
-      flow?.results?.dependency_analysis?.app_server_mapping ||
-      flow?.dependency_analysis?.app_server_mapping || [],
+    // CRITICAL FIX: Maintain nested structure that UI components expect
+    cross_application_mapping: {
+      cross_app_dependencies: persistedDependencies?.cross_application_mapping?.cross_app_dependencies ||
+        flow?.results?.dependency_analysis?.cross_application_mapping ||
+        flow?.dependency_analysis?.cross_application_mapping || [],
+      available_applications: persistedDependencies?.cross_application_mapping?.available_applications || inventoryData.applications,
+      dependency_graph: persistedDependencies?.cross_application_mapping?.dependency_graph || { nodes: [], edges: [] }
+    },
+    app_server_mapping: {
+      hosting_relationships: persistedDependencies?.app_server_mapping?.hosting_relationships ||
+        flow?.results?.dependency_analysis?.app_server_mapping ||
+        flow?.dependency_analysis?.app_server_mapping || [],
+      available_applications: persistedDependencies?.app_server_mapping?.available_applications || inventoryData.applications,
+      available_servers: persistedDependencies?.app_server_mapping?.available_servers || inventoryData.servers
+    },
     flow_id: flow?.flow_id,
     crew_completion_status: flow?.phase_completion || {},
     analysis_progress: {
       total_applications: flow?.results?.dependency_analysis?.total_applications || flow?.dependency_analysis?.total_applications || inventoryData.applications.length,
-      mapped_dependencies: persistedDependencies?.app_server_mapping?.hosting_relationships?.length + persistedDependencies?.cross_application_mapping?.cross_app_dependencies?.length ||
-        flow?.results?.dependency_analysis?.mapped_dependencies || flow?.dependency_analysis?.mapped_dependencies || 0,
+      mapped_dependencies: (persistedDependencies?.app_server_mapping?.hosting_relationships?.length || 0) +
+                        (persistedDependencies?.cross_application_mapping?.cross_app_dependencies?.length || 0) ||
+                        flow?.results?.dependency_analysis?.mapped_dependencies ||
+                        flow?.dependency_analysis?.mapped_dependencies || 0,
       completion_percentage: flow?.progress_percentage || 0
     },
     // Add additional dependency data from flow state
@@ -230,9 +241,9 @@ export const useDependencyLogic = (flowId?: string): {
     orphaned_assets: flow?.results?.dependency_analysis?.orphaned_assets || flow?.dependency_analysis?.orphaned_assets || [],
     dependency_complexity_score: flow?.results?.dependency_analysis?.complexity_score || flow?.dependency_analysis?.complexity_score || 0,
     recommendations: flow?.results?.dependency_analysis?.recommendations || flow?.dependency_analysis?.recommendations || [],
-    // CRITICAL: Include inventory data for dropdowns
-    available_servers: inventoryData.servers,
-    available_applications: inventoryData.applications,
+    // CRITICAL: Include inventory data for dropdowns (maintained for backward compatibility)
+    available_servers: persistedDependencies?.app_server_mapping?.available_servers || inventoryData.servers,
+    available_applications: persistedDependencies?.app_server_mapping?.available_applications || inventoryData.applications,
     available_databases: inventoryData.databases,
     total_inventory_assets: inventoryData.totalAssets
   };

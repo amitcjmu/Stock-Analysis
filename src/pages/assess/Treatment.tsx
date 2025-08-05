@@ -88,7 +88,30 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
     setManualNavigation(true);
   }, []);
 
-  // Removed: handleStartAnalysis (initializeAnalysis not available in AnalysisActions)
+  // Start analysis handler
+  const handleStartAnalysis = useCallback(async (appIds: number[], queueName?: string) => {
+    try {
+      console.log('Starting analysis for:', appIds, 'with queue name:', queueName);
+
+      // Create analysis using the SixR API
+      const analysisId = await actions.createAnalysis({
+        application_ids: appIds,
+        parameters: state.parameters,
+        queue_name: queueName || `Analysis ${Date.now()}`
+      });
+
+      if (analysisId) {
+        toast.success(`Analysis started for ${appIds.length} applications`);
+        // Switch to progress tab to show the analysis progress
+        setCurrentTab('progress');
+      } else {
+        toast.error('Failed to start analysis');
+      }
+    } catch (error) {
+      console.error('Failed to start analysis:', error);
+      toast.error('Failed to start analysis: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  }, [actions, state.parameters]);
 
   const handleUpdateParameters = useCallback((params: SixRParameters) => {
     updateParameters(params);
@@ -209,11 +232,7 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
               applications={applications}
               selectedApplications={selectedApplicationIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id))}
               onSelectionChange={handleSelectApplications}
-              onStartAnalysis={(appIds, queueName) => {
-                // TODO: Implement analysis start logic
-                console.log('Starting analysis for:', appIds, 'with queue name:', queueName);
-                toast.success(`Starting analysis for ${appIds.length} applications`);
-              }}
+              onStartAnalysis={handleStartAnalysis}
             />
           )}
 

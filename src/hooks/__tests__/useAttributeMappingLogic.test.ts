@@ -26,8 +26,8 @@ vi.mock('../../config/api', () => ({
   API_CONFIG: {
     ENDPOINTS: {
       DISCOVERY: {
-        CONTEXT_FIELD_MAPPINGS: '/api/v1/discovery/field-mappings',
-        AGENT_CLARIFICATIONS: '/api/v1/discovery/clarifications'
+        CONTEXT_FIELD_MAPPINGS: '/api/v1/unified-discovery/field-mappings',
+        AGENT_CLARIFICATIONS: '/api/v1/unified-discovery/clarifications'
       }
     }
   },

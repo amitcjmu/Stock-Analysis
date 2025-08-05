@@ -67,17 +67,8 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({
 
     try {
       await onUpload(file);
-      // Mock upload result - in real app this would come from the upload response
-      setUploadResult({
-        uploadId: 'upload_' + Date.now(),
-        status: 'completed',
-        totalRows: 50,
-        successfulRows: 47,
-        failedRows: 3,
-        validationIssues: [],
-        processingTime: 2.5,
-        dataQualityScore: 0.85
-      });
+      // Upload result should come from the parent component's onUpload handler
+      // Don't create mock results here - let the real API response drive the UI
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {

@@ -5,6 +5,7 @@ import { RefreshCw, Zap, Building2, AlertTriangle, ArrowRight } from 'lucide-rea
 
 // Components
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
+import ContextSelector from '../../components/context/ContextSelector';
 import DependencyProgress from '../../components/discovery/dependencies/DependencyProgress';
 import DependencyAnalysisPanel from '../../components/discovery/dependencies/DependencyAnalysisPanel';
 import { DependencyGraph } from '../../components/discovery/dependencies/DependencyGraph';
@@ -60,14 +61,7 @@ const Dependencies: React.FC = () => {
   // Use navigation hook - following the established pattern
   const { handleContinueToNextPhase } = useDependencyNavigation(null, dependencyData);
 
-  // Debug info for flow detection
-  console.log('🔍 Dependencies flow detection:', {
-    urlFlowId,
-    autoDetectedFlowId,
-    effectiveFlowId,
-    hasEffectiveFlow,
-    totalFlowsAvailable: flowList?.length || 0
-  });
+  // Debug info for flow detection - removed to prevent console spam
 
   if (isLoading) {
     return (
@@ -108,9 +102,18 @@ const Dependencies: React.FC = () => {
         </div>
         <div className="flex-1 overflow-y-auto">
           <div className="container mx-auto px-4 py-6 max-w-7xl">
-            <div className="flex items-center justify-center py-8">
-              <Building2 className="w-6 h-6 animate-pulse text-blue-500 mr-2" />
-              <span className="text-gray-600">Please select a client and engagement to continue...</span>
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Dependencies Analysis</h1>
+              <p className="text-gray-600">Select a client and engagement to analyze application dependencies.</p>
+            </div>
+
+            <div className="max-w-2xl mx-auto">
+              <ContextSelector
+                onSelectionChange={() => {
+                  // Refresh data after context change
+                  refreshDependencies?.();
+                }}
+              />
             </div>
           </div>
         </div>
@@ -304,7 +307,7 @@ const Dependencies: React.FC = () => {
                       });
 
                       // Refresh the dependency data
-                      await analyzeDependencies();
+                      await refreshDependencies();
                     } catch (error: unknown) {
                       console.error('Error creating dependency:', error);
                       toast({

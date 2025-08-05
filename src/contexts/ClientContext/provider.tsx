@@ -121,9 +121,9 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
       fetchClients();
     } else if (authLoading) {
-      console.log('🔄 ClientContext: Waiting for auth to load');
+      // Waiting for auth to load - removed console.log to prevent infinite spam
     } else {
-      console.log('🔄 ClientContext: No user available');
+      // No user available - removed console.log to prevent spam
       setIsLoading(false);
       setCurrentClient(null);
       setAvailableClients([]);

@@ -35,18 +35,39 @@ export const DependencyGraph: React.FC<DependencyGraphProps> = ({
 
     if (activeView === 'app-server') {
       const { hosting_relationships = [] } = data?.app_server_mapping || {};
+
+      // Ensure we only show servers that actually have dependencies
+      if (hosting_relationships.length === 0) {
+        return []; // No dependencies means no graph to show
+      }
+
+      // CRITICAL FIX: Only extract apps and servers that are ACTUALLY in dependencies
+      // Extract unique applications from actual relationships only
       const applications = Array.from(new Set(
         hosting_relationships.map(r => r?.application_name).filter(Boolean)
       ));
+
+      // CRITICAL FIX: Extract server names from actual relationships only
       const servers = Array.from(new Set(
-        hosting_relationships.map(r => r?.server_name).filter(Boolean)
+        hosting_relationships.map(r => {
+          // Handle both direct server_name and nested server_info structure
+          const serverName = r?.server_name || r?.server_info?.name || r?.server_info?.hostname;
+          return serverName;
+        }).filter(Boolean)
       ));
 
+      // Double-check: ensure we have valid data
+      if (applications.length === 0 || servers.length === 0) {
+        console.warn('⚠️ DependencyGraph: No valid applications or servers found in relationships');
+        return [];
+      }
+
+      // CRITICAL FIX: Position nodes based on actual relationships, not sequential order
       const appNodes = applications.map((app, index) => ({
         id: `app-${app}`,
         type: 'default',
         data: { label: app },
-        position: { x: 100, y: index * 100 },
+        position: { x: 100, y: 50 + index * 120 },
         style: {
           background: '#f0f9ff',
           border: '1px solid #93c5fd',
@@ -55,18 +76,35 @@ export const DependencyGraph: React.FC<DependencyGraphProps> = ({
         }
       }));
 
-      const serverNodes = servers.map((server, index) => ({
-        id: `server-${server}`,
-        type: 'default',
-        data: { label: server },
-        position: { x: 400, y: index * 100 },
-        style: {
-          background: '#f0fdf4',
-          border: '1px solid #86efac',
-          borderRadius: '8px',
-          padding: '10px'
-        }
-      }));
+      // CRITICAL FIX: Position servers based on their relationships to apps
+      const serverNodes = servers.map((server, index) => {
+        // Find which apps connect to this server to determine positioning
+        const connectedApps = hosting_relationships.filter(r => {
+          const serverName = r?.server_name || r?.server_info?.name || r?.server_info?.hostname;
+          return serverName === server;
+        });
+
+        // Use the average position of connected apps for better layout
+        const avgAppIndex = connectedApps.length > 0
+          ? connectedApps.reduce((sum, rel) => {
+              const appIndex = applications.indexOf(rel?.application_name);
+              return sum + (appIndex >= 0 ? appIndex : 0);
+            }, 0) / connectedApps.length
+          : index;
+
+        return {
+          id: `server-${server}`,
+          type: 'default',
+          data: { label: server },
+          position: { x: 500, y: 50 + avgAppIndex * 120 },
+          style: {
+            background: '#f0fdf4',
+            border: '1px solid #86efac',
+            borderRadius: '8px',
+            padding: '10px'
+          }
+        };
+      });
 
       return [...appNodes, ...serverNodes];
     } else {
@@ -96,25 +134,29 @@ export const DependencyGraph: React.FC<DependencyGraphProps> = ({
 
     if (activeView === 'app-server') {
       const { hosting_relationships = [] } = data?.app_server_mapping || {};
-      return hosting_relationships.map((rel, index) => ({
-        id: `edge-${index}`,
-        source: `app-${rel?.application_name}`,
-        target: `server-${rel?.server_name}`,
-        type: 'smoothstep',
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          width: 20,
-          height: 20
-        },
-        style: {
-          stroke: rel?.status === 'confirmed' ? '#22c55e' : '#94a3b8',
-          strokeWidth: 2
-        },
-        data: {
-          confidence: rel?.confidence,
-          status: rel?.status
-        }
-      }));
+      return hosting_relationships.map((rel, index) => {
+        // CRITICAL FIX: Extract server name from server_info object structure
+        const serverName = rel?.server_name || rel?.server_info?.name || rel?.server_info?.hostname;
+        return {
+          id: `edge-${index}`,
+          source: `app-${rel?.application_name}`,
+          target: `server-${serverName}`,
+          type: 'smoothstep',
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 20,
+            height: 20
+          },
+          style: {
+            stroke: (rel?.status === 'confirmed' || !rel?.status) ? '#22c55e' : '#94a3b8',
+            strokeWidth: 2
+          },
+          data: {
+            confidence: rel?.confidence,
+            status: rel?.status
+          }
+        };
+      });
     } else {
       const { cross_app_dependencies = [] } = data?.cross_application_mapping || {};
       return cross_app_dependencies.map((dep, index) => ({
@@ -128,7 +170,7 @@ export const DependencyGraph: React.FC<DependencyGraphProps> = ({
           height: 20
         },
         style: {
-          stroke: dep?.status === 'confirmed' ? '#22c55e' : '#94a3b8',
+          stroke: (dep?.status === 'confirmed' || !dep?.status) ? '#22c55e' : '#94a3b8',
           strokeWidth: 2
         },
         data: {
@@ -146,8 +188,11 @@ export const DependencyGraph: React.FC<DependencyGraphProps> = ({
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
     const dependency = activeView === 'app-server'
       ? data?.app_server_mapping?.hosting_relationships?.find(
-          r => r?.application_name === edge.source.replace('app-', '') &&
-              r?.server_name === edge.target.replace('server-', '')
+          r => {
+            const serverName = r?.server_name || r?.server_info?.name || r?.server_info?.hostname;
+            return r?.application_name === edge.source.replace('app-', '') &&
+                   serverName === edge.target.replace('server-', '');
+          }
         )
       : data?.cross_application_mapping?.cross_app_dependencies?.find(
           d => d?.source_app === edge.source.replace('app-', '') &&

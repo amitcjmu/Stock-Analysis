@@ -770,7 +770,7 @@ async def _recover_corrupted_flow(
         from sqlalchemy import select
 
         from app.models.discovery_flow import DiscoveryFlow
-        from app.models.field_mapping import FieldMapping
+        from app.models.data_import.mapping import ImportFieldMapping
 
         # Get the discovery flow record
         discovery_query = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
@@ -781,8 +781,8 @@ async def _recover_corrupted_flow(
             return {"success": False, "error": "No discovery flow record found"}
 
         # Get field mappings count
-        field_mappings_query = select(FieldMapping).where(
-            FieldMapping.flow_id == flow_id
+        field_mappings_query = select(ImportFieldMapping).where(
+            ImportFieldMapping.master_flow_id == flow_id
         )
         field_mappings_result = await orchestrator.db.execute(field_mappings_query)
         field_mappings = field_mappings_result.fetchall()

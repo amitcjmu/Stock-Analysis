@@ -35,8 +35,8 @@ export const useDiscoveryFlowList = (): UseQueryResult<DiscoveryFlow[], Error> =
 
         console.log('🔍 Fetching discovery flows for:', { clientId: client.id, engagementId: engagement.id });
 
-        // Use the same endpoint as dashboard for consistency
-        const response = await apiCall('/api/v1/discovery/flows/active', {
+        // Use unified discovery endpoint
+        const response = await apiCall('/api/v1/unified-discovery/flows/active', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -51,7 +51,7 @@ export const useDiscoveryFlowList = (): UseQueryResult<DiscoveryFlow[], Error> =
         let flowsToProcess = [];
 
         if (Array.isArray(response)) {
-          // Direct array response from /api/v1/discovery/flows/active
+          // Direct array response from unified-discovery endpoint
           flowsToProcess = response;
         } else if (response.flows && Array.isArray(response.flows)) {
           // Object with flows array
@@ -141,8 +141,8 @@ export const getFlows = async (clientId?: string, engagementId?: string): Promis
 
     console.log('🔍 getFlows utility - Fetching discovery flows for:', { clientId, engagementId });
 
-    // Use the same endpoint as main hook for consistency
-    const response = await apiCall('/api/v1/discovery/flows/active', {
+    // Use unified discovery endpoint for consistency
+    const response = await apiCall('/api/v1/unified-discovery/flows/active', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

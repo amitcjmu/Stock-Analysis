@@ -1,0 +1,4 @@
+name,ip_address,os_version,department,application
+Server-02,192.168.1.11,Windows Server 2022,IT,Web Server
+Database-02,192.168.1.21,Linux Ubuntu 22.04,Database,MySQL
+API-Gateway-01,192.168.1.31,CentOS 9,Web Services,Kong Gateway

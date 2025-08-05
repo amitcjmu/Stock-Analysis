@@ -314,104 +314,27 @@ class CrewCoordinator:
 
     def create_crew_on_demand(self, crew_type: str, **kwargs) -> Optional[Any]:
         """
-        Create a crew on-demand with proper error handling.
-        This method provides compatibility with the UnifiedFlowCrewManager interface.
+        DEPRECATED: This method is no longer used.
+        CrewCoordinator should not create crews - use UnifiedFlowCrewManager instead.
 
-        Args:
-            crew_type: Type of crew to create
-            **kwargs: Additional parameters for crew creation
-
-        Returns:
-            Created crew instance or None if failed
+        This method exists only for backward compatibility and will raise an error
+        to help identify where the wrong crew manager is being used.
         """
-        try:
-            logger.info(f"🤖 Creating crew on-demand for type: {crew_type}")
+        logger.error(
+            f"❌ ARCHITECTURAL ERROR: CrewCoordinator.create_crew_on_demand() called for {crew_type}"
+        )
+        logger.error(
+            "❌ This indicates UnifiedFlowCrewManager is not being used properly"
+        )
+        logger.error(
+            "❌ Phase executors should use UnifiedFlowCrewManager with real CrewAI crews"
+        )
 
-            # Map crew types to agent methods for compatibility
-            crew_type_mapping = {
-                "data_import_validation": "data_import_validation_agent",
-                "data_import": "data_import_validation_agent",
-                "attribute_mapping": "attribute_mapping_agent",
-                "field_mapping": "attribute_mapping_agent",
-                "data_cleansing": "data_cleansing_agent",
-                "inventory": "asset_inventory_agent",
-                "asset_inventory": "asset_inventory_agent",
-                "dependencies": "dependency_analysis_agent",
-                "dependency_analysis": "dependency_analysis_agent",
-                "tech_debt": "tech_debt_analysis_agent",
-                "tech_debt_analysis": "tech_debt_analysis_agent",
-            }
-
-            agent_name = crew_type_mapping.get(crew_type)
-            if not agent_name:
-                logger.warning(f"⚠️ Unknown crew type: {crew_type}")
-                return None
-
-            # For now, return a mock crew that can be executed
-            # This provides compatibility while the real CrewAI integration is being used elsewhere
-            class MockCrew:
-                def __init__(self, agent_name: str, coordinator: "CrewCoordinator"):
-                    self.agent_name = agent_name
-                    self.coordinator = coordinator
-
-                async def execute(
-                    self, inputs: Dict[str, Any] = None
-                ) -> Dict[str, Any]:
-                    """Execute the mock crew by delegating to the coordinator's agent methods"""
-                    logger.info(f"🚀 Executing mock crew for agent: {self.agent_name}")
-
-                    # Find the appropriate phase for this agent
-                    phase_name = None
-                    for (
-                        phase,
-                        mapped_agent,
-                    ) in self.coordinator._phase_agent_mapping.items():
-                        if mapped_agent == self.agent_name:
-                            phase_name = phase
-                            break
-
-                    if not phase_name:
-                        logger.error(f"❌ No phase found for agent: {self.agent_name}")
-                        return {
-                            "status": "error",
-                            "message": f"No phase found for agent: {self.agent_name}",
-                        }
-
-                    # Execute the phase agent
-                    try:
-                        result = await self.coordinator.execute_phase_agent(
-                            phase_name, inputs or {}, kwargs.get("context_data", {})
-                        )
-                        return result
-                    except Exception as e:
-                        logger.error(f"❌ Mock crew execution failed: {str(e)}")
-                        return {"status": "error", "message": str(e)}
-
-                def kickoff(self, inputs: Dict[str, Any] = None) -> Dict[str, Any]:
-                    """Synchronous kickoff method for CrewAI compatibility"""
-                    logger.info(f"🚀 Kicking off mock crew for agent: {self.agent_name}")
-                    
-                    # For sync kickoff, return a simple success result
-                    # Real CrewAI integration would handle this properly
-                    return {
-                        "status": "success",
-                        "agent": self.agent_name,
-                        "result": "Mock crew execution completed",
-                        "inputs": inputs or {},
-                        "timestamp": datetime.utcnow().isoformat(),
-                    }
-
-                async def kickoff_async(self, inputs: Dict[str, Any] = None) -> Dict[str, Any]:
-                    """Async kickoff method for CrewAI compatibility"""
-                    return await self.execute(inputs)
-
-            mock_crew = MockCrew(agent_name, self)
-            logger.info(f"✅ Created mock crew for agent: {agent_name}")
-            return mock_crew
-
-        except Exception as e:
-            logger.error(f"❌ Failed to create crew on-demand: {str(e)}")
-            return None
+        raise RuntimeError(
+            f"CrewCoordinator should not create crews. "
+            f"Use UnifiedFlowCrewManager for {crew_type} crew creation. "
+            f"This error indicates an architectural inconsistency."
+        )
 
     async def validate_agent_health(self) -> Dict[str, bool]:
         """Validate that all required agents are healthy"""

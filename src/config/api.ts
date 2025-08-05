@@ -324,7 +324,7 @@ export const apiCall = async (
 ): Promise<ExternalApiResponse> => {
   // If custom cache is disabled, use the new API client
   if (isCacheFeatureEnabled('DISABLE_CUSTOM_CACHE')) {
-    console.log('🚀 Using new API client (custom cache disabled)');
+    // Using new API client (custom cache disabled)
 
     const method = (options.method || 'GET').toUpperCase();
     switch (method) {
@@ -400,9 +400,9 @@ export const apiCall = async (
   // Debug: Log the URL being called
   console.log(`🔗 API Call [${requestId}] - baseUrl="${baseUrl}", url="${url}"`);
 
-  // Safety check: If we're in development and the URL contains localhost:8000, force proxy
-  if (typeof window !== 'undefined' && window.location.port === '8081' && url.includes('localhost:8000')) {
-    console.warn(`⚠️ API Call [${requestId}] - Detected direct backend URL, forcing proxy`);
+  // Safety check: If we're in development and the URL contains backend:8000 or localhost:8000, force proxy
+  if (typeof window !== 'undefined' && window.location.port === '8081' && (url.includes('localhost:8000') || url.includes('backend:8000'))) {
+    console.warn(`⚠️ API Call [${requestId}] - Detected direct backend URL (${url}), forcing proxy`);
     const urlObj = new URL(url);
     const proxyUrl = urlObj.pathname + urlObj.search;
     console.log(`🔧 API Call [${requestId}] - Rewritten URL: ${proxyUrl}`);

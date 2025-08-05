@@ -68,18 +68,18 @@ export const useAuthInitialization = ({
     // Simplified auth initialization: Check for cached auth data first
     const storedUser = tokenStorage.getUser();
     const token = tokenStorage.getToken();
-    
+
     // If we have auth data, restore it immediately
     if (storedUser && token) {
       // Set the auth data immediately
       setUser(storedUser);
-      
+
       // Restore context from localStorage
       try {
         const cachedClient = localStorage.getItem('auth_client');
         const cachedEngagement = localStorage.getItem('auth_engagement');
         const cachedFlow = localStorage.getItem('auth_flow');
-        
+
         if (cachedClient) setClient(JSON.parse(cachedClient));
         if (cachedEngagement) setEngagement(JSON.parse(cachedEngagement));
         if (cachedFlow) setFlow(JSON.parse(cachedFlow));
@@ -89,7 +89,7 @@ export const useAuthInitialization = ({
       } catch (error) {
         console.warn('Context restoration failed:', error);
       }
-      
+
       // Complete initialization
       setIsLoading(false);
       hasInitialized.current = true;

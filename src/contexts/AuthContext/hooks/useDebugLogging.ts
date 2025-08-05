@@ -10,15 +10,16 @@ export const useDebugLogging = (
   getAuthHeaders: () => Record<string, string>
 ): void => {
   useEffect(() => {
+    // Debug logging disabled to prevent console spam and performance issues
     // Only log authentication state changes, not every render
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔐 Auth State:', {
-        authenticated: isAuthenticated,
-        user: user?.email || 'none',
-        role: user?.role || 'none',
-        isAdmin,
-        expectedIsAdmin: user?.role === 'admin'
-      });
-    }
+    // if (process.env.NODE_ENV === 'development') {
+    //   console.log('🔐 Auth State:', {
+    //     authenticated: isAuthenticated,
+    //     user: user?.email || 'none',
+    //     role: user?.role || 'none',
+    //     isAdmin,
+    //     expectedIsAdmin: user?.role === 'admin'
+    //   });
+    // }
   }, [isAuthenticated, user?.id, user?.role, user?.email, isAdmin]); // Only log when authentication status or user actually changes
 };
