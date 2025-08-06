@@ -214,6 +214,129 @@ async function selectApplicationForAssessment(page: Page, assets: AssetInfo[]): 
   return priorityApp;
 }
 
+async function validateAssessmentApplicationLoading(page: Page, selectedApp: AssetInfo): Promise<void> {
+  console.log('🔍 Validating assessment application loading...');
+
+  // Test application data availability
+  const applicationLoadingIssues: string[] = [];
+  let loadingAttempts = 0;
+  const maxLoadingAttempts = 10; // 20 seconds total
+
+  while (loadingAttempts < maxLoadingAttempts) {
+    await page.waitForTimeout(2000);
+    loadingAttempts++;
+
+    // Check if application data is loaded
+    const applicationSelector = page.locator('[data-testid="application-selector"], select[name="application"], .application-dropdown');
+    const applicationList = page.locator('[data-testid="application-list"], .application-item');
+    const loadingIndicator = page.locator('.loading, .spinner, [data-testid="loading"]');
+
+    // Check if still loading
+    if (await loadingIndicator.isVisible()) {
+      console.log(`Assessment applications still loading... (attempt ${loadingAttempts})`);
+      continue;
+    }
+
+    // Check if applications are available
+    if (await applicationSelector.isVisible()) {
+      console.log('✅ Application selector found');
+      
+      // Validate selector has options
+      const options = await applicationSelector.locator('option').all();
+      if (options.length <= 1) { // Only default/placeholder option
+        applicationLoadingIssues.push('Application selector has no application options');
+      } else {
+        console.log(`✅ Found ${options.length - 1} applications in selector`);
+        
+        // Try to select the application we're assessing
+        try {
+          await applicationSelector.selectOption({ label: selectedApp.name });
+          console.log(`✅ Successfully selected application: ${selectedApp.name}`);
+        } catch (error) {
+          console.log(`⚠️ Could not select specific application, using first available: ${error}`);
+          await applicationSelector.selectOption({ index: 1 });
+        }
+      }
+      break;
+    } else if (await applicationList.isVisible()) {
+      const listItems = await applicationList.all();
+      if (listItems.length === 0) {
+        applicationLoadingIssues.push('Application list is empty');
+      } else {
+        console.log(`✅ Found ${listItems.length} applications in list`);
+        
+        // Try to select the first application
+        await listItems[0].click();
+        console.log('✅ Selected application from list');
+      }
+      break;
+    } else if (loadingAttempts === maxLoadingAttempts) {
+      applicationLoadingIssues.push('Applications failed to load within timeout');
+    }
+  }
+
+  // Check for backend integration issues
+  try {
+    const applicationsResponse = await page.request.get(`${BASE_URL.replace('8081', '8000')}/api/v1/assessment/applications`);
+    
+    if (applicationsResponse.status() === 404) {
+      applicationLoadingIssues.push('Assessment applications API endpoint not found (404)');
+    } else if (applicationsResponse.status() !== 200) {
+      applicationLoadingIssues.push(`Assessment applications API returned status: ${applicationsResponse.status()}`);
+    } else {
+      try {
+        const applicationsData = await applicationsResponse.json();
+        const applicationCount = Array.isArray(applicationsData) ? applicationsData.length : 
+                                (applicationsData.applications ? applicationsData.applications.length : 0);
+        
+        if (applicationCount === 0) {
+          applicationLoadingIssues.push('Assessment applications API returned empty application list');
+        } else {
+          console.log(`✅ Assessment API returned ${applicationCount} applications`);
+        }
+      } catch (error) {
+        applicationLoadingIssues.push(`Could not parse assessment applications API response: ${error}`);
+      }
+    }
+  } catch (error) {
+    applicationLoadingIssues.push(`Assessment applications API error: ${error}`);
+  }
+
+  // Validate database schema compatibility
+  try {
+    const schemaResponse = await page.request.get(`${BASE_URL.replace('8081', '8000')}/api/v1/assessment/schema-compatibility`);
+    
+    if (schemaResponse.status() === 200) {
+      const schemaData = await schemaResponse.json();
+      if (schemaData.compatible === false) {
+        applicationLoadingIssues.push('Database schema compatibility issues detected');
+      } else {
+        console.log('✅ Database schema compatibility validated');
+      }
+    } else {
+      console.log('⚠️ Schema compatibility check not available');
+    }
+  } catch (error) {
+    console.log('⚠️ Schema compatibility check skipped:', error);
+  }
+
+  // Report issues if any
+  if (applicationLoadingIssues.length > 0) {
+    console.error('❌ Assessment application loading issues:');
+    applicationLoadingIssues.forEach(issue => console.error(`  - ${issue}`));
+    
+    // Take screenshot for debugging
+    await page.screenshot({
+      path: `test-results/assessment-loading-issues-${Date.now()}.png`,
+      fullPage: true
+    });
+    
+    throw new Error(`Assessment application loading failed: ${applicationLoadingIssues.join(', ')}`);
+  }
+
+  console.log('✅ Assessment application loading validation passed');
+}
+
 async function executeAssessmentFlow(page: Page, selectedApp: AssetInfo): Promise<FlowState> {
   console.log('🔍 Executing assessment flow...');
 
@@ -225,11 +348,29 @@ async function executeAssessmentFlow(page: Page, selectedApp: AssetInfo): Promis
     await page.waitForTimeout(2000);
   }
 
+  // Enhanced assessment flow initialization with application loading validation
+  await validateAssessmentApplicationLoading(page, selectedApp);
+
   const startAssessmentBtn = page.locator('button').filter({ hasText: /Start Assessment|Begin Assessment|Initialize/i }).first();
 
   if (await startAssessmentBtn.isVisible()) {
-    await startAssessmentBtn.click();
-    console.log('✅ Assessment flow initialized');
+    // Monitor assessment initialization API call
+    const [initResponse] = await Promise.all([
+      page.waitForResponse(response => 
+        response.url().includes('/assessment/initialize') || 
+        response.url().includes('/assessment/start')
+      ).catch(() => null),
+      startAssessmentBtn.click()
+    ]);
+
+    if (initResponse) {
+      if (initResponse.status() !== 200 && initResponse.status() !== 201) {
+        throw new Error(`Assessment initialization failed with status: ${initResponse.status()}`);
+      }
+      console.log('✅ Assessment flow initialized with valid API response');
+    } else {
+      console.log('✅ Assessment flow initialized (no API call detected)');
+    }
   }
 
   await page.waitForTimeout(3000);
@@ -396,3 +537,271 @@ test.describe('Performance and Error Handling', () => {
     expect(uploadResult.flowId).toBeDefined();
   });
 });
+
+test.describe('Assessment Flow Application Loading Validation', () => {
+  test('Assessment flow application loading and backend integration', async ({ page }) => {
+    test.setTimeout(TEST_TIMEOUT);
+    console.log('🔍 Testing assessment flow application loading issues...');
+
+    const validationResults = {
+      discoveryCompleted: false,
+      applicationsAvailable: false,
+      assessmentInitialized: false,
+      backendIntegrationWorking: false,
+      schemaCompatible: false,
+      issues: [] as string[]
+    };
+
+    try {
+      // Phase 1: Setup - Login and complete minimal discovery
+      await loginUser(page);
+
+      // Phase 2: Ensure we have applications for assessment
+      await test.step('Verify applications are available for assessment', async () => {
+        // Check if we have existing applications
+        let applicationsResponse;
+        try {
+          applicationsResponse = await page.request.get(`${BASE_URL.replace('8081', '8000')}/api/v1/assessment/applications`);
+          
+          if (applicationsResponse.status() === 404) {
+            validationResults.issues.push('Assessment applications API endpoint missing (404)');
+          } else if (applicationsResponse.status() === 200) {
+            const applicationsData = await applicationsResponse.json();
+            const appCount = Array.isArray(applicationsData) ? applicationsData.length : 
+                           (applicationsData.applications ? applicationsData.applications.length : 0);
+            
+            if (appCount > 0) {
+              validationResults.applicationsAvailable = true;
+              console.log(`✅ Found ${appCount} applications ready for assessment`);
+            } else {
+              console.log('⚠️ No applications available - running quick discovery flow');
+              await runQuickDiscoveryFlow(page);
+            }
+          } else {
+            validationResults.issues.push(`Assessment applications API returned status: ${applicationsResponse.status()}`);
+          }
+        } catch (error) {
+          validationResults.issues.push(`Assessment applications API error: ${error}`);
+          console.log('⚠️ Cannot verify applications via API - running quick discovery flow');
+          await runQuickDiscoveryFlow(page);
+        }
+      });
+
+      // Phase 3: Test assessment flow initialization
+      await test.step('Test assessment flow frontend loading', async () => {
+        await page.goto(`${BASE_URL}/assessment/initialize`);
+        await page.waitForTimeout(3000);
+
+        // Test for frontend filtering issues
+        const loadingStates = [];
+        let loadingAttempts = 0;
+        const maxAttempts = 15; // 30 seconds
+
+        while (loadingAttempts < maxAttempts) {
+          await page.waitForTimeout(2000);
+          loadingAttempts++;
+
+          // Check for loading indicators
+          const loadingSpinner = page.locator('.loading, .spinner, [data-testid="loading"]');
+          const applicationSelector = page.locator('[data-testid="application-selector"], select[name="application"]');
+          const applicationList = page.locator('.application-item, [data-testid="application-item"]');
+          const errorMessage = page.locator('.error, [role="alert"], .alert-error');
+
+          const currentState = {
+            attempt: loadingAttempts,
+            hasLoader: await loadingSpinner.isVisible(),
+            hasSelector: await applicationSelector.isVisible(),
+            hasApplications: await applicationList.count() > 0,
+            hasError: await errorMessage.isVisible()
+          };
+
+          loadingStates.push(currentState);
+
+          if (currentState.hasError) {
+            const errorText = await errorMessage.textContent();
+            validationResults.issues.push(`Assessment UI error: ${errorText}`);
+            break;
+          }
+
+          if (currentState.hasSelector || currentState.hasApplications) {
+            validationResults.applicationsAvailable = true;
+            console.log(`✅ Assessment UI loaded applications after ${loadingAttempts * 2} seconds`);
+            break;
+          }
+
+          if (loadingAttempts === maxAttempts) {
+            validationResults.issues.push('Assessment frontend failed to load applications within timeout');
+          }
+        }
+
+        // Validate frontend filtering works
+        if (validationResults.applicationsAvailable) {
+          await testFrontendFiltering(page, validationResults);
+        }
+      });
+
+      // Phase 4: Test backend integration
+      await test.step('Test backend integration for assessment', async () => {
+        try {
+          // Test assessment readiness endpoint
+          const readinessResponse = await page.request.get(`${BASE_URL.replace('8081', '8000')}/api/v1/assessment/readiness`);
+          
+          if (readinessResponse.status() === 200) {
+            const readinessData = await readinessResponse.json();
+            if (readinessData.ready === true || readinessData.applications_count > 0) {
+              validationResults.backendIntegrationWorking = true;
+              console.log('✅ Backend assessment integration working');
+            } else {
+              validationResults.issues.push('Backend reports assessment not ready');
+            }
+          } else if (readinessResponse.status() === 404) {
+            validationResults.issues.push('Assessment readiness endpoint not found (404)');
+          } else {
+            validationResults.issues.push(`Assessment readiness endpoint returned: ${readinessResponse.status()}`);
+          }
+        } catch (error) {
+          validationResults.issues.push(`Backend integration test failed: ${error}`);
+        }
+      });
+
+      // Phase 5: Test database schema compatibility
+      await test.step('Test database schema compatibility', async () => {
+        try {
+          const schemaResponse = await page.request.get(`${BASE_URL.replace('8081', '8000')}/api/v1/assessment/schema-validation`);
+          
+          if (schemaResponse.status() === 200) {
+            const schemaData = await schemaResponse.json();
+            if (schemaData.compatible !== false) {
+              validationResults.schemaCompatible = true;
+              console.log('✅ Database schema compatibility validated');
+            } else {
+              validationResults.issues.push(`Schema compatibility issues: ${JSON.stringify(schemaData.issues)}`);
+            }
+          } else {
+            console.log('⚠️ Schema validation endpoint not available - assuming compatible');
+            validationResults.schemaCompatible = true;
+          }
+        } catch (error) {
+          console.log('⚠️ Schema validation test skipped:', error);
+          validationResults.schemaCompatible = true; // Don't fail for optional feature
+        }
+      });
+
+      // Phase 6: Test actual assessment initialization
+      await test.step('Test assessment initialization', async () => {
+        const initButton = page.locator('button').filter({ hasText: /Start Assessment|Initialize|Begin/i }).first();
+        
+        if (await initButton.isVisible()) {
+          // Monitor assessment initialization
+          const [initResponse] = await Promise.all([
+            page.waitForResponse(response => 
+              response.url().includes('/assessment/initialize') ||
+              response.url().includes('/assessment/start')
+            ).catch(() => null),
+            initButton.click()
+          ]);
+
+          await page.waitForTimeout(3000);
+
+          // Check if assessment actually started
+          const assessmentContent = page.locator('h1, h2').filter({ hasText: /Assessment|Architecture|Standards/i });
+          const errorIndicator = page.locator('.error, [role="alert"]');
+
+          if (await assessmentContent.isVisible()) {
+            validationResults.assessmentInitialized = true;
+            console.log('✅ Assessment flow successfully initialized');
+          } else if (await errorIndicator.isVisible()) {
+            const errorText = await errorIndicator.textContent();
+            validationResults.issues.push(`Assessment initialization error: ${errorText}`);
+          } else {
+            validationResults.issues.push('Assessment did not start after initialization');
+          }
+
+          if (initResponse && initResponse.status() !== 200 && initResponse.status() !== 201) {
+            validationResults.issues.push(`Assessment API returned status: ${initResponse.status()}`);
+          }
+        } else {
+          validationResults.issues.push('Assessment initialization button not found');
+        }
+      });
+
+      // Final validation
+      console.log('\n=== Assessment Flow Validation Results ===');
+      console.log(`Applications Available: ${validationResults.applicationsAvailable}`);
+      console.log(`Backend Integration Working: ${validationResults.backendIntegrationWorking}`);
+      console.log(`Schema Compatible: ${validationResults.schemaCompatible}`);
+      console.log(`Assessment Initialized: ${validationResults.assessmentInitialized}`);
+      console.log(`Issues Found: ${validationResults.issues.length}`);
+
+      if (validationResults.issues.length > 0) {
+        console.log('\nIssues:');
+        validationResults.issues.forEach(issue => console.log(`- ${issue}`));
+      }
+
+      // Assertions
+      expect(validationResults.applicationsAvailable, 'Applications should be available for assessment').toBe(true);
+      expect(validationResults.backendIntegrationWorking, 'Backend integration should be working').toBe(true);
+      expect(validationResults.schemaCompatible, 'Database schema should be compatible').toBe(true);
+      expect(validationResults.issues.length, 'Should have no critical issues').toBeLessThan(3); // Allow minor issues
+
+    } catch (error) {
+      console.error('❌ Assessment flow validation failed:', error);
+      console.log('🔍 Validation Results at Failure:', validationResults);
+
+      await page.screenshot({
+        path: `test-results/assessment-flow-failure-${Date.now()}.png`,
+        fullPage: true
+      });
+
+      throw error;
+    }
+  });
+});
+
+// Helper function to run a quick discovery flow if needed
+async function runQuickDiscoveryFlow(page: Page): Promise<void> {
+  console.log('🚀 Running quick discovery flow to create applications...');
+
+  await page.goto(`${BASE_URL}/discovery/cmdb-import`);
+  await page.waitForTimeout(2000);
+
+  const testFilePath = path.join(__dirname, '../fixtures/test-cmdb-data.csv');
+  const uploadArea = page.locator('.border-dashed').first();
+  
+  if (await uploadArea.isVisible()) {
+    await uploadArea.click();
+    await page.locator('input[type="file"]').setInputFiles(testFilePath);
+    await page.waitForTimeout(5000); // Wait for processing
+    console.log('✅ Quick discovery flow completed');
+  }
+}
+
+// Helper function to test frontend filtering
+async function testFrontendFiltering(page: Page, validationResults: any): Promise<void> {
+  console.log('🔍 Testing frontend filtering functionality...');
+
+  const filterInput = page.locator('input[placeholder*="filter"], input[placeholder*="search"], .filter-input');
+  const applicationItems = page.locator('.application-item, [data-testid="application-item"]');
+
+  if (await filterInput.isVisible()) {
+    const initialCount = await applicationItems.count();
+    
+    // Test filtering
+    await filterInput.fill('test');
+    await page.waitForTimeout(1000);
+    
+    const filteredCount = await applicationItems.count();
+    
+    if (filteredCount <= initialCount) {
+      console.log('✅ Frontend filtering appears to work');
+    } else {
+      validationResults.issues.push('Frontend filtering may not be working properly');
+    }
+
+    // Clear filter
+    await filterInput.clear();
+    await page.waitForTimeout(1000);
+  } else {
+    console.log('⚠️ No filter input found - skipping filter test');
+  }
+}

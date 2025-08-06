@@ -21,16 +21,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Add the backend directory to Python path
-sys.path.append(
-    '/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend'
-)
+sys.path.append("/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend")
 
 try:
     from app.constants.cache_keys import CacheKeys, SensitiveDataMarkers
     from app.core.context import RequestContext
     from app.core.security.cache_encryption import cache_encryption, is_sensitive_field
-    from app.services.crewai_flows.persistence.secure_checkpoint_manager import SecureCheckpointManager
-    from app.services.crewai_flows.security_validator import validate_crewai_security, log_security_violations
+    from app.services.crewai_flows.persistence.secure_checkpoint_manager import (
+        SecureCheckpointManager,
+    )
+    from app.services.crewai_flows.security_validator import (
+        validate_crewai_security,
+        log_security_violations,
+    )
     from app.services.agents.secure_registry import SecureAgentRegistry
 except ImportError as e:
     logger.error(f"Failed to import required modules: {e}")
@@ -104,7 +107,7 @@ class SecurityTestSuite:
 
             # Validate key structure
             keys_to_test = [flow_key, agent_config_key, checkpoint_key]
-            
+
             for key in keys_to_test:
                 # Check version prefix
                 if not key.startswith("v1:"):
@@ -118,7 +121,9 @@ class SecurityTestSuite:
 
                 # Check sensitive data detection
                 if not SensitiveDataMarkers.requires_encryption(key):
-                    self.fail_test(f"Sensitive cache key not detected for encryption: {key}")
+                    self.fail_test(
+                        f"Sensitive cache key not detected for encryption: {key}"
+                    )
                     continue
 
             self.pass_test("Cache key security validation")
@@ -158,12 +163,14 @@ class SecurityTestSuite:
                     "database_tool": {
                         "connection_string": "postgresql://test:test@localhost/test"
                     }
-                }
+                },
             }
 
             # This would be tested through SecureCache._contains_sensitive_data
             # For now, we verify the patterns are recognized
-            contains_sensitive = any(is_sensitive_field(key) for key in sensitive_data.keys())
+            contains_sensitive = any(
+                is_sensitive_field(key) for key in sensitive_data.keys()
+            )
             if not contains_sensitive:
                 self.fail_test("Sensitive data structure not detected")
                 return
@@ -180,7 +187,9 @@ class SecurityTestSuite:
         try:
             # Test encryption availability
             if not cache_encryption.is_encryption_available():
-                self.fail_test("Cache encryption not available - check SECRET_KEY configuration")
+                self.fail_test(
+                    "Cache encryption not available - check SECRET_KEY configuration"
+                )
                 return
 
             # Test encryption/decryption
@@ -227,6 +236,7 @@ class SecurityTestSuite:
 
             # Create a mock state object
             from types import SimpleNamespace
+
             mock_state = SimpleNamespace()
             for key, value in test_flow_state.items():
                 setattr(mock_state, key, value)
@@ -240,14 +250,18 @@ class SecurityTestSuite:
                     metadata={"test": True},
                     context=self.test_context,
                 )
-                
+
                 if checkpoint_id:
                     logger.info(f"✅ Checkpoint created successfully: {checkpoint_id}")
                 else:
-                    logger.warning("Checkpoint creation returned None (expected in test environment)")
-                
+                    logger.warning(
+                        "Checkpoint creation returned None (expected in test environment)"
+                    )
+
             except Exception as checkpoint_error:
-                logger.warning(f"Checkpoint creation failed (expected in test environment): {checkpoint_error}")
+                logger.warning(
+                    f"Checkpoint creation failed (expected in test environment): {checkpoint_error}"
+                )
 
             self.pass_test("Secure checkpoint manager structure")
 
@@ -271,7 +285,7 @@ class SecurityTestSuite:
                 "api_tool": {
                     "endpoint": "https://api.example.com",
                     "token_field": "test-bearer-placeholder",
-                }
+                },
             }
 
             try:
@@ -281,14 +295,18 @@ class SecurityTestSuite:
                     tools_config=test_tools_config,
                     context=self.test_context,
                 )
-                
+
                 if success:
                     logger.info("✅ Agent registered successfully")
                 else:
-                    logger.warning("Agent registration returned False (expected in test environment)")
-                    
+                    logger.warning(
+                        "Agent registration returned False (expected in test environment)"
+                    )
+
             except Exception as registration_error:
-                logger.warning(f"Agent registration failed (expected in test environment): {registration_error}")
+                logger.warning(
+                    f"Agent registration failed (expected in test environment): {registration_error}"
+                )
 
             self.pass_test("Secure agent registry structure")
 
@@ -316,9 +334,9 @@ class SecurityTestSuite:
                     "tools_config": {
                         "test_tool": {
                             "api_key_field": "test-secret-placeholder",
-                            "database_url": "postgresql://test:test@localhost/test"
+                            "database_url": "postgresql://test:test@localhost/test",
                         }
-                    }
+                    },
                 },
                 "checkpoint": {
                     "checkpoint_id": "test_checkpoint",
@@ -329,8 +347,8 @@ class SecurityTestSuite:
                     },
                     "state_snapshot": {
                         "client_account_id": str(self.test_context.client_account_id),
-                    }
-                }
+                    },
+                },
             }
 
             # Run validation
@@ -341,12 +359,16 @@ class SecurityTestSuite:
 
             # Check results
             if results["critical_violations"] > 0:
-                logger.warning(f"Found {results['critical_violations']} critical violations (some expected in test)")
+                logger.warning(
+                    f"Found {results['critical_violations']} critical violations (some expected in test)"
+                )
 
             if results["security_status"] == "PASS":
                 self.pass_test("Comprehensive security validation passed")
             else:
-                logger.warning("Security validation failed (some violations expected in test environment)")
+                logger.warning(
+                    "Security validation failed (some violations expected in test environment)"
+                )
                 self.pass_test("Comprehensive security validation structure")
 
         except Exception as e:
@@ -370,12 +392,16 @@ class SecurityTestSuite:
         logger.info(f"Total Tests: {total_tests}")
         logger.info(f"Passed: {self.passed_tests}")
         logger.info(f"Failed: {self.failed_tests}")
-        
+
         if self.failed_tests == 0:
-            logger.info("🎉 ALL TESTS PASSED - Security fixes implemented successfully!")
+            logger.info(
+                "🎉 ALL TESTS PASSED - Security fixes implemented successfully!"
+            )
         else:
-            logger.error(f"⚠️  {self.failed_tests} tests failed - review security implementation")
-            
+            logger.error(
+                f"⚠️  {self.failed_tests} tests failed - review security implementation"
+            )
+
         logger.info("=" * 60)
 
 
@@ -383,7 +409,7 @@ async def main():
     """Main test function"""
     test_suite = SecurityTestSuite()
     await test_suite.run_all_tests()
-    
+
     # Exit with error code if tests failed
     if test_suite.failed_tests > 0:
         sys.exit(1)

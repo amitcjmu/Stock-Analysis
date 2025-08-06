@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
 """
-Fix admin role for chocka@gmail.com
+Fix admin role script
 """
 
 import asyncio
 import sys
 from pathlib import Path
 
+from sqlalchemy import select
+
 # Add the backend directory to Python path
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
-from sqlalchemy import select
-
-from app.core.database import AsyncSessionLocal
-from app.core.logging import get_logger
-from app.models import User, UserProfile, UserRole
+# Import after path modification - noqa: E402
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.core.logging import get_logger  # noqa: E402
+from app.models import User, UserProfile, UserRole  # noqa: E402
 
 logger = get_logger(__name__)
 
@@ -32,10 +33,10 @@ async def fix_admin_role():
             user = user_result.scalar_one_or_none()
 
             if not user:
-                logger.error("User chocka@gmail.com not found!")
+                logger.error("Target user not found!")
                 return False
 
-            logger.info(f"Found user: {user.email} (ID: {user.id})")
+            logger.info(f"Found user with ID: {user.id}")
 
             # Check current roles
             roles_result = await db.execute(
@@ -103,7 +104,7 @@ async def fix_admin_role():
 
 async def main():
     """Main function"""
-    logger.info("🔧 Fixing admin role for chocka@gmail.com...")
+    logger.info("🔧 Fixing admin role for target user...")
 
     success = await fix_admin_role()
 

@@ -160,11 +160,18 @@ class SecureAgentRegistry:
                 agents_dir = os.path.dirname(__file__)
 
             # Skip base and registry modules
-            skip_modules = ["base_agent", "registry", "secure_registry", "factory", "__init__"]
+            skip_modules = [
+                "base_agent",
+                "registry",
+                "secure_registry",
+                "factory",
+                "__init__",
+            ]
 
             for filename in os.listdir(agents_dir):
                 if (
-                    filename.endswith("_agent.py") or filename.endswith("_agent_crewai.py")
+                    filename.endswith("_agent.py")
+                    or filename.endswith("_agent_crewai.py")
                 ) and not filename.startswith("_"):
                     module_name = filename[:-3]
 
@@ -223,7 +230,9 @@ class SecureAgentRegistry:
         try:
             ctx = context or self.context
             if not ctx:
-                raise ValueError("Request context required for secure agent registration")
+                raise ValueError(
+                    "Request context required for secure agent registration"
+                )
 
             # Get metadata for this agent type
             metadata = self._discovered_agents.get(agent_type)
@@ -261,7 +270,7 @@ class SecureAgentRegistry:
         agent_id: str,
         llm: Any,
         context: Optional[RequestContext] = None,
-        **kwargs
+        **kwargs,
     ) -> Optional[Agent]:
         """
         Get an instantiated agent with secure credential injection
@@ -314,7 +323,7 @@ class SecureAgentRegistry:
             return None
 
     async def get_agents_by_capability_securely(
-        self, 
+        self,
         capability: str,
         context: Optional[RequestContext] = None,
     ) -> List[str]:
@@ -437,7 +446,9 @@ class SecureAgentRegistry:
             )
 
             if not success:
-                raise RuntimeError("Failed to store agent configuration in secure cache")
+                raise RuntimeError(
+                    "Failed to store agent configuration in secure cache"
+                )
 
             logger.debug(f"✅ Agent configuration stored securely: {cache_key}")
 
@@ -530,10 +541,11 @@ def create_secure_agent_registry(context: RequestContext) -> SecureAgentRegistry
 # Global instance factory (use with caution - prefer context-specific instances)
 _global_registry = None
 
+
 def get_global_secure_agent_registry() -> SecureAgentRegistry:
     """
     Get global secure agent registry instance.
-    
+
     WARNING: This should only be used when request context is not available.
     Prefer using create_secure_agent_registry(context) for proper tenant isolation.
     """

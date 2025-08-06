@@ -46,7 +46,16 @@ async def resume_discovery_flow(
     the Master Flow Orchestrator to ensure consistent state management and audit trails.
     """
     try:
-        logger.info(f"Resuming discovery flow {flow_id} via Master Flow Orchestrator")
+        logger.info(
+            f"🔄 [FLOW-TRANSITION] Resuming discovery flow {flow_id} via Master Flow Orchestrator"
+        )
+        logger.info(
+            f"🔍 [FLOW-TRANSITION] Request context: "
+            f"client={context.client_account_id}, "
+            f"engagement={context.engagement_id}, "
+            f"user={context.user_id}"
+        )
+        logger.info(f"📝 [FLOW-TRANSITION] Request data keys: {list(request.keys())}")
 
         # Import Master Flow Orchestrator
         from app.services.master_flow_orchestrator import MasterFlowOrchestrator
@@ -175,13 +184,30 @@ async def resume_discovery_flow(
             result = await db.execute(stmt)
             flow = result.scalar_one_or_none()
 
-            if not flow:
-                raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
+            # Use centralized flow validation
+            validation = StatusCalculator.validate_flow_for_transition(flow, "resume")
 
-            if flow.status == "deleted":
-                raise HTTPException(
-                    status_code=400, detail="Cannot resume a deleted flow"
+            if not validation["valid"]:
+                logger.warning(
+                    f"[FLOW-TRANSITION] Flow {flow_id} resume validation failed: {validation['message']}"
                 )
+
+                # Add retry-after header for temporary states
+                if validation.get("retry_after"):
+                    raise HTTPException(
+                        status_code=validation["status_code"],
+                        detail=validation["message"],
+                        headers={"Retry-After": str(validation["retry_after"])},
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=validation["status_code"],
+                        detail=validation["message"],
+                    )
+
+            logger.info(
+                f"✅ [FLOW-TRANSITION] Flow {flow_id} resume validation passed: {validation['message']}"
+            )
 
             # Update flow status
             flow.status = "processing"
@@ -495,10 +521,21 @@ async def execute_flow_phase(
     for debugging or step-by-step processing.
     """
     try:
-        logger.info(f"🚀 Executing flow phase for {flow_id}")
+        logger.info(f"🚀 [FLOW-TRANSITION] Executing flow phase for {flow_id}")
+        logger.info(
+            f"🔍 [FLOW-TRANSITION] Request context: "
+            f"client={context.client_account_id}, "
+            f"engagement={context.engagement_id}, "
+            f"user={context.user_id}"
+        )
 
         phase = request.get("phase", "current")
         force_execution = request.get("force", False)
+
+        logger.info(
+            f"📊 [FLOW-TRANSITION] Phase execution request: phase={phase}, force={force_execution}"
+        )
+        logger.info(f"📝 [FLOW-TRANSITION] Full request data: {request}")
 
         # Import required models
         import uuid as uuid_lib
@@ -522,11 +559,29 @@ async def execute_flow_phase(
         result = await db.execute(stmt)
         flow = result.scalar_one_or_none()
 
-        if not flow:
-            raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
+        # Use centralized flow validation
+        validation = StatusCalculator.validate_flow_for_transition(flow, "execute")
 
-        if flow.status == "deleted":
-            raise HTTPException(status_code=400, detail="Cannot execute a deleted flow")
+        if not validation["valid"]:
+            logger.warning(
+                f"[FLOW-TRANSITION] Flow {flow_id} validation failed: {validation['message']}"
+            )
+
+            # Add retry-after header for temporary states
+            if validation.get("retry_after"):
+                raise HTTPException(
+                    status_code=validation["status_code"],
+                    detail=validation["message"],
+                    headers={"Retry-After": str(validation["retry_after"])},
+                )
+            else:
+                raise HTTPException(
+                    status_code=validation["status_code"], detail=validation["message"]
+                )
+
+        logger.info(
+            f"✅ [FLOW-TRANSITION] Flow {flow_id} validation passed: {validation['message']}"
+        )
 
         # Determine which phase to execute
         if phase == "current":

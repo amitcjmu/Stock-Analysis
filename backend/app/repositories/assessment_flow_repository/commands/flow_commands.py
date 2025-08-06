@@ -30,14 +30,29 @@ class FlowCommands:
     ) -> str:
         """Create new assessment flow with initial state and register with master flow system"""
 
+        # Use the fields that actually exist in the database table
+        flow_configuration = {
+            "selected_application_ids": selected_application_ids,
+            "architecture_captured": False,
+            "status": AssessmentFlowStatus.INITIALIZED.value,
+            "progress": 0,
+            "current_phase": AssessmentPhase.INITIALIZATION.value,
+            "next_phase": None,
+            "pause_points": [],
+            "user_inputs": {},
+            "phase_results": {},
+            "agent_insights": [],
+            "apps_ready_for_planning": [],
+            "last_user_interaction": None,
+            "created_by": created_by,
+        }
+        
         flow_record = AssessmentFlow(
             client_account_id=self.client_account_id,
             engagement_id=engagement_id,
-            selected_application_ids=selected_application_ids,
-            status=AssessmentFlowStatus.INITIALIZED.value,
-            current_phase=AssessmentPhase.INITIALIZATION.value,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            flow_name=f"Assessment Flow - {len(selected_application_ids)} Applications",
+            flow_status=AssessmentFlowStatus.INITIALIZED.value,
+            flow_configuration=flow_configuration,
         )
 
         self.db.add(flow_record)

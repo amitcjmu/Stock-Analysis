@@ -27,6 +27,102 @@ class StatusCalculator:
     TOTAL_PHASES = len(PHASE_ORDER)
 
     @staticmethod
+    def validate_flow_for_transition(flow, operation: str) -> Dict[str, Any]:
+        """
+        Validate if a flow can undergo a specific operation (resume, execute, etc.).
+        
+        Args:
+            flow: The discovery flow object
+            operation: The operation to validate ('resume', 'execute', 'delete', etc.)
+            
+        Returns:
+            Dict with validation result and appropriate HTTP status code
+        """
+        try:
+            if not flow:
+                return {
+                    "valid": False,
+                    "status_code": 404,
+                    "message": "Flow not found. It may have been deleted or doesn't exist.",
+                    "can_retry": False
+                }
+                
+            flow_status = flow.status
+            current_phase, _ = StatusCalculator.calculate_current_phase(flow)
+            
+            # Common validations for all operations
+            if flow_status == "deleted":
+                return {
+                    "valid": False,
+                    "status_code": 410,
+                    "message": f"Flow has been deleted and cannot be {operation}d",
+                    "can_retry": False
+                }
+                
+            # Operation-specific validations
+            if operation == "resume":
+                if flow_status in ["processing", "running", "active"]:
+                    return {
+                        "valid": False,
+                        "status_code": 409,
+                        "message": f"Flow is already {flow_status} and cannot be resumed",
+                        "can_retry": False,
+                        "current_status": flow_status
+                    }
+                elif flow_status == "completed":
+                    return {
+                        "valid": False,
+                        "status_code": 409,
+                        "message": "Flow is already completed and cannot be resumed",
+                        "can_retry": False
+                    }
+                    
+            elif operation == "execute":
+                if flow_status == "completed":
+                    return {
+                        "valid": False,
+                        "status_code": 409,
+                        "message": "Flow is already completed",
+                        "can_retry": False
+                    }
+                elif flow_status in ["failed", "error"]:
+                    return {
+                        "valid": False,
+                        "status_code": 422,
+                        "message": f"Flow is in {flow_status} state. Please retry the flow first.",
+                        "can_retry": True,
+                        "suggested_action": "retry"
+                    }
+                    
+            # Check if flow is in a transitioning state
+            if flow_status in ["initializing", "transitioning", "updating"]:
+                return {
+                    "valid": False,
+                    "status_code": 202,
+                    "message": f"Flow is currently {flow_status}. Please wait a moment and try again.",
+                    "can_retry": True,
+                    "retry_after": 5
+                }
+                
+            # Valid for operation
+            return {
+                "valid": True,
+                "status_code": 200,
+                "message": f"Flow can be {operation}d",
+                "current_status": flow_status,
+                "current_phase": current_phase
+            }
+            
+        except Exception as e:
+            logger.error(f"Error validating flow for {operation}: {e}")
+            return {
+                "valid": False,
+                "status_code": 500,
+                "message": f"Error validating flow state: {str(e)}",
+                "can_retry": True
+            }
+
+    @staticmethod
     def calculate_current_phase(flow) -> Tuple[str, int]:
         """
         Calculate the current phase and steps completed for a discovery flow.

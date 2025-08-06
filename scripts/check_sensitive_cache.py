@@ -116,11 +116,15 @@ class SensitiveDataChecker(ast.NodeVisitor):
                     obj_name = node.func.value.id.lower()
                 method_name = node.func.attr.lower()
 
-                # Check for cache objects and methods
+                # ONLY consider cache operations on actual cache/redis/memcache objects
+                # This prevents flagging dictionary access like cached_data["key"] or data.get()
                 if any(cache_term in obj_name for cache_term in ['cache', 'redis', 'memcache']):
                     return any(op in method_name for op in self.cache_operations)
 
-                return any(op in method_name for op in self.cache_operations)
+                # For all other objects, be very strict - only explicit cache function names
+                cache_specific_methods = {'cache_set', 'cache_store', 'cache_get', 'cache_delete', 'cache_put'}
+                return method_name in cache_specific_methods
+
         except Exception:
             pass
         return False

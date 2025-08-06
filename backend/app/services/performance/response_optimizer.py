@@ -87,8 +87,15 @@ class ResponseCache:
         if len(self.cache) >= self.max_size:
             self._evict_lru()
 
+        # Sanitize response data before caching
+        from app.core.security.cache_encryption import sanitize_for_logging
+
+        sanitized_response = (
+            sanitize_for_logging(response) if isinstance(response, dict) else response
+        )
+
         self.cache[cache_key] = {
-            "data": response,
+            "data": sanitized_response,
             "timestamp": time.time(),
             "operation": operation,
         }

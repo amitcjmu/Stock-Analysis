@@ -6,9 +6,10 @@ Ensures PII, tokens, and other sensitive information is never stored in plaintex
 """
 
 import base64
-import json
 import hashlib
+import json
 from typing import Any, Dict, Optional
+
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -256,11 +257,11 @@ class SecureCache:
                     value
                 ):
                     return True
-            
+
             # Check for CrewAI-specific sensitive data patterns
             if self._contains_crewai_sensitive_patterns(data):
                 return True
-                
+
         elif isinstance(data, list):
             for item in data:
                 if self._contains_sensitive_data(item):
@@ -274,24 +275,34 @@ class SecureCache:
                 return True
 
         return False
-    
+
     def _contains_crewai_sensitive_patterns(self, data: Dict[str, Any]) -> bool:
         """Check for CrewAI-specific sensitive data patterns"""
         # Check for flow state indicators
         crewai_sensitive_keys = {
-            "flow_id", "client_account_id", "engagement_id", "user_id",
-            "agent_insights", "crew_status", "raw_data", "field_mappings",
-            "checkpoint_id", "state_snapshot", "agent_configuration",
-            "tool_configuration", "llm_parameters", "memory_context"
+            "flow_id",
+            "client_account_id",
+            "engagement_id",
+            "user_id",
+            "agent_insights",
+            "crew_status",
+            "raw_data",
+            "field_mappings",
+            "checkpoint_id",
+            "state_snapshot",
+            "agent_configuration",
+            "tool_configuration",
+            "llm_parameters",
+            "memory_context",
         }
-        
+
         return any(key in data for key in crewai_sensitive_keys)
-    
+
     def _looks_like_api_key(self, value: str) -> bool:
         """Check if a string looks like an API key or credential"""
         if not isinstance(value, str) or len(value) < 16:
             return False
-            
+
         # Common API key patterns
         api_key_patterns = [
             "sk-",  # OpenAI
@@ -301,15 +312,15 @@ class SecureCache:
             "AIza",  # Google
             "AKIA",  # AWS
         ]
-        
+
         for pattern in api_key_patterns:
             if value.startswith(pattern):
                 return True
-                
+
         # Check for long alphanumeric strings that might be keys
         if len(value) > 32 and value.replace("-", "").replace("_", "").isalnum():
             return True
-            
+
         return False
 
 

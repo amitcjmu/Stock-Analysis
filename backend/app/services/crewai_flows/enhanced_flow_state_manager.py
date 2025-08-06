@@ -661,16 +661,22 @@ class EnhancedFlowStateManager(FlowStateManager):
         self, flow_id: str, phase: str, results: Dict[str, Any]
     ) -> bool:
         """Cache phase-specific results for reuse"""
-        key = f"flow:{flow_id}:phase:{phase}:results"
+        from app.core.security.cache_encryption import SecureCache
+
+        secure_cache = SecureCache(redis_cache)
+        key = f"v1:flow:{flow_id}:phase:{phase}:results"
         ttl = 1800  # 30 minutes for phase results
-        return await redis_cache.set(key, results, ttl=ttl)
+        return await secure_cache.set(key, results, ttl=ttl, force_encrypt=True)
 
     async def get_cached_phase_results(
         self, flow_id: str, phase: str
     ) -> Optional[Dict[str, Any]]:
         """Get cached phase results if available"""
-        key = f"flow:{flow_id}:phase:{phase}:results"
-        return await redis_cache.get(key)
+        from app.core.security.cache_encryption import SecureCache
+
+        secure_cache = SecureCache(redis_cache)
+        key = f"v1:flow:{flow_id}:phase:{phase}:results"
+        return await secure_cache.get(key)
 
     async def acquire_flow_lock(
         self, flow_id: str, operation: str, ttl: int = 30

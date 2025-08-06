@@ -83,16 +83,33 @@ class CacheSecurityChecker(ast.NodeVisitor):
             # Skip telemetry and instrumentation calls
             if func_name in ['set_attribute', 'log', 'info', 'debug', 'error', 'warning']:
                 return False
-            # Skip dictionary operations that aren't cache operations
+
             obj_name = ""
             if isinstance(node.func.value, ast.Name):
                 obj_name = node.func.value.id.lower()
+
+            # Skip dictionary operations that aren't cache operations
             if func_name in ['setdefault', 'get', 'pop', 'update'] and obj_name not in ['cache', 'redis']:
                 return False
-            return any(op in func_name for op in self.cache_operations)
+
+            # ONLY consider cache operations on actual cache/redis objects
+            # This prevents flagging dictionary access like data["key"] or cached_data.get()
+            if 'cache' in obj_name or 'redis' in obj_name:
+                return any(op in func_name for op in self.cache_operations)
+
+            # For all other objects, be very strict - only explicit cache function names
+            cache_specific_methods = {'cache_set', 'cache_store', 'cache_get', 'cache_delete'}
+            return func_name in cache_specific_methods
+
         elif isinstance(node.func, ast.Name):
             func_name = node.func.id.lower()
-            return any(op in func_name for op in self.cache_operations)
+            # Skip secure_setattr - it's not a cache operation
+            if func_name == 'secure_setattr':
+                return False
+            # Only flag standalone function calls with explicit cache names
+            cache_specific_functions = {'cache_set', 'cache_store', 'cache_get', 'cache_delete'}
+            return func_name in cache_specific_functions
+
         return False
 
     def _check_cache_operation_security(self, node: ast.Call):

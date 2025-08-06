@@ -60,7 +60,7 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
         if (response?.assets) {
           // Filter for applications and format them
           return response.assets
-            .filter((asset: unknown) => asset.type === 'Application')
+            .filter((asset: unknown) => asset.asset_type === 'application')
             .map((asset: unknown) => ({
               id: asset.id,
               name: asset.name || asset.hostname || `App-${asset.id}`,
@@ -152,13 +152,12 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
     setError(null);
 
     try {
+      const headers = getAuthHeaders();
       const response = await fetch('http://localhost:8000/api/v1/assessment-flow/initialize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'X-Client-Account-ID': '55f4a7eb-de00-de00-de00-888ed4f8e05d',
-          'X-Engagement-ID': '59e0e675-de00-de00-de00-29245dcbc79f'
+          ...headers
         },
         body: JSON.stringify({
           selected_application_ids: selectedApps,

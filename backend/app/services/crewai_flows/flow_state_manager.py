@@ -450,7 +450,10 @@ class FlowStateManager:
                 flow_id=flow_id,
                 phase=phase,
                 state=current_state,
-                metadata={"phase_completed": True, "results_summary": results.get("status")},
+                metadata={
+                    "phase_completed": True,
+                    "results_summary": results.get("status"),
+                },
                 context=self.context,
             )
 

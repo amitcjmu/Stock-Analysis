@@ -91,7 +91,10 @@ async def migrate_assessment_flows():
                         flow_id=flow_id,
                         flow_type="assessment",
                         user_id="migration-script",
-                        flow_name=f"Assessment Flow - {len(flow.selected_application_ids or [])} Applications (Migrated)",
+                        flow_name=(
+                            f"Assessment Flow - {len(flow.selected_application_ids or [])} "
+                            f"Applications (Migrated)"
+                        ),
                         flow_configuration={
                             "selected_applications": flow.selected_application_ids
                             or [],

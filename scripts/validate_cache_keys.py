@@ -57,8 +57,11 @@ class CacheKeyValidator(ast.NodeVisitor):
     def visit_Subscript(self, node):
         """Check cache access patterns like cache[key]"""
         try:
-            if isinstance(node.value, ast.Name) and 'cache' in node.value.id.lower():
-                if isinstance(node.slice, ast.Constant):
+            if isinstance(node.value, ast.Name):
+                var_name = node.value.id.lower()
+                # Only flag subscript access on actual cache objects, not variables containing cached data
+                # Be strict: only flag if the variable name IS 'cache' or 'redis', not just contains them
+                if var_name in ['cache', 'redis'] and isinstance(node.slice, ast.Constant):
                     self._validate_static_key(node.slice.value, node.lineno)
         except Exception:
             pass
@@ -82,15 +85,15 @@ class CacheKeyValidator(ast.NodeVisitor):
                 if method_name in ['setdefault', 'get', 'pop', 'update'] and obj_name not in ['cache', 'redis']:
                     return False
 
-                # Check for cache objects and methods
+                # ONLY consider cache operations on actual cache/redis objects
+                # This prevents flagging dictionary access like data["key"]
                 if 'cache' in obj_name or 'redis' in obj_name:
                     return any(method in method_name for method in self.cache_methods)
 
-                # Check for method names that suggest caching (but not dict operations)
-                if method_name in ['setdefault', 'get'] and 'cache' not in obj_name:
-                    return False
-
-                return any(method in method_name for method in self.cache_methods)
+                # For all other objects, be more strict about cache method names
+                # Only flag if it's clearly a cache operation function name
+                cache_specific_methods = {'cache_set', 'cache_store', 'cache_get', 'cache_delete'}
+                return method_name in cache_specific_methods
 
         except Exception:
             pass
