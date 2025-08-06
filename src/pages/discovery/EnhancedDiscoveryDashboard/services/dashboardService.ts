@@ -152,7 +152,7 @@ export class DashboardService {
     // Fetch real-time active flows from multiple sources with retry logic
     const [discoveryFlowsResponse, dataImportsResponse] = await Promise.allSettled([
       // Get active Discovery flows - try the unified discovery flows endpoint first
-      makeApiCallWithRetry<DiscoveryFlowResponse[] | DiscoveryFlowsApiResponse>('/api/v1/unified-discovery/flows/active', {
+      makeApiCallWithRetry<DiscoveryFlowResponse[] | DiscoveryFlowsApiResponse>('/api/v1/discovery/flows/active', {
         method: 'GET',
         headers: getAuthHeaders({ user, client, engagement })
       }),
@@ -176,7 +176,7 @@ export class DashboardService {
       let flowsToProcess = [];
 
       if (Array.isArray(discoveryData)) {
-        // Direct array response from /api/v1/unified-discovery/flows/active
+        // Direct array response from /api/v1/discovery/flows/active
         flowsToProcess = discoveryData;
         console.log(`📊 Processing ${flowsToProcess.length} flows from discovery API (array response)...`);
       } else if (discoveryData.flows && Array.isArray(discoveryData.flows)) {

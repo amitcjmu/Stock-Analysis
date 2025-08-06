@@ -36,7 +36,7 @@ export const useDiscoveryFlowList = (): UseQueryResult<DiscoveryFlow[], Error> =
         console.log('🔍 Fetching discovery flows for:', { clientId: client.id, engagementId: engagement.id });
 
         // Use unified discovery endpoint
-        const response = await apiCall('/api/v1/unified-discovery/flows/active', {
+        const response = await apiCall('/api/v1/discovery/flows/active', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -142,7 +142,7 @@ export const getFlows = async (clientId?: string, engagementId?: string): Promis
     console.log('🔍 getFlows utility - Fetching discovery flows for:', { clientId, engagementId });
 
     // Use unified discovery endpoint for consistency
-    const response = await apiCall('/api/v1/unified-discovery/flows/active', {
+    const response = await apiCall('/api/v1/discovery/flows/active', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
