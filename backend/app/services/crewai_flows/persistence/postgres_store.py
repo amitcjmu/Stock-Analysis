@@ -43,7 +43,7 @@ class StateRecoveryError(Exception):
 class PostgresFlowStateStore:
     """
     Single source of truth for CrewAI flow state with secure caching.
-
+    
     Security Features:
     - Encrypts sensitive flow state data before caching
     - Proper tenant isolation in cache keys
@@ -59,7 +59,7 @@ class PostgresFlowStateStore:
         self.client_account_id = context.client_account_id
         self.engagement_id = context.engagement_id
         self.user_id = context.user_id
-
+        
         # Initialize secure caching
         self.redis_cache = get_redis_cache()
         self.secure_cache = SecureCache(self.redis_cache)
@@ -94,7 +94,7 @@ class PostgresFlowStateStore:
         """
         Save flow state with optimistic locking and secure caching.
         Raises ConcurrentModificationError if version mismatch.
-
+        
         Security: Automatically encrypts sensitive flow state data before caching.
         """
         try:
@@ -167,13 +167,11 @@ class PostgresFlowStateStore:
                 self.db.add(new_record)
 
             await self.db.commit()
-
+            
             # Cache the state securely after successful database save
             await self._cache_flow_state_securely(flow_id, state_data, phase)
-
-            logger.info(
-                f"✅ State saved and cached securely for flow {flow_id}, version {new_version}"
-            )
+            
+            logger.info(f"✅ State saved and cached securely for flow {flow_id}, version {new_version}")
 
         except Exception as e:
             await self.db.rollback()
@@ -248,17 +246,13 @@ class PostgresFlowStateStore:
                     else 0
                 )
                 state_data = record.flow_persistence_data
-
+                
                 # Cache the loaded state securely for future requests
                 if state_data:
                     current_phase = record.flow_configuration.get("phase", "unknown")
-                    await self._cache_flow_state_securely(
-                        flow_id, state_data, current_phase
-                    )
-
-                logger.info(
-                    f"✅ State loaded from database and cached securely for flow {flow_id}, version {version}"
-                )
+                    await self._cache_flow_state_securely(flow_id, state_data, current_phase)
+                
+                logger.info(f"✅ State loaded from database and cached securely for flow {flow_id}, version {version}")
                 return state_data
             else:
                 logger.warning(f"⚠️ No state found for flow {flow_id}")
@@ -294,7 +288,7 @@ class PostgresFlowStateStore:
                     "version": "v1",
                 },
             }
-
+            
             # Store checkpoint in secure cache as well
             await self._cache_checkpoint_securely(checkpoint_id, checkpoint_data)
 
@@ -510,18 +504,17 @@ class PostgresFlowStateStore:
         try:
             # We need to determine the current phase to generate the correct cache key
             # For now, we'll try common phases or use a generic approach
-
+            
             # First, try to get the phase from database quickly
             stmt = select(CrewAIFlowStateExtensions.flow_configuration).where(
                 and_(
                     CrewAIFlowStateExtensions.flow_id == flow_id,
-                    CrewAIFlowStateExtensions.client_account_id
-                    == self.client_account_id,
+                    CrewAIFlowStateExtensions.client_account_id == self.client_account_id,
                 )
             )
             result = await self.db.execute(stmt)
             record = result.scalar_one_or_none()
-
+            
             if record and record.get("phase"):
                 phase = record["phase"]
                 cache_key = CacheKeys.crewai_flow_state(
@@ -530,7 +523,7 @@ class PostgresFlowStateStore:
                     client_id=str(self.client_account_id),
                     engagement_id=str(self.engagement_id),
                 )
-
+                
                 cached_data = await self.secure_cache.get(cache_key)
                 if cached_data:
                     return cached_data
@@ -568,9 +561,7 @@ class PostgresFlowStateStore:
             if success:
                 logger.debug(f"✅ Checkpoint cached securely: {checkpoint_id}")
             else:
-                logger.warning(
-                    f"⚠️ Failed to cache checkpoint securely: {checkpoint_id}"
-                )
+                logger.warning(f"⚠️ Failed to cache checkpoint securely: {checkpoint_id}")
 
         except Exception as e:
             logger.error(f"❌ Failed to cache checkpoint securely: {e}")

@@ -46,138 +46,11 @@ async def discovery_flows_health():
                 "response_mappers": "active",
                 "status_calculator": "active",
             },
-            "endpoints": {
-                "flow_status": "/flows/{flow_id}/status",
-                "flow_execute": "/flow/{flow_id}/execute",
-                "flow_resume": "/flow/{flow_id}/resume",
-                "flow_retry": "/flow/{flow_id}/retry",
-                "clarifications_submit": "/flows/{flow_id}/clarifications/submit",
-                "active_flows": "/flows/active",
-                "field_mappings": "/flows/{flow_id}/field-mappings",
-                "agent_insights": "/flow/{flow_id}/agent-insights",
-                "health_check": "/flows/health",
-            },
-            "note": (
-                "Modular discovery flows implementation with comprehensive "
-                "error handling"
-            ),
+            "note": "Modular discovery flows implementation",
         }
-
     except Exception as e:
-        logger.error(f"Error in discovery flows health check: {e}")
-        return {
-            "service": "discovery_flows",
-            "status": "error",
-            "error": str(e),
-            "message": "Health check failed",
-        }
-
-
-@validation_router.get("/flows/endpoints-test", response_model=Dict[str, Any])
-async def test_discovery_flow_endpoints():
-    """
-    Test endpoint to validate that all flow transition endpoints are properly
-    registered.
-
-    This endpoint can be called to ensure that the flow transition APIs are
-    accessible
-    and will not return 404 errors during navigation.
-    """
-    try:
-        # List of expected endpoints with their methods
-        expected_endpoints = [
-            {
-                "path": "/flows/active",
-                "method": "GET",
-                "description": "Get active flows",
-            },
-            {
-                "path": "/flows/{flow_id}/status",
-                "method": "GET",
-                "description": "Get flow status",
-            },
-            {
-                "path": "/flow/{flow_id}/execute",
-                "method": "POST",
-                "description": "Execute flow phase",
-            },
-            {
-                "path": "/flow/{flow_id}/resume",
-                "method": "POST",
-                "description": "Resume flow",
-            },
-            {
-                "path": "/flow/{flow_id}/retry",
-                "method": "POST",
-                "description": "Retry failed flow",
-            },
-            {
-                "path": "/flows/{flow_id}/clarifications/submit",
-                "method": "POST",
-                "description": "Submit clarifications",
-            },
-            {
-                "path": "/flows/{flow_id}/field-mappings",
-                "method": "GET",
-                "description": "Get field mappings",
-            },
-            {
-                "path": "/flow/{flow_id}/agent-insights",
-                "method": "GET",
-                "description": "Get agent insights",
-            },
-            {"path": "/flows/health", "method": "GET", "description": "Health check"},
-            {
-                "path": "/flows/endpoints-test",
-                "method": "GET",
-                "description": "Endpoints test",
-            },
-        ]
-
-        # Test validation helper
-        test_flow = type(
-            "TestFlow",
-            (),
-            {
-                "status": "active",
-                "data_import_completed": True,
-                "field_mapping_completed": False,
-                "data_cleansing_completed": False,
-                "asset_inventory_completed": False,
-            },
-        )()
-
-        validation_test = StatusCalculator.validate_flow_for_transition(
-            test_flow, "execute"
-        )
-
-        return {
-            "service": "discovery_flows_endpoints",
-            "status": "healthy",
-            "endpoints_count": len(expected_endpoints),
-            "endpoints_list": expected_endpoints,
-            "validation_helper": {"available": True, "test_result": validation_test},
-            "fixes_applied": {
-                "missing_clarifications_endpoint": "✅ FIXED",
-                "improved_error_handling": "✅ FIXED",
-                "centralized_validation": "✅ FIXED",
-                "comprehensive_logging": "✅ FIXED",
-            },
-            "message": (
-                "All flow transition endpoints are properly registered and "
-                "should not return 404 errors"
-            ),
-            "timestamp": "2024-08-06T00:00:00Z",
-        }
-
-    except Exception as e:
-        logger.error(f"Error testing endpoints: {e}")
-        return {
-            "service": "discovery_flows_endpoints",
-            "status": "error",
-            "error": str(e),
-            "message": "Some endpoints may not be working properly",
-        }
+        logger.error(f"Error in health check: {e}")
+        return {"service": "discovery_flows", "status": "unhealthy", "error": str(e)}
 
 
 @validation_router.get(
@@ -590,7 +463,7 @@ async def get_system_diagnostics(
                 "phase_distribution": phase_distribution,
                 "recent_activity": recent_activity,
                 "performance_metrics": {
-                    "average_completion_time": "N/A",  # TODO: Calculate from historical
+                    "average_completion_time": "N/A",  # TODO: Calculate from historical data
                     "success_rate": "N/A",  # TODO: Calculate from historical data
                     "error_rate": (
                         len(
@@ -671,10 +544,7 @@ async def _perform_flow_validation(flow, db: AsyncSession) -> Dict[str, Any]:
                 warnings.append(
                     {
                         "type": "phase_stall",
-                        "message": (
-                            f"Phase {phase} not started after "
-                            f"{StatusCalculator.PHASE_ORDER[i-1]} completion"
-                        ),
+                        "message": f"Phase {phase} not started after {StatusCalculator.PHASE_ORDER[i-1]} completion",
                     }
                 )
 
@@ -864,8 +734,7 @@ def _get_diagnostic_recommendations(
     paused_count = status_distribution.get("paused", 0)
     if paused_count > total_flows * 0.3:
         recommendations.append(
-            "High number of paused flows. Consider resuming or cleaning up "
-            "inactive flows."
+            "High number of paused flows. Consider resuming or cleaning up inactive flows."
         )
 
     return recommendations

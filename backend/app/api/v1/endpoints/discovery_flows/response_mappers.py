@@ -92,17 +92,6 @@ class ResponseMappers:
     def map_flow_to_response(flow, context=None) -> Dict[str, Any]:
         """Convert a DiscoveryFlow model to standardized response format"""
         try:
-            # CRITICAL FIX: Validate flow_id before processing
-            if not flow.flow_id:
-                logger.error(
-                    f"❌ CRITICAL: Flow with null/undefined flow_id detected! "
-                    f"Flow DB ID: {flow.id}, Flow Name: {getattr(flow, 'flow_name', 'Unknown')}, "
-                    f"Status: {getattr(flow, 'status', 'Unknown')}, "
-                    f"Client: {getattr(flow, 'client_account_id', 'Unknown')}"
-                )
-                # Return None to indicate this flow should be skipped
-                return None
-
             # Get current phase from flow state
             current_phase = flow.current_phase
             if not current_phase and flow.crewai_state_data:
@@ -153,19 +142,9 @@ class ResponseMappers:
                 in ["initialized", "paused", "waiting_for_approval"],
             }
         except Exception as e:
-            logger.error(
-                f"❌ Error mapping flow to response: {e}. "
-                f"Flow ID: {getattr(flow, 'flow_id', 'Missing')}, "
-                f"DB ID: {getattr(flow, 'id', 'Missing')}, "
-                f"Flow Name: {getattr(flow, 'flow_name', 'Unknown')}"
-            )
-            # If flow_id is missing, return None to skip this flow
-            if not hasattr(flow, "flow_id") or not flow.flow_id:
-                logger.error("❌ CRITICAL: Skipping flow due to missing flow_id in error handling")
-                return None
-            
+            logger.error(f"Error mapping flow to response: {e}")
             return {
-                "flow_id": str(flow.flow_id),
+                "flow_id": str(flow.flow_id) if hasattr(flow, "flow_id") else "unknown",
                 "status": "error",
                 "type": "discovery",
                 "error": str(e),
@@ -178,16 +157,6 @@ class ResponseMappers:
     ) -> Dict[str, Any]:
         """Convert a DiscoveryFlow model to detailed status response format"""
         try:
-            # CRITICAL FIX: Validate flow_id before processing
-            if not flow.flow_id:
-                logger.error(
-                    f"❌ CRITICAL: Status request for flow with null flow_id! "
-                    f"DB ID: {flow.id}, Flow Name: {getattr(flow, 'flow_name', 'Unknown')}, "
-                    f"Status: {getattr(flow, 'status', 'Unknown')}"
-                )
-                # Return None to indicate this flow should be skipped
-                return None
-
             # Calculate current phase from completion flags
             current_phase = "unknown"
             steps_completed = 0

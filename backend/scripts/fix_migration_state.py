@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 # Add the parent directory to sys.path to import app modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.core.config import Settings  # noqa: E402
+from app.core.config import Settings
 
 # Configure logging
 logging.basicConfig(
@@ -106,14 +106,11 @@ class MigrationStateFixer:
                 # Try migration schema first, then public schema
                 for schema in ["migration", "public"]:
                     try:
-                        # Use parameterized query to avoid SQL injection warning
-                        if schema == "migration":
-                            query = "SELECT version_num FROM migration.alembic_version LIMIT 1"
-                        else:
-                            query = (
-                                "SELECT version_num FROM public.alembic_version LIMIT 1"
+                        result = await conn.execute(
+                            text(
+                                f"SELECT version_num FROM {schema}.alembic_version LIMIT 1"
                             )
-                        result = await conn.execute(text(query))
+                        )
                         row = result.fetchone()
                         version = row[0] if row else None
                         logger.info(
@@ -212,9 +209,7 @@ class MigrationStateFixer:
         """Validate that core tables exist"""
         missing_tables = EXPECTED_CORE_TABLES - set(existing_tables)
         if missing_tables:
-            logger.warning(
-                f"Missing {len(missing_tables)} core tables in database schema"
-            )
+            logger.warning(f"Missing core tables: {missing_tables}")
             return False
 
         logger.info("✅ All core tables present")

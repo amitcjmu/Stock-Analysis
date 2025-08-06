@@ -73,15 +73,8 @@ class FlowCommands:
     ) -> DiscoveryFlow:
         """Create new discovery flow using CrewAI Flow ID"""
 
-        # CRITICAL VALIDATION: Ensure flow_id is provided and valid
-        if not flow_id:
-            logger.error("❌ CRITICAL: Attempted to create flow with null/empty flow_id")
-            raise ValueError("flow_id cannot be null or empty")
-        
         # Parse flow_id as UUID
         parsed_flow_id = self._ensure_uuid(flow_id)
-        
-        logger.info(f"✅ Creating flow with validated flow_id: {parsed_flow_id}")
 
         # Parse optional UUIDs
         master_uuid = self._ensure_uuid(master_flow_id) if master_flow_id else None

@@ -43,9 +43,8 @@ class DiscoveryFlowIntegration:
                     and_(
                         Asset.client_account_id == client_account_id,
                         Asset.engagement_id == engagement_id,
-                        # Use existing migration_status instead of missing discovery_status
-                        Asset.migration_status.in_(["discovered", "assessed"]),
-                        # Skip assessment_readiness check for now - handle in filtering
+                        Asset.discovery_status == "completed",
+                        Asset.assessment_readiness == "ready",
                     )
                 )
                 .order_by(Asset.created_at.desc())
@@ -73,8 +72,8 @@ class DiscoveryFlowIntegration:
                         "complexity_score": asset.complexity_score,
                         "data_classification": asset.data_classification,
                     },
-                    "readiness_score": getattr(asset, 'assessment_readiness_score', 0.0),
-                    "readiness_blockers": getattr(asset, 'assessment_blockers', []),
+                    "readiness_score": asset.assessment_readiness_score or 0.0,
+                    "readiness_blockers": asset.assessment_blockers or [],
                 }
                 applications.append(application_data)
 
@@ -121,18 +120,13 @@ class DiscoveryFlowIntegration:
             if missing_ids:
                 raise ValueError(f"Applications not found: {', '.join(missing_ids)}")
 
-            # Check readiness status using existing fields
+            # Check readiness status
             not_ready = []
             for asset in assets:
-                # Use migration_status instead of missing discovery_status
-                discovery_status = getattr(asset, 'discovery_status', asset.migration_status)
-                if discovery_status not in ["discovered", "assessed", "completed"]:
-                    not_ready.append(f"{asset.name} (discovery not completed: {discovery_status})")
-                
-                # Check assessment readiness with fallback
-                assessment_readiness = getattr(asset, 'assessment_readiness', 'ready' if asset.migration_status in ['discovered', 'assessed'] else 'not_ready')
-                if assessment_readiness != "ready":
-                    not_ready.append(f"{asset.name} (not ready for assessment: {assessment_readiness})")
+                if asset.discovery_status != "completed":
+                    not_ready.append(f"{asset.name} (discovery not completed)")
+                elif asset.assessment_readiness != "ready":
+                    not_ready.append(f"{asset.name} (not ready for assessment)")
 
             if not_ready:
                 raise ValueError(
@@ -188,14 +182,14 @@ class DiscoveryFlowIntegration:
                     "business_criticality": asset.business_criticality,
                 },
                 "discovery_info": {
-                    "status": getattr(asset, 'discovery_status', asset.migration_status),
+                    "status": asset.discovery_status,
                     "completed_at": (
-                        getattr(asset, 'discovery_completed_at', asset.updated_at).isoformat()
-                        if getattr(asset, 'discovery_completed_at', asset.updated_at)
+                        asset.discovery_completed_at.isoformat()
+                        if asset.discovery_completed_at
                         else None
                     ),
                     "discovery_flow_id": asset.discovery_flow_id,
-                    "confidence_score": getattr(asset, 'confidence_score', 0.8),
+                    "confidence_score": asset.confidence_score,
                 },
                 "technical_info": {
                     "technology_stack": asset.technology_stack or [],
@@ -211,10 +205,10 @@ class DiscoveryFlowIntegration:
                     "data_flows": asset.data_flows or [],
                 },
                 "assessment_readiness": {
-                    "status": getattr(asset, 'assessment_readiness', 'ready' if asset.migration_status in ['discovered', 'assessed'] else 'not_ready'),
-                    "score": getattr(asset, 'assessment_readiness_score', 0.8),
-                    "blockers": getattr(asset, 'assessment_blockers', []),
-                    "recommendations": getattr(asset, 'assessment_recommendations', []),
+                    "status": asset.assessment_readiness,
+                    "score": asset.assessment_readiness_score or 0.0,
+                    "blockers": asset.assessment_blockers or [],
+                    "recommendations": asset.assessment_recommendations or [],
                 },
                 "data_classification": {
                     "classification": asset.data_classification,
@@ -261,22 +255,18 @@ class DiscoveryFlowIntegration:
             True if updated successfully
         """
         try:
-            # Use existing migration_status field for assessment status tracking
-            update_data = {"migration_status": status, "updated_at": "now()"}
+            update_data = {"assessment_status": status, "updated_at": "now()"}
 
             if assessment_flow_id:
                 update_data["assessment_flow_id"] = assessment_flow_id
 
-            # Store assessment_results in custom_attributes if field doesn't exist
             if assessment_results:
-                # Try to update assessment_results field, fallback to custom_attributes
-                update_data["custom_attributes"] = {"assessment_results": assessment_results}
+                update_data["assessment_results"] = assessment_results
 
             if status == "completed":
-                # Use updated_at as assessment completion time
-                update_data["updated_at"] = "now()"
-                # Mark as assessed in migration_status
-                update_data["migration_status"] = "assessed"
+                update_data["assessment_completed_at"] = "now()"
+                # Mark as ready for planning
+                update_data["planning_readiness"] = "ready"
 
             stmt = (
                 update(Asset)
@@ -331,14 +321,10 @@ class DiscoveryFlowIntegration:
             True if updated successfully
         """
         try:
-            # Store planning readiness in custom_attributes
-            update_data = {"updated_at": "now()"}
-            planning_data = {"planning_readiness": status}
-            
+            update_data = {"planning_readiness": status, "updated_at": "now()"}
+
             if readiness_notes:
-                planning_data["planning_readiness_notes"] = readiness_notes
-                
-            update_data["custom_attributes"] = planning_data
+                update_data["planning_readiness_notes"] = readiness_notes
 
             stmt = (
                 update(Asset)
@@ -410,23 +396,19 @@ class DiscoveryFlowIntegration:
             assets_result = await db.execute(assets_stmt)
             assets = assets_result.scalars().all()
 
-            # Calculate statistics using existing and fallback fields
+            # Calculate statistics
             total_assets = len(assets)
             discovery_completed = sum(
-                1 for asset in assets 
-                if getattr(asset, 'discovery_status', asset.migration_status) in ["completed", "discovered", "assessed"]
+                1 for asset in assets if asset.discovery_status == "completed"
             )
             ready_for_assessment = sum(
-                1 for asset in assets 
-                if getattr(asset, 'assessment_readiness', 'ready' if asset.migration_status in ['discovered', 'assessed'] else 'not_ready') == "ready"
+                1 for asset in assets if asset.assessment_readiness == "ready"
             )
             assessment_completed = sum(
-                1 for asset in assets 
-                if getattr(asset, 'assessment_status', asset.migration_status) in ["completed", "assessed"]
+                1 for asset in assets if asset.assessment_status == "completed"
             )
             ready_for_planning = sum(
-                1 for asset in assets 
-                if getattr(asset, 'planning_readiness', 'ready' if asset.migration_status == 'assessed' else 'not_ready') == "ready"
+                1 for asset in assets if asset.planning_readiness == "ready"
             )
 
             summary = {
@@ -517,10 +499,9 @@ class DiscoveryFlowIntegration:
                 app_issues = []
                 app_warnings = []
 
-                # Check discovery completion using existing fields
-                discovery_status = getattr(asset, 'discovery_status', asset.migration_status)
-                if discovery_status not in ["completed", "discovered", "assessed"]:
-                    app_issues.append(f"Discovery not completed (status: {discovery_status})")
+                # Check discovery completion
+                if asset.discovery_status != "completed":
+                    app_issues.append("Discovery not completed")
 
                 # Check for minimum required data
                 if not asset.technology_stack:
@@ -529,17 +510,15 @@ class DiscoveryFlowIntegration:
                 if not asset.components:
                     app_warnings.append("Components not identified")
 
-                # Check assessment readiness with fallback
-                assessment_readiness = getattr(asset, 'assessment_readiness', 'ready' if asset.migration_status in ['discovered', 'assessed'] else 'not_ready')
-                if assessment_readiness != "ready":
+                # Check assessment readiness
+                if asset.assessment_readiness != "ready":
                     app_issues.append(
-                        f"Assessment readiness: {assessment_readiness}"
+                        f"Assessment readiness: {asset.assessment_readiness}"
                     )
 
-                # Check for blockers with fallback
-                assessment_blockers = getattr(asset, 'assessment_blockers', [])
-                if assessment_blockers:
-                    for blocker in assessment_blockers:
+                # Check for blockers
+                if asset.assessment_blockers:
+                    for blocker in asset.assessment_blockers:
                         app_issues.append(f"Blocker: {blocker}")
 
                 validation_results["application_status"][str(asset.id)] = {

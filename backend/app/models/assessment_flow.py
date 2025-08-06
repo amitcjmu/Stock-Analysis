@@ -76,12 +76,39 @@ class AssessmentFlow(Base):
         index=True,
     )
 
-    # Flow configuration - using fields that exist in the database table
-    flow_name = Column(String(255), nullable=False)
-    flow_status = Column(String(50), nullable=False, default="initialized", index=True)
-    flow_configuration = Column(JSONB, nullable=True)  # Store all flow data here as JSON
+    # Flow configuration
+    selected_application_ids = Column(
+        JSONB, nullable=False
+    )  # List of application UUIDs
+    architecture_captured = Column(Boolean, default=False, nullable=False)
 
-    # Timestamps - using fields that exist in the database table
+    # Flow state management
+    status = Column(String(50), nullable=False, default="initialized", index=True)
+    progress = Column(Integer, default=0, nullable=False)
+    current_phase = Column(String(100), nullable=True, index=True)
+    next_phase = Column(String(100), nullable=True, index=True)
+
+    # User interaction tracking
+    pause_points = Column(
+        JSONB, default=list, nullable=False
+    )  # List of pause point identifiers
+    user_inputs = Column(
+        JSONB, default=dict, nullable=False
+    )  # Phase-specific user inputs
+    phase_results = Column(
+        JSONB, default=dict, nullable=False
+    )  # Phase completion results
+    agent_insights = Column(
+        JSONB, default=list, nullable=False
+    )  # Agent-generated insights
+
+    # Planning readiness
+    apps_ready_for_planning = Column(
+        JSONB, default=list, nullable=False
+    )  # Apps ready for planning flow
+
+    # Timestamps
+    last_user_interaction = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -91,70 +118,12 @@ class AssessmentFlow(Base):
         onupdate=func.now(),
         nullable=False,
     )
-    
-    # Properties to provide backward compatibility with the expected interface
-    @property
-    def selected_application_ids(self):
-        return self.flow_configuration.get('selected_application_ids', []) if self.flow_configuration else []
-    
-    @property
-    def architecture_captured(self):
-        return self.flow_configuration.get('architecture_captured', False) if self.flow_configuration else False
-    
-    @property
-    def status(self):
-        return self.flow_status
-    
-    @property
-    def progress(self):
-        return self.flow_configuration.get('progress', 0) if self.flow_configuration else 0
-    
-    @property
-    def current_phase(self):
-        return self.flow_configuration.get('current_phase') if self.flow_configuration else None
-    
-    @property
-    def next_phase(self):
-        return self.flow_configuration.get('next_phase') if self.flow_configuration else None
-    
-    @property
-    def pause_points(self):
-        return self.flow_configuration.get('pause_points', []) if self.flow_configuration else []
-    
-    @property
-    def user_inputs(self):
-        return self.flow_configuration.get('user_inputs', {}) if self.flow_configuration else {}
-    
-    @property
-    def phase_results(self):
-        return self.flow_configuration.get('phase_results', {}) if self.flow_configuration else {}
-    
-    @property
-    def agent_insights(self):
-        return self.flow_configuration.get('agent_insights', []) if self.flow_configuration else []
-    
-    @property
-    def apps_ready_for_planning(self):
-        return self.flow_configuration.get('apps_ready_for_planning', []) if self.flow_configuration else []
-    
-    @property
-    def last_user_interaction(self):
-        last_interaction = self.flow_configuration.get('last_user_interaction') if self.flow_configuration else None
-        if last_interaction:
-            from datetime import datetime
-            return datetime.fromisoformat(last_interaction)
-        return None
-    
-    @property
-    def completed_at(self):
-        completed = self.flow_configuration.get('completed_at') if self.flow_configuration else None
-        if completed:
-            from datetime import datetime
-            return datetime.fromisoformat(completed)
-        return None
+    completed_at = Column(DateTime(timezone=True), nullable=True)
 
-    # Constraints - removed progress constraint since it's now in JSON
-    __table_args__ = tuple()
+    # Constraints
+    __table_args__ = (
+        CheckConstraint("progress >= 0 AND progress <= 100", name="valid_progress"),
+    )
 
     # Relationships (using string references to avoid forward reference issues)
     # Note: architecture_standards are linked via engagement_id, not directly

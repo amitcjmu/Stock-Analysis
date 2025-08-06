@@ -56,8 +56,7 @@ class OptimizedCrewBase:
         }
 
         logger.info(
-            f"🚀 Optimized crew base initialized with memory={enable_memory}, "
-            f"caching={enable_caching}, parallel={enable_parallel}"
+            f"🚀 Optimized crew base initialized with memory={enable_memory}, caching={enable_caching}, parallel={enable_parallel}"
         )
 
     def _get_optimized_llm(self):
@@ -260,18 +259,9 @@ class OptimizedCrewBase:
             try:
                 # Check cache first if enabled
                 if self.enable_caching:
-                    from app.constants.cache_keys import CacheKeys
-
-                    # Generate proper versioned cache key with tenant context
-                    cache_key = CacheKeys.agent_result(
-                        agent_id=f"crew_{crew.__class__.__name__}",
-                        agent_name=crew.__class__.__name__.lower(),
-                        flow_id=str(self.context.engagement_id),
-                        client_account_id=str(self.context.client_account_id),
-                        engagement_id=str(self.context.engagement_id),
-                    )
+                    cache_key = f"crew_{crew.__class__.__name__}_{str(args)}"
                     cached_result = await response_optimizer.cache.get(
-                        cache_key, {"key": cache_key}
+                        "crew_execution", {"key": cache_key}
                     )
                     if cached_result:
                         logger.info("🎯 Crew execution cache hit")
@@ -299,13 +289,8 @@ class OptimizedCrewBase:
 
                 # Cache result if enabled
                 if self.enable_caching and result:
-                    from app.core.security.cache_encryption import SecureCache
-
-                    secure_cache = SecureCache(response_optimizer.cache)
-                    await secure_cache.set(
-                        cache_key,
-                        result,
-                        force_encrypt=True,
+                    await response_optimizer.cache.set(
+                        "crew_execution", {"key": cache_key}, result
                     )
 
                 return result

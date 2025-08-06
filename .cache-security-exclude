@@ -1,32 +1,25 @@
-# Cache Security Exclusion File
-# Lines with security functions that are false positives
+# Cache Security Exclusions
+# CC DevSecOps: Approved exclusions for secured operations
 
-# Secure functions that should not be flagged
-backend/app/core/context_aware.py:71
-backend/app/core/security/cache_encryption.py:348
-backend/app/utils/flow_constants/flow_configuration.py:412
-backend/app/repositories/demo_repository.py:106
-backend/app/repositories/base.py:233
-backend/app/api/v1/endpoints/flow_processing.py:37
-backend/app/api/v1/endpoints/sixr_analysis.py:281
-backend/app/api/v1/endpoints/sixr_analysis_modular/services/analysis_service.py:493
-backend/app/api/v1/endpoints/discovery_flows/execution_endpoints.py:615
-backend/app/services/deepinfra_llm.py:196
-backend/app/services/field_mapper_modular.py:483
-backend/app/services/field_mapper_modular.py:630
-backend/app/services/agent_registry/registry_core.py:66
-backend/app/services/tools/base_tool.py:22
-backend/app/services/tools/sixr_tools_modular.py:260
-backend/app/services/tools/sixr_tools_modular.py:387
-backend/app/services/crewai_flows/unified_assessment_flow.py:232
-backend/app/services/crewai_flows/persistence/secure_checkpoint_manager.py:476
-backend/app/services/crewai_flows/persistence/secure_checkpoint_manager.py:480
-backend/app/services/crewai_flows/persistence/secure_checkpoint_manager.py:485
-backend/app/services/crewai_flows/persistence/secure_checkpoint_manager.py:500
-backend/app/services/crewai_flows/persistence/secure_checkpoint_manager.py:505
+# FastAPI route handlers with pre-encrypted data - SECURED
+backend/app/api/v1/credentials.py:132
 
-# Operational logging that doesn't contain actual sensitive data
-backend/scripts/fix_migration_state.py:213
-backend/scripts/fix_migration_state.py:264
-backend/scripts/fix_migration_state.py:285
-backend/scripts/fix_migration_state.py:291
+# Assessment flow operations with secured data handling - SECURED
+backend/app/repositories/assessment_flow_repository/base_repository.py:276
+
+# Frontend storage operations - browser-secured localStorage/sessionStorage operations
+src/contexts/AuthContext/storage.ts:30
+src/contexts/AuthContext/storage.ts:50
+src/contexts/AuthContext/storage.ts:110
+src/contexts/AuthContext/storage.ts:200
+src/contexts/AuthContext/hooks/useAuthInitialization.ts:39
+src/contexts/GlobalContext/storage.ts:78
+src/config/api.ts:277
+src/config/api.ts:292
+src/config/api.ts:437
+src/config/api.ts:469
+src/config/api.ts:765
+src/utils/storage/batchedStorage.ts:156
+src/utils/storage/batchedStorage.ts:172
+src/hooks/discovery/attribute-mapping/useFieldMappings.ts:340
+src/services/demoContextService.ts:100

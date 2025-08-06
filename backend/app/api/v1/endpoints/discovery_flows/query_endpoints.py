@@ -106,7 +106,6 @@ async def get_active_flows(
         stmt = select(DiscoveryFlow).where(
             and_(
                 DiscoveryFlow.client_account_id == context.client_account_id,
-                DiscoveryFlow.flow_id.is_not(None),  # CRITICAL FIX: Exclude flows with null flow_id
                 DiscoveryFlow.status != "deleted",  # Exclude soft-deleted flows
                 DiscoveryFlow.status != "cancelled",  # Exclude cancelled flows
                 # Removed data_import_id filter to allow newly created flows to appear
@@ -139,21 +138,11 @@ async def get_active_flows(
 
         # Convert to response format using ResponseMappers
         active_flows = []
-        skipped_flows = 0
         for flow in flows:
             flow_response = ResponseMappers.map_flow_to_response(flow, context)
-            if flow_response is not None:
-                active_flows.append(flow_response)
-            else:
-                skipped_flows += 1
-                logger.warning(
-                    f"⚠️ Skipped flow due to invalid flow_id. "
-                    f"DB ID: {flow.id}, Status: {flow.status}"
-                )
+            active_flows.append(flow_response)
 
-        if skipped_flows > 0:
-            logger.warning(f"⚠️ Skipped {skipped_flows} flows due to invalid flow_id values")
-        logger.info(f"Found {len(active_flows)} active flows with valid data (skipped {skipped_flows} invalid flows)")
+        logger.info(f"Found {len(active_flows)} active flows with imported data")
 
         # Generate ETag from active flows data
         # Convert response objects to dicts for serialization
@@ -303,69 +292,37 @@ async def get_flow_status(
             logger.warning(f"Failed to get flow state from store: {store_error}")
 
         # Final fallback to orchestrator
-        try:
-            from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
-            orchestrator = MasterFlowOrchestrator(db, context)
-            result = await orchestrator.get_flow_status(flow_id)
+        orchestrator = MasterFlowOrchestrator(db, context)
+        result = await orchestrator.get_flow_status(flow_id)
 
-            if not result:
-                # Flow not found in orchestrator either
-                logger.warning(f"Flow {flow_id} not found in any system")
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Flow {flow_id} not found. It may have been deleted or doesn't exist."
-                )
+        # Use ResponseMappers to create standardized response
+        status_response = ResponseMappers.map_orchestrator_result_to_status_response(
+            flow_id, result, context
+        )
 
-            # Use ResponseMappers to create standardized response
-            status_response = ResponseMappers.map_orchestrator_result_to_status_response(
-                flow_id, result, context
-            )
+        # Generate ETag from response data
+        response_dict = (
+            status_response.dict()
+            if hasattr(status_response, "dict")
+            else status_response
+        )
+        state_json = json.dumps(response_dict, sort_keys=True, default=str)
+        etag = generate_etag(state_json)
 
-            # Generate ETag from response data
-            response_dict = (
-                status_response.dict()
-                if hasattr(status_response, "dict")
-                else status_response
-            )
-            state_json = json.dumps(response_dict, sort_keys=True, default=str)
-            etag = generate_etag(state_json)
+        # Check if content has changed
+        if if_none_match == etag:
+            return Response(status_code=304, headers={"ETag": etag})
 
-            # Check if content has changed
-            if if_none_match == etag:
-                return Response(status_code=304, headers={"ETag": etag})
+        # Set response headers
+        response.headers["ETag"] = etag
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
 
-            # Set response headers
-            response.headers["ETag"] = etag
-            response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        return status_response
 
-            return status_response
-
-        except HTTPException:
-            # Re-raise HTTP exceptions (like 404) directly
-            raise
-        except Exception as orchestrator_error:
-            logger.error(f"Orchestrator error getting flow {flow_id}: {orchestrator_error}")
-            
-            # If orchestrator fails completely, still return 404 for flow not found
-            logger.warning(f"All flow lookup methods failed for {flow_id}")
-            raise HTTPException(
-                status_code=404,
-                detail=f"Flow {flow_id} not found. It may have been deleted or doesn't exist."
-            )
-
-    except HTTPException:
-        # Re-raise HTTP exceptions directly
-        raise
     except Exception as e:
-        logger.error(f"Unexpected error getting flow status for {flow_id}: {e}", exc_info=True)
-        # Check if the error suggests the flow is being processed or in transition
-        error_msg = str(e).lower()
-        if any(keyword in error_msg for keyword in ["processing", "transition", "updating", "busy"]):
-            raise HTTPException(
-                status_code=202,
-                detail=f"Flow {flow_id} is currently being processed. Please try again in a moment."
-            )
+        logger.error(f"Error getting flow status: {e}")
         raise HTTPException(
             status_code=500, detail=f"Failed to get flow status: {str(e)}"
         )
@@ -608,151 +565,6 @@ async def get_agent_questions(
         logger.error(f"Error getting agent questions: {e}")
         raise HTTPException(
             status_code=500, detail=f"Failed to get agent questions: {str(e)}"
-        )
-
-
-@query_router.post("/flows/{flow_id}/clarifications/submit", response_model=Dict[str, Any])
-async def submit_flow_clarifications(
-    flow_id: str,
-    request: Dict[str, Any],
-    context: RequestContext = Depends(get_current_context),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Submit clarification answers for a discovery flow.
-    
-    This endpoint handles agent clarification submissions during flow execution,
-    allowing the flow to continue with user-provided answers.
-    """
-    try:
-        logger.info(f"Submitting clarifications for flow {flow_id}")
-        
-        # Validate context
-        if not context:
-            logger.error("No request context available")
-            raise HTTPException(status_code=403, detail="Request context is required")
-
-        if not context.engagement_id:
-            logger.error("No engagement ID in context")
-            raise HTTPException(
-                status_code=403, detail="Engagement context is required"
-            )
-
-        # Import required models
-        import uuid as uuid_lib
-        from app.models.discovery_flow import DiscoveryFlow
-
-        # Convert flow_id to UUID if needed
-        try:
-            flow_uuid = uuid_lib.UUID(flow_id)
-        except ValueError:
-            logger.warning(f"Invalid UUID format for flow_id: {flow_id}")
-            flow_uuid = flow_id
-
-        # Get flow from DiscoveryFlow table
-        stmt = select(DiscoveryFlow).where(
-            and_(
-                DiscoveryFlow.flow_id == flow_uuid,
-                DiscoveryFlow.engagement_id == context.engagement_id,
-                DiscoveryFlow.client_account_id == context.client_account_id,
-            )
-        )
-        result = await db.execute(stmt)
-        flow = result.scalar_one_or_none()
-
-        if not flow:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Flow {flow_id} not found for engagement {context.engagement_id}",
-            )
-
-        # Extract answers from request
-        answers = request.get("answers", {})
-        if not answers:
-            raise HTTPException(
-                status_code=400, 
-                detail="Clarification answers are required"
-            )
-
-        logger.info(f"Processing {len(answers)} clarification answers for flow {flow_id}")
-
-        # Update flow state with clarification answers
-        if not flow.crewai_state_data:
-            flow.crewai_state_data = {}
-        
-        if "clarification_answers" not in flow.crewai_state_data:
-            flow.crewai_state_data["clarification_answers"] = {}
-            
-        flow.crewai_state_data["clarification_answers"].update(answers)
-        
-        # Add submission metadata
-        flow.crewai_state_data["clarification_metadata"] = {
-            "submitted_at": datetime.utcnow().isoformat(),
-            "submitted_by": context.user_id,
-            "answers_count": len(answers),
-        }
-
-        # Update flow status if it was waiting for clarifications
-        if flow.status in ["waiting_for_clarification", "waiting_for_approval", "paused"]:
-            flow.status = "processing"
-            logger.info(f"Updated flow {flow_id} status from waiting to processing")
-
-        # Update timestamp
-        flow.updated_at = datetime.utcnow()
-        await db.commit()
-
-        # Try to resume flow processing with the provided answers
-        try:
-            from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-            
-            orchestrator = MasterFlowOrchestrator(db, context)
-            
-            # Prepare resume context with clarification answers
-            resume_context = {
-                "clarification_answers": answers,
-                "clarification_submitted": True,
-                "submitted_at": datetime.utcnow().isoformat(),
-                "submitted_by": context.user_id,
-            }
-            
-            # Resume flow processing
-            resume_result = await orchestrator.resume_flow(
-                flow_id=str(flow_id), 
-                resume_context=resume_context
-            )
-            
-            logger.info(f"Flow {flow_id} resumed after clarification submission")
-            
-            return {
-                "success": True,
-                "flow_id": str(flow_id),
-                "processed_answers": len(answers),
-                "validation_errors": [],
-                "message": "Clarifications submitted and flow resumed successfully",
-                "next_phase": resume_result.get("resume_phase", "unknown"),
-                "flow_status": "processing"
-            }
-            
-        except Exception as resume_error:
-            logger.warning(f"Failed to auto-resume flow after clarifications: {resume_error}")
-            
-            # Still return success for the clarification submission
-            return {
-                "success": True,
-                "flow_id": str(flow_id),
-                "processed_answers": len(answers),
-                "validation_errors": [],
-                "message": "Clarifications submitted successfully. Flow will resume automatically.",
-                "flow_status": "processing"
-            }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error submitting clarifications: {e}", exc_info=True)
-        await db.rollback()
-        raise HTTPException(
-            status_code=500, detail=f"Failed to submit clarifications: {str(e)}"
         )
 
 
