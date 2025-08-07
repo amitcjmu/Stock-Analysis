@@ -18,14 +18,13 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Query,
     WebSocket,
     WebSocketDisconnect,
-    Query,
     status,
 )
 
 # from sqlalchemy.ext.asyncio import AsyncSession  # Unused import
-
 from app.api.v1.auth.auth_utils import (
     get_current_user,
 )  # get_current_user_websocket unused

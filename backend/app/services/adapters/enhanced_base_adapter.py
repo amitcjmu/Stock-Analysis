@@ -283,11 +283,11 @@ class EnhancedBaseAdapter(BaseAdapter, ABC):
             optimization_changes["cache_ttl_seconds"] = new_ttl
 
         # Apply optimization changes using secure attribute setting
-        from app.core.security.secure_setattr import secure_setattr, SAFE_ATTRIBUTES
         from app.core.security.cache_encryption import (
             encrypt_for_cache,
             is_sensitive_field,
         )
+        from app.core.security.secure_setattr import SAFE_ATTRIBUTES, secure_setattr
 
         # Define allowed attributes for adapter config updates
         allowed_attrs = SAFE_ATTRIBUTES | {

@@ -39,7 +39,7 @@ __all__ = [
     "GapAnalysisAgent",
     "AdaptiveQuestionnaireGenerator",
     "ConfidenceScorer",
-    "BusinessContextAnalyzer",
+    "BusinessAnalyzers",
     "LearningOptimizer",
     "AIValidationService",
 ]

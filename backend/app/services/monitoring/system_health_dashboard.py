@@ -25,24 +25,25 @@ Dashboard Sections:
 """
 
 import asyncio
+import json
 import time
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List
-from concurrent.futures import ThreadPoolExecutor
+
 import psutil
-import json
 
 from app.core.logging import get_logger
-from app.services.monitoring.performance_metrics_collector import get_metrics_collector
 from app.services.monitoring.auth_performance_monitor import (
     get_auth_performance_monitor,
 )
 from app.services.monitoring.cache_performance_monitor import (
     get_cache_performance_monitor,
 )
+from app.services.monitoring.performance_metrics_collector import get_metrics_collector
 
 logger = get_logger(__name__)
 

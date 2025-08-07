@@ -6,12 +6,12 @@ This module provides optimized configuration for Upstash Redis deployments,
 including rate limiting, connection pooling, and performance optimization.
 """
 
-import os
-import logging
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
-from collections import deque
 import asyncio
+import logging
+import os
+from collections import deque
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

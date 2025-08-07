@@ -118,8 +118,8 @@ class TaskProcessor:
                     # Secure handling of potentially sensitive field mappings
                     from app.core.security.cache_encryption import (
                         encrypt_for_cache,
-                        sanitize_for_logging,
                         is_sensitive_field,
+                        sanitize_for_logging,
                     )
 
                     # Sanitize field mappings to remove sensitive data before analysis

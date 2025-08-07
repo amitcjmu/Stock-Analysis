@@ -61,25 +61,25 @@ sys.modules["app.core.security.cache_encryption"] = type(
 )()
 
 # Now we can import our systems
-from app.services.monitoring.service_health_manager import (
-    ServiceHealthManager,
-    ServiceType,
-)
 from app.services.auth.fallback_orchestrator import (
     FallbackOrchestrator,
     OperationType,
 )
-from app.services.recovery.error_recovery_system import (
-    ErrorRecoverySystem,
-    RecoveryType,
-    FailureCategory,
-)
 from app.services.error_handling.enhanced_error_handler import (
     EnhancedErrorHandler,
-    ErrorContext,
     ErrorCategory,
+    ErrorContext,
     ErrorSeverity,
     UserAudience,
+)
+from app.services.monitoring.service_health_manager import (
+    ServiceHealthManager,
+    ServiceType,
+)
+from app.services.recovery.error_recovery_system import (
+    ErrorRecoverySystem,
+    FailureCategory,
+    RecoveryType,
 )
 
 

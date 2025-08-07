@@ -12,6 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
 from app.core.database import get_db
+from app.core.security.cache_encryption import (
+    encrypt_for_cache,
+    is_sensitive_field,
+)
 from app.middleware.credential_access_control import CredentialAccessControl
 from app.models.platform_credentials import CredentialStatus, VaultProvider
 from app.models.user import User
@@ -25,10 +29,6 @@ from app.schemas.credential_schemas import (
     CredentialUpdate,
     CredentialValidationResponse,
     LifecycleReport,
-)
-from app.core.security.cache_encryption import (
-    encrypt_for_cache,
-    is_sensitive_field,
 )
 from app.services.credential_audit_service import AuditEventType, CredentialAuditService
 from app.services.credential_lifecycle_service import CredentialLifecycleService

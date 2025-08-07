@@ -519,8 +519,8 @@ if ENABLE_MIDDLEWARE:
         if settings.REDIS_ENABLED:
             try:
                 from app.middleware.cache_middleware import (
-                    CacheMiddleware,
                     CacheInstrumentationMiddleware,
+                    CacheMiddleware,
                 )
 
                 fastapi_app.add_middleware(CacheMiddleware)

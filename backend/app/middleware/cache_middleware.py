@@ -27,7 +27,6 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 # from urllib.parse import urlparse, parse_qs  # Unused
-
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware

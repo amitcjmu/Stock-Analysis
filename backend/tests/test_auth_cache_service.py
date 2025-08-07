@@ -13,16 +13,17 @@ Tests the Redis-based authentication caching service including:
 """
 
 import asyncio
-import pytest
 import time
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from app.services.caching.auth_cache_service import (
     AuthCacheService,
-    UserSession,
-    UserContext,
     InMemoryFallbackCache,
+    UserContext,
+    UserSession,
     get_auth_cache_service,
 )
 

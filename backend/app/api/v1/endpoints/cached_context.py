@@ -22,11 +22,15 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
+from app.api.v1.endpoints.context.services.client_service import ClientService
+from app.api.v1.endpoints.context.services.engagement_service import EngagementService
+
+# Import the existing context services
+from app.api.v1.endpoints.context.services.user_service import UserService
 from app.constants.cache_keys import CacheKeys
 from app.core.database import get_db
 from app.core.logging import get_logger
 from app.models import User
-from app.utils.cache_utils import handle_conditional_request
 
 # from app.schemas.context import UserContext  # Unused import
 from app.services.cache_invalidation import (
@@ -34,11 +38,7 @@ from app.services.cache_invalidation import (
     get_cache_invalidation_service,
 )
 from app.services.caching.redis_cache import RedisCache, get_redis_cache
-
-# Import the existing context services
-from app.api.v1.endpoints.context.services.user_service import UserService
-from app.api.v1.endpoints.context.services.client_service import ClientService
-from app.api.v1.endpoints.context.services.engagement_service import EngagementService
+from app.utils.cache_utils import handle_conditional_request
 
 logger = get_logger(__name__)
 

@@ -112,113 +112,130 @@ class FlowCrewExecutor:
         phase_config,
         phase_input: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """Execute discovery flow phase"""
+        """Execute discovery flow phase using persistent agents (ADR-015)"""
         from app.core.database import AsyncSessionLocal
         from app.services.crewai_flow_service import CrewAIFlowService
+        from app.services.persistent_agents.tenant_scoped_agent_pool import (
+            TenantScopedAgentPool,
+        )
 
-        async with AsyncSessionLocal() as db:
-            crewai_service = CrewAIFlowService(db)
+        # ADR-015: Use persistent agents instead of creating new ones
+        logger.info(f"🔄 Using persistent agents for phase: {phase_config.name}")
 
-            # Create context from master flow
-            context = {
-                "client_account_id": master_flow.client_account_id,
-                "engagement_id": master_flow.engagement_id,
-                "user_id": master_flow.user_id,
-                "approved_by": master_flow.user_id,
-            }
-
-            # Map phase names to CrewAI flow phases
-            # Fix: Use actual phase names that match the valid discovery phases
-            phase_mapping = {
-                "data_import": "data_import_validation",  # Maps to execute_data_import_validation
-                "field_mapping": "field_mapping",        # Maps to field mapping methods
-                "data_cleansing": "data_cleansing",      # Maps to execute_data_cleansing  
-                "asset_creation": "asset_creation",      # Maps to create_discovery_assets
-                "asset_inventory": "analysis",           # Maps to execute_analysis_phases
-                "dependency_analysis": "analysis",       # Maps to execute_analysis_phases
-                "tech_debt_analysis": "analysis",        # Maps to execute_analysis_phases
-            }
-
-            mapped_phase = phase_mapping.get(phase_config.name, phase_config.name)
-            logger.info(
-                f"🗺️ Mapped phase '{phase_config.name}' to '{mapped_phase}' for discovery flow"
+        try:
+            # Get persistent agent pool for this tenant
+            agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
+                master_flow.client_account_id, master_flow.engagement_id
             )
 
-            try:
-                # Execute phase through CrewAI service
-                if mapped_phase == "data_import_validation":
-                    result = await crewai_service.execute_data_import_validation(
-                        flow_id=master_flow.flow_id,
-                        raw_data=phase_input.get("raw_data", []),
-                        **context,
-                    )
-                elif mapped_phase == "field_mapping":
-                    # Handle field mapping with approval if needed
-                    field_mapping_data = phase_input.get("field_mapping_data", {})
+            logger.info(
+                f"✅ Retrieved persistent agent pool with {len(agent_pool)} agents"
+            )
 
-                    if phase_input.get("approved_mappings"):
-                        # Apply approved mappings
-                        result = await crewai_service.apply_field_mappings(
-                            flow_id=master_flow.flow_id,
-                            approved_mappings=phase_input["approved_mappings"],
-                            **context,
-                        )
-                    else:
-                        # Generate mapping suggestions
-                        result = (
-                            await crewai_service.generate_field_mapping_suggestions(
-                                flow_id=master_flow.flow_id,
-                                validation_result=field_mapping_data,
-                                **context,
-                            )
-                        )
-                elif mapped_phase == "data_cleansing":
-                    result = await crewai_service.execute_data_cleansing(
+        except Exception as e:
+            logger.warning(
+                f"⚠️ Failed to get persistent agents, falling back to service pattern: {e}"
+            )
+            # Fallback to original pattern if persistent agents fail
+            async with AsyncSessionLocal() as db:
+                crewai_service = CrewAIFlowService(db)
+
+        # Create context from master flow
+        context = {
+            "client_account_id": master_flow.client_account_id,
+            "engagement_id": master_flow.engagement_id,
+            "user_id": master_flow.user_id,
+            "approved_by": master_flow.user_id,
+        }
+
+        # Map phase names to CrewAI flow phases
+        # Fix: Use actual phase names that match the valid discovery phases
+        phase_mapping = {
+            "data_import": "data_import_validation",  # Maps to execute_data_import_validation
+            "field_mapping": "field_mapping",  # Maps to field mapping methods
+            "data_cleansing": "data_cleansing",  # Maps to execute_data_cleansing
+            "asset_creation": "asset_creation",  # Maps to create_discovery_assets
+            "asset_inventory": "analysis",  # Maps to execute_analysis_phases
+            "dependency_analysis": "analysis",  # Maps to execute_analysis_phases
+            "tech_debt_analysis": "analysis",  # Maps to execute_analysis_phases
+        }
+
+        mapped_phase = phase_mapping.get(phase_config.name, phase_config.name)
+        logger.info(
+            f"🗺️ Mapped phase '{phase_config.name}' to '{mapped_phase}' for discovery flow"
+        )
+
+        try:
+            # Execute phase through CrewAI service
+            if mapped_phase == "data_import_validation":
+                result = await crewai_service.execute_data_import_validation(
+                    flow_id=master_flow.flow_id,
+                    raw_data=phase_input.get("raw_data", []),
+                    **context,
+                )
+            elif mapped_phase == "field_mapping":
+                # Handle field mapping with approval if needed
+                field_mapping_data = phase_input.get("field_mapping_data", {})
+
+                if phase_input.get("approved_mappings"):
+                    # Apply approved mappings
+                    result = await crewai_service.apply_field_mappings(
                         flow_id=master_flow.flow_id,
-                        field_mappings=phase_input.get("field_mappings", {}),
-                        **context,
-                    )
-                elif mapped_phase == "asset_creation":
-                    result = await crewai_service.create_discovery_assets(
-                        flow_id=master_flow.flow_id,
-                        cleaned_data=phase_input.get("cleaned_data", []),
-                        **context,
-                    )
-                elif mapped_phase == "analysis":
-                    result = await crewai_service.execute_analysis_phases(
-                        flow_id=master_flow.flow_id,
-                        assets=phase_input.get("assets", []),
+                        approved_mappings=phase_input["approved_mappings"],
                         **context,
                     )
                 else:
-                    # Generic execution
-                    result = await crewai_service.execute_flow_phase(
+                    # Generate mapping suggestions
+                    result = await crewai_service.generate_field_mapping_suggestions(
                         flow_id=master_flow.flow_id,
-                        phase_name=mapped_phase,
-                        phase_input=phase_input,
+                        validation_result=field_mapping_data,
                         **context,
                     )
-
-                logger.info(
-                    f"✅ Discovery phase '{mapped_phase}' completed successfully"
+            elif mapped_phase == "data_cleansing":
+                result = await crewai_service.execute_data_cleansing(
+                    flow_id=master_flow.flow_id,
+                    field_mappings=phase_input.get("field_mappings", {}),
+                    **context,
+                )
+            elif mapped_phase == "asset_creation":
+                result = await crewai_service.create_discovery_assets(
+                    flow_id=master_flow.flow_id,
+                    cleaned_data=phase_input.get("cleaned_data", []),
+                    **context,
+                )
+            elif mapped_phase == "analysis":
+                result = await crewai_service.execute_analysis_phases(
+                    flow_id=master_flow.flow_id,
+                    assets=phase_input.get("assets", []),
+                    **context,
+                )
+            else:
+                # Generic execution
+                result = await crewai_service.execute_flow_phase(
+                    flow_id=master_flow.flow_id,
+                    phase_name=mapped_phase,
+                    phase_input=phase_input,
+                    **context,
                 )
 
-                return {
-                    "phase": phase_config.name,
-                    "status": "completed",
-                    "crew_results": result,
-                    "method": "crewai_discovery_delegation",
-                }
+            logger.info(f"✅ Discovery phase '{mapped_phase}' completed successfully")
 
-            except Exception as e:
-                logger.error(f"❌ Discovery phase '{mapped_phase}' failed: {e}")
-                return {
-                    "phase": phase_config.name,
-                    "status": "failed",
-                    "error": str(e),
-                    "crew_results": {},
-                    "method": "crewai_discovery_delegation",
-                }
+            return {
+                "phase": phase_config.name,
+                "status": "completed",
+                "crew_results": result,
+                "method": "crewai_discovery_delegation",
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Discovery phase '{mapped_phase}' failed: {e}")
+            return {
+                "phase": phase_config.name,
+                "status": "failed",
+                "error": str(e),
+                "crew_results": {},
+                "method": "crewai_discovery_delegation",
+            }
 
     async def _execute_assessment_phase(
         self,

@@ -18,8 +18,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import get_crewai_flow_service
 from app.core.context import RequestContext, get_current_context
-from app.core.security.cache_encryption import secure_setattr
 from app.core.database import get_db
+from app.core.security.cache_encryption import secure_setattr
 from app.services.crewai_flow_service import CrewAIFlowService
 
 from .response_mappers import FlowOperationResponse

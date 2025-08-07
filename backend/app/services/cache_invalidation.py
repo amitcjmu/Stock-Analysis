@@ -19,17 +19,17 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 # from uuid import UUID  # Unused
-
 # from sqlalchemy.ext.asyncio import AsyncSession  # Unused
-
-from app.constants.cache_keys import CacheKeys, CACHE_VERSION
+from app.constants.cache_keys import CACHE_VERSION, CacheKeys
 
 # from app.core.database import get_db  # Unused
 from app.core.logging import get_logger
 from app.services.caching.coherence_manager import (
     CacheCoherenceManager,
-    CacheInvalidationService as BaseCacheInvalidationService,
     get_cache_coherence_manager,
+)
+from app.services.caching.coherence_manager import (
+    CacheInvalidationService as BaseCacheInvalidationService,
 )
 from app.services.caching.redis_cache import RedisCache, get_redis_cache
 

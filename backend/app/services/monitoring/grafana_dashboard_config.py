@@ -27,7 +27,6 @@ import json
 from typing import Any, Dict, List, Optional
 
 # Datetime imports available if needed in future
-
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)

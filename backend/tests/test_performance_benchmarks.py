@@ -12,23 +12,23 @@ Tests to validate the 80-90% performance improvements and ensure system meets ta
 """
 
 import asyncio
+import gc
 import os
-import pytest
 import random
 import statistics
 import time
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 from unittest.mock import AsyncMock, patch
 
-import gc
 import psutil
+import pytest
 
 from app.services.caching.auth_cache_service import (
     AuthCacheService,
-    UserSession,
-    UserContext,
     InMemoryFallbackCache,
+    UserContext,
+    UserSession,
 )
 from app.services.monitoring.cache_performance_monitor import (
     shutdown_cache_performance_monitor,  # noqa: F401 - Used in cleanup fixtures

@@ -56,7 +56,7 @@ class ServiceInitializer:
 
         # Initialize AI analysis services
         self.ai_validation = AIValidationService()
-        self.business_analyzer = BusinessContextAnalyzer()
+        self.business_analyzer = BusinessAnalyzers()
         self.confidence_scoring = ConfidenceScorer()
         self.gap_analysis_agent = GapAnalysisAgent()
         self.questionnaire_generator = AdaptiveQuestionnaireGenerator()

@@ -9,8 +9,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, List
 
-from ..monitoring.flow_health_monitor import flow_health_monitor
 from app.core.security.cache_encryption import secure_setattr
+
+from ..monitoring.flow_health_monitor import flow_health_monitor
 from ..persistence.checkpoint_manager import checkpoint_manager
 from ..utils.retry_utils import (
     ErrorCategory,

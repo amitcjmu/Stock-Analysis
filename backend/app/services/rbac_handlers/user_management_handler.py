@@ -10,8 +10,9 @@ from typing import Any, Dict
 from sqlalchemy import and_, select
 from sqlalchemy.orm import selectinload
 
-from .base_handler import BaseRBACHandler
 from app.core.security.cache_encryption import secure_setattr
+
+from .base_handler import BaseRBACHandler
 
 # Import RBAC models with fallback
 try:

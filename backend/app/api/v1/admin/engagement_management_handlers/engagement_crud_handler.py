@@ -11,9 +11,9 @@ from fastapi import HTTPException
 from sqlalchemy import and_, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security.cache_encryption import secure_setattr
 from app.models.client_account import Engagement
 from app.schemas.admin_schemas import AdminSuccessResponse, EngagementResponse
-from app.core.security.cache_encryption import secure_setattr
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +168,7 @@ class EngagementCRUDHandler:
                     logger.warning(f"Could not check admin status: {e}")
 
             query = select(Engagement).where(
-                Engagement.is_active == True
+                Engagement.is_active is True
             )  # noqa: E712  # Filter out soft-deleted
             # Only filter by client_account_id if it's provided (not None) AND user is not platform admin
             if client_account_id is not None and not is_platform_admin:
@@ -178,7 +178,7 @@ class EngagementCRUDHandler:
             count_query = (
                 select(func.count())
                 .select_from(Engagement)
-                .where(Engagement.is_active == True)
+                .where(Engagement.is_active is True)
             )  # noqa: E712
             if client_account_id is not None and not is_platform_admin:
                 count_query = count_query.where(
@@ -226,13 +226,13 @@ class EngagementCRUDHandler:
         try:
             # Total engagements (only active ones)
             total_query = select(func.count()).where(
-                Engagement.is_active == True
+                Engagement.is_active is True
             )  # noqa: E712
             total_engagements = (await db.execute(total_query)).scalar_one()
 
             # Active engagements (redundant now since we only count active ones)
             active_query = select(func.count()).where(
-                Engagement.is_active == True
+                Engagement.is_active is True
             )  # noqa: E712
             active_engagements = (await db.execute(active_query)).scalar_one()
 

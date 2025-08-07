@@ -7,9 +7,9 @@ import asyncio
 import logging
 from functools import wraps
 
+from app.core.security.cache_encryption import secure_setattr
 from app.services.llm_config import LLM
 from app.services.llm_rate_limiter import llm_rate_limiter
-from app.core.security.cache_encryption import secure_setattr
 
 logger = logging.getLogger(__name__)
 

@@ -9,8 +9,8 @@ import json
 import logging
 from typing import Any, Dict
 
-from app.core.security.secure_setattr import secure_setattr, SAFE_ATTRIBUTES
 from app.core.security.cache_encryption import encrypt_for_cache, is_sensitive_field
+from app.core.security.secure_setattr import SAFE_ATTRIBUTES, secure_setattr
 
 try:
     from crewai.tools import BaseTool

@@ -22,8 +22,8 @@ from app.core.logging import get_logger
 
 # Discovery Flow Services
 try:
-    from app.services.discovery_flow_service import DiscoveryFlowService
     from app.models.discovery_flow import DiscoveryFlow
+    from app.services.discovery_flow_service import DiscoveryFlowService
 
     DISCOVERY_FLOW_AVAILABLE = True
 except ImportError:

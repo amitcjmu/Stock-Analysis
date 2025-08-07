@@ -120,7 +120,7 @@ async def fix_railway_schema():
                         )
                     logger.info(f"  ✅ Added {col}")
                     changes_made = True
-                except Exception as e:
+                except Exception:
                     logger.error(f"  ❌ Failed to add {col}: [REDACTED]")
             else:
                 logger.info(f"  ℹ️  {col} already exists")
@@ -133,7 +133,7 @@ async def fix_railway_schema():
                     await conn.execute(f"ALTER TABLE engagements ADD COLUMN {col} JSON")
                     logger.info(f"  ✅ Added {col}")
                     changes_made = True
-                except Exception as e:
+                except Exception:
                     logger.error(f"  ❌ Failed to add {col}: [REDACTED]")
             else:
                 logger.info(f"  ℹ️  {col} already exists")
@@ -225,7 +225,7 @@ async def fix_railway_schema():
                     """
                     await conn.execute(query, json.dumps(default_val))
                     logger.info(f"  ✅ Set {col} defaults")
-                except Exception as e:
+                except Exception:
                     logger.error(f"  ❌ Failed to set {col}: [REDACTED]")
 
             # Set engagement defaults
@@ -274,7 +274,7 @@ async def fix_railway_schema():
                     """
                     await conn.execute(query, json.dumps(default_val))
                     logger.info(f"  ✅ Set {col} defaults")
-                except Exception as e:
+                except Exception:
                     logger.error(f"  ❌ Failed to set {col}: [REDACTED]")
 
         logger.info("🎉 Post-deploy schema fix completed successfully!")
