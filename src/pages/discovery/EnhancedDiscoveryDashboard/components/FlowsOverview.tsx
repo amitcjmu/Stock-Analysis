@@ -9,7 +9,7 @@ import { validateFlowObject, createDisplaySafeUUID, debugUUID } from '@/utils/uu
 import type { FlowSummary } from '../types';
 
 interface FlowsOverviewProps {
-  flows: FlowSummary[];
+  flows: FlowSummary[] | undefined;
   onViewDetails: (flowId: string, phase: string) => void;
   onDeleteFlow: (flowId: string) => void;
   onSetFlowStatus: (flowId: string) => void;
@@ -55,6 +55,21 @@ export const FlowsOverview: React.FC<FlowsOverviewProps> = ({
     }
   };
 
+  // Defensive check: Handle undefined/null flows
+  if (!flows || !Array.isArray(flows)) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Activity className="h-12 w-12 text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Flows...</h3>
+          <p className="text-gray-600 text-center">
+            Please wait while we load your discovery flows.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (flows.length === 0) {
     return (
       <Card>
@@ -75,6 +90,12 @@ export const FlowsOverview: React.FC<FlowsOverviewProps> = ({
 
       <div className="grid gap-4">
         {flows.map((flow) => {
+          // Defensive check: Skip flows without valid flow_id
+          if (!flow.flow_id) {
+            console.error('❌ Flow missing flow_id:', flow);
+            return null; // Skip rendering this flow
+          }
+
           // Validate flow ID and detect corruption
           const validation = validateFlowObject(flow, 'FlowsOverview');
 
@@ -150,7 +171,7 @@ export const FlowsOverview: React.FC<FlowsOverviewProps> = ({
                   <div className="text-xs text-gray-500 font-mono">
                     {validation.validated
                       ? createDisplaySafeUUID(validation.flow_id, { length: 8 })
-                      : `⚠️ INVALID: ${flow.flow_id.slice(0, 8)}...`
+                      : `⚠️ INVALID: ${flow.flow_id ? flow.flow_id.slice(0, 8) + '...' : 'NO_ID'}`
                     }
                   </div>
 

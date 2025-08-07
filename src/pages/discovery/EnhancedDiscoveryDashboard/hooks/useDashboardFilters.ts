@@ -2,7 +2,23 @@ import { useState } from 'react'
 import { useMemo, useCallback } from 'react'
 import type { FlowSummary, DashboardFilters } from '../types';
 
-export const useDashboardFilters = (flows: FlowSummary[]): JSX.Element => {
+interface UseDashboardFiltersReturn {
+  filters: DashboardFilters;
+  filteredFlows: FlowSummary[];
+  availableOptions: {
+    statuses: string[];
+    flowTypes: string[];
+    timeRanges: Array<{ value: string; label: string }>;
+  };
+  updateFilters: (updates: Partial<DashboardFilters>) => void;
+  resetFilters: () => void;
+  toggleStatusFilter: (status: string) => void;
+  toggleFlowTypeFilter: (flowType: string) => void;
+  setSearchQuery: (query: string) => void;
+  setTimeRange: (timeRange: string) => void;
+}
+
+export const useDashboardFilters = (flows: FlowSummary[] | undefined): UseDashboardFiltersReturn => {
   const [filters, setFilters] = useState<DashboardFilters>({
     timeRange: '24h',
     status: [],
@@ -12,6 +28,11 @@ export const useDashboardFilters = (flows: FlowSummary[]): JSX.Element => {
 
   // Filter flows based on current filters
   const filteredFlows = useMemo(() => {
+    // Defensive check: Handle undefined/null flows
+    if (!flows || !Array.isArray(flows)) {
+      return [];
+    }
+
     return flows.filter(flow => {
       // Status filter
       if (filters.status.length > 0 && !filters.status.includes(flow.status)) {
@@ -114,6 +135,22 @@ export const useDashboardFilters = (flows: FlowSummary[]): JSX.Element => {
 
   // Get available filter options
   const availableOptions = useMemo(() => {
+    // Defensive check: Handle undefined/null flows
+    if (!flows || !Array.isArray(flows)) {
+      return {
+        statuses: [],
+        flowTypes: [],
+        timeRanges: [
+          { value: '1h', label: 'Last Hour' },
+          { value: '6h', label: 'Last 6 Hours' },
+          { value: '24h', label: 'Last 24 Hours' },
+          { value: '7d', label: 'Last 7 Days' },
+          { value: '30d', label: 'Last 30 Days' },
+          { value: 'all', label: 'All Time' }
+        ]
+      };
+    }
+
     const statuses = [...new Set(flows.map(f => f.status))];
     const flowTypes = [...new Set(flows.map(f => f.flow_type))];
 

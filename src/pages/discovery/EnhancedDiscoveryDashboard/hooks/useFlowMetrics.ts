@@ -15,12 +15,13 @@ export interface FlowMetrics {
 }
 
 export const useFlowMetrics = (
-  flows: FlowSummary[],
+  flows: FlowSummary[] | undefined,
   systemMetrics: SystemMetrics | null
 ): FlowMetrics => {
 
   return useMemo(() => {
-    if (!flows.length) {
+    // Defensive check: Handle undefined/null flows
+    if (!flows || !Array.isArray(flows) || !flows.length) {
       return {
         totalFlows: 0,
         runningFlows: 0,

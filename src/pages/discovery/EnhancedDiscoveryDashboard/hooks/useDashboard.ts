@@ -4,7 +4,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { dashboardService } from '../services/dashboardService';
 import type { DashboardState } from '../types';
 
-export const useDashboard = (): JSX.Element => {
+interface UseDashboardReturn extends DashboardState {
+  fetchDashboardData: () => Promise<void>;
+  refreshFlow: () => Promise<void>;
+  updateState: (updates: Partial<DashboardState>) => void;
+  setSelectedTimeRange: (timeRange: string) => void;
+  toggleFlowManager: (show?: boolean) => void;
+  setSelectedFlowForStatus: (flowId: string | null) => void;
+}
+
+export const useDashboard = (): UseDashboardReturn => {
   const { user, client, engagement } = useAuth();
 
   const [state, setState] = useState<DashboardState>({
@@ -44,6 +53,8 @@ export const useDashboard = (): JSX.Element => {
       console.error('Failed to fetch dashboard data:', error);
       setState(prev => ({
         ...prev,
+        // Ensure activeFlows remains as a valid array even during errors
+        activeFlows: prev.activeFlows || [],
         error: error instanceof Error ? error.message : 'Failed to fetch dashboard data',
         isLoading: false
       }));
