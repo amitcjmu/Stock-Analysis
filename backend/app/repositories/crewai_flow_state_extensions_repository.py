@@ -484,6 +484,8 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             engagement_uuid = uuid.UUID(self.engagement_id)
 
             active_statuses = ["initialized", "active", "processing", "paused"]
+            # Explicitly exclude deleted flows
+            excluded_statuses = ["deleted", "cancelled", "terminated"]
 
             stmt = (
                 select(CrewAIFlowStateExtensions)
@@ -492,6 +494,7 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                         CrewAIFlowStateExtensions.client_account_id == client_uuid,
                         CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
                         CrewAIFlowStateExtensions.flow_status.in_(active_statuses),
+                        CrewAIFlowStateExtensions.flow_status.not_in(excluded_statuses)
                     )
                 )
                 .order_by(desc(CrewAIFlowStateExtensions.created_at))

@@ -112,6 +112,9 @@ class FlowQueries:
             "tech_debt",
         ]
 
+        # Explicitly exclude deleted flows
+        excluded_statuses = ["deleted", "cancelled", "terminated"]
+
         stmt = (
             select(DiscoveryFlow)
             .where(
@@ -119,6 +122,7 @@ class FlowQueries:
                     DiscoveryFlow.client_account_id == self.client_account_id,
                     DiscoveryFlow.engagement_id == self.engagement_id,
                     DiscoveryFlow.status.in_(valid_active_statuses),
+                    DiscoveryFlow.status.not_in(excluded_statuses),
                 )
             )
             .order_by(desc(DiscoveryFlow.updated_at))
@@ -129,6 +133,9 @@ class FlowQueries:
 
     async def get_incomplete_flows(self) -> List[DiscoveryFlow]:
         """Get incomplete flows that need attention"""
+        # Explicitly exclude deleted flows
+        excluded_statuses = ["deleted", "cancelled", "terminated"]
+        
         # Check if ALL phases are completed
         stmt = (
             select(DiscoveryFlow)
@@ -137,6 +144,7 @@ class FlowQueries:
                     DiscoveryFlow.client_account_id == self.client_account_id,
                     DiscoveryFlow.engagement_id == self.engagement_id,
                     DiscoveryFlow.status != "completed",
+                    DiscoveryFlow.status.not_in(excluded_statuses),
                     # Check if any phase is not completed
                     ~and_(
                         DiscoveryFlow.data_import_completed is True,
