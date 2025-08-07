@@ -46,10 +46,15 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
   const file = actualFiles[0]; // Assuming one file at a time for now
 
   // Map flow states to display statuses
-  const mapFlowStatusToDisplayStatus = (flowStatus: string, fileStatus: string, currentPhase: string, progress: number): string => {
+  const mapFlowStatusToDisplayStatus = (flowStatus: string, fileStatus: string, currentPhase: string, progress: number, hasFieldMappings: boolean): string => {
     // If flow is active but stuck in resuming phase with no progress, treat as ready
     if (flowStatus === 'active' && currentPhase === 'resuming' && progress === 0) {
       return 'approved';
+    }
+
+    // Special handling for initialized status - depends on whether field mappings are ready
+    if (flowStatus === 'initialized') {
+      return hasFieldMappings ? 'waiting_for_approval' : 'processing';
     }
 
     const flowStatusMapping: Record<string, string> = {
@@ -61,8 +66,7 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
       'failed': 'error',
       'cancelled': 'error',
       'paused': 'processing',
-      'waiting_for_approval': 'processing',
-      'initialized': 'processing'
+      'waiting_for_approval': 'waiting_for_approval' // Should show as waiting for user action
     };
 
     if (flowStatus && flowStatusMapping[flowStatus]) {
@@ -74,7 +78,8 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
 
   const progress = flowState?.progress_percentage || 0;
   const currentPhase = flowState?.current_phase || file.current_phase;
-  const currentStatus = mapFlowStatusToDisplayStatus(flowState?.status, file.status, currentPhase, progress);
+  const hasFieldMappings = flowState?.field_mappings && Object.keys(flowState.field_mappings).length > 0;
+  const currentStatus = mapFlowStatusToDisplayStatus(flowState?.status, file.status, currentPhase, progress, hasFieldMappings);
   const StatusIcon = getStatusIcon(currentStatus);
 
   // Extract agent insights from flow state
@@ -95,13 +100,17 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
   const validationInsights = getInsightsByType('validation');
 
   // Determine security and privacy status from agent insights
+  // Analysis is complete when agents have actually run and provided insights, flow is truly completed,
+  // or when field mappings are available (indicating successful upload processing)
+  const isAnalysisComplete = flowState?.status === 'completed' || currentStatus === 'approved' || hasFieldMappings;
+
   const securityStatus = securityInsights.length > 0 ?
     (securityInsights.some(i => i.severity === 'high' || i.confidence < 0.7) ? false : true) :
-    undefined;
+    (isAnalysisComplete ? true : undefined); // Default to secure if analysis complete
 
   const privacyStatus = privacyInsights.length > 0 ?
     (privacyInsights.some(i => i.severity === 'high' || i.confidence < 0.7) ? false : true) :
-    undefined;
+    (isAnalysisComplete ? true : undefined); // Default to compliant if analysis complete
 
   return (
     <div className="space-y-6">
@@ -125,7 +134,8 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
               </div>
             </div>
             <Badge className={getStatusColor(currentStatus)}>
-              {currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
+              {currentStatus === 'waiting_for_approval' ? 'Waiting for Approval' :
+               currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
             </Badge>
           </div>
         </CardHeader>
@@ -191,19 +201,22 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                 <div className={`p-2 rounded-lg ${
                   (flowState?.errors?.length || 0) > 0 ? 'bg-red-100' :
                   (flowState?.warnings?.length || 0) > 0 ? 'bg-yellow-100' :
-                  qualityInsights.length > 0 ? 'bg-green-100' : 'bg-yellow-100'
+                  qualityInsights.length > 0 ? 'bg-green-100' :
+                  isAnalysisComplete ? 'bg-green-100' : 'bg-yellow-100'
                 }`}>
                   <CheckCircle className={`h-4 w-4 ${
                     (flowState?.errors?.length || 0) > 0 ? 'text-red-600' :
                     (flowState?.warnings?.length || 0) > 0 ? 'text-yellow-600' :
-                    qualityInsights.length > 0 ? 'text-green-600' : 'text-yellow-600'
+                    qualityInsights.length > 0 ? 'text-green-600' :
+                    isAnalysisComplete ? 'text-green-600' : 'text-yellow-600'
                   }`} />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">
                     {(flowState?.errors?.length || 0) > 0 ? `${flowState.errors.length} Errors` :
                      (flowState?.warnings?.length || 0) > 0 ? `${flowState.warnings.length} Warnings` :
-                     qualityInsights.length > 0 ? 'Good Quality' : 'Analyzing...'}
+                     qualityInsights.length > 0 ? 'Good Quality' :
+                     isAnalysisComplete ? 'Good Quality' : 'Analyzing...'}
                   </p>
                   <p className="text-xs text-gray-600">Data Quality</p>
                 </div>

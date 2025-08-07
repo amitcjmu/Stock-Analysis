@@ -21,8 +21,6 @@ from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.models.data_import.mapping import ImportFieldMapping
 from app.models.discovery_flow import DiscoveryFlow
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from app.services.discovery_flow_service import DiscoveryFlowService
 from app.services.flow_configs import initialize_all_flows
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
@@ -471,14 +469,32 @@ async def get_active_flows(
     try:
         logger.info(f"Getting active flows for client: {context.client_account_id}")
 
-        # Query active discovery flows
-        stmt = select(DiscoveryFlow).where(
-            and_(
-                DiscoveryFlow.client_account_id == context.client_account_id,
-                DiscoveryFlow.engagement_id == context.engagement_id,
-                DiscoveryFlow.status.in_(
-                    ["running", "active", "in_progress", "initializing", "processing"]
-                ),
+        # Import master flow model for status checking
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+        from sqlalchemy.orm import aliased
+        from sqlalchemy import or_
+
+        # Query active discovery flows excluding flows with deleted master flows
+        # This ensures proper deletion state consistency between master and child flows
+        master_flow = aliased(CrewAIFlowStateExtensions)
+
+        stmt = (
+            select(DiscoveryFlow)
+            .outerjoin(master_flow, DiscoveryFlow.flow_id == master_flow.flow_id)
+            .where(
+                and_(
+                    DiscoveryFlow.client_account_id == context.client_account_id,
+                    DiscoveryFlow.engagement_id == context.engagement_id,
+                    # Exclude child flows that are deleted
+                    ~DiscoveryFlow.status.in_(["completed", "cancelled", "deleted"]),
+                    # Also exclude flows whose master flow is deleted/cancelled
+                    or_(
+                        master_flow.flow_status.is_(None),  # No master flow (old flows)
+                        ~master_flow.flow_status.in_(
+                            ["deleted", "cancelled", "terminated"]
+                        ),
+                    ),
+                )
             )
         )
 

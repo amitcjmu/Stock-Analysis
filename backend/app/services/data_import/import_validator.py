@@ -245,22 +245,47 @@ class ImportValidator:
                 user_id="system",  # System validation check
             )
 
-            # Use V2 discovery flow service to check for incomplete flows
+            # Use unified discovery logic to check for incomplete flows (matching frontend API)
             if DISCOVERY_FLOW_AVAILABLE:
-                discovery_service = DiscoveryFlowService(self.db, context)
-                # Get active flows and filter for incomplete ones
-                active_flows = await discovery_service.get_active_flows()
-                # Filter for incomplete flows (not completed/cancelled)
-                incomplete_flows = []
-                for flow in active_flows:
-                    # Handle both DiscoveryFlow objects and dictionaries
-                    if isinstance(flow, dict):
-                        status = flow.get("status", "unknown")
-                    else:
-                        status = flow.status if hasattr(flow, "status") else "unknown"
+                # Import master flow model for status checking (same logic as unified discovery API)
+                from app.models.crewai_flow_state_extensions import (
+                    CrewAIFlowStateExtensions,
+                )
+                from sqlalchemy.orm import aliased
+                from sqlalchemy import select, and_, or_
 
-                    if status not in ["completed", "cancelled", "deleted"]:
-                        incomplete_flows.append(flow)
+                # Query active discovery flows excluding flows with deleted master flows
+                # This ensures consistency with the unified discovery API
+                master_flow = aliased(CrewAIFlowStateExtensions)
+
+                stmt = (
+                    select(DiscoveryFlow)
+                    .outerjoin(
+                        master_flow, DiscoveryFlow.flow_id == master_flow.flow_id
+                    )
+                    .where(
+                        and_(
+                            DiscoveryFlow.client_account_id == client_account_id,
+                            DiscoveryFlow.engagement_id == engagement_id,
+                            # Exclude child flows that are deleted
+                            ~DiscoveryFlow.status.in_(
+                                ["completed", "cancelled", "deleted"]
+                            ),
+                            # Also exclude flows whose master flow is deleted/cancelled
+                            or_(
+                                master_flow.flow_status.is_(
+                                    None
+                                ),  # No master flow (old flows)
+                                ~master_flow.flow_status.in_(
+                                    ["deleted", "cancelled", "terminated"]
+                                ),
+                            ),
+                        )
+                    )
+                )
+
+                result = await self.db.execute(stmt)
+                incomplete_flows = result.scalars().all()
             else:
                 incomplete_flows = []
 

@@ -210,7 +210,7 @@ async def create_flow(
             progress_percentage=flow_data.get("progress_percentage", 0.0),
             created_at=flow_data["created_at"],
             updated_at=flow_data["updated_at"],
-            created_by=flow_data.get("created_by", "system"),
+            created_by=flow_data.get("created_by") or "system",
             configuration=flow_data.get("flow_configuration", {}),
             metadata=flow_data.get("metadata", {}),
         )
@@ -313,7 +313,7 @@ async def get_flow(
             progress_percentage=flow_data.get("progress_percentage", 0.0),
             created_at=flow_data["created_at"],
             updated_at=flow_data["updated_at"],
-            created_by=flow_data.get("created_by", "system"),
+            created_by=flow_data.get("created_by") or "system",
             configuration=flow_data.get("flow_configuration", {}),
             metadata=flow_data.get("metadata", {}),
         )
@@ -450,7 +450,7 @@ async def execute_phase(
             progress_percentage=flow_data.get("progress_percentage", 0.0),
             created_at=flow_data["created_at"],
             updated_at=flow_data["updated_at"],
-            created_by=flow_data.get("created_by", "system"),
+            created_by=flow_data.get("created_by") or "system",
             configuration=flow_data.get("flow_configuration", {}),
             metadata=flow_data.get("metadata", {}),
         )
@@ -495,7 +495,7 @@ async def pause_flow(
             progress_percentage=flow_data.get("progress_percentage", 0.0),
             created_at=flow_data["created_at"],
             updated_at=flow_data["updated_at"],
-            created_by=flow_data.get("created_by", "system"),
+            created_by=flow_data.get("created_by") or "system",
             configuration=flow_data.get("flow_configuration", {}),
             metadata=flow_data.get("metadata", {}),
         )
@@ -540,7 +540,7 @@ async def resume_flow(
             progress_percentage=flow_data.get("progress_percentage", 0.0),
             created_at=flow_data["created_at"],
             updated_at=flow_data["updated_at"],
-            created_by=flow_data.get("created_by", "system"),
+            created_by=flow_data.get("created_by") or "system",
             configuration=flow_data.get("flow_configuration", {}),
             metadata=flow_data.get("metadata", {}),
         )

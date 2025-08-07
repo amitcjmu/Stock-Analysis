@@ -7,11 +7,11 @@ import Sidebar from '../../../components/Sidebar';
 
 // Custom hooks and components
 import { useAttributeMapping } from './hooks/useAttributeMapping';
-import { useFlowUpdates } from '../../../hooks/useFlowUpdates';
+
 import { AttributeMappingHeader } from './components/AttributeMappingHeader';
 import { ErrorAndStatusAlerts } from './components/ErrorAndStatusAlerts';
 import { AttributeMappingContent } from './components/AttributeMappingContent';
-import { AgentReasoningDisplay } from './components/AgentReasoningDisplay';
+
 
 const AttributeMappingContainer: React.FC = () => {
   // Add error boundary state
@@ -61,19 +61,7 @@ const AttributeMappingContainer: React.FC = () => {
     flowList
   } = state;
 
-  // Add real-time flow updates via SSE - must be called before any conditional returns
-  const {
-    data: flowUpdates,
-    isConnected: isSSEConnected,
-    connectionType,
-    error: sseError,
-    lastUpdate: sseLastUpdate,
-    refetch: refetchSSE
-  } = useFlowUpdates(effectiveFlowId || urlFlowId, {
-    enableSSE: true,
-    enablePolling: true,
-    pollingInterval: 10000 // 10 seconds fallback polling
-  });
+
 
   // Debug field mappings - must be called before any conditional returns
   React.useEffect(() => {
@@ -165,22 +153,6 @@ const AttributeMappingContainer: React.FC = () => {
             {/* Only render main content if flow is found */}
             {!isFlowNotFound && (
               <>
-                {/* Agent Reasoning Display - NEW AGENTIC UI */}
-                <div className="mb-6">
-                  <AgentReasoningDisplay
-                    flowUpdates={flowUpdates}
-                    isSSEConnected={isSSEConnected}
-                    connectionType={connectionType}
-                    sseError={sseError}
-                    lastUpdate={sseLastUpdate}
-                    fieldMappings={fieldMappings}
-                    onRefresh={() => {
-                      refetchSSE();
-                      refetchAgentic();
-                    }}
-                  />
-                </div>
-
                 {/* Header */}
                 <AttributeMappingHeader
                   mappingProgress={mappingProgress}
@@ -191,9 +163,6 @@ const AttributeMappingContainer: React.FC = () => {
                   onContinueToDataCleansing={handleContinueToDataCleansing}
                   flowStatus={flowState?.status}
                   hasFieldMappings={fieldMappings && fieldMappings.length > 0}
-                  // Pass SSE connection info to header
-                  isSSEConnected={isSSEConnected}
-                  connectionType={connectionType}
                 />
 
                 {/* Main Content */}
@@ -207,10 +176,9 @@ const AttributeMappingContainer: React.FC = () => {
                   onDataImportSelection={handleDataImportSelection}
                   refetchAgentic={refetchAgentic}
                   refetchCriticalAttributes={refetchCriticalAttributes}
-                  // Pass SSE data for real-time updates
-                  flowUpdates={flowUpdates}
-                  sseLastUpdate={sseLastUpdate}
                 />
+
+
               </>
             )}
           </div>

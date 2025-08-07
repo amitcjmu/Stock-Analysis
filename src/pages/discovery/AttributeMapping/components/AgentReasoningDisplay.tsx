@@ -151,6 +151,30 @@ export const AgentReasoningDisplay: React.FC<AgentReasoningDisplayProps> = ({
     });
   };
 
+  const handleFeedback = (decisionId: string, newStatus: 'approved' | 'rejected') => {
+    setAgentDecisions(prev => prev.map(decision => {
+      if (decision.id === decisionId) {
+        // Update the decision status
+        const updatedDecision = { ...decision, status: newStatus };
+
+        // Log the feedback for debugging
+        console.log(`🔄 Agent decision feedback: ${decision.field} -> ${decision.targetAttribute}`, {
+          decisionId,
+          previousStatus: decision.status,
+          newStatus,
+          confidence: decision.confidence,
+          agentType: decision.agentType
+        });
+
+        // Here you could also call an API to persist the feedback
+        // Example: await updateDecisionFeedback(decisionId, newStatus);
+
+        return updatedDecision;
+      }
+      return decision;
+    }));
+  };
+
   const getAgentTypeIcon = (type: AgentDecision['agentType']): JSX.Element => {
     switch (type) {
       case 'semantic': return <Brain className="w-4 h-4" />;
@@ -192,17 +216,21 @@ export const AgentReasoningDisplay: React.FC<AgentReasoningDisplayProps> = ({
     if (sseError) {
       return { icon: <WifiOff className="w-4 h-4 text-red-500" />, text: 'Connection Error', color: 'text-red-600' };
     }
-    if (!isSSEConnected) {
-      return { icon: <WifiOff className="w-4 h-4 text-gray-500" />, text: 'Disconnected', color: 'text-gray-600' };
-    }
     if (connectionType === 'sse') {
       return { icon: <Wifi className="w-4 h-4 text-green-500" />, text: 'Live Updates', color: 'text-green-600' };
     }
     if (connectionType === 'polling') {
-      return { icon: <Activity className="w-4 h-4 text-yellow-500" />, text: 'Polling', color: 'text-yellow-600' };
+      return { icon: <Activity className="w-4 h-4 text-yellow-500" />, text: 'Polling Updates', color: 'text-yellow-600' };
     }
-    return { icon: <WifiOff className="w-4 h-4 text-gray-500" />, text: 'Unknown', color: 'text-gray-600' };
-  }, [isSSEConnected, connectionType, sseError]);
+
+    // Show "Static Analysis" instead of "Disconnected" when showing field mapping decisions
+    if (!isSSEConnected && agentDecisions.length > 0) {
+      return { icon: <Brain className="w-4 h-4 text-blue-500" />, text: 'Static Analysis', color: 'text-blue-600' };
+    }
+
+    // Default case - but make it more user-friendly
+    return { icon: <Clock className="w-4 h-4 text-gray-500" />, text: 'Ready', color: 'text-gray-600' };
+  }, [isSSEConnected, connectionType, sseError, agentDecisions.length]);
 
   return (
     <div className="bg-white rounded-lg border shadow-sm">
@@ -328,11 +356,17 @@ export const AgentReasoningDisplay: React.FC<AgentReasoningDisplayProps> = ({
                     {decision.status === 'suggested' && (
                       <div className="flex items-center space-x-3 text-sm">
                         <span className="text-gray-500">Feedback:</span>
-                        <button className="flex items-center space-x-1 text-green-600 hover:text-green-700">
+                        <button
+                          onClick={() => handleFeedback(decision.id, 'approved')}
+                          className="flex items-center space-x-1 text-green-600 hover:text-green-700 transition-colors"
+                        >
                           <ThumbsUp className="w-4 h-4" />
                           <span>Good mapping</span>
                         </button>
-                        <button className="flex items-center space-x-1 text-red-600 hover:text-red-700">
+                        <button
+                          onClick={() => handleFeedback(decision.id, 'rejected')}
+                          className="flex items-center space-x-1 text-red-600 hover:text-red-700 transition-colors"
+                        >
                           <ThumbsDown className="w-4 h-4" />
                           <span>Incorrect</span>
                         </button>

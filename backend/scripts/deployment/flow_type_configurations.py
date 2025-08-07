@@ -20,6 +20,7 @@ from datetime import datetime
 from typing import Any, Dict
 
 from app.services.flow_type_registry import (
+    FlowCapabilities,
     FlowTypeConfig,
     FlowTypeRegistry,
     PhaseConfig,
@@ -123,6 +124,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="data_cleansing",
+                    display_name="Data Cleansing",
                     order=3,
                     required=True,
                     description="Clean and normalize data",
@@ -133,6 +135,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="asset_creation",
+                    display_name="Asset Creation",
                     order=4,
                     required=True,
                     description="Create asset records from cleansed data",
@@ -144,6 +147,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="asset_inventory",
+                    display_name="Asset Inventory",
                     order=5,
                     required=True,
                     description="Build comprehensive asset inventory",
@@ -154,6 +158,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="dependency_analysis",
+                    display_name="Dependency Analysis",
                     order=6,
                     required=False,
                     description="Analyze asset dependencies",
@@ -191,9 +196,11 @@ class FlowTypeConfigurator:
                     "notification_channels": ["email", "webhook"],
                     "agent_collaboration": True,
                 },
-                required_permissions=["discovery.read", "discovery.write"],
+                capabilities=FlowCapabilities(
+                    required_permissions=["discovery.read", "discovery.write"]
+                ),
                 initialization_handler="discovery_initialization",
-                completion_handler="discovery_completion",
+                finalization_handler="discovery_completion",
                 error_handler="discovery_error_handler",
             )
 
@@ -227,6 +234,7 @@ class FlowTypeConfigurator:
             assessment_phases = [
                 PhaseConfig(
                     name="readiness_assessment",
+                    display_name="Readiness Assessment",
                     order=1,
                     required=True,
                     description="Assess migration readiness of assets",
@@ -237,6 +245,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="complexity_analysis",
+                    display_name="Complexity Analysis",
                     order=2,
                     required=True,
                     description="Analyze migration complexity",
@@ -247,6 +256,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="risk_assessment",
+                    display_name="Risk Assessment",
                     order=3,
                     required=True,
                     description="Assess migration risks",
@@ -257,6 +267,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="recommendation_generation",
+                    display_name="Recommendation Generation",
                     order=4,
                     required=True,
                     description="Generate migration recommendations",
@@ -281,9 +292,11 @@ class FlowTypeConfigurator:
                     "include_business_impact": True,
                     "agent_collaboration": True,
                 },
-                required_permissions=["assessment.read", "assessment.write"],
+                capabilities=FlowCapabilities(
+                    required_permissions=["assessment.read", "assessment.write"]
+                ),
                 initialization_handler="assessment_initialization",
-                completion_handler="assessment_completion",
+                finalization_handler="assessment_completion",
                 error_handler="assessment_error_handler",
             )
 
@@ -291,7 +304,7 @@ class FlowTypeConfigurator:
             await self._register_assessment_validators()
 
             # Register assessment flow (MFO-045)
-            self.flow_registry.register_flow_type(assessment_config)
+            self.flow_registry.register(assessment_config)
 
             logger.info("✅ Assessment flow configured successfully")
             return {
@@ -313,6 +326,7 @@ class FlowTypeConfigurator:
             planning_phases = [
                 PhaseConfig(
                     name="wave_planning",
+                    display_name="Wave Planning",
                     order=1,
                     required=True,
                     description="Plan migration waves based on dependencies",
@@ -323,6 +337,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="resource_planning",
+                    display_name="Resource Planning",
                     order=2,
                     required=True,
                     description="Plan resource allocation and capacity",
@@ -333,6 +348,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="timeline_optimization",
+                    display_name="Timeline Optimization",
                     order=3,
                     required=False,
                     description="Optimize migration timeline",
@@ -353,10 +369,12 @@ class FlowTypeConfigurator:
                     "dependency_tracking": True,
                     "resource_constraints": True,
                 },
-                required_permissions=["planning.read", "planning.write"],
+                capabilities=FlowCapabilities(
+                    required_permissions=["planning.read", "planning.write"]
+                ),
             )
 
-            self.flow_registry.register_flow_type(planning_config)
+            self.flow_registry.register(planning_config)
 
             logger.info("✅ Planning flow configured successfully")
             return {
@@ -378,6 +396,7 @@ class FlowTypeConfigurator:
             execution_phases = [
                 PhaseConfig(
                     name="pre_migration_validation",
+                    display_name="Pre Migration Validation",
                     order=1,
                     required=True,
                     description="Validate readiness before migration",
@@ -388,6 +407,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="migration_execution",
+                    display_name="Migration Execution",
                     order=2,
                     required=True,
                     description="Execute the actual migration",
@@ -398,6 +418,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="post_migration_validation",
+                    display_name="Post Migration Validation",
                     order=3,
                     required=True,
                     description="Validate migration success",
@@ -419,14 +440,16 @@ class FlowTypeConfigurator:
                     "real_time_monitoring": True,
                     "automated_validation": True,
                 },
-                required_permissions=[
-                    "execution.read",
-                    "execution.write",
-                    "execution.execute",
-                ],
+                capabilities=FlowCapabilities(
+                    required_permissions=[
+                        "execution.read",
+                        "execution.write",
+                        "execution.execute",
+                    ]
+                ),
             )
 
-            self.flow_registry.register_flow_type(execution_config)
+            self.flow_registry.register(execution_config)
 
             logger.info("✅ Execution flow configured successfully")
             return {
@@ -448,6 +471,7 @@ class FlowTypeConfigurator:
             modernize_phases = [
                 PhaseConfig(
                     name="modernization_assessment",
+                    display_name="Modernization Assessment",
                     order=1,
                     required=True,
                     description="Assess modernization opportunities",
@@ -458,6 +482,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="architecture_redesign",
+                    display_name="Architecture Redesign",
                     order=2,
                     required=True,
                     description="Redesign architecture for cloud-native patterns",
@@ -468,6 +493,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="implementation_planning",
+                    display_name="Implementation Planning",
                     order=3,
                     required=True,
                     description="Plan modernization implementation",
@@ -489,10 +515,12 @@ class FlowTypeConfigurator:
                     "microservices_assessment": True,
                     "containerization_analysis": True,
                 },
-                required_permissions=["modernize.read", "modernize.write"],
+                capabilities=FlowCapabilities(
+                    required_permissions=["modernize.read", "modernize.write"]
+                ),
             )
 
-            self.flow_registry.register_flow_type(modernize_config)
+            self.flow_registry.register(modernize_config)
 
             logger.info("✅ Modernize flow configured successfully")
             return {
@@ -514,6 +542,7 @@ class FlowTypeConfigurator:
             finops_phases = [
                 PhaseConfig(
                     name="cost_analysis",
+                    display_name="Cost Analysis",
                     order=1,
                     required=True,
                     description="Analyze current and projected costs",
@@ -524,6 +553,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="optimization_identification",
+                    display_name="Optimization Identification",
                     order=2,
                     required=True,
                     description="Identify cost optimization opportunities",
@@ -534,6 +564,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="budget_planning",
+                    display_name="Budget Planning",
                     order=3,
                     required=True,
                     description="Plan budgets and cost controls",
@@ -555,10 +586,12 @@ class FlowTypeConfigurator:
                     "automated_optimization": True,
                     "budget_alerts": True,
                 },
-                required_permissions=["finops.read", "finops.write"],
+                capabilities=FlowCapabilities(
+                    required_permissions=["finops.read", "finops.write"]
+                ),
             )
 
-            self.flow_registry.register_flow_type(finops_config)
+            self.flow_registry.register(finops_config)
 
             logger.info("✅ FinOps flow configured successfully")
             return {
@@ -580,6 +613,7 @@ class FlowTypeConfigurator:
             observability_phases = [
                 PhaseConfig(
                     name="monitoring_setup",
+                    display_name="Monitoring Setup",
                     order=1,
                     required=True,
                     description="Set up monitoring infrastructure",
@@ -590,6 +624,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="logging_configuration",
+                    display_name="Logging Configuration",
                     order=2,
                     required=True,
                     description="Configure logging and log aggregation",
@@ -600,6 +635,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="alerting_setup",
+                    display_name="Alerting Setup",
                     order=3,
                     required=True,
                     description="Set up alerting and notification systems",
@@ -621,10 +657,12 @@ class FlowTypeConfigurator:
                     "distributed_tracing": True,
                     "automated_alerting": True,
                 },
-                required_permissions=["observability.read", "observability.write"],
+                capabilities=FlowCapabilities(
+                    required_permissions=["observability.read", "observability.write"]
+                ),
             )
 
-            self.flow_registry.register_flow_type(observability_config)
+            self.flow_registry.register(observability_config)
 
             logger.info("✅ Observability flow configured successfully")
             return {
@@ -646,6 +684,7 @@ class FlowTypeConfigurator:
             decommission_phases = [
                 PhaseConfig(
                     name="decommission_planning",
+                    display_name="Decommission Planning",
                     order=1,
                     required=True,
                     description="Plan system decommissioning",
@@ -656,6 +695,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="data_migration",
+                    display_name="Data Migration",
                     order=2,
                     required=True,
                     description="Migrate critical data before decommission",
@@ -666,6 +706,7 @@ class FlowTypeConfigurator:
                 ),
                 PhaseConfig(
                     name="system_shutdown",
+                    display_name="System Shutdown",
                     order=3,
                     required=True,
                     description="Safely shutdown and decommission systems",
@@ -687,14 +728,16 @@ class FlowTypeConfigurator:
                     "approval_workflow": True,
                     "audit_trail": True,
                 },
-                required_permissions=[
-                    "decommission.read",
-                    "decommission.write",
-                    "decommission.execute",
-                ],
+                capabilities=FlowCapabilities(
+                    required_permissions=[
+                        "decommission.read",
+                        "decommission.write",
+                        "decommission.execute",
+                    ]
+                ),
             )
 
-            self.flow_registry.register_flow_type(decommission_config)
+            self.flow_registry.register(decommission_config)
 
             logger.info("✅ Decommission flow configured successfully")
             return {
@@ -857,10 +900,10 @@ class FlowTypeConfigurator:
     async def _verify_flow_configurations(self) -> Dict[str, Any]:
         """Verify all flow configurations (MFO-058)"""
         try:
-            all_flow_types = self.flow_registry.get_all_flow_types()
+            all_configurations = self.flow_registry.get_all_configurations()
 
             verification_results = {
-                "total_flows": len(all_flow_types),
+                "total_flows": len(all_configurations),
                 "verified_flows": [],
                 "configuration_issues": [],
                 "consistency_check": True,

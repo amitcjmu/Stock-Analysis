@@ -86,7 +86,8 @@ class FlowQueries:
             # SECURITY: Only allow global query for system operations
             # In production, this should check for system/admin privileges
             logger.warning(
-                f"🔒 SECURITY: Denying global query for flow {flow_id} - does not belong to client {self.client_account_id}"
+                f"🔒 SECURITY: Denying global query for flow {flow_id} - "
+                f"does not belong to client {self.client_account_id}"
             )
             return None
 
