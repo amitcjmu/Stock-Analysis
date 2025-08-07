@@ -115,7 +115,9 @@ class FlowCrewExecutor:
         """Execute discovery flow phase using persistent agents (ADR-015)"""
         from app.core.database import AsyncSessionLocal
         from app.services.crewai_flow_service import CrewAIFlowService
-        from app.services.persistent_agents.tenant_scoped_agent_pool import TenantScopedAgentPool
+        from app.services.persistent_agents.tenant_scoped_agent_pool import (
+            TenantScopedAgentPool,
+        )
 
         # ADR-015: Use persistent agents instead of creating new ones
         logger.info(f"🔄 Using persistent agents for phase: {phase_config.name}")
@@ -123,14 +125,17 @@ class FlowCrewExecutor:
         try:
             # Get persistent agent pool for this tenant
             agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
-                master_flow.client_account_id,
-                master_flow.engagement_id
+                master_flow.client_account_id, master_flow.engagement_id
             )
 
-            logger.info(f"✅ Retrieved persistent agent pool with {len(agent_pool)} agents")
+            logger.info(
+                f"✅ Retrieved persistent agent pool with {len(agent_pool)} agents"
+            )
 
         except Exception as e:
-            logger.warning(f"⚠️ Failed to get persistent agents, falling back to service pattern: {e}")
+            logger.warning(
+                f"⚠️ Failed to get persistent agents, falling back to service pattern: {e}"
+            )
             # Fallback to original pattern if persistent agents fail
             async with AsyncSessionLocal() as db:
                 crewai_service = CrewAIFlowService(db)
@@ -147,12 +152,12 @@ class FlowCrewExecutor:
         # Fix: Use actual phase names that match the valid discovery phases
         phase_mapping = {
             "data_import": "data_import_validation",  # Maps to execute_data_import_validation
-            "field_mapping": "field_mapping",        # Maps to field mapping methods
-            "data_cleansing": "data_cleansing",      # Maps to execute_data_cleansing
-            "asset_creation": "asset_creation",      # Maps to create_discovery_assets
-            "asset_inventory": "analysis",           # Maps to execute_analysis_phases
-            "dependency_analysis": "analysis",       # Maps to execute_analysis_phases
-            "tech_debt_analysis": "analysis",        # Maps to execute_analysis_phases
+            "field_mapping": "field_mapping",  # Maps to field mapping methods
+            "data_cleansing": "data_cleansing",  # Maps to execute_data_cleansing
+            "asset_creation": "asset_creation",  # Maps to create_discovery_assets
+            "asset_inventory": "analysis",  # Maps to execute_analysis_phases
+            "dependency_analysis": "analysis",  # Maps to execute_analysis_phases
+            "tech_debt_analysis": "analysis",  # Maps to execute_analysis_phases
         }
 
         mapped_phase = phase_mapping.get(phase_config.name, phase_config.name)
@@ -181,12 +186,10 @@ class FlowCrewExecutor:
                     )
                 else:
                     # Generate mapping suggestions
-                    result = (
-                        await crewai_service.generate_field_mapping_suggestions(
-                            flow_id=master_flow.flow_id,
-                            validation_result=field_mapping_data,
-                            **context,
-                        )
+                    result = await crewai_service.generate_field_mapping_suggestions(
+                        flow_id=master_flow.flow_id,
+                        validation_result=field_mapping_data,
+                        **context,
                     )
             elif mapped_phase == "data_cleansing":
                 result = await crewai_service.execute_data_cleansing(
@@ -215,9 +218,7 @@ class FlowCrewExecutor:
                     **context,
                 )
 
-            logger.info(
-                f"✅ Discovery phase '{mapped_phase}' completed successfully"
-            )
+            logger.info(f"✅ Discovery phase '{mapped_phase}' completed successfully")
 
             return {
                 "phase": phase_config.name,

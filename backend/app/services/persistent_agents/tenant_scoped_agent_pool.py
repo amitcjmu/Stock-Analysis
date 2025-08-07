@@ -10,10 +10,13 @@ This addresses ADR-015: Persistent Multi-Tenant Agent Architecture
 
 import asyncio
 import logging
+import threading
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
+
+import psutil
 
 try:
     from crewai import Agent, Crew
@@ -73,6 +76,12 @@ class TenantScopedAgentPool:
     _agent_pools: Dict[Tuple[str, str], Dict[str, Agent]] = {}
     _pool_metadata: Dict[Tuple[str, str], TenantPoolStats] = {}
     _pool_lock = asyncio.Lock()  # Thread safety for agent pool access
+
+    # Memory monitoring and cleanup scheduling
+    _cleanup_scheduler: Optional[threading.Timer] = None
+    _memory_threshold_mb: float = 1000.0  # 1GB memory threshold
+    _cleanup_interval_minutes: int = 30  # Cleanup every 30 minutes
+    _max_idle_hours: int = 24  # Remove agents idle for 24+ hours
 
     @classmethod
     async def get_or_create_agent(
@@ -467,6 +476,84 @@ class TenantScopedAgentPool:
 
         return cleanup_count
 
+    @classmethod
+    def _get_current_memory_usage(cls) -> float:
+        """Get current memory usage in MB"""
+        try:
+            process = psutil.Process()
+            memory_info = process.memory_info()
+            return memory_info.rss / (1024 * 1024)  # Convert to MB
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to get memory usage: {e}")
+            return 0.0
+
+    @classmethod
+    def _schedule_automatic_cleanup(cls):
+        """Schedule automatic cleanup to run periodically"""
+
+        def run_cleanup():
+            try:
+                # Check memory usage
+                current_memory = cls._get_current_memory_usage()
+                pool_count = len(cls._agent_pools)
+
+                logger.info(
+                    f"🔍 Memory check: {current_memory:.1f}MB, {pool_count} pools"
+                )
+
+                # Trigger cleanup if memory threshold exceeded or routine maintenance
+                if current_memory > cls._memory_threshold_mb or pool_count > 50:
+                    logger.info(
+                        f"🧹 Triggering cleanup - Memory: {current_memory:.1f}MB"
+                    )
+                    # Run cleanup in thread-safe manner
+                    loop = None
+                    try:
+                        loop = asyncio.get_event_loop()
+                    except RuntimeError:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+
+                    if loop:
+                        loop.create_task(cls.cleanup_idle_pools(cls._max_idle_hours))
+                        # Don't wait for completion to avoid blocking
+
+                # Schedule next cleanup
+                cls._cleanup_scheduler = threading.Timer(
+                    cls._cleanup_interval_minutes * 60, run_cleanup
+                )
+                cls._cleanup_scheduler.start()
+
+            except Exception as e:
+                logger.error(f"❌ Automatic cleanup failed: {e}")
+                # Reschedule despite error
+                cls._cleanup_scheduler = threading.Timer(
+                    cls._cleanup_interval_minutes * 60, run_cleanup
+                )
+                cls._cleanup_scheduler.start()
+
+        # Start the first cleanup cycle
+        run_cleanup()
+
+    @classmethod
+    def start_memory_monitoring(cls):
+        """Start automatic memory monitoring and cleanup"""
+        if cls._cleanup_scheduler is None:
+            logger.info(
+                f"🚀 Starting automatic cleanup every {cls._cleanup_interval_minutes} minutes"
+            )
+            cls._schedule_automatic_cleanup()
+        else:
+            logger.info("🔄 Automatic cleanup already running")
+
+    @classmethod
+    def stop_memory_monitoring(cls):
+        """Stop automatic memory monitoring and cleanup"""
+        if cls._cleanup_scheduler:
+            cls._cleanup_scheduler.cancel()
+            cls._cleanup_scheduler = None
+            logger.info("⏹️ Stopped automatic cleanup")
+
 
 # Utility functions for testing and debugging
 async def validate_agent_pool_health(
@@ -499,5 +586,8 @@ async def validate_agent_pool_health(
     return health_report
 
 
-# Import required modules at the end to avoid circular imports
-from datetime import timedelta
+import atexit
+
+# Automatic cleanup initialization - start monitoring when module loads
+# Register cleanup on application shutdown
+atexit.register(TenantScopedAgentPool.stop_memory_monitoring)

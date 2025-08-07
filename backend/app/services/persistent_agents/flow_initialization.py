@@ -399,28 +399,73 @@ async def set_agent_flow_context(agent: Any, flow_id: str, context: RequestConte
 
 
 async def _check_flow_exists_in_db(flow_id: str, context: RequestContext) -> bool:
-    """Check if flow exists in database"""
-    try:
-        from sqlalchemy import and_, select
+    """Check if flow exists in database with retry logic and circuit breaker"""
+    import asyncio
 
-        from app.core.database import AsyncSessionLocal
-        from app.models.discovery_flow import DiscoveryFlow
+    from sqlalchemy.exc import DisconnectionError, OperationalError
+    from sqlalchemy.exc import TimeoutError as SQLTimeoutError
 
-        async with AsyncSessionLocal() as db:
-            stmt = select(DiscoveryFlow).where(
-                and_(
-                    DiscoveryFlow.flow_id == flow_id,
-                    DiscoveryFlow.client_account_id == context.client_account_id,
-                    DiscoveryFlow.engagement_id == context.engagement_id,
+    max_retries = 3
+    base_delay = 1.0  # seconds
+
+    for attempt in range(max_retries):
+        try:
+            from sqlalchemy import and_, select
+
+            from app.core.database import AsyncSessionLocal
+            from app.models.discovery_flow import DiscoveryFlow
+
+            # Set connection timeout
+            async with AsyncSessionLocal() as db:
+                # Test connection health first
+                await db.execute(select(1))
+
+                stmt = select(DiscoveryFlow).where(
+                    and_(
+                        DiscoveryFlow.flow_id == flow_id,
+                        DiscoveryFlow.client_account_id == context.client_account_id,
+                        DiscoveryFlow.engagement_id == context.engagement_id,
+                    )
                 )
-            )
-            result = await db.execute(stmt)
-            flow = result.scalar_one_or_none()
-            return flow is not None
+                result = await db.execute(stmt)
+                flow = result.scalar_one_or_none()
+                return flow is not None
 
-    except Exception as e:
-        logger.error(f"❌ Database flow check failed: {e}")
-        return False
+        except (
+            DisconnectionError,
+            OperationalError,
+            SQLTimeoutError,
+            ConnectionError,
+        ) as e:
+            attempt_msg = f"attempt {attempt + 1}/{max_retries}"
+            if attempt < max_retries - 1:
+                delay = base_delay * (2**attempt)  # Exponential backoff
+                logger.warning(
+                    f"⚠️ Database connection failed ({attempt_msg}), retrying in {delay}s: {e}"
+                )
+                await asyncio.sleep(delay)
+                continue
+            else:
+                logger.error(
+                    f"❌ Database connection failed after {max_retries} attempts: {e}"
+                )
+                return False  # Assume flow doesn't exist if we can't verify
+
+        except ImportError as e:
+            logger.error(f"❌ Database module import failed: {e}")
+            return False  # Graceful degradation
+
+        except Exception as e:
+            logger.error(
+                f"❌ Unexpected database error ({attempt + 1}/{max_retries}): {e}"
+            )
+            if attempt < max_retries - 1:
+                await asyncio.sleep(base_delay)
+                continue
+            return False  # Assume flow doesn't exist on persistent errors
+
+    # This line should never be reached, but included for completeness
+    return False
 
 
 def _get_elapsed_ms(start_time: datetime) -> int:

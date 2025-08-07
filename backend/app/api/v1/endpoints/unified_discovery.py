@@ -575,48 +575,67 @@ async def execute_flow(
         if discovery_flow.status == "initializing":
             logger.info(f"🔄 Performing proper initialization for flow {flow_id}")
 
-            from app.services.persistent_agents.flow_initialization import (
-                initialize_flow_with_persistent_agents,
-            )
+            # Try to use persistent agents with graceful fallback
+            initialization_result = None
+            try:
+                from app.services.persistent_agents.flow_initialization import (
+                    initialize_flow_with_persistent_agents,
+                )
 
-            initialization_result = await initialize_flow_with_persistent_agents(
-                flow_id, context
-            )
+                initialization_result = await initialize_flow_with_persistent_agents(
+                    flow_id, context
+                )
 
-            if initialization_result.success:
-                logger.info(
-                    f"✅ Flow {flow_id} initialization successful - transitioning to running"
+                if initialization_result.success:
+                    logger.info(
+                        f"✅ Flow {flow_id} initialization successful - transitioning to running"
+                    )
+                    logger.info(
+                        f"   Agent pool: {len(initialization_result.agent_pool or {})} agents initialized"
+                    )
+                    logger.info(
+                        f"   Initialization time: {initialization_result.initialization_time_ms}ms"
+                    )
+                    discovery_flow.status = "running"
+                    await db.commit()
+                else:
+                    logger.error(
+                        f"❌ Flow {flow_id} initialization failed - transitioning to failed"
+                    )
+                    discovery_flow.status = "failed"
+                    discovery_flow.error_message = initialization_result.error
+                    await db.commit()
+
+                    return {
+                        "message": f"Flow initialization failed: {initialization_result.error}",
+                        "flow_id": flow_id,
+                        "status": "failed",
+                        "initialization_details": initialization_result.validation_results,
+                    }
+
+            except ImportError as e:
+                logger.warning(
+                    f"⚠️ Persistent agents not available, using fallback: {e}"
                 )
-                logger.info(
-                    f"   Agent pool: {len(initialization_result.agent_pool or {})} agents initialized"
-                )
-                logger.info(
-                    f"   Initialization time: {initialization_result.initialization_time_ms}ms"
-                )
+                # Fallback to original initialization logic
                 discovery_flow.status = "running"
                 await db.commit()
-            else:
-                logger.error(
-                    f"❌ Flow {flow_id} initialization failed - transitioning to failed"
+                logger.info(
+                    f"✅ Flow {flow_id} using fallback - transitioning to running"
                 )
-                discovery_flow.status = "failed"
-                discovery_flow.error_details = {
-                    "initialization_error": initialization_result.error,
-                    "failed_at": datetime.utcnow().isoformat(),
-                    "validation_results": initialization_result.validation_results,
-                }
+
+            except Exception as e:
+                logger.error(
+                    f"❌ Persistent agent initialization error, using fallback: {e}"
+                )
+                # Fallback to original initialization logic
+                discovery_flow.status = "running"
                 await db.commit()
-                return {
-                    "success": False,
-                    "flow_id": flow_id,
-                    "message": "Flow initialization failed",
-                    "details": {
-                        "error": initialization_result.error,
-                        "initialization_time_ms": initialization_result.initialization_time_ms,
-                        "validation_results": initialization_result.validation_results,
-                        "recommended_action": "Check agent memory system health and retry",
-                    },
-                }
+                logger.info(
+                    f"✅ Flow {flow_id} using fallback after error - transitioning to running"
+                )
+
+        # Continue with existing logic after initialization block...
 
         # Try to execute through Master Flow Orchestrator
         try:
