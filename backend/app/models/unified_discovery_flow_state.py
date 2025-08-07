@@ -657,7 +657,9 @@ class UnifiedDiscoveryFlowState(BaseModel):
         Get list of completed phase names.
         This property provides backward compatibility for code that expects a 'completed_phases' attribute.
         """
-        return [phase for phase, completed in self.phase_completion.items() if completed]
+        return [
+            phase for phase, completed in self.phase_completion.items() if completed
+        ]
 
     def get_llm(self):
         """Get the LLM instance for CrewAI agents."""

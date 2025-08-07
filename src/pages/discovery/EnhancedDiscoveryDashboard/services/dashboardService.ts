@@ -210,11 +210,25 @@ export class DashboardService {
           let validatedFlowId: string;
           try {
             validatedFlowId = flow.flow_id || flow.flowId || flow.id || '';
-            if (!validatedFlowId) {
-              throw new Error('No flow ID found in any expected field');
+            if (!validatedFlowId || validatedFlowId.trim() === '') {
+              throw new Error('No valid flow ID found in any expected field (flow_id, flowId, id)');
+            }
+            // Ensure flow ID is a string and has reasonable length
+            validatedFlowId = validatedFlowId.toString().trim();
+            if (validatedFlowId.length < 1) {
+              throw new Error('Flow ID is empty after trimming');
             }
           } catch (flowIdError) {
-            console.warn(`⚠️ Failed to extract flow ID from flow:`, flow, flowIdError);
+            console.warn(`⚠️ Failed to extract flow ID from flow:`, {
+              flow: flow,
+              error: flowIdError,
+              attempted_fields: ['flow_id', 'flowId', 'id'],
+              field_values: {
+                flow_id: flow.flow_id,
+                flowId: flow.flowId,
+                id: flow.id
+              }
+            });
             continue; // Skip this flow if we can't get a valid flow ID
           }
 

@@ -53,24 +53,24 @@ class FlowExecutionOperations:
     ) -> Dict[str, Any]:
         """
         Execute a specific phase of a flow
-        
+
         Args:
             flow_id: Flow identifier
             phase_name: Name of the phase to execute
             phase_input: Input data for the phase
             validation_overrides: Validation overrides for forced execution
-            
+
         Returns:
             Execution result dictionary
         """
         tracking_id = None
-        
+
         try:
             # Start performance monitoring
             tracking_id = self.performance_monitor.start_operation(
-                flow_id=flow_id, 
-                operation_type="execute_phase", 
-                metadata={"phase_name": phase_name}
+                flow_id=flow_id,
+                operation_type="execute_phase",
+                metadata={"phase_name": phase_name},
             )
 
             logger.info(f"🎯 Executing phase '{phase_name}' for flow {flow_id}")
@@ -81,7 +81,9 @@ class FlowExecutionOperations:
                 raise ValueError(f"Flow not found: {flow_id}")
 
             # Validate phase execution
-            await self._validate_phase_execution(master_flow, phase_name, validation_overrides)
+            await self._validate_phase_execution(
+                master_flow, phase_name, validation_overrides
+            )
 
             # Execute phase through execution engine
             result = await self.execution_engine.execute_phase(
@@ -110,12 +112,16 @@ class FlowExecutionOperations:
             )
 
             self.performance_monitor.end_operation(tracking_id, success=True)
-            logger.info(f"✅ Phase '{phase_name}' executed successfully for flow {flow_id}")
+            logger.info(
+                f"✅ Phase '{phase_name}' executed successfully for flow {flow_id}"
+            )
 
             return result
 
         except Exception as e:
-            logger.error(f"❌ Phase execution failed: {flow_id} - {phase_name} - {str(e)}")
+            logger.error(
+                f"❌ Phase execution failed: {flow_id} - {phase_name} - {str(e)}"
+            )
 
             # Log execution failure
             await self.audit_logger.log_audit_event(
@@ -135,28 +141,38 @@ class FlowExecutionOperations:
             raise RuntimeError(f"Failed to execute phase '{phase_name}': {str(e)}")
 
     async def _validate_phase_execution(
-        self, 
-        master_flow, 
-        phase_name: str, 
-        validation_overrides: Optional[Dict[str, Any]]
+        self,
+        master_flow,
+        phase_name: str,
+        validation_overrides: Optional[Dict[str, Any]],
     ) -> None:
         """Validate that the phase can be executed"""
         # Check if flow is in valid state for execution
         if master_flow.flow_status in ["completed", "cancelled"]:
-            if not validation_overrides or not validation_overrides.get("force_execution"):
-                raise ValueError(f"Cannot execute phase on {master_flow.flow_status} flow")
+            if not validation_overrides or not validation_overrides.get(
+                "force_execution"
+            ):
+                raise ValueError(
+                    f"Cannot execute phase on {master_flow.flow_status} flow"
+                )
 
         # Check if phase is valid for the flow type
         flow_config = self.flow_registry.get_flow_config(master_flow.flow_type)
         if not flow_config.is_phase_valid(phase_name):
-            raise ValueError(f"Invalid phase '{phase_name}' for flow type '{master_flow.flow_type}'")
+            raise ValueError(
+                f"Invalid phase '{phase_name}' for flow type '{master_flow.flow_type}'"
+            )
 
         # Check phase dependencies
         if not flow_config.are_dependencies_satisfied(phase_name, master_flow):
-            if not validation_overrides or not validation_overrides.get("force_execution"):
+            if not validation_overrides or not validation_overrides.get(
+                "force_execution"
+            ):
                 raise ValueError(f"Phase '{phase_name}' dependencies not satisfied")
 
-        logger.info(f"✅ Phase validation passed for '{phase_name}' on flow {master_flow.flow_id}")
+        logger.info(
+            f"✅ Phase validation passed for '{phase_name}' on flow {master_flow.flow_id}"
+        )
 
     async def _update_flow_after_execution(
         self, master_flow, phase_name: str, execution_result: Dict[str, Any]
@@ -166,7 +182,7 @@ class FlowExecutionOperations:
             # Update phase completion status
             if "phase_completion" not in master_flow.flow_persistence_data:
                 master_flow.flow_persistence_data["phase_completion"] = {}
-            
+
             master_flow.flow_persistence_data["phase_completion"][phase_name] = {
                 "completed": True,
                 "completed_at": execution_result.get("completed_at"),
@@ -177,20 +193,22 @@ class FlowExecutionOperations:
             # Update current phase if execution result indicates progression
             if execution_result.get("next_phase"):
                 master_flow.current_phase = execution_result["next_phase"]
-                
+
             # Update progress percentage
             if execution_result.get("progress_percentage") is not None:
-                master_flow.progress_percentage = execution_result["progress_percentage"]
-                
+                master_flow.progress_percentage = execution_result[
+                    "progress_percentage"
+                ]
+
             # Update status if execution result indicates status change
             if execution_result.get("flow_status"):
                 master_flow.flow_status = execution_result["flow_status"]
 
             # Persist changes
             await self.db.commit()
-            
+
             logger.info(f"✅ Flow state updated after phase '{phase_name}' execution")
-            
+
         except Exception as e:
             logger.error(f"❌ Failed to update flow state after execution: {e}")
             # Re-raise to ensure execution failure is properly handled

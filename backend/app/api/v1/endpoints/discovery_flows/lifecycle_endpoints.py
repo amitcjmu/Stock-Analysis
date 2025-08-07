@@ -7,6 +7,7 @@ This module handles flow lifecycle operations:
 - Flow state transitions
 """
 
+import hashlib
 import logging
 import time
 from datetime import datetime
@@ -29,6 +30,13 @@ from .response_mappers import (
 from .status_calculator import StatusCalculator
 
 logger = logging.getLogger(__name__)
+
+# Import feedback handler with error handling
+try:
+    from app.api.v1.endpoints.discovery_handlers.feedback import FeedbackHandler
+except ImportError as e:
+    logger.error(f"Failed to import FeedbackHandler: {e}")
+    FeedbackHandler = None
 
 lifecycle_router = APIRouter(tags=["discovery-lifecycle"])
 
@@ -629,8 +637,11 @@ async def submit_discovery_feedback(
             f"for client {context.client_account_id}"
         )
 
-        # Import the FeedbackHandler
-        from app.api.v1.endpoints.discovery_handlers.feedback import FeedbackHandler
+        # Check if FeedbackHandler is available
+        if FeedbackHandler is None:
+            raise HTTPException(
+                status_code=503, detail="Feedback service is currently unavailable due to import error"
+            )
 
         # Initialize the handler
         feedback_handler = FeedbackHandler()
@@ -673,7 +684,7 @@ async def submit_discovery_feedback(
             )
 
         feedback_id = result.get(
-            "feedback_id", f"discovery_feedback_{hash(str(feedback_data))}"
+            "feedback_id", f"discovery_feedback_{hashlib.md5(str(feedback_data).encode()).hexdigest()[:16]}"
         )
 
         logger.info(

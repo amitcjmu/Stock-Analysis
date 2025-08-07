@@ -268,8 +268,14 @@ async def health_check():
         db_gen = get_db()
         next(db_gen)  # Get the database session
         database_status = True
-    except Exception:
+        # Properly close the database session
+        try:
+            next(db_gen)
+        except StopIteration:
+            pass  # Generator exhausted, session closed
+    except Exception as e:
         # Database not available or connection failed
+        logging.warning(f"Database health check failed: {e}")
         database_status = False
 
     # API routes are available if this endpoint is reachable

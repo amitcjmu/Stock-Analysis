@@ -9,6 +9,7 @@ from enum import Enum
 
 class FlowOperationType(Enum):
     """Types of flow operations for audit logging"""
+
     CREATE = "create_flow"
     DELETE = "delete_flow"
     PAUSE = "pause_flow"
