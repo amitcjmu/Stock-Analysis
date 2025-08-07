@@ -13,6 +13,9 @@ from app.services.flow_type_registry import (
     RetryConfig,
 )
 
+# Import the UnifiedDiscoveryFlow class for crew_class registration
+from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
+
 
 def get_discovery_flow_config() -> FlowTypeConfig:
     """
@@ -439,6 +442,7 @@ def get_discovery_flow_config() -> FlowTypeConfig:
             asset_inventory_phase,
             dependency_analysis_phase,
         ],
+        crew_class=UnifiedDiscoveryFlow,  # Fix: Register crew class for flow type
         capabilities=capabilities,
         default_configuration={
             "enable_real_time_validation": True,

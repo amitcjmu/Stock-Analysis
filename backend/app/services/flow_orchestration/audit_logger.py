@@ -404,8 +404,15 @@ class FlowAuditLogger:
     ) -> Dict[str, Any]:
         """Check audit completeness compliance"""
         # Check if required fields are present
-        required_fields = ["flow_id", "operation", "user_id", "client_account_id"]
+        required_fields = ["flow_id", "operation", "client_account_id"]
         missing_fields = []
+        
+        # user_id is required for user-initiated operations but optional for system operations
+        system_operations = ["resume", "pause", "health_check", "status_sync", "cleanup", "monitoring"]
+        user_id_required = not any(sys_op in event.operation.lower() for sys_op in system_operations)
+        
+        if user_id_required:
+            required_fields.append("user_id")
 
         for field in required_fields:
             if not getattr(event, field, None):
@@ -414,7 +421,8 @@ class FlowAuditLogger:
         return {
             "compliant": len(missing_fields) == 0,
             "missing_fields": missing_fields,
-            "message": f"Audit completeness check: {len(missing_fields)} missing fields",
+            "message": f"Audit completeness check: {len(missing_fields)} missing fields" + 
+                      (f" (user_id optional for system operation: {event.operation})" if not user_id_required else ""),
         }
 
     async def _check_flow_approval_compliance(
