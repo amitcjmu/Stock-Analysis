@@ -101,43 +101,43 @@ export const API_CONFIG = {
     DISCOVERY: {
       AGENT_ANALYSIS: '/agents/discovery/analysis', // FIXED: Use actual agent analysis endpoint
       ANALYZE_CMDB: '/agents/discovery/analysis', // FIXED: Use actual agent analysis endpoint
-      PROCESS_CMDB: '/discovery/flow/run', // Discovery flow execution endpoint
-      CMDB_TEMPLATES: '/discovery/cmdb-templates',
-      CMDB_FEEDBACK: '/discovery/cmdb-feedback',
-      ASSETS: '/discovery/assets',
-      ASSETS_BULK: '/discovery/assets/bulk',
-      ASSETS_CLEANUP: '/discovery/assets/cleanup-duplicates',
-      APPLICATIONS: '/discovery/applications',
-      APP_MAPPINGS: '/discovery/app-server-mappings',
-      FEEDBACK: '/discovery/feedback',
-      CHAT: '/discovery/chat-test',
-      // New discovery dashboard endpoints
-      DISCOVERY_METRICS: '/discovery/assets/discovery-metrics',
-      APPLICATION_LANDSCAPE: '/discovery/assets/application-landscape',
-      INFRASTRUCTURE_LANDSCAPE: '/discovery/assets/infrastructure-landscape',
-      // Agent endpoints
-      AGENT_CLARIFICATION: '/discovery/agents/agent-clarification',
+      PROCESS_CMDB: '/unified-discovery/flow/run', // Updated to unified-discovery endpoint as part of API migration
+      CMDB_TEMPLATES: '/unified-discovery/cmdb-templates',  // Updated to unified-discovery endpoint as part of API migration
+      CMDB_FEEDBACK: '/unified-discovery/cmdb-feedback',  // Updated to unified-discovery endpoint as part of API migration
+      ASSETS: '/unified-discovery/assets',  // Updated to unified-discovery endpoint as part of API migration
+      ASSETS_BULK: '/unified-discovery/assets/bulk',  // Updated to unified-discovery endpoint as part of API migration
+      ASSETS_CLEANUP: '/unified-discovery/assets/cleanup-duplicates',  // Updated to unified-discovery endpoint as part of API migration
+      APPLICATIONS: '/unified-discovery/applications',  // Updated to unified-discovery endpoint as part of API migration
+      APP_MAPPINGS: '/unified-discovery/app-server-mappings',  // Updated to unified-discovery endpoint as part of API migration
+      FEEDBACK: '/unified-discovery/feedback',  // Updated to unified-discovery endpoint as part of API migration
+      CHAT: '/unified-discovery/chat-test',  // Updated to unified-discovery endpoint as part of API migration
+      // New discovery dashboard endpoints - Updated to unified-discovery as part of API migration
+      DISCOVERY_METRICS: '/unified-discovery/assets/discovery-metrics',  // Updated to unified-discovery endpoint as part of API migration
+      APPLICATION_LANDSCAPE: '/unified-discovery/assets/application-landscape',  // Updated to unified-discovery endpoint as part of API migration
+      INFRASTRUCTURE_LANDSCAPE: '/unified-discovery/assets/infrastructure-landscape',  // Updated to unified-discovery endpoint as part of API migration
+      // Agent endpoints - Updated to unified-discovery as part of API migration
+      AGENT_CLARIFICATION: '/unified-discovery/agents/agent-clarification',  // Updated to unified-discovery endpoint as part of API migration
       AGENT_STATUS: '/agents/discovery/agent-status',
-      AGENTIC_ANALYSIS_STATUS: '/discovery/flow/agent/crew/analysis/status',
+      AGENTIC_ANALYSIS_STATUS: '/unified-discovery/flow/agent/crew/analysis/status',  // Updated to unified-discovery endpoint as part of API migration
       AGENT_LEARNING: '/agents/discovery/learning/agent-learning',
-      APPLICATION_PORTFOLIO: '/discovery/agents/application-portfolio',
-      APPLICATION_VALIDATION: '/discovery/agents/application-validation',
-      READINESS_ASSESSMENT: '/discovery/agents/readiness-assessment',
-      // Assessment Readiness Orchestrator endpoints
-      ASSESSMENT_READINESS: '/discovery/agents/assessment-readiness',
-      STAKEHOLDER_SIGNOFF_PACKAGE: '/discovery/agents/stakeholder-signoff-package',
-      STAKEHOLDER_SIGNOFF_FEEDBACK: '/discovery/agents/stakeholder-signoff-feedback',
-      // Tech Debt Analysis endpoints
-      TECH_DEBT_ANALYSIS: '/discovery/agents/tech-debt-analysis',
-      TECH_DEBT_FEEDBACK: '/discovery/agents/tech-debt-feedback',
-      // Dependency Analysis endpoints
-      DEPENDENCY_ANALYSIS: '/discovery/dependency-analysis/execute',
-      DEPENDENCY_FEEDBACK: '/discovery/agents/dependencies/dependency-feedback',
-      DEPENDENCIES: '/discovery/dependencies',
-      EXPORT_VISUALIZATION: '/discovery/dependencies/export-visualization',
-      // Data cleanup endpoints
-      DATA_CLEANUP_ANALYZE: '/discovery/data-cleanup/agent-analyze',
-      DATA_CLEANUP_PROCESS: '/discovery/data-cleanup/agent-process',
+      APPLICATION_PORTFOLIO: '/unified-discovery/agents/application-portfolio',  // Updated to unified-discovery endpoint as part of API migration
+      APPLICATION_VALIDATION: '/unified-discovery/agents/application-validation',  // Updated to unified-discovery endpoint as part of API migration
+      READINESS_ASSESSMENT: '/unified-discovery/agents/readiness-assessment',  // Updated to unified-discovery endpoint as part of API migration
+      // Assessment Readiness Orchestrator endpoints - Updated to unified-discovery as part of API migration
+      ASSESSMENT_READINESS: '/unified-discovery/agents/assessment-readiness',  // Updated to unified-discovery endpoint as part of API migration
+      STAKEHOLDER_SIGNOFF_PACKAGE: '/unified-discovery/agents/stakeholder-signoff-package',  // Updated to unified-discovery endpoint as part of API migration
+      STAKEHOLDER_SIGNOFF_FEEDBACK: '/unified-discovery/agents/stakeholder-signoff-feedback',  // Updated to unified-discovery endpoint as part of API migration
+      // Tech Debt Analysis endpoints - Updated to unified-discovery as part of API migration
+      TECH_DEBT_ANALYSIS: '/unified-discovery/agents/tech-debt-analysis',  // Updated to unified-discovery endpoint as part of API migration
+      TECH_DEBT_FEEDBACK: '/unified-discovery/agents/tech-debt-feedback',  // Updated to unified-discovery endpoint as part of API migration
+      // Dependency Analysis endpoints - Updated to unified-discovery as part of API migration
+      DEPENDENCY_ANALYSIS: '/unified-discovery/dependency-analysis/execute',  // Updated to unified-discovery endpoint as part of API migration
+      DEPENDENCY_FEEDBACK: '/unified-discovery/agents/dependencies/dependency-feedback',  // Updated to unified-discovery endpoint as part of API migration
+      DEPENDENCIES: '/unified-discovery/dependencies',  // Updated to unified-discovery endpoint as part of API migration
+      EXPORT_VISUALIZATION: '/unified-discovery/dependencies/export-visualization',  // Updated to unified-discovery endpoint as part of API migration
+      // Data cleanup endpoints - Updated to unified-discovery as part of API migration
+      DATA_CLEANUP_ANALYZE: '/unified-discovery/data-cleanup/agent-analyze',  // Updated to unified-discovery endpoint as part of API migration
+      DATA_CLEANUP_PROCESS: '/unified-discovery/data-cleanup/agent-process',  // Updated to unified-discovery endpoint as part of API migration
       // Data import persistence endpoints
       STORE_IMPORT: '/assets/bulk-create',
       STORE_IMPORT_TEMP: '/data-import/store-import-temp',
@@ -527,7 +527,7 @@ export const apiCall = async (
       // UI interactions have reasonable timeouts
       const isAgenticActivity = (
         normalizedEndpoint.includes('/assets/list/paginated') ||
-        normalizedEndpoint.includes('/discovery/flow/run') ||
+        normalizedEndpoint.includes('/unified-discovery/flow/run') ||  // Updated endpoint check for unified-discovery migration
         normalizedEndpoint.includes('/assets/analyze') ||
         normalizedEndpoint.includes('/asset_inventory') ||
         normalizedEndpoint.includes('/classification')

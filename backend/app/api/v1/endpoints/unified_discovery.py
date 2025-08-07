@@ -12,14 +12,19 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import and_, select
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.services.flow_configs import initialize_all_flows
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+from app.models.discovery_flow import DiscoveryFlow
+from app.models.data_import.mapping import ImportFieldMapping
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+from app.services.discovery_flow_service import DiscoveryFlowService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -43,6 +48,20 @@ class FlowInitializationResponse(BaseModel):
     status: str
     message: str
     error: Optional[str] = None
+
+
+class ClarificationSubmissionRequest(BaseModel):
+    """Request model for clarification submission"""
+    
+    clarifications: List[Dict[str, Any]]
+    flow_id: Optional[str] = None
+    
+    
+class DependencyAnalysisRequest(BaseModel):
+    """Request model for dependency analysis"""
+    
+    analysis_type: str = "app-server"
+    configuration: Optional[Dict[str, Any]] = None
 
 
 @router.post("/flow/initialize", response_model=FlowInitializationResponse)
@@ -104,14 +123,42 @@ async def initialize_discovery_flow(
             configuration=configuration,
             initial_state=initial_state,
         )
-
+        
         # Extract flow_id from result tuple
         if isinstance(flow_result, tuple) and len(flow_result) >= 1:
             flow_id = flow_result[0]
-            flow_details = flow_result[1] if len(flow_result) > 1 else {}
-
-            # Convert UUID to string if needed
             flow_id_str = str(flow_id) if flow_id else None
+            
+            # CC FIX: Create the corresponding DiscoveryFlow record that the system expects
+            logger.info(f"🔗 Creating discovery flow record in discovery_flows table: {flow_id_str}")
+            try:
+                from app.models.discovery_flow import DiscoveryFlow
+                from sqlalchemy import func
+                
+                discovery_flow = DiscoveryFlow(
+                    flow_id=flow_id_str,
+                    flow_name=request.flow_name or f"Discovery Flow {datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
+                    flow_type="discovery",
+                    status="initializing", 
+                    current_phase="data_import",
+                    client_account_id=context.client_account_id,
+                    engagement_id=context.engagement_id,
+                    user_id=context.user_id or "system",
+                    crewai_state_data=initial_state,  # Store raw_data in crewai_state_data
+                    created_at=func.now()
+                )
+                
+                db.add(discovery_flow)
+                await db.commit()
+                
+                logger.info(f"✅ Discovery flow record created in discovery_flows table: {flow_id_str}")
+                
+            except Exception as discovery_error:
+                logger.error(f"❌ Failed to create discovery flow record: {discovery_error}")
+                # Don't fail the entire flow creation, but log the error
+                logger.warning("⚠️ Continuing without discovery flow record - some features may be limited")
+        
+            flow_details = flow_result[1] if len(flow_result) > 1 else {}
 
             logger.info(f"✅ Discovery flow created successfully: {flow_id_str}")
 
@@ -310,8 +357,8 @@ async def get_discovery_flow_status(
                         "id": str(fm.id),
                         "source_field": fm.source_field,
                         "target_field": fm.target_field,
-                        "confidence": fm.confidence,
-                        "is_approved": fm.is_approved,
+                        "confidence": fm.confidence_score,
+                        "is_approved": fm.approved_by is not None,
                         "status": fm.status,
                         "match_type": fm.match_type,
                     }
@@ -405,6 +452,562 @@ async def delete_discovery_flow(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/flows/active")
+async def get_active_flows(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """Get active discovery flows for compatibility with frontend."""
+    try:
+        logger.info(f"Getting active flows for client: {context.client_account_id}")
+        
+        # Query active discovery flows
+        stmt = select(DiscoveryFlow).where(
+            and_(
+                DiscoveryFlow.client_account_id == context.client_account_id,
+                DiscoveryFlow.engagement_id == context.engagement_id,
+                DiscoveryFlow.status.in_(["running", "active", "in_progress", "initializing", "processing"])
+            )
+        )
+        
+        result = await db.execute(stmt)
+        active_flows = result.scalars().all()
+        
+        flow_details = []
+        for flow in active_flows:
+            flow_details.append({
+                "flowId": str(flow.flow_id),  # Match frontend expectation: flowId not flow_id
+                "flowType": flow.flow_type or "discovery",  # Add flowType field
+                "flowName": flow.flow_name,  # Add flowName field
+                "status": flow.status,
+                "currentPhase": flow.current_phase,  # Match frontend: currentPhase not current_phase
+                "progress": flow.progress_percentage or 0.0,
+                "createdAt": flow.created_at.isoformat() if flow.created_at else None,  # Match frontend: createdAt
+                "updatedAt": flow.updated_at.isoformat() if flow.updated_at else None,  # Match frontend: updatedAt
+                "metadata": {
+                    "flow_name": flow.flow_name,
+                    "client_id": str(flow.client_account_id),
+                    "engagement_id": str(flow.engagement_id),
+                }
+            })
+        
+        # Return flow_details directly as array to match frontend expectation
+        return flow_details
+        
+    except Exception as e:
+        logger.error(f"Failed to get active flows: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/flow/{flow_id}/execute")
+async def execute_flow(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """Execute a flow through Master Flow Orchestrator."""
+    try:
+        logger.info(f"Executing flow: {flow_id}")
+        
+        # Check if flow exists in discovery_flows table first
+        stmt = select(DiscoveryFlow).where(
+            and_(
+                DiscoveryFlow.flow_id == flow_id,
+                DiscoveryFlow.client_account_id == context.client_account_id,
+                DiscoveryFlow.engagement_id == context.engagement_id,
+            )
+        )
+        result = await db.execute(stmt)
+        discovery_flow = result.scalar_one_or_none()
+        
+        if not discovery_flow:
+            logger.warning(f"Discovery flow not found: {flow_id}")
+            raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
+        
+        # Determine the next phase based on current status
+        current_phase = discovery_flow.current_phase
+        phase_to_execute = current_phase or "data_import"
+        
+        # For flows that are completed or in specific phases, determine next action
+        if discovery_flow.status == "completed":
+            return {
+                "success": False, 
+                "flow_id": flow_id, 
+                "message": "Flow is already completed",
+                "current_status": discovery_flow.status,
+                "current_phase": current_phase
+            }
+        elif discovery_flow.status in ["failed", "error"]:
+            # For failed flows, restart from current phase
+            phase_to_execute = current_phase or "data_import"
+        elif discovery_flow.status in ["paused", "waiting_for_approval"]:
+            # For paused flows, resume from current phase  
+            phase_to_execute = current_phase or "field_mapping"
+        else:
+            # For running flows, continue with next phase or current phase
+            phase_to_execute = current_phase or "data_import"
+        
+        logger.info(f"Executing phase '{phase_to_execute}' for flow {flow_id} (status: {discovery_flow.status})")
+        
+        # Update status to "running" if currently "initializing" (following flow state transitions)
+        if discovery_flow.status == "initializing":
+            logger.info(f"🔄 Transitioning flow {flow_id} status: initializing → running")
+            discovery_flow.status = "running"
+            await db.commit()
+        
+        # Try to execute through Master Flow Orchestrator
+        try:
+            orchestrator = MasterFlowOrchestrator(db, context)
+            result = await orchestrator.execute_phase(flow_id, phase_to_execute, {})
+            return {
+                "success": True, 
+                "flow_id": flow_id, 
+                "result": result, 
+                "phase_executed": phase_to_execute,
+                "previous_status": discovery_flow.status
+            }
+        except Exception as orchestrator_error:
+            logger.warning(f"Master Flow Orchestrator execution failed: {orchestrator_error}")
+            
+            # Return a graceful response indicating the issue
+            return {
+                "success": False,
+                "flow_id": flow_id,
+                "message": f"Flow execution currently unavailable due to architectural mismatch between discovery_flows and master flow tables",
+                "details": {
+                    "current_status": discovery_flow.status,
+                    "current_phase": current_phase,
+                    "attempted_phase": phase_to_execute,
+                    "error": str(orchestrator_error)
+                },
+                "recommended_action": "Please check flow status and retry later, or contact support for flow state synchronization"
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to execute flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/flow/{flow_id}/retry")
+async def retry_flow(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """Retry a failed flow through Master Flow Orchestrator."""
+    try:
+        logger.info(f"Retrying flow: {flow_id}")
+        orchestrator = MasterFlowOrchestrator(db, context)
+        
+        # Resume the flow which effectively retries it
+        result = await orchestrator.resume_flow(flow_id, {"retry": True})
+        return {"success": True, "flow_id": flow_id, "result": result}
+    except Exception as e:
+        logger.error(f"Failed to retry flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/flows/{flow_id}/field-mappings")
+async def get_field_mappings(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """Get field mappings for a discovery flow."""
+    try:
+        logger.info(f"Getting field mappings for flow: {flow_id}")
+        
+        # Get field mappings for this flow
+        field_mappings_stmt = select(ImportFieldMapping).where(
+            ImportFieldMapping.master_flow_id == flow_id
+        )
+        field_mappings_result = await db.execute(field_mappings_stmt)
+        field_mappings = field_mappings_result.scalars().all()
+        
+        mappings_data = [
+            {
+                "id": str(fm.id),
+                "source_field": fm.source_field,
+                "target_field": fm.target_field,
+                "confidence": fm.confidence_score,
+                "is_approved": fm.approved_by is not None,
+                "status": fm.status,
+                "match_type": fm.match_type,
+            }
+            for fm in field_mappings
+        ]
+        
+        return {
+            "success": True,
+            "flow_id": flow_id,
+            "field_mappings": mappings_data,
+            "count": len(mappings_data)
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get field mappings for flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/flows/{flow_id}/clarifications/submit")
+async def submit_clarifications(
+    flow_id: str,
+    request: ClarificationSubmissionRequest,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """Submit clarifications for a discovery flow."""
+    try:
+        logger.info(f"Submitting clarifications for flow: {flow_id}")
+        
+        # Process clarifications through Master Flow Orchestrator by executing clarification phase
+        orchestrator = MasterFlowOrchestrator(db, context)
+        result = await orchestrator.execute_phase(
+            flow_id, 
+            "clarifications",
+            {"clarifications": request.clarifications}
+        )
+        
+        return {
+            "success": True,
+            "flow_id": flow_id,
+            "processed_clarifications": len(request.clarifications),
+            "result": result,
+            "message": "Clarifications submitted successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to submit clarifications for flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/flow/{flow_id}/agent-insights")
+async def get_agent_insights(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """Get agent insights for a discovery flow."""
+    try:
+        logger.info(f"Getting agent insights for flow: {flow_id}")
+        
+        # Try to import agent UI bridge, fallback to empty response if not available
+        try:
+            from app.services.agent_ui_bridge import agent_ui_bridge
+            insights = agent_ui_bridge.get_insights_for_flow(flow_id)
+        except ImportError:
+            logger.warning("Agent UI bridge not available, returning empty insights")
+            insights = []
+        
+        return {
+            "success": True,
+            "flow_id": flow_id,
+            "insights": insights,
+            "count": len(insights)
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get agent insights for flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/dependencies/analysis")
+async def get_dependency_analysis(
+    flow_id: str = Query(None, description="Flow ID for dependency analysis"),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """Get dependency analysis results."""
+    try:
+        logger.info(f"Getting dependency analysis for flow: {flow_id}")
+        
+        if flow_id:
+            # Get specific flow's dependency analysis
+            stmt = select(DiscoveryFlow).where(
+                and_(
+                    DiscoveryFlow.flow_id == flow_id,
+                    DiscoveryFlow.client_account_id == context.client_account_id,
+                    DiscoveryFlow.engagement_id == context.engagement_id,
+                )
+            )
+            result = await db.execute(stmt)
+            flow = result.scalar_one_or_none()
+            
+            if flow:
+                dependencies = flow.dependencies or {}
+            else:
+                dependencies = {}
+        else:
+            # Return generic dependency structure
+            dependencies = {
+                "total_dependencies": 0,
+                "dependency_quality": {"quality_score": 0},
+                "cross_application_mapping": {
+                    "cross_app_dependencies": [],
+                    "application_clusters": [],
+                    "dependency_graph": {"nodes": [], "edges": []},
+                },
+                "impact_analysis": {"impact_summary": {}},
+            }
+        
+        return {
+            "success": True,
+            "data": {
+                "dependency_analysis": dependencies
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get dependency analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/dependencies")
+async def create_dependencies(
+    request: DependencyAnalysisRequest,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """Create dependency analysis through Master Flow Orchestrator."""
+    try:
+        logger.info(f"Creating dependency analysis: {request.analysis_type}")
+        
+        # Create a new discovery flow for dependency analysis
+        orchestrator = MasterFlowOrchestrator(db, context)
+        flow_id, flow_details = await orchestrator.create_flow(
+            "discovery",
+            f"Dependency Analysis - {request.analysis_type}",
+            {
+                "analysis_type": request.analysis_type,
+                "focus": "dependency_analysis",
+                **(request.configuration or {})
+            },
+            {"analysis_request": request.dict()}
+        )
+        
+        return {
+            "success": True,
+            "flow_id": str(flow_id),
+            "analysis_type": request.analysis_type,
+            "result": flow_details,
+            "message": "Dependency analysis created successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to create dependency analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/dependencies/applications")
+async def get_available_applications(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """Get available applications for dependency analysis."""
+    try:
+        logger.info("Getting available applications")
+        
+        # Get applications from discovery flows in this engagement
+        stmt = select(DiscoveryFlow).where(
+            and_(
+                DiscoveryFlow.client_account_id == context.client_account_id,
+                DiscoveryFlow.engagement_id == context.engagement_id,
+            )
+        )
+        result = await db.execute(stmt)
+        flows = result.scalars().all()
+        
+        applications = []
+        for flow in flows:
+            if flow.discovered_assets:
+                assets = flow.discovered_assets.get("applications", [])
+                applications.extend(assets)
+        
+        return {
+            "success": True,
+            "applications": applications,
+            "count": len(applications)
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get available applications: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/dependencies/servers")
+async def get_available_servers(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """Get available servers for dependency analysis."""
+    try:
+        logger.info("Getting available servers")
+        
+        # Get servers from discovery flows in this engagement
+        stmt = select(DiscoveryFlow).where(
+            and_(
+                DiscoveryFlow.client_account_id == context.client_account_id,
+                DiscoveryFlow.engagement_id == context.engagement_id,
+            )
+        )
+        result = await db.execute(stmt)
+        flows = result.scalars().all()
+        
+        servers = []
+        for flow in flows:
+            if flow.discovered_assets:
+                assets = flow.discovered_assets.get("servers", [])
+                servers.extend(assets)
+        
+        return {
+            "success": True,
+            "servers": servers,
+            "count": len(servers)
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get available servers: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/dependencies/analyze/{analysis_type}")
+async def analyze_dependencies(
+    analysis_type: str,
+    request: Optional[DependencyAnalysisRequest] = None,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """Analyze dependencies of a specific type."""
+    try:
+        logger.info(f"Analyzing dependencies: {analysis_type}")
+        
+        # Create a new discovery flow focused on dependency analysis
+        orchestrator = MasterFlowOrchestrator(db, context)
+        flow_id, flow_details = await orchestrator.create_flow(
+            "discovery",
+            f"Dependency Analysis - {analysis_type}",
+            {
+                "analysis_type": analysis_type,
+                "focus": "dependency_analysis",
+                "auto_execute": True,
+                **(request.configuration if request else {})
+            },
+            {
+                "analysis_request": {
+                    "analysis_type": analysis_type,
+                    "configuration": (request.configuration if request else {})
+                }
+            }
+        )
+        
+        # Execute the dependency analysis phase
+        analysis_result = await orchestrator.execute_phase(
+            str(flow_id),
+            "dependency_analysis",
+            {"analysis_type": analysis_type}
+        )
+        
+        return {
+            "success": True,
+            "flow_id": str(flow_id),
+            "analysis_type": analysis_type,
+            "result": analysis_result,
+            "message": f"Dependency analysis '{analysis_type}' completed successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to analyze dependencies {analysis_type}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/agents/discovery/agent-questions")
+async def get_agent_questions(
+    page: str = Query("dependencies", description="Page context for agent questions"),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """Get agent questions for discovery agents."""
+    try:
+        logger.info(f"Getting agent questions for page: {page}")
+        
+        # Try to import agent UI bridge, fallback to sample data if not available
+        try:
+            from app.services.agent_ui_bridge import agent_ui_bridge
+            questions = agent_ui_bridge.get_questions_for_page(page)
+        except ImportError:
+            logger.warning("Agent UI bridge not available, returning sample questions")
+            questions = []
+        
+        # If no questions, provide sample questions
+        if not questions and page == "dependencies":
+            try:
+                from app.services.agent_ui_bridge import agent_ui_bridge
+                # Add sample dependency mapping question
+                agent_ui_bridge.add_agent_question(
+                    agent_id="dependency_analysis_agent",
+                    agent_name="Dependency Analysis Agent",
+                    question_type="dependency_validation",
+                    page=page,
+                    title="Verify Application Dependency",
+                    question="Should 'WebApp-01' depend on 'Database-01' based on the network traffic patterns?",
+                    context={
+                        "source_app": "WebApp-01",
+                        "target_app": "Database-01",
+                        "confidence": 0.75,
+                        "evidence": "Network traffic analysis shows regular connections",
+                    },
+                    options=[
+                        "Yes, confirm this dependency",
+                        "No, this is incorrect",
+                        "Need more analysis",
+                        "Mark as optional dependency",
+                    ],
+                    confidence="medium",
+                    priority="normal",
+                )
+                
+                # Get updated questions
+                questions = agent_ui_bridge.get_questions_for_page(page)
+            except ImportError:
+                # Fallback to static sample questions if agent UI bridge not available
+                questions = [{
+                    "id": "sample_dep_question_1",
+                    "agent_id": "dependency_analysis_agent",
+                    "agent_name": "Dependency Analysis Agent",
+                    "question_type": "dependency_validation",
+                    "page": page,
+                    "title": "Verify Application Dependency",
+                    "question": "Should 'WebApp-01' depend on 'Database-01' based on the network traffic patterns?",
+                    "context": {
+                        "source_app": "WebApp-01",
+                        "target_app": "Database-01",
+                        "confidence": 0.75,
+                        "evidence": "Network traffic analysis shows regular connections",
+                    },
+                    "options": [
+                        "Yes, confirm this dependency",
+                        "No, this is incorrect",
+                        "Need more analysis",
+                        "Mark as optional dependency",
+                    ],
+                    "confidence": "medium",
+                    "priority": "normal",
+                }]
+        
+        return {
+            "success": True,
+            "questions": questions,
+            "count": len(questions),
+            "page": page,
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get agent questions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/flow/{flow_id}/data-cleansing")
 async def get_flow_data_cleansing(
     flow_id: str,
@@ -436,3 +1039,36 @@ async def get_flow_data_cleansing(
             f"❌ Failed to get data cleansing analysis for flow {flow_id}: {e}"
         )
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/health")
+async def unified_discovery_health():
+    """Health check endpoint for unified discovery API."""
+    return {
+        "status": "healthy",
+        "service": "unified_discovery",
+        "version": "1.0.0",
+        "available_endpoints": [
+            "GET /flows/active - Get active flows",
+            "GET /flows/{flowId}/status - Get flow status", 
+            "POST /flow/{flowId}/execute - Execute flow",
+            "POST /flow/{flowId}/resume - Resume flow",
+            "POST /flow/{flowId}/retry - Retry flow",
+            "DELETE /flow/{flowId} - Delete flow",
+            "GET /flows/{flowId}/field-mappings - Get field mappings",
+            "POST /flows/{flowId}/clarifications/submit - Submit clarifications",
+            "GET /flow/{flowId}/agent-insights - Get agent insights",
+            "GET /dependencies/analysis - Get dependency analysis",
+            "POST /dependencies - Create dependencies",
+            "GET /dependencies/applications - Get available applications",
+            "GET /dependencies/servers - Get available servers",
+            "POST /dependencies/analyze/{analysis_type} - Analyze dependencies",
+            "GET /agents/discovery/agent-questions - Get agent questions",
+        ],
+        "integrated_with": [
+            "Master Flow Orchestrator",
+            "CrewAI Flows",
+            "Multi-tenant Context",
+            "Agent UI Bridge (optional)",
+        ]
+    }

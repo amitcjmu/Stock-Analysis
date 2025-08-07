@@ -128,12 +128,15 @@ class FlowCrewExecutor:
             }
 
             # Map phase names to CrewAI flow phases
+            # Fix: Use actual phase names that match the valid discovery phases
             phase_mapping = {
-                "data_import": "data_import_validation",
-                "field_mapping": "field_mapping",
-                "data_cleansing": "data_cleansing",
-                "asset_creation": "asset_creation",
-                "analysis": "analysis",
+                "data_import": "data_import_validation",  # Maps to execute_data_import_validation
+                "field_mapping": "field_mapping",        # Maps to field mapping methods
+                "data_cleansing": "data_cleansing",      # Maps to execute_data_cleansing  
+                "asset_creation": "asset_creation",      # Maps to create_discovery_assets
+                "asset_inventory": "analysis",           # Maps to execute_analysis_phases
+                "dependency_analysis": "analysis",       # Maps to execute_analysis_phases
+                "tech_debt_analysis": "analysis",        # Maps to execute_analysis_phases
             }
 
             mapped_phase = phase_mapping.get(phase_config.name, phase_config.name)

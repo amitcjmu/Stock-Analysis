@@ -59,8 +59,8 @@ export interface DependencyAnalysisResponse {
 export const getDependencyAnalysis = async (flowId?: string): Promise<DependencyAnalysisResponse> => {
   try {
     const url = flowId
-      ? `/discovery/dependencies/analysis?flow_id=${flowId}`
-      : '/discovery/dependencies/analysis';
+      ? `/unified-discovery/dependencies/analysis?flow_id=${flowId}`  // Updated to unified-discovery endpoint as part of API migration
+      : '/unified-discovery/dependencies/analysis';  // Updated to unified-discovery endpoint as part of API migration
 
     const response = await apiCall(url, {
       headers: getAuthHeaders()
@@ -78,7 +78,7 @@ export const getDependencyAnalysis = async (flowId?: string): Promise<Dependency
  */
 export const createDependency = async (dependency: DependencyCreate): Promise<DependencyResponse> => {
   try {
-    const response = await apiCall('/discovery/dependencies', {
+    const response = await apiCall('/unified-discovery/dependencies', {  // Updated to unified-discovery endpoint as part of API migration
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ export const createDependency = async (dependency: DependencyCreate): Promise<De
  */
 export const getAvailableApplications = async (): Promise<unknown> => {
   try {
-    const response = await apiCall('/discovery/dependencies/applications', {
+    const response = await apiCall('/unified-discovery/dependencies/applications', {  // Updated to unified-discovery endpoint as part of API migration
       headers: getAuthHeaders()
     });
 
@@ -115,7 +115,7 @@ export const getAvailableApplications = async (): Promise<unknown> => {
  */
 export const getAvailableServers = async (): Promise<unknown> => {
   try {
-    const response = await apiCall('/discovery/dependencies/servers', {
+    const response = await apiCall('/unified-discovery/dependencies/servers', {  // Updated to unified-discovery endpoint as part of API migration
       headers: getAuthHeaders()
     });
 

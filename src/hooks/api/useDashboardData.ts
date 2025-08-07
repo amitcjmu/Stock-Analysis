@@ -61,8 +61,8 @@ export const useDashboardData = (): JSX.Element => {
     queryFn: async (): Promise<DashboardData> => {
       // Fetch discovery flows and latest import in parallel but through React Query
       const [discoveryFlowsResponse, dataImportsResponse] = await Promise.allSettled([
-        // Get active Discovery flows
-        apiCall('/api/v1/unified-discovery/flows/active', {
+        // Get active Discovery flows - Updated to unified-discovery as part of API migration
+        apiCall('/api/v1/unified-discovery/flows/active', {  // Updated to unified-discovery endpoint as part of API migration
           method: 'GET',
           headers: getAuthHeaders({ user, client, engagement })
         }),

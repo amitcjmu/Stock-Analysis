@@ -167,7 +167,7 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
     console.log(`🔍 [DiscoveryFlowService] Getting operational status for flow: ${flowId}`);
 
     const response = await apiClient.get<DiscoveryFlowStatusResponse>(
-      `/discovery/flows/${flowId}/status`,
+      `/unified-discovery/flow/${flowId}/status`,  // Updated to unified-discovery endpoint as part of API migration
       {
         headers: {
           'X-Client-Account-Id': clientAccountId,
@@ -183,10 +183,10 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
   async executePhase(flowId: string, phase: string, data: Record<string, unknown>, clientAccountId: string, engagementId: string): Promise<PhaseExecutionResponse> {
     console.log(`🚀 [DiscoveryFlowService] Executing phase ${phase} for flow: ${flowId}`);
 
-    // FIXED: Use discovery flow execution endpoint that only requires client/engagement context
+    // FIXED: Use unified-discovery flow execution endpoint that only requires client/engagement context
     // instead of the master flow endpoint that requires user authentication
     const response = await apiClient.post<PhaseExecutionResponse>(
-      `/discovery/flow/${flowId}/execute`,
+      `/unified-discovery/flow/${flowId}/execute`,  // Updated to unified-discovery endpoint as part of API migration
       {
         phase,
         phase_input: data,
@@ -208,7 +208,7 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
     console.log(`📝 [DiscoveryFlowService] Submitting clarification answers for flow: ${flowId}`);
 
     const response = await apiClient.post<ClarificationSubmissionResponse>(
-      `/discovery/flows/${flowId}/clarifications/submit`,
+      `/unified-discovery/flows/${flowId}/clarifications/submit`,  // Updated to unified-discovery endpoint as part of API migration
       {
         answers,
         client_account_id: clientAccountId,
@@ -230,7 +230,7 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
     console.log(`🔄 [DiscoveryFlowService] Retrying failed flow: ${flowId}`);
 
     const response = await apiClient.post<ApiResponse<{ success: boolean; message?: string }>>(
-      `/discovery/flow/${flowId}/retry`,
+      `/unified-discovery/flow/${flowId}/retry`,  // Updated to unified-discovery endpoint as part of API migration
       {},
       {
         headers: {
