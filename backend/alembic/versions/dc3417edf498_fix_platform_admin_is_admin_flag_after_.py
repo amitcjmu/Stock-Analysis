@@ -11,7 +11,6 @@ Create Date: 2025-07-29 23:59:01.455356
 
 from alembic import op
 
-
 # revision identifiers, used by Alembic.
 revision = "dc3417edf498"
 down_revision = "023_fix_data_imports_foreign_key_constraint"

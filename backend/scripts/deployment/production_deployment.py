@@ -25,7 +25,6 @@ import aiohttp
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from app.core.security.cache_encryption import sanitize_for_logging
 
 # Configure logging
 logging.basicConfig(
@@ -317,7 +316,7 @@ fi
                     capture_output=True,
                 )
 
-        except Exception as e:
+        except Exception:
             logger.error("❌ Backup verification error: [REDACTED]")
             return False
 
@@ -376,7 +375,7 @@ fi
             logger.info("✅ Backend green environment deployed successfully")
             return True
 
-        except Exception as e:
+        except Exception:
             logger.error("❌ Blue-green backend deployment failed")
             return False
 
@@ -432,7 +431,7 @@ fi
             logger.info("✅ Backend rolling update completed successfully")
             return True
 
-        except Exception as e:
+        except Exception:
             logger.error("❌ Rolling backend deployment failed: [REDACTED]")
             return False
 
@@ -468,7 +467,7 @@ fi
                             f"⏳ {environment} backend not ready yet (HTTP {response.status})"
                         )
 
-            except Exception as e:
+            except Exception:
                 logger.debug("Health check error: [REDACTED]")
 
             await asyncio.sleep(10)
@@ -581,7 +580,7 @@ fi
                 )
                 return False
 
-        except Exception as e:
+        except Exception:
             logger.error("❌ Migration validation error: [REDACTED]")
             return False
 
@@ -640,7 +639,7 @@ fi
             logger.info("✅ Frontend green environment deployed successfully")
             return True
 
-        except Exception as e:
+        except Exception:
             logger.error("❌ Blue-green frontend deployment failed")
             return False
 
@@ -696,7 +695,7 @@ fi
             logger.info("✅ Frontend rolling update completed successfully")
             return True
 
-        except Exception as e:
+        except Exception:
             logger.error("❌ Rolling frontend deployment failed: [REDACTED]")
             return False
 
@@ -728,7 +727,7 @@ fi
                             f"⏳ {environment} frontend not ready yet (HTTP {response.status})"
                         )
 
-            except Exception as e:
+            except Exception:
                 logger.debug("Frontend health check error: [REDACTED]")
 
             await asyncio.sleep(10)
@@ -847,7 +846,7 @@ echo "Traffic split updated to {percentage}% green"
                 logger.error("❌ Traffic split update failed: [REDACTED]")
                 return False
 
-        except Exception as e:
+        except Exception:
             logger.error("❌ Traffic split update error: [REDACTED]")
             return False
 
@@ -923,7 +922,7 @@ echo "Traffic split updated to {percentage}% green"
 
                 return error_count / max(total_count, 1)
 
-        except Exception as e:
+        except Exception:
             logger.warning("Error rate check failed: [REDACTED]")
             return 0.0  # Assume no errors if check fails
 
@@ -944,7 +943,7 @@ echo "Traffic split updated to {percentage}% green"
                     else:
                         return 10.0  # High response time for errors
 
-        except Exception as e:
+        except Exception:
             logger.warning("Response time check failed: [REDACTED]")
             return 10.0  # High response time for failures
 
@@ -962,7 +961,7 @@ echo "Traffic split updated to {percentage}% green"
                 logger.error("❌ Traffic rollback failed")
                 return False
 
-        except Exception as e:
+        except Exception:
             logger.error("❌ Traffic rollback error: [REDACTED]")
             return False
 
@@ -1000,7 +999,7 @@ echo "Traffic split updated to {percentage}% green"
             logger.info("✅ Deployment finalization completed")
             return True
 
-        except Exception as e:
+        except Exception:
             logger.error("❌ Deployment finalization failed: [REDACTED]")
             return False
 
@@ -1030,7 +1029,7 @@ echo "Traffic split updated to {percentage}% green"
             else:
                 logger.warning("⚠️  Blue environment cleanup warning: [REDACTED]")
 
-        except Exception as e:
+        except Exception:
             logger.warning("⚠️  Blue environment cleanup error: [REDACTED]")
 
     async def _update_monitoring_configuration(self) -> None:
@@ -1074,7 +1073,7 @@ echo "Monitoring configuration updated"
             else:
                 logger.warning("⚠️  Monitoring update warning: [REDACTED]")
 
-        except Exception as e:
+        except Exception:
             logger.warning("⚠️  Monitoring update error: [REDACTED]")
 
     def _add_issue(
@@ -1207,7 +1206,7 @@ echo "Monitoring configuration updated"
 
             logger.info("✅ Emergency rollback completed")
 
-        except Exception as e:
+        except Exception:
             logger.error("❌ Emergency rollback failed: [REDACTED]")
 
 
@@ -1228,7 +1227,7 @@ async def main():
     except KeyboardInterrupt:
         logger.info("⏹️  Production deployment interrupted by user")
         sys.exit(1)
-    except Exception as e:
+    except Exception:
         logger.error("❌ Production deployment failed with unexpected error")
         sys.exit(1)
 

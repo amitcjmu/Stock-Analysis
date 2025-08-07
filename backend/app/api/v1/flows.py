@@ -769,8 +769,8 @@ async def _recover_corrupted_flow(
         # Check for existing field mappings to determine the current phase
         from sqlalchemy import select
 
-        from app.models.discovery_flow import DiscoveryFlow
         from app.models.data_import.mapping import ImportFieldMapping
+        from app.models.discovery_flow import DiscoveryFlow
 
         # Get the discovery flow record
         discovery_query = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)

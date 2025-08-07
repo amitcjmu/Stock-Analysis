@@ -24,26 +24,26 @@ Analytics Capabilities:
 """
 
 import asyncio
-import time
+
+# JSON import available if needed
+import math
 import statistics
+import time
 from collections import defaultdict, deque
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Tuple
-from concurrent.futures import ThreadPoolExecutor
-
-# JSON import available if needed
-import math
 
 from app.core.logging import get_logger
-from app.services.monitoring.performance_metrics_collector import get_metrics_collector
 from app.services.monitoring.auth_performance_monitor import (
     get_auth_performance_monitor,
 )
 from app.services.monitoring.cache_performance_monitor import (
     get_cache_performance_monitor,
 )
+from app.services.monitoring.performance_metrics_collector import get_metrics_collector
 from app.services.monitoring.system_health_dashboard import get_system_health_dashboard
 
 logger = get_logger(__name__)

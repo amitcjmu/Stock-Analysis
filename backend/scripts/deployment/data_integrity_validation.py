@@ -24,7 +24,6 @@ from sqlalchemy.orm import sessionmaker
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from app.core.security.cache_encryption import sanitize_for_logging
 
 # Configure logging
 logging.basicConfig(
@@ -257,7 +256,7 @@ class DataIntegrityValidator:
                         )
                         count = count_result.scalar()
                         total_records += count
-                    except Exception as e:
+                    except Exception:
                         logger.warning(
                             f"Could not count records in table {table}: [REDACTED]"
                         )
@@ -358,7 +357,7 @@ class DataIntegrityValidator:
                         else:
                             logger.info(f"✅ {check['name']}: OK")
 
-                    except Exception as e:
+                    except Exception:
                         self._add_issue(
                             "referential_integrity",
                             "warning",
@@ -508,7 +507,7 @@ class DataIntegrityValidator:
                             else:
                                 logger.info(f"✅ {check['name']}: OK")
 
-                    except Exception as e:
+                    except Exception:
                         self._add_issue(
                             "data_consistency",
                             "warning",
@@ -603,7 +602,7 @@ class DataIntegrityValidator:
                         else:
                             logger.info(f"✅ {check['name']}: OK")
 
-                    except Exception as e:
+                    except Exception:
                         self._add_issue(
                             "master_flow_orchestrator",
                             "warning",
@@ -1228,7 +1227,7 @@ class DataIntegrityValidator:
                         else:
                             logger.info(f"✅ {check['name']}: OK")
 
-                    except Exception as e:
+                    except Exception:
                         self._add_issue(
                             "data_types",
                             "warning",
@@ -1262,7 +1261,7 @@ class DataIntegrityValidator:
             ] = "completed"
             logger.info("✅ Data type validation completed")
 
-        except Exception as e:
+        except Exception:
             logger.error("❌ Data type validation failed: [REDACTED]")
             self.validation_results["validation_checks"]["data_types"][
                 "status"
@@ -1358,7 +1357,7 @@ class DataIntegrityValidator:
                         else:
                             logger.info(f"✅ {check['name']}: OK")
 
-                    except Exception as e:
+                    except Exception:
                         self._add_issue(
                             "business_rules",
                             "warning",
@@ -1692,7 +1691,7 @@ async def main():
     except KeyboardInterrupt:
         logger.info("⏹️  Data integrity validation interrupted by user")
         sys.exit(1)
-    except Exception as e:
+    except Exception:
         logger.error(
             "❌ Data integrity validation failed with unexpected error: [REDACTED]"
         )

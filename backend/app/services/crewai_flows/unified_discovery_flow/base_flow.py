@@ -12,9 +12,9 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from app.core.context import RequestContext
+from app.core.security.cache_encryption import secure_setattr
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 
-from .crew_coordination import CrewCoordinator
 from .data_utilities import DataUtilities
 from .flow_finalization import FlowFinalizer
 from .flow_initialization import FlowInitializer
@@ -22,7 +22,6 @@ from .flow_management import FlowManager
 from .notification_utilities import NotificationUtilities
 from .phase_handlers import PhaseHandlers
 from .state_management import StateManager
-from app.core.security.cache_encryption import secure_setattr
 
 # CrewAI Flow imports - REAL AGENTS ONLY
 logger = logging.getLogger(__name__)

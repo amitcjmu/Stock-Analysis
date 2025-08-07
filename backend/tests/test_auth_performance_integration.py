@@ -13,16 +13,17 @@ Tests end-to-end integration of auth components including:
 """
 
 import asyncio
-import pytest
 import time
 import uuid
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from app.services.caching.auth_cache_service import (
     AuthCacheService,
-    UserSession,
     UserContext,
+    UserSession,
 )
 from app.services.data_import.storage_manager import ImportStorageManager
 from app.services.monitoring.cache_performance_monitor import (

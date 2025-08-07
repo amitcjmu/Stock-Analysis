@@ -253,8 +253,8 @@ async def create_database_tables():
 
         # Additional models
         try:
-            from app.models.asset import Asset
-            from app.models.migration import Migration
+            from app.models.asset import Asset  # noqa: F401
+            from app.models.migration import Migration  # noqa: F401
 
             logger.info("✅ All models imported successfully")
         except ImportError as e:

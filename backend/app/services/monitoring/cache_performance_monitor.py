@@ -26,15 +26,15 @@ Performance Metrics Tracked:
 import asyncio
 import time
 from collections import defaultdict, deque
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
-from concurrent.futures import ThreadPoolExecutor
 
 from app.core.logging import get_logger
-from app.services.monitoring.performance_metrics_collector import get_metrics_collector
 from app.services.caching.auth_cache_service import get_auth_cache_service
+from app.services.monitoring.performance_metrics_collector import get_metrics_collector
 
 logger = get_logger(__name__)
 

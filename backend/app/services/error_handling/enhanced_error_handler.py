@@ -34,21 +34,21 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.security.cache_encryption import sanitize_for_logging
-from app.services.monitoring.service_health_manager import (
-    ServiceHealthManager,
-    ServiceType,
-    get_service_health_manager,
-)
 from app.services.auth.fallback_orchestrator import (
     FallbackOrchestrator,
     OperationType,
     get_fallback_orchestrator,
 )
+from app.services.monitoring.service_health_manager import (
+    ServiceHealthManager,
+    ServiceType,
+    get_service_health_manager,
+)
 from app.services.recovery.error_recovery_system import (
     ErrorRecoverySystem,
-    RecoveryType,
     FailureCategory,
     RecoveryPriority,
+    RecoveryType,
     get_error_recovery_system,
 )
 

@@ -20,7 +20,6 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from app.core.security.cache_encryption import sanitize_for_logging
 
 # Configure logging
 logging.basicConfig(
@@ -120,7 +119,7 @@ class StagingDeployment:
             return True
 
         except Exception as e:
-            logger.error(f"❌ Staging deployment failed: [REDACTED]")
+            logger.error("❌ Staging deployment failed: [REDACTED]")
             await self._handle_deployment_failure(e)
             return False
 
@@ -171,8 +170,8 @@ class StagingDeployment:
             logger.info(f"✅ Docker Compose: {result.stdout.strip()}")
             return True
 
-        except Exception as e:
-            logger.error(f"❌ Docker environment check failed: [REDACTED]")
+        except Exception:
+            logger.error("❌ Docker environment check failed: [REDACTED]")
             return False
 
     async def _check_environment_variables(self) -> bool:
@@ -236,8 +235,8 @@ class StagingDeployment:
 
             return True
 
-        except Exception as e:
-            logger.error(f"❌ Git state check failed: [REDACTED]")
+        except Exception:
+            logger.error("❌ Git state check failed: [REDACTED]")
             return False
 
     async def _check_database_connectivity(self) -> bool:
@@ -260,8 +259,8 @@ class StagingDeployment:
             logger.info("✅ Staging database connectivity verified")
             return True
 
-        except Exception as e:
-            logger.error(f"❌ Database connectivity check failed: [REDACTED]")
+        except Exception:
+            logger.error("❌ Database connectivity check failed: [REDACTED]")
             return False
 
     async def _validate_docker_compose_config(self) -> bool:
@@ -289,8 +288,8 @@ class StagingDeployment:
             logger.info("✅ Docker Compose configuration validated")
             return True
 
-        except Exception as e:
-            logger.error(f"❌ Docker Compose validation failed: [REDACTED]")
+        except Exception:
+            logger.error("❌ Docker Compose validation failed: [REDACTED]")
             return False
 
     async def _check_staging_resources(self) -> bool:
@@ -318,8 +317,8 @@ class StagingDeployment:
 
             return True
 
-        except Exception as e:
-            logger.warning(f"⚠️  Resource check failed: [REDACTED]")
+        except Exception:
+            logger.warning("⚠️  Resource check failed: [REDACTED]")
             return True  # Non-critical
 
     async def _build_and_deploy_services(self) -> bool:
@@ -372,8 +371,8 @@ class StagingDeployment:
             logger.info("✅ Services deployed successfully")
             return True
 
-        except Exception as e:
-            logger.error(f"❌ Service deployment failed: [REDACTED]")
+        except Exception:
+            logger.error("❌ Service deployment failed: [REDACTED]")
             return False
 
     async def _run_data_migration(self) -> bool:
@@ -432,8 +431,8 @@ class StagingDeployment:
             logger.info("✅ Data migration completed")
             return True
 
-        except Exception as e:
-            logger.error(f"❌ Data migration failed: [REDACTED]")
+        except Exception:
+            logger.error("❌ Data migration failed: [REDACTED]")
             return False
 
     async def _perform_health_checks(self) -> bool:
@@ -492,7 +491,7 @@ class StagingDeployment:
                             f"❌ {service} health check failed: {response.status_code}"
                         )
                         return False
-                except requests.RequestException as e:
+                except requests.RequestException:
                     logger.error(f"❌ {service} health check failed: [REDACTED]")
                     return False
 
@@ -523,7 +522,7 @@ class StagingDeployment:
                     logger.error(f"❌ {service} not ready")
                     return False
 
-        except Exception as e:
+        except Exception:
             logger.error(f"❌ Health check failed for {service}: [REDACTED]")
             return False
 
@@ -575,15 +574,15 @@ class StagingDeployment:
                             f"❌ API endpoint {endpoint}: {response.status_code}"
                         )
                         return False
-                except requests.RequestException as e:
+                except requests.RequestException:
                     logger.error(f"❌ API endpoint {endpoint} failed: [REDACTED]")
                     return False
 
             self.deployment_state["validation"]["backend_api"] = "passed"
             return True
 
-        except Exception as e:
-            logger.error(f"❌ Backend API validation failed: [REDACTED]")
+        except Exception:
+            logger.error("❌ Backend API validation failed: [REDACTED]")
             return False
 
     async def _validate_frontend_access(self) -> bool:
@@ -602,8 +601,8 @@ class StagingDeployment:
                 logger.error(f"❌ Frontend not accessible: {response.status_code}")
                 return False
 
-        except Exception as e:
-            logger.error(f"❌ Frontend validation failed: [REDACTED]")
+        except Exception:
+            logger.error("❌ Frontend validation failed: [REDACTED]")
             return False
 
     async def _validate_database_schema(self) -> bool:
@@ -634,8 +633,8 @@ class StagingDeployment:
                 logger.error(f"❌ Database schema validation failed: {result.stderr}")
                 return False
 
-        except Exception as e:
-            logger.error(f"❌ Database schema validation failed: [REDACTED]")
+        except Exception:
+            logger.error("❌ Database schema validation failed: [REDACTED]")
             return False
 
     async def _validate_master_flow_orchestrator(self) -> bool:
@@ -705,8 +704,8 @@ asyncio.run(test_mfo())
                 )
                 return False
 
-        except Exception as e:
-            logger.error(f"❌ Master Flow Orchestrator validation failed: [REDACTED]")
+        except Exception:
+            logger.error("❌ Master Flow Orchestrator validation failed: [REDACTED]")
             return False
 
     async def _validate_authentication(self) -> bool:
@@ -738,7 +737,7 @@ asyncio.run(test_mfo())
                 )  # nosec B106 - Only logging operational data not sensitive info
                 return False
 
-        except Exception as e:
+        except Exception:
             logger.error(
                 "❌ Authentication validation failed"
             )  # nosec B106 - Only logging operational data not sensitive info
@@ -842,11 +841,11 @@ asyncio.run(test_mfo())
 
                     logger.info(f"📄 {service} logs saved: {log_file}")
 
-                except Exception as e:
+                except Exception:
                     logger.error(f"Failed to collect {service} logs: [REDACTED]")
 
-        except Exception as e:
-            logger.error(f"Failed to collect failure logs: [REDACTED]")
+        except Exception:
+            logger.error("Failed to collect failure logs: [REDACTED]")
 
 
 async def main():
@@ -866,8 +865,8 @@ async def main():
     except KeyboardInterrupt:
         logger.info("⏹️  Deployment interrupted by user")
         sys.exit(1)
-    except Exception as e:
-        logger.error(f"❌ Deployment failed with unexpected error: [REDACTED]")
+    except Exception:
+        logger.error("❌ Deployment failed with unexpected error: [REDACTED]")
         sys.exit(1)
 
 

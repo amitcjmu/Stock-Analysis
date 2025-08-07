@@ -6,7 +6,7 @@ import enum
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Text, UUID
+from sqlalchemy import UUID, Column, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base

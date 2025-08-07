@@ -8,8 +8,8 @@ from abc import abstractmethod
 from typing import Any, Dict, List
 
 from app.core.context import get_current_context
-from app.services.agents.metadata import AgentMetadata
 from app.core.security.cache_encryption import secure_setattr
+from app.services.agents.metadata import AgentMetadata
 
 # Optional CrewAI import
 try:

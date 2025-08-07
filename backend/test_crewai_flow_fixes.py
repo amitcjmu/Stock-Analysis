@@ -12,11 +12,11 @@ Generated with CC (Claude Code)
 
 import asyncio
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
-from app.services.crewai_flows.agents.decision.phase_transition import PhaseTransitionAgent
 from app.services.crewai_flow_service import CrewAIFlowService
+from app.services.crewai_flows.agents.decision.phase_transition import PhaseTransitionAgent
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

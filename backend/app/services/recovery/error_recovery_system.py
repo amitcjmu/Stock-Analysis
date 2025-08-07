@@ -39,15 +39,15 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.services.monitoring.service_health_manager import (
-    ServiceHealthManager,
-    ServiceType,
-    get_service_health_manager,
-)
 from app.services.auth.fallback_orchestrator import (
     FallbackOrchestrator,
     OperationType,
     get_fallback_orchestrator,
+)
+from app.services.monitoring.service_health_manager import (
+    ServiceHealthManager,
+    ServiceType,
+    get_service_health_manager,
 )
 
 logger = get_logger(__name__)

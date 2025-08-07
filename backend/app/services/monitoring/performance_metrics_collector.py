@@ -23,14 +23,14 @@ Metrics Categories:
 """
 
 import asyncio
-import time
 import threading
+import time
 from collections import defaultdict, deque
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union, Callable
-from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from app.core.logging import get_logger
 

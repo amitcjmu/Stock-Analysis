@@ -10,6 +10,12 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# Import security utilities for cache protection
+from app.core.security.cache_encryption import (
+    encrypt_for_cache,
+    is_sensitive_field,
+    secure_setattr,
+)
 from app.models.assessment_flow import AssessmentFlow
 from app.models.assessment_flow_state import (
     ApplicationArchitectureOverride as ApplicationArchitectureOverrideState,
@@ -45,13 +51,6 @@ from .queries import AnalyticsQueries, FlowQueries, StateQueries
 
 # Import specifications
 from .specifications import FlowSpecifications
-
-# Import security utilities for cache protection
-from app.core.security.cache_encryption import (
-    encrypt_for_cache,
-    is_sensitive_field,
-    secure_setattr,
-)
 
 logger = logging.getLogger(__name__)
 

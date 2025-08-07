@@ -8,6 +8,6 @@ This module provides Redis-based caching for:
 - Pattern learning cache
 """
 
-from .redis_cache import get_redis_cache, RedisCache
+from .redis_cache import RedisCache, get_redis_cache
 
 __all__ = ["get_redis_cache", "RedisCache"]

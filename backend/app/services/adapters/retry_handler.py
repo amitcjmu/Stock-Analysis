@@ -293,11 +293,11 @@ class ErrorClassifier:
 
     def update_pattern(self, error_type: ErrorType, **kwargs):
         """Update an existing error pattern"""
-        from app.core.security.secure_setattr import secure_setattr, SAFE_ATTRIBUTES
         from app.core.security.cache_encryption import (
             encrypt_for_cache,
             is_sensitive_field,
         )
+        from app.core.security.secure_setattr import SAFE_ATTRIBUTES, secure_setattr
 
         for pattern in self._error_patterns:
             if pattern.error_type == error_type:

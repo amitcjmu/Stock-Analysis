@@ -15,16 +15,16 @@ import asyncio
 # import json  # unused import
 # import logging  # unused import
 import time
-from datetime import datetime
-from typing import Dict, Any, List, Optional
-from dataclasses import dataclass, asdict
 from collections import defaultdict, deque
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from opentelemetry import trace, metrics
+from opentelemetry import metrics, trace
 from opentelemetry.trace import Status, StatusCode
 
 # from opentelemetry.metrics import CallbackOptions, Observation  # unused imports
-from prometheus_client import Counter, Histogram, Gauge, Info
+from prometheus_client import Counter, Gauge, Histogram, Info
 
 # from app.core.config import settings  # unused import
 from app.core.logging import get_logger

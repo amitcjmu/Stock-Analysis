@@ -35,9 +35,9 @@ logger = logging.getLogger(__name__)
 
 try:
     from app.core.database import AsyncSessionLocal
-    from app.core.security.cache_encryption import sanitize_for_logging
+    from app.core.security.cache_encryption import sanitize_for_logging  # noqa: F401
     from app.models.data_import.core import DataImport, RawImportRecord
-except ImportError as e:
+except ImportError:
     logger.error("Failed to import application modules: [REDACTED]")
     logger.error("Make sure to run this script from the backend directory")
     exit(1)
@@ -255,7 +255,7 @@ class DataIntegrityValidator:
                 "missing_constraints": missing_constraints,
             }
 
-        except Exception as e:
+        except Exception:
             logger.error(
                 "❌ Foreign key validation failed"
             )  # nosec B106 - Only logging operational data not sensitive info
@@ -1124,7 +1124,7 @@ async def main():
             logger.error("❌ Data integrity validation failed")
             exit(1)
 
-    except Exception as e:
+    except Exception:
         logger.error("❌ Validation script failed: [REDACTED]")
         exit(1)
 

@@ -6,8 +6,9 @@ Create Date: 2025-08-02 10:30:00.000000
 
 """
 
-from alembic import op
 from sqlalchemy.sql import text
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "025_migrate_8r_to_5r_strategies"

@@ -6,8 +6,9 @@ Create Date: 2025-07-28
 
 """
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "023_fix_data_imports_foreign_key_constraint"

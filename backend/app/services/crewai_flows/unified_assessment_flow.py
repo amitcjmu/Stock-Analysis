@@ -66,6 +66,7 @@ except ImportError as e:
 
 # Import models and dependencies
 from app.core.context import RequestContext
+from app.core.security.cache_encryption import secure_setattr
 from app.models.assessment_flow import (
     AssessmentFlowError,
     AssessmentFlowState,
@@ -75,7 +76,6 @@ from app.models.assessment_flow import (
 )
 from app.services.crewai_flows.flow_state_manager import FlowStateManager
 from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
-from app.core.security.cache_encryption import secure_setattr
 
 
 class FlowContext:

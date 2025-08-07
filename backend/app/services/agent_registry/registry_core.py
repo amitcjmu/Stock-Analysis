@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from app.core.security.cache_encryption import secure_setattr
+
 from .base import AgentPhase, AgentRegistration, AgentStatus
 
 logger = logging.getLogger(__name__)

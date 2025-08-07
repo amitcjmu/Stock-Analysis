@@ -7,9 +7,9 @@ tasks using multiple tools and comprehensive knowledge of the platform.
 
 import json
 import logging
+import re
 
 from app.core.security.cache_encryption import secure_setattr
-import re
 
 try:
     from crewai import Agent, Crew, Process, Task

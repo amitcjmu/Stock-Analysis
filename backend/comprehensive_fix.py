@@ -7,7 +7,10 @@ import ast
 import os
 import re
 
-# autopep8 import removed - not used
+try:
+    import autopep8
+except ImportError:
+    autopep8 = None
 
 
 def fix_python_file(filepath) -> bool | None:
@@ -24,6 +27,8 @@ def fix_python_file(filepath) -> bool | None:
             pass
 
         # Use autopep8 to fix syntax and style issues
+        if not autopep8:
+            return None  # autopep8 not available
         fixed_content = autopep8.fix_code(
             content,
             options={

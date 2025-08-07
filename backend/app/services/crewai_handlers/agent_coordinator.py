@@ -18,7 +18,6 @@ class AgentCoordinator:
     def _initialize_dependencies(self):
         """Initialize dependencies with graceful fallbacks."""
         try:
-            from app.services.agents import AgentManager
             from app.services.memory import AgentMemory
 
             self.memory = AgentMemory()

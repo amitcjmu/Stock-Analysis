@@ -7,6 +7,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from app.core.security.cache_encryption import secure_setattr
+
 from .sixr_handlers import ToolManager
 
 logger = logging.getLogger(__name__)

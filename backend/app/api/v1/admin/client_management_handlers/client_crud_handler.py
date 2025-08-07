@@ -10,13 +10,13 @@ from fastapi import HTTPException
 from sqlalchemy import and_, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security.cache_encryption import secure_setattr
 from app.schemas.admin_schemas import (
     AdminSuccessResponse,
     ClientAccountCreate,
     ClientAccountResponse,
     ClientAccountUpdate,
 )
-from app.core.security.cache_encryption import secure_setattr
 
 # Import models with fallback
 try:
@@ -548,7 +548,7 @@ class ClientCRUDHandler:
 
             # Active clients (based on is_active field)
             active_clients_query = select(func.count()).where(
-                ClientAccount.is_active == True
+                ClientAccount.is_active is True
             )  # noqa: E712
             active_clients = (await db.execute(active_clients_query)).scalar_one()
 

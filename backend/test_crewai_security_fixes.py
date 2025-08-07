@@ -29,9 +29,9 @@ try:
     from app.constants.cache_keys import CacheKeys, SensitiveDataMarkers
     from app.core.context import RequestContext
     from app.core.security.cache_encryption import cache_encryption, is_sensitive_field
-    from app.services.crewai_flows.persistence.secure_checkpoint_manager import SecureCheckpointManager
-    from app.services.crewai_flows.security_validator import validate_crewai_security, log_security_violations
     from app.services.agents.secure_registry import SecureAgentRegistry
+    from app.services.crewai_flows.persistence.secure_checkpoint_manager import SecureCheckpointManager
+    from app.services.crewai_flows.security_validator import log_security_violations, validate_crewai_security
 except ImportError as e:
     logger.error(f"Failed to import required modules: {e}")
     logger.error("Please ensure you're running this from the backend directory")
