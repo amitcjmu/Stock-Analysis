@@ -9,7 +9,7 @@ model_tables_raw = subprocess.run(
     ["grep", "-h", "__tablename__", "app/models/*.py"],
     capture_output=True,
     text=True,
-    shell=True,
+    shell=False,
 ).stdout
 model_tables = []
 for line in model_tables_raw.split("\n"):

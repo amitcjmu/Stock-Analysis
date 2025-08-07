@@ -58,6 +58,7 @@ def test_import_context():
             check_response = requests.get(
                 "http://localhost:8000/api/v1/data-import/critical-attributes-status",
                 headers=marathon_headers,
+                timeout=30,
             )
             check_data = check_response.json()
             print(
@@ -80,6 +81,7 @@ def test_import_context():
         demo_check_response = requests.get(
             "http://localhost:8000/api/v1/data-import/critical-attributes-status",
             headers=demo_headers,
+            timeout=30,
         )
         demo_check_data = demo_check_response.json()
         print(

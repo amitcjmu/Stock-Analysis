@@ -7,6 +7,7 @@ This module handles flow lifecycle operations:
 - Flow state transitions
 """
 
+import asyncio
 import hashlib
 import logging
 import time
@@ -673,8 +674,13 @@ async def submit_discovery_feedback(
             },
         }
 
-        # Submit feedback using the existing handler
-        result = await feedback_handler.submit_feedback(feedback_data)
+        # Submit feedback using the existing handler with timeout
+        try:
+            result = await asyncio.wait_for(
+                feedback_handler.submit_feedback(feedback_data), timeout=30.0
+            )
+        except asyncio.TimeoutError:
+            raise HTTPException(status_code=504, detail="Feedback submission timed out")
 
         # Check if the feedback was processed successfully
         if not result.get("status") == "success":

@@ -89,23 +89,56 @@ export const FlowsOverview: React.FC<FlowsOverviewProps> = ({
       <h2 className="text-xl font-semibold text-gray-900">Active Discovery Flows</h2>
 
       <div className="grid gap-4">
-        {flows.map((flow) => {
-          // Defensive check: Skip flows without valid flow_id
-          if (!flow.flow_id) {
-            console.error('❌ Flow missing flow_id:', flow);
-            return null; // Skip rendering this flow
-          }
+        {flows
+          .filter((flow) => {
+            // More comprehensive flow_id validation
+            if (!flow || typeof flow !== 'object') {
+              console.error('❌ Invalid flow object:', flow);
+              return false;
+            }
+            if (!flow.flow_id || typeof flow.flow_id !== 'string' || flow.flow_id.trim() === '') {
+              console.error('❌ Flow missing or invalid flow_id:', {
+                flow_id: flow.flow_id,
+                type: typeof flow.flow_id,
+                engagement_name: flow.engagement_name || 'Unknown',
+                full_flow: flow
+              });
+              return false;
+            }
+            return true;
+          })
+          .map((flow, index) => {
+          // Since we've already filtered for flow_id existence, we know it's safe
+          // But add additional validation for corruption detection with error handling
+          let validation: { validated: boolean; issues: string[]; flow_id?: string } = {
+            validated: true,
+            issues: []
+          };
 
-          // Validate flow ID and detect corruption
-          const validation = validateFlowObject(flow, 'FlowsOverview');
+          try {
+            validation = validateFlowObject(flow, 'FlowsOverview');
+          } catch (error) {
+            console.error('❌ Flow validation threw error:', error, 'for flow:', flow);
+            validation = { validated: false, issues: [`Validation error: ${error}`] };
+          }
 
           if (!validation.validated) {
-            console.error('❌ Flow validation failed:', validation.issues);
-            debugUUID(flow.flow_id, `Corrupted Flow ID for ${flow.engagement_name}`);
+            console.warn('⚠️ Flow validation failed but proceeding with render:', validation.issues);
+            // Only call debugUUID if flow_id exists and is a string
+            if (flow.flow_id && typeof flow.flow_id === 'string') {
+              try {
+                debugUUID(flow.flow_id, `Corrupted Flow ID for ${flow.engagement_name || 'Unknown'}`);
+              } catch (debugError) {
+                console.error('❌ Debug UUID failed:', debugError);
+              }
+            }
           }
 
+          // Use flow_id as key, with fallback to index for safety
+          const cardKey = flow.flow_id || `flow-${index}`;
+
           return (
-          <Card key={flow.flow_id} className="border border-gray-200">
+          <Card key={cardKey} className="border border-gray-200">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">

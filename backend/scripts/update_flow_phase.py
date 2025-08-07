@@ -9,6 +9,7 @@ import logging
 from sqlalchemy import text
 
 from app.core.database import AsyncSessionLocal
+from app.core.security.secure_logging import mask_id
 
 # Configure logging
 logging.basicConfig(
@@ -31,7 +32,8 @@ async def update_flow_state():
                 SET current_phase = 'data_cleansing',
                     field_mapping_completed = true,
                     progress_percentage = 33.3,
-                    phases_completed = COALESCE(phases_completed, '[]'::json)::jsonb || '["field_mapping_approval"]'::jsonb,
+                    phases_completed = COALESCE(phases_completed, '[]'::json)::jsonb
+                                       || '["field_mapping_approval"]'::jsonb,
                     updated_at = NOW()
                 WHERE flow_id = :flow_id
             """
@@ -40,7 +42,8 @@ async def update_flow_state():
             await db.execute(update_discovery_query, {"flow_id": FLOW_ID})
             await db.commit()
             logger.info(
-                f"✅ Updated discovery flow phase to data_cleansing for flow ***{FLOW_ID[-8:]}"
+                f"✅ Updated discovery flow phase to data_cleansing "
+                f"for flow {mask_id(FLOW_ID)}"  # nosec B106
             )
 
             # Update crewai_flow_state_extensions table
@@ -73,7 +76,7 @@ async def update_flow_state():
             await db.execute(update_state_query, {"flow_id": FLOW_ID})
             await db.commit()
             logger.info(
-                f"✅ Updated crewai flow state to continue processing for flow ***{FLOW_ID[-8:]}"
+                f"✅ Updated crewai flow state to continue processing for flow {mask_id(FLOW_ID)}"  # nosec B106
             )
 
             # Trigger flow resume by updating a timestamp

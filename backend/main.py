@@ -46,6 +46,8 @@ try:
         patch_litellm_response_parsing,
     )
 
+    # Apply the response parsing fix
+    patch_litellm_response_parsing()
     logger = logging.getLogger(__name__)
     logger.info("✅ DeepInfra response fixer module loaded")
 except ImportError as e:
@@ -65,6 +67,7 @@ except ImportError:
 # Import our structured logging module
 try:
     from app.core.logging import configure_logging, get_logger, set_trace_id
+    from app.core.security.secure_logging import mask_string
 
     STRUCTURED_LOGGING_AVAILABLE = True
 except ImportError:
@@ -453,12 +456,15 @@ def get_cors_origins():
 
 cors_origins = get_cors_origins()
 
-logger.info(f"🌐 CORS Origins configured: {cors_origins}")
+# Log CORS origins with masking for security (avoid B106)
+masked_origins = [mask_string(origin, show_chars=12) if 'localhost' not in origin else origin for origin in cors_origins]
+logger.info(f"🌐 CORS Origins configured: {masked_origins}")  # nosec B106
 logger.info(f"🌐 Total CORS origins: {len(cors_origins)}")
 
-# Debug: Print each origin
+# Debug: Print each origin (masked for security)
 for i, origin in enumerate(cors_origins):
-    logger.info(f"🌐 CORS Origin {i+1}: {origin}")
+    masked_origin = mask_string(origin, show_chars=12) if 'localhost' not in origin else origin
+    logger.info(f"🌐 CORS Origin {i+1}: {masked_origin}")  # nosec B106
 
 # Add context middleware (Task 1.2.3)
 ENABLE_MIDDLEWARE = True  # Production setting
@@ -588,7 +594,9 @@ else:
 # Add CORS middleware LAST so it executes FIRST (middleware runs in reverse order)
 # This ensures CORS headers are added to ALL responses, including error responses
 logger.info("🌐 Adding CORS middleware with the following configuration:")
-logger.info(f"🌐 allow_origins: {cors_origins}")
+# Log allow_origins with masking (avoid B106)
+masked_origins_for_middleware = [mask_string(origin, show_chars=12) if 'localhost' not in origin else origin for origin in cors_origins]
+logger.info(f"🌐 allow_origins: {masked_origins_for_middleware}")  # nosec B106
 logger.info("🌐 allow_credentials: True")
 logger.info("🌐 allow_methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH']")
 

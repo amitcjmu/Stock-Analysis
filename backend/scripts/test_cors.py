@@ -23,7 +23,7 @@ def test_cors_preflight(
     # Test 1: Basic health check
     print("\n1️⃣ Testing basic health endpoint...")
     try:
-        response = requests.get(f"{backend_url}/health")
+        response = requests.get(f"{backend_url}/health", timeout=10)
         print(f"   ✅ Health check: {response.status_code} - {response.json()}")
     except Exception as e:
         print(f"   ❌ Health check failed: {e}")
@@ -38,7 +38,9 @@ def test_cors_preflight(
     }
 
     try:
-        response = requests.options(f"{backend_url}/api/v1/context/me", headers=headers)
+        response = requests.options(
+            f"{backend_url}/api/v1/context/me", headers=headers, timeout=10
+        )
         print(f"   Status: {response.status_code}")
 
         # Check CORS headers
@@ -86,7 +88,9 @@ def test_cors_preflight(
 
     try:
         response = requests.get(
-            f"{backend_url}/api/v1/context-establishment/clients", headers=headers
+            f"{backend_url}/api/v1/context-establishment/clients",
+            headers=headers,
+            timeout=10,
         )
         print(f"   Status: {response.status_code}")
 

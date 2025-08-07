@@ -10,6 +10,7 @@ import os
 from urllib.parse import urlparse
 
 import asyncpg
+import psycopg2.extensions
 
 
 async def main():
@@ -182,16 +183,25 @@ async def main():
             },
         }
 
+        # Whitelist of allowed columns for security
+        allowed_client_columns = {
+            "settings",
+            "branding",
+            "business_objectives",
+            "it_guidelines",
+            "decision_criteria",
+            "agent_preferences",
+        }
+
         for col, default_val in json_defaults.items():
+            if col not in allowed_client_columns:
+                print(f"  ❌ Unauthorized column access attempted: {col}")
+                continue
+
             try:
-                await conn.execute(
-                    f"""
-                    UPDATE client_accounts
-                    SET {col} = $1::json
-                    WHERE {col} IS NULL
-                """,
-                    json.dumps(default_val),
-                )
+                # Use identifier quoting for column name
+                query = f"UPDATE client_accounts SET {psycopg2.extensions.quote_ident(col, None)} = $1::json WHERE {psycopg2.extensions.quote_ident(col, None)} IS NULL"
+                await conn.execute(query, json.dumps(default_val))
                 print(f"  ✅ Set {col} defaults")
             except Exception as e:
                 print(f"  ❌ Failed to set {col}: {e}")
@@ -219,16 +229,18 @@ async def main():
             },
         }
 
+        # Whitelist of allowed engagement columns for security
+        allowed_engagement_columns = {"migration_scope", "team_preferences"}
+
         for col, default_val in engagement_defaults.items():
+            if col not in allowed_engagement_columns:
+                print(f"  ❌ Unauthorized column access attempted: {col}")
+                continue
+
             try:
-                await conn.execute(
-                    f"""
-                    UPDATE engagements
-                    SET {col} = $1::json
-                    WHERE {col} IS NULL
-                """,
-                    json.dumps(default_val),
-                )
+                # Use identifier quoting for column name
+                query = f"UPDATE engagements SET {psycopg2.extensions.quote_ident(col, None)} = $1::json WHERE {psycopg2.extensions.quote_ident(col, None)} IS NULL"
+                await conn.execute(query, json.dumps(default_val))
                 print(f"  ✅ Set {col} defaults")
             except Exception as e:
                 print(f"  ❌ Failed to set {col}: {e}")
