@@ -52,11 +52,11 @@ export const useIncompleteFlowDetection = (): unknown => {
         const allFlows = Array.isArray(response) ? response : (response.flows || []);
         // Filter flows
 
-        // Filter for incomplete flows (not completed or failed)
+        // Filter for incomplete flows (match backend logic: not completed, cancelled, or deleted)
         const incompleteFlows = allFlows.filter((flow: unknown) =>
           flow.status !== 'completed' &&
-          flow.status !== 'failed' &&
-          flow.status !== 'error'
+          flow.status !== 'cancelled' &&
+          flow.status !== 'deleted'
         ).map((flow: unknown) => {
           // Get the flow ID from various possible fields
           const flowId = flow.master_flow_id || flow.flowId || flow.flow_id;

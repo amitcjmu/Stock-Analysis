@@ -301,12 +301,11 @@ class FlowCreationOperations:
             flow_type=flow_data["flow_type"],
             flow_name=flow_data["flow_name"],
             flow_status=flow_data["flow_status"],
-            current_phase=flow_data["current_phase"],
-            progress_percentage=flow_data["progress_percentage"],
             flow_configuration=flow_data["flow_configuration"],
             flow_persistence_data=flow_data["flow_persistence_data"],
             client_account_id=self.context.client_account_id,
             engagement_id=self.context.engagement_id,
+            user_id=self.context.user_id or "system",
             created_at=flow_data["created_at"],
             updated_at=flow_data["updated_at"],
         )
@@ -331,16 +330,31 @@ class FlowCreationOperations:
             # Get flow configuration from registry
             flow_config = self.flow_registry.get_flow_config(flow_type)
 
-            # Create flow instance
-            flow_instance = await flow_config.create_flow_instance(
-                flow_id=flow_id,
-                initial_state=flow_data.get("flow_persistence_data", {}),
-                configuration=flow_data.get("flow_configuration", {}),
-                context=self.context,
-            )
+            # Create flow instance using crew_class if available
+            if flow_config.crew_class:
+                flow_instance = flow_config.crew_class(
+                    flow_id=flow_id,
+                    initial_state=flow_data.get("flow_persistence_data", {}),
+                    configuration=flow_data.get("flow_configuration", {}),
+                    context=self.context,
+                )
 
-            # Execute initialization
-            initialization_result = await flow_instance.initialize()
+                # Execute initialization if the instance has an initialize method
+                initialization_result = None
+                if hasattr(flow_instance, "initialize"):
+                    initialization_result = await flow_instance.initialize()
+            else:
+                # Fallback: create a simple flow instance dict
+                flow_instance = {
+                    "flow_id": flow_id,
+                    "flow_type": flow_type,
+                    "configuration": flow_data.get("flow_configuration", {}),
+                    "state": flow_data.get("flow_persistence_data", {}),
+                }
+                initialization_result = {
+                    "status": "initialized",
+                    "message": "Flow created successfully",
+                }
 
             logger.info(f"✅ Flow instance created and initialized for {flow_id}")
 

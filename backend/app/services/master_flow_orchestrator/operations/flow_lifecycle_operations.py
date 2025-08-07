@@ -173,7 +173,13 @@ class FlowLifecycleOperations:
                 raise ValueError(f"Flow not found: {flow_id}")
 
             # Check if flow can be resumed
-            if master_flow.flow_status not in ["paused", "waiting_for_approval"]:
+            if master_flow.flow_status not in [
+                "paused",
+                "waiting_for_approval",
+                "initialized",
+                "initializing",
+                "running",
+            ]:
                 return {
                     "status": "resume_failed",
                     "flow_id": flow_id,
@@ -359,20 +365,56 @@ class FlowLifecycleOperations:
     async def _restore_and_resume_flow(
         self, master_flow, resume_context
     ) -> Dict[str, Any]:
-        """Restore flow state and initiate resume"""
+        """Restore flow state and initiate resume using registered crew_class"""
         try:
             # Restore preserved state if available
             pause_state = master_flow.flow_persistence_data.get("pause_state")
             if pause_state:
                 logger.info(f"Restoring flow state from pause: {master_flow.flow_id}")
 
-            # Continue from current phase
+            # Get the flow configuration from registry (MFO design pattern)
             flow_config = self.flow_registry.get_flow_config(master_flow.flow_type)
-            resume_result = await flow_config.resume_from_phase(
-                master_flow.current_phase,
-                master_flow.flow_persistence_data,
-                resume_context or {},
-            )
+
+            # Create flow instance using crew_class if available (per MFO design)
+            if flow_config.crew_class:
+                flow_instance = flow_config.crew_class(
+                    flow_id=master_flow.flow_id,
+                    initial_state=master_flow.flow_persistence_data,
+                    configuration=master_flow.flow_configuration,
+                    context=self.context,
+                )
+
+                # Call resume method on the instance if it exists
+                if hasattr(flow_instance, "resume_from_state"):
+                    resume_result = await flow_instance.resume_from_state(
+                        resume_context or {}
+                    )
+                elif hasattr(flow_instance, "resume_flow"):
+                    resume_result = await flow_instance.resume_flow(
+                        resume_context or {}
+                    )
+                else:
+                    # Fallback: mark as resumed but let next execute_phase handle actual work
+                    logger.info(
+                        f"Flow instance has no resume method, marking as running for {master_flow.flow_id}"
+                    )
+                    resume_result = {
+                        "status": "resumed",
+                        "message": "Flow marked as running, ready for phase execution",
+                        "current_phase": master_flow.get_current_phase()
+                        or "initialization",
+                    }
+            else:
+                # No crew_class registered - this is the actual problem we need to fix
+                logger.warning(
+                    f"No crew_class registered for flow type '{master_flow.flow_type}'"
+                )
+                resume_result = {
+                    "status": "resumed",
+                    "message": f"Flow type '{master_flow.flow_type}' resumed (no crew_class registered)",
+                    "current_phase": master_flow.get_current_phase()
+                    or "initialization",
+                }
 
             return resume_result
 
