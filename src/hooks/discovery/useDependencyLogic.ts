@@ -184,7 +184,7 @@ export const useDependencyLogic = (flowId?: string): {
 
     try {
       const { apiCall } = await import('@/config/api');
-      const response = await apiCall('/discovery/dependencies/analysis');
+      const response = await apiCall('/unified-discovery/dependencies/analysis');  // Updated to unified-discovery endpoint as part of API migration
 
       if (response) {
         console.log('✅ Fetched persisted dependencies from database:', response);

@@ -225,7 +225,7 @@ export const masterFlowService = {
       const params = new URLSearchParams();
       if (flowType) params.append('flowType', flowType);
 
-      const endpoint = `/discovery/flows/active${params.toString() ? `?${params}` : ''}`;
+      const endpoint = `/unified-discovery/flows/active${params.toString() ? `?${params}` : ''}`;  // Updated to unified-discovery endpoint as part of API migration
       const headers = getMultiTenantHeaders(clientAccountId, engagementId);
 
       console.log('🔍 MasterFlowService.getActiveFlows - Making API call:', {
@@ -279,22 +279,22 @@ export const masterFlowService = {
     engagementId?: string
   ): Promise<void> {
     try {
-      // First try to delete via discovery flow endpoint
-      await apiClient.delete(`/discovery/flow/${flowId}`, undefined, {
+      // First try to delete via unified-discovery flow endpoint
+      await apiClient.delete(`/unified-discovery/flow/${flowId}`, undefined, {  // Updated to unified-discovery endpoint as part of API migration
         headers: getMultiTenantHeaders(clientAccountId, engagementId),
       });
     } catch (error) {
       // If master flow delete fails with 404, try discovery flow endpoint
       const apiError = error as EnhancedApiError;
       if (apiError?.response?.status === 404 || apiError?.status === 404) {
-        console.log('Master flow not found, trying discovery flow delete endpoint...');
+        console.log('Master flow not found, trying unified-discovery flow delete endpoint...');  // Updated message for unified-discovery endpoint migration
         try {
-          await apiClient.delete(`/discovery/flow/${flowId}`, undefined, {
+          await apiClient.delete(`/unified-discovery/flow/${flowId}`, undefined, {  // Updated to unified-discovery endpoint as part of API migration
             headers: getMultiTenantHeaders(clientAccountId, engagementId),
           });
-          return; // Success via discovery endpoint
+          return; // Success via unified-discovery endpoint
         } catch (discoveryError) {
-          console.error('Discovery flow delete also failed:', discoveryError);
+          console.error('Unified-discovery flow delete also failed:', discoveryError);  // Updated message for unified-discovery endpoint migration
           // Continue to throw the original error
         }
       }

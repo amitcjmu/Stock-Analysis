@@ -151,8 +151,8 @@ export class DashboardService {
   private async _performDashboardFetch(user: { id: string } | null, client: { id: string; name?: string } | null, engagement: { id: string } | null): Promise<DashboardData> {
     // Fetch real-time active flows from multiple sources with retry logic
     const [discoveryFlowsResponse, dataImportsResponse] = await Promise.allSettled([
-      // Get active Discovery flows - try the unified discovery flows endpoint first
-      makeApiCallWithRetry<DiscoveryFlowResponse[] | DiscoveryFlowsApiResponse>('/api/v1/discovery/flows/active', {
+      // Get active Discovery flows - Updated to unified-discovery endpoint as part of API migration
+      makeApiCallWithRetry<DiscoveryFlowResponse[] | DiscoveryFlowsApiResponse>('/api/v1/unified-discovery/flows/active', {  // Updated to unified-discovery endpoint as part of API migration
         method: 'GET',
         headers: getAuthHeaders({ user, client, engagement })
       }),
@@ -168,7 +168,7 @@ export class DashboardService {
     // Process Discovery flows
     if (discoveryFlowsResponse.status === 'fulfilled' && discoveryFlowsResponse.value) {
       const discoveryData = discoveryFlowsResponse.value;
-      console.log('📊 Discovery flows data from /discovery/flows/active:', discoveryData);
+      console.log('📊 Discovery flows data from /unified-discovery/flows/active:', discoveryData);  // Updated message for unified-discovery endpoint migration
       console.log('📊 Discovery flows response type:', typeof discoveryData);
       console.log('📊 Discovery flows is array:', Array.isArray(discoveryData));
 
@@ -176,7 +176,7 @@ export class DashboardService {
       let flowsToProcess = [];
 
       if (Array.isArray(discoveryData)) {
-        // Direct array response from /api/v1/discovery/flows/active
+        // Direct array response from /api/v1/unified-discovery/flows/active  // Updated endpoint reference for unified-discovery migration
         flowsToProcess = discoveryData;
         console.log(`📊 Processing ${flowsToProcess.length} flows from discovery API (array response)...`);
       } else if (discoveryData.flows && Array.isArray(discoveryData.flows)) {
@@ -259,7 +259,7 @@ export class DashboardService {
         if (dataImport.id && !allFlows.find(f => f.flow_id === dataImport.id)) {
           try {
             // Get flow status for this import session with retry logic
-            const flowStatusResponse = await makeApiCallWithRetry<FlowStatusResponse>(`/api/v1/unified-discovery/flows/${dataImport.id}/status`, {
+            const flowStatusResponse = await makeApiCallWithRetry<FlowStatusResponse>(`/api/v1/unified-discovery/flow/${dataImport.id}/status`, {
               method: 'GET',
               headers: getAuthHeaders({ user, client, engagement })
             });

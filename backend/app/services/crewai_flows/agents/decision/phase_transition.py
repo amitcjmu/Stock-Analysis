@@ -478,3 +478,132 @@ class PhaseTransitionAgent(BaseDecisionAgent):
 
         # Return True if either database shows assets created OR state has assets
         return assets_created > 0 or len(state_assets) > 0
+
+    async def get_decision(self, agent_context: Dict[str, Any]) -> AgentDecision:
+        """
+        Get phase transition decision from agent context.
+        This method is called by the execution engine to determine next steps.
+        """
+        try:
+            # Extract key components from agent context
+            current_phase = agent_context.get("current_phase", "")
+            phase_result = agent_context.get("phase_result", {})
+            flow_state = agent_context.get("flow_state")
+            
+            logger.info(f"🤖 PhaseTransitionAgent.get_decision called for phase: {current_phase}")
+            
+            if not flow_state:
+                logger.warning("⚠️ No flow state provided in agent context")
+                return AgentDecision(
+                    action=PhaseAction.FAIL,
+                    next_phase="",
+                    confidence=0.9,
+                    reasoning="No flow state available for decision making",
+                    metadata={"error": "missing_flow_state"}
+                )
+            
+            # Convert flow_state to UnifiedDiscoveryFlowState if needed
+            if isinstance(flow_state, dict):
+                from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+                try:
+                    state = UnifiedDiscoveryFlowState(**flow_state)
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to convert flow_state dict to UnifiedDiscoveryFlowState: {e}")
+                    # Create minimal state for decision making
+                    state = UnifiedDiscoveryFlowState()
+                    state.current_phase = current_phase
+            else:
+                state = flow_state
+            
+            # Use the existing analyze_phase_transition method
+            decision = await self.analyze_phase_transition(current_phase, phase_result, state)
+            
+            logger.info(f"✅ PhaseTransitionAgent decision: {decision.action.value} -> {decision.next_phase}")
+            return decision
+            
+        except Exception as e:
+            logger.error(f"❌ PhaseTransitionAgent.get_decision failed: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            
+            # Return safe fallback decision
+            return AgentDecision(
+                action=PhaseAction.FAIL,
+                next_phase="",
+                confidence=0.8,
+                reasoning=f"Decision making failed due to error: {str(e)}",
+                metadata={"error": str(e), "fallback": True}
+            )
+
+    async def get_post_execution_decision(self, agent_context: Dict[str, Any]) -> AgentDecision:
+        """
+        Get post-execution decision after a phase has completed.
+        This method is called after phase execution to determine next steps.
+        """
+        try:
+            # Extract key components from agent context
+            phase_name = agent_context.get("phase_name", "")
+            phase_result = agent_context.get("phase_result", {})
+            flow_state = agent_context.get("flow_state")
+            
+            logger.info(f"🤖 PhaseTransitionAgent.get_post_execution_decision called for phase: {phase_name}")
+            
+            if not flow_state:
+                logger.warning("⚠️ No flow state provided in agent context for post-execution decision")
+                return AgentDecision(
+                    action=PhaseAction.FAIL,
+                    next_phase="",
+                    confidence=0.9,
+                    reasoning="No flow state available for post-execution decision making",
+                    metadata={"error": "missing_flow_state"}
+                )
+            
+            # Convert flow_state to UnifiedDiscoveryFlowState if needed
+            if isinstance(flow_state, dict):
+                from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+                try:
+                    state = UnifiedDiscoveryFlowState(**flow_state)
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to convert flow_state dict to UnifiedDiscoveryFlowState: {e}")
+                    # Create minimal state for decision making
+                    state = UnifiedDiscoveryFlowState()
+                    state.current_phase = phase_name
+            else:
+                state = flow_state
+            
+            # Analyze the phase result and determine next steps
+            analysis = self._analyze_current_state(phase_name, phase_result, state)
+            
+            # Check if phase was successful based on result
+            phase_successful = phase_result.get("status") == "completed"
+            
+            if not phase_successful:
+                # Phase failed, decide on retry or failure
+                error_info = phase_result.get("error", "Unknown error")
+                return AgentDecision(
+                    action=PhaseAction.RETRY if "timeout" in str(error_info).lower() else PhaseAction.FAIL,
+                    next_phase=phase_name,
+                    confidence=0.8,
+                    reasoning=f"Phase {phase_name} failed: {error_info}",
+                    metadata={"error": error_info, "phase_result": phase_result}
+                )
+            
+            # Phase successful, determine next phase
+            decision = self._make_transition_decision(phase_name, analysis)
+            
+            logger.info(f"✅ PhaseTransitionAgent post-execution decision: {decision.action.value} -> {decision.next_phase}")
+            return decision
+            
+        except Exception as e:
+            logger.error(f"❌ PhaseTransitionAgent.get_post_execution_decision failed: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            
+            # Return safe fallback decision
+            return AgentDecision(
+                action=PhaseAction.FAIL,
+                next_phase="",
+                confidence=0.8,
+                reasoning=f"Post-execution decision making failed due to error: {str(e)}",
+                metadata={"error": str(e), "fallback": True}
+            )
