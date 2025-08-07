@@ -363,7 +363,7 @@ class FlowCreationOperations:
         # 1. Database cleanup
         try:
             # Remove from database if it was created
-            await self.master_repo.delete_by_flow_id(flow_id)
+            await self.master_repo.delete_master_flow(flow_id)
             cleanup_results.append("✅ Database cleanup successful")
         except Exception as db_error:
             cleanup_results.append(f"❌ Database cleanup failed: {db_error}")
