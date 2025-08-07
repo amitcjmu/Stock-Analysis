@@ -60,13 +60,13 @@ class FlowCreationOperations:
     ) -> Tuple[str, Dict[str, Any]]:
         """
         Create a new flow with comprehensive error handling and cleanup
-        
+
         Args:
             flow_type: Type of flow to create
             flow_name: Optional name for the flow
             configuration: Flow configuration
             initial_state: Initial flow state data
-            
+
         Returns:
             Tuple of (flow_id, flow_data)
         """
@@ -82,7 +82,7 @@ class FlowCreationOperations:
             logger.info(f"🚀 Creating flow: {flow_id} (type: {flow_type})")
 
             # Validate flow type
-            if not self.flow_registry.is_flow_type_registered(flow_type):
+            if not self.flow_registry.is_registered(flow_type):
                 raise ValueError(f"Unknown flow type: {flow_type}")
 
             # Prepare flow data
@@ -91,13 +91,15 @@ class FlowCreationOperations:
             )
 
             # Attempt Redis registration with cleanup logic
-            redis_registered = await self._register_with_redis_cleanup(flow_id, flow_type, flow_data)
+            redis_registered = await self._register_with_redis_cleanup(
+                flow_id, flow_type, flow_data
+            )
 
             # Create database record
-            master_flow = await self._create_database_record(flow_id, flow_data)
+            await self._create_database_record(flow_id, flow_data)
 
             # Execute flow creation through registry
-            creation_result = await self._execute_flow_creation(
+            await self._execute_flow_creation(
                 flow_id, flow_type, flow_data, redis_registered
             )
 
@@ -192,52 +194,103 @@ class FlowCreationOperations:
 
             if not success:
                 logger.warning(f"⚠️ Redis registration failed for {flow_id}")
-                await self._handle_redis_registration_failure(flow_id, flow_type, flow_data)
-                return False
+                retry_success = await self._handle_redis_registration_failure(
+                    flow_id, flow_type, flow_data
+                )
+                return retry_success
 
             logger.info(f"✅ Redis registration successful for {flow_id}")
             return True
 
         except Exception as e:
             logger.error(f"❌ Redis registration error for {flow_id}: {e}")
-            await self._handle_redis_registration_failure(flow_id, flow_type, flow_data)
-            return False
+            retry_success = await self._handle_redis_registration_failure(
+                flow_id, flow_type, flow_data
+            )
+            return retry_success
 
     async def _handle_redis_registration_failure(
         self, flow_id: str, flow_type: str, flow_data: Dict[str, Any]
-    ) -> None:
-        """Handle Redis registration failure with cleanup and retry logic"""
+    ) -> bool:
+        """
+        Handle Redis registration failure with comprehensive error handling
+
+        Returns:
+            bool: True if retry succeeded, False if Redis is unavailable or retry failed
+        """
         try:
             from app.services.redis_cache import redis_cache
 
+            # First check if Redis is completely unavailable
+            if not self._is_redis_available(redis_cache):
+                logger.warning(
+                    f"Redis is completely unavailable, continuing without Redis for {flow_id}"
+                )
+                return False
+
             logger.info(f"🔄 Attempting Redis cleanup and retry for {flow_id}")
 
-            # Cleanup any partial registration
-            await redis_cache.cleanup_partial_flow_registration(
-                flow_id, 
-                self.context.client_account_id,
-                self.context.engagement_id
-            )
+            # Cleanup any partial registration with timeout
+            try:
+                await redis_cache.cleanup_partial_flow_registration(
+                    flow_id, self.context.client_account_id, self.context.engagement_id
+                )
+                logger.debug(f"Redis cleanup completed for {flow_id}")
+            except Exception as cleanup_error:
+                logger.warning(f"Redis cleanup failed for {flow_id}: {cleanup_error}")
+                # Don't fail completely if cleanup fails, continue with retry
 
             # Wait briefly and retry once
             import asyncio
+
             await asyncio.sleep(0.1)
 
-            retry_success = await redis_cache.register_flow_atomic(
-                flow_id=flow_id,
-                flow_type=flow_type,
-                client_account_id=self.context.client_account_id,
-                engagement_id=self.context.engagement_id,
-                flow_data=flow_data,
-            )
+            try:
+                retry_success = await redis_cache.register_flow_atomic(
+                    flow_id=flow_id,
+                    flow_type=flow_type,
+                    client_account_id=self.context.client_account_id,
+                    engagement_id=self.context.engagement_id,
+                    flow_data=flow_data,
+                )
 
-            if retry_success:
-                logger.info(f"✅ Redis registration retry successful for {flow_id}")
-            else:
-                logger.warning(f"⚠️ Redis registration retry also failed for {flow_id}")
+                if retry_success:
+                    logger.info(f"✅ Redis registration retry successful for {flow_id}")
+                    return True
+                else:
+                    logger.warning(
+                        f"⚠️ Redis registration retry also failed for {flow_id}"
+                    )
+                    return False
 
+            except Exception as retry_error:
+                logger.warning(
+                    f"Redis registration retry error for {flow_id}: {retry_error}"
+                )
+                return False
+
+        except ImportError:
+            logger.warning(f"Redis service not available for {flow_id}")
+            return False
         except Exception as retry_error:
             logger.error(f"❌ Redis cleanup/retry failed for {flow_id}: {retry_error}")
+            return False
+
+    def _is_redis_available(self, redis_cache) -> bool:
+        """Check if Redis is available and accessible"""
+        try:
+            # Check if redis_cache exists and has a client
+            if not redis_cache or not hasattr(redis_cache, "client"):
+                return False
+
+            # Check if client is None (common indicator Redis is unavailable)
+            if redis_cache.client is None:
+                return False
+
+            return True
+
+        except Exception:
+            return False
 
     async def _create_database_record(
         self, flow_id: str, flow_data: Dict[str, Any]
@@ -267,7 +320,11 @@ class FlowCreationOperations:
         return master_flow
 
     async def _execute_flow_creation(
-        self, flow_id: str, flow_type: str, flow_data: Dict[str, Any], redis_registered: bool
+        self,
+        flow_id: str,
+        flow_type: str,
+        flow_data: Dict[str, Any],
+        redis_registered: bool,
     ) -> Dict[str, Any]:
         """Execute flow creation through the registry"""
         try:
@@ -314,6 +371,7 @@ class FlowCreationOperations:
         # 2. Redis cleanup
         try:
             from app.services.redis_cache import redis_cache
+
             await redis_cache.cleanup_failed_flow_creation(
                 flow_id,
                 self.context.client_account_id,

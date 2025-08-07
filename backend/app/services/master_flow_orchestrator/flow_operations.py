@@ -24,7 +24,7 @@ from app.services.flow_orchestration import (
     FlowLifecycleManager,
 )
 
-from .enums import FlowOperationType
+
 from .mock_monitor import MockFlowPerformanceMonitor
 from .operations import (
     FlowCacheManager,
@@ -39,10 +39,10 @@ logger = get_logger(__name__)
 class FlowOperations:
     """
     Main flow operations orchestrator using composition pattern.
-    
+
     Delegates to specialized operation modules for clean separation of concerns:
     - FlowCreationOperations: Complex flow creation with Redis cleanup
-    - FlowExecutionOperations: Phase execution operations  
+    - FlowExecutionOperations: Phase execution operations
     - FlowLifecycleOperations: Pause, resume, and delete operations
     - FlowCacheManager: Comprehensive cache invalidation
     """
@@ -72,24 +72,90 @@ class FlowOperations:
         self.error_handler = error_handler
         self.performance_monitor = performance_monitor
         self.audit_logger = audit_logger
-        
-        # Initialize specialized operation modules
-        self.cache_manager = FlowCacheManager(db, context)
-        
-        self.creation_ops = FlowCreationOperations(
-            db, context, master_repo, flow_registry,
-            performance_monitor, audit_logger, self.cache_manager
-        )
-        
-        self.execution_ops = FlowExecutionOperations(
-            db, context, master_repo, flow_registry,
-            performance_monitor, audit_logger, execution_engine
-        )
-        
-        self.lifecycle_ops = FlowLifecycleOperations(
-            db, context, master_repo, flow_registry,
-            performance_monitor, audit_logger, self.cache_manager
-        )
+
+        # Initialize specialized operation modules with validation
+        try:
+            self.cache_manager = FlowCacheManager(db, context)
+            if not self.cache_manager:
+                raise RuntimeError("Failed to initialize FlowCacheManager")
+
+            self.creation_ops = FlowCreationOperations(
+                db,
+                context,
+                master_repo,
+                flow_registry,
+                performance_monitor,
+                audit_logger,
+                self.cache_manager,
+            )
+            if not self.creation_ops:
+                raise RuntimeError("Failed to initialize FlowCreationOperations")
+
+            self.execution_ops = FlowExecutionOperations(
+                db,
+                context,
+                master_repo,
+                flow_registry,
+                performance_monitor,
+                audit_logger,
+                execution_engine,
+            )
+            if not self.execution_ops:
+                raise RuntimeError("Failed to initialize FlowExecutionOperations")
+
+            self.lifecycle_ops = FlowLifecycleOperations(
+                db,
+                context,
+                master_repo,
+                flow_registry,
+                performance_monitor,
+                audit_logger,
+                self.cache_manager,
+            )
+            if not self.lifecycle_ops:
+                raise RuntimeError("Failed to initialize FlowLifecycleOperations")
+
+        except Exception as e:
+            logger.error(f"Failed to initialize operation modules: {e}")
+            raise RuntimeError(f"FlowOperations initialization failed: {e}")
+
+        # Validate critical dependencies
+        self._validate_initialization()
+
+    def _validate_initialization(self) -> None:
+        """Validate that all operation modules are properly initialized"""
+        validation_errors = []
+
+        # Check required operation modules
+        if not hasattr(self, "cache_manager") or self.cache_manager is None:
+            validation_errors.append("cache_manager not initialized")
+        if not hasattr(self, "creation_ops") or self.creation_ops is None:
+            validation_errors.append("creation_ops not initialized")
+        if not hasattr(self, "execution_ops") or self.execution_ops is None:
+            validation_errors.append("execution_ops not initialized")
+        if not hasattr(self, "lifecycle_ops") or self.lifecycle_ops is None:
+            validation_errors.append("lifecycle_ops not initialized")
+
+        # Check required dependencies
+        if not self.db:
+            validation_errors.append("Database session not provided")
+        if not self.context:
+            validation_errors.append("Request context not provided")
+        if not self.master_repo:
+            validation_errors.append("Master repository not provided")
+        if not self.flow_registry:
+            validation_errors.append("Flow registry not provided")
+        if not self.audit_logger:
+            validation_errors.append("Audit logger not provided")
+
+        if validation_errors:
+            error_msg = (
+                f"FlowOperations validation failed: {', '.join(validation_errors)}"
+            )
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+
+        logger.info("✅ FlowOperations initialization validation successful")
 
     async def create_flow(
         self,

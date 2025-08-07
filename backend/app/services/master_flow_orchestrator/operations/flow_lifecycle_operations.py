@@ -49,10 +49,10 @@ class FlowLifecycleOperations:
     async def pause_flow(self, flow_id: str) -> Dict[str, Any]:
         """
         Pause a running flow with state preservation
-        
+
         Args:
             flow_id: Flow identifier
-            
+
         Returns:
             Pause operation result
         """
@@ -81,6 +81,9 @@ class FlowLifecycleOperations:
             # Preserve current state
             await self._preserve_flow_state(master_flow)
 
+            # Capture current status before modification for accurate audit trail
+            previous_status = master_flow.flow_status
+
             # Update flow status to paused
             master_flow.flow_status = "paused"
             master_flow.updated_at = datetime.now(timezone.utc)
@@ -89,12 +92,14 @@ class FlowLifecycleOperations:
             if "lifecycle_events" not in master_flow.flow_persistence_data:
                 master_flow.flow_persistence_data["lifecycle_events"] = []
 
-            master_flow.flow_persistence_data["lifecycle_events"].append({
-                "event": "paused",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "previous_status": master_flow.flow_status,
-                "user_id": self.context.user_id,
-            })
+            master_flow.flow_persistence_data["lifecycle_events"].append(
+                {
+                    "event": "paused",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "previous_status": previous_status,
+                    "user_id": self.context.user_id,
+                }
+            )
 
             await self.db.commit()
 
@@ -109,7 +114,7 @@ class FlowLifecycleOperations:
                 level=AuditLevel.INFO,
                 context=self.context,
                 success=True,
-                details={"previous_status": master_flow.flow_status},
+                details={"previous_status": previous_status},
             )
 
             self.performance_monitor.end_operation(tracking_id, success=True)
@@ -145,11 +150,11 @@ class FlowLifecycleOperations:
     ) -> Dict[str, Any]:
         """
         Resume a paused flow from its last saved state
-        
+
         Args:
             flow_id: Flow identifier
             resume_context: Additional context for resume operation
-            
+
         Returns:
             Resume operation result
         """
@@ -176,7 +181,9 @@ class FlowLifecycleOperations:
                 }
 
             # Restore flow state and resume execution
-            resume_result = await self._restore_and_resume_flow(master_flow, resume_context)
+            resume_result = await self._restore_and_resume_flow(
+                master_flow, resume_context
+            )
 
             # Update flow status
             master_flow.flow_status = "running"
@@ -186,13 +193,15 @@ class FlowLifecycleOperations:
             if "lifecycle_events" not in master_flow.flow_persistence_data:
                 master_flow.flow_persistence_data["lifecycle_events"] = []
 
-            master_flow.flow_persistence_data["lifecycle_events"].append({
-                "event": "resumed",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "previous_status": "paused",
-                "user_id": self.context.user_id,
-                "resume_context": resume_context or {},
-            })
+            master_flow.flow_persistence_data["lifecycle_events"].append(
+                {
+                    "event": "resumed",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "previous_status": "paused",
+                    "user_id": self.context.user_id,
+                    "resume_context": resume_context or {},
+                }
+            )
 
             await self.db.commit()
 
@@ -246,10 +255,10 @@ class FlowLifecycleOperations:
     async def delete_flow(self, flow_id: str) -> Dict[str, Any]:
         """
         Soft delete a flow with comprehensive cleanup
-        
+
         Args:
             flow_id: Flow identifier
-            
+
         Returns:
             Delete operation result
         """
@@ -275,12 +284,14 @@ class FlowLifecycleOperations:
             if "lifecycle_events" not in master_flow.flow_persistence_data:
                 master_flow.flow_persistence_data["lifecycle_events"] = []
 
-            master_flow.flow_persistence_data["lifecycle_events"].append({
-                "event": "deleted",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "user_id": self.context.user_id,
-                "deletion_type": "soft_delete",
-            })
+            master_flow.flow_persistence_data["lifecycle_events"].append(
+                {
+                    "event": "deleted",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "user_id": self.context.user_id,
+                    "deletion_type": "soft_delete",
+                }
+            )
 
             await self.db.commit()
 
@@ -297,7 +308,10 @@ class FlowLifecycleOperations:
                 level=AuditLevel.INFO,
                 context=self.context,
                 success=True,
-                details={"deletion_type": "soft_delete", "cache_invalidation": cache_result},
+                details={
+                    "deletion_type": "soft_delete",
+                    "cache_invalidation": cache_result,
+                },
             )
 
             self.performance_monitor.end_operation(tracking_id, success=True)
@@ -342,7 +356,9 @@ class FlowLifecycleOperations:
             "flow_status": master_flow.flow_status,
         }
 
-    async def _restore_and_resume_flow(self, master_flow, resume_context) -> Dict[str, Any]:
+    async def _restore_and_resume_flow(
+        self, master_flow, resume_context
+    ) -> Dict[str, Any]:
         """Restore flow state and initiate resume"""
         try:
             # Restore preserved state if available
@@ -361,13 +377,16 @@ class FlowLifecycleOperations:
             return resume_result
 
         except Exception as e:
-            logger.error(f"Failed to restore and resume flow {master_flow.flow_id}: {e}")
+            logger.error(
+                f"Failed to restore and resume flow {master_flow.flow_id}: {e}"
+            )
             raise
 
     async def _update_redis_flow_status(self, flow_id: str, status: str) -> None:
         """Update flow status in Redis cache"""
         try:
             from app.services.redis_cache import redis_cache
+
             await redis_cache.update_flow_status(
                 flow_id,
                 status,
