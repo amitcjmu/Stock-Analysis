@@ -85,6 +85,17 @@ class FlowOperationResponse(BaseModel):
     method: Optional[str] = None
 
 
+class AttributeMappingResponse(BaseModel):
+    """Attribute mapping response model for discovery flows"""
+
+    flows: List[Dict[str, Any]] = Field(default_factory=list)
+    aggregate_mappings: Dict[str, Any] = Field(default_factory=dict)
+    mapping_statistics: Dict[str, Any] = Field(default_factory=dict)
+    client_account_id: str
+    engagement_id: Optional[str] = None
+    last_updated: str
+
+
 class ResponseMappers:
     """Utility class for response data transformation and standardization"""
 
