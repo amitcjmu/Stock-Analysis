@@ -338,7 +338,8 @@ def get_discovery_flow_config() -> FlowTypeConfig:
     dependency_analysis_phase = PhaseConfig(
         name="dependency_analysis",
         display_name="Dependency Analysis",
-        description="Analyze asset dependencies and relationships using comprehensive network and infrastructure analysis",
+        description="Analyze asset dependencies and relationships using "
+        "comprehensive network and infrastructure analysis",
         required_inputs=["inventory", "dependency_rules"],
         optional_inputs=["discovery_depth", "relationship_types"],
         validators=["dependency_validation", "circular_dependency_check"],
@@ -359,9 +360,13 @@ def get_discovery_flow_config() -> FlowTypeConfig:
             "output_mapping": {
                 "dependency_analysis": "crew_results.analysis_results",
                 "dependency_relationships": "crew_results.summary",
-                "migration_sequence": "crew_results.analysis_results[*].migration_sequence",
+                "migration_sequence": (
+                    "crew_results.analysis_results[*].migration_sequence"
+                ),
                 "risk_assessment": "crew_results.analysis_results[*].risk_assessment",
-                "critical_paths": "crew_results.analysis_results[*].critical_path_analysis",
+                "critical_paths": (
+                    "crew_results.analysis_results[*].critical_path_analysis"
+                ),
             },
             "execution_config": {
                 "timeout_seconds": 180,  # 3 minutes for dependency analysis
