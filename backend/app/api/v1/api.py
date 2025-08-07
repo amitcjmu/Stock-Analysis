@@ -4,6 +4,7 @@ Includes all endpoint routers and API versioning.
 """
 
 import logging
+from datetime import datetime
 
 from fastapi import APIRouter, Depends
 
@@ -247,6 +248,47 @@ logger = logging.getLogger(__name__)
 
 # --- API Router Setup ---
 api_router = APIRouter()
+
+
+# Simple health endpoint for monitoring (CC generated)
+@api_router.get(
+    "/health", summary="Health Check", description="Basic health check for API v1"
+)
+async def health_check():
+    """
+    Simple health check endpoint for API v1.
+
+    Provides basic health status information without complex dependencies.
+    Used by frontend and monitoring systems to verify service availability.
+    """
+    # Basic database connectivity check
+    database_status = False
+    try:
+        # Try to get a database connection without executing a query
+        db_gen = get_db()
+        next(db_gen)  # Get the database session
+        database_status = True
+        # Properly close the database session
+        try:
+            next(db_gen)
+        except StopIteration:
+            pass  # Generator exhausted, session closed
+    except Exception as e:
+        # Database not available or connection failed
+        logging.warning(f"Database health check failed: {e}")
+        database_status = False
+
+    # API routes are available if this endpoint is reachable
+    api_routes_status = True
+
+    return {
+        "status": "healthy",
+        "service": "ai-force-migration-api",
+        "version": "0.2.0",
+        "timestamp": datetime.utcnow().isoformat(),
+        "components": {"database": database_status, "api_routes": api_routes_status},
+        "environment": "production",
+    }
 
 
 # Add direct /me endpoint at root level (required for frontend authentication flow)

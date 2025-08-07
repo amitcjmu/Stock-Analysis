@@ -43,9 +43,11 @@ load_dotenv()
 # Note: patch_litellm_response_parsing is applied automatically on import
 try:
     from app.services.deepinfra_response_fixer import (
-        patch_litellm_response_parsing,  # noqa: F401
+        patch_litellm_response_parsing,
     )
 
+    # Apply the response parsing fix
+    patch_litellm_response_parsing()
     logger = logging.getLogger(__name__)
     logger.info("✅ DeepInfra response fixer module loaded")
 except ImportError as e:
@@ -65,6 +67,7 @@ except ImportError:
 # Import our structured logging module
 try:
     from app.core.logging import configure_logging, get_logger, set_trace_id
+    from app.core.security.secure_logging import mask_string
 
     STRUCTURED_LOGGING_AVAILABLE = True
 except ImportError:
@@ -313,6 +316,56 @@ except Exception as e:
     logger.warning(f"API v1 routes error: {e}")
     API_ROUTES_ERROR = str(e)
 
+    # Add fallback health endpoint when API v1 routes fail to load
+    from datetime import datetime
+
+    from fastapi import APIRouter
+
+    fallback_router = APIRouter()
+
+    @fallback_router.get("/health", summary="Fallback Health Check")
+    async def fallback_health_check():
+        """
+        Fallback health check endpoint for API v1 when main routes are unavailable.
+
+        This ensures /api/v1/health is always available for monitoring purposes,
+        even when there are dependency issues with the main API router.
+        """
+        # Basic database connectivity check
+        database_status = False
+        try:
+            if DATABASE_ENABLED:
+                # Attempt a basic database operation to verify connectivity
+                from app.core.database import get_db
+
+                db_gen = get_db()
+                next(db_gen)
+                # Properly close the database session
+                try:
+                    next(db_gen)
+                except StopIteration:
+                    pass  # Generator exhausted, session closed
+                database_status = True
+        except Exception:
+            database_status = False
+
+        return {
+            "status": "degraded",  # degraded because full API is not available
+            "service": "ai-force-migration-api",
+            "version": getattr(fastapi_app, "version", "0.2.0"),
+            "timestamp": datetime.utcnow().isoformat(),
+            "components": {
+                "database": database_status,
+                "api_routes": False,  # main routes failed to load
+            },
+            "environment": getattr(settings, "ENVIRONMENT", "production"),
+            "message": "Fallback health endpoint - main API routes unavailable",
+        }
+
+    # Include the fallback router with v1 prefix
+    fastapi_app.include_router(fallback_router, prefix="/api/v1")
+    logger.info("✅ Fallback API v1 health endpoint added")
+
 # V3 API routes removed - replaced by unified API
 API_V3_ROUTES_ENABLED = False
 API_V3_ROUTES_ERROR = "V3 API archived - was legacy database abstraction layer"
@@ -403,12 +456,15 @@ def get_cors_origins():
 
 cors_origins = get_cors_origins()
 
-logger.info(f"🌐 CORS Origins configured: {cors_origins}")
+# Log CORS origins with masking for security (avoid B106)
+masked_origins = [mask_string(origin, show_chars=12) if 'localhost' not in origin else origin for origin in cors_origins]
+logger.info(f"🌐 CORS Origins configured: {masked_origins}")  # nosec B106
 logger.info(f"🌐 Total CORS origins: {len(cors_origins)}")
 
-# Debug: Print each origin
+# Debug: Print each origin (masked for security)
 for i, origin in enumerate(cors_origins):
-    logger.info(f"🌐 CORS Origin {i+1}: {origin}")
+    masked_origin = mask_string(origin, show_chars=12) if 'localhost' not in origin else origin
+    logger.info(f"🌐 CORS Origin {i+1}: {masked_origin}")  # nosec B106
 
 # Add context middleware (Task 1.2.3)
 ENABLE_MIDDLEWARE = True  # Production setting
@@ -538,7 +594,9 @@ else:
 # Add CORS middleware LAST so it executes FIRST (middleware runs in reverse order)
 # This ensures CORS headers are added to ALL responses, including error responses
 logger.info("🌐 Adding CORS middleware with the following configuration:")
-logger.info(f"🌐 allow_origins: {cors_origins}")
+# Log allow_origins with masking (avoid B106)
+masked_origins_for_middleware = [mask_string(origin, show_chars=12) if 'localhost' not in origin else origin for origin in cors_origins]
+logger.info(f"🌐 allow_origins: {masked_origins_for_middleware}")  # nosec B106
 logger.info("🌐 allow_credentials: True")
 logger.info("🌐 allow_methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH']")
 

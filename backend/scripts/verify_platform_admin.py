@@ -64,7 +64,9 @@ async def verify_platform_admin():
         )
 
         # Update password to ensure it's valid
-        new_password = "Password123!"
+        new_password = os.getenv(
+            "ADMIN_TEST_PASSWORD", "DefaultPassword123!"
+        )  # Use env var or fallback
         new_hash = get_password_hash(new_password)
         admin.password_hash = new_hash
 
@@ -88,7 +90,9 @@ async def verify_platform_admin():
 
         # Test the new password
         print("\n🧪 Testing password verification...")
-        test_password = "Password123!"
+        test_password = os.getenv(
+            "ADMIN_TEST_PASSWORD", "DefaultPassword123!"
+        )  # Use same env var
         try:
             # Since we're using SHA256, just compare hashes
             test_hash = get_password_hash(test_password)

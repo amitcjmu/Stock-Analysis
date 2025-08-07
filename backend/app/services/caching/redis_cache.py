@@ -284,9 +284,10 @@ class RedisCache:
     async def cache_flow_state(
         self, flow_id: str, state: Dict[str, Any], ttl: int = 3600
     ) -> bool:
-        """Cache flow state for quick access"""
+        """Cache flow state with encryption for sensitive data"""
         key = f"flow:state:{flow_id}"
-        return await self.set(key, state, ttl)
+        # Flow state contains sensitive data like client_account_id, user_id, etc.
+        return await self.set_secure(key, state, ttl, force_encrypt=True)
 
     @redis_fallback
     async def invalidate_flow_cache(self, flow_id: str) -> bool:
@@ -337,39 +338,41 @@ class RedisCache:
 
     @redis_fallback
     async def get_flow_state(self, flow_id: str) -> Optional[Dict[str, Any]]:
-        """Get flow state from cache"""
+        """Get flow state from cache with decryption"""
         key = f"flow:state:{flow_id}"
-        return await self.get(key)
+        return await self.get_secure(key)
 
     # Import Sample Caching
     @redis_fallback
     async def cache_import_sample(
         self, import_id: str, sample_data: List[Dict[str, Any]], ttl: int = 3600
     ) -> bool:
-        """Cache import sample for agent analysis"""
+        """Cache import sample with encryption for sensitive data"""
         key = f"import:sample:{import_id}"
-        return await self.set(key, sample_data, ttl)
+        # Import samples may contain PII and sensitive business data
+        return await self.set_secure(key, sample_data, ttl, force_encrypt=True)
 
     @redis_fallback
     async def get_import_sample(self, import_id: str) -> Optional[List[Dict[str, Any]]]:
-        """Get import sample from cache"""
+        """Get import sample from cache with decryption"""
         key = f"import:sample:{import_id}"
-        return await self.get(key)
+        return await self.get_secure(key)
 
     # Pattern Learning Cache
     @redis_fallback
     async def cache_mapping_pattern(
         self, pattern_key: str, pattern: Dict[str, Any], ttl: int = 86400  # 24 hours
     ) -> bool:
-        """Cache field mapping pattern"""
+        """Cache field mapping pattern with encryption"""
         key = f"pattern:mapping:{pattern_key}"
-        return await self.set(key, pattern, ttl)
+        # Mapping patterns contain client-specific field names and structure
+        return await self.set_secure(key, pattern, ttl, force_encrypt=True)
 
     @redis_fallback
     async def get_mapping_pattern(self, pattern_key: str) -> Optional[Dict[str, Any]]:
-        """Get field mapping pattern from cache"""
+        """Get field mapping pattern from cache with decryption"""
         key = f"pattern:mapping:{pattern_key}"
-        return await self.get(key)
+        return await self.get_secure(key)
 
     # Atomic Flow Registration Operations
     @redis_fallback

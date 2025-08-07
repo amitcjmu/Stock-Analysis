@@ -80,7 +80,7 @@ class SecureFlowCheckpoint:
 class SecureCheckpointManager:
     """
     Secure checkpoint manager with encryption and proper tenant isolation.
-    
+
     Security Features:
     - All sensitive data is encrypted before caching
     - Proper tenant isolation via client_account_id
@@ -128,7 +128,9 @@ class SecureCheckpointManager:
             # Use provided context or fallback to instance context
             ctx = context or self.context
             if not ctx:
-                raise ValueError("Request context required for secure checkpoint creation")
+                raise ValueError(
+                    "Request context required for secure checkpoint creation"
+                )
 
             # Generate checkpoint ID
             checkpoint_id = f"{flow_id}_{phase}_{datetime.utcnow().timestamp()}"
@@ -164,9 +166,7 @@ class SecureCheckpointManager:
             raise
 
     async def restore_checkpoint(
-        self, 
-        checkpoint_id: str, 
-        context: Optional[RequestContext] = None
+        self, checkpoint_id: str, context: Optional[RequestContext] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Restore flow state from a secure checkpoint
@@ -181,7 +181,9 @@ class SecureCheckpointManager:
         try:
             ctx = context or self.context
             if not ctx:
-                raise ValueError("Request context required for secure checkpoint restoration")
+                raise ValueError(
+                    "Request context required for secure checkpoint restoration"
+                )
 
             checkpoint = await self._load_checkpoint_securely(checkpoint_id, ctx)
 
@@ -209,8 +211,8 @@ class SecureCheckpointManager:
             return None
 
     async def get_latest_checkpoint(
-        self, 
-        flow_id: str, 
+        self,
+        flow_id: str,
         phase: Optional[str] = None,
         context: Optional[RequestContext] = None,
     ) -> Optional[Dict[str, Any]]:
@@ -248,7 +250,7 @@ class SecureCheckpointManager:
             return None
 
     async def list_checkpoints(
-        self, 
+        self,
         flow_id: str,
         context: Optional[RequestContext] = None,
     ) -> List[Dict[str, Any]]:
@@ -288,7 +290,7 @@ class SecureCheckpointManager:
             return []
 
     async def delete_checkpoint(
-        self, 
+        self,
         checkpoint_id: str,
         context: Optional[RequestContext] = None,
     ) -> bool:
@@ -319,7 +321,7 @@ class SecureCheckpointManager:
             # This is not ideal, but necessary for the current cache key structure
             all_checkpoints = await self._get_all_checkpoints_for_tenant(ctx)
             target_checkpoint = None
-            
+
             for checkpoint in all_checkpoints:
                 if checkpoint.checkpoint_id == checkpoint_id:
                     target_checkpoint = checkpoint
@@ -352,7 +354,7 @@ class SecureCheckpointManager:
             return False
 
     async def cleanup_flow_checkpoints(
-        self, 
+        self,
         flow_id: str,
         context: Optional[RequestContext] = None,
     ) -> int:
@@ -381,7 +383,7 @@ class SecureCheckpointManager:
                     client_id=str(ctx.client_account_id),
                     engagement_id=str(ctx.engagement_id),
                 )
-                
+
                 if await self._delete_from_cache(cache_key):
                     count += 1
 
@@ -478,7 +480,9 @@ class SecureCheckpointManager:
                             setattr(state, key, value["data"])
                         else:
                             # Unknown format - skip for security
-                            logger.warning(f"Unknown serialization format for {key}: {format_type}")
+                            logger.warning(
+                                f"Unknown serialization format for {key}: {format_type}"
+                            )
                             setattr(state, key, None)
                     except Exception:
                         logger.warning(f"Could not deserialize attribute: {key}")
@@ -507,10 +511,13 @@ class SecureCheckpointManager:
 
             # Verify this key requires encryption
             if not SensitiveDataMarkers.requires_encryption(cache_key):
-                logger.warning(f"Cache key {cache_key} should require encryption but doesn't match patterns")
+                logger.warning(
+                    f"Cache key {cache_key} should require encryption but doesn't match patterns"
+                )
 
             # Get TTL from cache key analysis
             from app.constants.cache_keys import CacheKeys as CK
+
             ttl = CK.get_ttl_recommendation(cache_key)
 
             # Store with automatic encryption (SecureCache will handle this)
@@ -523,7 +530,9 @@ class SecureCheckpointManager:
             )
 
             if not success:
-                raise RuntimeError(f"Failed to store checkpoint in secure cache: {cache_key}")
+                raise RuntimeError(
+                    f"Failed to store checkpoint in secure cache: {cache_key}"
+                )
 
             logger.debug(f"✅ Checkpoint stored securely with encryption: {cache_key}")
 
@@ -539,7 +548,7 @@ class SecureCheckpointManager:
             # We need to search for the checkpoint since we don't know the flow_id
             # This is not ideal but necessary for the current implementation
             all_checkpoints = await self._get_all_checkpoints_for_tenant(context)
-            
+
             for checkpoint in all_checkpoints:
                 if checkpoint.checkpoint_id == checkpoint_id:
                     return checkpoint
@@ -572,11 +581,11 @@ class SecureCheckpointManager:
             # This is a simplified implementation
             # In production, you'd maintain proper indexes or use database queries
             checkpoints = []
-            
+
             # For now, we return empty list as this requires a more sophisticated
             # key enumeration strategy which would be implemented differently
             # in a real production system
-            
+
             return checkpoints
 
         except Exception as e:
@@ -594,7 +603,9 @@ class SecureCheckpointManager:
                     checkpoints, key=lambda cp: cp.created_at, reverse=True
                 )
 
-                checkpoints_to_remove = sorted_checkpoints[self.max_checkpoints_per_flow:]
+                checkpoints_to_remove = sorted_checkpoints[
+                    self.max_checkpoints_per_flow :
+                ]
 
                 for checkpoint in checkpoints_to_remove:
                     cache_key = CacheKeys.flow_checkpoint(
@@ -606,7 +617,9 @@ class SecureCheckpointManager:
                     await self._delete_from_cache(cache_key)
 
                 removed = len(checkpoints_to_remove)
-                logger.info(f"Cleaned up {removed} old secure checkpoints for flow {flow_id}")
+                logger.info(
+                    f"Cleaned up {removed} old secure checkpoints for flow {flow_id}"
+                )
 
         except Exception as e:
             logger.error(f"❌ Failed to cleanup old checkpoints: {e}")
@@ -657,16 +670,18 @@ class SecureCheckpointManager:
         }
 
         return await self.create_checkpoint(
-            flow_id=flow_id, 
-            phase=phase, 
-            state=state, 
+            flow_id=flow_id,
+            phase=phase,
+            state=state,
             metadata=metadata,
             context=context,
         )
 
 
 # Factory function for creating secure checkpoint managers
-def create_secure_checkpoint_manager(context: RequestContext) -> SecureCheckpointManager:
+def create_secure_checkpoint_manager(
+    context: RequestContext,
+) -> SecureCheckpointManager:
     """
     Factory function to create a secure checkpoint manager.
 
@@ -682,10 +697,11 @@ def create_secure_checkpoint_manager(context: RequestContext) -> SecureCheckpoin
 # Global instance factory (use with caution - prefer context-specific instances)
 _global_manager = None
 
+
 def get_global_secure_checkpoint_manager() -> SecureCheckpointManager:
     """
     Get global secure checkpoint manager instance.
-    
+
     WARNING: This should only be used when request context is not available.
     Prefer using create_secure_checkpoint_manager(context) for proper tenant isolation.
     """

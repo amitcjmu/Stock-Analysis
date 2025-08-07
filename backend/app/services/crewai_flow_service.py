@@ -928,7 +928,7 @@ class CrewAIFlowService:
         client_account_id: str = None,
         engagement_id: str = None,
         user_id: str = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Execute data import validation phase.
@@ -984,16 +984,19 @@ class CrewAIFlowService:
                         field_info["data_types"].add(type(field_value).__name__)
                 else:
                     validation_results["invalid_records"] += 1
-                    validation_results["validation_errors"].append({
-                        "record_index": idx,
-                        "error": "Record is not a valid dictionary or is empty",
-                        "record": record,
-                    })
+                    validation_results["validation_errors"].append(
+                        {
+                            "record_index": idx,
+                            "error": "Record is not a valid dictionary or is empty",
+                            "record": record,
+                        }
+                    )
 
             # Calculate data quality score
             if validation_results["total_records"] > 0:
                 validation_results["data_quality_score"] = (
-                    validation_results["valid_records"] / validation_results["total_records"]
+                    validation_results["valid_records"]
+                    / validation_results["total_records"]
                 )
 
             # Convert sets to lists for JSON serialization
@@ -1004,16 +1007,25 @@ class CrewAIFlowService:
             try:
                 flow = await discovery_service.get_flow_by_id(flow_id)
                 if flow:
-                    await discovery_service.update_flow_data(flow_id, {
-                        "validation_results": validation_results,
-                        "valid_records_count": validation_results["valid_records"],
-                        "data_quality_score": validation_results["data_quality_score"],
-                    })
+                    await discovery_service.update_flow_data(
+                        flow_id,
+                        {
+                            "validation_results": validation_results,
+                            "valid_records_count": validation_results["valid_records"],
+                            "data_quality_score": validation_results[
+                                "data_quality_score"
+                            ],
+                        },
+                    )
             except Exception as e:
-                logger.warning(f"⚠️ Failed to update flow state with validation results: {e}")
+                logger.warning(
+                    f"⚠️ Failed to update flow state with validation results: {e}"
+                )
 
+            valid_count = validation_results["valid_records"]
+            total_count = validation_results["total_records"]
             logger.info(
-                f"✅ Data import validation completed: {validation_results['valid_records']}/{validation_results['total_records']} records valid"
+                f"✅ Data import validation completed: {valid_count}/{total_count} records valid"
             )
 
             return {
@@ -1028,6 +1040,7 @@ class CrewAIFlowService:
         except Exception as e:
             logger.error(f"❌ Data import validation failed for flow {flow_id}: {e}")
             import traceback
+
             logger.error(f"Traceback: {traceback.format_exc()}")
 
             return {
@@ -1045,7 +1058,7 @@ class CrewAIFlowService:
         client_account_id: str = None,
         engagement_id: str = None,
         user_id: str = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Generate field mapping suggestions based on validation results.
@@ -1056,8 +1069,20 @@ class CrewAIFlowService:
 
             # Standard CMDB fields that we commonly map to
             standard_fields = {
-                "hostname": ["hostname", "host_name", "server_name", "name", "system_name"],
-                "ip_address": ["ip_address", "ip", "ipaddress", "primary_ip", "mgmt_ip"],
+                "hostname": [
+                    "hostname",
+                    "host_name",
+                    "server_name",
+                    "name",
+                    "system_name",
+                ],
+                "ip_address": [
+                    "ip_address",
+                    "ip",
+                    "ipaddress",
+                    "primary_ip",
+                    "mgmt_ip",
+                ],
                 "operating_system": ["os", "operating_system", "platform", "os_name"],
                 "environment": ["environment", "env", "tier", "stage"],
                 "application": ["application", "app", "application_name", "service"],
@@ -1070,7 +1095,7 @@ class CrewAIFlowService:
 
             # Get field analysis from validation results
             field_analysis = validation_result.get("field_analysis", {})
-            
+
             # Generate mapping suggestions
             suggested_mappings = {}
             confidence_scores = {}
@@ -1104,7 +1129,9 @@ class CrewAIFlowService:
             # Calculate overall confidence
             overall_confidence = 0.0
             if suggested_mappings:
-                overall_confidence = sum(confidence_scores.values()) / len(confidence_scores)
+                overall_confidence = sum(confidence_scores.values()) / len(
+                    confidence_scores
+                )
 
             field_mapping_results = {
                 "mappings": suggested_mappings,
@@ -1113,7 +1140,11 @@ class CrewAIFlowService:
                 "overall_confidence": overall_confidence,
                 "total_fields": len(field_analysis),
                 "mapped_fields": len(suggested_mappings),
-                "mapping_coverage": len(suggested_mappings) / len(field_analysis) if field_analysis else 0,
+                "mapping_coverage": (
+                    len(suggested_mappings) / len(field_analysis)
+                    if field_analysis
+                    else 0
+                ),
             }
 
             logger.info(
@@ -1129,8 +1160,11 @@ class CrewAIFlowService:
             }
 
         except Exception as e:
-            logger.error(f"❌ Field mapping suggestion generation failed for flow {flow_id}: {e}")
+            logger.error(
+                f"❌ Field mapping suggestion generation failed for flow {flow_id}: {e}"
+            )
             import traceback
+
             logger.error(f"Traceback: {traceback.format_exc()}")
 
             return {
@@ -1148,7 +1182,7 @@ class CrewAIFlowService:
         client_account_id: str = None,
         engagement_id: str = None,
         user_id: str = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Apply approved field mappings to transform data.
@@ -1171,11 +1205,14 @@ class CrewAIFlowService:
 
             # Update flow state with approved mappings
             try:
-                await discovery_service.update_flow_data(flow_id, {
-                    "approved_field_mappings": approved_mappings,
-                    "field_mapping_status": "completed",
-                    "field_mapping_applied_at": datetime.utcnow().isoformat(),
-                })
+                await discovery_service.update_flow_data(
+                    flow_id,
+                    {
+                        "approved_field_mappings": approved_mappings,
+                        "field_mapping_status": "completed",
+                        "field_mapping_applied_at": datetime.utcnow().isoformat(),
+                    },
+                )
             except Exception as e:
                 logger.warning(f"⚠️ Failed to update flow state with mappings: {e}")
 
@@ -1186,7 +1223,9 @@ class CrewAIFlowService:
                 "applied_at": datetime.utcnow().isoformat(),
             }
 
-            logger.info(f"✅ Field mappings applied successfully: {len(approved_mappings)} mappings")
+            logger.info(
+                f"✅ Field mappings applied successfully: {len(approved_mappings)} mappings"
+            )
 
             return {
                 "status": "completed",
@@ -1199,6 +1238,7 @@ class CrewAIFlowService:
         except Exception as e:
             logger.error(f"❌ Field mapping application failed for flow {flow_id}: {e}")
             import traceback
+
             logger.error(f"Traceback: {traceback.format_exc()}")
 
             return {
@@ -1216,7 +1256,7 @@ class CrewAIFlowService:
         client_account_id: str = None,
         engagement_id: str = None,
         user_id: str = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Execute data cleansing phase.
@@ -1234,14 +1274,16 @@ class CrewAIFlowService:
                 "quality_improvements": {},
                 "cleansing_operations": [
                     "standardized_hostnames",
-                    "validated_ip_addresses", 
+                    "validated_ip_addresses",
                     "normalized_operating_systems",
                     "cleaned_environment_tags",
                 ],
                 "overall_quality_score": 0.85,
             }
 
-            logger.info(f"✅ Data cleansing completed with quality score: {cleansing_results['overall_quality_score']}")
+            logger.info(
+                f"✅ Data cleansing completed with quality score: {cleansing_results['overall_quality_score']}"
+            )
 
             return {
                 "status": "completed",
@@ -1254,6 +1296,7 @@ class CrewAIFlowService:
         except Exception as e:
             logger.error(f"❌ Data cleansing failed for flow {flow_id}: {e}")
             import traceback
+
             logger.error(f"Traceback: {traceback.format_exc()}")
 
             return {
@@ -1271,7 +1314,7 @@ class CrewAIFlowService:
         client_account_id: str = None,
         engagement_id: str = None,
         user_id: str = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Create discovery assets from cleaned data.
@@ -1287,14 +1330,26 @@ class CrewAIFlowService:
                 "assets_created": len(cleaned_data),
                 "success_rate": 0.95,
                 "asset_types": {
-                    "servers": len([r for r in cleaned_data if r.get("type") == "server"]),
-                    "applications": len([r for r in cleaned_data if r.get("type") == "application"]),
-                    "devices": len([r for r in cleaned_data if r.get("type") not in ["server", "application"]]),
+                    "servers": len(
+                        [r for r in cleaned_data if r.get("type") == "server"]
+                    ),
+                    "applications": len(
+                        [r for r in cleaned_data if r.get("type") == "application"]
+                    ),
+                    "devices": len(
+                        [
+                            r
+                            for r in cleaned_data
+                            if r.get("type") not in ["server", "application"]
+                        ]
+                    ),
                 },
                 "creation_timestamp": datetime.utcnow().isoformat(),
             }
 
-            logger.info(f"✅ Discovery assets created: {asset_creation_results['assets_created']} assets")
+            logger.info(
+                f"✅ Discovery assets created: {asset_creation_results['assets_created']} assets"
+            )
 
             return {
                 "status": "completed",
@@ -1307,6 +1362,7 @@ class CrewAIFlowService:
         except Exception as e:
             logger.error(f"❌ Discovery asset creation failed for flow {flow_id}: {e}")
             import traceback
+
             logger.error(f"Traceback: {traceback.format_exc()}")
 
             return {
@@ -1324,7 +1380,7 @@ class CrewAIFlowService:
         client_account_id: str = None,
         engagement_id: str = None,
         user_id: str = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Execute analysis phases (asset inventory, dependency analysis, tech debt analysis).
@@ -1339,8 +1395,16 @@ class CrewAIFlowService:
                 "asset_inventory": {
                     "total_assets": len(assets),
                     "servers": len([a for a in assets if a.get("type") == "server"]),
-                    "applications": len([a for a in assets if a.get("type") == "application"]),
-                    "other_devices": len([a for a in assets if a.get("type") not in ["server", "application"]]),
+                    "applications": len(
+                        [a for a in assets if a.get("type") == "application"]
+                    ),
+                    "other_devices": len(
+                        [
+                            a
+                            for a in assets
+                            if a.get("type") not in ["server", "application"]
+                        ]
+                    ),
                 },
                 "dependency_analysis": {
                     "dependencies_found": 25,
@@ -1355,7 +1419,9 @@ class CrewAIFlowService:
                 "analysis_timestamp": datetime.utcnow().isoformat(),
             }
 
-            logger.info(f"✅ Analysis phases completed for {analysis_results['asset_inventory']['total_assets']} assets")
+            logger.info(
+                f"✅ Analysis phases completed for {analysis_results['asset_inventory']['total_assets']} assets"
+            )
 
             return {
                 "status": "completed",
@@ -1368,6 +1434,7 @@ class CrewAIFlowService:
         except Exception as e:
             logger.error(f"❌ Analysis phases failed for flow {flow_id}: {e}")
             import traceback
+
             logger.error(f"Traceback: {traceback.format_exc()}")
 
             return {
@@ -1386,7 +1453,7 @@ class CrewAIFlowService:
         client_account_id: str = None,
         engagement_id: str = None,
         user_id: str = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Generic method to execute any flow phase.
@@ -1403,7 +1470,7 @@ class CrewAIFlowService:
                     client_account_id=client_account_id,
                     engagement_id=engagement_id,
                     user_id=user_id,
-                    **kwargs
+                    **kwargs,
                 )
             elif phase_name == "field_mapping":
                 if phase_input.get("approved_mappings"):
@@ -1413,7 +1480,7 @@ class CrewAIFlowService:
                         client_account_id=client_account_id,
                         engagement_id=engagement_id,
                         user_id=user_id,
-                        **kwargs
+                        **kwargs,
                     )
                 else:
                     return await self.generate_field_mapping_suggestions(
@@ -1422,7 +1489,7 @@ class CrewAIFlowService:
                         client_account_id=client_account_id,
                         engagement_id=engagement_id,
                         user_id=user_id,
-                        **kwargs
+                        **kwargs,
                     )
             elif phase_name == "data_cleansing":
                 return await self.execute_data_cleansing(
@@ -1431,7 +1498,7 @@ class CrewAIFlowService:
                     client_account_id=client_account_id,
                     engagement_id=engagement_id,
                     user_id=user_id,
-                    **kwargs
+                    **kwargs,
                 )
             elif phase_name == "asset_creation":
                 return await self.create_discovery_assets(
@@ -1440,7 +1507,7 @@ class CrewAIFlowService:
                     client_account_id=client_account_id,
                     engagement_id=engagement_id,
                     user_id=user_id,
-                    **kwargs
+                    **kwargs,
                 )
             elif phase_name == "analysis":
                 return await self.execute_analysis_phases(
@@ -1449,7 +1516,7 @@ class CrewAIFlowService:
                     client_account_id=client_account_id,
                     engagement_id=engagement_id,
                     user_id=user_id,
-                    **kwargs
+                    **kwargs,
                 )
             else:
                 # Unknown phase
@@ -1463,8 +1530,11 @@ class CrewAIFlowService:
                 }
 
         except Exception as e:
-            logger.error(f"❌ Flow phase execution failed: {phase_name} for flow {flow_id}: {e}")
+            logger.error(
+                f"❌ Flow phase execution failed: {phase_name} for flow {flow_id}: {e}"
+            )
             import traceback
+
             logger.error(f"Traceback: {traceback.format_exc()}")
 
             return {

@@ -14,7 +14,7 @@ Usage:
 import argparse
 import asyncio
 import logging
-import random
+import secrets
 import sys
 
 # Add the parent directory to sys.path so we can import app modules
@@ -48,8 +48,10 @@ def generate_dummy_embedding() -> List[float]:
     Returns:
         List of 1536 float values representing a normalized vector
     """
-    # Generate random values between -1 and 1
-    vector = [random.uniform(-1.0, 1.0) for _ in range(EMBEDDING_DIMENSION)]
+    # Generate cryptographically secure random values between -1 and 1
+    vector = [
+        secrets.SystemRandom().uniform(-1.0, 1.0) for _ in range(EMBEDDING_DIMENSION)
+    ]
 
     # Normalize the vector to unit length for better similarity behavior
     magnitude = sum(x * x for x in vector) ** 0.5

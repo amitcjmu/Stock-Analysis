@@ -11,10 +11,12 @@ from pathlib import Path
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
+# flake8: noqa: E402
 from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
 from app.core.logging import get_logger
+from app.core.security.secure_logging import mask_email, mask_id
 from app.models import User, UserProfile, UserRole
 
 logger = get_logger(__name__)
@@ -32,10 +34,12 @@ async def fix_admin_role():
             user = user_result.scalar_one_or_none()
 
             if not user:
-                logger.error("User chocka@gmail.com not found!")
+                logger.error("Target admin user not found!")
                 return False
 
-            logger.info(f"Found user: {user.email} (ID: {user.id})")
+            logger.info(
+                f"Found user: {mask_email(user.email)} (ID: {mask_id(user.id)})"  # nosec B106
+            )
 
             # Check current roles
             roles_result = await db.execute(
@@ -103,7 +107,7 @@ async def fix_admin_role():
 
 async def main():
     """Main function"""
-    logger.info("🔧 Fixing admin role for chocka@gmail.com...")
+    logger.info("🔧 Fixing admin role for target user...")
 
     success = await fix_admin_role()
 

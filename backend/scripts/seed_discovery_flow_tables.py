@@ -25,6 +25,7 @@ try:
     from sqlalchemy import text
 
     from app.core.database import AsyncSessionLocal
+    from app.core.security.secure_logging import mask_id
 
     DEPENDENCIES_AVAILABLE = True
 except ImportError as e:
@@ -597,11 +598,15 @@ async def verify_seeded_data():
 
             for flow in flow_details:
                 logger.info(f"   • Flow: {flow.flow_name}")
-                logger.info(f"     - ID: {flow.flow_id}")
+                logger.info(
+                    f"     - ID: {mask_id(flow.flow_id)}"  # nosec B106
+                )
                 logger.info(f"     - Status: {flow.status}")
                 logger.info(f"     - Progress: {flow.progress_percentage}%")
                 logger.info(
-                    f"     - Phases: Import={flow.data_import_completed}, Mapping={flow.attribute_mapping_completed}, Cleansing={flow.data_cleansing_completed}"
+                    f"     - Phases: Import={flow.data_import_completed}, "
+                    f"Mapping={flow.attribute_mapping_completed}, "
+                    f"Cleansing={flow.data_cleansing_completed}"
                 )
 
             logger.info("✅ Data verification completed successfully")

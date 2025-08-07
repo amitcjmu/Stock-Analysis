@@ -18,21 +18,21 @@ class MockFlowPerformanceMonitor:
         self.active_operations: Dict[str, Dict[str, Any]] = {}
 
     def start_operation(
-        self, 
-        flow_id: str, 
-        operation_type: str, 
-        metadata: Optional[Dict[str, Any]] = None
+        self,
+        flow_id: str,
+        operation_type: str,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Start tracking an operation"""
         tracking_id = str(uuid4())
-        
+
         self.active_operations[tracking_id] = {
             "flow_id": flow_id,
             "operation_type": operation_type,
             "metadata": metadata or {},
             "start_time": self._get_current_time(),
         }
-        
+
         logger.debug(f"Started operation tracking: {tracking_id} ({operation_type})")
         return tracking_id
 
@@ -43,12 +43,12 @@ class MockFlowPerformanceMonitor:
             operation["end_time"] = self._get_current_time()
             operation["success"] = success
             operation["duration_ms"] = operation["end_time"] - operation["start_time"]
-            
+
             logger.debug(
                 f"Ended operation tracking: {tracking_id} "
                 f"(duration: {operation['duration_ms']}ms, success: {success})"
             )
-            
+
             # Clean up completed operation
             del self.active_operations[tracking_id]
         else:
@@ -57,4 +57,5 @@ class MockFlowPerformanceMonitor:
     def _get_current_time(self) -> int:
         """Get current time in milliseconds"""
         import time
+
         return int(time.time() * 1000)

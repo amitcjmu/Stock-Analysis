@@ -148,20 +148,24 @@ class DatabaseSetup:
                 )
                 # Terminate connections to the database
                 await conn.execute(
-                    f"""
+                    """
                     SELECT pg_terminate_backend(pid)
                     FROM pg_stat_activity
-                    WHERE datname = '{self.db_config['database']}' AND pid <> pg_backend_pid()
-                """
+                    WHERE datname = $1 AND pid <> pg_backend_pid()
+                    """,
+                    self.db_config["database"],
                 )
                 await conn.execute(
-                    f"DROP DATABASE IF EXISTS {self.db_config['database']}"
+                    "DROP DATABASE IF EXISTS "
+                    + conn._quote_ident(self.db_config["database"])
                 )
                 db_exists = False
 
             if not db_exists:
                 logger.info(f"📦 Creating database '{self.db_config['database']}'...")
-                await conn.execute(f"CREATE DATABASE {self.db_config['database']}")
+                await conn.execute(
+                    "CREATE DATABASE " + conn._quote_ident(self.db_config["database"])
+                )
                 logger.info("✅ Database created successfully!")
                 await conn.close()
                 return True

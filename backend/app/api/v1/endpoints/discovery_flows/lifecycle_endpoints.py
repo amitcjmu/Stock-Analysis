@@ -7,6 +7,8 @@ This module handles flow lifecycle operations:
 - Flow state transitions
 """
 
+import asyncio
+import hashlib
 import logging
 import time
 from datetime import datetime
@@ -20,6 +22,8 @@ from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 
 from .response_mappers import (
+    DiscoveryFeedbackRequest,
+    DiscoveryFeedbackResponse,
     FlowInitializeResponse,
     FlowOperationResponse,
     ResponseMappers,
@@ -27,6 +31,13 @@ from .response_mappers import (
 from .status_calculator import StatusCalculator
 
 logger = logging.getLogger(__name__)
+
+# Import feedback handler with error handling
+try:
+    from app.api.v1.endpoints.discovery_handlers.feedback import FeedbackHandler
+except ImportError as e:
+    logger.error(f"Failed to import FeedbackHandler: {e}")
+    FeedbackHandler = None
 
 lifecycle_router = APIRouter(tags=["discovery-lifecycle"])
 
@@ -599,3 +610,107 @@ async def restore_discovery_flow(
     except Exception as e:
         logger.error(f"Error restoring flow {flow_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to restore flow: {str(e)}")
+
+
+@lifecycle_router.post("/feedback", response_model=DiscoveryFeedbackResponse)
+async def submit_discovery_feedback(
+    request: DiscoveryFeedbackRequest,
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Submit feedback for the discovery flow process.
+
+    This endpoint allows users to provide feedback about their discovery flow experience,
+    report bugs, request features, or provide general comments. The feedback is processed
+    using the existing FeedbackHandler and can be used for continuous improvement.
+
+    Supported feedback types:
+    - general: General feedback about the discovery process
+    - bug: Bug reports and issues
+    - feature_request: Feature enhancement requests
+    - ui_feedback: User interface feedback
+    - performance: Performance-related feedback
+    """
+    try:
+        logger.info(
+            f"💬 Processing discovery feedback of type '{request.type}' "
+            f"for client {context.client_account_id}"
+        )
+
+        # Check if FeedbackHandler is available
+        if FeedbackHandler is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Feedback service is currently unavailable due to import error",
+            )
+
+        # Initialize the handler
+        feedback_handler = FeedbackHandler()
+
+        if not feedback_handler.is_available():
+            raise HTTPException(
+                status_code=503, detail="Feedback service is currently unavailable"
+            )
+
+        # Prepare feedback data for the handler
+        feedback_data = {
+            "type": request.type,
+            "content": request.message,
+            "message": request.message,  # Some handlers expect 'message' key
+            "user_email": request.user_email,
+            "page_url": request.page_url,
+            "flow_id": request.flow_id,
+            "current_phase": request.current_phase,
+            "client_account_id": str(context.client_account_id),
+            "engagement_id": str(context.engagement_id),
+            "user_id": context.user_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "metadata": {
+                **request.metadata,
+                "source": "discovery_flows",
+                "endpoint": "/api/v1/discovery/feedback",
+                "user_agent": context.user_id,  # Basic context info
+            },
+        }
+
+        # Submit feedback using the existing handler with timeout
+        try:
+            result = await asyncio.wait_for(
+                feedback_handler.submit_feedback(feedback_data), timeout=30.0
+            )
+        except asyncio.TimeoutError:
+            raise HTTPException(status_code=504, detail="Feedback submission timed out")
+
+        # Check if the feedback was processed successfully
+        if not result.get("status") == "success":
+            logger.warning(f"Feedback processing returned non-success status: {result}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Feedback processing failed: {result.get('message', 'Unknown error')}",
+            )
+
+        feedback_id = result.get(
+            "feedback_id",
+            f"discovery_feedback_{hashlib.sha256(str(feedback_data).encode()).hexdigest()[:16]}",
+        )
+
+        logger.info(
+            f"✅ Discovery feedback processed successfully with ID: {feedback_id}"
+        )
+
+        return DiscoveryFeedbackResponse(
+            success=True,
+            feedback_id=feedback_id,
+            message="Feedback submitted successfully. Thank you for your input!",
+            status="submitted",
+            timestamp=datetime.utcnow().isoformat(),
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error processing discovery feedback: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to submit feedback: {str(e)}"
+        )

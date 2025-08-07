@@ -14,7 +14,7 @@ All required endpoints have been successfully implemented and tested for syntax 
 - Queries active discovery flows from database with proper tenant isolation
 - Returns structured flow data compatible with frontend expectations
 
-✅ **GET `/unified-discovery/flows/{flowId}/status`** - Get flow status  
+✅ **GET `/unified-discovery/flows/{flowId}/status`** - Get flow status
 - Already existed, maintained compatibility
 - Includes comprehensive flow status with fallback mechanisms
 
@@ -61,7 +61,7 @@ All required endpoints have been successfully implemented and tested for syntax 
 - Provides data for dependency analysis UI components
 
 ✅ **GET `/unified-discovery/dependencies/servers`** - Get available servers
-- Extracts servers from discovered assets across engagement flows  
+- Extracts servers from discovered assets across engagement flows
 - Supports server dependency mapping functionality
 
 ✅ **POST `/unified-discovery/dependencies/analyze/{analysis_type}`** - Analyze dependencies
@@ -131,7 +131,7 @@ All 15 required frontend endpoints implemented:
 1. GET `/flows/active`
 2. GET `/flows/{flowId}/status`
 3. POST `/flow/{flowId}/execute`
-4. POST `/flow/{flowId}/resume` 
+4. POST `/flow/{flowId}/resume`
 5. POST `/flow/{flowId}/retry`
 6. DELETE `/flow/{flowId}`
 7. GET `/flows/{flowId}/field-mappings`

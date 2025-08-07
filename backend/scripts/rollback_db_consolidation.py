@@ -156,16 +156,21 @@ class DatabaseConsolidationRollback:
 
             # Terminate existing connections
             cur.execute(
-                f"""
+                """
                 SELECT pg_terminate_backend(pid)
                 FROM pg_stat_activity
-                WHERE datname = '{db_name}' AND pid <> pg_backend_pid()
-            """
+                WHERE datname = %s AND pid <> pg_backend_pid()
+                """,
+                (db_name,),
             )
 
             # Drop and recreate database
-            cur.execute(f"DROP DATABASE IF EXISTS {db_name}")
-            cur.execute(f"CREATE DATABASE {db_name}")
+            cur.execute(
+                f"DROP DATABASE IF EXISTS {psycopg2.extensions.quote_ident(db_name, cur)}"
+            )
+            cur.execute(
+                f"CREATE DATABASE {psycopg2.extensions.quote_ident(db_name, cur)}"
+            )
 
             cur.close()
             conn.close()

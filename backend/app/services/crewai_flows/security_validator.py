@@ -101,7 +101,9 @@ class CrewAISecurityValidator:
 
         return violations
 
-    def validate_flow_state_security(self, flow_state: Dict[str, Any]) -> List[SecurityViolation]:
+    def validate_flow_state_security(
+        self, flow_state: Dict[str, Any]
+    ) -> List[SecurityViolation]:
         """Validate flow state data security"""
         violations = []
 
@@ -125,7 +127,9 @@ class CrewAISecurityValidator:
 
         # Check for tenant context
         required_tenant_fields = ["client_account_id", "engagement_id", "user_id"]
-        missing_tenant_fields = [field for field in required_tenant_fields if field not in flow_state]
+        missing_tenant_fields = [
+            field for field in required_tenant_fields if field not in flow_state
+        ]
 
         if missing_tenant_fields:
             violations.append(
@@ -155,7 +159,9 @@ class CrewAISecurityValidator:
 
         return violations
 
-    def validate_agent_configuration_security(self, agent_config: Dict[str, Any]) -> List[SecurityViolation]:
+    def validate_agent_configuration_security(
+        self, agent_config: Dict[str, Any]
+    ) -> List[SecurityViolation]:
         """Validate agent configuration security"""
         violations = []
 
@@ -195,7 +201,9 @@ class CrewAISecurityValidator:
 
         return violations
 
-    def validate_checkpoint_security(self, checkpoint_data: Dict[str, Any]) -> List[SecurityViolation]:
+    def validate_checkpoint_security(
+        self, checkpoint_data: Dict[str, Any]
+    ) -> List[SecurityViolation]:
         """Validate checkpoint data security"""
         violations = []
 
@@ -227,17 +235,21 @@ class CrewAISecurityValidator:
 
         # Check for state snapshot security
         if "state_snapshot" in checkpoint_data:
-            state_violations = self.validate_flow_state_security(checkpoint_data["state_snapshot"])
+            state_violations = self.validate_flow_state_security(
+                checkpoint_data["state_snapshot"]
+            )
             violations.extend(state_violations)
 
         return violations
 
-    def validate_cache_implementation(self, cache_client: Any) -> List[SecurityViolation]:
+    def validate_cache_implementation(
+        self, cache_client: Any
+    ) -> List[SecurityViolation]:
         """Validate cache client implementation"""
         violations = []
 
         # Check if using SecureCache wrapper
-        if not hasattr(cache_client, 'encryption'):
+        if not hasattr(cache_client, "encryption"):
             violations.append(
                 SecurityViolation(
                     violation_type="insecure_cache_client",
@@ -250,7 +262,10 @@ class CrewAISecurityValidator:
             )
 
         # Check encryption availability
-        if hasattr(cache_client, 'encryption') and not cache_client.encryption.is_encryption_available():
+        if (
+            hasattr(cache_client, "encryption")
+            and not cache_client.encryption.is_encryption_available()
+        ):
             violations.append(
                 SecurityViolation(
                     violation_type="encryption_unavailable",
@@ -287,10 +302,24 @@ class CrewAISecurityValidator:
 
         # Validate cache key patterns
         test_keys = [
-            CacheKeys.crewai_flow_state("test_flow", "test_phase", str(context.client_account_id), str(context.engagement_id)),
-            CacheKeys.agent_configuration("test_agent", "test_type", str(context.client_account_id)),
-            CacheKeys.flow_checkpoint("test_flow", "test_checkpoint", str(context.client_account_id), str(context.engagement_id)),
-            CacheKeys.agent_memory_context("test_agent", "test_context", str(context.client_account_id)),
+            CacheKeys.crewai_flow_state(
+                "test_flow",
+                "test_phase",
+                str(context.client_account_id),
+                str(context.engagement_id),
+            ),
+            CacheKeys.agent_configuration(
+                "test_agent", "test_type", str(context.client_account_id)
+            ),
+            CacheKeys.flow_checkpoint(
+                "test_flow",
+                "test_checkpoint",
+                str(context.client_account_id),
+                str(context.engagement_id),
+            ),
+            CacheKeys.agent_memory_context(
+                "test_agent", "test_context", str(context.client_account_id)
+            ),
         ]
 
         for key in test_keys:
@@ -300,15 +329,21 @@ class CrewAISecurityValidator:
         # Validate sample data if provided
         if sample_data:
             if "flow_state" in sample_data:
-                flow_violations = self.validate_flow_state_security(sample_data["flow_state"])
+                flow_violations = self.validate_flow_state_security(
+                    sample_data["flow_state"]
+                )
                 all_violations.extend(flow_violations)
 
             if "agent_config" in sample_data:
-                agent_violations = self.validate_agent_configuration_security(sample_data["agent_config"])
+                agent_violations = self.validate_agent_configuration_security(
+                    sample_data["agent_config"]
+                )
                 all_violations.extend(agent_violations)
 
             if "checkpoint" in sample_data:
-                checkpoint_violations = self.validate_checkpoint_security(sample_data["checkpoint"])
+                checkpoint_violations = self.validate_checkpoint_security(
+                    sample_data["checkpoint"]
+                )
                 all_violations.extend(checkpoint_violations)
 
         # Categorize violations by severity
@@ -324,18 +359,24 @@ class CrewAISecurityValidator:
             "medium_violations": len(medium_violations),
             "low_violations": len(low_violations),
             "violations": [v.to_dict() for v in all_violations],
-            "security_status": "FAIL" if critical_violations or high_violations else "PASS",
+            "security_status": (
+                "FAIL" if critical_violations or high_violations else "PASS"
+            ),
             "recommendations": self._generate_recommendations(all_violations),
         }
 
-    def _generate_recommendations(self, violations: List[SecurityViolation]) -> List[str]:
+    def _generate_recommendations(
+        self, violations: List[SecurityViolation]
+    ) -> List[str]:
         """Generate prioritized security recommendations"""
         recommendations = []
 
         # Critical issues first
         critical_violations = [v for v in violations if v.severity == "critical"]
         if critical_violations:
-            recommendations.append("CRITICAL: Address encryption and tenant isolation issues immediately")
+            recommendations.append(
+                "CRITICAL: Address encryption and tenant isolation issues immediately"
+            )
             for violation in critical_violations[:3]:  # Top 3 critical issues
                 recommendations.append(f"- {violation.recommendation}")
 
@@ -351,22 +392,28 @@ class CrewAISecurityValidator:
             recommendations.append("Ensure all cache keys use CACHE_VERSION prefix")
 
         if any(v.violation_type == "missing_tenant_isolation" for v in violations):
-            recommendations.append("Implement proper tenant isolation in all cache keys")
+            recommendations.append(
+                "Implement proper tenant isolation in all cache keys"
+            )
 
         if any(v.violation_type == "unencrypted_sensitive_data" for v in violations):
-            recommendations.append("Use SecureCache and SecureCheckpointManager consistently")
+            recommendations.append(
+                "Use SecureCache and SecureCheckpointManager consistently"
+            )
 
         return recommendations
 
 
-def validate_crewai_security(context: RequestContext, sample_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def validate_crewai_security(
+    context: RequestContext, sample_data: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """
     Convenience function to run CrewAI security validation
-    
+
     Args:
         context: Request context for tenant information
         sample_data: Optional sample data to validate
-        
+
     Returns:
         Validation results dictionary
     """
@@ -377,19 +424,25 @@ def validate_crewai_security(context: RequestContext, sample_data: Optional[Dict
 def log_security_violations(validation_results: Dict[str, Any]) -> None:
     """Log security violations with appropriate severity levels"""
     if validation_results["critical_violations"] > 0:
-        logger.critical(f"CRITICAL SECURITY VIOLATIONS FOUND: {validation_results['critical_violations']}")
-        
+        logger.critical(
+            f"CRITICAL SECURITY VIOLATIONS FOUND: {validation_results['critical_violations']}"
+        )
+
     if validation_results["high_violations"] > 0:
-        logger.error(f"High severity security violations: {validation_results['high_violations']}")
-        
+        logger.error(
+            f"High severity security violations: {validation_results['high_violations']}"
+        )
+
     if validation_results["medium_violations"] > 0:
-        logger.warning(f"Medium severity security violations: {validation_results['medium_violations']}")
-        
+        logger.warning(
+            f"Medium severity security violations: {validation_results['medium_violations']}"
+        )
+
     if validation_results["security_status"] == "PASS":
         logger.info("✅ CrewAI security validation passed")
     else:
         logger.error("❌ CrewAI security validation failed")
-        
+
     # Log recommendations
     for recommendation in validation_results["recommendations"]:
         logger.info(f"💡 {recommendation}")
