@@ -20,6 +20,8 @@ from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 
 from .response_mappers import (
+    DiscoveryFeedbackRequest,
+    DiscoveryFeedbackResponse,
     FlowInitializeResponse,
     FlowOperationResponse,
     ResponseMappers,
@@ -599,3 +601,97 @@ async def restore_discovery_flow(
     except Exception as e:
         logger.error(f"Error restoring flow {flow_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to restore flow: {str(e)}")
+
+
+@lifecycle_router.post("/feedback", response_model=DiscoveryFeedbackResponse)
+async def submit_discovery_feedback(
+    request: DiscoveryFeedbackRequest,
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Submit feedback for the discovery flow process.
+
+    This endpoint allows users to provide feedback about their discovery flow experience,
+    report bugs, request features, or provide general comments. The feedback is processed
+    using the existing FeedbackHandler and can be used for continuous improvement.
+
+    Supported feedback types:
+    - general: General feedback about the discovery process
+    - bug: Bug reports and issues
+    - feature_request: Feature enhancement requests
+    - ui_feedback: User interface feedback
+    - performance: Performance-related feedback
+    """
+    try:
+        logger.info(
+            f"💬 Processing discovery feedback of type '{request.type}' "
+            f"for client {context.client_account_id}"
+        )
+
+        # Import the FeedbackHandler
+        from app.api.v1.endpoints.discovery_handlers.feedback import FeedbackHandler
+
+        # Initialize the handler
+        feedback_handler = FeedbackHandler()
+
+        if not feedback_handler.is_available():
+            raise HTTPException(
+                status_code=503, detail="Feedback service is currently unavailable"
+            )
+
+        # Prepare feedback data for the handler
+        feedback_data = {
+            "type": request.type,
+            "content": request.message,
+            "message": request.message,  # Some handlers expect 'message' key
+            "user_email": request.user_email,
+            "page_url": request.page_url,
+            "flow_id": request.flow_id,
+            "current_phase": request.current_phase,
+            "client_account_id": str(context.client_account_id),
+            "engagement_id": str(context.engagement_id),
+            "user_id": context.user_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "metadata": {
+                **request.metadata,
+                "source": "discovery_flows",
+                "endpoint": "/api/v1/discovery/feedback",
+                "user_agent": context.user_id,  # Basic context info
+            },
+        }
+
+        # Submit feedback using the existing handler
+        result = await feedback_handler.submit_feedback(feedback_data)
+
+        # Check if the feedback was processed successfully
+        if not result.get("status") == "success":
+            logger.warning(f"Feedback processing returned non-success status: {result}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Feedback processing failed: {result.get('message', 'Unknown error')}",
+            )
+
+        feedback_id = result.get(
+            "feedback_id", f"discovery_feedback_{hash(str(feedback_data))}"
+        )
+
+        logger.info(
+            f"✅ Discovery feedback processed successfully with ID: {feedback_id}"
+        )
+
+        return DiscoveryFeedbackResponse(
+            success=True,
+            feedback_id=feedback_id,
+            message="Feedback submitted successfully. Thank you for your input!",
+            status="submitted",
+            timestamp=datetime.utcnow().isoformat(),
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error processing discovery feedback: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to submit feedback: {str(e)}"
+        )

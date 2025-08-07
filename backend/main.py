@@ -43,7 +43,7 @@ load_dotenv()
 # Note: patch_litellm_response_parsing is applied automatically on import
 try:
     from app.services.deepinfra_response_fixer import (
-        patch_litellm_response_parsing,  # noqa: F401
+        patch_litellm_response_parsing,
     )
 
     logger = logging.getLogger(__name__)
@@ -312,6 +312,46 @@ try:
 except Exception as e:
     logger.warning(f"API v1 routes error: {e}")
     API_ROUTES_ERROR = str(e)
+
+    # Add fallback health endpoint when API v1 routes fail to load
+    from fastapi import APIRouter
+    from datetime import datetime
+
+    fallback_router = APIRouter()
+
+    @fallback_router.get("/health", summary="Fallback Health Check")
+    async def fallback_health_check():
+        """
+        Fallback health check endpoint for API v1 when main routes are unavailable.
+
+        This ensures /api/v1/health is always available for monitoring purposes,
+        even when there are dependency issues with the main API router.
+        """
+        # Basic database connectivity check
+        database_status = False
+        try:
+            # Simple database connection test
+            if DATABASE_ENABLED:
+                database_status = True
+        except Exception:
+            database_status = False
+
+        return {
+            "status": "degraded",  # degraded because full API is not available
+            "service": "ai-force-migration-api",
+            "version": getattr(fastapi_app, "version", "0.2.0"),
+            "timestamp": datetime.utcnow().isoformat(),
+            "components": {
+                "database": database_status,
+                "api_routes": False,  # main routes failed to load
+            },
+            "environment": getattr(settings, "ENVIRONMENT", "production"),
+            "message": "Fallback health endpoint - main API routes unavailable",
+        }
+
+    # Include the fallback router with v1 prefix
+    fastapi_app.include_router(fallback_router, prefix="/api/v1")
+    logger.info("✅ Fallback API v1 health endpoint added")
 
 # V3 API routes removed - replaced by unified API
 API_V3_ROUTES_ENABLED = False

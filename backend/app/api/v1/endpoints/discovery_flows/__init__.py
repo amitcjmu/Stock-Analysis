@@ -19,7 +19,11 @@ from fastapi import APIRouter
 from .execution_endpoints import execution_router
 from .lifecycle_endpoints import lifecycle_router
 from .query_endpoints import query_router
-from .response_mappers import ResponseMappers
+from .response_mappers import (
+    DiscoveryFeedbackRequest,
+    DiscoveryFeedbackResponse,
+    ResponseMappers,
+)
 from .status_calculator import StatusCalculator
 from .validation_endpoints import validation_router
 
@@ -44,4 +48,6 @@ __all__ = [
     "validation_router",
     "ResponseMappers",
     "StatusCalculator",
+    "DiscoveryFeedbackRequest",
+    "DiscoveryFeedbackResponse",
 ]

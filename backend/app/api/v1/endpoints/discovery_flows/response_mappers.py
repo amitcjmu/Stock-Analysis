@@ -96,6 +96,36 @@ class AttributeMappingResponse(BaseModel):
     last_updated: str
 
 
+class DiscoveryFeedbackRequest(BaseModel):
+    """Request model for discovery feedback submission"""
+
+    type: str = Field(
+        ..., description="Feedback type (general, bug, feature_request, etc.)"
+    )
+    message: str = Field(..., min_length=1, description="Feedback message text")
+    user_email: Optional[str] = Field(None, description="Optional user email")
+    page_url: Optional[str] = Field(
+        None, description="Optional page URL where feedback was submitted"
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Optional additional data"
+    )
+    flow_id: Optional[str] = Field(None, description="Optional associated flow ID")
+    current_phase: Optional[str] = Field(
+        None, description="Optional current discovery phase"
+    )
+
+
+class DiscoveryFeedbackResponse(BaseModel):
+    """Response model for discovery feedback submission"""
+
+    success: bool
+    feedback_id: str
+    message: str
+    status: str = Field(default="submitted", description="Processing status")
+    timestamp: str
+
+
 class ResponseMappers:
     """Utility class for response data transformation and standardization"""
 

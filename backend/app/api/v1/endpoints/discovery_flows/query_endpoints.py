@@ -578,13 +578,13 @@ async def get_attribute_mapping(
 ):
     """
     Get attribute mapping data for active discovery flows.
-    
+
     This endpoint retrieves attribute mapping information for all active flows
     in the current user context. The frontend navigation expects this endpoint
     to be available without requiring a specific flow_id.
-    
+
     Returns:
-        Attribute mapping data including field mappings, confidence scores, 
+        Attribute mapping data including field mappings, confidence scores,
         and mapping status for active flows, or 304 Not Modified if unchanged.
     """
     try:
@@ -637,14 +637,15 @@ async def get_attribute_mapping(
                 DiscoveryFlow.status != "cancelled",  # Exclude cancelled flows
                 or_(
                     DiscoveryFlow.status == "active",
-                    DiscoveryFlow.status == "running", 
+                    DiscoveryFlow.status == "running",
                     DiscoveryFlow.status == "paused",
                     DiscoveryFlow.status == "processing",
                     DiscoveryFlow.status == "ready",
                     DiscoveryFlow.status == "waiting_for_approval",
                     DiscoveryFlow.status == "initialized",
                     DiscoveryFlow.status == "in_progress",
-                    DiscoveryFlow.status == "complete",  # Include completed flows for reference
+                    DiscoveryFlow.status
+                    == "complete",  # Include completed flows for reference
                 ),
             )
         )
@@ -686,40 +687,60 @@ async def get_attribute_mapping(
                 field_mappings = flow.field_mappings or {}
 
                 # Also check crewai_state_data for field mappings
-                if flow.crewai_state_data and "field_mappings" in flow.crewai_state_data:
+                if (
+                    flow.crewai_state_data
+                    and "field_mappings" in flow.crewai_state_data
+                ):
                     crewai_mappings = flow.crewai_state_data.get("field_mappings", {})
                     # Merge with existing mappings
                     field_mappings.update(crewai_mappings)
 
                 # Get confidence scores
                 confidence_scores = {}
-                if flow.crewai_state_data and "confidence_scores" in flow.crewai_state_data:
-                    confidence_scores = flow.crewai_state_data.get("confidence_scores", {})
+                if (
+                    flow.crewai_state_data
+                    and "confidence_scores" in flow.crewai_state_data
+                ):
+                    confidence_scores = flow.crewai_state_data.get(
+                        "confidence_scores", {}
+                    )
 
                 if field_mappings:
                     flows_with_mappings += 1
-                    
+
                     # Count mapped fields and calculate confidence
                     for source_field, mapping_info in field_mappings.items():
                         total_mapped_fields += 1
-                        
+
                         # Extract confidence score
                         confidence = 0.0
                         if isinstance(mapping_info, dict):
                             confidence = mapping_info.get("confidence", 0.0)
                         elif source_field in confidence_scores:
                             confidence = confidence_scores[source_field]
-                        
+
                         total_confidence += confidence
-                        
+
                         # Add to aggregate mappings (using most recent flow's mapping if duplicates)
                         if source_field not in aggregate_mappings:
                             aggregate_mappings[source_field] = {
-                                "target_field": mapping_info.get("target_field", "") if isinstance(mapping_info, dict) else str(mapping_info),
+                                "target_field": (
+                                    mapping_info.get("target_field", "")
+                                    if isinstance(mapping_info, dict)
+                                    else str(mapping_info)
+                                ),
                                 "confidence": confidence,
                                 "source_flow_id": str(flow.flow_id),
-                                "is_approved": mapping_info.get("is_approved", False) if isinstance(mapping_info, dict) else False,
-                                "match_type": mapping_info.get("match_type", "automatic") if isinstance(mapping_info, dict) else "automatic",
+                                "is_approved": (
+                                    mapping_info.get("is_approved", False)
+                                    if isinstance(mapping_info, dict)
+                                    else False
+                                ),
+                                "match_type": (
+                                    mapping_info.get("match_type", "automatic")
+                                    if isinstance(mapping_info, dict)
+                                    else "automatic"
+                                ),
                             }
 
                 flow_data = {
@@ -731,13 +752,17 @@ async def get_attribute_mapping(
                     "mapping_status": flow.field_mapping_status or "pending",
                     "mapping_completed": flow.field_mapping_completed or False,
                     "confidence_scores": confidence_scores,
-                    "last_updated": flow.updated_at.isoformat() if flow.updated_at else "",
+                    "last_updated": (
+                        flow.updated_at.isoformat() if flow.updated_at else ""
+                    ),
                 }
                 flows_data.append(flow_data)
 
             # Calculate average confidence
             average_confidence = (
-                total_confidence / total_mapped_fields if total_mapped_fields > 0 else 0.0
+                total_confidence / total_mapped_fields
+                if total_mapped_fields > 0
+                else 0.0
             )
 
             attribute_mapping_data = {
@@ -768,7 +793,9 @@ async def get_attribute_mapping(
         response.headers["ETag"] = etag
         response.headers["Cache-Control"] = "no-cache, must-revalidate"
         response.headers["X-Flows-Count"] = str(len(flows))
-        response.headers["X-Mapping-Fields-Count"] = str(attribute_mapping_data["mapping_statistics"]["total_mapped_fields"])
+        response.headers["X-Mapping-Fields-Count"] = str(
+            attribute_mapping_data["mapping_statistics"]["total_mapped_fields"]
+        )
 
         return attribute_mapping_data
 
