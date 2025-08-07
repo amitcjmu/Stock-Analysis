@@ -652,7 +652,14 @@ async def get_attribute_mapping(
 
         # Add engagement filter only if we have a valid engagement_id
         if engagement_id:
-            stmt = stmt.where(DiscoveryFlow.engagement_id == engagement_id)
+            try:
+                # Basic validation - ensure it's a valid UUID or expected format
+                if len(str(engagement_id)) < 8 or str(engagement_id).strip() == "":
+                    logger.warning(f"Invalid engagement_id format: {engagement_id}")
+                else:
+                    stmt = stmt.where(DiscoveryFlow.engagement_id == engagement_id)
+            except Exception as e:
+                logger.warning(f"Error validating engagement_id {engagement_id}: {e}")
 
         stmt = stmt.order_by(DiscoveryFlow.updated_at.desc())
 

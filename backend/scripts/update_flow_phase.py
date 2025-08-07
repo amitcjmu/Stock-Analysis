@@ -39,7 +39,9 @@ async def update_flow_state():
 
             await db.execute(update_discovery_query, {"flow_id": FLOW_ID})
             await db.commit()
-            logger.info("✅ Updated discovery flow phase to data_cleansing")
+            logger.info(
+                f"✅ Updated discovery flow phase to data_cleansing for flow ***{FLOW_ID[-8:]}"
+            )
 
             # Update crewai_flow_state_extensions table
             update_state_query = text(
@@ -70,7 +72,9 @@ async def update_flow_state():
 
             await db.execute(update_state_query, {"flow_id": FLOW_ID})
             await db.commit()
-            logger.info("✅ Updated crewai flow state to continue processing")
+            logger.info(
+                f"✅ Updated crewai flow state to continue processing for flow ***{FLOW_ID[-8:]}"
+            )
 
             # Trigger flow resume by updating a timestamp
             trigger_query = text(

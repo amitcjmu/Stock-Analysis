@@ -314,8 +314,9 @@ except Exception as e:
     API_ROUTES_ERROR = str(e)
 
     # Add fallback health endpoint when API v1 routes fail to load
-    from fastapi import APIRouter
     from datetime import datetime
+
+    from fastapi import APIRouter
 
     fallback_router = APIRouter()
 
@@ -330,8 +331,17 @@ except Exception as e:
         # Basic database connectivity check
         database_status = False
         try:
-            # Simple database connection test
             if DATABASE_ENABLED:
+                # Attempt a basic database operation to verify connectivity
+                from app.core.database import get_db
+
+                db_gen = get_db()
+                next(db_gen)
+                # Properly close the database session
+                try:
+                    next(db_gen)
+                except StopIteration:
+                    pass  # Generator exhausted, session closed
                 database_status = True
         except Exception:
             database_status = False

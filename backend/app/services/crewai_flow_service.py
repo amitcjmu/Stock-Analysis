@@ -1022,8 +1022,10 @@ class CrewAIFlowService:
                     f"⚠️ Failed to update flow state with validation results: {e}"
                 )
 
+            valid_count = validation_results["valid_records"]
+            total_count = validation_results["total_records"]
             logger.info(
-                f"✅ Data import validation completed: {validation_results['valid_records']}/{validation_results['total_records']} records valid"
+                f"✅ Data import validation completed: {valid_count}/{total_count} records valid"
             )
 
             return {

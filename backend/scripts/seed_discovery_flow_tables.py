@@ -597,7 +597,9 @@ async def verify_seeded_data():
 
             for flow in flow_details:
                 logger.info(f"   • Flow: {flow.flow_name}")
-                logger.info(f"     - ID: {flow.flow_id}")
+                logger.info(
+                    f"     - ID: ***{str(flow.flow_id)[-8:] if flow.flow_id else 'N/A'}"
+                )
                 logger.info(f"     - Status: {flow.status}")
                 logger.info(f"     - Progress: {flow.progress_percentage}%")
                 logger.info(

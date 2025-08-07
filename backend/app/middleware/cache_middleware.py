@@ -387,8 +387,9 @@ class CacheMiddleware(BaseHTTPMiddleware):
                             datetime.utcnow() - cached_time.replace(tzinfo=None)
                         ).total_seconds()
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Failed to calculate cache age: {e}")
+                    cache_age = 0
 
             # Create response with appropriate headers
             response = JSONResponse(content=response_data)

@@ -210,14 +210,11 @@ export class DashboardService {
           let validatedFlowId: string;
           try {
             validatedFlowId = flow.flow_id || flow.flowId || flow.id || '';
-            if (!validatedFlowId || validatedFlowId.trim() === '') {
-              throw new Error('No valid flow ID found in any expected field (flow_id, flowId, id)');
+            if (!validatedFlowId || validatedFlowId.trim().length < 8) {
+              throw new Error(`Invalid flow ID format: ${validatedFlowId}`);
             }
             // Ensure flow ID is a string and has reasonable length
             validatedFlowId = validatedFlowId.toString().trim();
-            if (validatedFlowId.length < 1) {
-              throw new Error('Flow ID is empty after trimming');
-            }
           } catch (flowIdError) {
             console.warn(`⚠️ Failed to extract flow ID from flow:`, {
               flow: flow,

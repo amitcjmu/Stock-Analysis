@@ -32,10 +32,12 @@ async def fix_admin_role():
             user = user_result.scalar_one_or_none()
 
             if not user:
-                logger.error("User chocka@gmail.com not found!")
+                logger.error("Target admin user not found!")
                 return False
 
-            logger.info(f"Found user: {user.email} (ID: {user.id})")
+            logger.info(
+                f"Found user: {user.email[:3]}***@{user.email.split('@')[1]} (ID: ***{str(user.id)[-4:]})"
+            )
 
             # Check current roles
             roles_result = await db.execute(
@@ -103,7 +105,7 @@ async def fix_admin_role():
 
 async def main():
     """Main function"""
-    logger.info("🔧 Fixing admin role for chocka@gmail.com...")
+    logger.info("🔧 Fixing admin role for target user...")
 
     success = await fix_admin_role()
 

@@ -640,7 +640,8 @@ async def submit_discovery_feedback(
         # Check if FeedbackHandler is available
         if FeedbackHandler is None:
             raise HTTPException(
-                status_code=503, detail="Feedback service is currently unavailable due to import error"
+                status_code=503,
+                detail="Feedback service is currently unavailable due to import error",
             )
 
         # Initialize the handler
@@ -684,7 +685,8 @@ async def submit_discovery_feedback(
             )
 
         feedback_id = result.get(
-            "feedback_id", f"discovery_feedback_{hashlib.md5(str(feedback_data).encode()).hexdigest()[:16]}"
+            "feedback_id",
+            f"discovery_feedback_{hashlib.sha256(str(feedback_data).encode()).hexdigest()[:16]}",
         )
 
         logger.info(

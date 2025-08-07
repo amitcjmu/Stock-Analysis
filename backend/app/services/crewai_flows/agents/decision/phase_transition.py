@@ -238,8 +238,10 @@ class PhaseTransitionAgent(BaseDecisionAgent):
                 action=PhaseAction.PAUSE,
                 next_phase="field_mapping",
                 confidence=pause_confidence,
-                reasoning=f"Mapping confidence ({mapping_confidence:.1%}) is below required threshold ({required_confidence:.1%}). "
-                "Human review recommended.",
+                reasoning=(
+                    f"Mapping confidence ({mapping_confidence:.1%}) is below required threshold "
+                    f"({required_confidence:.1%}). Human review recommended."
+                ),
                 metadata={
                     "current_confidence": mapping_confidence,
                     "required_confidence": required_confidence,
