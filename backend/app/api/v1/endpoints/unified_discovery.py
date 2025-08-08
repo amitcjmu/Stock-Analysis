@@ -9,7 +9,7 @@ instead of bypassing it with direct CrewAI flow creation.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -450,14 +450,90 @@ async def delete_discovery_flow(
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
 ):
-    """Delete a discovery flow through Master Flow Orchestrator."""
+    """Delete a discovery flow - handles both master flow and discovery flow tables."""
     try:
-        orchestrator = MasterFlowOrchestrator(db, context)
-        result = await orchestrator.delete_flow(flow_id)
-        return {"success": True, "flow_id": flow_id, "result": result}
+        logger.info(f"🗑️ Starting deletion process for flow: {flow_id}")
+        logger.info(f"🔍 Context - Client: {context.client_account_id}, Engagement: {context.engagement_id}")
+        
+        # First try to delete via Master Flow Orchestrator
+        try:
+            logger.info(f"🔄 Attempting Master Flow Orchestrator deletion for flow: {flow_id}")
+            orchestrator = MasterFlowOrchestrator(db, context)
+            result = await orchestrator.delete_flow(flow_id)
+            logger.info(f"✅ Flow {flow_id} successfully deleted via Master Flow Orchestrator")
+            return {"success": True, "flow_id": flow_id, "result": result}
+        except (ValueError, RuntimeError) as mfo_error:
+            logger.info(f"⚠️ MFO Error: {mfo_error}")
+            # If MFO can't find the flow, check if it exists in DiscoveryFlow table
+            if "Flow not found" in str(mfo_error):
+                logger.info(f"🔍 Flow {flow_id} not found in master flows, searching discovery flows table...")
+                
+                try:
+                    # Check if flow exists in DiscoveryFlow table
+                    stmt = select(DiscoveryFlow).where(
+                        and_(
+                            DiscoveryFlow.flow_id == flow_id,
+                            DiscoveryFlow.client_account_id == context.client_account_id,
+                            DiscoveryFlow.engagement_id == context.engagement_id,
+                        )
+                    )
+                    logger.info(f"🔍 Executing DiscoveryFlow query with flow_id={flow_id}, client={context.client_account_id}, engagement={context.engagement_id}")
+                    result = await db.execute(stmt)
+                    discovery_flow = result.scalar_one_or_none()
+                    
+                    if discovery_flow:
+                        logger.info(f"✅ Found discovery flow: {flow_id} with status: {discovery_flow.status}")
+                        
+                        # Soft delete the discovery flow directly
+                        previous_status = discovery_flow.status
+                        discovery_flow.status = "deleted"
+                        discovery_flow.updated_at = datetime.now(timezone.utc)
+                        
+                        logger.info(f"🔄 Committing status change from '{previous_status}' to 'deleted' for flow {flow_id}")
+                        await db.commit()
+                        logger.info(f"✅ Database commit successful for flow {flow_id}")
+                        
+                        return {
+                            "success": True, 
+                            "flow_id": flow_id, 
+                            "result": {
+                                "deleted_from": "discovery_flows_table", 
+                                "status": "deleted",
+                                "previous_status": previous_status
+                            }
+                        }
+                    else:
+                        logger.error(f"❌ Flow {flow_id} not found in DiscoveryFlow table with context client={context.client_account_id}, engagement={context.engagement_id}")
+                        
+                        # Debug: Check if flow exists without context constraints
+                        debug_stmt = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
+                        debug_result = await db.execute(debug_stmt)
+                        debug_flow = debug_result.scalar_one_or_none()
+                        
+                        if debug_flow:
+                            logger.error(f"❌ Flow {flow_id} exists but with different context: client={debug_flow.client_account_id}, engagement={debug_flow.engagement_id}")
+                        else:
+                            logger.error(f"❌ Flow {flow_id} does not exist in DiscoveryFlow table at all")
+                        
+                        raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found in the specified engagement context")
+                
+                except Exception as db_error:
+                    logger.error(f"❌ Database error while checking DiscoveryFlow table: {db_error}")
+                    raise HTTPException(status_code=500, detail=f"Database error during flow lookup: {str(db_error)}")
+            else:
+                # Re-raise other MFO errors
+                logger.error(f"❌ MFO error (not 'Flow not found'): {mfo_error}")
+                raise HTTPException(status_code=500, detail=f"Master Flow Orchestrator error: {str(mfo_error)}")
+        except Exception as mfo_error:
+            logger.error(f"❌ Unexpected MFO error: {mfo_error}")
+            raise HTTPException(status_code=500, detail=f"Unexpected Master Flow Orchestrator error: {str(mfo_error)}")
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"❌ Failed to delete flow {flow_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"❌ Unexpected error during flow deletion {flow_id}: {e}")
+        import traceback
+        logger.error(f"❌ Full traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete flow: {str(e)}")
 
 
 @router.get("/flows/active")
