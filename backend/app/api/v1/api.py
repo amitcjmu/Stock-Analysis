@@ -435,16 +435,11 @@ api_router.include_router(
     context_router, prefix="/context", tags=["Context Management"]
 )
 
-# Discovery Flows API - Minimal implementation for frontend compatibility
-try:
-    from app.api.v1.endpoints.discovery_flows import router as discovery_flows_router
-
-    api_router.include_router(
-        discovery_flows_router, prefix="/discovery", tags=["Discovery Flows"]
-    )
-    logger.info("✅ Discovery Flows router included (minimal implementation)")
-except ImportError as e:
-    logger.warning(f"⚠️ Discovery Flows router not available: {e}")
+# REMOVED: Legacy Discovery Flows API that incorrectly included completed flows as "active"
+# This caused data import blocking issues. Use /unified-discovery endpoints instead.
+logger.info(
+    "🗑️ Legacy Discovery Flows router removed - use /unified-discovery endpoints"
+)
 
 # Discovery Flow Implementation Status
 logger.info(
