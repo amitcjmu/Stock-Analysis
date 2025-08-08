@@ -45,19 +45,7 @@ def upgrade() -> None:
             "analysis_queues",
             sa.Column("id", sa.UUID(as_uuid=True), nullable=False),
             sa.Column("name", sa.String(length=255), nullable=False),
-            sa.Column(
-                "status",
-                sa.Enum(
-                    "pending",
-                    "processing",
-                    "paused",
-                    "completed",
-                    "cancelled",
-                    "failed",
-                    name="queuestatus",
-                ),
-                nullable=False,
-            ),
+            sa.Column("status", sa.String(), nullable=False),
             sa.Column("client_id", sa.UUID(as_uuid=True), nullable=False),
             sa.Column("engagement_id", sa.UUID(as_uuid=True), nullable=False),
             sa.Column("created_by", sa.UUID(as_uuid=True), nullable=False),
@@ -87,18 +75,7 @@ def upgrade() -> None:
             sa.Column("id", sa.UUID(as_uuid=True), nullable=False),
             sa.Column("queue_id", sa.UUID(as_uuid=True), nullable=False),
             sa.Column("application_id", sa.String(length=255), nullable=False),
-            sa.Column(
-                "status",
-                sa.Enum(
-                    "pending",
-                    "processing",
-                    "completed",
-                    "failed",
-                    "cancelled",
-                    name="itemstatus",
-                ),
-                nullable=False,
-            ),
+            sa.Column("status", sa.String(), nullable=False),
             sa.Column("started_at", sa.DateTime(), nullable=True),
             sa.Column("completed_at", sa.DateTime(), nullable=True),
             sa.Column("error_message", sa.Text(), nullable=True),
@@ -119,6 +96,17 @@ def upgrade() -> None:
         )
     except Exception as e:
         print(f"Index idx_queue_items_queue_id may already exist: {e}")
+
+    # Alter columns to use enum types (after tables are created)
+    try:
+        op.execute("ALTER TABLE analysis_queues ALTER COLUMN status TYPE queuestatus USING status::queuestatus")
+    except Exception as e:
+        print(f"Status column may already be queuestatus type: {e}")
+    
+    try:
+        op.execute("ALTER TABLE analysis_queue_items ALTER COLUMN status TYPE itemstatus USING status::itemstatus")
+    except Exception as e:
+        print(f"Status column may already be itemstatus type: {e}")
 
 
 def downgrade() -> None:
