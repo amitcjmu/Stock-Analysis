@@ -179,6 +179,7 @@ class FlowLifecycleOperations:
                 "initialized",
                 "initializing",
                 "running",
+                "processing",  # Allow resuming flows in processing state (may have been interrupted)
             ]:
                 return {
                     "status": "resume_failed",
@@ -427,7 +428,7 @@ class FlowLifecycleOperations:
     async def _update_redis_flow_status(self, flow_id: str, status: str) -> None:
         """Update flow status in Redis cache"""
         try:
-            from app.services.redis_cache import redis_cache
+            from app.services.caching.redis_cache import redis_cache
 
             await redis_cache.update_flow_status(
                 flow_id,

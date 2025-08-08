@@ -181,7 +181,7 @@ class FlowCreationOperations:
     ) -> bool:
         """Register flow with Redis with comprehensive cleanup on failure"""
         try:
-            from app.services.redis_cache import redis_cache
+            from app.services.caching.redis_cache import redis_cache
 
             # Attempt atomic registration
             success = await redis_cache.register_flow_atomic(
@@ -219,7 +219,7 @@ class FlowCreationOperations:
             bool: True if retry succeeded, False if Redis is unavailable or retry failed
         """
         try:
-            from app.services.redis_cache import redis_cache
+            from app.services.caching.redis_cache import redis_cache
 
             # First check if Redis is completely unavailable
             if not self._is_redis_available(redis_cache):
@@ -384,7 +384,7 @@ class FlowCreationOperations:
 
         # 2. Redis cleanup
         try:
-            from app.services.redis_cache import redis_cache
+            from app.services.caching.redis_cache import redis_cache
 
             await redis_cache.cleanup_failed_flow_creation(
                 flow_id,

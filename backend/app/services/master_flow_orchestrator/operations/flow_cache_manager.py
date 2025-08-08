@@ -8,6 +8,7 @@ Handles comprehensive cache invalidation across all cache layers:
 """
 
 import logging
+from datetime import datetime
 from typing import Any, Dict
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Import dependencies at module level for clarity
 try:
-    from app.services.redis_cache import redis_cache
+    from app.services.caching.redis_cache import redis_cache
 
     REDIS_AVAILABLE = True
     logger.debug("Redis cache service imported successfully")
@@ -99,13 +100,18 @@ class FlowCacheManager:
 
         try:
             # Invalidate flow-specific keys
-            await redis_cache.invalidate_flow_cache(
-                flow_id, self.context.client_account_id, self.context.engagement_id
-            )
+            await redis_cache.invalidate_flow_cache(flow_id)
 
-            # Invalidate operation-specific keys if needed
+            # Additional cleanup for deleted flows
             if operation_type == "delete":
-                await redis_cache.cleanup_deleted_flow_references(flow_id)
+                # Remove from active flows tracking
+                try:
+                    active_key = (
+                        f"flows:active:{flow_id.split('-')[0]}"  # Simple approach
+                    )
+                    await redis_cache.delete(active_key)
+                except Exception as cleanup_error:
+                    logger.debug(f"Flow cleanup warning: {cleanup_error}")
 
             logger.debug(f"✅ Redis cache invalidated for flow {flow_id}")
             return True
@@ -157,10 +163,15 @@ class FlowCacheManager:
         # Warm Redis cache if available
         if REDIS_AVAILABLE and redis_cache:
             try:
-                # Cache flow metadata
-                await redis_cache.cache_flow_metadata(
-                    flow_id, self.context.client_account_id, self.context.engagement_id
-                )
+                # Cache flow metadata using the correct Redis API
+                metadata = {
+                    "flow_id": flow_id,
+                    "client_account_id": str(self.context.client_account_id),
+                    "engagement_id": str(self.context.engagement_id),
+                    "warmed_at": datetime.utcnow().isoformat(),
+                }
+                cache_key = f"flow:metadata:{flow_id}"
+                await redis_cache.set(cache_key, metadata, ttl=3600)
                 results["redis"] = True
                 logger.debug(f"Redis cache warmed for flow {flow_id}")
 
