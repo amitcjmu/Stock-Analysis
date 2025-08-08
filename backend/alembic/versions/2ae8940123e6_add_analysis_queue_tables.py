@@ -18,95 +18,59 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Create enum types if they don't exist
-    op.execute(
-        """
+    # Complete migration using pure SQL for maximum compatibility
+    op.execute("""
+        -- Create enum types if they don't exist
         DO $$ BEGIN
             CREATE TYPE queuestatus AS ENUM ('pending', 'processing', 'paused', 'completed', 'cancelled', 'failed');
         EXCEPTION
-            WHEN duplicate_object THEN null;
+            WHEN duplicate_object THEN NULL;
         END $$;
-    """
-    )
-
-    op.execute(
-        """
+        
         DO $$ BEGIN
             CREATE TYPE itemstatus AS ENUM ('pending', 'processing', 'completed', 'failed', 'cancelled');
         EXCEPTION
-            WHEN duplicate_object THEN null;
+            WHEN duplicate_object THEN NULL;
         END $$;
-    """
-    )
-
-    # Create analysis_queues table (skip if exists)
-    try:
-        op.create_table(
-            "analysis_queues",
-            sa.Column("id", sa.UUID(as_uuid=True), nullable=False),
-            sa.Column("name", sa.String(length=255), nullable=False),
-            sa.Column("status", sa.String(), nullable=False),
-            sa.Column("client_id", sa.UUID(as_uuid=True), nullable=False),
-            sa.Column("engagement_id", sa.UUID(as_uuid=True), nullable=False),
-            sa.Column("created_by", sa.UUID(as_uuid=True), nullable=False),
-            sa.Column("created_at", sa.DateTime(), nullable=False),
-            sa.Column("updated_at", sa.DateTime(), nullable=False),
-            sa.Column("started_at", sa.DateTime(), nullable=True),
-            sa.Column("completed_at", sa.DateTime(), nullable=True),
-            sa.PrimaryKeyConstraint("id"),
-        )
-    except Exception as e:
-        print(f"Table analysis_queues may already exist: {e}")
-
-    # Create index on client_id and engagement_id for faster queries
-    try:
-        op.create_index(
-            "idx_analysis_queues_context",
-            "analysis_queues",
-            ["client_id", "engagement_id"],
-        )
-    except Exception as e:
-        print(f"Index idx_analysis_queues_context may already exist: {e}")
-
-    # Create analysis_queue_items table (skip if exists)
-    try:
-        op.create_table(
-            "analysis_queue_items",
-            sa.Column("id", sa.UUID(as_uuid=True), nullable=False),
-            sa.Column("queue_id", sa.UUID(as_uuid=True), nullable=False),
-            sa.Column("application_id", sa.String(length=255), nullable=False),
-            sa.Column("status", sa.String(), nullable=False),
-            sa.Column("started_at", sa.DateTime(), nullable=True),
-            sa.Column("completed_at", sa.DateTime(), nullable=True),
-            sa.Column("error_message", sa.Text(), nullable=True),
-            sa.Column("created_at", sa.DateTime(), nullable=False),
-            sa.Column("updated_at", sa.DateTime(), nullable=False),
-            sa.ForeignKeyConstraint(
-                ["queue_id"], ["analysis_queues.id"], ondelete="CASCADE"
-            ),
-            sa.PrimaryKeyConstraint("id"),
-        )
-    except Exception as e:
-        print(f"Table analysis_queue_items may already exist: {e}")
-
-    # Create index on queue_id for faster queries
-    try:
-        op.create_index(
-            "idx_queue_items_queue_id", "analysis_queue_items", ["queue_id"]
-        )
-    except Exception as e:
-        print(f"Index idx_queue_items_queue_id may already exist: {e}")
-
-    # Alter columns to use enum types (after tables are created)
-    try:
-        op.execute("ALTER TABLE analysis_queues ALTER COLUMN status TYPE queuestatus USING status::queuestatus")
-    except Exception as e:
-        print(f"Status column may already be queuestatus type: {e}")
-    
-    try:
-        op.execute("ALTER TABLE analysis_queue_items ALTER COLUMN status TYPE itemstatus USING status::itemstatus")
-    except Exception as e:
-        print(f"Status column may already be itemstatus type: {e}")
+        
+        -- Create analysis_queues table if it doesn't exist
+        CREATE TABLE IF NOT EXISTS analysis_queues (
+            id UUID NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            status queuestatus NOT NULL,
+            client_id UUID NOT NULL,
+            engagement_id UUID NOT NULL,
+            created_by UUID NOT NULL,
+            created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+            updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+            started_at TIMESTAMP WITHOUT TIME ZONE,
+            completed_at TIMESTAMP WITHOUT TIME ZONE,
+            CONSTRAINT analysis_queues_pkey PRIMARY KEY (id)
+        );
+        
+        -- Create analysis_queue_items table if it doesn't exist
+        CREATE TABLE IF NOT EXISTS analysis_queue_items (
+            id UUID NOT NULL,
+            queue_id UUID NOT NULL,
+            application_id VARCHAR(255) NOT NULL,
+            status itemstatus NOT NULL,
+            started_at TIMESTAMP WITHOUT TIME ZONE,
+            completed_at TIMESTAMP WITHOUT TIME ZONE,
+            error_message TEXT,
+            created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+            updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+            CONSTRAINT analysis_queue_items_pkey PRIMARY KEY (id),
+            CONSTRAINT analysis_queue_items_queue_id_fkey FOREIGN KEY (queue_id) 
+                REFERENCES analysis_queues (id) ON DELETE CASCADE
+        );
+        
+        -- Create indexes if they don't exist
+        CREATE INDEX IF NOT EXISTS idx_analysis_queues_context 
+            ON analysis_queues (client_id, engagement_id);
+            
+        CREATE INDEX IF NOT EXISTS idx_queue_items_queue_id 
+            ON analysis_queue_items (queue_id);
+    """)
 
 
 def downgrade() -> None:
