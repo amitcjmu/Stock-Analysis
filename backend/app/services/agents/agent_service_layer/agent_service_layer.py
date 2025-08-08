@@ -40,8 +40,6 @@ def get_agent_service(
     client_account_id: str, engagement_id: str, user_id: Optional[str] = None
 ) -> AgentServiceLayer:
     """Get or create agent service instance"""
-    global _default_agent_service
-
     # For now, create new instance each time to ensure proper context isolation
     # In the future, this could be enhanced with caching and context validation
     return AgentServiceLayer(client_account_id, engagement_id, user_id)

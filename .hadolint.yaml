@@ -1,0 +1,13 @@
+ignored:
+  - DL3059  # Multiple consecutive RUN instructions
+  - SC2016  # Expressions don't expand in single quotes
+  - DL3015  # Avoid additional packages by specifying --no-install-recommends
+  - SC2035  # Use ./*glob* or -- *glob* so names with dashes won't become options
+
+# Allow these rules but treat as warnings
+failure-threshold: error
+
+# Only treat these as errors (block the build)
+# - DL3013: Pin versions in pip (warning level)
+# - DL3018: Pin versions in apk add (warning level)
+# - DL3042: Avoid use of cache directory with pip (warning level)

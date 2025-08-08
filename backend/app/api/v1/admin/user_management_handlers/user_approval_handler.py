@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict
 
+from fastapi import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Add audit logging
@@ -75,6 +76,4 @@ class UserApprovalHandler:
 
 
 # Create router for the handler
-from fastapi import APIRouter
-
 router = APIRouter(prefix="/admin/user-approval", tags=["admin", "user-approval"])

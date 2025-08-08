@@ -601,11 +601,11 @@ async def verify_seeded_data():
                 logger.info(f"     - ID: {mask_id(flow.flow_id)}")  # nosec B106
                 logger.info(f"     - Status: {flow.status}")
                 logger.info(f"     - Progress: {flow.progress_percentage}%")
-                logger.info(
+                logger.info(  # nosec B106
                     f"     - Phases: Import={flow.data_import_completed}, "
                     f"Mapping={flow.attribute_mapping_completed}, "
                     f"Cleansing={flow.data_cleansing_completed}"
-                )  # nosec B106
+                )
 
             logger.info("✅ Data verification completed successfully")
 

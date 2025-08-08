@@ -145,7 +145,7 @@ class AdaptiveRateLimiter:
         self.dev_indicators = [
             "localhost",
             "127.0.0.1",
-            "0.0.0.0",
+            "0.0.0.0",  # nosec B104 - String used for environment detection, not binding
             "dev",
             "development",
             "staging",

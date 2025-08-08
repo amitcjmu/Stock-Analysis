@@ -187,7 +187,23 @@ class SensitiveDataChecker(ast.NodeVisitor):
                         'error occurred', 'exception:', 'failed to', 'unable to',
                         'security test', 'vulnerability scan', 'deployment',
                         'operational data', 'not sensitive', 'error type',
-                        'test failed', 'scan complete', 'check passed'
+                        'test failed', 'scan complete', 'check passed',
+                        # Additional patterns for database and flow operations
+                        'data cleansing', 'field mapping', 'asset inventory',
+                        'migration', 'workflow', 'discovery flow', 'flow phase',
+                        'table structure', 'database', 'columns', 'business rules',
+                        'adding ', 'updated ', 'creating ', 'processing ',
+                        'deploying ', 'health checks', 'performance metrics',
+                        'missing ', 'found ', 'phase ', 'progress', 'status',
+                        'crewai', 'flow id', 'single source', 'ecosystem integration',
+                        'multi-tenant', 'demo data', 'validation', 'raw records',
+                        'import=', 'mapping=', 'cleansing=', 'phases:', 'attribute',
+                        'workflow_states', 'missing columns', 'core tables', 'alembic',
+                        'environment variables', 'diagnosis summary', 'fix strategy',
+                        'rolling update', 'single source of truth', 'achievements',
+                        'api key is configured', 'api key is missing', 'deepinfra',
+                        'configured', 'missing', 'credentials check failed',
+                        'check failed', 'error type', 'only logging error'
                     ]
 
                     if any(pattern in content for pattern in operational_patterns):

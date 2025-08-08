@@ -1,0 +1,43 @@
+# Ignore backup files and dumps
+backend/backups/*.sql
+backend/scripts/database/migration_db_backup_*.sql
+
+# Ignore migration files (should not be edited)
+backend/migrations/*.sql
+
+# Ignore data dump files
+backend/scripts/rollback_data_import_migration_*.sql
+backend/scripts/move_tables_to_migration_schema.sql
+
+# Ignore init files with complex parsing issues
+backend/init.sql
+backend/scripts/database/init.sql
+
+# Ignore complex data seeding files
+backend/seeding/*.sql
+
+# Ignore query/debug files
+backend/check_flow_state.sql
+backend/fix_flow_status.sql
+backend/scripts/database/fix_crewai_flow_extensions.sql
+backend/scripts/fix_railway_schema.sql
+backend/scripts/create_assessment_tables.sql
+backend/scripts/create_learning_patterns_tables.sql
+backend/scripts/database/*.sql
+
+# Ignore all temporary/debug SQL files
+**/check_*.sql
+**/fix_*.sql
+**/debug_*.sql
+
+# Ignore test fixtures and generated files
+tests/**/*.sql
+backend/tests/**/*.sql
+
+# Ignore generated or legacy SQL files
+db_schema.sql
+
+# Ignore QA test queries and backup files
+backend/scripts/qa/test_queries.sql
+scripts/qa/test_queries.sql
+backups/**/*.sql

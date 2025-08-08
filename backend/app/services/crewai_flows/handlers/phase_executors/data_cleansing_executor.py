@@ -346,15 +346,6 @@ class DataCleansingExecutor(BasePhaseExecutor):
         )
         return assets
 
-    def _safe_float_convert(self, value) -> float:
-        """Safely convert value to float with fallback"""
-        if value is None:
-            return None
-        try:
-            return float(value)
-        except (ValueError, TypeError):
-            return None
-
     def _generate_enrichment_summary(
         self, enriched_assets: List[Dict[str, Any]]
     ) -> Dict[str, Any]:

@@ -274,7 +274,10 @@ class EnhancedErrorHandler:
                 state.agent_insights.append(
                     {
                         "agent": "Error Handler",
-                        "insight": f"Phase {phase_name} was skipped due to errors. Manual intervention may be required.",
+                        "insight": (
+                            f"Phase {phase_name} was skipped due to errors. "
+                            f"Manual intervention may be required."
+                        ),
                         "confidence": 0.9,
                         "timestamp": datetime.utcnow().isoformat(),
                     }

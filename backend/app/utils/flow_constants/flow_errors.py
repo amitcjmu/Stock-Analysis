@@ -168,7 +168,10 @@ FLOW_ERROR_MESSAGES: Dict[FlowErrorCode, str] = {
     FlowErrorCode.IMPORT_VALIDATION_FAILED: "Import validation failed: {validation_errors}",
     # Field Mapping Errors
     FlowErrorCode.MAPPING_FIELD_NOT_FOUND: "Field not found: {field_name}",
-    FlowErrorCode.MAPPING_TYPE_MISMATCH: "Type mismatch for field {field_name}: expected {expected_type}, got {actual_type}",
+    FlowErrorCode.MAPPING_TYPE_MISMATCH: (
+        "Type mismatch for field {field_name}: "
+        "expected {expected_type}, got {actual_type}"
+    ),
     FlowErrorCode.MAPPING_VALIDATION_FAILED: "Mapping validation failed: {validation_errors}",
     FlowErrorCode.MAPPING_REQUIRED_FIELD_MISSING: "Required field missing: {field_name}",
     # Data Cleansing Errors

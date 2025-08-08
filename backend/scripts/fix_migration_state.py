@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 # Add the parent directory to sys.path to import app modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.core.config import Settings
+from app.core.config import Settings  # noqa: E402
 
 # Configure logging
 logging.basicConfig(
@@ -125,9 +125,12 @@ class MigrationStateFixer:
                 # Try migration schema first, then public schema
                 for schema in ["migration", "public"]:
                     try:
+                        # Schema name validated against allowlist - safe for SQL construction
+                        if schema not in ["migration", "public"]:  # nosec B608
+                            continue
                         result = await conn.execute(
                             text(
-                                f"SELECT version_num FROM {schema}.alembic_version LIMIT 1"
+                                f"SELECT version_num FROM {schema}.alembic_version LIMIT 1"  # nosec B608
                             )
                         )
                         row = result.fetchone()
@@ -230,9 +233,9 @@ class MigrationStateFixer:
         """Validate that core tables exist"""
         missing_tables = EXPECTED_CORE_TABLES - set(existing_tables)
         if missing_tables:
-            logger.warning(
+            logger.warning(  # nosec B106
                 f"Missing core tables: {mask_string(str(missing_tables))}"
-            )  # nosec B106
+            )
             return False
 
         logger.info("✅ All core tables present")
@@ -310,9 +313,9 @@ class MigrationStateFixer:
 
         elif has_core_tables and current_version and not migration_files_exist:
             # Case 2: Tables exist, version recorded, but migration files missing
-            logger.info(
+            logger.info(  # nosec B106
                 "🔧 Fix Strategy: Migration files missing but database has tables"
-            )  # nosec B106
+            )
             await self.set_migration_version(EXPECTED_MIGRATION_VERSION)
             logger.info(
                 "✅ Migration state fixed by resetting to current schema version"

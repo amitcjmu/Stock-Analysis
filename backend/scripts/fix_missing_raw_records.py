@@ -19,8 +19,12 @@ from sqlalchemy import func, select
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.core.database import AsyncSessionLocal
-from app.models.data_import import DataImport, ImportFieldMapping, RawImportRecord
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.data_import import (  # noqa: E402
+    DataImport,
+    ImportFieldMapping,
+    RawImportRecord,
+)  # noqa: E402
 
 # Import secure logging utilities
 try:
@@ -64,8 +68,8 @@ async def fix_missing_raw_records():
             logger.info(f"Found {len(imports_to_fix)} imports without raw records")
 
             for data_import in imports_to_fix:
-                logger.info(
-                    f"Processing import {mask_id(data_import.id)} ({mask_string(data_import.source_filename)})"  # nosec B106
+                logger.info(  # nosec B106
+                    f"Processing import {mask_id(data_import.id)} ({mask_string(data_import.source_filename)})"
                 )
 
                 # Check if this import has field mappings
