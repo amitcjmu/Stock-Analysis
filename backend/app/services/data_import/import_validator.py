@@ -238,12 +238,12 @@ class ImportValidator:
             Dict containing validation results and recommendations
         """
         try:
-            # Create proper context for flow state manager
-            context = RequestContext(
-                client_account_id=client_account_id,
-                engagement_id=engagement_id,
-                user_id="system",  # System validation check
-            )
+            # Create proper context for flow state manager (for potential future use)
+            # context = RequestContext(
+            #     client_account_id=client_account_id,
+            #     engagement_id=engagement_id,
+            #     user_id="system",  # System validation check
+            # )
 
             # Use unified discovery logic to check for incomplete flows (matching frontend API)
             if DISCOVERY_FLOW_AVAILABLE:
@@ -267,17 +267,34 @@ class ImportValidator:
                         and_(
                             DiscoveryFlow.client_account_id == client_account_id,
                             DiscoveryFlow.engagement_id == engagement_id,
-                            # Exclude child flows that are deleted
-                            ~DiscoveryFlow.status.in_(
-                                ["completed", "cancelled", "deleted"]
+                            # Only include flows that are truly incomplete
+                            DiscoveryFlow.status.in_(
+                                [
+                                    "initialized",
+                                    "running",
+                                    "processing",
+                                    "paused",
+                                    "waiting_for_approval",
+                                    "in_progress",
+                                    "active",
+                                ]
                             ),
-                            # Also exclude flows whose master flow is deleted/cancelled
+                            # Also exclude flows whose master flow is completed/deleted/cancelled
                             or_(
                                 master_flow.flow_status.is_(
                                     None
                                 ),  # No master flow (old flows)
-                                ~master_flow.flow_status.in_(
-                                    ["deleted", "cancelled", "terminated"]
+                                master_flow.flow_status.in_(
+                                    [
+                                        "initialized",
+                                        "initializing",
+                                        "running",
+                                        "processing",
+                                        "paused",
+                                        "waiting_for_approval",
+                                        "in_progress",
+                                        "active",
+                                    ]
                                 ),
                             ),
                         )
