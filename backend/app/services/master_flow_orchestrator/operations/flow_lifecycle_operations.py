@@ -180,8 +180,6 @@ class FlowLifecycleOperations:
                 "initializing",
                 "running",
                 "processing",  # Allow resuming flows in processing state (may have been interrupted)
-                "completed",  # Allow resuming completed flows for reprocessing
-                "in_progress",  # Allow resuming flows that are in progress
             ]:
                 return {
                     "status": "resume_failed",
