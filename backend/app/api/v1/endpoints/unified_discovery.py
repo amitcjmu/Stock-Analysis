@@ -485,13 +485,32 @@ async def get_active_flows(
                 and_(
                     DiscoveryFlow.client_account_id == context.client_account_id,
                     DiscoveryFlow.engagement_id == context.engagement_id,
-                    # Exclude child flows that are deleted
-                    ~DiscoveryFlow.status.in_(["completed", "cancelled", "deleted"]),
-                    # Also exclude flows whose master flow is deleted/cancelled
+                    # Only include flows that are truly incomplete/active
+                    DiscoveryFlow.status.in_(
+                        [
+                            "initialized",
+                            "running",
+                            "processing",
+                            "paused",
+                            "waiting_for_approval",
+                            "in_progress",
+                            "active",
+                        ]
+                    ),
+                    # Also exclude flows whose master flow is completed/deleted/cancelled
                     or_(
                         master_flow.flow_status.is_(None),  # No master flow (old flows)
-                        ~master_flow.flow_status.in_(
-                            ["deleted", "cancelled", "terminated"]
+                        master_flow.flow_status.in_(
+                            [
+                                "initialized",
+                                "initializing",
+                                "running",
+                                "processing",
+                                "paused",
+                                "waiting_for_approval",
+                                "in_progress",
+                                "active",
+                            ]
                         ),
                     ),
                 )
@@ -673,14 +692,20 @@ async def execute_flow(
             return {
                 "success": False,
                 "flow_id": flow_id,
-                "message": "Flow execution currently unavailable due to architectural mismatch between discovery_flows and master flow tables",
+                "message": (
+                    "Flow execution currently unavailable due to architectural "
+                    "mismatch between discovery_flows and master flow tables"
+                ),
                 "details": {
                     "current_status": discovery_flow.status,
                     "current_phase": current_phase,
                     "attempted_phase": phase_to_execute,
                     "error": str(orchestrator_error),
                 },
-                "recommended_action": "Please check flow status and retry later, or contact support for flow state synchronization",
+                "recommended_action": (
+                    "Please check flow status and retry later, "
+                    "or contact support for flow state synchronization"
+                ),
             }
 
     except HTTPException:
