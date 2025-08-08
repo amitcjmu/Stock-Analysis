@@ -52,9 +52,9 @@ export const useIncompleteFlowDetection = (): unknown => {
         const allFlows = Array.isArray(response) ? response : (response.flows || []);
         // Filter flows
 
-        // Filter for incomplete flows (match backend logic: not completed, cancelled, or deleted)
+        // Filter for manageable flows (exclude only cancelled and deleted flows)
+        // Note: Include completed flows so they can be deleted/managed
         const incompleteFlows = allFlows.filter((flow: unknown) =>
-          flow.status !== 'completed' &&
           flow.status !== 'cancelled' &&
           flow.status !== 'deleted'
         ).map((flow: unknown) => {
