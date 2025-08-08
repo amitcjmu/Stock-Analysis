@@ -16,7 +16,6 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict
 
 # Configure logging
 logging.basicConfig(
@@ -80,7 +79,7 @@ async def test_tenant_scoped_agent_pool():
             assert (
                 agent1_id == agent2_id
             ), "Should return same agent instance for persistence"
-            logger.info(f"   ✅ Agent persistence verified: same instance returned")
+            logger.info("   ✅ Agent persistence verified: same instance returned")
 
         return True
 
@@ -134,7 +133,7 @@ async def test_multi_tenant_isolation():
                 agent1_id != agent2_id
             ), "Different tenants should have different agent instances"
             logger.info(
-                f"   ✅ Agent isolation verified: different instances for different tenants"
+                "   ✅ Agent isolation verified: different instances for different tenants"
             )
 
             # Verify memory manager isolation
@@ -154,7 +153,7 @@ async def test_multi_tenant_isolation():
                     mm1_client != mm2_client
                 ), "Memory managers should have different client contexts"
 
-                logger.info(f"   ✅ Memory manager isolation verified")
+                logger.info("   ✅ Memory manager isolation verified")
 
         return True
 
@@ -197,7 +196,8 @@ async def test_memory_system_health():
 
                 if memory_health.is_healthy:
                     logger.info(
-                        f"   ✅ {agent_type}: Memory healthy (T1:{memory_health.tier1_status}, T3:{memory_health.tier3_status})"
+                        f"   ✅ {agent_type}: Memory healthy "
+                        f"(T1:{memory_health.tier1_status}, T3:{memory_health.tier3_status})"
                     )
                 else:
                     logger.warning(
@@ -411,7 +411,7 @@ async def run_all_tests():
         )
         return True
     else:
-        logger.error(f"\n💥 ADR-015 IMPLEMENTATION NEEDS WORK!")
+        logger.error("\n💥 ADR-015 IMPLEMENTATION NEEDS WORK!")
         logger.error(f"{failed} test(s) failed or validation criteria not fully met.")
         return False
 

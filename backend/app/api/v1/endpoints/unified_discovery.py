@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
+from app.core.security.secure_logging import mask_id
 from app.models.data_import.mapping import ImportFieldMapping
 from app.models.discovery_flow import DiscoveryFlow
 from app.services.flow_configs import initialize_all_flows
@@ -452,9 +453,9 @@ async def delete_discovery_flow(
 ):
     """Delete a discovery flow - handles both master flow and discovery flow tables."""
     try:
-        logger.info(f"🗑️ Starting deletion process for flow: {flow_id}")
+        logger.info(f"🗑️ Starting deletion process for flow: {mask_id(flow_id)}")
         logger.info(
-            f"🔍 Context - Client: {context.client_account_id}, Engagement: {context.engagement_id}"
+            f"🔍 Context - Client: {mask_id(context.client_account_id)}, Engagement: {mask_id(context.engagement_id)}"
         )
 
         # First try to delete via Master Flow Orchestrator
@@ -544,34 +545,37 @@ async def delete_discovery_flow(
                         )
 
                 except Exception as db_error:
-                    logger.error(
-                        f"❌ Database error while checking DiscoveryFlow table: {db_error}"
-                    )
+                    logger.error("❌ Database error while checking DiscoveryFlow table")
+                    # Log the actual error for debugging but don't expose to client
+                    logger.debug(f"Database error details: {str(db_error)}")
                     raise HTTPException(
                         status_code=500,
-                        detail=f"Database error during flow lookup: {str(db_error)}",
-                    )
+                        detail="Database error during flow lookup",
+                    ) from db_error
             else:
                 # Re-raise other MFO errors
-                logger.error(f"❌ MFO error (not 'Flow not found'): {mfo_error}")
+                logger.error("❌ MFO error (not 'Flow not found')")
+                logger.debug(f"MFO error details: {str(mfo_error)}")
                 raise HTTPException(
                     status_code=500,
-                    detail=f"Master Flow Orchestrator error: {str(mfo_error)}",
+                    detail="Master Flow Orchestrator error",
                 )
         except Exception as mfo_error:
-            logger.error(f"❌ Unexpected MFO error: {mfo_error}")
+            logger.error("❌ Unexpected MFO error")
+            logger.debug(f"Unexpected MFO error details: {str(mfo_error)}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Unexpected Master Flow Orchestrator error: {str(mfo_error)}",
-            )
+                detail="Unexpected Master Flow Orchestrator error",
+            ) from mfo_error
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Unexpected error during flow deletion {flow_id}: {e}")
+        logger.error(f"❌ Unexpected error during flow deletion {mask_id(flow_id)}")
+        logger.debug(f"Error details: {str(e)}")
         import traceback
 
-        logger.error(f"❌ Full traceback: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Failed to delete flow: {str(e)}")
+        logger.debug(f"Full traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail="Failed to delete flow") from e
 
 
 @router.get("/flows/active")

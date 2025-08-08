@@ -16,6 +16,8 @@ per-file-ignores =
     */alembic/versions/*.py:E402
     # Main application file may have imports for registration
     main.py:E402
+    # Test files that require sys.path manipulation before local imports
+    test_*.py:E402
 
 # Exclude directories and file patterns
 exclude =

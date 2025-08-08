@@ -138,8 +138,9 @@ class BusinessValueAgent:
         }
 
         # This is not SQL - it's a task description for CrewAI agent
-        task = Task(  # nosec B608
-            description=f"""  # nosec B608
+        # nosec B608: This is a string template for task description, not SQL injection
+        task = Task(
+            description=f"""
             Analyze the business value of this asset using your agentic intelligence and memory tools:
 
             Asset Details:

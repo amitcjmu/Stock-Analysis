@@ -31,22 +31,25 @@ logger = logging.getLogger(__name__)
 
 
 # Import secure logging utilities
-def mask_string(value, show_chars=4):
-    if value is None:
-        return "None"
-    value_str = str(value)
-    if len(value_str) <= show_chars:
+try:
+    from app.core.security.secure_logging import mask_id, mask_string
+except ImportError:
+    # Fallback implementations for deployment context
+    def mask_string(value, show_chars=4):
+        if value is None:
+            return "None"
+        value_str = str(value)
+        if len(value_str) <= show_chars:
+            return f"***{value_str}"
+        return f"***{value_str[-show_chars:]}"
+
+    def mask_id(value):
+        if value is None:
+            return "None"
+        value_str = str(value)
+        if len(value_str) >= 8:
+            return f"***{value_str[-8:]}"
         return f"***{value_str}"
-    return f"***{value_str[-show_chars:]}"
-
-
-def mask_id(value):
-    if value is None:
-        return "None"
-    value_str = str(value)
-    if len(value_str) >= 8:
-        return f"***{value_str[-8:]}"
-    return f"***{value_str}"
 
 
 def secure_subprocess_run(cmd_list, **kwargs):

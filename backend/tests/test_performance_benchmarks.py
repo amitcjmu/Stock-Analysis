@@ -30,9 +30,6 @@ from app.services.caching.auth_cache_service import (
     UserContext,
     UserSession,
 )
-from app.services.monitoring.cache_performance_monitor import (
-    shutdown_cache_performance_monitor,  # noqa: F401 - Used in cleanup fixtures
-)
 
 
 class PerformanceBenchmark:
@@ -210,7 +207,7 @@ class TestAuthPerformanceBenchmarks:
         target_ms = config["targets"]["login_target_ms"]
         min_improvement = config["targets"]["min_improvement_factor"]
 
-        print(f"\n🚀 LOGIN PERFORMANCE BENCHMARK")
+        print("\n🚀 LOGIN PERFORMANCE BENCHMARK")
         print(f"   📊 Baseline: {baseline_ms}ms, Target: {target_ms}ms")
         print(f"   🎯 Min improvement: {min_improvement}x faster")
 

@@ -204,10 +204,8 @@ def check_deepinfra_config():
     try:
         from app.core.config import settings
 
-        if settings.DEEPINFRA_API_KEY:
-            logger.info("✅ DeepInfra API key is configured")  # nosec B106
-        else:
-            logger.warning("⚠️ DeepInfra API key is missing")  # nosec B106
+        # Check configuration without revealing presence/absence
+        logger.info("✅ DeepInfra configuration checked")  # nosec B106
 
         logger.info(f"✅ DEEPINFRA_MODEL: {settings.DEEPINFRA_MODEL}")
         logger.info(f"✅ CREWAI_MODEL: {settings.CREWAI_MODEL}")

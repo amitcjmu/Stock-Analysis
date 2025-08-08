@@ -47,13 +47,15 @@ async def analyze_schema():
                     print("-" * 30)
 
                     # Get row count
+                    # nosec B608: table_name is from a controlled hardcoded list, not user input
                     result = await session.execute(
-                        text(f"SELECT COUNT(*) FROM {table_name}")
+                        text(f"SELECT COUNT(*) FROM {table_name}")  # nosec B608
                     )
                     count = result.scalar()
                     print(f"Row count: {count}")
 
                     # Get column info
+                    # nosec B608: table_name is from a controlled hardcoded list, not user input
                     result = await session.execute(
                         text(
                             f"""
@@ -61,7 +63,7 @@ async def analyze_schema():
                         FROM information_schema.columns
                         WHERE table_name = '{table_name}'
                         ORDER BY ordinal_position
-                    """
+                    """  # nosec B608
                         )
                     )
                     columns = result.fetchall()
@@ -74,8 +76,9 @@ async def analyze_schema():
 
                     # Get sample data if exists
                     if count > 0:
+                        # nosec B608: table_name is from a controlled hardcoded list, not user input
                         result = await session.execute(
-                            text(f"SELECT * FROM {table_name} LIMIT 2")
+                            text(f"SELECT * FROM {table_name} LIMIT 2")  # nosec B608
                         )
                         rows = result.fetchall()
                         column_names = [col[0] for col in columns]
@@ -105,7 +108,8 @@ async def analyze_schema():
             ]
             print(f"🧠 Learning/Mapping Tables ({len(learning_tables)}):")
             for table in learning_tables:
-                result = await session.execute(text(f"SELECT COUNT(*) FROM {table}"))
+                # nosec B608: table is from a filtered list of existing tables, not user input
+                result = await session.execute(text(f"SELECT COUNT(*) FROM {table}"))  # nosec B608
                 count = result.scalar()
                 print(f"  - {table}: {count} records")
             print()
@@ -118,7 +122,8 @@ async def analyze_schema():
             ]
             print(f"📥 Import/Session Tables ({len(import_tables)}):")
             for table in import_tables:
-                result = await session.execute(text(f"SELECT COUNT(*) FROM {table}"))
+                # nosec B608: table is from a filtered list of existing tables, not user input
+                result = await session.execute(text(f"SELECT COUNT(*) FROM {table}"))  # nosec B608
                 count = result.scalar()
                 print(f"  - {table}: {count} records")
             print()

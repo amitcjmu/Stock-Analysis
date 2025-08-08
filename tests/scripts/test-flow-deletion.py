@@ -15,7 +15,7 @@ def test_flow_deletion():
     login_response = requests.post(f"{BASE_URL}/api/v1/auth/login", json={
         "email": "demo@demo-corp.com",
         "password": "Demo123!"
-    })
+    }, timeout=30)
 
     if login_response.status_code != 200:
         print(f"❌ Login failed: {login_response.text}")
@@ -33,7 +33,8 @@ def test_flow_deletion():
     print("\n2. Listing existing flows...")
     flows_response = requests.get(
         f"{BASE_URL}/api/v1/flows/?flowType=discovery",
-        headers=headers
+        headers=headers,
+        timeout=30
     )
 
     if flows_response.status_code == 200:
@@ -49,7 +50,8 @@ def test_flow_deletion():
 
         delete_response = requests.delete(
             f"{BASE_URL}/api/v1/master-flows/{flow_to_delete}",
-            headers=headers
+            headers=headers,
+            timeout=30
         )
 
         if delete_response.status_code == 200:
@@ -66,7 +68,8 @@ def test_flow_deletion():
 
     verify_response = requests.get(
         f"{BASE_URL}/api/v1/flows/?flowType=discovery",
-        headers=headers
+        headers=headers,
+        timeout=30
     )
 
     if verify_response.status_code == 200:

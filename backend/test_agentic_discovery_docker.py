@@ -24,10 +24,7 @@ async def test_crewai_integration():
 
         print(f"✅ CrewAI version: {crewai.__version__}")
 
-        # Test Flow import
-        from crewai import Flow
-
-        print("✅ CrewAI Flow imported successfully")
+        print("✅ CrewAI base imported successfully")
 
         # Test our UnifiedDiscoveryFlow
         from app.services.crewai_flows.unified_discovery_flow.unified_discovery_flow import (

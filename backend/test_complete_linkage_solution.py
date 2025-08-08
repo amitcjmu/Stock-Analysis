@@ -12,11 +12,10 @@ This shows the complete solution working end-to-end.
 import asyncio
 import os
 import sys
+import uuid
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-
-import uuid
 
 from sqlalchemy import and_, func, select
 

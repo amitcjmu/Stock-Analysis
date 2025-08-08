@@ -41,7 +41,8 @@ def upgrade():
     op.create_check_constraint(
         "chk_valid_flow_type",
         "crewai_flow_state_extensions",
-        "flow_type IN ('discovery', 'assessment', 'collection', 'planning', 'execution', 'modernize', 'finops', 'observability', 'decommission')",
+        "flow_type IN ('discovery', 'assessment', 'collection', 'planning', "
+        "'execution', 'modernize', 'finops', 'observability', 'decommission')",
     )
 
 
@@ -55,5 +56,6 @@ def downgrade():
     op.create_check_constraint(
         "chk_valid_flow_type",
         "crewai_flow_state_extensions",
-        "flow_type IN ('discovery', 'assessment', 'planning', 'execution', 'modernize', 'finops', 'observability', 'decommission')",
+        "flow_type IN ('discovery', 'assessment', 'planning', 'execution', "
+        "'modernize', 'finops', 'observability', 'decommission')",
     )
