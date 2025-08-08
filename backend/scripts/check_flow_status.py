@@ -48,7 +48,7 @@ async def check_flow_status():
                     f"   Field Mapping Completed: {flow.field_mapping_completed}"
                 )
                 logger.info(
-                    f"   Data Cleansing Completed: {flow.data_cleansing_completed}"
+                    f"   Data Cleansing Completed: {flow.data_cleansing_completed}"  # nosec B106
                 )
                 logger.info(
                     f"   Asset Inventory Completed: {flow.asset_inventory_completed}"

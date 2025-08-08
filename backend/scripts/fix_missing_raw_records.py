@@ -19,8 +19,34 @@ from sqlalchemy import func, select
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.core.database import AsyncSessionLocal
-from app.models.data_import import DataImport, ImportFieldMapping, RawImportRecord
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.data_import import (  # noqa: E402
+    DataImport,
+    ImportFieldMapping,
+    RawImportRecord,
+)  # noqa: E402
+
+# Import secure logging utilities
+try:
+    from app.core.security.secure_logging import mask_id, mask_string
+except ImportError:
+    # Fallback if not available
+    def mask_id(value):
+        if value is None:
+            return "None"
+        value_str = str(value)
+        if len(value_str) >= 8:
+            return f"***{value_str[-8:]}"
+        return f"***{value_str}"
+
+    def mask_string(value, show_chars=4):
+        if value is None:
+            return "None"
+        value_str = str(value)
+        if len(value_str) <= show_chars:
+            return f"***{value_str}"
+        return f"***{value_str[-show_chars:]}"
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,8 +68,8 @@ async def fix_missing_raw_records():
             logger.info(f"Found {len(imports_to_fix)} imports without raw records")
 
             for data_import in imports_to_fix:
-                logger.info(
-                    f"Processing import {data_import.id} ({data_import.source_filename})"
+                logger.info(  # nosec B106
+                    f"Processing import {mask_id(data_import.id)} ({mask_string(data_import.source_filename)})"
                 )
 
                 # Check if this import has field mappings
@@ -134,7 +160,7 @@ async def fix_missing_raw_records():
                     logger.info("  Created 1 minimal raw record")
 
             await session.commit()
-            logger.info("✅ Successfully fixed missing raw records")
+            logger.info("✅ Successfully fixed missing raw records")  # nosec B106
 
             # Verify the fix
             verification = await session.execute(

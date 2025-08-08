@@ -16,7 +16,7 @@ class DiscoveryFlowAPITester:
         self.engagement_id = None
         self.user_id = None
 
-    def login(self, email: str = "chocka@gmail.com", password: str = "Password123!") -> bool:
+    def login(self, email: str = "chocka@gmail.com", password: str = "Password123!") -> bool:  # nosec B106 - Test password for API testing
         """Login to the platform"""
         print("🔐 Step 1: Logging in...")
 

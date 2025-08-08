@@ -21,11 +21,11 @@ from typing import List
 # Add the parent directory to sys.path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text  # noqa: E402
+from sqlalchemy.ext.asyncio import AsyncSession  # noqa: E402
 
-from app.core.database import get_db_session
-from app.core.demo_constants import TEST_TENANT_1, TEST_TENANT_2
+from app.core.database import get_db_session  # noqa: E402
+from app.core.demo_constants import TEST_TENANT_1, TEST_TENANT_2  # noqa: E402
 
 # Multi-tenant test data configuration
 TENANT_CONFIG = {
@@ -162,10 +162,10 @@ async def cleanup_existing_data(session: AsyncSession):
 
     # Create a mapping of table names to their delete queries to avoid dynamic SQL
     table_delete_queries = {
-        # Tables with client_account_id
+        # Tables with client_account_id - table names validated against allowlist
         **{
-            table: "DELETE FROM migration.{} WHERE client_account_id = ANY(:tenant_ids)".format(
-                table
+            table: "DELETE FROM migration.{} WHERE client_account_id = ANY(:tenant_ids)".format(  # nosec B608
+                table  # table name validated against tables_to_clean allowlist
             )
             for table in tables_to_clean
             if table not in ["users", "engagements", "client_accounts"]

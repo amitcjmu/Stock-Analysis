@@ -22,12 +22,6 @@ async def get_asset_data(
     try:
         # IMPORTANT: Enforce multitenancy - if context is available, filter by it
         if context and context.client_account_id and context.engagement_id:
-            # Use database query with context filtering
-            from sqlalchemy import select
-
-            from app.core.database import get_db
-            from app.models.asset import Asset
-
             # If no db session provided, get one
             if db is None:
                 # This is a simplified approach for sync session

@@ -8,6 +8,6 @@ from .validation_routes import router as validation_router
 __all__ = [
     "mapping_router",
     "validation_router",
-    "suggestion_routes",
+    "suggestion_router",
     "approval_router",
 ]

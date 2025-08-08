@@ -105,7 +105,11 @@ async def websocket_endpoint(
 def _build_asset_context(assets: list) -> str:
     """Build context string from current assets."""
     if not assets:
-        return "Currently, your asset inventory shows a completely blank slate – **0 total assets discovered**. You'll need to import CMDB data or discover assets before you can proceed with migration analysis."
+        return (
+            "Currently, your asset inventory shows a completely blank slate – "
+            "**0 total assets discovered**. You'll need to import CMDB data or "
+            "discover assets before you can proceed with migration analysis."
+        )
 
     # Count different asset types
     applications = sum(
@@ -150,29 +154,77 @@ def _generate_fallback_response(user_message: str, context: str) -> str:
         for keyword in ["how many", "current", "inventory", "assets", "what do we have"]
     ):
         if "0 total assets" in context:
-            return "Currently, your asset inventory shows a completely blank slate – **0 total assets discovered**. To get started with migration planning, you'll need to:\n\n1. **Import CMDB data** using the Discovery tab\n2. **Upload asset inventories** (CSV, Excel, JSON formats supported)\n3. **Run automated discovery** tools to scan your infrastructure\n\nOnce you have asset data, I can help you analyze migration strategies, assess 6R recommendations, and plan your cloud journey!"
+            return (
+                "Currently, your asset inventory shows a completely blank slate – "
+                "**0 total assets discovered**. To get started with migration planning, "
+                "you'll need to:\n\n"
+                "1. **Import CMDB data** using the Discovery tab\n"
+                "2. **Upload asset inventories** (CSV, Excel, JSON formats supported)\n"
+                "3. **Run automated discovery** tools to scan your infrastructure\n\n"
+                "Once you have asset data, I can help you analyze migration strategies, "
+                "assess 6R recommendations, and plan your cloud journey!"
+            )
         else:
-            return f"Based on your current asset inventory:\n\n{context}\n\nYour migration planning can now proceed! I can help you with:\n- **6R Strategy Analysis** for your applications\n- **Migration complexity assessment**\n- **Cloud readiness evaluation**\n- **Dependency mapping and risk analysis**\n\nWhat specific aspect of your migration would you like to explore?"
+            return (
+                f"Based on your current asset inventory:\n\n{context}\n\n"
+                "Your migration planning can now proceed! I can help you with:\n"
+                "- **6R Strategy Analysis** for your applications\n"
+                "- **Migration complexity assessment**\n"
+                "- **Cloud readiness evaluation**\n"
+                "- **Dependency mapping and risk analysis**\n\n"
+                "What specific aspect of your migration would you like to explore?"
+            )
 
     # Migration strategy questions
     elif any(
         keyword in message_lower for keyword in ["migrate", "cloud", "6r", "strategy"]
     ):
         if "0 total assets" in context:
-            return "To provide migration strategy recommendations, I need asset data first. Please import your CMDB data or asset inventory through the Discovery tab, then I can analyze the best migration approaches (Rehost, Refactor, Rearchitect, etc.) for each application."
+            return (
+                "To provide migration strategy recommendations, I need asset data first. "
+                "Please import your CMDB data or asset inventory through the Discovery tab, "
+                "then I can analyze the best migration approaches (Rehost, Refactor, "
+                "Rearchitect, etc.) for each application."
+            )
         else:
-            return f"Great question about migration strategy! With your current inventory of assets, I can help you:\n\n{context}\n\n**Recommended Next Steps:**\n1. Use the **6R Analysis** tab to get AI-powered migration recommendations\n2. Start with **high-business-value, low-complexity** applications\n3. Consider **Rehost** for quick wins, **Refactor** for optimization\n\nWould you like me to guide you through the 6R analysis process?"
+            return (
+                f"Great question about migration strategy! With your current inventory of assets, "
+                f"I can help you:\n\n{context}\n\n"
+                "**Recommended Next Steps:**\n"
+                "1. Use the **6R Analysis** tab to get AI-powered migration recommendations\n"
+                "2. Start with **high-business-value, low-complexity** applications\n"
+                "3. Consider **Rehost** for quick wins, **Refactor** for optimization\n\n"
+                "Would you like me to guide you through the 6R analysis process?"
+            )
 
     # Technical questions
     elif any(
         keyword in message_lower
         for keyword in ["technical", "complexity", "dependencies"]
     ):
-        return "Technical complexity analysis considers factors like:\n- **Technology stack age and supportability**\n- **Application dependencies and integration points**\n- **Data architecture and storage requirements**\n- **Security and compliance constraints**\n\nI can help you assess these factors once you have asset data loaded. The platform uses AI agents to automatically evaluate technical complexity and provide detailed recommendations."
+        return (
+            "Technical complexity analysis considers factors like:\n"
+            "- **Technology stack age and supportability**\n"
+            "- **Application dependencies and integration points**\n"
+            "- **Data architecture and storage requirements**\n"
+            "- **Security and compliance constraints**\n\n"
+            "I can help you assess these factors once you have asset data loaded. "
+            "The platform uses AI agents to automatically evaluate technical complexity "
+            "and provide detailed recommendations."
+        )
 
     # General help
     else:
-        return f"I'm here to help with your cloud migration planning! Here's what I can assist with:\n\n**Current Status:**\n{context}\n\n**My Capabilities:**\n- 📊 **Asset Analysis**: Review your inventory and identify migration candidates\n- 🎯 **6R Strategy**: Recommend optimal migration approaches (Rehost, Refactor, etc.)\n- 🔍 **Complexity Assessment**: Evaluate technical challenges and dependencies\n- 📈 **Migration Planning**: Help prioritize applications and plan phases\n\nWhat specific area would you like to explore?"
+        return (
+            "I'm here to help with your cloud migration planning! Here's what I can assist with:\n\n"
+            f"**Current Status:**\n{context}\n\n"
+            "**My Capabilities:**\n"
+            "- 📊 **Asset Analysis**: Review your inventory and identify migration candidates\n"
+            "- 🎯 **6R Strategy**: Recommend optimal migration approaches (Rehost, Refactor, etc.)\n"
+            "- 🔍 **Complexity Assessment**: Evaluate technical challenges and dependencies\n"
+            "- 📈 **Migration Planning**: Help prioritize applications and plan phases\n\n"
+            "What specific area would you like to explore?"
+        )
 
 
 async def get_chat_history(user_id: str, limit: int = 10) -> List[Dict[str, str]]:

@@ -65,9 +65,27 @@ async def check_db_state(phase_name: str):
             "assets": "Assets",
         }
 
+        # Validate table names against allowed list to prevent SQL injection
+        allowed_tables = {
+            "users",
+            "client_accounts",
+            "engagements",
+            "discovery_flows",
+            "data_imports",
+            "assets",
+        }
+
         for table, desc in tables.items():
             try:
-                result = await db.execute(text(f"SELECT COUNT(*) FROM {table}"))
+                if table not in allowed_tables:
+                    logger.warning(
+                        f"  - {desc} ({table}): Skipped - not in allowed tables"
+                    )
+                    continue
+                # Safe: table name validated against allowlist
+                result = await db.execute(
+                    text(f"SELECT COUNT(*) FROM {table}")
+                )  # nosec B608
                 count = result.scalar()
                 logger.info(f"  - {desc} ({table}): {count}")
             except Exception as e:

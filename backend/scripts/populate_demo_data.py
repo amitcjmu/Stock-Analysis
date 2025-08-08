@@ -45,7 +45,7 @@ async def create_demo_users(db: AsyncSession):
     demo_user = User(
         id=uuid.UUID(DEMO_USER_ID),
         email=DEMO_USER_EMAIL,
-        password_hash="$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhZ8/iGda9iaHeqM1a3huS",  # password = "password"
+        password_hash="$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhZ8/iGda9iaHeqM1a3huS",  # nosec B106 - Demo password hash
         first_name="Demo",
         last_name="User",
         is_active=True,

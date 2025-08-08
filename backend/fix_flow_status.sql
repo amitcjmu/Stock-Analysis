@@ -18,9 +18,9 @@ WHERE flow_id = '5d4149d3-ac32-40ea-85d1-56ebea8d5e17';
 -- Verify the fix
 SELECT
     df.flow_id,
-    df.status as discovery_status,
+    df.status AS discovery_status,
     df.data_import_id,
-    cfse.flow_persistence_data->>'status' as crewai_status
+    cfse.flow_persistence_data->>'status' AS crewai_status
 FROM discovery_flows df
 LEFT JOIN crewai_flow_state_extensions cfse ON df.flow_id = cfse.flow_id
 WHERE df.flow_id = '5d4149d3-ac32-40ea-85d1-56ebea8d5e17';

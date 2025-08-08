@@ -140,7 +140,9 @@ class AssetManager:
             return asset
 
         except Exception as e:
-            logger.error(f"❌ Failed to update asset quality scores {asset_id}: {e}")
+            logger.error(
+                f"❌ Failed to update asset quality scores {asset_id}: {e}"
+            )  # nosec B608
             raise
 
     async def get_assets_by_validation_status(

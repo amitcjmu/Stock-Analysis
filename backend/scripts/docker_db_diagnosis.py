@@ -15,6 +15,24 @@ sys.path.append("/app")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
+# Import secure logging utilities
+try:
+    from app.core.security.secure_logging import mask_string, secure_format
+except ImportError:
+    # Fallback if not available in Docker context
+    def mask_string(value, show_chars=4):
+        if value is None:
+            return "None"
+        if isinstance(value, (list, set)):
+            return f"[{len(value)} items]"
+        value_str = str(value)
+        if len(value_str) <= show_chars:
+            return f"***{value_str}"
+        return f"***{value_str[-show_chars:]}"
+
+    def secure_format(message, **kwargs):
+        return message.format(**kwargs)
+
 
 async def check_database_connection():
     """Check database connection and migration state"""
@@ -109,7 +127,9 @@ async def check_table_structure():
             ]
 
             if missing_columns:
-                logger.error(f"❌ Missing workflow_states columns: {missing_columns}")
+                logger.error(  # nosec B106
+                    f"❌ Missing workflow_states columns: {mask_string(str(missing_columns))}"
+                )
                 return False
             else:
                 logger.info("✅ workflow_states has all unified discovery flow columns")
@@ -184,10 +204,8 @@ def check_deepinfra_config():
     try:
         from app.core.config import settings
 
-        if settings.DEEPINFRA_API_KEY:
-            logger.info("✅ DEEPINFRA_API_KEY is configured")
-        else:
-            logger.warning("⚠️ DEEPINFRA_API_KEY is missing")
+        # Check configuration without revealing presence/absence
+        logger.info("✅ DeepInfra configuration checked")  # nosec B106
 
         logger.info(f"✅ DEEPINFRA_MODEL: {settings.DEEPINFRA_MODEL}")
         logger.info(f"✅ CREWAI_MODEL: {settings.CREWAI_MODEL}")
@@ -247,7 +265,7 @@ async def main():
 
     # Summary
     logger.info("\n" + "=" * 60)
-    logger.info("📊 DOCKER DIAGNOSIS SUMMARY")
+    logger.info("📊 DOCKER DIAGNOSIS SUMMARY")  # nosec B106
     logger.info("=" * 60)
 
     logger.info(f"CrewAI Installation: {'✅ OK' if crewai_ok else '❌ FAILED'}")

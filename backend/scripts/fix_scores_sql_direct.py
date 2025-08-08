@@ -18,7 +18,7 @@ async def fix_scores_with_sql():
             SELECT id, strategy_scores
             FROM sixr_recommendations
             WHERE strategy_scores::text LIKE '%108.0%'
-               OR strategy_scores::text ~ '"score":\s*1[0-9][0-9]\.[0-9]'
+               OR strategy_scores::text ~ '"score":\\s*1[0-9][0-9]\\.[0-9]'
             ORDER BY id
         """
         )
@@ -47,7 +47,7 @@ async def fix_scores_with_sql():
                 FROM jsonb_array_elements(strategy_scores) AS item
             )
             WHERE strategy_scores::text LIKE '%108.0%'
-               OR strategy_scores::text ~ '"score":\s*1[0-9][0-9]\.[0-9]'
+               OR strategy_scores::text ~ '"score":\\s*1[0-9][0-9]\\.[0-9]'
         """
         )
 

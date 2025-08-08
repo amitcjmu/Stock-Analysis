@@ -89,8 +89,8 @@ class FlowErrorCode(str, Enum):
     SYSTEM_CONFIGURATION_ERROR = "SYSTEM_CONFIGURATION_ERROR"
     SYSTEM_DATABASE_ERROR = "SYSTEM_DATABASE_ERROR"
 
-    # Authentication/Authorization Errors
-    AUTH_TOKEN_EXPIRED = "AUTH_TOKEN_EXPIRED"
+    # Authentication/Authorization Errors - Error code constants, not credentials
+    AUTH_TOKEN_EXPIRED = "AUTH_TOKEN_EXPIRED"  # nosec B105
     AUTH_INSUFFICIENT_PERMISSIONS = "AUTH_INSUFFICIENT_PERMISSIONS"
     AUTH_INVALID_CREDENTIALS = "AUTH_INVALID_CREDENTIALS"
 
@@ -168,7 +168,10 @@ FLOW_ERROR_MESSAGES: Dict[FlowErrorCode, str] = {
     FlowErrorCode.IMPORT_VALIDATION_FAILED: "Import validation failed: {validation_errors}",
     # Field Mapping Errors
     FlowErrorCode.MAPPING_FIELD_NOT_FOUND: "Field not found: {field_name}",
-    FlowErrorCode.MAPPING_TYPE_MISMATCH: "Type mismatch for field {field_name}: expected {expected_type}, got {actual_type}",
+    FlowErrorCode.MAPPING_TYPE_MISMATCH: (
+        "Type mismatch for field {field_name}: "
+        "expected {expected_type}, got {actual_type}"
+    ),
     FlowErrorCode.MAPPING_VALIDATION_FAILED: "Mapping validation failed: {validation_errors}",
     FlowErrorCode.MAPPING_REQUIRED_FIELD_MISSING: "Required field missing: {field_name}",
     # Data Cleansing Errors

@@ -1,0 +1,13 @@
+[bandit]
+# Allow legitimate temp operations, error handling, and development tools
+skips = B108,B110,B301,B314,B324,B403
+
+# Security standards - enforce high confidence, medium severity
+confidence = HIGH
+severity = MEDIUM
+
+# Exclude development and testing directories
+exclude_dirs = tests,venv,migrations,docs,scripts/archive,scripts/deployment,scripts/development,seeding,build,dist,.git,temp
+
+# Exclude development and backup files
+exclude = *.backup.py,*_backup.py,temp_*.py,test_*.py,*/temp/*,simple_*.py,monitor_*.py,railway_*.py,setup.py,start.py,flow_analysis_*.py

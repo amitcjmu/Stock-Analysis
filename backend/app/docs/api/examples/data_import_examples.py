@@ -69,11 +69,12 @@ class DataImportClient:
             },
         }
 
-        # Send request
+        # Send request with timeout for security
         response = requests.post(
             f"{self.base_url}/api/v1/data-import/store-import",
             headers=self.headers,
             json=request_data,
+            timeout=30,  # 30 second timeout
         )
 
         response.raise_for_status()
@@ -110,6 +111,7 @@ class DataImportClient:
             f"{self.base_url}/api/v1/data-import/store-import",
             headers=self.headers,
             json=request_data,
+            timeout=30,  # 30 second timeout
         )
 
         response.raise_for_status()
@@ -120,6 +122,7 @@ class DataImportClient:
         response = requests.get(
             f"{self.base_url}/api/v1/data-import/import/{import_id}/status",
             headers=self.headers,
+            timeout=30,  # 30 second timeout
         )
         response.raise_for_status()
         return response.json()
@@ -127,7 +130,9 @@ class DataImportClient:
     def get_latest_import(self) -> Dict[str, Any]:
         """Get the most recent import for the current context."""
         response = requests.get(
-            f"{self.base_url}/api/v1/data-import/latest-import", headers=self.headers
+            f"{self.base_url}/api/v1/data-import/latest-import",
+            headers=self.headers,
+            timeout=30,  # 30 second timeout
         )
         response.raise_for_status()
         return response.json()
@@ -165,6 +170,7 @@ class DataImportClient:
         response = requests.delete(
             f"{self.base_url}/api/v1/data-import/import/{import_id}",
             headers=self.headers,
+            timeout=30,  # 30 second timeout
         )
         response.raise_for_status()
         return response.json()
@@ -174,6 +180,7 @@ class DataImportClient:
         response = requests.post(
             f"{self.base_url}/api/v1/data-import/import/{import_id}/retry",
             headers=self.headers,
+            timeout=30,  # 30 second timeout
         )
         response.raise_for_status()
         return response.json()

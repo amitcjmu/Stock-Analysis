@@ -62,7 +62,7 @@ async def test_deployment_mode(mode: str) -> Dict[str, Any]:
         user = await auth_backend.create_user(
             username=f"test_{mode}",
             email=f"test_{mode}@example.com",
-            password="test_password",
+            password="test_password",  # nosec B106 - Test password for deployment flexibility testing
         )
         print(f"✅ Created user: {user.get('username')}")
     except Exception as e:

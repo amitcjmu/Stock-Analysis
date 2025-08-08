@@ -238,7 +238,10 @@ class DataIntegrityValidator:
                         {
                             "type": "missing_foreign_key_constraint",
                             "severity": "high",
-                            "description": f"Missing FK constraint: {constraint[0]}.{constraint[1]} -> {constraint[2]}.{constraint[3]}",
+                            "description": (
+                                f"Missing FK constraint: {constraint[0]}.{constraint[1]} -> "
+                                f"{constraint[2]}.{constraint[3]}"
+                            ),
                             "table": constraint[0],
                             "column": constraint[1],
                         }

@@ -1,0 +1,73 @@
+[flake8]
+# Flake8 Configuration - Secure and maintainable code standards
+
+# Line length settings - reasonable balance between readability and practicality
+max-line-length = 120
+max-doc-length = 120
+
+# Error codes to ignore - only the most necessary exceptions
+# E203: whitespace before ':' (conflicts with black formatting)
+# W503: line break before binary operator (conflicts with black formatting)
+ignore = E203,W503
+
+# Per-file ignores for specific patterns - minimal exceptions only
+per-file-ignores =
+    # Migration files may have conditional imports
+    */alembic/versions/*.py:E402
+    # Main application file may have imports for registration
+    main.py:E402
+    # Test files that require sys.path manipulation before local imports
+    test_*.py:E402
+
+# Exclude directories and file patterns
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    .env,
+    env,
+    migrations,
+    .mypy_cache,
+    .pytest_cache,
+    build,
+    dist,
+    *.egg-info,
+    node_modules,
+    .tox,
+    .coverage,
+    htmlcov,
+    docs/_build,
+    backend/venv,
+    backend/.venv,
+    **/migrations/**,
+    **/alembic/env.py,
+    scripts/archive/**
+
+# Enable specific warning categories
+enable-extensions =
+    # Enable comprehensions check
+    C90
+
+# Statistics and formatting
+statistics = True
+count = True
+show-source = True
+show-pep8 = True
+
+# Import ordering (basic check)
+import-order-style = google
+application-import-names = app,backend
+
+# Complexity settings - reasonable for maintainable code
+# Keep complexity manageable for code quality
+max-complexity = 15
+max-cognitive-complexity = 15
+
+# Documentation requirements
+docstring-convention = google
+require-return-annotation = False
+require-parameter-annotation = False
+
+# McCabe complexity plugin settings
+max-mccabe-complexity = 15

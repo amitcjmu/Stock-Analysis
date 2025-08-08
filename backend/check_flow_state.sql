@@ -4,8 +4,8 @@ SELECT
     status,
     progress_percentage,
     current_phase,
-    crewai_state_data->>'status' as state_status,
-    crewai_state_data->>'awaiting_user_approval' as awaiting_approval,
+    crewai_state_data->>'status' AS state_status,
+    crewai_state_data->>'awaiting_user_approval' AS awaiting_approval,
     updated_at
 FROM discovery_flows
 ORDER BY updated_at DESC
@@ -15,8 +15,8 @@ LIMIT 5;
 SELECT
     flow_id,
     flow_status,
-    flow_persistence_data->>'status' as persistence_status,
-    flow_persistence_data->>'awaiting_user_approval' as awaiting_approval,
+    flow_persistence_data->>'status' AS persistence_status,
+    flow_persistence_data->>'awaiting_user_approval' AS awaiting_approval,
     updated_at
 FROM crewai_flow_state_extensions
 WHERE flow_type = 'discovery'

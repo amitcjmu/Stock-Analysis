@@ -24,7 +24,7 @@ try:
     import bcrypt
     import numpy as np
 
-    from app.core.database import AsyncSessionLocal, engine, init_db
+    from app.core.database import AsyncSessionLocal, init_db
     from app.models.asset import (
         Asset,
         AssetStatus,

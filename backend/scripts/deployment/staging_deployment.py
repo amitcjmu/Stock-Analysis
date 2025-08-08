@@ -30,6 +30,28 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+# Import secure logging utilities
+try:
+    from app.core.security.secure_logging import mask_id, mask_string
+except ImportError:
+    # Fallback implementations for deployment context
+    def mask_string(value, show_chars=4):
+        if value is None:
+            return "None"
+        value_str = str(value)
+        if len(value_str) <= show_chars:
+            return f"***{value_str}"
+        return f"***{value_str[-show_chars:]}"
+
+    def mask_id(value):
+        if value is None:
+            return "None"
+        value_str = str(value)
+        if len(value_str) >= 8:
+            return f"***{value_str[-8:]}"
+        return f"***{value_str}"
+
+
 def secure_subprocess_run(cmd_list, **kwargs):
     """
     Secure subprocess wrapper for deployment commands.
@@ -80,7 +102,9 @@ class StagingDeployment:
             "validation": {},
         }
 
-        logger.info(f"🚀 Starting staging deployment: {self.deployment_id}")
+        logger.info(
+            f"🚀 Starting staging deployment: {mask_id(self.deployment_id)}"
+        )  # nosec B106
 
     async def deploy_to_staging(self) -> bool:
         """
@@ -189,8 +213,7 @@ class StagingDeployment:
                 missing_vars.append(var)
 
         if missing_vars:
-            # nosec B106 - Only logging count of missing vars, not the var names themselves
-            logger.error(
+            logger.error(  # nosec B106
                 f"❌ Missing {len(missing_vars)} required environment variables"
             )
             return False
@@ -768,7 +791,7 @@ asyncio.run(test_mfo())
             json.dump(report, f, indent=2)
 
         logger.info("📊 Deployment Report")
-        logger.info(f"   Deployment ID: {self.deployment_id}")
+        logger.info(f"   Deployment ID: {mask_id(self.deployment_id)}")  # nosec B106
         logger.info(f"   Status: {report['status']}")
         logger.info(f"   Duration: {duration:.2f} seconds")
         logger.info(f"   Report saved: {report_file}")

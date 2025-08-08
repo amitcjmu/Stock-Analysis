@@ -12,7 +12,6 @@ Generated with CC (Claude Code)
 
 import asyncio
 import logging
-from typing import Any, Dict
 
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 from app.services.crewai_flow_service import CrewAIFlowService
@@ -118,7 +117,8 @@ async def test_phase_transition_agent_decision_methods():
             post_decision, "confidence"
         ), "Decision should have confidence attribute"
         logger.info(
-            f"✅ get_post_execution_decision returned: {post_decision.action.value} with confidence {post_decision.confidence}"
+            f"✅ get_post_execution_decision returned: {post_decision.action.value} "
+            f"with confidence {post_decision.confidence}"
         )
     except Exception as e:
         logger.error(f"❌ get_post_execution_decision failed: {e}")

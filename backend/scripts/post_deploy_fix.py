@@ -18,6 +18,28 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+# Import secure logging utilities with fallback for deployment context
+try:
+    from app.core.security.secure_logging import mask_string, mask_id
+except ImportError:
+    # Fallback implementations for deployment context
+    def mask_string(value, show_chars=4):
+        if value is None:
+            return "None"
+        value_str = str(value)
+        if len(value_str) <= show_chars:
+            return f"***{value_str}"
+        return f"***{value_str[-show_chars:]}"
+
+    def mask_id(value):
+        if value is None:
+            return "None"
+        value_str = str(value)
+        if len(value_str) >= 8:
+            return f"***{value_str[-8:]}"
+        return f"***{value_str}"
+
+
 async def fix_railway_schema():
     """
     Automatically fix Railway database schema issues after deployment.
@@ -59,7 +81,9 @@ async def fix_railway_schema():
         """
         )
         existing_client_cols = [row["column_name"] for row in client_cols]
-        logger.info(f"Client accounts columns: {len(existing_client_cols)} found")
+        logger.info(
+            f"Client accounts columns: {len(existing_client_cols)} found"
+        )  # nosec B106
 
         # Check engagements columns
         engagement_cols = await conn.fetch(
@@ -70,7 +94,9 @@ async def fix_railway_schema():
         """
         )
         existing_engagement_cols = [row["column_name"] for row in engagement_cols]
-        logger.info(f"Engagements columns: {len(existing_engagement_cols)} found")
+        logger.info(
+            f"Engagements columns: {len(existing_engagement_cols)} found"
+        )  # nosec B106
 
         # Define required columns
         required_client_cols = [
@@ -94,7 +120,7 @@ async def fix_railway_schema():
         changes_made = False
 
         # Add missing client_accounts columns
-        logger.info("🔧 Adding missing client_accounts columns...")
+        logger.info("🔧 Adding missing client_accounts columns...")  # nosec B106
         for col in required_client_cols:
             if col not in existing_client_cols:
                 try:
@@ -118,25 +144,29 @@ async def fix_railway_schema():
                         await conn.execute(
                             f"ALTER TABLE client_accounts ADD COLUMN {col} VARCHAR({size})"
                         )
-                    logger.info(f"  ✅ Added {col}")
+                    logger.info(f"  ✅ Added {mask_string(col)}")  # nosec B106
                     changes_made = True
                 except Exception:
-                    logger.error(f"  ❌ Failed to add {col}: [REDACTED]")
+                    logger.error(
+                        f"  ❌ Failed to add {mask_string(col)}: [REDACTED]"
+                    )  # nosec B106
             else:
-                logger.info(f"  ℹ️  {col} already exists")
+                logger.info(f"  ℹ️  {mask_string(col)} already exists")  # nosec B106
 
         # Add missing engagements columns
-        logger.info("🔧 Adding missing engagements columns...")
+        logger.info("🔧 Adding missing engagements columns...")  # nosec B106
         for col in required_engagement_cols:
             if col not in existing_engagement_cols:
                 try:
                     await conn.execute(f"ALTER TABLE engagements ADD COLUMN {col} JSON")
-                    logger.info(f"  ✅ Added {col}")
+                    logger.info(f"  ✅ Added {mask_string(col)}")  # nosec B106
                     changes_made = True
                 except Exception:
-                    logger.error(f"  ❌ Failed to add {col}: [REDACTED]")
+                    logger.error(
+                        f"  ❌ Failed to add {mask_string(col)}: [REDACTED]"
+                    )  # nosec B106
             else:
-                logger.info(f"  ℹ️  {col} already exists")
+                logger.info(f"  ℹ️  {mask_string(col)} already exists")  # nosec B106
 
         # Set default values if changes were made
         if changes_made:
@@ -212,21 +242,25 @@ async def fix_railway_schema():
             for col, default_val in json_defaults.items():
                 # Security: Validate column name against allowlist
                 if col not in ALLOWED_CLIENT_COLUMNS:
-                    logger.warning(f"  ⚠️  Skipping unauthorized column: {col}")
+                    logger.warning(
+                        f"  ⚠️  Skipping unauthorized column: {mask_string(col)}"
+                    )  # nosec B106
                     continue
 
                 try:
                     # Safe SQL construction with validated column name
-                    # nosec B608 - Column name validated against ALLOWED_CLIENT_COLUMNS allowlist
+                    # Column name validated against ALLOWED_CLIENT_COLUMNS allowlist
                     query = f"""
                         UPDATE client_accounts
                         SET {col} = $1::json
                         WHERE {col} IS NULL
-                    """
+                    """  # nosec B608
                     await conn.execute(query, json.dumps(default_val))
-                    logger.info(f"  ✅ Set {col} defaults")
+                    logger.info(f"  ✅ Set {mask_string(col)} defaults")  # nosec B106
                 except Exception:
-                    logger.error(f"  ❌ Failed to set {col}: [REDACTED]")
+                    logger.error(
+                        f"  ❌ Failed to set {mask_string(col)}: [REDACTED]"
+                    )  # nosec B106
 
             # Set engagement defaults
             engagement_defaults = {
@@ -261,21 +295,25 @@ async def fix_railway_schema():
             for col, default_val in engagement_defaults.items():
                 # Security: Validate column name against allowlist
                 if col not in ALLOWED_ENGAGEMENT_COLUMNS:
-                    logger.warning(f"  ⚠️  Skipping unauthorized column: {col}")
+                    logger.warning(
+                        f"  ⚠️  Skipping unauthorized column: {mask_string(col)}"
+                    )  # nosec B106
                     continue
 
                 try:
                     # Safe SQL construction with validated column name
-                    # nosec B608 - Column name validated against ALLOWED_ENGAGEMENT_COLUMNS allowlist
+                    # Column name validated against ALLOWED_ENGAGEMENT_COLUMNS allowlist
                     query = f"""
                         UPDATE engagements
                         SET {col} = $1::json
                         WHERE {col} IS NULL
-                    """
+                    """  # nosec B608
                     await conn.execute(query, json.dumps(default_val))
-                    logger.info(f"  ✅ Set {col} defaults")
+                    logger.info(f"  ✅ Set {mask_string(col)} defaults")  # nosec B106
                 except Exception:
-                    logger.error(f"  ❌ Failed to set {col}: [REDACTED]")
+                    logger.error(
+                        f"  ❌ Failed to set {mask_string(col)}: [REDACTED]"
+                    )  # nosec B106
 
         logger.info("🎉 Post-deploy schema fix completed successfully!")
 

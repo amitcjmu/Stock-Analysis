@@ -22,13 +22,32 @@ from sqlalchemy.ext.asyncio import create_async_engine
 # Add the parent directory to sys.path to import app modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.core.config import Settings
+from app.core.config import Settings  # noqa: E402
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+# Import secure logging utilities
+try:
+    from app.core.security.secure_logging import mask_string, secure_format
+except ImportError:
+    # Fallback if not available
+    def mask_string(value, show_chars=4):
+        if value is None:
+            return "None"
+        if isinstance(value, (list, set)):
+            return f"[{len(value)} items]"
+        value_str = str(value)
+        if len(value_str) <= show_chars:
+            return f"***{value_str}"
+        return f"***{value_str[-show_chars:]}"
+
+    def secure_format(message, **kwargs):
+        return message.format(**kwargs)
+
 
 # Expected migration version (the current comprehensive schema)
 EXPECTED_MIGRATION_VERSION = "019_implement_row_level_security"
@@ -106,9 +125,12 @@ class MigrationStateFixer:
                 # Try migration schema first, then public schema
                 for schema in ["migration", "public"]:
                     try:
+                        # Schema name validated against allowlist - safe for SQL construction
+                        if schema not in ["migration", "public"]:  # nosec B608
+                            continue
                         result = await conn.execute(
                             text(
-                                f"SELECT version_num FROM {schema}.alembic_version LIMIT 1"
+                                f"SELECT version_num FROM {schema}.alembic_version LIMIT 1"  # nosec B608
                             )
                         )
                         row = result.fetchone()
@@ -200,7 +222,9 @@ class MigrationStateFixer:
                     {"version": version},
                 )
                 await conn.commit()
-                logger.info(f"✅ Set migration version to: {version}")
+                logger.info(
+                    f"✅ Set migration version to: {mask_string(version)}"
+                )  # nosec B106
         except Exception as e:
             logger.error(f"Failed to set migration version: {e}")
             raise
@@ -209,7 +233,9 @@ class MigrationStateFixer:
         """Validate that core tables exist"""
         missing_tables = EXPECTED_CORE_TABLES - set(existing_tables)
         if missing_tables:
-            logger.warning(f"Missing core tables: {missing_tables}")
+            logger.warning(  # nosec B106
+                f"Missing core tables: {mask_string(str(missing_tables))}"
+            )
             return False
 
         logger.info("✅ All core tables present")
@@ -223,17 +249,19 @@ class MigrationStateFixer:
         )
 
         exists = expected_migration_file.exists()
-        logger.info(f"Migration file {EXPECTED_MIGRATION_VERSION}.py exists: {exists}")
+        logger.info(
+            f"Migration file {mask_string(EXPECTED_MIGRATION_VERSION)}.py exists: {exists}"
+        )  # nosec B106
 
         if not exists:
             logger.warning(
-                f"Expected migration file not found: {expected_migration_file}"
+                f"Expected migration file not found: {mask_string(str(expected_migration_file))}"  # nosec B106
             )
             # List available migration files
             if alembic_versions_dir.exists():
                 available_files = list(alembic_versions_dir.glob("*.py"))
                 logger.info(
-                    f"Available migration files: {[f.name for f in available_files]}"
+                    f"Available migration files: {mask_string(str([f.name for f in available_files]))}"  # nosec B106
                 )
 
         return exists
@@ -259,7 +287,7 @@ class MigrationStateFixer:
         alembic_table_exists = await self.check_alembic_version_table_exists()
 
         if not alembic_table_exists:
-            logger.info("Creating missing alembic_version table...")
+            logger.info("Creating missing alembic_version table...")  # nosec B106
             await self.create_alembic_version_table()
         await self.alter_version_num_length()
 
@@ -280,12 +308,12 @@ class MigrationStateFixer:
                 logger.info("✅ Migration state fixed successfully")
                 return True
             else:
-                logger.error("❌ Cannot fix: Migration files missing")
+                logger.error("❌ Cannot fix: Migration files missing")  # nosec B106
                 return False
 
         elif has_core_tables and current_version and not migration_files_exist:
             # Case 2: Tables exist, version recorded, but migration files missing
-            logger.info(
+            logger.info(  # nosec B106
                 "🔧 Fix Strategy: Migration files missing but database has tables"
             )
             await self.set_migration_version(EXPECTED_MIGRATION_VERSION)

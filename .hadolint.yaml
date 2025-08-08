@@ -1,0 +1,19 @@
+# Hadolint configuration for Docker security scanning
+# Only ignore rules that are legitimately not applicable
+
+ignored:
+  # SC2016: Expressions don't expand in single quotes - often legitimate in Docker
+  - SC2016
+
+# Allow these rules but treat as warnings
+failure-threshold: error
+
+# Enforce important security rules:
+# - DL3008: Pin versions in apt/apk packages
+# - DL3009: Delete the apt-get lists after installing
+# - DL3015: Avoid additional packages by specifying --no-install-recommends
+# - DL3013: Pin versions in pip
+# - DL3018: Pin versions in apk add
+# - DL3042: Avoid use of cache directory with pip
+# - DL3059: Multiple consecutive RUN instructions (security through minimizing layers)
+# - All other security-related rules are enforced

@@ -351,7 +351,7 @@ class LLMUsageTracker:
 
                 where_clause = " AND ".join(conditions)
 
-                # Summary query
+                # Summary query - WHERE clause built from safe parameterized conditions
                 summary_query = text(
                     f"""
                     SELECT
@@ -367,13 +367,14 @@ class LLMUsageTracker:
                         MAX(created_at) as last_request
                     FROM llm_usage_logs
                     WHERE {where_clause}
-                """
+                """  # nosec B608
                 )
 
                 summary_result = await session.execute(summary_query, params)
                 summary = summary_result.fetchone()
 
                 # Breakdown by provider/model
+                # WHERE clause built from safe parameterized conditions
                 breakdown_query = text(
                     f"""
                     SELECT
@@ -386,13 +387,14 @@ class LLMUsageTracker:
                     WHERE {where_clause}
                     GROUP BY llm_provider, model_name
                     ORDER BY cost DESC
-                """
+                """  # nosec B608
                 )
 
                 breakdown_result = await session.execute(breakdown_query, params)
                 breakdown = [dict(row) for row in breakdown_result]
 
                 # Daily usage trend
+                # WHERE clause built from safe parameterized conditions
                 daily_query = text(
                     f"""
                     SELECT
@@ -405,7 +407,7 @@ class LLMUsageTracker:
                     GROUP BY DATE(created_at)
                     ORDER BY date DESC
                     LIMIT 30
-                """
+                """  # nosec B608
                 )
 
                 daily_result = await session.execute(daily_query, params)

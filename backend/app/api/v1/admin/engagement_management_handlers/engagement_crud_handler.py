@@ -555,8 +555,8 @@ class EngagementCRUDHandler:
                         )
                     except Exception as table_error:
                         logger.warning(
-                            f"Could not delete from {table}: {table_error}"
-                        )  # nosec B608
+                            f"Could not delete from {table}: {table_error}"  # nosec B608 - table name is from hardcoded list
+                        )
                         # Continue with other tables
 
                 # 4. Handle user-related references (set to NULL instead of delete)

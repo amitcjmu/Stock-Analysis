@@ -9,7 +9,6 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.admin.client_management_handlers import ClientCRUDHandler
 from app.core.database import get_db
 from app.core.rbac_middleware import require_admin_access
 from app.schemas.admin_schemas import (
@@ -30,8 +29,13 @@ try:
 
     HANDLERS_AVAILABLE = True
 except ImportError:
-    HANDLERS_AVAILABLE = False
-    ClientCRUDHandler = None
+    try:
+        from app.api.v1.admin.client_management_handlers import ClientCRUDHandler
+
+        HANDLERS_AVAILABLE = True
+    except ImportError:
+        HANDLERS_AVAILABLE = False
+        ClientCRUDHandler = None
 
 logger = logging.getLogger(__name__)
 

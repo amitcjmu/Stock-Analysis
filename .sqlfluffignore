@@ -1,0 +1,35 @@
+# Ignore backup files and dumps only
+backend/backups/*.sql
+backups/*.sql
+**/backups/*.sql
+
+# Ignore database schema dumps (generated files)
+db_schema.sql
+**/db_schema.sql
+
+# Ignore migration files (should not be edited)
+backend/migrations/*.sql
+**/migrations/*.sql
+
+# Ignore test fixtures only
+tests/**/*.sql
+backend/tests/**/*.sql
+
+# Ignore any SQL dumps or backups with timestamps
+*backup*.sql
+*_backup_*.sql
+*database_backup*.sql
+
+# Ignore development/testing SQL files with complex formatting
+backend/init.sql
+backend/scripts/qa/test_queries.sql
+**/test_*.sql
+**/temp_*.sql
+
+# Ignore migration and maintenance SQL scripts
+backend/migrations/*.sql
+backend/scripts/database/*.sql
+backend/scripts/fix_*.sql
+backend/scripts/create_*.sql
+backend/scripts/move_*.sql
+check_collection_flows.sql

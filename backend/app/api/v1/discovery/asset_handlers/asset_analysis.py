@@ -157,7 +157,10 @@ class AssetAnalysisHandler:
                                 "currentValue": str(cpu_cores),
                                 "suggestedValue": suggested_value,
                                 "confidence": 0.95,
-                                "reasoning": f"CPU cores should be numeric. Text value '{cpu_cores}' should be converted to integer {suggested_value}.",
+                                "reasoning": (
+                                    f"CPU cores should be numeric. Text value '{cpu_cores}' should be "
+                                    f"converted to integer {suggested_value}."
+                                ),
                             }
                         )
                         format_issues_count += 1

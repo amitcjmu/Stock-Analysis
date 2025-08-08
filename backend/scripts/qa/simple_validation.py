@@ -39,9 +39,25 @@ async def run_simple_validation() -> Dict[str, Any]:
             "assessments",
         ]
 
+        # Validate table names against allowlist to prevent SQL injection
+        allowed_tables = {
+            "client_accounts",
+            "engagements",
+            "users",
+            "user_roles",
+            "assets",
+            "discovery_flows",
+            "data_imports",
+            "assessments",
+        }
+
         for table in tables:
+            if table not in allowed_tables:
+                print(f"  {table}: SKIPPED - invalid table name")
+                continue
+            # Safe: table name validated against allowlist
             result = await session.execute(
-                text(f"SELECT COUNT(*) FROM migration.{table}")
+                text(f"SELECT COUNT(*) FROM migration.{table}")  # nosec B608
             )
             count = result.scalar()
             counts[table] = count

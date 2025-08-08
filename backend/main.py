@@ -457,13 +457,18 @@ def get_cors_origins():
 cors_origins = get_cors_origins()
 
 # Log CORS origins with masking for security (avoid B106)
-masked_origins = [mask_string(origin, show_chars=12) if 'localhost' not in origin else origin for origin in cors_origins]
+masked_origins = [
+    mask_string(origin, show_chars=12) if "localhost" not in origin else origin
+    for origin in cors_origins
+]
 logger.info(f"🌐 CORS Origins configured: {masked_origins}")  # nosec B106
 logger.info(f"🌐 Total CORS origins: {len(cors_origins)}")
 
 # Debug: Print each origin (masked for security)
 for i, origin in enumerate(cors_origins):
-    masked_origin = mask_string(origin, show_chars=12) if 'localhost' not in origin else origin
+    masked_origin = (
+        mask_string(origin, show_chars=12) if "localhost" not in origin else origin
+    )
     logger.info(f"🌐 CORS Origin {i+1}: {masked_origin}")  # nosec B106
 
 # Add context middleware (Task 1.2.3)
@@ -595,7 +600,10 @@ else:
 # This ensures CORS headers are added to ALL responses, including error responses
 logger.info("🌐 Adding CORS middleware with the following configuration:")
 # Log allow_origins with masking (avoid B106)
-masked_origins_for_middleware = [mask_string(origin, show_chars=12) if 'localhost' not in origin else origin for origin in cors_origins]
+masked_origins_for_middleware = [
+    mask_string(origin, show_chars=12) if "localhost" not in origin else origin
+    for origin in cors_origins
+]
 logger.info(f"🌐 allow_origins: {masked_origins_for_middleware}")  # nosec B106
 logger.info("🌐 allow_credentials: True")
 logger.info("🌐 allow_methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH']")

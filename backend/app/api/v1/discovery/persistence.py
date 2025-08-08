@@ -49,7 +49,7 @@ def backup_processed_assets() -> bool:
 
 def initialize_persistence() -> None:
     """Initialize persistent stores and load existing data."""
-    global processed_assets_store
+    global processed_assets_store  # noqa: F824
 
     # Load processed assets from backup on startup
     saved_assets = load_from_file("processed_assets_backup", [])
@@ -65,7 +65,7 @@ def get_processed_assets() -> List[Dict[str, Any]]:
 
 def add_processed_asset(asset: Dict[str, Any]) -> None:
     """Add an asset to the processed assets store with deduplication."""
-    global processed_assets_store
+    global processed_assets_store  # noqa: F824
 
     # Generate a unique identifier based on hostname and name
     asset_hostname = asset.get("hostname", "").strip().lower()
@@ -272,7 +272,7 @@ def find_duplicate_assets() -> List[Dict[str, Any]]:
 
 def cleanup_duplicates() -> int:
     """Remove duplicate assets and return count of removed duplicates."""
-    global processed_assets_store
+    global processed_assets_store  # noqa: F824
 
     logger.info("Starting comprehensive duplicate cleanup...")
 
@@ -316,14 +316,14 @@ def cleanup_duplicates() -> int:
 
 def clear_processed_assets() -> None:
     """Clear the processed assets store."""
-    global processed_assets_store
+    global processed_assets_store  # noqa: F824
     processed_assets_store.clear()
     backup_processed_assets()  # Save the cleared state
 
 
 def update_asset_by_id(asset_id: str, updated_data: Dict[str, Any]) -> bool:
     """Update an asset in the store by ID."""
-    global processed_assets_store
+    global processed_assets_store  # noqa: F824
 
     for i, asset in enumerate(processed_assets_store):
         if asset.get("id") == asset_id:

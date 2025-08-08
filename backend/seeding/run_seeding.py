@@ -3,7 +3,7 @@ Main seeding orchestrator that runs all seeding scripts in order.
 """
 
 import asyncio
-import subprocess
+import subprocess  # nosec B404 - needed for orchestrating local seeding scripts
 import sys
 from pathlib import Path
 
@@ -14,7 +14,9 @@ async def run_script(script_name: str, description: str) -> bool:
     script_path = Path(__file__).parent / script_name
 
     try:
-        result = subprocess.run(
+        # Security: Using sys.executable (trusted Python interpreter) with local script path
+        # No user input is used in the command construction
+        result = subprocess.run(  # nosec B603 - trusted local script execution
             [sys.executable, str(script_path)],
             capture_output=True,
             text=True,

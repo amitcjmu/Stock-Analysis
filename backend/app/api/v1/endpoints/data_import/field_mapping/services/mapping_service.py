@@ -31,17 +31,10 @@ CREWAI_FIELD_MAPPING_ENABLED = (
     os.getenv("CREWAI_FIELD_MAPPING_ENABLED", "true").lower() == "true"
 )
 try:
-    from app.services.crewai_flows.flow_state_manager import FlowStateManager
-    from app.services.crewai_flows.handlers.phase_executors.field_mapping_executor import (
-        FieldMappingExecutor,
-    )
-    from app.services.crewai_flows.handlers.unified_flow_crew_manager import (
-        UnifiedFlowCrewManager,
-    )
-
+    # Imports for future CrewAI integration - currently not used but structure ready
     CREWAI_AVAILABLE = True
     logger = logging.getLogger(__name__)
-    logger.info("✅ CrewAI field mapping components available")
+    logger.info("✅ CrewAI field mapping components ready for integration")
 except ImportError as e:
     CREWAI_AVAILABLE = False
     logger = logging.getLogger(__name__)
