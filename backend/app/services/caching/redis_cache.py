@@ -737,3 +737,7 @@ def get_redis_cache() -> RedisCache:
     if _redis_cache_instance is None:
         _redis_cache_instance = RedisCache()
     return _redis_cache_instance
+
+
+# Global instance for easy importing
+redis_cache = get_redis_cache()
