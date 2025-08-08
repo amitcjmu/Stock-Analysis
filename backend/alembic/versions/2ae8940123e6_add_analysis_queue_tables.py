@@ -19,20 +19,21 @@ depends_on = None
 
 def upgrade() -> None:
     # Complete migration using pure SQL for maximum compatibility
-    op.execute("""
+    op.execute(
+        """
         -- Create enum types if they don't exist
         DO $$ BEGIN
             CREATE TYPE queuestatus AS ENUM ('pending', 'processing', 'paused', 'completed', 'cancelled', 'failed');
         EXCEPTION
             WHEN duplicate_object THEN NULL;
         END $$;
-        
+
         DO $$ BEGIN
             CREATE TYPE itemstatus AS ENUM ('pending', 'processing', 'completed', 'failed', 'cancelled');
         EXCEPTION
             WHEN duplicate_object THEN NULL;
         END $$;
-        
+
         -- Create analysis_queues table if it doesn't exist
         CREATE TABLE IF NOT EXISTS analysis_queues (
             id UUID NOT NULL,
@@ -47,7 +48,7 @@ def upgrade() -> None:
             completed_at TIMESTAMP WITHOUT TIME ZONE,
             CONSTRAINT analysis_queues_pkey PRIMARY KEY (id)
         );
-        
+
         -- Create analysis_queue_items table if it doesn't exist
         CREATE TABLE IF NOT EXISTS analysis_queue_items (
             id UUID NOT NULL,
@@ -60,17 +61,18 @@ def upgrade() -> None:
             created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
             updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
             CONSTRAINT analysis_queue_items_pkey PRIMARY KEY (id),
-            CONSTRAINT analysis_queue_items_queue_id_fkey FOREIGN KEY (queue_id) 
+            CONSTRAINT analysis_queue_items_queue_id_fkey FOREIGN KEY (queue_id)
                 REFERENCES analysis_queues (id) ON DELETE CASCADE
         );
-        
+
         -- Create indexes if they don't exist
-        CREATE INDEX IF NOT EXISTS idx_analysis_queues_context 
+        CREATE INDEX IF NOT EXISTS idx_analysis_queues_context
             ON analysis_queues (client_id, engagement_id);
-            
-        CREATE INDEX IF NOT EXISTS idx_queue_items_queue_id 
+
+        CREATE INDEX IF NOT EXISTS idx_queue_items_queue_id
             ON analysis_queue_items (queue_id);
-    """)
+    """
+    )
 
 
 def downgrade() -> None:

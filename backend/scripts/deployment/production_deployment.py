@@ -38,6 +38,25 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+# Import secure logging utilities
+def mask_string(value, show_chars=4):
+    if value is None:
+        return "None"
+    value_str = str(value)
+    if len(value_str) <= show_chars:
+        return f"***{value_str}"
+    return f"***{value_str[-show_chars:]}"
+
+
+def mask_id(value):
+    if value is None:
+        return "None"
+    value_str = str(value)
+    if len(value_str) >= 8:
+        return f"***{value_str[-8:]}"
+    return f"***{value_str}"
+
+
 def secure_subprocess_run(cmd_list, **kwargs):
     """
     Secure subprocess wrapper for deployment commands.
@@ -96,7 +115,9 @@ class ProductionDeployment:
             "issues": [],
         }
 
-        logger.info(f"🚀 Starting production deployment: {self.deployment_id}")
+        logger.info(
+            f"🚀 Starting production deployment: {mask_id(self.deployment_id)}"
+        )  # nosec B106
 
     async def deploy_to_production(self) -> bool:
         """
@@ -381,9 +402,7 @@ fi
 
     async def _deploy_backend_rolling(self) -> bool:
         """Deploy backend using rolling update strategy"""
-        logger.info(
-            "🔄 Deploying backend using rolling update..."
-        )  # nosec B106 - Only logging operational data not sensitive info
+        logger.info("🔄 Deploying backend using rolling update...")  # nosec B106
 
         try:
             # Pull latest images
@@ -645,9 +664,7 @@ fi
 
     async def _deploy_frontend_rolling(self) -> bool:
         """Deploy frontend using rolling update strategy"""
-        logger.info(
-            "🔄 Deploying frontend using rolling update..."
-        )  # nosec B106 - Only logging operational data not sensitive info
+        logger.info("🔄 Deploying frontend using rolling update...")  # nosec B106
 
         try:
             # Pull latest images
@@ -1128,7 +1145,7 @@ echo "Monitoring configuration updated"
         logger.info("\n" + "=" * 80)
         logger.info("🎉 PRODUCTION DEPLOYMENT COMPLETED")
         logger.info("=" * 80)
-        logger.info(f"Deployment ID: {self.deployment_id}")
+        logger.info(f"Deployment ID: {mask_id(self.deployment_id)}")  # nosec B106
         logger.info(f"Duration: {duration:.2f} seconds ({duration/60:.1f} minutes)")
         logger.info(f"Strategy: {self.config['deployment_strategy']}")
         logger.info(
@@ -1140,9 +1157,7 @@ echo "Monitoring configuration updated"
         if report["success"]:
             logger.info("\n🎉 PRODUCTION DEPLOYMENT SUCCESSFUL!")
             logger.info("✅ Master Flow Orchestrator is now live in production")
-            logger.info(
-                "✅ All health checks passing"
-            )  # nosec B106 - Only logging operational data not sensitive info
+            logger.info("✅ All health checks passing")  # nosec B106
             logger.info("✅ Performance metrics within thresholds")
             logger.info("✅ Ready for production traffic")
         else:

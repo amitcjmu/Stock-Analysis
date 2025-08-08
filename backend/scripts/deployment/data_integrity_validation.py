@@ -1275,9 +1275,7 @@ class DataIntegrityValidator:
 
     async def _validate_business_rules(self) -> None:
         """Validate business rules and constraints"""
-        logger.info(
-            "🔍 Phase 11: Business rules validation"
-        )  # nosec B106 - Only logging operational data not sensitive info
+        logger.info("🔍 Phase 11: Business rules validation")  # nosec B106
 
         try:
             self.validation_results["validation_checks"]["business_rules"][
@@ -1368,14 +1366,10 @@ class DataIntegrityValidator:
             self.validation_results["validation_checks"]["business_rules"][
                 "status"
             ] = "completed"
-            logger.info(
-                "✅ Business rules validation completed"
-            )  # nosec B106 - Only logging operational data not sensitive info
+            logger.info("✅ Business rules validation completed")  # nosec B106
 
         except Exception as e:
-            logger.error(
-                "❌ Business rules validation failed"
-            )  # nosec B106 - Only logging operational data not sensitive info
+            logger.error("❌ Business rules validation failed")  # nosec B106
             self.validation_results["validation_checks"]["business_rules"][
                 "status"
             ] = "failed"

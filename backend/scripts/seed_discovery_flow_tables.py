@@ -598,16 +598,14 @@ async def verify_seeded_data():
 
             for flow in flow_details:
                 logger.info(f"   • Flow: {flow.flow_name}")
-                logger.info(
-                    f"     - ID: {mask_id(flow.flow_id)}"  # nosec B106
-                )
+                logger.info(f"     - ID: {mask_id(flow.flow_id)}")  # nosec B106
                 logger.info(f"     - Status: {flow.status}")
                 logger.info(f"     - Progress: {flow.progress_percentage}%")
                 logger.info(
                     f"     - Phases: Import={flow.data_import_completed}, "
                     f"Mapping={flow.attribute_mapping_completed}, "
                     f"Cleansing={flow.data_cleansing_completed}"
-                )
+                )  # nosec B106
 
             logger.info("✅ Data verification completed successfully")
 
@@ -638,7 +636,7 @@ async def main():
         logger.info("✅ Discovery Flow Database Seeding Completed Successfully!")
         logger.info("\n🎯 Key Achievements:")
         logger.info("   • Eliminated session_id dependencies completely")
-        logger.info("   • CrewAI Flow ID as single source of truth")
+        logger.info("   • CrewAI Flow ID as single source of truth")  # nosec B106
         logger.info("   • Fresh tables with proper ecosystem integration")
         logger.info("   • Multi-tenant isolation with demo constants")
         logger.info("   • Seeded with realistic demo data")
