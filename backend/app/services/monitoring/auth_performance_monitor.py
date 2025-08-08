@@ -44,9 +44,10 @@ class AuthOperation(str, Enum):
     LOGIN = "login"
     LOGOUT = "logout"
     SESSION_VALIDATION = "session_validation"
-    TOKEN_REFRESH = "token_refresh"
+    # Operation type constants, not credentials
+    TOKEN_REFRESH = "token_refresh"  # nosec B105
     CONTEXT_SWITCH = "context_switch"
-    PASSWORD_RESET = "password_reset"
+    PASSWORD_RESET = "password_reset"  # nosec B105
     PROFILE_UPDATE = "profile_update"
 
 

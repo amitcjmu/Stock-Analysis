@@ -192,8 +192,8 @@ class StateMigrator:
 
             for table_name in flow_tables:
                 try:
-                    # Get all records from the flow table
-                    cursor.execute(f"SELECT * FROM {table_name}")
+                    # Get all records from the flow table - table name from DB introspection
+                    cursor.execute(f"SELECT * FROM {table_name}")  # nosec B608
                     rows = cursor.fetchall()
 
                     for row in rows:

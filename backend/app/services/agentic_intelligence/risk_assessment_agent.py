@@ -147,8 +147,9 @@ class RiskAssessmentAgent:
             "data_sensitivity": asset_data.get("data_sensitivity"),
         }
 
-        task = Task(
-            description=f"""
+        # This is not SQL, it's a task description for an AI agent
+        task = Task(  # nosec B608
+            description=f"""  # nosec B608
             Conduct a comprehensive risk assessment for this asset using your security intelligence and memory tools:
 
             Asset Details:

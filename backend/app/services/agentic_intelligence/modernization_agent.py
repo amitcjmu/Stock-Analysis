@@ -150,8 +150,9 @@ class ModernizationAgent:
             "data_volume": asset_data.get("data_volume"),
         }
 
-        task = Task(
-            description=f"""  # nosec B608 - This is not SQL, it's a task description for an AI agent
+        # This is not SQL, it's a task description for an AI agent
+        task = Task(  # nosec B608
+            description=f"""  # nosec B608
             Conduct a comprehensive modernization assessment for this asset using your cloud architecture intelligence and memory tools:
 
             Asset Details:

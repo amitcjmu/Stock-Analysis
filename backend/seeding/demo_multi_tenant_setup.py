@@ -20,7 +20,7 @@ All engagements have "Demo" prefix
 
 import asyncio
 import hashlib
-import random
+import secrets
 import uuid
 from datetime import datetime, timezone
 
@@ -38,9 +38,9 @@ def get_password_hash(password: str) -> str:
 
 def create_demo_uuid() -> uuid.UUID:
     """Create UUID with -def0-def0-def0- pattern in the middle for easy identification"""
-    # Generate random hex for start and end
-    start = "".join(random.choices("0123456789abcdef", k=8))
-    end = "".join(random.choices("0123456789abcdef", k=12))
+    # Generate cryptographically secure random hex for start and end
+    start = "".join(secrets.choice("0123456789abcdef") for _ in range(8))
+    end = "".join(secrets.choice("0123456789abcdef") for _ in range(12))
 
     # Create pattern: XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX
     uuid_string = f"{start}-def0-def0-def0-{end}"
@@ -231,7 +231,9 @@ async def create_demo_multi_tenant_data():
                 email=user_data["email"],
                 first_name=user_data["first_name"],
                 last_name=user_data["last_name"],
-                password_hash=get_password_hash("Demo123!"),
+                password_hash=get_password_hash(
+                    "Demo123!"
+                ),  # nosec B105 - Demo password for seeding
                 is_active=True,
                 is_verified=True,
                 default_client_id=user_data["client_id"],

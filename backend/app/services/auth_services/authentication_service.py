@@ -136,16 +136,18 @@ class AuthenticationService:
                     }
                 )
 
-                token = Token(access_token=jwt_token, token_type="bearer")
+                # OAuth2 standard token type, not a hardcoded credential
+                token = Token(access_token=jwt_token, token_type="bearer")  # nosec B106
 
             except Exception as jwt_error:
                 logger.warning(
                     f"JWT token creation failed, falling back to db-token: {jwt_error}"
                 )
                 # Fallback to db-token for backward compatibility during transition
+                # OAuth2 standard token type, not a hardcoded credential
                 token = Token(
                     access_token=f"db-token-{user.id}-{uuid.uuid4().hex[:8]}",
-                    token_type="bearer",
+                    token_type="bearer",  # nosec B106
                 )
 
             return LoginResponse(

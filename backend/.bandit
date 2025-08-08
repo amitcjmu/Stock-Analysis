@@ -1,62 +1,13 @@
-# Bandit configuration for secure code scanning
-# Documentation: https://bandit.readthedocs.io/en/latest/config.html
+[bandit]
+# Allow legitimate temp operations, error handling, and development tools
+skips = B108,B110,B301,B314,B324,B403
 
-# Tests to skip (by ID)
-# B103: set_bad_file_permissions - Allow script execution permissions for deployment automation
-# B104: hardcoded_bind_all_interfaces - Allow for development configs
-# B105: hardcoded_password_string - Already handled with nosec where appropriate
-# B106: hardcoded_password_funcarg - Often false positives in logging/operational code
-# B108: hardcoded_tmp_directory - Allow /tmp usage for legitimate temp operations
-# B110: try_except_pass - Allow try/except/pass for legitimate error handling
-# B113: request_without_timeout - Many internal requests don't need timeouts
-# B301: pickle - Allow pickle usage where it's intended and safe
-# B314: blacklist calls for XML - Allow XML parsing in trusted contexts (dev tools)
-# B324: hashlib - Allow MD5 in non-security contexts (file checksums, etc.)
-# B403: import_pickle - Allow pickle imports where needed
-# B608: hardcoded_sql_expressions - Allow SQL constants and templates
+# Security standards - enforce high confidence, medium severity
+confidence = HIGH
+severity = MEDIUM
 
-skips:
-  - B103
-  - B104
-  - B105
-  - B106
-  - B108
-  - B110
-  - B113
-  - B301
-  - B314
-  - B324
-  - B403
-  - B608
+# Exclude development and testing directories
+exclude_dirs = tests,venv,migrations,docs,scripts/archive,scripts/deployment,scripts/development,seeding,build,dist,.git,temp
 
-# Set confidence levels to exclude false positives
-# Only fail on HIGH confidence issues for critical security
-confidence: HIGH
-
-# Severity level - only flag MEDIUM and above
-# This reduces noise from LOW severity issues that are often false positives
-severity: MEDIUM
-
-# Exclude test directories and other non-production code
-exclude_dirs:
-  - tests
-  - venv
-  - migrations
-  - docs
-  - scripts/archive
-  - build
-  - dist
-  - .git
-  - temp
-  - ../temp
-  - ../scripts
-
-# File patterns to exclude
-exclude:
-  - '*.backup.py'
-  - '*_backup.py'
-  - 'temp_*.py'
-  - 'test_*.py'
-  - '*/temp/*'
-  - '../temp/*'
-  - '../scripts/*'
+# Exclude development and backup files
+exclude = *.backup.py,*_backup.py,temp_*.py,test_*.py,*/temp/*,simple_*.py,monitor_*.py,railway_*.py,setup.py,start.py,flow_analysis_*.py

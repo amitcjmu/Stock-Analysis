@@ -9,14 +9,14 @@ WORKDIR /app
 # Force cache invalidation - Updated 2025-07-29
 ENV CACHE_BUST=2025-07-29-redis-fix
 
-# Install system dependencies with security updates
+# Install system dependencies with security updates and version pinning
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
-        build-essential \
-        libpq-dev \
-        curl \
-        ca-certificates \
+        build-essential=12.9 \
+        libpq-dev=15.9-0+deb12u1 \
+        curl=7.88.1-10+deb12u8 \
+        ca-certificates=20230311 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* /var/tmp/*
@@ -24,8 +24,8 @@ RUN apt-get update \
 # Copy backend requirements
 COPY backend/requirements-docker.txt requirements.txt
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip \
+# Install Python dependencies with version pinning
+RUN pip install --no-cache-dir --upgrade pip==24.3.1 \
     && pip install --no-cache-dir -r requirements.txt
 
 # Copy backend application code

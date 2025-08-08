@@ -496,8 +496,22 @@ class AssessmentFlowMigration:
                     "assessment_learning_feedback",
                 ]
 
+                # Validate table names against expected schema
+                allowed_tables = {
+                    "assessment_flows",
+                    "learning_patterns",
+                    "application_components",
+                    "sixr_decisions",
+                    "assessment_learning_feedback",
+                }
+
                 for table in required_tables:
-                    result = await db.execute(text(f"SELECT to_regclass('{table}')"))
+                    if table not in allowed_tables:
+                        raise MigrationError(f"Invalid table name: {table}")
+                    # Safe: table name validated against allowlist
+                    result = await db.execute(
+                        text(f"SELECT to_regclass('{table}')")
+                    )  # nosec B608
                     if not result.scalar():
                         raise MigrationError(f"Table {table} does not exist")
 
@@ -509,8 +523,21 @@ class AssessmentFlowMigration:
                     "unique_sixr_decision",
                 ]
 
+                # Validate index names against expected schema
+                allowed_indexes = {
+                    "assessment_flows_pkey",
+                    "unique_engagement_requirement",
+                    "unique_app_components",
+                    "unique_sixr_decision",
+                }
+
                 for index in required_indexes:
-                    result = await db.execute(text(f"SELECT to_regclass('{index}')"))
+                    if index not in allowed_indexes:
+                        raise MigrationError(f"Invalid index name: {index}")
+                    # Safe: index name validated against allowlist
+                    result = await db.execute(
+                        text(f"SELECT to_regclass('{index}')")
+                    )  # nosec B608
                     if not result.scalar():
                         logger.warning(
                             f"Index {index} missing - may affect performance"

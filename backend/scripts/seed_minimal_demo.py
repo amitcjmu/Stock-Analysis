@@ -192,7 +192,9 @@ async def seed_minimal_demo_data():
                 email=user_data["email"],
                 first_name=user_data["first_name"],
                 last_name=user_data["last_name"],
-                password_hash=get_password_hash("Demo123!"),
+                password_hash=get_password_hash(
+                    "Demo123!"
+                ),  # nosec B105 - Demo password for seeding
                 is_active=True,
                 is_verified=True,
                 default_client_id=user_data["client_id"],

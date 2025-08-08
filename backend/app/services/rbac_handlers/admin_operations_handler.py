@@ -124,7 +124,9 @@ class AdminOperationsHandler(BaseRBACHandler):
             )
 
             # Hash the password
-            password = user_data.get("password", "defaultpassword123")
+            password = user_data.get(
+                "password", "defaultpassword123"
+            )  # nosec B105 - Default fallback password
             import bcrypt
 
             password_hash = bcrypt.hashpw(

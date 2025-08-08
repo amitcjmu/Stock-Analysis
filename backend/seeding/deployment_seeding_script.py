@@ -5,6 +5,7 @@ Run this after migrations are applied to populate the database with demo data.
 """
 
 import asyncio
+import hashlib
 import os
 import sys
 
@@ -41,6 +42,14 @@ class DeploymentSeeder:
     def __init__(self):
         self.demo_client_id = "11111111-1111-1111-1111-111111111111"
         self.demo_engagement_id = "22222222-2222-2222-2222-222222222222"
+
+    def get_secure_demo_password_hash(self):
+        """Get secure password hash from environment or generate one"""
+        demo_password = os.getenv(
+            "DEMO_SEED_PASSWORD", "DemoPassword123!"
+        )  # nosec B105 - Demo password fallback for seeding
+        # Use SHA256 for consistent demo password hashing
+        return hashlib.sha256(demo_password.encode()).hexdigest()
 
     async def check_database_ready(self):
         """Verify database is ready and migrations are applied"""
@@ -135,7 +144,7 @@ class DeploymentSeeder:
                     email=user_data["email"],
                     first_name=user_data["first_name"],
                     last_name=user_data["last_name"],
-                    password_hash="588c55f3ce2b8569b153c5abbf13f9f74308b88a20017cc699b835cc93195d16",  # Demo123!
+                    password_hash=self.get_secure_demo_password_hash(),
                     is_active=True,
                     is_verified=True,
                     default_client_id=self.demo_client_id,

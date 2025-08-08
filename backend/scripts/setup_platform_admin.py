@@ -23,9 +23,9 @@ import sys
 import uuid
 from datetime import datetime, timezone
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from sqlalchemy import select
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.core.database import AsyncSessionLocal
 from app.models import ClientAccount, Engagement, User, UserAccountAssociation, UserRole
@@ -116,7 +116,9 @@ async def create_platform_admin():
         if existing_admin:
             print("⚠️ Platform admin already exists")
             # Update password if needed
-            existing_admin.password_hash = get_password_hash("Password123!")
+            existing_admin.password_hash = get_password_hash(
+                "Password123!"
+            )  # nosec B105 - Default admin password for setup
             await session.commit()
             return existing_admin.id
 
@@ -127,7 +129,9 @@ async def create_platform_admin():
             email="chocka@gmail.com",
             first_name="Platform",
             last_name="Admin",
-            password_hash=get_password_hash("Password123!"),
+            password_hash=get_password_hash(
+                "Password123!"
+            ),  # nosec B105 - Default admin password for setup
             is_active=True,
             is_verified=True,
         )
@@ -264,7 +268,9 @@ async def create_minimal_demo_data():
                 email=user_data["email"],
                 first_name=user_data["first_name"],
                 last_name=user_data["last_name"],
-                password_hash=get_password_hash("Demo123!"),
+                password_hash=get_password_hash(
+                    "Demo123!"
+                ),  # nosec B105 - Demo user password for setup
                 is_active=True,
                 is_verified=True,
                 default_client_id=demo_client_id,
