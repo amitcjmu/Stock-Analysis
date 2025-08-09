@@ -29,6 +29,7 @@ const CollectionProgress: React.FC = () => {
     selectedFlow,
     isLoading,
     autoRefresh,
+    readiness,
     selectFlow,
     handleFlowAction,
     refreshData,
@@ -67,6 +68,7 @@ const CollectionProgress: React.FC = () => {
         metrics={metrics}
         selectedFlow={selectedFlow}
         autoRefresh={autoRefresh}
+        readiness={readiness || undefined}
         onFlowSelect={selectFlow}
         onFlowAction={handleFlowAction}
         onToggleAutoRefresh={toggleAutoRefresh}

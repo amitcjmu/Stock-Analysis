@@ -48,6 +48,13 @@ export interface ProgressMonitoringState {
   error: Error | null;
 }
 
+export interface ReadinessSummary {
+  flow_id: string;
+  apps_ready_for_assessment: number;
+  phase_scores: { collection: number; discovery: number };
+  quality: { collection_quality_score: number; confidence_score: number };
+}
+
 export interface ProgressMonitoringActions {
   selectFlow: (flowId: string) => void;
   handleFlowAction: (flowId: string, action: 'pause' | 'resume' | 'stop') => Promise<void>;
@@ -289,6 +296,7 @@ export const useProgressMonitoring = (
   });
 
   const [autoRefresh, setAutoRefresh] = useState(initialAutoRefresh);
+  const [readiness, setReadiness] = useState<ReadinessSummary | null>(null);
 
   /**
    * Load initial data
@@ -336,6 +344,19 @@ export const useProgressMonitoring = (
           selectedFlow: flow.id,
           isLoading: false
         }));
+
+        // Fetch readiness summary for selected flow
+        try {
+          const r = await collectionFlowApi.getFlowReadiness(flow.id);
+          setReadiness({
+            flow_id: r.flow_id,
+            apps_ready_for_assessment: r.apps_ready_for_assessment,
+            phase_scores: r.phase_scores,
+            quality: r.quality
+          });
+        } catch {
+          setReadiness(null);
+        }
       } else {
         // Load all incomplete flows if no specific flow ID
         const incompleteFlows = await collectionFlowApi.getIncompleteFlows();
@@ -375,6 +396,23 @@ export const useProgressMonitoring = (
           selectedFlow: flows[0]?.id || null,
           isLoading: false
         }));
+
+        // Fetch readiness for first flow if available
+        try {
+          if (flows[0]?.id) {
+            const r = await collectionFlowApi.getFlowReadiness(flows[0].id);
+            setReadiness({
+              flow_id: r.flow_id,
+              apps_ready_for_assessment: r.apps_ready_for_assessment,
+              phase_scores: r.phase_scores,
+              quality: r.quality
+            });
+          } else {
+            setReadiness(null);
+          }
+        } catch {
+          setReadiness(null);
+        }
       }
     } catch (error: unknown) {
       console.error('Failed to load collection flow data:', error);
@@ -493,6 +531,7 @@ export const useProgressMonitoring = (
     // State
     ...state,
     autoRefresh,
+    readiness,
 
     // Actions
     selectFlow,

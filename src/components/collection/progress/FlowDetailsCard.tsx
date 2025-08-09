@@ -29,12 +29,18 @@ export interface FlowDetailsCardProps {
   flow: CollectionFlow;
   onFlowAction: (flowId: string, action: 'pause' | 'resume' | 'stop') => Promise<void>;
   className?: string;
+  readiness?: {
+    apps_ready_for_assessment: number;
+    phase_scores: { collection: number; discovery: number };
+    quality: { collection_quality_score: number; confidence_score: number };
+  } | null;
 }
 
 export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
   flow,
   onFlowAction,
-  className = ''
+  className = '',
+  readiness
 }) => {
   const navigate = useNavigate();
 
@@ -174,6 +180,28 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
           </div>
 
           {/* Additional Status Information */}
+          {readiness && (
+            <div className="mt-2 p-3 bg-muted/30 border rounded-lg">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Apps Ready</span>
+                  <div className="font-medium">{readiness.apps_ready_for_assessment}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Collection Score</span>
+                  <div className="font-medium">{Math.round(readiness.phase_scores.collection * 100)}%</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Discovery Score</span>
+                  <div className="font-medium">{Math.round(readiness.phase_scores.discovery * 100)}%</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Quality / Confidence</span>
+                  <div className="font-medium">{readiness.quality.collection_quality_score || 0} / {readiness.quality.confidence_score || 0}</div>
+                </div>
+              </div>
+            </div>
+          )}
           {isFlowStuck && (
             <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <div className="flex items-start space-x-2">
