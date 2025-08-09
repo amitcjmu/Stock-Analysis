@@ -4,6 +4,7 @@ Objectives
 - Make the post-Discovery path unambiguous: users land in Collection Progress with a valid flow id.
 - Replace mock metrics with real data and readiness gating.
 - Enable one-click transition to Assessment when minimums are met.
+ - Clearly position the step as intelligent automation, not extra manual work.
 
 Key tasks
 1) Ensure-or-create Collection Flow API (backend)
@@ -37,6 +38,27 @@ Key tasks
 7) Indexing (DB)
    - Add indexes on assets: (client_account_id, engagement_id, assessment_readiness), discovery_status
 
+8) UX copy and indicators (frontend)
+   - Collection Progress banner: "Intelligent gap analysis in progress"; describe that AI is enriching data automatically
+   - Auto-transition toast: "AI has identified readiness for assessment"
+   - CTA labels: "Start AI-powered assessment"
+   - Progress indicators distinguish "AI analyzing gaps" vs. "manual input required" sections
+
+9) Business metrics & monitoring (backend + frontend)
+   - Track median time from Discovery completion → Assessment initialization
+   - Questionnaire completion rate and abandonment points
+   - Assessment success rate (completion without manual corrections)
+   - Operational alerts: readiness poll failures, performance degradation on readiness query, high abandonment
+
+10) Customer validation (process)
+   - Schedule 2–3 validation sessions after Phase 0; collect feedback on messaging and flow friction
+   - Feed insights into copy/threshold tweaks
+
+11) AI enablement (Phase 1, behind flags)
+   - Enable existing gap analysis and questionnaire generator agents
+   - Include confidence scores and surfaced insights in readiness response
+   - Adaptive questionnaire generation based on detected gaps
+
 Feature flags
 - FEATURES.UI.ASSESS_GATING_ENABLED
 - FEATURES.COLLECTION.WRITE_BACK_ENABLED
@@ -47,5 +69,6 @@ Success criteria
 - Readiness summary renders without 500-looping; mock metrics removed
 - From Assess Overview, “Start Assessment” initializes flow only when ready
 - Deep Assess pages never throw initialization errors
+ - Business outcomes visible: time-to-assessment < 2 days (median); questionnaire completion ≥ 80%; assessment success ≥ 95%
 
 

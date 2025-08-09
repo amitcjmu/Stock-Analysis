@@ -30,6 +30,8 @@ Proposed validator outputs (extend DataFlowValidator)
 - readiness_score: 0-100
 - phase_scores: object with discovery and collection
 - blocking_issues: list
+ - confidence_scores: number (0–1) and/or per-domain confidences
+ - ai_insights: short list of AI-generated observations driving readiness
 
 Thresholds (configurable)
 - architecture_minimums_present is true
@@ -43,5 +45,9 @@ Thresholds (configurable)
 ### UX guardrails
 - Don’t allow navigating to /assessment/{flowId}/tech-debt until assessment flow is initialized and SSE is ready.
 - On /assess/overview, show missing minimums per application with links to targeted questionnaires.
+
+### Adaptive questionnaire enablement
+- Use detected missing_fields to generate targeted questionnaires
+- Gate heavy AI generation behind a feature flag; fall back to static templates if disabled
 
 

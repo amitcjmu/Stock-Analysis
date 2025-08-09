@@ -13,11 +13,11 @@ This document maps the practical analyst journey in the current codebase and pro
    - User completes CMDB import and runs Discovery Inventory + Dependencies.
    - On “Continue”, navigation goes to `/collection/progress?flowId={discoveryMasterFlowId}` (already wired in `useDependencyNavigation`).
    - The Progress page auto-polls readiness via `GET /api/v1/collection/flows/{id}/readiness` and shows an “Assessment Readiness” summary.
-   - When thresholds pass, show a prominent “Start Assessment” button. Clicking initializes assessment with ready apps and navigates to Assess Overview.
+   - When thresholds pass, show a prominent “Start AI-powered assessment” button. Clicking initializes assessment with ready apps and navigates to Assess Overview.
 
 2) Jump-in from Assess
    - Visiting `/assess/overview` checks readiness by calling the same readiness endpoint for the active Collection flow (by engagement).
-   - If below threshold, render a banner with a link back to `/collection/progress?flowId=...` and disable deep Assess pages.
+   - If below threshold, render a banner: “Intelligent gap analysis in progress”. Provide link back to `/collection/progress?flowId=...`; disable deep Assess pages.
    - If threshold met, render an enabled “Initialize Assessment” call-to-action.
 
 3) Resume from Dashboard
@@ -29,6 +29,7 @@ This document maps the practical analyst journey in the current codebase and pro
 - Collection
   - `/collection/progress?flowId={collection_or_discovery_flow_id}`
   - Auto-refresh readiness summary and show CTA to Assessment when ready
+  - Show progress indicators that separate "AI analyzing gaps" vs. "manual input required"
 - Assess
   - `/assess/overview` (safe page, no SSE) — checks readiness and offers CTAs
   - `/assessment/initialize` (or unified action from Overview) — creates assessment flow
@@ -49,7 +50,7 @@ Backend contracts used
 3) Collection runs ADCS phases; resolved gaps write back to `Asset`, including `assessment_readiness`
 4) DataFlowValidator computes scores and returns readiness summary
 5) When threshold met, Assessment becomes enabled
-6) Initialize Assessment with ready apps → navigate to Assess Overview
+6) Initialize Assessment with ready apps → navigate to Assess Overview (toast: “AI has identified readiness for assessment”)
 
 ### Error handling and fallbacks
 - Assess deep routes must never initialize or subscribe unless `flowId` is present and valid; otherwise redirect to `/assess/overview`.
@@ -65,5 +66,6 @@ Backend contracts used
 - On `/collection/progress`, replace mock “time spent/remaining” with real timestamps from flow state; hide if unknown.
 - On `/assess/overview`, show a single Next Step: “Start Assessment” (enabled when ready) or “Complete Collection” (link back).
 - In sidebar, keep “Tech Debt” only under Assess and guard by initialized assessment flow.
+ - Copy should frame Collection as “intelligent enrichment” to reduce perceived extra work.
 
 
