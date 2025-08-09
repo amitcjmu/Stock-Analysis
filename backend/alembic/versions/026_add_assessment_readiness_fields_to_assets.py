@@ -19,34 +19,32 @@ depends_on = None
 def upgrade() -> None:
     conn = op.get_bind()
 
-    # Helper to check if column exists
+    # Determine schema; default to 'migration' per platform standard
+    schema = "migration"
+
+    # Helper to check if column exists using SQLAlchemy inspector
+    inspector = sa.inspect(conn)
+
     def _column_exists(table: str, column: str) -> bool:
-        result = conn.execute(
-            sa.text(
-                """
-                SELECT 1
-                FROM information_schema.columns
-                WHERE table_schema = 'migration'
-                  AND table_name = :table
-                  AND column_name = :column
-                """
-            ),
-            {"table": "assets", "column": column},
-        )
-        return result.fetchone() is not None
+        try:
+            cols = inspector.get_columns(table, schema=schema)
+            return any(col.get("name") == column for col in cols)
+        except Exception:
+            return False
 
     # Add columns if missing
     if not _column_exists("assets", "discovery_status"):
         op.add_column(
             "assets",
             sa.Column("discovery_status", sa.VARCHAR(length=50), nullable=True),
+            schema=schema,
         )
         op.create_index(
             op.f("ix_assets_discovery_status"),
             "assets",
             ["discovery_status"],
             unique=False,
-            schema="migration",
+            schema=schema,
         )
 
     if not _column_exists("assets", "discovery_completed_at"):
@@ -55,6 +53,7 @@ def upgrade() -> None:
             sa.Column(
                 "discovery_completed_at", sa.TIMESTAMP(timezone=True), nullable=True
             ),
+            schema=schema,
         )
 
     if not _column_exists("assets", "assessment_readiness"):
@@ -64,30 +63,37 @@ def upgrade() -> None:
                 "assessment_readiness",
                 sa.VARCHAR(length=50),
                 nullable=True,
-                server_default="not_ready",
+                server_default=sa.text("'not_ready'"),
             ),
+            schema=schema,
         )
         op.create_index(
             op.f("ix_assets_assessment_readiness"),
             "assets",
             ["assessment_readiness"],
             unique=False,
-            schema="migration",
+            schema=schema,
         )
 
     if not _column_exists("assets", "assessment_readiness_score"):
         op.add_column(
-            "assets", sa.Column("assessment_readiness_score", sa.Float(), nullable=True)
+            "assets",
+            sa.Column("assessment_readiness_score", sa.Float(), nullable=True),
+            schema=schema,
         )
 
     if not _column_exists("assets", "assessment_blockers"):
         op.add_column(
-            "assets", sa.Column("assessment_blockers", sa.JSON(), nullable=True)
+            "assets",
+            sa.Column("assessment_blockers", sa.JSON(), nullable=True),
+            schema=schema,
         )
 
     if not _column_exists("assets", "assessment_recommendations"):
         op.add_column(
-            "assets", sa.Column("assessment_recommendations", sa.JSON(), nullable=True)
+            "assets",
+            sa.Column("assessment_recommendations", sa.JSON(), nullable=True),
+            schema=schema,
         )
 
 

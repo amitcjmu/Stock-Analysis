@@ -397,12 +397,10 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
                     self.state.component_tech_debt[app_id] = component_scores
 
                     logger.info(
-                        (
-                            "✅ Identified %d components and %d tech debt items for %s",
-                            len(components),
-                            len(tech_debt_items),
-                            app_id,
-                        )
+                        "✅ Identified %d components and %d tech debt items for %s",
+                        len(components),
+                        len(tech_debt_items),
+                        app_id,
                     )
 
                 else:

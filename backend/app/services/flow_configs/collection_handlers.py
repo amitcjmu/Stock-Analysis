@@ -871,15 +871,17 @@ async def _apply_resolved_gaps_to_assets(
 
     audit_enabled = os.getenv("ENABLE_COLLECTION_AUDIT", "false").lower() == "true"
 
-    # Pull resolved gaps joined with responses
+    # Pull resolved gaps joined with responses and any asset scoping hints
     resolved_rows = await db.execute(
-        """
-        SELECT g.field_name, r.response_value
-        FROM collection_data_gaps g
-        JOIN collection_questionnaire_responses r ON g.id = r.gap_id
-        WHERE g.collection_flow_id = :flow_id
-          AND g.resolution_status = 'resolved'
-        """,
+        (
+            "SELECT g.field_name, r.response_value, "
+            "(g.metadata->>'asset_id') AS asset_id_hint, "
+            "(g.metadata->>'application_name') AS app_name_hint "
+            "FROM collection_data_gaps g "
+            "JOIN collection_questionnaire_responses r ON g.id = r.gap_id "
+            "WHERE g.collection_flow_id = :flow_id "
+            "AND g.resolution_status = 'resolved'"
+        ),
         {"flow_id": collection_flow_id},
     )
     resolved = resolved_rows.fetchall()
@@ -904,15 +906,41 @@ async def _apply_resolved_gaps_to_assets(
         "technology_stack": "technology_stack",
     }
 
-    # Fetch candidate assets for this collection flow's engagement
-    engagement_assets_rows = await db.execute(
-        select(Asset.id, Asset.client_account_id, Asset.engagement_id)
-        .where(Asset.engagement_id == context.get("engagement_id"))
-        .execution_options(populate_existing=True)
-    )
-    asset_ids = [row.id for row in engagement_assets_rows.fetchall()]
-    if not asset_ids:
-        return
+    # Determine scoped assets from hints to avoid engagement-wide updates
+    hinted_asset_ids = {
+        row.asset_id_hint for row in resolved if getattr(row, "asset_id_hint", None)
+    }
+    asset_ids: List[uuid.UUID] = []
+    if hinted_asset_ids:
+        asset_rows = await db.execute(
+            select(Asset.id)
+            .where(
+                Asset.id.in_([uuid.UUID(a) for a in hinted_asset_ids if a]),
+                Asset.engagement_id == context.get("engagement_id"),
+            )
+            .execution_options(populate_existing=True)
+        )
+        asset_ids = [r.id for r in asset_rows.fetchall()]
+    else:
+        # Fallback to application_name hints
+        app_names = {
+            row.app_name_hint for row in resolved if getattr(row, "app_name_hint", None)
+        }
+        if app_names:
+            asset_rows = await db.execute(
+                select(Asset.id)
+                .where(
+                    Asset.application_name.in_([a for a in app_names if a]),
+                    Asset.engagement_id == context.get("engagement_id"),
+                )
+                .execution_options(populate_existing=True)
+            )
+            asset_ids = [r.id for r in asset_rows.fetchall()]
+        else:
+            logger.warning(
+                "No asset/application hints present in resolved gaps; skipping write-back to avoid broad updates"
+            )
+            return
 
     # Batch update assets
     for i in range(0, len(asset_ids), BATCH_SIZE):
