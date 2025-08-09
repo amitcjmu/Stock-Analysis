@@ -361,7 +361,7 @@ export const useProgressMonitoring = (
         // Load all incomplete flows if no specific flow ID
         const incompleteFlows = await collectionFlowApi.getIncompleteFlows();
 
-        // Transform flows
+        // Transform flows (REAL data only; remove any mock generation)
         const flows: CollectionFlow[] = incompleteFlows.map(flowDetails => ({
           id: flowDetails.id,
           name: `Collection Flow - ${flowDetails.automation_tier}`,
@@ -377,7 +377,7 @@ export const useProgressMonitoring = (
           completedApplications: flowDetails.collection_metrics?.data_collected || 0
         }));
 
-        // Calculate metrics
+        // Calculate metrics from actual flows
         const metrics: CollectionMetrics = {
           totalFlows: flows.length,
           activeFlows: flows.filter(f => f.status === 'running').length,
