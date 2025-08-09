@@ -374,7 +374,25 @@ class RedisCache:
             queue_key = f"fj:queue:{client}:{engagement}"
             payload_key = f"fj:payload:{failure_id}"
 
-            # Persist payload
+            # Sanitize and persist payload (best-effort redaction)
+            try:
+                redacted_keys = {
+                    "password",
+                    "token",
+                    "api_key",
+                    "authorization",
+                    "secret",
+                    "bearer",
+                }
+                sanitized = {}
+                for k, v in (payload or {}).items():
+                    lk = str(k).lower()
+                    sanitized[k] = (
+                        "***REDACTED***" if any(x in lk for x in redacted_keys) else v
+                    )
+                payload = sanitized
+            except Exception:
+                pass
             await self.set(payload_key, payload, ttl)
 
             # Push to queue (RPUSH to preserve FIFO)
@@ -419,22 +437,56 @@ class RedisCache:
         """Claim due retries (IDs) from sorted set fj:retry, removing them atomically."""
         try:
             zkey = f"fj:retry:{client}:{engagement}"
+            ids: List[str] = []
             if self.client_type == "upstash":
-                raw = self.client.zrangebyscore(zkey, "-inf", now_epoch, count=batch)
-                ids = await raw if hasattr(raw, "__await__") else raw
-                ids = ids or []
-                if ids:
-                    rem = self.client.zrem(zkey, *ids)
-                    if hasattr(rem, "__await__"):
-                        await rem
+                # Attempt to reduce race window using a pipeline (if supported)
+                try:
+                    pipe = getattr(self.client, "pipeline", None)
+                    if callable(pipe):
+                        p = pipe()
+                        p.zrangebyscore(zkey, "-inf", now_epoch, count=batch)
+                        res = p.execute() if hasattr(p, "execute") else (await p.exec())  # type: ignore
+                        res = await res if hasattr(res, "__await__") else res
+                        ids = (res or [])[0] if isinstance(res, list) else (res or [])
+                        ids = ids or []
+                        if ids:
+                            rem = self.client.zrem(zkey, *ids)
+                            if hasattr(rem, "__await__"):
+                                await rem
+                    else:
+                        raw = self.client.zrangebyscore(
+                            zkey, "-inf", now_epoch, count=batch
+                        )
+                        ids = await raw if hasattr(raw, "__await__") else raw
+                        ids = ids or []
+                        if ids:
+                            rem = self.client.zrem(zkey, *ids)
+                            if hasattr(rem, "__await__"):
+                                await rem
+                except Exception:
+                    ids = []
             else:
-                ids = await self.client.zrangebyscore(
-                    zkey, "-inf", now_epoch, start=0, num=batch
+                # Atomic fetch-and-remove via Lua script
+                script = (
+                    "local key = KEYS[1] "
+                    "local max = ARGV[1] "
+                    "local cnt = tonumber(ARGV[2]) "
+                    "local ids = redis.call('ZRANGEBYSCORE', key, '-inf', max, 'LIMIT', 0, cnt) "
+                    "if #ids > 0 then redis.call('ZREM', key, unpack(ids)) end "
+                    "return ids"
                 )
-                ids = ids or []
-                if ids:
-                    await self.client.zrem(zkey, *ids)
-            return ids
+                try:
+                    eval_res = await self.client.eval(script, 1, zkey, now_epoch, batch)
+                    ids = list(eval_res or [])
+                except Exception:
+                    # Fallback to non-atomic sequence if eval unsupported
+                    ids = await self.client.zrangebyscore(
+                        zkey, "-inf", now_epoch, start=0, num=batch
+                    )
+                    ids = ids or []
+                    if ids:
+                        await self.client.zrem(zkey, *ids)
+            return ids or []
         except Exception as e:
             logger.error(f"Redis claim_due error: {e}")
             return []

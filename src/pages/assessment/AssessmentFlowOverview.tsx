@@ -96,13 +96,18 @@ const AssessmentFlowOverview = (): JSX.Element => {
 
   // Fetch list of application asset IDs that are assessment-ready
   const { data: assessmentReadyAssets = [] } = useQuery<{ id: string }[]>({
-    queryKey: ['assets-assessment-ready'],
+    queryKey: ['assets-assessment-ready', collectionFlowId],
     enabled: !!collectionFlowId,
     queryFn: async () => {
       const headers = getAuthHeaders();
       const res = await apiCall('/assets/workflow/by-phase/assessment_ready', { method: 'GET', headers });
       const items = Array.isArray(res) ? res : [];
-      return items.map((a: any) => ({ id: a.id || a.asset_id || a.asset?.id })).filter((x: any) => x?.id || x);
+      return items
+        .map((a: any) => {
+          const id = a?.id ?? a?.asset_id ?? a?.asset?.id;
+          return id ? { id: String(id) } : null;
+        })
+        .filter((x): x is { id: string } => !!x && !!x.id);
     }
   });
 
@@ -168,12 +173,16 @@ const AssessmentFlowOverview = (): JSX.Element => {
       try {
         await apiCall('/monitoring/business/ux-event', {
           method: 'POST',
+          headers,
           body: JSON.stringify({ event: 'assessment_started', ready_apps: readyAppIds.length, source: 'assessment_overview' })
         });
       } catch {}
-      if (result?.flow_id) {
+      const flowId = result?.flow_id;
+      if (flowId) {
         toast({ title: 'Assessment initialized', description: `${readyAppIds.length} applications included.` });
-        navigate(`/assessment/${result.flow_id}/architecture`);
+        navigate(`/assessment/${flowId}/architecture`);
+      } else {
+        toast({ title: 'Initialization incomplete', description: 'No flow id was returned. Please retry shortly.', variant: 'destructive' });
       }
     } catch (e) {
       toast({ title: 'Failed to start assessment', description: 'Please try again after completing collection.', variant: 'destructive' });

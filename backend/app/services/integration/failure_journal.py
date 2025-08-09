@@ -53,25 +53,45 @@ async def log_failure(
         table = sa.Table(
             "failure_journal",
             sa.MetaData(schema=schema),
-            sa.Column("id", sa.dialects.postgresql.UUID(as_uuid=True)),
-            sa.Column("client_account_id", sa.dialects.postgresql.UUID(as_uuid=True)),
-            sa.Column("engagement_id", sa.dialects.postgresql.UUID(as_uuid=True)),
-            sa.Column("source", sa.String(64)),
-            sa.Column("operation", sa.String(128)),
-            sa.Column("payload", sa.dialects.postgresql.JSONB),
-            sa.Column("error_message", sa.Text()),
-            sa.Column("trace", sa.Text()),
+            sa.Column(
+                "id", sa.dialects.postgresql.UUID(as_uuid=True), primary_key=True
+            ),
+            sa.Column(
+                "client_account_id",
+                sa.dialects.postgresql.UUID(as_uuid=True),
+                nullable=False,
+            ),
+            sa.Column(
+                "engagement_id",
+                sa.dialects.postgresql.UUID(as_uuid=True),
+                nullable=False,
+            ),
+            sa.Column("source", sa.String(64), nullable=False),
+            sa.Column("operation", sa.String(128), nullable=False),
+            sa.Column("payload", sa.dialects.postgresql.JSONB, nullable=True),
+            sa.Column("error_message", sa.Text(), nullable=True),
+            sa.Column("trace", sa.Text(), nullable=True),
         )
 
         insert_stmt = sa.insert(table).values(
-            id=str(uuid.uuid4()),
-            client_account_id=str(client_account_id) if client_account_id else None,
-            engagement_id=str(engagement_id) if engagement_id else None,
+            id=uuid.uuid4(),
+            client_account_id=(
+                uuid.UUID(str(client_account_id)) if client_account_id else None
+            ),
+            engagement_id=uuid.UUID(str(engagement_id)) if engagement_id else None,
             source=source,
             operation=operation,
             payload=(payload or {}),
             error_message=error_message,
-            trace=trace or traceback.format_exc(),
+            trace=(
+                trace
+                if trace is not None
+                else (
+                    traceback.format_exc()
+                    if traceback.format_exc() != "NoneType: None\n"
+                    else None
+                )
+            ),
         )
 
         await db.execute(insert_stmt)
