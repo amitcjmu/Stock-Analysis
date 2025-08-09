@@ -1,7 +1,8 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
-import { useParams } from 'react-router-dom';
+import { useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ArchitectureStandardsForm } from '@/components/assessment/ArchitectureStandardsForm';
@@ -19,11 +20,19 @@ const ArchitecturePage: React.FC = () => {
     updateArchitectureStandards,
     resumeFlow
   } = useAssessmentFlow(flowId);
+  const navigate = useNavigate();
 
   const [standards, setStandards] = useState(state.engagementStandards);
   const [overrides, setOverrides] = useState(state.applicationOverrides);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
+
+  // Guard: redirect to overview if flowId missing
+  useEffect(() => {
+    if (!flowId) {
+      navigate('/assess/overview', { replace: true });
+    }
+  }, [flowId, navigate]);
 
   // Update local state when flow state changes
   useEffect(() => {

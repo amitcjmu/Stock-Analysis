@@ -145,33 +145,22 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
     }
   };
 
-  const handleInitialize = async (): void => {
+  const handleInitialize = async (): Promise<void> => {
     if (selectedApps.length === 0) return;
 
     setInitializing(true);
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/assessment-flow/initialize', {
+      const headers = getAuthHeaders();
+      const result = await apiCall('/assessment-flow/initialize', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'X-Client-Account-ID': '55f4a7eb-de00-de00-de00-888ed4f8e05d',
-          'X-Engagement-ID': '59e0e675-de00-de00-de00-29245dcbc79f'
-        },
+        headers,
         body: JSON.stringify({
           selected_application_ids: selectedApps,
           architecture_captured: false
         })
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to initialize assessment flow: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.log('Assessment flow initialized:', result);
 
       // Navigate to the initialized flow
       if (result.flow_id) {

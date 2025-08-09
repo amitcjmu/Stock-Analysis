@@ -1,4 +1,5 @@
 import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Filter } from 'lucide-react'
@@ -17,6 +18,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/components/ui/use-toast';
+import { collectionFlowApi } from '@/services/api/collection-flow';
 
 interface AssessmentFlow {
   id: string;
@@ -36,73 +39,88 @@ interface AssessmentFlowMetrics {
   total_applications_assessed: number;
 }
 
+const READINESS_THRESHOLD = 0.7;
+
 const AssessmentFlowOverview = (): JSX.Element => {
   const navigate = useNavigate();
   const { getAuthHeaders } = useAuth();
+  const { toast } = useToast();
 
-  // Fetch assessment flow metrics
-  const { data: metrics, isLoading: metricsLoading } = useQuery<AssessmentFlowMetrics>({
-    queryKey: ['assessment-flow-metrics'],
+  const [collectionFlowId, setCollectionFlowId] = useState<string | null>(null);
+  const [isEnsuringFlow, setIsEnsuringFlow] = useState<boolean>(true);
+  const [isInitializingAssessment, setIsInitializingAssessment] = useState<boolean>(false);
+  const [readyAppIds, setReadyAppIds] = useState<string[]>([]);
+  const [readiness, setReadiness] = useState<{
+    apps_ready_for_assessment: number;
+    phase_scores: { collection: number; discovery: number };
+  } | null>(null);
+  const readinessPasses = useMemo(() => {
+    if (!readiness) return false;
+    const c = readiness.phase_scores?.collection ?? 0;
+    const d = readiness.phase_scores?.discovery ?? 0;
+    return c >= READINESS_THRESHOLD && d >= READINESS_THRESHOLD && (readiness.apps_ready_for_assessment || 0) > 0;
+  }, [readiness]);
+
+  // Ensure-or-create a Collection flow on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const ensured = await collectionFlowApi.ensureFlow();
+        if (ensured?.id) {
+          setCollectionFlowId(ensured.id);
+        }
+      } catch (e) {
+        // Non-fatal; user can still navigate manually
+        console.warn('Failed to ensure collection flow', e);
+      } finally {
+        setIsEnsuringFlow(false);
+      }
+    })();
+  }, []);
+
+  // Fetch readiness for the ensured collection flow
+  useEffect(() => {
+    if (!collectionFlowId) return;
+    (async () => {
+      try {
+        const r = await collectionFlowApi.getFlowReadiness(collectionFlowId);
+        setReadiness({
+          apps_ready_for_assessment: r.apps_ready_for_assessment || 0,
+          phase_scores: r.phase_scores || { collection: 0, discovery: 0 },
+        });
+      } catch (e) {
+        setReadiness(null);
+      }
+    })();
+  }, [collectionFlowId]);
+
+  // Fetch list of application asset IDs that are assessment-ready
+  const { data: assessmentReadyAssets = [] } = useQuery<{ id: string }[]>({
+    queryKey: ['assets-assessment-ready'],
+    enabled: !!collectionFlowId,
     queryFn: async () => {
       const headers = getAuthHeaders();
-      // Mock data for now - would be replaced with actual API
-      return {
-        total_flows: 5,
-        active_flows: 2,
-        completed_flows: 3,
-        total_applications_assessed: 47
-      };
+      const res = await apiCall('/assets/workflow/by-phase/assessment_ready', { method: 'GET', headers });
+      const items = Array.isArray(res) ? res : [];
+      return items.map((a: any) => ({ id: a.id || a.asset_id || a.asset?.id })).filter((x: any) => x?.id || x);
     }
   });
 
-  // Fetch assessment flows
+  useEffect(() => {
+    const ids = assessmentReadyAssets.map((a: any) => a.id || a);
+    setReadyAppIds(ids);
+  }, [assessmentReadyAssets]);
+
+  // Metrics placeholder (no mocks). Keep minimal non-blocking UI.
+  const { data: metrics, isLoading: metricsLoading } = useQuery<AssessmentFlowMetrics>({
+    queryKey: ['assessment-flow-metrics'],
+    queryFn: async () => ({ total_flows: 0, active_flows: 0, completed_flows: 0, total_applications_assessed: 0 })
+  });
+
+  // Flows list placeholder (no mocks for now)
   const { data: flows = [], isLoading: flowsLoading } = useQuery<AssessmentFlow[]>({
     queryKey: ['assessment-flows'],
-    queryFn: async () => {
-      const headers = getAuthHeaders();
-      try {
-        // This would be the actual API call
-        // const response = await apiCall('assessment-flow/list', { headers });
-        // return response.flows;
-
-        // Mock data for demonstration
-        return [
-          {
-            id: 'flow-001',
-            status: 'processing',
-            current_phase: 'tech_debt_analysis',
-            progress: 65,
-            selected_applications: 12,
-            created_at: '2024-01-15T10:30:00Z',
-            updated_at: '2024-01-15T14:22:00Z',
-            created_by: 'john.doe@company.com'
-          },
-          {
-            id: 'flow-002',
-            status: 'paused_for_user_input',
-            current_phase: 'architecture_minimums',
-            progress: 25,
-            selected_applications: 8,
-            created_at: '2024-01-14T09:15:00Z',
-            updated_at: '2024-01-14T16:45:00Z',
-            created_by: 'jane.smith@company.com'
-          },
-          {
-            id: 'flow-003',
-            status: 'completed',
-            current_phase: 'finalization',
-            progress: 100,
-            selected_applications: 15,
-            created_at: '2024-01-12T08:00:00Z',
-            updated_at: '2024-01-13T17:30:00Z',
-            created_by: 'mike.wilson@company.com'
-          }
-        ] as AssessmentFlow[];
-      } catch (error) {
-        console.error('Failed to fetch assessment flows:', error);
-        return [];
-      }
-    }
+    queryFn: async () => []
   });
 
   const getStatusIcon = (status: string): JSX.Element => {
@@ -136,6 +154,36 @@ const AssessmentFlowOverview = (): JSX.Element => {
     );
   };
 
+  const handleStartAssessment = async (): Promise<void> => {
+    if (!readyAppIds.length) return;
+    setIsInitializingAssessment(true);
+    try {
+      const headers = getAuthHeaders();
+      const result = await apiCall('/assessment-flow/initialize', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ selected_application_ids: readyAppIds })
+      });
+      // Fire-and-forget UX metric event (basic scaffolding)
+      try {
+        await apiCall('/monitoring/business/ux-event', {
+          method: 'POST',
+          body: JSON.stringify({ event: 'assessment_started', ready_apps: readyAppIds.length, source: 'assessment_overview' })
+        });
+      } catch {}
+      if (result?.flow_id) {
+        toast({ title: 'Assessment initialized', description: `${readyAppIds.length} applications included.` });
+        navigate(`/assessment/${result.flow_id}/architecture`);
+      }
+    } catch (e) {
+      toast({ title: 'Failed to start assessment', description: 'Please try again after completing collection.', variant: 'destructive' });
+    } finally {
+      setIsInitializingAssessment(false);
+    }
+  };
+
+  const showNotReadyBanner = !isEnsuringFlow && collectionFlowId && !readinessPasses;
+
   const formatPhase = (phase: string): unknown => {
     return phase.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
@@ -167,7 +215,7 @@ const AssessmentFlowOverview = (): JSX.Element => {
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Assessment Flows</h1>
                 <p className="text-gray-600">
-                  AI-powered application assessment flows and management
+                  Start AI-powered assessment when data readiness is confirmed
                 </p>
               </div>
             </div>
@@ -176,12 +224,36 @@ const AssessmentFlowOverview = (): JSX.Element => {
                 <Filter className="h-4 w-4 mr-2" />
                 Filter
               </Button>
-              <Button onClick={() => navigate('/assessment/initialize')}>
+              <Button
+                onClick={handleStartAssessment}
+                disabled={!readinessPasses || isInitializingAssessment}
+                title={!readinessPasses ? 'Complete intelligent data enrichment first' : 'Start AI-powered assessment'}
+              >
                 <Plus className="h-4 w-4 mr-2" />
-                New Assessment Flow
+                Start AI-powered Assessment
               </Button>
             </div>
           </div>
+
+          {showNotReadyBanner && (
+            <div className="mb-6 p-4 rounded-md border bg-muted/30">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-amber-800">Intelligent gap analysis in progress</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Our AI is enriching your inventory. You can monitor progress and provide any required inputs on the Collection Progress page.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/collection/progress?flowId=${collectionFlowId}`)}
+                >
+                  View Collection Progress
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
             <div className="xl:col-span-3 space-y-6">
@@ -276,11 +348,11 @@ const AssessmentFlowOverview = (): JSX.Element => {
                       <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-2">No Assessment Flows</h3>
                       <p className="text-gray-600 mb-4">
-                        Start a new assessment flow to begin AI-powered application analysis.
+                        Ensure Collection completes enrichment. When ready, click Start AI-powered Assessment.
                       </p>
-                      <Button onClick={() => navigate('/assessment/initialize')}>
+                      <Button onClick={handleStartAssessment} disabled={!readinessPasses || isInitializingAssessment}>
                         <Plus className="h-4 w-4 mr-2" />
-                        Start New Assessment Flow
+                        Start AI-powered Assessment
                       </Button>
                     </div>
                   ) : (

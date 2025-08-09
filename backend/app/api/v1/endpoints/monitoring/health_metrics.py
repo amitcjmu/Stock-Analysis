@@ -4,7 +4,7 @@ Health and metrics monitoring endpoints.
 Provides system health checks and performance metrics for monitoring and optimization.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 
 from app.api.v1.dependencies import get_crewai_flow_service
 from app.core.logging import get_logger as enhanced_get_logger
@@ -106,6 +106,12 @@ async def get_performance_metrics():
         registry_status = agent_registry.get_registry_status()
 
         # Calculate basic metrics
+        utilization_agents = len(
+            set(task["agent"] for task in status_report.get("active_task_details", []))
+        )
+        active_agents = max(registry_status.get("active_agents", 0), 1)
+        agent_utilization = f"{(utilization_agents / active_agents) * 100:.1f}%"
+
         metrics = {
             "task_metrics": {
                 "total_active": status_report["active_tasks"],
@@ -122,10 +128,8 @@ async def get_performance_metrics():
                     "cross_page_communication_agents"
                 ],
                 "modular_handlers": registry_status["modular_handler_agents"],
-                "agents_busy": len(
-                    set(task["agent"] for task in status_report["active_task_details"])
-                ),
-                "agent_utilization": f"{(len(set(task['agent'] for task in status_report['active_task_details'])) / max(registry_status['active_agents'], 1)) * 100:.1f}%",
+                "agents_busy": utilization_agents,
+                "agent_utilization": agent_utilization,
             },
             "phase_metrics": registry_status["phase_distribution"],
             "system_metrics": {
@@ -152,3 +156,15 @@ async def get_performance_metrics():
         raise HTTPException(
             status_code=500, detail=f"Failed to get performance metrics: {str(e)}"
         )
+
+
+@router.post("/business/ux-event")
+async def record_ux_event(payload: dict = Body(default={})):
+    """Lightweight UX event ingest for business metrics scaffolding."""
+    try:
+        event = payload.get("event", "unknown")
+        logger.info(f"UX EVENT: {event}", extra={"payload": payload})
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"Failed to record UX event: {e}")
+        raise HTTPException(status_code=500, detail="Failed to record UX event")
