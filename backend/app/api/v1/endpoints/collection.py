@@ -44,6 +44,7 @@ from app.schemas.collection_flow import (
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.services.integration.data_flow_validator import DataFlowValidator
 from uuid import UUID
+from app.services.integration.failure_journal import log_failure
 
 logger = logging.getLogger(__name__)
 
@@ -641,10 +642,33 @@ async def get_collection_readiness(
                     [i for i in validation.issues if i.severity.value == "info"]
                 ),
             }
+            # Extended readiness details
+            readiness = {
+                "architecture_minimums_present": validation.summary.get(
+                    "architecture_minimums_present", False
+                ),
+                "missing_fields": validation.summary.get("missing_fields", []),
+                "readiness_score": validation.summary.get("readiness_score", 0.0),
+            }
         except Exception as e:  # validator is best-effort
             logger.warning(f"Validator unavailable for readiness: {e}")
             phase_scores = {"collection": 0.0, "discovery": 0.0}
             issues = {"total": 0, "critical": 0, "warning": 0, "info": 0}
+            readiness = {
+                "architecture_minimums_present": False,
+                "missing_fields": [],
+                "readiness_score": 0.0,
+            }
+            # Log to failure journal (best-effort)
+            await log_failure(
+                db,
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+                source="collection_readiness",
+                operation="validator",
+                payload={"flow_id": flow_id},
+                error_message=str(e),
+            )
 
         return {
             "flow_id": flow_id,
@@ -657,6 +681,7 @@ async def get_collection_readiness(
             },
             "phase_scores": phase_scores,
             "issues": issues,
+            "readiness": readiness,
             "updated_at": collection_flow.updated_at,
         }
 

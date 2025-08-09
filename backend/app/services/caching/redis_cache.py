@@ -358,6 +358,98 @@ class RedisCache:
         key = f"import:sample:{import_id}"
         return await self.get_secure(key)
 
+    # Failure Journal / DLQ helpers
+    @redis_fallback
+    async def enqueue_failure(
+        self, payload: Dict[str, Any], *, ttl: int = 7 * 24 * 3600
+    ) -> bool:
+        """Enqueue a failure payload to Redis for retry processing.
+        Stores payload under fj:payload:{id} and pushes id to fj:queue:{client}:{engagement}.
+        """
+        try:
+            failure_id = payload.get("id") or str(uuid.uuid4())
+            payload["id"] = failure_id
+            client = payload.get("client_account_id") or "-"
+            engagement = payload.get("engagement_id") or "-"
+            queue_key = f"fj:queue:{client}:{engagement}"
+            payload_key = f"fj:payload:{failure_id}"
+
+            # Persist payload
+            await self.set(payload_key, payload, ttl)
+
+            # Push to queue (RPUSH to preserve FIFO)
+            if self.client_type == "upstash":
+                self.client.rpush(queue_key, failure_id)
+            else:
+                await self.client.rpush(queue_key, failure_id)
+            return True
+        except Exception as e:
+            logger.error(f"Redis enqueue_failure error: {e}")
+            return False
+
+    @redis_fallback
+    async def schedule_retry(
+        self,
+        failure_id: str,
+        when_epoch: int,
+        *,
+        client: str = "-",
+        engagement: str = "-",
+    ) -> bool:
+        """Schedule a retry by adding the failure id to a sorted set with score=when."""
+        try:
+            zkey = f"fj:retry:{client}:{engagement}"
+            if self.client_type == "upstash":
+                self.client.zadd(zkey, {failure_id: when_epoch})
+            else:
+                await self.client.zadd(zkey, {failure_id: when_epoch})
+            return True
+        except Exception as e:
+            logger.error(f"Redis schedule_retry error: {e}")
+            return False
+
+    @redis_fallback
+    async def claim_due(
+        self, client: str, engagement: str, now_epoch: int, batch: int = 50
+    ) -> List[str]:
+        """Claim due retries (IDs) from sorted set fj:retry, removing them atomically."""
+        try:
+            zkey = f"fj:retry:{client}:{engagement}"
+            if self.client_type == "upstash":
+                ids = self.client.zrangebyscore(zkey, "-inf", now_epoch, count=batch)
+                if ids:
+                    for fid in ids:
+                        self.client.zrem(zkey, fid)
+            else:
+                ids = await self.client.zrangebyscore(
+                    zkey, "-inf", now_epoch, start=0, num=batch
+                )
+                if ids:
+                    await self.client.zrem(zkey, *ids)
+            return ids or []
+        except Exception as e:
+            logger.error(f"Redis claim_due error: {e}")
+            return []
+
+    @redis_fallback
+    async def ack_failure(
+        self, failure_id: str, *, client: str = "-", engagement: str = "-"
+    ) -> bool:
+        """Acknowledge a processed failure: remove payload and any queue occurrences."""
+        try:
+            payload_key = f"fj:payload:{failure_id}"
+            await self.delete(payload_key)
+            # Best-effort removal from queue if present
+            qkey = f"fj:queue:{client}:{engagement}"
+            if self.client_type == "upstash":
+                return True
+            else:
+                await self.client.lrem(qkey, 0, failure_id)
+            return True
+        except Exception as e:
+            logger.error(f"Redis ack_failure error: {e}")
+            return False
+
     # Pattern Learning Cache
     @redis_fallback
     async def cache_mapping_pattern(
