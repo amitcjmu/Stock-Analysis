@@ -76,6 +76,7 @@ export const useFileUpload = (): JSX.Element => {
           ...(effectiveClient?.id && { 'X-Client-Account-ID': effectiveClient.id }),
           ...(effectiveEngagement?.id && { 'X-Engagement-ID': effectiveEngagement.id })
         },
+        timeout: null, // allow long-running server-side processing without client abort
         body: JSON.stringify({
           file_data: csvData,
           metadata: {
