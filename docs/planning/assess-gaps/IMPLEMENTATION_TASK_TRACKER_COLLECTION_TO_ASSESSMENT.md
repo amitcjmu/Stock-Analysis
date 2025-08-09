@@ -220,7 +220,7 @@ Status board (current)
 - C2: Done (auto-init/resume Collection when gated)
 - D1: Done (ready-app loader)
 - D2: Deferred
-- E1: Pending
+ - E1: In Progress (new GET /collection/flows/{flow_id}/readiness endpoint)
 - F1: Pending (minimal UX routing/messaging)
 - F2: Pending (progress indicators)
 - G1: Done

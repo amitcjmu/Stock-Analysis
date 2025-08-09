@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
@@ -29,6 +29,7 @@ from app.models.collection_flow import (
     CollectionGapAnalysis,
     CollectionPhase,
 )
+from app.models.asset import Asset
 
 # from app.services.flow_state_service import FlowStateService
 from app.schemas.collection_flow import (
@@ -41,6 +42,7 @@ from app.schemas.collection_flow import (
 
 # from app.services.workflow_orchestration.collection_phase_engine import CollectionPhaseEngine
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+from app.services.integration.data_flow_validator import DataFlowValidator
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +101,9 @@ async def create_collection_flow(
     require_role(current_user, COLLECTION_CREATE_ROLES, "create collection flows")
 
     logger.info(
-        f"🚀 Creating collection flow - automation_tier: {flow_data.automation_tier}, config: {flow_data.collection_config}"
+        "🚀 Creating collection flow - automation_tier: %s, config keys: %s",
+        flow_data.automation_tier,
+        list((flow_data.collection_config or {}).keys()),
     )
     try:
         # Check for existing active flow
@@ -145,7 +149,10 @@ async def create_collection_flow(
                 else:
                     raise HTTPException(
                         status_code=400,
-                        detail="An active collection flow is being initialized. Please wait or use the flow management UI to cancel it.",
+                        detail=(
+                            "An active collection flow is being initialized. "
+                            "Please wait or use the flow management UI to cancel it."
+                        ),
                     )
             else:
                 raise HTTPException(
@@ -193,7 +200,10 @@ async def create_collection_flow(
         await db.refresh(collection_flow)
 
         logger.info(
-            f"Created collection flow {collection_flow.id} linked to master flow {master_flow_id} for engagement {context.engagement_id} - automatic execution started"
+            "Created collection flow %s linked to master flow %s for engagement %s - execution started",
+            collection_flow.id,
+            master_flow_id,
+            context.engagement_id,
         )
 
         return CollectionFlowResponse(
@@ -499,6 +509,86 @@ async def submit_questionnaire_response(
     except Exception as e:
         logger.error(f"Error submitting questionnaire response: {e}")
         await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/flows/{flow_id}/readiness")
+async def get_collection_readiness(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Read-only readiness and quality summary for a collection flow.
+
+    Returns engagement-scoped readiness counts and validator phase scores for
+    collection→discovery, plus quality/confidence stored on the flow.
+    """
+    try:
+        # Verify flow belongs to engagement
+        result = await db.execute(
+            select(CollectionFlow).where(
+                CollectionFlow.id == uuid.UUID(flow_id),
+                CollectionFlow.engagement_id == context.engagement_id,
+            )
+        )
+        collection_flow = result.scalar_one_or_none()
+        if not collection_flow:
+            raise HTTPException(status_code=404, detail="Collection flow not found")
+
+        # Count assessment-ready assets for engagement
+        ready_count_row = await db.execute(
+            select(func.count(Asset.id)).where(
+                Asset.client_account_id == context.client_account_id,
+                Asset.engagement_id == context.engagement_id,
+                Asset.assessment_readiness == "ready",
+            )
+        )
+        apps_ready = int(ready_count_row.scalar() or 0)
+
+        # Run validator for collection/discovery phases
+        try:
+            validator = DataFlowValidator()
+            validation = await validator.validate_end_to_end_data_flow(
+                engagement_id=context.engagement_id,
+                validation_scope={"collection", "discovery"},
+            )
+            phase_scores = validation.phase_scores
+            issues = {
+                "total": len(validation.issues),
+                "critical": len(
+                    [i for i in validation.issues if i.severity.value == "critical"]
+                ),
+                "warning": len(
+                    [i for i in validation.issues if i.severity.value == "warning"]
+                ),
+                "info": len(
+                    [i for i in validation.issues if i.severity.value == "info"]
+                ),
+            }
+        except Exception as e:  # validator is best-effort
+            logger.warning(f"Validator unavailable for readiness: {e}")
+            phase_scores = {"collection": 0.0, "discovery": 0.0}
+            issues = {"total": 0, "critical": 0, "warning": 0, "info": 0}
+
+        return {
+            "flow_id": flow_id,
+            "engagement_id": str(context.engagement_id),
+            "apps_ready_for_assessment": apps_ready,
+            "quality": {
+                "collection_quality_score": collection_flow.collection_quality_score
+                or 0.0,
+                "confidence_score": collection_flow.confidence_score or 0.0,
+            },
+            "phase_scores": phase_scores,
+            "issues": issues,
+            "updated_at": collection_flow.updated_at,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting collection readiness: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
