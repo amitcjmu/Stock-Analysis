@@ -142,6 +142,10 @@ class CollectionFlowApi {
     });
   }
 
+  async ensureFlow(): Promise<CollectionFlowResponse> {
+    return await apiCall(`${this.baseUrl}/flows/ensure`, { method: 'POST' });
+  }
+
   async getFlowDetails(flowId: string): Promise<CollectionFlowResponse> {
     return await apiCall(`${this.baseUrl}/flows/${flowId}`, { method: 'GET' });
   }

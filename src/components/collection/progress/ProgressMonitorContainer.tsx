@@ -107,12 +107,16 @@ export const ProgressMonitorContainer: React.FC<ProgressMonitorContainerProps> =
                 totalSections={getFlowMilestones(selectedFlowData).length}
                 completedSections={getFlowMilestones(selectedFlowData).filter(m => m.achieved).length}
                 overallCompletion={selectedFlowData.progress}
-                confidenceScore={85}
+                confidenceScore={Math.round((readiness?.quality?.confidence_score || 0) * 100)}
                 milestones={getFlowMilestones(selectedFlowData)}
-                timeSpent={Date.now() - new Date(selectedFlowData.startedAt).getTime()}
+                timeSpent={
+                  selectedFlowData.startedAt
+                    ? Math.max(0, Date.now() - new Date(selectedFlowData.startedAt).getTime())
+                    : 0
+                }
                 estimatedTimeRemaining={
                   selectedFlowData.estimatedCompletion
-                    ? new Date(selectedFlowData.estimatedCompletion).getTime() - Date.now()
+                    ? Math.max(0, new Date(selectedFlowData.estimatedCompletion).getTime() - Date.now())
                     : 0
                 }
               />

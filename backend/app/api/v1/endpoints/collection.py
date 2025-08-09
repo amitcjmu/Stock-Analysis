@@ -50,6 +50,67 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+@router.post("/flows/ensure", response_model=CollectionFlowResponse)
+async def ensure_collection_flow(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> CollectionFlowResponse:
+    """Return an active Collection flow for the engagement, or create one via MFO.
+
+    This enables seamless navigation from Discovery to Collection without users
+    needing to manually start a flow. It reuses any non-completed flow; if none
+    exist, it creates a new one and returns it immediately.
+    """
+    require_role(current_user, COLLECTION_CREATE_ROLES, "ensure collection flows")
+
+    try:
+        # Try to find an active collection flow for this engagement
+        result = await db.execute(
+            select(CollectionFlow)
+            .where(
+                CollectionFlow.engagement_id == context.engagement_id,
+                CollectionFlow.status.notin_(
+                    [
+                        CollectionFlowStatus.COMPLETED.value,
+                        CollectionFlowStatus.CANCELLED.value,
+                    ]
+                ),
+            )
+            .order_by(CollectionFlow.created_at.desc())
+        )
+        existing = result.scalar_one_or_none()
+
+        if existing:
+            return CollectionFlowResponse(
+                id=str(existing.id),
+                client_account_id=str(existing.client_account_id),
+                engagement_id=str(existing.engagement_id),
+                status=existing.status,
+                automation_tier=existing.automation_tier,
+                current_phase=existing.current_phase,
+                progress=existing.progress_percentage or 0,
+                collection_config=existing.collection_config,
+                created_at=existing.created_at,
+                updated_at=existing.updated_at,
+                completed_at=existing.completed_at,
+            )
+
+        # Otherwise, create a new one (delegates to existing create logic)
+        return await create_collection_flow(
+            flow_data=CollectionFlowCreate(automation_tier=AutomationTier.TIER_2.value),
+            db=db,
+            current_user=current_user,
+            context=context,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error ensuring collection flow: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/status", response_model=Dict[str, Any])
 async def get_collection_status(
     db: AsyncSession = Depends(get_db),
@@ -546,15 +607,19 @@ async def get_collection_readiness(
                 status_code=400, detail="Invalid tenant identifiers in context"
             )
 
-        # Count assessment-ready assets for engagement
-        ready_count_row = await db.execute(
-            select(func.count(Asset.id)).where(
-                Asset.client_account_id == client_uuid,
-                Asset.engagement_id == engagement_uuid,
-                Asset.assessment_readiness == "ready",
+        # Count assessment-ready assets for engagement (best-effort)
+        try:
+            ready_count_row = await db.execute(
+                select(func.count(Asset.id)).where(
+                    Asset.client_account_id == client_uuid,
+                    Asset.engagement_id == engagement_uuid,
+                    Asset.assessment_readiness == "ready",
+                )
             )
-        )
-        apps_ready = int(ready_count_row.scalar() or 0)
+            apps_ready = int(ready_count_row.scalar() or 0)
+        except Exception as e:
+            logger.warning(f"Readiness count unavailable: {e}")
+            apps_ready = 0
 
         # Run validator for collection/discovery phases
         try:

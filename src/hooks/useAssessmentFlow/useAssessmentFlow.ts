@@ -54,6 +54,53 @@ export const useAssessmentFlow = (
     agentUpdates: []
   });
 
+  // Subscribe to real-time updates
+  const subscribeToUpdates = useCallback(() => {
+    if (!state.flowId || eventSourceRef.current) {
+      return;
+    }
+
+    try {
+      const eventSource = eventSourceService.subscribe(
+        `/api/v1/assessment-flow/${state.flowId}/events`,
+        {
+          onMessage: (event) => {
+            const data = JSON.parse(event.data);
+
+            setState(prev => ({
+              ...prev,
+              status: data.status || prev.status,
+              progress: data.progress || prev.progress,
+              currentPhase: data.current_phase || prev.currentPhase,
+              nextPhase: data.next_phase || prev.nextPhase,
+              agentUpdates: [
+                ...prev.agentUpdates,
+                {
+                  timestamp: new Date(),
+                  phase: data.phase || prev.currentPhase,
+                  message: data.message || 'Processing...',
+                  progress: data.progress
+                }
+              ].slice(-20)
+            }));
+          },
+          onError: (error) => {
+            console.error('Assessment flow SSE error:', error);
+            setState(prev => ({
+              ...prev,
+              error: 'Real-time updates disconnected'
+            }));
+          }
+        }
+      );
+
+      eventSourceRef.current = eventSource;
+
+    } catch (error) {
+      console.error('Failed to subscribe to updates:', error);
+    }
+  }, [state.flowId]);
+
   // Initialize assessment flow
   const initializeFlow = useCallback(async (selectedAppIds: string[]) => {
     if (!clientAccountId || !engagementId) {
@@ -290,52 +337,6 @@ export const useAssessmentFlow = (
     }
   }, [state.flowId]);
 
-  // Subscribe to real-time updates
-  const subscribeToUpdates = useCallback(() => {
-    if (!state.flowId || eventSourceRef.current) {
-      return;
-    }
-
-    try {
-      const eventSource = eventSourceService.subscribe(
-        `/api/v1/assessment-flow/${state.flowId}/events`,
-        {
-          onMessage: (event) => {
-            const data = JSON.parse(event.data);
-
-            setState(prev => ({
-              ...prev,
-              status: data.status || prev.status,
-              progress: data.progress || prev.progress,
-              currentPhase: data.current_phase || prev.currentPhase,
-              nextPhase: data.next_phase || prev.nextPhase,
-              agentUpdates: [
-                ...prev.agentUpdates,
-                {
-                  timestamp: new Date(),
-                  phase: data.phase || prev.currentPhase,
-                  message: data.message || 'Processing...',
-                  progress: data.progress
-                }
-              ].slice(-20) // Keep last 20 updates
-            }));
-          },
-          onError: (error) => {
-            console.error('Assessment flow SSE error:', error);
-            setState(prev => ({
-              ...prev,
-              error: 'Real-time updates disconnected'
-            }));
-          }
-        }
-      );
-
-      eventSourceRef.current = eventSource;
-
-    } catch (error) {
-      console.error('Failed to subscribe to updates:', error);
-    }
-  }, [state.flowId]);
 
   // Unsubscribe from updates
   const unsubscribeFromUpdates = useCallback(() => {
