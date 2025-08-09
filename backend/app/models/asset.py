@@ -416,6 +416,33 @@ class Asset(Base):
 
     # is_mock removed - use multi-tenant isolation instead
 
+    # Discovery/Assessment readiness fields (bridge between flows)
+    discovery_status = Column(
+        String(50),
+        index=True,
+        comment="Discovery lifecycle status for this asset (e.g., 'completed').",
+    )
+    discovery_completed_at = Column(
+        DateTime(timezone=True),
+        comment="Timestamp when discovery completed for this asset.",
+    )
+    assessment_readiness = Column(
+        String(50),
+        index=True,
+        default="not_ready",
+        comment="Assessment readiness status for this asset (e.g., 'ready', 'not_ready').",
+    )
+    assessment_readiness_score = Column(
+        Float,
+        comment="Optional readiness score (0-100 or 0-1 depending on configuration).",
+    )
+    assessment_blockers = Column(
+        JSON, comment="List of identified blockers preventing assessment readiness."
+    )
+    assessment_recommendations = Column(
+        JSON, comment="List of recommendations to achieve assessment readiness."
+    )
+
     # Audit fields
     created_at = Column(
         DateTime(timezone=True),

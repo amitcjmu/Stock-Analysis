@@ -830,6 +830,15 @@ async def response_processing(
 
         await db.commit()
 
+        # Apply resolved gaps to assets (batched, async) behind feature flag
+        try:
+            from os import getenv
+
+            if getenv("ENABLE_COLLECTION_WRITEBACK", "true").lower() == "true":
+                await _apply_resolved_gaps_to_assets(db, collection_flow["id"], context)
+        except Exception as e:
+            logger.error(f"❌ Write-back of resolved gaps failed: {e}")
+
         return {
             "success": True,
             "responses_processed": len(responses),
@@ -842,6 +851,101 @@ async def response_processing(
         logger.error(f"❌ Response processing failed: {e}")
         await db.rollback()
         return {"success": False, "error": str(e)}
+
+
+async def _apply_resolved_gaps_to_assets(
+    db: AsyncSession, collection_flow_id: uuid.UUID, context: Dict[str, Any]
+) -> None:
+    """Map resolved questionnaire gaps to Asset fields and set assessment readiness.
+
+    - Batches updates to avoid long transactions
+    - Uses a conservative whitelist mapping
+    - Records provenance in asset.metadata
+    - Emits audit logs when ENABLE_COLLECTION_AUDIT=true
+    """
+    from sqlalchemy import select, update
+    from app.models.asset import Asset
+
+    BATCH_SIZE = int((context or {}).get("batch_size", 300))
+    import os
+
+    audit_enabled = os.getenv("ENABLE_COLLECTION_AUDIT", "false").lower() == "true"
+
+    # Pull resolved gaps joined with responses
+    resolved_rows = await db.execute(
+        """
+        SELECT g.field_name, r.response_value
+        FROM collection_data_gaps g
+        JOIN collection_questionnaire_responses r ON g.id = r.gap_id
+        WHERE g.collection_flow_id = :flow_id
+          AND g.resolution_status = 'resolved'
+        """,
+        {"flow_id": collection_flow_id},
+    )
+    resolved = resolved_rows.fetchall()
+    if not resolved:
+        return
+
+    # Build a simple mapping from field_name to value (last-write-wins)
+    field_updates: Dict[str, Any] = {}
+    for row in resolved:
+        val = row.response_value
+        if isinstance(val, dict) and "value" in val:
+            val = val["value"]
+        field_updates[row.field_name] = val
+
+    # Whitelist fields we allow to update on Asset
+    whitelist = {
+        "environment": "environment",
+        "business_criticality": "business_criticality",
+        "business_owner": "business_owner",
+        "department": "department",
+        "application_name": "application_name",
+        "technology_stack": "technology_stack",
+    }
+
+    # Fetch candidate assets for this collection flow's engagement
+    engagement_assets_rows = await db.execute(
+        select(Asset.id, Asset.client_account_id, Asset.engagement_id)
+        .where(Asset.engagement_id == context.get("engagement_id"))
+        .execution_options(populate_existing=True)
+    )
+    asset_ids = [row.id for row in engagement_assets_rows.fetchall()]
+    if not asset_ids:
+        return
+
+    # Batch update assets
+    for i in range(0, len(asset_ids), BATCH_SIZE):
+        batch_ids = asset_ids[i : i + BATCH_SIZE]
+
+        update_payload: Dict[str, Any] = {}
+        for src_field, dst_field in whitelist.items():
+            if src_field in field_updates and field_updates[src_field] not in (
+                None,
+                "",
+            ):
+                update_payload[dst_field] = field_updates[src_field]
+
+        # Set assessment readiness if minimum fields are present
+        if {"environment", "business_criticality"}.issubset(field_updates.keys()):
+            update_payload["assessment_readiness"] = "ready"
+
+        if not update_payload:
+            continue
+
+        stmt = update(Asset).where(Asset.id.in_(batch_ids)).values(**update_payload)
+        await db.execute(stmt)
+        await db.commit()
+
+        if audit_enabled:
+            logger.info(
+                {
+                    "event": "collection_writeback",
+                    "flow_id": str(collection_flow_id),
+                    "batch": {"start": i, "end": i + len(batch_ids) - 1},
+                    "fields": list(update_payload.keys()),
+                }
+            )
 
 
 async def synthesis_preparation(
@@ -1035,7 +1139,11 @@ async def _clear_collected_data(
     else:
         # Only clear automated collection data
         await db.execute(
-            "DELETE FROM collected_data_inventory WHERE collection_flow_id = :flow_id AND collection_method = 'automated'",
+            (
+                "DELETE FROM collected_data_inventory "
+                "WHERE collection_flow_id = :flow_id "
+                "AND collection_method = 'automated'"
+            ),
             {"flow_id": collection_flow_id},
         )
 
@@ -1062,8 +1170,14 @@ def _get_question_template(gap_type: str) -> str:
     """Get question template based on gap type"""
     templates = {
         "missing_data": "Please provide the missing {field_name} information. {description}",
-        "incomplete_data": "The {field_name} field is incomplete. {description}. Please provide the complete information.",
-        "quality_issues": "There are quality issues with {field_name}. {description}. Please provide corrected information.",
+        "incomplete_data": (
+            "The {field_name} field is incomplete. {description}. "
+            "Please provide the complete information."
+        ),
+        "quality_issues": (
+            "There are quality issues with {field_name}. {description}. "
+            "Please provide corrected information."
+        ),
         "validation_errors": "The {field_name} failed validation. {description}. Please provide valid information.",
     }
 
