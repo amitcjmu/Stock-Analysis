@@ -43,6 +43,7 @@ from app.schemas.collection_flow import (
 # from app.services.workflow_orchestration.collection_phase_engine import CollectionPhaseEngine
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.services.integration.data_flow_validator import DataFlowValidator
+from uuid import UUID
 
 logger = logging.getLogger(__name__)
 
@@ -536,11 +537,20 @@ async def get_collection_readiness(
         if not collection_flow:
             raise HTTPException(status_code=404, detail="Collection flow not found")
 
+        # Normalize tenant IDs to UUIDs
+        try:
+            client_uuid = UUID(str(context.client_account_id))
+            engagement_uuid = UUID(str(context.engagement_id))
+        except Exception:
+            raise HTTPException(
+                status_code=400, detail="Invalid tenant identifiers in context"
+            )
+
         # Count assessment-ready assets for engagement
         ready_count_row = await db.execute(
             select(func.count(Asset.id)).where(
-                Asset.client_account_id == context.client_account_id,
-                Asset.engagement_id == context.engagement_id,
+                Asset.client_account_id == client_uuid,
+                Asset.engagement_id == engagement_uuid,
                 Asset.assessment_readiness == "ready",
             )
         )
