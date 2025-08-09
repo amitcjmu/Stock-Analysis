@@ -330,19 +330,40 @@ class FlowCreationOperations:
             # Get flow configuration from registry
             flow_config = self.flow_registry.get_flow_config(flow_type)
 
-            # Create flow instance using crew_class if available
-            if flow_config.crew_class:
-                flow_instance = flow_config.crew_class(
-                    flow_id=flow_id,
-                    initial_state=flow_data.get("flow_persistence_data", {}),
-                    configuration=flow_data.get("flow_configuration", {}),
-                    context=self.context,
-                )
+            # Create flow instance using crew_class if available and compatible
+            can_instantiate = bool(flow_config.crew_class)
+            # Special-case discovery: actual instantiation is handled later by the initializer
+            if flow_type == "discovery":
+                can_instantiate = False
 
-                # Execute initialization if the instance has an initialize method
-                initialization_result = None
-                if hasattr(flow_instance, "initialize"):
-                    initialization_result = await flow_instance.initialize()
+            if can_instantiate:
+                try:
+                    flow_instance = flow_config.crew_class(
+                        flow_id=flow_id,
+                        initial_state=flow_data.get("flow_persistence_data", {}),
+                        configuration=flow_data.get("flow_configuration", {}),
+                        context=self.context,
+                    )
+
+                    # Execute initialization if the instance has an initialize method
+                    initialization_result = None
+                    if hasattr(flow_instance, "initialize"):
+                        initialization_result = await flow_instance.initialize()
+                except TypeError as e:
+                    # Fallback for crew classes that require additional dependencies (e.g., crewai_service)
+                    logger.warning(
+                        f"Crew class instantiation fallback for {flow_type}: {e}"
+                    )
+                    flow_instance = {
+                        "flow_id": flow_id,
+                        "flow_type": flow_type,
+                        "configuration": flow_data.get("flow_configuration", {}),
+                        "state": flow_data.get("flow_persistence_data", {}),
+                    }
+                    initialization_result = {
+                        "status": "initialized",
+                        "message": "Flow created (deferred crew instantiation handled by initializer)",
+                    }
             else:
                 # Fallback: create a simple flow instance dict
                 flow_instance = {
