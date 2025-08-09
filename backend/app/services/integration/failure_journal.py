@@ -25,16 +25,29 @@ async def log_failure(
     Best-effort: errors are swallowed to avoid masking the original failure path.
     """
     try:
-        # Resolve schema from dialect default; prefer 'migration' when available
-        inspector = sa.inspect(db.bind)
-        schema = (
-            "migration"
-            if "migration" in inspector.get_schema_names()
-            else inspector.default_schema_name
-        )
+        # Resolve schema once and cache on the engine bind to avoid repeated reflection
+        bind = db.bind
+        cache_schema_key = "_failure_journal_schema"
+        schema = getattr(bind, cache_schema_key, None)
+        if not schema:
+            inspector = sa.inspect(bind)
+            try:
+                schemas = inspector.get_schema_names()
+            except Exception:
+                schemas = []
+            schema = (
+                "migration" if "migration" in schemas else inspector.default_schema_name
+            )
+            setattr(bind, cache_schema_key, schema)
 
-        # Guard: table must exist
-        if not inspector.has_table("failure_journal", schema=schema):
+        # Guard: table must exist (cached per schema)
+        cache_exists_key = f"_failure_journal_exists_{schema}"
+        table_exists = getattr(bind, cache_exists_key, None)
+        if table_exists is None:
+            inspector2 = sa.inspect(bind)
+            table_exists = inspector2.has_table("failure_journal", schema=schema)
+            setattr(bind, cache_exists_key, table_exists)
+        if not table_exists:
             return
 
         table = sa.Table(

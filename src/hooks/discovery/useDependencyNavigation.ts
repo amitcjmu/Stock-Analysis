@@ -3,7 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 import { collectionFlowApi } from '@/services/api/collection-flow';
 
-export const useDependencyNavigation = (flowId?: string, dependencyData?: unknown): unknown => {
+interface DependencyNavigationHandlers {
+  handleContinueToNextPhase: () => Promise<void>;
+  handleNavigateToInventory: () => void;
+  handleNavigateToDataCleansing: () => void;
+  handleNavigateToAttributeMapping: () => void;
+}
+
+export const useDependencyNavigation = (
+  flowId?: string,
+  dependencyData?: unknown
+): DependencyNavigationHandlers => {
   const navigate = useNavigate();
   const { flowState: flow, executeFlowPhase: updatePhase } = useUnifiedDiscoveryFlow(flowId);
 

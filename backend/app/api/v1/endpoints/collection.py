@@ -65,6 +65,14 @@ async def ensure_collection_flow(
     """
     require_role(current_user, COLLECTION_CREATE_ROLES, "ensure collection flows")
 
+    # Validate tenant context early
+    if not getattr(context, "client_account_id", None) or not getattr(
+        context, "engagement_id", None
+    ):
+        raise HTTPException(
+            status_code=400, detail="Missing tenant context identifiers"
+        )
+
     try:
         # Try to find an active collection flow for this engagement
         result = await db.execute(
@@ -106,10 +114,12 @@ async def ensure_collection_flow(
         )
 
     except HTTPException:
+        # Pass through known HTTP exceptions intact
         raise
     except Exception as e:
         logger.error(f"Error ensuring collection flow: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Sanitize error exposure
+        raise HTTPException(status_code=500, detail="Failed to ensure collection flow")
 
 
 @router.get("/status", response_model=Dict[str, Any])

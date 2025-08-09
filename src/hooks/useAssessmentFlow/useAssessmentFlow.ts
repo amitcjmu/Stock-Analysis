@@ -69,16 +69,16 @@ export const useAssessmentFlow = (
 
             setState(prev => ({
               ...prev,
-              status: data.status || prev.status,
-              progress: data.progress || prev.progress,
-              currentPhase: data.current_phase || prev.currentPhase,
-              nextPhase: data.next_phase || prev.nextPhase,
+              status: data.status ?? prev.status,
+              progress: data.progress ?? prev.progress,
+              currentPhase: data.current_phase ?? prev.currentPhase,
+              nextPhase: data.next_phase ?? prev.nextPhase,
               agentUpdates: [
                 ...prev.agentUpdates,
                 {
                   timestamp: new Date(),
-                  phase: data.phase || prev.currentPhase,
-                  message: data.message || 'Processing...',
+                  phase: data.phase ?? prev.currentPhase,
+                  message: data.message ?? 'Processing...',
                   progress: data.progress
                 }
               ].slice(-20)
@@ -86,6 +86,8 @@ export const useAssessmentFlow = (
           },
           onError: (error) => {
             console.error('Assessment flow SSE error:', error);
+            try { eventSourceRef.current?.close(); } catch {}
+            eventSourceRef.current = null;
             setState(prev => ({
               ...prev,
               error: 'Real-time updates disconnected'

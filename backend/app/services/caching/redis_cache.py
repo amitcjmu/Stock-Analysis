@@ -379,7 +379,9 @@ class RedisCache:
 
             # Push to queue (RPUSH to preserve FIFO)
             if self.client_type == "upstash":
-                self.client.rpush(queue_key, failure_id)
+                result = self.client.rpush(queue_key, failure_id)
+                if hasattr(result, "__await__"):
+                    await result
             else:
                 await self.client.rpush(queue_key, failure_id)
             return True
@@ -400,7 +402,9 @@ class RedisCache:
         try:
             zkey = f"fj:retry:{client}:{engagement}"
             if self.client_type == "upstash":
-                self.client.zadd(zkey, {failure_id: when_epoch})
+                result = self.client.zadd(zkey, {failure_id: when_epoch})
+                if hasattr(result, "__await__"):
+                    await result
             else:
                 await self.client.zadd(zkey, {failure_id: when_epoch})
             return True
@@ -416,17 +420,21 @@ class RedisCache:
         try:
             zkey = f"fj:retry:{client}:{engagement}"
             if self.client_type == "upstash":
-                ids = self.client.zrangebyscore(zkey, "-inf", now_epoch, count=batch)
+                raw = self.client.zrangebyscore(zkey, "-inf", now_epoch, count=batch)
+                ids = await raw if hasattr(raw, "__await__") else raw
+                ids = ids or []
                 if ids:
-                    for fid in ids:
-                        self.client.zrem(zkey, fid)
+                    rem = self.client.zrem(zkey, *ids)
+                    if hasattr(rem, "__await__"):
+                        await rem
             else:
                 ids = await self.client.zrangebyscore(
                     zkey, "-inf", now_epoch, start=0, num=batch
                 )
+                ids = ids or []
                 if ids:
                     await self.client.zrem(zkey, *ids)
-            return ids or []
+            return ids
         except Exception as e:
             logger.error(f"Redis claim_due error: {e}")
             return []
@@ -442,10 +450,11 @@ class RedisCache:
             # Best-effort removal from queue if present
             qkey = f"fj:queue:{client}:{engagement}"
             if self.client_type == "upstash":
+                # Best-effort LREM equivalent isn't available; tolerate no-op
                 return True
             else:
                 await self.client.lrem(qkey, 0, failure_id)
-            return True
+                return True
         except Exception as e:
             logger.error(f"Redis ack_failure error: {e}")
             return False

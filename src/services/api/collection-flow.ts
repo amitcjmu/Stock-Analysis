@@ -130,6 +130,8 @@ export interface CollectionFlowStatusResponse {
 
 class CollectionFlowApi {
   private readonly baseUrl = '/api/v1/collection';
+  private static readonly STALE_HOURS_THRESHOLD = 24; // hours
+  private static readonly OLD_FLOW_HOURS_THRESHOLD = 90 * 24; // 90 days
 
   async getFlowStatus(): Promise<CollectionFlowStatusResponse> {
     return await apiCall(`${this.baseUrl}/status`, { method: 'GET' });
@@ -286,7 +288,7 @@ class CollectionFlowApi {
     const updated = new Date(updatedAt);
     const now = new Date();
     const hoursSinceUpdate = (now.getTime() - updated.getTime()) / (1000 * 60 * 60);
-    return hoursSinceUpdate > 24; // Consider flows stale if not updated in 24 hours
+    return hoursSinceUpdate > CollectionFlowApi.STALE_HOURS_THRESHOLD;
   }
 
   async getCleanupRecommendations(): Promise<{
@@ -306,7 +308,7 @@ class CollectionFlowApi {
       }
 
       // Check for very old flows (90+ days)
-      const oldFlowsPreview = await this.cleanupFlows(2160, true, false, true); // 90 days
+      const oldFlowsPreview = await this.cleanupFlows(CollectionFlowApi.OLD_FLOW_HOURS_THRESHOLD, true, false, true);
       if (oldFlowsPreview.flows_cleaned > 0) {
         recommendations.push(`${oldFlowsPreview.flows_cleaned} very old flows should be archived`);
       }

@@ -162,11 +162,11 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
         })
       });
 
-      // Navigate to the initialized flow
-      if (result.flow_id) {
-        navigate(`/assessment/${result.flow_id}/architecture`);
+      const flowId = result && typeof result === 'object' ? (result as any).flow_id : undefined;
+      if (flowId) {
+        navigate(`/assessment/${flowId}/architecture`);
       } else {
-        setError('Flow initialized but no flow ID returned');
+        throw new Error('Flow initialization returned no flow_id');
       }
 
     } catch (err) {

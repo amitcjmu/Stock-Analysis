@@ -206,7 +206,14 @@ const Dependencies: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={analyzeDependencies}
+                onClick={async () => {
+                  if (isAnalyzing) return;
+                  try {
+                    await analyzeDependencies();
+                  } finally {
+                    await refreshDependencies();
+                  }
+                }}
                 disabled={isAnalyzing || !client || !engagement}
               >
                 {isAnalyzing ? (
