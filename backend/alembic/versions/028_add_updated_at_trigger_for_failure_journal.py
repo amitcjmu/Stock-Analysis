@@ -49,7 +49,7 @@ def upgrade() -> None:
     op.execute(
         sa.text(
             f"""
-            CREATE OR REPLACE FUNCTION {schema}.set_timestamp()
+            CREATE OR REPLACE FUNCTION "{schema}".set_timestamp()
             RETURNS trigger AS $$
             BEGIN
                 NEW.updated_at = now();
@@ -64,11 +64,11 @@ def upgrade() -> None:
     op.execute(
         sa.text(
             f"""
-            DROP TRIGGER IF EXISTS set_timestamp_on_failure_journal ON {schema}.failure_journal;
+            DROP TRIGGER IF EXISTS set_timestamp_on_failure_journal ON "{schema}".failure_journal;
             CREATE TRIGGER set_timestamp_on_failure_journal
-            BEFORE UPDATE ON {schema}.failure_journal
+            BEFORE UPDATE ON "{schema}".failure_journal
             FOR EACH ROW
-            EXECUTE PROCEDURE {schema}.set_timestamp();
+            EXECUTE PROCEDURE "{schema}".set_timestamp();
             """
         )
     )

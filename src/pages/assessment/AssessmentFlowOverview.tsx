@@ -95,7 +95,7 @@ const AssessmentFlowOverview = (): JSX.Element => {
   }, [collectionFlowId]);
 
   // Fetch list of application asset IDs that are assessment-ready
-  const { data: assessmentReadyAssets = [] } = useQuery<{ id: string }[]>({
+  const { data: assessmentReadyAssets = [] } = useQuery<string[]>({
     queryKey: ['assets-assessment-ready', collectionFlowId],
     enabled: !!collectionFlowId,
     queryFn: async () => {
@@ -103,16 +103,13 @@ const AssessmentFlowOverview = (): JSX.Element => {
       const res = await apiCall('/assets/workflow/by-phase/assessment_ready', { method: 'GET', headers });
       const items = Array.isArray(res) ? res : [];
       return items
-        .map((a: any) => {
-          const id = a?.id ?? a?.asset_id ?? a?.asset?.id;
-          return id ? { id: String(id) } : null;
-        })
-        .filter((x): x is { id: string } => !!x && !!x.id);
+        .map((a: any) => a?.id ?? a?.asset_id ?? a?.asset?.id)
+        .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0);
     }
   });
 
   useEffect(() => {
-    const ids = assessmentReadyAssets.map((a: any) => a.id || a);
+    const ids = assessmentReadyAssets.map((id: string) => id);
     setReadyAppIds(ids);
   }, [assessmentReadyAssets]);
 
