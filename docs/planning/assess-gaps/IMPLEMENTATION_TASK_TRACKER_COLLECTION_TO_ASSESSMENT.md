@@ -222,7 +222,10 @@ Status board (current)
 - D2: Deferred
  - E1: In Progress (new GET /collection/flows/{flow_id}/readiness endpoint)
 - F1: Pending (minimal UX routing/messaging)
-- F2: Pending (progress indicators)
+  - Implemented: Sidebar re-ordered (`Collection` moved below `Discovery` and above `Assess`); `Tech Debt` moved under `Assess`.
+  - Implemented: Dependency flow CTA navigates to `/collection/progress?flowId=...` after dependencies.
+- F2: In Progress (progress indicators)
+  - Implemented: Readiness summary surfaces on Collection Progress page; auto-refresh pulls readiness without user actions.
 - G1: Done
 - G2: Done
 - G3: Done

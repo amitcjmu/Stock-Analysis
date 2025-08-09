@@ -9,12 +9,11 @@ export const useDependencyNavigation = (flowId?: string, dependencyData?: unknow
   const handleContinueToNextPhase = useCallback(async () => {
     try {
       if (flow && flow.flow_id) {
-        // Update to tech debt analysis phase
-        await updatePhase('tech_debt_analysis');
-        navigate('/discovery/tech-debt');
+        // After dependencies, route to Collection Progress to complete data enrichment
+        navigate(`/collection/progress?flowId=${flow.flow_id}`);
       }
     } catch (error) {
-      console.error('Failed to proceed to tech debt analysis:', error);
+      console.error('Failed to proceed to collection progress:', error);
     }
   }, [flow, updatePhase, navigate]);
 
