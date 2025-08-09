@@ -206,21 +206,25 @@ Legend: [P] Priority, [R] Risk, [Effort] S/M/L, Status (TBD/In-Progress/Done)
 - Could-have later: D2
 - Strategic later (behind flags): H1–H4 enablement/integration
 
-Status board (initial)
-- A1: TBD
-- A2: TBD
-- A3: TBD
-- B1: TBD
-- B2: TBD
-- B3: TBD
-- C1: TBD
-- C2: TBD
-- D1: TBD
-- D2: TBD
-- E1: TBD
-- F1: TBD
-- G1: TBD
-- G2: TBD
-- G3: TBD
+Status board (current)
+- A1: Done
+- A2: Done
+- A3: Done
+- B1: Done (write-back helper implemented; scoped by asset/app hints; tenant-scoped)
+- B2: Done (invoked post-response; transactional safety)
+- B3: Done (readiness flip + performance guardrails)
+- B4: Done (indexing added for readiness/status fields)
+- B5: In Progress (audit flag + privacy checklist)
+- B6: In Progress (failure journal via C4)
+- C1: Done (DataFlowValidator gating)
+- C2: Done (auto-init/resume Collection when gated)
+- D1: Done (ready-app loader)
+- D2: Deferred
+- E1: Pending
+- F1: Pending (minimal UX routing/messaging)
+- F2: Pending (progress indicators)
+- G1: Done
+- G2: Done
+- G3: Done
 
 

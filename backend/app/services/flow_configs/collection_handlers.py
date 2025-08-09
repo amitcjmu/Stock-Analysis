@@ -867,10 +867,18 @@ async def _apply_resolved_gaps_to_assets(
     from app.models.asset import Asset
 
     BATCH_SIZE = int((context or {}).get("batch_size", 300))
-    client_id = context.get("client_account_id")
-    engagement_id = context.get("engagement_id")
+    client_id_raw = (context or {}).get("client_account_id")
+    engagement_id_raw = (context or {}).get("engagement_id")
+
+    client_id = str(client_id_raw).strip() if client_id_raw is not None else None
+    engagement_id = (
+        str(engagement_id_raw).strip() if engagement_id_raw is not None else None
+    )
+
     if not client_id or not engagement_id:
-        logger.warning("Missing tenant context; skipping write-back for safety")
+        logger.warning(
+            "Missing or empty tenant context; skipping write-back for safety"
+        )
         return
     import os
 
@@ -980,10 +988,17 @@ async def _apply_resolved_gaps_to_assets(
         try:
             await db.execute(stmt)
             await db.commit()
-        except Exception as e:
+        except Exception:
             await db.rollback()
-            logger.error(
-                f"Write-back batch failed (range {i}-{i+len(batch_ids)-1}): {e}"
+            logger.exception(
+                "Write-back batch failed",
+                extra={
+                    "range_start": i,
+                    "range_end": i + len(batch_ids) - 1,
+                    "batch_ids": batch_ids,
+                    "client_account_id": client_id,
+                    "engagement_id": engagement_id,
+                },
             )
 
         if audit_enabled:
