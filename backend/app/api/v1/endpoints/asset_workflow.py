@@ -71,7 +71,7 @@ class AssetWorkflowStatus(BaseModel):
     blocking_issues: List[str]
 
 
-@router.post("/assets/{asset_id}/workflow/advance")
+@router.post("/{asset_id}/workflow/advance")
 async def advance_asset_workflow(
     asset_id: int, request: WorkflowAdvanceRequest, db: AsyncSession = Depends(get_db)
 ) -> AssetWorkflowStatus:
@@ -128,7 +128,7 @@ async def advance_asset_workflow(
     return _build_workflow_status(asset)
 
 
-@router.put("/assets/{asset_id}/workflow/status")
+@router.put("/{asset_id}/workflow/status")
 async def update_asset_workflow_status(
     asset_id: int, update: WorkflowStatusUpdate, db: AsyncSession = Depends(get_db)
 ) -> AssetWorkflowStatus:
@@ -158,7 +158,7 @@ async def update_asset_workflow_status(
     return _build_workflow_status(asset)
 
 
-@router.get("/assets/{asset_id}/workflow/status")
+@router.get("/{asset_id}/workflow/status")
 async def get_asset_workflow_status(
     asset_id: int, db: AsyncSession = Depends(get_db)
 ) -> AssetWorkflowStatus:
@@ -175,7 +175,7 @@ async def get_asset_workflow_status(
     return _build_workflow_status(asset)
 
 
-@router.get("/assets/workflow/summary")
+@router.get("/workflow/summary")
 async def get_workflow_summary(
     db: AsyncSession = Depends(get_db),
 ) -> WorkflowSummaryResponse:
@@ -246,7 +246,7 @@ async def get_workflow_summary(
     )
 
 
-@router.get("/assets/workflow/by-phase/{phase}")
+@router.get("/workflow/by-phase/{phase}")
 async def get_assets_by_workflow_phase(
     phase: str, limit: int = 100, offset: int = 0, db: AsyncSession = Depends(get_db)
 ) -> List[AssetWorkflowStatus]:
