@@ -436,7 +436,27 @@ class SmartWorkflowOrchestrator:
 
     async def _is_ready_for_assessment(self, context: SmartWorkflowContext) -> bool:
         """Check if discovery data is ready for assessment phase"""
-        return await self._validate_quality_gates(context, "discovery_to_assessment")
+        # Run validator and require minimum readiness before proceeding
+        try:
+            from app.services.integration.data_flow_validator import DataFlowValidator
+
+            validator = DataFlowValidator()
+            result = await validator.validate_end_to_end_data_flow(
+                engagement_id=context.engagement_id,
+                validation_scope={"collection", "discovery"},
+            )
+            # Require decent collection/discovery scores before Assessment
+            collection_score = result.phase_scores.get("collection", 0.0)
+            discovery_score = result.phase_scores.get("discovery", 0.0)
+            min_threshold = float(context.config.get("assessment_gate_threshold", 0.7))
+            return (
+                collection_score >= min_threshold and discovery_score >= min_threshold
+            )
+        except Exception:
+            # Fallback to legacy gate if validator unavailable
+            return await self._validate_quality_gates(
+                context, "discovery_to_assessment"
+            )
 
     async def _get_collection_flow(
         self, session: AsyncSession, engagement_id: UUID

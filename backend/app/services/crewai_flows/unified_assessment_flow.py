@@ -27,6 +27,18 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+# Import models and dependencies (placed early per lint rules)
+from app.core.context import RequestContext
+from app.models.assessment_flow import (
+    AssessmentFlowError,
+    AssessmentFlowState,
+    AssessmentPhase,
+    AssessmentStatus,
+    SixRDecision,
+)
+from app.services.crewai_flows.flow_state_manager import FlowStateManager
+from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
+
 # CrewAI Flow imports with graceful fallback
 CREWAI_FLOW_AVAILABLE = False
 try:
@@ -64,18 +76,7 @@ except ImportError as e:
         return decorator
 
 
-# Import models and dependencies
-from app.core.context import RequestContext
-from app.core.security.cache_encryption import secure_setattr
-from app.models.assessment_flow import (
-    AssessmentFlowError,
-    AssessmentFlowState,
-    AssessmentPhase,
-    AssessmentStatus,
-    SixRDecision,
-)
-from app.services.crewai_flows.flow_state_manager import FlowStateManager
-from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
+# (CrewAI imports and fallbacks below)
 
 
 class FlowContext:
@@ -229,7 +230,10 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
             if CREWAI_FLOW_AVAILABLE and hasattr(super(), "state"):
                 # Copy attributes from initial state to managed state
                 for key, value in initial_state.__dict__.items():
-                    secure_setattr(self.state, key, value)
+                    try:
+                        setattr(self.state, key, value)
+                    except Exception:
+                        pass
             else:
                 self.state = initial_state
 
@@ -393,7 +397,10 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
                     self.state.component_tech_debt[app_id] = component_scores
 
                     logger.info(
-                        f"✅ Identified {len(components)} components and {len(tech_debt_items)} tech debt items for {app_id}"
+                        "✅ Identified %d components and %d tech debt items for %s",
+                        len(components),
+                        len(tech_debt_items),
+                        app_id,
                     )
 
                 else:
@@ -749,17 +756,41 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
 
     async def _load_selected_applications(self) -> List[Dict[str, Any]]:
         """Load applications marked ready for assessment from Discovery inventory"""
-        # Placeholder implementation - would load from Discovery Flow results
-        applications = []
-        for app_id in self.selected_application_ids:
-            applications.append(
-                {
-                    "id": app_id,
-                    "name": f"Application {app_id}",
-                    "discovery_data": {"placeholder": True},
-                }
+        try:
+            from app.core.database import AsyncSessionLocal
+            from app.services.integrations.discovery_integration import (
+                DiscoveryFlowIntegration,
             )
-        return applications
+
+            async with AsyncSessionLocal() as db:
+                integration = DiscoveryFlowIntegration()
+                # If explicit selection exists, verify readiness; else load all ready apps
+                if self.selected_application_ids:
+                    await integration.verify_applications_ready_for_assessment(
+                        db,
+                        self.selected_application_ids,
+                        self.context.client_account_id,
+                    )
+                    # Fetch metadata for selected apps
+                    applications: List[Dict[str, Any]] = []
+                    for app_id in self.selected_application_ids:
+                        meta = await integration.get_application_metadata(
+                            db, app_id, self.context.client_account_id
+                        )
+                        applications.append(meta["basic_info"] | {"metadata": meta})
+                    return applications
+                else:
+                    return await integration.get_applications_ready_for_assessment(
+                        db,
+                        client_account_id=self.context.client_account_id,
+                        engagement_id=self.context.engagement_id,
+                    )
+        except Exception as e:
+            self.logger.warning(
+                "Failed to load ready applications for assessment: %s. Proceeding with empty set.",
+                e,
+            )
+            return []
 
     async def _load_engagement_standards(self) -> List[Dict[str, Any]]:
         """Load existing engagement architecture standards"""
