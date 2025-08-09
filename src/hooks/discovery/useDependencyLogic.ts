@@ -184,11 +184,15 @@ export const useDependencyLogic = (flowId?: string): {
 
     try {
       const { apiCall } = await import('@/config/api');
-      const response = await apiCall('/unified-discovery/dependencies/analysis');  // Updated to unified-discovery endpoint as part of API migration
+      const flowIdParam = flow?.flow_id ? `?flow_id=${flow.flow_id}` : '';
+      const response = await apiCall(`/unified-discovery/dependencies/analysis${flowIdParam}`);
 
-      if (response) {
-        console.log('✅ Fetched persisted dependencies from database:', response);
-        setPersistedDependencies(response);
+      // Response shape: { success: boolean, data: { dependency_analysis: {...} } }
+      const dep = response?.data?.dependency_analysis || response?.dependency_analysis || response || {};
+
+      if (dep) {
+        console.log('✅ Fetched persisted dependencies from database:', dep);
+        setPersistedDependencies(dep);
       }
     } catch (error) {
       console.error('Failed to fetch persisted dependencies:', error);
@@ -199,7 +203,7 @@ export const useDependencyLogic = (flowId?: string): {
       });
       throw error; // Re-throw to allow caller to handle
     }
-  }, [client?.id, engagement?.id]);
+  }, [client?.id, engagement?.id, flow?.flow_id]);
 
   // Fetch persisted dependencies from database
   useEffect(() => {
