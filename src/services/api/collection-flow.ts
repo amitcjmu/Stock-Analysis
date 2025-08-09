@@ -240,6 +240,12 @@ class CollectionFlowApi {
   }
 
   // Utility methods for flow management
+  /**
+   * Compute a simple health summary across incomplete flows.
+   * - healthy_flows: number of non-problematic flows
+   * - problematic_flows: running/paused flows with low progress or failed
+   * - health_score: percentage of healthy flows
+   */
   async getFlowHealthStatus(): Promise<{
     healthy_flows: number;
     problematic_flows: number;
@@ -284,6 +290,7 @@ class CollectionFlowApi {
     }
   }
 
+  /** Determine whether a flow is stale based on last update time. */
   private isFlowStale(updatedAt: string): boolean {
     const updated = new Date(updatedAt);
     const now = new Date();
@@ -291,6 +298,7 @@ class CollectionFlowApi {
     return hoursSinceUpdate > CollectionFlowApi.STALE_HOURS_THRESHOLD;
   }
 
+  /** Produce cleanup recommendations based on preview results from cleanupFlows. */
   async getCleanupRecommendations(): Promise<{
     total_flows: number;
     cleanup_candidates: number;
