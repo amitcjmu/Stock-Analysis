@@ -187,8 +187,6 @@ class FlowCreationOperations:
             success = await redis_cache.register_flow_atomic(
                 flow_id=flow_id,
                 flow_type=flow_type,
-                client_account_id=self.context.client_account_id,
-                engagement_id=self.context.engagement_id,
                 flow_data=flow_data,
             )
 
@@ -249,8 +247,6 @@ class FlowCreationOperations:
                 retry_success = await redis_cache.register_flow_atomic(
                     flow_id=flow_id,
                     flow_type=flow_type,
-                    client_account_id=self.context.client_account_id,
-                    engagement_id=self.context.engagement_id,
                     flow_data=flow_data,
                 )
 
