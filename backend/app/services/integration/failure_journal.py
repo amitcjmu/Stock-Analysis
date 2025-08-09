@@ -71,6 +71,10 @@ async def log_failure(
             sa.Column("payload", sa.dialects.postgresql.JSONB, nullable=True),
             sa.Column("error_message", sa.Text(), nullable=True),
             sa.Column("trace", sa.Text(), nullable=True),
+            # Include additional columns present in migration for schema parity
+            sa.Column("retry_count", sa.Integer(), nullable=True),
+            sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
+            sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
         )
 
         insert_stmt = sa.insert(table).values(
@@ -92,6 +96,7 @@ async def log_failure(
                     else None
                 )
             ),
+            retry_count=0,
         )
 
         await db.execute(insert_stmt)
