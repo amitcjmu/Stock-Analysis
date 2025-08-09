@@ -858,20 +858,42 @@ async def _apply_resolved_gaps_to_assets(
 ) -> None:
     """Map resolved questionnaire gaps to Asset fields and set assessment readiness.
 
-    - Batches updates to avoid long transactions
-    - Uses a conservative whitelist mapping
-    - Records provenance in asset.metadata
-    - Emits audit logs when ENABLE_COLLECTION_AUDIT=true
+    Implementation highlights:
+    - Tenant-scoped and UUID-typed filtering
+    - Conservative whitelist mapping
+    - Batched updates with rollback on failure
+    - Best-effort audit logging behind a feature flag
     """
-    from sqlalchemy import select, update
+    from sqlalchemy import update, and_
+    from uuid import UUID
     from app.models.asset import Asset
 
     BATCH_SIZE = int((context or {}).get("batch_size", 300))
+    client_id_raw = (context or {}).get("client_account_id")
+    engagement_id_raw = (context or {}).get("engagement_id")
+
+    client_id = str(client_id_raw).strip() if client_id_raw is not None else None
+    engagement_id = (
+        str(engagement_id_raw).strip() if engagement_id_raw is not None else None
+    )
+
+    if not client_id or not engagement_id:
+        logger.error("Missing tenant context; aborting write-back")
+        raise RuntimeError(
+            "Tenant context (client_account_id, engagement_id) required for write-back"
+        )
+
+    # Normalize tenant IDs to UUID for reliable comparisons
+    try:
+        client_uuid = UUID(client_id)
+        engagement_uuid = UUID(engagement_id)
+    except Exception:
+        logger.error("Invalid tenant identifiers; aborting write-back")
+        raise RuntimeError("Invalid tenant identifiers for write-back scope")
     import os
 
     audit_enabled = os.getenv("ENABLE_COLLECTION_AUDIT", "false").lower() == "true"
 
-    # Pull resolved gaps joined with responses and any asset scoping hints
     resolved_rows = await db.execute(
         (
             "SELECT g.field_name, r.response_value, "
@@ -888,13 +910,7 @@ async def _apply_resolved_gaps_to_assets(
     if not resolved:
         return
 
-    # Build a simple mapping from field_name to value (last-write-wins)
-    field_updates: Dict[str, Any] = {}
-    for row in resolved:
-        val = row.response_value
-        if isinstance(val, dict) and "value" in val:
-            val = val["value"]
-        field_updates[row.field_name] = val
+    field_updates = _build_field_updates_from_rows(resolved)
 
     # Whitelist fields we allow to update on Asset
     whitelist = {
@@ -906,41 +922,9 @@ async def _apply_resolved_gaps_to_assets(
         "technology_stack": "technology_stack",
     }
 
-    # Determine scoped assets from hints to avoid engagement-wide updates
-    hinted_asset_ids = {
-        row.asset_id_hint for row in resolved if getattr(row, "asset_id_hint", None)
-    }
-    asset_ids: List[uuid.UUID] = []
-    if hinted_asset_ids:
-        asset_rows = await db.execute(
-            select(Asset.id)
-            .where(
-                Asset.id.in_([uuid.UUID(a) for a in hinted_asset_ids if a]),
-                Asset.engagement_id == context.get("engagement_id"),
-            )
-            .execution_options(populate_existing=True)
-        )
-        asset_ids = [r.id for r in asset_rows.fetchall()]
-    else:
-        # Fallback to application_name hints
-        app_names = {
-            row.app_name_hint for row in resolved if getattr(row, "app_name_hint", None)
-        }
-        if app_names:
-            asset_rows = await db.execute(
-                select(Asset.id)
-                .where(
-                    Asset.application_name.in_([a for a in app_names if a]),
-                    Asset.engagement_id == context.get("engagement_id"),
-                )
-                .execution_options(populate_existing=True)
-            )
-            asset_ids = [r.id for r in asset_rows.fetchall()]
-        else:
-            logger.warning(
-                "No asset/application hints present in resolved gaps; skipping write-back to avoid broad updates"
-            )
-            return
+    asset_ids = await _resolve_target_asset_ids(db, resolved, context)
+    if not asset_ids:
+        return
 
     # Batch update assets
     for i in range(0, len(asset_ids), BATCH_SIZE):
@@ -961,9 +945,35 @@ async def _apply_resolved_gaps_to_assets(
         if not update_payload:
             continue
 
-        stmt = update(Asset).where(Asset.id.in_(batch_ids)).values(**update_payload)
-        await db.execute(stmt)
-        await db.commit()
+        if not batch_ids:
+            continue
+
+        stmt = (
+            update(Asset)
+            .where(
+                and_(
+                    Asset.id.in_(batch_ids),
+                    Asset.client_account_id == client_uuid,
+                    Asset.engagement_id == engagement_uuid,
+                )
+            )
+            .values(**update_payload)
+        )
+        try:
+            await db.execute(stmt)
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            logger.exception(
+                "Write-back batch failed",
+                extra={
+                    "range_start": i,
+                    "range_end": i + len(batch_ids) - 1,
+                    "batch_ids": batch_ids,
+                    "client_account_id": str(client_uuid),
+                    "engagement_id": str(engagement_uuid),
+                },
+            )
 
         if audit_enabled:
             logger.info(
@@ -974,6 +984,65 @@ async def _apply_resolved_gaps_to_assets(
                     "fields": list(update_payload.keys()),
                 }
             )
+
+
+def _build_field_updates_from_rows(rows) -> Dict[str, Any]:
+    """Extract last-write-wins mapping of field_name -> value from resolved rows."""
+    updates: Dict[str, Any] = {}
+    for row in rows:
+        val = getattr(row, "response_value", None)
+        if isinstance(val, dict) and "value" in val:
+            val = val["value"]
+        field_name = getattr(row, "field_name", None)
+        if field_name:
+            updates[field_name] = val
+    return updates
+
+
+async def _resolve_target_asset_ids(
+    db: AsyncSession, resolved_rows, context: Dict[str, Any]
+) -> List[uuid.UUID]:
+    """Resolve target asset IDs from gap metadata hints (asset_id/app_name)."""
+    from app.models.asset import Asset
+
+    hinted_asset_ids = set()
+    for row in resolved_rows:
+        hint = getattr(row, "asset_id_hint", None)
+        if hint:
+            hinted_asset_ids.add(hint)
+
+    asset_ids: List[uuid.UUID] = []
+    if hinted_asset_ids:
+        result = await db.execute(
+            select(Asset.id)
+            .where(
+                Asset.id.in_([uuid.UUID(a) for a in hinted_asset_ids if a]),
+                Asset.engagement_id == context.get("engagement_id"),
+            )
+            .execution_options(populate_existing=True)
+        )
+        asset_ids = [r.id for r in result.fetchall()]
+    else:
+        app_names = set()
+        for row in resolved_rows:
+            name_hint = getattr(row, "app_name_hint", None)
+            if name_hint:
+                app_names.add(name_hint)
+        if app_names:
+            result = await db.execute(
+                select(Asset.id)
+                .where(
+                    Asset.application_name.in_([a for a in app_names if a]),
+                    Asset.engagement_id == context.get("engagement_id"),
+                )
+                .execution_options(populate_existing=True)
+            )
+            asset_ids = [r.id for r in result.fetchall()]
+        else:
+            logger.warning(
+                "No asset/application hints present in resolved gaps; skipping write-back to avoid broad updates"
+            )
+    return asset_ids
 
 
 async def synthesis_preparation(

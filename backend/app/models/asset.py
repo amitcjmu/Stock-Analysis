@@ -426,10 +426,15 @@ class Asset(Base):
         DateTime(timezone=True),
         comment="Timestamp when discovery completed for this asset.",
     )
+    from sqlalchemy import (
+        text as _sql_text,
+    )  # local import to avoid affecting global namespace
+
     assessment_readiness = Column(
         String(50),
         index=True,
         default="not_ready",
+        server_default=_sql_text("'not_ready'"),
         comment="Assessment readiness status for this asset (e.g., 'ready', 'not_ready').",
     )
     assessment_readiness_score = Column(

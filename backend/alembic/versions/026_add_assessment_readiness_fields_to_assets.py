@@ -19,11 +19,9 @@ depends_on = None
 def upgrade() -> None:
     conn = op.get_bind()
 
-    # Determine schema; default to 'migration' per platform standard
-    schema = "migration"
-
-    # Helper to check if column exists using SQLAlchemy inspector
+    # Determine schema dynamically; fallback to 'migration'
     inspector = sa.inspect(conn)
+    schema = getattr(inspector, "default_schema_name", None) or "migration"
 
     def _column_exists(table: str, column: str) -> bool:
         try:
@@ -99,17 +97,20 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Best-effort drop of readiness-related columns/indexes."""
+    bind = op.get_bind()
+    insp = sa.inspect(bind)
+    schema = getattr(insp, "default_schema_name", None) or "migration"
 
     # Helper functions to keep complexity low
     def _drop_index(idx: str) -> None:
         try:
-            op.drop_index(op.f(idx), table_name="assets", schema="migration")
+            op.drop_index(op.f(idx), table_name="assets", schema=schema)
         except Exception:
             pass
 
     def _drop_col(col: str) -> None:
         try:
-            op.drop_column("assets", col)
+            op.drop_column("assets", col, schema=schema)
         except Exception:
             pass
 

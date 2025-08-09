@@ -27,6 +27,11 @@ export interface ProgressMonitorContainerProps {
   metrics: FlowMetrics | null;
   selectedFlow: string | null;
   autoRefresh: boolean;
+  readiness?: {
+    apps_ready_for_assessment: number;
+    phase_scores: { collection: number; discovery: number };
+    quality: { collection_quality_score: number; confidence_score: number };
+  } | null;
   onFlowSelect: (flowId: string) => void;
   onFlowAction: (flowId: string, action: 'pause' | 'resume' | 'stop') => Promise<void>;
   onToggleAutoRefresh: () => void;
@@ -45,6 +50,7 @@ export const ProgressMonitorContainer: React.FC<ProgressMonitorContainerProps> =
   onToggleAutoRefresh,
   onExportReport,
   getFlowMilestones,
+  readiness,
   className = ''
 }) => {
   const selectedFlowData = flows.find(f => f.id === selectedFlow);
@@ -92,6 +98,7 @@ export const ProgressMonitorContainer: React.FC<ProgressMonitorContainerProps> =
               <FlowDetailsCard
                 flow={selectedFlowData}
                 onFlowAction={onFlowAction}
+                readiness={readiness}
               />
 
               {/* Progress Tracker */}

@@ -146,6 +146,20 @@ class CollectionFlowApi {
     return await apiCall(`${this.baseUrl}/flows/${flowId}`, { method: 'GET' });
   }
 
+  async getFlowReadiness(flowId: string): Promise<{
+    flow_id: string;
+    engagement_id: string;
+    apps_ready_for_assessment: number;
+    quality: { collection_quality_score: number; confidence_score: number };
+    phase_scores: { collection: number; discovery: number };
+    issues: { total: number; critical: number; warning: number; info: number };
+    updated_at?: string;
+  }> {
+    return await apiCall(`${this.baseUrl}/flows/${flowId}/readiness`, {
+      method: 'GET'
+    });
+  }
+
   async updateFlow(flowId: string, data: FlowUpdateData): Promise<CollectionFlowResponse> {
     return await apiCall(`${this.baseUrl}/flows/${flowId}`, {
       method: 'PUT',

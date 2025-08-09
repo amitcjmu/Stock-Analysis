@@ -71,6 +71,21 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   const navigationItems: NavigationItem[] = [
     { name: 'Dashboard', path: '/', icon: Home },
     {
+      name: 'Discovery',
+      path: '/discovery',
+      icon: Search,
+      hasSubmenu: true,
+      submenu: [
+        { name: 'Overview', path: '/discovery/overview', icon: LayoutDashboard },
+        { name: 'Data Import', path: '/discovery/cmdb-import', icon: Upload },
+        { name: 'Attribute Mapping', path: '/discovery/attribute-mapping', icon: Settings2 },
+        { name: 'Data Cleansing', path: '/discovery/data-cleansing', icon: Wand2 },
+        { name: 'Inventory', path: '/discovery/inventory', icon: Database },
+        { name: 'Dependencies', path: '/discovery/dependencies', icon: Network },
+        // Tech Debt moved under Assess
+      ]
+    },
+    {
       name: 'Collection',
       path: '/collection',
       icon: Database,
@@ -84,21 +99,6 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       ]
     },
     {
-      name: 'Discovery',
-      path: '/discovery',
-      icon: Search,
-      hasSubmenu: true,
-      submenu: [
-        { name: 'Overview', path: '/discovery/overview', icon: LayoutDashboard },
-        { name: 'Data Import', path: '/discovery/cmdb-import', icon: Upload },
-        { name: 'Attribute Mapping', path: '/discovery/attribute-mapping', icon: Settings2 },
-        { name: 'Data Cleansing', path: '/discovery/data-cleansing', icon: Wand2 },
-        { name: 'Inventory', path: '/discovery/inventory', icon: Database },
-        { name: 'Dependencies', path: '/discovery/dependencies', icon: Network },
-        { name: 'Tech Debt', path: '/discovery/tech-debt', icon: ShieldAlert },
-      ]
-    },
-    {
       name: 'Assess',
       path: '/assess',
       icon: FileText,
@@ -106,6 +106,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       submenu: [
         { name: 'Overview', path: '/assess/overview', icon: FileText },
         { name: 'Treatment', path: '/assess/treatment', icon: ClipboardList },
+        { name: 'Tech Debt', path: '/assessment/:flowId/tech-debt', icon: ShieldAlert },
         { name: 'Wave Planning', path: '/assess/waveplanning', icon: Calendar },
         { name: 'Roadmap', path: '/assess/roadmap', icon: Route },
         { name: 'Editor', path: '/assess/editor', icon: Edit },
