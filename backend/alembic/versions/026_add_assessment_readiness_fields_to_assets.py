@@ -99,17 +99,18 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Best-effort drop of readiness-related columns/indexes."""
+    schema = "migration"
 
     # Helper functions to keep complexity low
     def _drop_index(idx: str) -> None:
         try:
-            op.drop_index(op.f(idx), table_name="assets", schema="migration")
+            op.drop_index(op.f(idx), table_name="assets", schema=schema)
         except Exception:
             pass
 
     def _drop_col(col: str) -> None:
         try:
-            op.drop_column("assets", col)
+            op.drop_column("assets", col, schema=schema)
         except Exception:
             pass
 

@@ -863,10 +863,15 @@ async def _apply_resolved_gaps_to_assets(
     - Records provenance in asset.metadata
     - Emits audit logs when ENABLE_COLLECTION_AUDIT=true
     """
-    from sqlalchemy import select, update
+    from sqlalchemy import select, update, and_
     from app.models.asset import Asset
 
     BATCH_SIZE = int((context or {}).get("batch_size", 300))
+    client_id = context.get("client_account_id")
+    engagement_id = context.get("engagement_id")
+    if not client_id or not engagement_id:
+        logger.warning("Missing tenant context; skipping write-back for safety")
+        return
     import os
 
     audit_enabled = os.getenv("ENABLE_COLLECTION_AUDIT", "false").lower() == "true"
@@ -961,9 +966,25 @@ async def _apply_resolved_gaps_to_assets(
         if not update_payload:
             continue
 
-        stmt = update(Asset).where(Asset.id.in_(batch_ids)).values(**update_payload)
-        await db.execute(stmt)
-        await db.commit()
+        stmt = (
+            update(Asset)
+            .where(
+                and_(
+                    Asset.id.in_(batch_ids),
+                    Asset.client_account_id == client_id,
+                    Asset.engagement_id == engagement_id,
+                )
+            )
+            .values(**update_payload)
+        )
+        try:
+            await db.execute(stmt)
+            await db.commit()
+        except Exception as e:
+            await db.rollback()
+            logger.error(
+                f"Write-back batch failed (range {i}-{i+len(batch_ids)-1}): {e}"
+            )
 
         if audit_enabled:
             logger.info(
