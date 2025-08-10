@@ -119,18 +119,29 @@ def create_fast_field_mapping_crew(
             CRITICAL: Each mapping must be in exact format "source_field -> target_attribute" on separate lines.
             """,
             agent=field_mapping_specialist,
-            expected_output="Field mappings in format 'source -> target', one per line, followed by confidence score and status",
+            expected_output=(
+                "Field mappings in format 'source -> target', one per line, "
+                "followed by confidence score and status"
+            ),
             max_execution_time=12,  # Task-level timeout
         )
 
         # 🚀 OPTIMIZED CREW: Sequential process, minimal overhead
+        import os
+
+        enable_memory = os.getenv("CREWAI_ENABLE_MEMORY", "false").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
+
         crew = Crew(
             agents=[field_mapping_specialist],
             tasks=[mapping_task],
             process=Process.sequential,  # CRITICAL: No hierarchical overhead
             verbose=False,  # Reduce logging
             max_execution_time=20,  # Crew-level timeout
-            memory=False,  # CRITICAL: Disable memory for speed
+            memory=enable_memory,  # Enable via flag when stable
             embedder=None,  # Disable embedding overhead
         )
 

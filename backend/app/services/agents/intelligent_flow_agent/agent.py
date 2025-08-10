@@ -87,24 +87,34 @@ class IntelligentFlowAgent:
             self.navigation_tool = NavigationDecisionTool()
 
             # Create agent
+            import os
+
+            enable_memory = os.getenv("CREWAI_ENABLE_MEMORY", "false").lower() in {
+                "1",
+                "true",
+                "yes",
+            }
+
             self.agent = Agent(
                 role="Flow Intelligence Specialist",
-                goal="Analyze discovery flow status and provide intelligent routing decisions with actionable user guidance",
-                backstory="""You are an expert AI agent specializing in migration discovery flow analysis.
-                You understand the complete discovery flow lifecycle and can provide precise guidance on what users need to do next.
-
-                Key Knowledge:
-                - When you receive inputs like {flow_id}, {client_account_id}, etc., these are actual values provided by the system
-                - The flow_context_analyzer tool expects the actual flow_id value, not the placeholder string
-                - If a flow doesn't exist (status="not_found"), users must upload data to create a new flow
-                - You distinguish between user actions (things users can do) and system actions (automatic processes)
-                - Always use the actual values from inputs, not literal strings like "current_flow_id"
-                - Note: Some flows may have phase names (tech_debt, inventory, etc.) as their status due to legacy data
-
-                Tool Usage Examples:
-                - flow_context_analyzer: Use with actual flow_id from inputs, e.g., "9a0cb58d-bad8-4fb7-a4b9-ee7e35df281b"
-                - flow_status_analyzer: Pass the actual flow_id and context data
-                - Never pass placeholder strings like "current_flow_id" to tools""",
+                goal=(
+                    "Analyze discovery flow status and provide intelligent routing "
+                    "decisions with actionable user guidance"
+                ),
+                backstory=(
+                    "You are an expert AI agent specializing in migration discovery flow analysis. "
+                    "You understand the complete discovery flow lifecycle and provide precise guidance.\n\n"
+                    "Key Knowledge:\n"
+                    "- Inputs like {flow_id}, {client_account_id} are actual values\n"
+                    "- Tools expect actual flow_id values, not placeholders\n"
+                    "- If a flow doesn't exist (status=not_found), users must upload data\n"
+                    "- Distinguish user actions vs system actions\n"
+                    "- Some flows may have legacy phase names as status\n\n"
+                    "Tool Usage Examples:\n"
+                    "- flow_context_analyzer: use with actual flow_id\n"
+                    "- flow_status_analyzer: pass actual flow_id and context data\n"
+                    "- Never pass placeholder strings like current_flow_id"
+                ),
                 tools=[
                     self.flow_context_tool,
                     self.flow_status_tool,
@@ -112,43 +122,34 @@ class IntelligentFlowAgent:
                     self.navigation_tool,
                 ],
                 verbose=True,
-                memory=False,  # Disable memory to prevent APIStatusError
+                memory=enable_memory,
                 llm=get_crewai_llm(),
             )
 
             # Create task
             self.task = Task(
-                description="""Analyze the discovery flow and provide intelligent routing guidance.
-
-You will receive these inputs:
-- flow_id: The actual UUID of the flow to analyze
-- client_account_id: The client's account UUID
-- engagement_id: The engagement UUID
-- user_id: The user's UUID
-
-IMPORTANT: These are real values, not placeholders. Use them directly in your tool calls.
-
-Analysis Steps:
-1. Use flow_context_analyzer with the actual flow_id and other values from inputs
-2. Use flow_status_analyzer with the actual flow_id and context_data from step 1
-3. Analyze the results to understand the flow's current state
-4. Based on the flow status, determine the appropriate next steps
-5. If flow exists and needs validation, use phase_validator
-6. Make intelligent routing decisions based on your analysis
-
-Key Decision Points:
-- If a flow doesn't exist (not_found), guide user to upload data
-- If a flow exists but has incomplete phases, guide to complete them
-- If a flow has validation errors, provide specific resolution steps
-- Always provide actionable, specific guidance
-
-Your response should include:
-- routing_decision: The specific page/route for the user
-- user_guidance: Clear, actionable instructions
-- reasoning: Your analysis of the situation
-- next_actions: List of specific steps the user can take""",
+                description=(
+                    "Analyze the discovery flow and provide intelligent routing guidance.\n\n"
+                    "Inputs (actual values, not placeholders):\n"
+                    "- flow_id, client_account_id, engagement_id, user_id\n\n"
+                    "Analysis Steps:\n"
+                    "1. flow_context_analyzer with actual flow_id\n"
+                    "2. flow_status_analyzer with actual flow_id and context_data\n"
+                    "3. Analyze results to understand current state\n"
+                    "4. Determine appropriate next steps\n"
+                    "5. Use phase_validator if validation needed\n"
+                    "6. Make routing decisions based on analysis\n\n"
+                    "Key Decisions:\n"
+                    "- If not_found → guide to data upload\n"
+                    "- If incomplete phases → guide to complete\n"
+                    "- If validation errors → provide specific resolution\n\n"
+                    "Response must include routing_decision, user_guidance, reasoning, next_actions"
+                ),
                 agent=self.agent,
-                expected_output="A comprehensive flow analysis with specific routing decision and actionable user guidance",
+                expected_output=(
+                    "Comprehensive flow analysis with specific routing decision and "
+                    "actionable user guidance"
+                ),
             )
 
             # Create crew
@@ -156,7 +157,7 @@ Your response should include:
                 agents=[self.agent],
                 tasks=[self.task],
                 process=Process.sequential,
-                memory=False,  # Disable memory to prevent APIStatusError
+                memory=enable_memory,
                 verbose=True,
             )
 
@@ -325,8 +326,14 @@ Your response should include:
                     flow_type="discovery",
                     current_phase="not_found",
                     routing_decision="/discovery/data-import",
-                    user_guidance="FLOW NOT FOUND: This discovery flow does not exist. Please start a new discovery flow by uploading your CMDB or asset data file.",
-                    reasoning="Flow ID not found in database. User needs to initiate a new discovery flow by uploading data.",
+                    user_guidance=(
+                        "FLOW NOT FOUND: This discovery flow does not exist. Please start "
+                        "a new discovery flow by uploading your CMDB or asset data file."
+                    ),
+                    reasoning=(
+                        "Flow ID not found in database. User needs to initiate a new "
+                        "discovery flow by uploading data."
+                    ),
                     confidence=1.0,
                     next_actions=[
                         "Go to the Data Import page",
@@ -351,8 +358,14 @@ Your response should include:
                     flow_type="discovery",
                     current_phase="data_import",
                     routing_decision="/discovery/data-import",
-                    user_guidance="NO DATA FOUND: This flow exists but contains no data. Please upload your CMDB or asset data to begin the discovery process.",
-                    reasoning="Flow exists but has no raw data or field mappings. Data import phase needs to be completed.",
+                    user_guidance=(
+                        "NO DATA FOUND: This flow exists but contains no data. Please "
+                        "upload your CMDB or asset data to begin the discovery process."
+                    ),
+                    reasoning=(
+                        "Flow exists but has no raw data or field mappings. Data import "
+                        "phase needs to be completed."
+                    ),
                     confidence=0.9,
                     next_actions=[
                         "Go to the Data Import page",
@@ -374,7 +387,10 @@ Your response should include:
                     flow_type="discovery",
                     current_phase=current_phase,
                     routing_decision="/discovery/data-import",
-                    user_guidance="DATA IMPORT IN PROGRESS: Your data is being processed. Please wait for completion or check for any import errors.",
+                    user_guidance=(
+                        "DATA IMPORT IN PROGRESS: Your data is being processed. Please "
+                        "wait for completion or check for any import errors."
+                    ),
                     reasoning="Data import phase is not yet complete.",
                     confidence=0.8,
                     next_actions=[
@@ -392,7 +408,10 @@ Your response should include:
                     flow_type="discovery",
                     current_phase=current_phase,
                     routing_decision=f"/discovery/attribute-mapping?flow_id={flow_id}",
-                    user_guidance="ATTRIBUTE MAPPING NEEDED: Review and configure how your data fields map to standard asset attributes.",
+                    user_guidance=(
+                        "ATTRIBUTE MAPPING NEEDED: Review and configure how your data "
+                        "fields map to standard asset attributes."
+                    ),
                     reasoning="Data import complete, attribute mapping phase active.",
                     confidence=0.9,
                     next_actions=[
@@ -410,7 +429,10 @@ Your response should include:
                 flow_type="discovery",
                 current_phase=current_phase,
                 routing_decision="/discovery/overview",
-                user_guidance=f"FLOW ANALYSIS: Current phase is {current_phase} ({progress}% complete). Continue with the discovery process.",
+                user_guidance=(
+                    f"FLOW ANALYSIS: Current phase is {current_phase} ({progress}% "
+                    "complete). Continue with the discovery process."
+                ),
                 reasoning=f"Flow in {current_phase} phase with {progress}% completion.",
                 confidence=0.7,
                 next_actions=[
@@ -428,7 +450,10 @@ Your response should include:
                 flow_type="discovery",
                 current_phase="unknown",
                 routing_decision="/discovery/data-import",
-                user_guidance="SYSTEM ERROR: Unable to analyze flow. Please start a new discovery flow by uploading data.",
+                user_guidance=(
+                    "SYSTEM ERROR: Unable to analyze flow. Please start a new discovery "
+                    "flow by uploading data."
+                ),
                 reasoning=f"Analysis failed due to system error: {str(e)}",
                 confidence=0.0,
                 next_actions=[
