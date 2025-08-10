@@ -5,7 +5,7 @@ Provides real-time observability into agent status, task execution, and registry
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Dict, Optional, Any, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -18,6 +18,136 @@ from .base import get_monitoring_context
 logger = enhanced_get_logger(__name__)
 
 router = APIRouter()
+
+
+def _safe_get_dict_value(
+    data: Dict[str, Any], key: str, default: Any = None, expected_type: type = None
+) -> Any:
+    """Safely get a value from a dictionary with type checking.
+
+    Args:
+        data: Dictionary to access
+        key: Key to retrieve
+        default: Default value if key doesn't exist
+        expected_type: Expected type for validation
+
+    Returns:
+        Value from dictionary or default if not found/invalid type
+    """
+    if not isinstance(data, dict):
+        logger.warning(f"Expected dict for safe access, got {type(data)}")
+        return default
+
+    value = data.get(key, default)
+
+    if expected_type and value is not None and not isinstance(value, expected_type):
+        logger.warning(
+            f"Expected {expected_type} for key '{key}', got {type(value)}. Using default."
+        )
+        return default
+
+    return value
+
+
+def _safe_get_nested_dict_value(
+    data: Dict[str, Any], keys: List[str], default: Any = None
+) -> Any:
+    """Safely get a nested value from a dictionary.
+
+    Args:
+        data: Dictionary to access
+        keys: List of keys for nested access
+        default: Default value if any key doesn't exist
+
+    Returns:
+        Value from nested dictionary or default if not found
+    """
+    current = data
+    for key in keys:
+        if not isinstance(current, dict) or key not in current:
+            return default
+        current = current[key]
+    return current
+
+
+def _validate_status_report(status_report: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate and sanitize status report data.
+
+    Args:
+        status_report: Raw status report from agent monitor
+
+    Returns:
+        Sanitized status report with safe defaults
+    """
+    if not isinstance(status_report, dict):
+        logger.error("Status report is not a dictionary, using defaults")
+        return {
+            "monitoring_active": False,
+            "active_tasks": 0,
+            "completed_tasks": 0,
+            "hanging_tasks": 0,
+            "active_task_details": [],
+            "hanging_task_details": [],
+            "completed_task_details": [],
+        }
+
+    return {
+        "monitoring_active": _safe_get_dict_value(
+            status_report, "monitoring_active", False, bool
+        ),
+        "active_tasks": _safe_get_dict_value(status_report, "active_tasks", 0, int),
+        "completed_tasks": _safe_get_dict_value(
+            status_report, "completed_tasks", 0, int
+        ),
+        "hanging_tasks": _safe_get_dict_value(status_report, "hanging_tasks", 0, int),
+        "active_task_details": _safe_get_dict_value(
+            status_report, "active_task_details", [], list
+        ),
+        "hanging_task_details": _safe_get_dict_value(
+            status_report, "hanging_task_details", [], list
+        ),
+        "completed_task_details": _safe_get_dict_value(
+            status_report, "completed_task_details", [], list
+        ),
+    }
+
+
+def _validate_registry_status(registry_status: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate and sanitize registry status data.
+
+    Args:
+        registry_status: Raw registry status data
+
+    Returns:
+        Sanitized registry status with safe defaults
+    """
+    if not isinstance(registry_status, dict):
+        logger.error("Registry status is not a dictionary, using defaults")
+        return {
+            "total_agents": 0,
+            "active_agents": 0,
+            "learning_enabled_agents": 0,
+            "cross_page_communication_agents": 0,
+            "modular_handler_agents": 0,
+            "phase_distribution": {},
+        }
+
+    return {
+        "total_agents": _safe_get_dict_value(registry_status, "total_agents", 0, int),
+        "active_agents": _safe_get_dict_value(registry_status, "active_agents", 0, int),
+        "learning_enabled_agents": _safe_get_dict_value(
+            registry_status, "learning_enabled_agents", 0, int
+        ),
+        "cross_page_communication_agents": _safe_get_dict_value(
+            registry_status, "cross_page_communication_agents", 0, int
+        ),
+        "modular_handler_agents": _safe_get_dict_value(
+            registry_status, "modular_handler_agents", 0, int
+        ),
+        "phase_distribution": _safe_get_dict_value(
+            registry_status, "phase_distribution", {}, dict
+        ),
+    }
 
 
 @router.get("/status")
@@ -35,14 +165,22 @@ async def get_agent_status(
     Enhanced with individual agent performance data when requested.
     """
     try:
-        # Get monitoring status
-        status_report = agent_monitor.get_status_report()
+        # Get monitoring status with validation
+        raw_status_report = agent_monitor.get_status_report()
+        status_report = _validate_status_report(raw_status_report)
 
-        # Get comprehensive registry data
-        registry_status = agent_registry.get_registry_status()
+        # Get comprehensive registry data with validation
+        raw_registry_status = agent_registry.get_registry_status()
+        registry_status = _validate_registry_status(raw_registry_status)
 
-        # Get agent capabilities from registry
-        agent_capabilities = agent_registry.get_agent_capabilities_formatted()
+        # Get agent capabilities from registry with error handling
+        try:
+            agent_capabilities = agent_registry.get_agent_capabilities_formatted()
+            if not isinstance(agent_capabilities, (list, dict)):
+                agent_capabilities = []
+        except Exception as cap_error:
+            logger.warning(f"Could not fetch agent capabilities: {cap_error}")
+            agent_capabilities = []
 
         # Get system status from CrewAI service (fallback)
         system_status = {}
@@ -136,7 +274,8 @@ async def get_task_history(
         List of recent task executions with details
     """
     try:
-        status_report = agent_monitor.get_status_report()
+        raw_status_report = agent_monitor.get_status_report()
+        status_report = _validate_status_report(raw_status_report)
 
         # Filter by agent if specified
         tasks = status_report.get("completed_task_details", [])
@@ -247,7 +386,14 @@ def _build_agent_info_from_registry(agent, is_working: bool) -> dict:
 
 def _get_agents_from_registry(agent_details_by_phase: dict, status_report: dict):
     """Get agents from agent registry and add to agent_details_by_phase."""
-    active_agents = {task["agent"] for task in status_report["active_task_details"]}
+    # Safely get active agents from task details
+    active_task_details = _safe_get_dict_value(
+        status_report, "active_task_details", [], list
+    )
+    active_agents = set()
+    for task in active_task_details:
+        if isinstance(task, dict) and "agent" in task:
+            active_agents.add(task["agent"])
 
     for phase in AgentPhase:
         phase_agents = agent_registry.get_agents_by_phase(phase)
@@ -308,28 +454,49 @@ def _determine_crew_phase(crew_type: str) -> str:
 def _create_crew_agent_info(crew_type: str, crew_info: dict, agent, i: int) -> dict:
     """Create agent info for a crew agent."""
     crew_phase = _determine_crew_phase(crew_type)
+
+    # Safely get crew info values with defaults
+    crew_name = _safe_get_dict_value(
+        crew_info, "name", f"Unknown Crew {crew_type}", str
+    )
+    crew_description = _safe_get_dict_value(
+        crew_info, "description", "Phase 2 crew-based agent", str
+    )
+
+    # Safely get agent attributes
+    agent_role = getattr(agent, "role", f"Crew Agent {i+1}")
+    agent_backstory = getattr(agent, "backstory", "")
+    agent_tools = getattr(agent, "tools", [])
+
+    # Safely format backstory with length check
+    specialization = ""
+    if isinstance(agent_backstory, str) and agent_backstory:
+        specialization = (
+            agent_backstory[:100] + "..."
+            if len(agent_backstory) > 100
+            else agent_backstory
+        )
+
     return {
         "agent_id": f"{crew_type}_agent_{i+1}",
-        "name": f"{crew_info['name']} Agent {i+1}",
-        "role": getattr(agent, "role", f"Crew Agent {i+1}"),
-        "expertise": crew_info.get("description", "Phase 2 crew-based agent"),
-        "specialization": (
-            getattr(agent, "backstory", "")[:100] + "..."
-            if len(getattr(agent, "backstory", "")) > 100
-            else getattr(agent, "backstory", "")
-        ),
+        "name": f"{crew_name} Agent {i+1}",
+        "role": agent_role,
+        "expertise": crew_description,
+        "specialization": specialization,
         "key_skills": [
             crew_type.replace("_", " ").title(),
             "Crew Collaboration",
             "Task Execution",
         ],
         "capabilities": [
-            f"Tools: {len(getattr(agent, 'tools', []))}",
+            f"Tools: {len(agent_tools) if isinstance(agent_tools, list) else 0}",
             "CrewAI Integration",
             "Phase 2 System",
         ],
-        "api_endpoints": [f"/api/v1/crews/{crew_type}/status"],
-        "description": f"Phase 2 crew-based agent from {crew_info['name']} crew",
+        "api_endpoints": [
+            f"/api/v1/crews/{crew_type}/status"
+        ],  # NOTE: May need router verification
+        "description": f"Phase 2 crew-based agent from {crew_name} crew",
         "version": "2.0.0",
         "source": "phase2_crew_system",
         "crew_type": crew_type,
@@ -421,7 +588,9 @@ def _add_fallback_agents(agent_details_by_phase: dict, crew_type: str):
                 "Phase 2 System",
                 "Crew-based Processing",
             ],
-            "api_endpoints": [f"/api/v1/crews/{crew_type}/status"],
+            "api_endpoints": [
+                f"/api/v1/crews/{crew_type}/status"
+            ],  # NOTE: May need router verification
             "description": f"Phase 2 fallback agent for {crew_type} crew",
             "version": "2.0.0",
             "source": "phase2_crew_system_fallback",
@@ -478,7 +647,9 @@ def _add_individual_flow_agents(agent_details_by_phase: dict):
                 "Discovery Flow Integration",
                 "Real-time Validation",
             ],
-            "api_endpoints": ["/api/v1/flows/data-import/validate"],
+            "api_endpoints": [
+                "/api/v1/flows/data-import/validate"
+            ],  # NOTE: May need router verification
             "description": "Individual specialized agent from Discovery Flow Redesign",
             "status": "active",
             "source": "individual_flow_agents",
@@ -500,7 +671,9 @@ def _add_individual_flow_agents(agent_details_by_phase: dict):
                 "Discovery Flow Integration",
                 "Learning Enabled",
             ],
-            "api_endpoints": ["/api/v1/flows/attribute-mapping"],
+            "api_endpoints": [
+                "/api/v1/flows/attribute-mapping"
+            ],  # NOTE: May need router verification
             "description": "Individual specialized agent from Discovery Flow Redesign",
             "status": "active",
             "source": "individual_flow_agents",
@@ -522,7 +695,9 @@ def _add_individual_flow_agents(agent_details_by_phase: dict):
                 "Discovery Flow Integration",
                 "Quality Intelligence",
             ],
-            "api_endpoints": ["/api/v1/flows/data-cleansing"],
+            "api_endpoints": [
+                "/api/v1/flows/data-cleansing"
+            ],  # NOTE: May need router verification
             "description": "Individual specialized agent from Discovery Flow Redesign",
             "status": "active",
             "source": "individual_flow_agents",
@@ -584,40 +759,60 @@ def _calculate_summary_statistics(agent_details_by_phase: dict) -> dict:
     """Calculate summary statistics for all agents."""
     all_agents = []
     for phase_data in agent_details_by_phase.values():
-        all_agents.extend(phase_data["agents"])
+        if isinstance(phase_data, dict) and "agents" in phase_data:
+            agents_list = phase_data["agents"]
+            if isinstance(agents_list, list):
+                all_agents.extend(agents_list)
+
+    # Count agents by all possible statuses from AgentStatus enum
+    status_counts = {
+        "active": 0,
+        "standby": 0,
+        "busy": 0,
+        "error": 0,
+        "maintenance": 0,
+        "planned": 0,
+        "in_development": 0,
+        "unknown": 0,  # For any unexpected statuses
+    }
+
+    for agent in all_agents:
+        if isinstance(agent, dict):
+            status_info = _safe_get_dict_value(agent, "status", {}, dict)
+            current_status = _safe_get_dict_value(
+                status_info, "current_status", "unknown", str
+            )
+
+            # Count by status, defaulting to 'unknown' for unexpected values
+            if current_status in status_counts:
+                status_counts[current_status] += 1
+            else:
+                status_counts["unknown"] += 1
+                logger.warning(f"Unexpected agent status encountered: {current_status}")
+
+    # Count feature usage with safe access
+    feature_counts = {
+        "learning_enabled": 0,
+        "cross_page_communication": 0,
+        "modular_handlers": 0,
+    }
+
+    for agent in all_agents:
+        if isinstance(agent, dict):
+            features = _safe_get_dict_value(agent, "features", {}, dict)
+            for feature_name in feature_counts.keys():
+                if _safe_get_dict_value(features, feature_name, False, bool):
+                    feature_counts[feature_name] += 1
 
     return {
         "total_agents": len(all_agents),
         "by_phase": {
-            phase: data["total_agents"]
+            phase: _safe_get_dict_value(data, "total_agents", 0, int)
             for phase, data in agent_details_by_phase.items()
+            if isinstance(data, dict)
         },
-        "by_status": {
-            "active": len(
-                [a for a in all_agents if a["status"]["current_status"] == "active"]
-            ),
-            "planned": len(
-                [a for a in all_agents if a["status"]["current_status"] == "planned"]
-            ),
-            "in_development": len(
-                [
-                    a
-                    for a in all_agents
-                    if a["status"]["current_status"] == "in_development"
-                ]
-            ),
-        },
-        "features": {
-            "learning_enabled": len(
-                [a for a in all_agents if a["features"]["learning_enabled"]]
-            ),
-            "cross_page_communication": len(
-                [a for a in all_agents if a["features"]["cross_page_communication"]]
-            ),
-            "modular_handlers": len(
-                [a for a in all_agents if a["features"]["modular_handlers"]]
-            ),
-        },
+        "by_status": status_counts,
+        "features": feature_counts,
     }
 
 
@@ -625,11 +820,13 @@ def _process_single_crew(agent_details_by_phase: dict, crew_type: str, crew_fact
     """Process a single crew type and add its agents."""
     try:
         crew_info = crew_factory.get_crew_info(crew_type)
-        if not crew_info:
+        if not crew_info or not isinstance(crew_info, dict):
+            logger.warning(f"Invalid or missing crew info for {crew_type}")
             return
 
         crew = crew_factory.create_crew(crew_type)
         if not crew:
+            logger.warning(f"Could not create crew for {crew_type}")
             return
 
         try:
@@ -692,8 +889,9 @@ async def get_agent_details():
     try:
         agent_details_by_phase = {}
 
-        # Get status report once for all registry operations
-        status_report = agent_monitor.get_status_report()
+        # Get status report once for all registry operations with validation
+        raw_status_report = agent_monitor.get_status_report()
+        status_report = _validate_status_report(raw_status_report)
 
         # 1. GET AGENTS FROM AGENT REGISTRY
         _get_agents_from_registry(agent_details_by_phase, status_report)

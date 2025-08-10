@@ -9,8 +9,13 @@ import sys
 import json
 import subprocess
 import shutil
+import tempfile
+import stat
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse, unquote
+from contextlib import contextmanager
+from typing import Dict, Any
 
 # Add backend path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -22,6 +27,106 @@ try:
 except ImportError:
     ASYNC_AVAILABLE = False
     print("⚠️  Async database imports unavailable - database backup will be manual")
+
+
+class SecureCredentialHandler:
+    """Secure credential handling for database operations."""
+
+    @staticmethod
+    @contextmanager
+    def create_pgpass_file(
+        host: str, port: str, database: str, username: str, password: str
+    ):
+        """Create temporary .pgpass file with secure permissions."""
+        pgpass_content = f"{host}:{port}:{database}:{username}:{password}\n"
+
+        # Create temporary file with secure permissions
+        fd, temp_pgpass = tempfile.mkstemp(prefix="pgpass_", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w") as f:
+                f.write(pgpass_content)
+
+            # Set secure permissions (read/write for owner only)
+            os.chmod(temp_pgpass, stat.S_IRUSR | stat.S_IWUSR)
+
+            # Set PGPASSFILE environment variable
+            original_pgpassfile = os.environ.get("PGPASSFILE")
+            os.environ["PGPASSFILE"] = temp_pgpass
+
+            yield temp_pgpass
+
+        finally:
+            # Clean up
+            if original_pgpassfile is not None:
+                os.environ["PGPASSFILE"] = original_pgpassfile
+            elif "PGPASSFILE" in os.environ:
+                del os.environ["PGPASSFILE"]
+
+            # Securely remove temporary file
+            try:
+                os.unlink(temp_pgpass)
+            except OSError:
+                pass
+
+    @staticmethod
+    def parse_database_url(db_url: str) -> Dict[str, str]:
+        """Securely parse database URL with proper error handling."""
+        if not db_url:
+            raise ValueError("Database URL is empty")
+
+        try:
+            # Parse URL using urllib.parse for proper handling
+            parsed = urlparse(db_url)
+
+            if parsed.scheme not in ("postgresql", "postgres"):
+                raise ValueError(f"Unsupported database scheme: {parsed.scheme}")
+
+            if not parsed.hostname:
+                raise ValueError("Database hostname not found in URL")
+
+            # Extract and decode URL components
+            host = parsed.hostname
+            port = str(parsed.port) if parsed.port else "5432"
+            database = parsed.path.lstrip("/") if parsed.path else "postgres"
+            username = unquote(parsed.username) if parsed.username else ""
+            password = unquote(parsed.password) if parsed.password else ""
+
+            # Validate required components
+            if not username:
+                raise ValueError("Database username not found in URL")
+
+            return {
+                "host": host,
+                "port": port,
+                "database": database,
+                "username": username,
+                "password": password,
+            }
+
+        except Exception as e:
+            # Sanitize error message to avoid credential exposure
+            if "password" in str(e).lower() or "@" in str(e):
+                raise ValueError("Failed to parse database URL: Invalid URL format")
+            raise ValueError(f"Failed to parse database URL: {str(e)}")
+
+    @staticmethod
+    def sanitize_error_message(error_msg: str) -> str:
+        """Remove potential credentials from error messages."""
+        import re
+
+        # Remove patterns that might contain credentials
+        patterns = [
+            r"password[=:]\s*[^\s]+",
+            r"://[^@]*:[^@]*@",  # Remove user:pass@ from URLs
+            r"PGPASSWORD[=:]\s*[^\s]+",
+            r"--password[=\s]+[^\s]+",
+        ]
+
+        sanitized = error_msg
+        for pattern in patterns:
+            sanitized = re.sub(pattern, "[REDACTED]", sanitized, flags=re.IGNORECASE)
+
+        return sanitized
 
 
 class SystemBackupManager:
@@ -106,7 +211,7 @@ class SystemBackupManager:
             return {"status": "failed", "error": error}
 
     def backup_database(self) -> dict:
-        """Create database backup using pg_dump."""
+        """Create database backup using pg_dump with secure credential handling."""
         print("🗄️  Backing up database...")
 
         db_backup = self.backup_dir / "database"
@@ -115,54 +220,42 @@ class SystemBackupManager:
         try:
             # Extract database connection info from environment or settings
             db_url = os.getenv("DATABASE_URL")
+            if not db_url and ASYNC_AVAILABLE and hasattr(settings, "DATABASE_URL"):
+                db_url = settings.DATABASE_URL
+
             if not db_url:
-                if hasattr(settings, "DATABASE_URL"):
-                    db_url = settings.DATABASE_URL
-                else:
-                    return {"status": "skipped", "reason": "DATABASE_URL not found"}
+                return {"status": "skipped", "reason": "DATABASE_URL not found"}
 
-            # Parse database URL for pg_dump
-            # Format: postgresql://user:password@host:port/database
-            if "postgresql://" in db_url or "postgres://" in db_url:
-                url_parts = db_url.replace("postgresql://", "").replace(
-                    "postgres://", ""
-                )
+            # Parse database URL using secure parser
+            try:
+                db_params = SecureCredentialHandler.parse_database_url(db_url)
+            except ValueError as e:
+                error = f"Database URL parsing failed: {str(e)}"
+                self.errors.append(error)
+                return {"status": "failed", "error": error}
 
-                # Extract connection components (basic parsing)
-                if "@" in url_parts:
-                    auth_part, host_part = url_parts.split("@", 1)
-                    if ":" in auth_part:
-                        username, password = auth_part.split(":", 1)
-                    else:
-                        username, password = auth_part, ""
+            # Create backup file path
+            backup_file = db_backup / f"database_backup_{self.timestamp}.sql"
 
-                    if "/" in host_part:
-                        host_port, database = host_part.split("/", 1)
-                        if ":" in host_port:
-                            host, port = host_port.split(":", 1)
-                        else:
-                            host, port = host_port, "5432"
-                    else:
-                        host, port, database = host_part, "5432", "postgres"
-                else:
-                    return {"status": "failed", "error": "Cannot parse DATABASE_URL"}
-
-                # Create pg_dump command
-                backup_file = db_backup / f"database_backup_{self.timestamp}.sql"
-
-                env = os.environ.copy()
-                env["PGPASSWORD"] = password
-
+            # Use secure credential handling with temporary .pgpass file
+            with SecureCredentialHandler.create_pgpass_file(
+                host=db_params["host"],
+                port=db_params["port"],
+                database=db_params["database"],
+                username=db_params["username"],
+                password=db_params["password"],
+            ):
+                # Create pg_dump command without credentials in command line or environment
                 cmd = [
                     "pg_dump",
                     "-h",
-                    host,
+                    db_params["host"],
                     "-p",
-                    port,
+                    db_params["port"],
                     "-U",
-                    username,
+                    db_params["username"],
                     "-d",
-                    database,
+                    db_params["database"],
                     "--verbose",
                     "--no-owner",
                     "--no-privileges",
@@ -170,7 +263,13 @@ class SystemBackupManager:
                     str(backup_file),
                 ]
 
-                result = subprocess.run(cmd, env=env, capture_output=True, text=True)
+                # Run pg_dump with clean environment (no credential exposure)
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    env=os.environ.copy(),  # Uses PGPASSFILE set by context manager
+                )
 
                 if result.returncode == 0:
                     # Get backup file size
@@ -181,20 +280,22 @@ class SystemBackupManager:
                         "backup_file": str(backup_file),
                         "size_bytes": backup_size,
                         "size_mb": round(backup_size / 1024 / 1024, 2),
+                        "host": db_params["host"],  # Safe to include non-sensitive info
+                        "database": db_params["database"],
                     }
                 else:
-                    error = f"pg_dump failed: {result.stderr}"
+                    # Sanitize error message to remove potential credentials
+                    sanitized_error = SecureCredentialHandler.sanitize_error_message(
+                        result.stderr
+                    )
+                    error = f"pg_dump failed: {sanitized_error}"
                     self.errors.append(error)
                     return {"status": "failed", "error": error}
 
-            else:
-                return {
-                    "status": "skipped",
-                    "reason": "Unsupported database URL format",
-                }
-
         except Exception as e:
-            error = f"Database backup failed: {str(e)}"
+            # Sanitize error message to prevent credential exposure
+            sanitized_error = SecureCredentialHandler.sanitize_error_message(str(e))
+            error = f"Database backup failed: {sanitized_error}"
             self.errors.append(error)
             return {"status": "failed", "error": error}
 
@@ -306,19 +407,26 @@ class SystemBackupManager:
         """Create a manifest file describing the backup contents."""
         print("📋 Creating backup manifest...")
 
+        # Sanitize results to remove sensitive information
+        sanitized_results = self._sanitize_results_for_manifest(self.results)
+        sanitized_errors = [
+            SecureCredentialHandler.sanitize_error_message(error)
+            for error in self.errors
+        ]
+
         manifest = {
             "backup_timestamp": self.timestamp,
             "backup_directory": str(self.backup_dir),
             "created_by": "create_full_backup.py",
             "purpose": "Pre-legacy-cleanup backup",
-            "components": self.results,
-            "errors": self.errors,
-            "total_errors": len(self.errors),
+            "components": sanitized_results,
+            "errors": sanitized_errors,
+            "total_errors": len(sanitized_errors),
         }
 
         manifest_file = self.backup_dir / "backup_manifest.json"
         with open(manifest_file, "w") as f:
-            json.dump(manifest, f, indent=2, default=str)
+            json.dump(manifest, f, indent=2, default=self._safe_json_serializer)
 
         # Also create a README
         readme_content = f"""# System Backup - {self.timestamp}
@@ -366,6 +474,40 @@ Created by: CC Specialized Agents
             "manifest_file": str(manifest_file),
             "readme_file": str(readme_file),
         }
+
+    def _sanitize_results_for_manifest(self, results: Dict[str, Any]) -> Dict[str, Any]:
+        """Remove sensitive information from results before including in manifest."""
+        sanitized = {}
+        sensitive_keys = {"password", "auth", "credential", "secret", "token"}
+
+        for component, result in results.items():
+            if isinstance(result, dict):
+                sanitized_result = {}
+                for key, value in result.items():
+                    # Skip sensitive keys
+                    if any(
+                        sensitive_key in key.lower() for sensitive_key in sensitive_keys
+                    ):
+                        sanitized_result[key] = "[REDACTED]"
+                    elif isinstance(value, str):
+                        # Sanitize string values that might contain credentials
+                        sanitized_result[key] = (
+                            SecureCredentialHandler.sanitize_error_message(value)
+                        )
+                    else:
+                        sanitized_result[key] = value
+                sanitized[component] = sanitized_result
+            else:
+                sanitized[component] = result
+
+        return sanitized
+
+    def _safe_json_serializer(self, obj) -> str:
+        """Safe JSON serializer that doesn't expose sensitive object representations."""
+        if hasattr(obj, "__dict__"):
+            # For custom objects, return a safe representation
+            return f"<{type(obj).__name__} object>"
+        return str(obj)
 
     def _calculate_backup_size(self) -> float:
         """Calculate total backup directory size."""
