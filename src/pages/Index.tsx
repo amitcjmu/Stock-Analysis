@@ -49,7 +49,7 @@ const Index = (): JSX.Element => {
   // Primary modules (2 rows x 3 cols): Discovery, Assess, Plan, Execute, Modernize, Decommission
   const primaryPhases = [
     {
-      title: 'Discovery',
+      title: 'Discovery/Collection',
       description: 'Discover and inventory your applications and infrastructure',
       icon: Search,
       path: '/discovery',
@@ -58,7 +58,7 @@ const Index = (): JSX.Element => {
     },
     {
       title: 'Assess',
-      description: '6R treatments, migration grouping, and wave planning',
+      description: 'Understand Tech Debt and cloud readiness of app inventory',
       icon: FileText,
       path: '/assess',
       color: 'bg-blue-500',
@@ -66,7 +66,7 @@ const Index = (): JSX.Element => {
     },
     {
       title: 'Plan',
-      description: 'Create detailed migration plans and timelines',
+      description: 'Prepare migration grouping, wave planning and resourcing',
       icon: Building2,
       path: '/plan',
       color: 'bg-purple-500',
@@ -74,7 +74,7 @@ const Index = (): JSX.Element => {
     },
     {
       title: 'Execute',
-      description: 'Execute migration tasks and monitor progress',
+      description: 'Lift and Shift (P2V, V2V, IaaS)',
       icon: Wrench,
       path: '/execute',
       color: 'bg-orange-500',
@@ -82,7 +82,7 @@ const Index = (): JSX.Element => {
     },
     {
       title: 'Modernize',
-      description: 'Modernize applications post-migration',
+      description: 'Modernize and Cloud Native treatments (PaaS, SaaS)',
       icon: Sparkles,
       path: '/modernize',
       color: 'bg-indigo-500',
@@ -90,7 +90,7 @@ const Index = (): JSX.Element => {
     },
     {
       title: 'Decommission',
-      description: 'Safely decommission legacy systems',
+      description: 'Safely retire legacy and migrated assets',
       icon: Archive,
       path: '/decommission',
       color: 'bg-red-500',

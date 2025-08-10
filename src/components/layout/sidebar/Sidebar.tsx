@@ -106,10 +106,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       submenu: [
         { name: 'Overview', path: '/assess/overview', icon: FileText },
         { name: 'Treatment', path: '/assess/treatment', icon: ClipboardList },
-        // Tech Debt deep route should only be accessed when a flow is active; hide the dynamic path from static menu
-        // { name: 'Tech Debt', path: '/assessment/:flowId/tech-debt', icon: ShieldAlert },
-        { name: 'Wave Planning', path: '/assess/waveplanning', icon: Calendar },
-        { name: 'Roadmap', path: '/assess/roadmap', icon: Route },
+        { name: 'Tech Debt', path: '/assess/tech-debt', icon: ShieldAlert },
         { name: 'Editor', path: '/assess/editor', icon: Edit },
         { name: 'Assessment Flow', path: '/assess/overview', icon: GitBranch }
       ]
@@ -121,6 +118,8 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       hasSubmenu: true,
       submenu: [
         { name: 'Overview', path: '/plan/overview', icon: Building2 },
+        { name: 'Wave Planning', path: '/plan/waveplanning', icon: Calendar },
+        { name: 'Roadmap', path: '/plan/roadmap', icon: Route },
         { name: 'Timeline', path: '/plan/timeline', icon: Clock },
         { name: 'Resource', path: '/plan/resource', icon: Users },
         { name: 'Target', path: '/plan/target', icon: Target }
