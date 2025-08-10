@@ -16,7 +16,6 @@ from .handlers.field_handler import router as field_handler
 
 # from .handlers.legacy_upload_handler import router as legacy_upload_router  # File doesn't exist
 from .handlers.import_retrieval_handler import router as import_retrieval_router
-from .handlers.import_storage_handler import router as import_storage_handler
 
 # Import agentic intelligence modules
 AGENTIC_AVAILABLE = False
@@ -31,7 +30,6 @@ router = APIRouter()
 router.include_router(clean_api_router, tags=["Clean API"])
 # router.include_router(legacy_upload_router, tags=["Legacy Upload"])  # Router not available - file doesn't exist
 router.include_router(import_retrieval_router, tags=["Import Retrieval"])
-router.include_router(import_storage_handler, tags=["Import Storage"])
 router.include_router(field_handler, tags=["Field Mapping"])
 
 # Critical attributes analysis handled by MasterFlowOrchestrator with real CrewAI agents
@@ -44,9 +42,7 @@ async def health_check():
     """Health check for the modular data import service."""
     handlers = [
         "clean_api_handler",
-        # "legacy_upload_handler",  # File doesn't exist
         "import_retrieval_handler",
-        "import_storage_handler",
         "field_handler",
     ]
 

@@ -55,7 +55,6 @@ class RBACMiddleware:
 
         # Define read-only endpoints (require basic access)
         self.read_only_endpoints = {
-            "/api/v1/discovery",
             "/api/v1/assets",
             "/api/v1/demo/assets",
             "/api/v1/auth/user-profile",
@@ -64,7 +63,6 @@ class RBACMiddleware:
         # Define write endpoints (require write access)
         self.write_endpoints = {
             "/api/v1/data-import",
-            "/api/v1/discovery/data-import",
         }
 
         if not self.rbac_enabled:
@@ -225,7 +223,7 @@ class RBACMiddleware:
             return "admin_console", "manage"
 
         # Client/engagement data endpoints
-        if path.startswith("/api/v1/discovery") or path.startswith("/api/v1/assets"):
+        if path.startswith("/api/v1/assets"):
             if method in ["POST", "PUT", "PATCH", "DELETE"]:
                 return "data", "write"
             else:

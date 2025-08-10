@@ -21,7 +21,9 @@ from app.core.logging import get_logger
 from app.schemas.data_import_schemas import StoreImportRequest
 
 # Import the new modular service
-from app.services.data_import import ImportStorageHandler
+from app.services.data_import.import_service import DataImportService
+from app.services.data_import.import_storage_handler import ImportStorageHandler
+from app.services.data_import.transaction_manager import TransactionManager
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -40,76 +42,31 @@ async def store_import_data(
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context_dependency),
 ) -> Dict[str, Any]:
-    """
-    Store validated import data in the database and trigger Discovery Flow.
 
-    This endpoint receives the validated CSV data and:
-    1. Validates no existing incomplete discovery flow exists
-    2. Stores it in the database
-    3. Triggers the Discovery Flow for immediate processing
-    4. Returns the import session ID for tracking
-
-    Now uses modular service architecture for better maintainability.
-    """
     try:
-        # Initialize the modular import handler
-        import_handler = ImportStorageHandler(db, context.client_account_id)
+        # Use a transaction manager to ensure atomicity
+        transaction_manager = TransactionManager(db, context)
 
-        # Delegate to the modular service
-        response = await import_handler.handle_import(store_request, context)
+        async with transaction_manager.begin() as transactional_db:
+            import_service = DataImportService(transactional_db, context)
 
-        # Handle HTTP exceptions based on response (dict)
-        if not response.get("success") and response.get("error"):
-            # Check if this is a partial success (data stored but flow failed)
-            records_stored = response.get("records_stored", 0)
-            if records_stored > 0 and "Discovery Flow failed" in response.get(
-                "message", ""
-            ):
-                # This is a partial success - data was stored successfully but flow creation failed
-                # Return 200 OK with warning instead of 500 error
-                logger.info(
-                    f"Partial success: {records_stored} records stored, flow creation failed. "
-                    f"Returning success response with warning."
-                )
-                return {
-                    "success": True,  # Change to True since data upload succeeded
-                    "data_import_id": response.get("data_import_id"),
-                    "import_flow_id": response.get("import_flow_id"),
-                    "flow_id": response.get("flow_id"),
-                    "message": f"Successfully uploaded {records_stored} records. "
-                    f"Discovery flow creation will be retried automatically.",
-                    "records_stored": records_stored,
-                    "warning": response.get("error"),  # Include flow error as warning
-                    "partial_success": True,  # Flag for frontend handling
-                }
-            # Check if this is a conflict error
-            elif "incomplete_discovery_flow_exists" in response.get("error", ""):
-                raise HTTPException(
-                    status_code=409,  # Conflict
-                    detail={
-                        "error": "incomplete_discovery_flow_exists",
-                        "message": response.get("message", ""),
-                        "existing_flow": response.get("existing_flow"),
-                        "recommendations": response.get("recommendations"),
-                    },
-                )
-            elif "validation_error" in response.get("error", ""):
-                raise HTTPException(
-                    status_code=400, detail=response.get("message", "")
-                )  # Bad Request
-            else:
-                raise HTTPException(
-                    status_code=500,  # Internal Server Error
-                    detail=response.get("message", ""),
-                )
+            data_import = await import_service.process_import_and_trigger_flow(
+                file_content=store_request.file_content.encode("utf-8"),
+                filename=store_request.filename,
+                file_content_type=store_request.file_content_type,
+                import_type=store_request.import_type,
+            )
 
-        return response
+        return {
+            "success": True,
+            "data_import_id": str(data_import.id),
+            "flow_id": str(data_import.master_flow_id),
+            "message": "Data imported and discovery flow initiated successfully.",
+            "records_stored": data_import.record_count,
+        }
 
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"Failed to store import data: {e}")
-        await db.rollback()
         raise HTTPException(
             status_code=500, detail=f"Failed to store import data: {str(e)}"
         )

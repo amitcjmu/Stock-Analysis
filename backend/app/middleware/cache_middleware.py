@@ -76,7 +76,6 @@ class CacheMiddleware(BaseHTTPMiddleware):
         },
         # Flow data endpoints (moderate volatility)
         r"/api/v1/flows/.*/complete": {"ttl": 300, "cache_type": "flow_state"},
-        r"/api/v1/discovery/flows": {"ttl": 600, "cache_type": "flow_state"},
         # Asset and analysis endpoints (expensive to compute)
         r"/api/v1/assets/.*/inventory": {"ttl": 900, "cache_type": "asset_data"},
         r"/api/v1/assets/.*/dependencies": {"ttl": 1800, "cache_type": "asset_data"},
