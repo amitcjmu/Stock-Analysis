@@ -49,8 +49,8 @@ async def get_context_db():
             await session.close()
 
 
-# FastAPI dependency
-async def get_db():
-    """FastAPI dependency for context-aware database session"""
+# FastAPI dependency (DEPRECATED): use app.core.database.get_db
+async def get_db():  # noqa: D401
+    """Deprecated alias. Use app.core.database.get_db for unified sessions."""
     async with get_context_db() as session:
         yield session

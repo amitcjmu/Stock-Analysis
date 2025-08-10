@@ -30,7 +30,10 @@ async def inspect_assets():
 
     print("\n--- Inspecting Assets in Database ---")
     try:
-        async with SessionLocal() as session:
+        # Use AsyncSessionLocal per async guidelines
+        from app.core.database import AsyncSessionLocal
+
+        async with AsyncSessionLocal() as session:
             result = await session.execute(
                 text("SELECT id, name, client_account_id, engagement_id FROM assets")
             )

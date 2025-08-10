@@ -21,7 +21,7 @@ except ImportError:
 from app.models.asset import Asset, MigrationWave
 from app.models.sixr_analysis import SixRAnalysis
 from app.models.tags import Tag
-from app.repositories.base import ContextAwareRepository
+from app.repositories.context_aware_repository import ContextAwareRepository
 
 logger = logging.getLogger(__name__)
 

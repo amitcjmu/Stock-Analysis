@@ -99,7 +99,7 @@ else:
 
 # Lifespan event handler (replaces deprecated @app.on_event)
 @asynccontextmanager
-async def lifespan(fastapi_app: FastAPI):
+async def lifespan(fastapi_app: FastAPI):  # noqa: C901
     # Startup logic
     logger.info("🚀 Application starting up...")
 
@@ -589,6 +589,17 @@ if ENABLE_MIDDLEWARE:
                 logger.info("✅ Redis cache middleware added")
             except ImportError as e:
                 logger.warning(f"Could not import cache middleware: {e}")
+
+        # Add legacy endpoint guard middleware (executes early, after CORS)
+        try:
+            from app.middleware.legacy_endpoint_guard import (
+                LegacyEndpointGuardMiddleware,
+            )
+
+            fastapi_app.add_middleware(LegacyEndpointGuardMiddleware)
+            logger.info("✅ Legacy endpoint guard middleware added")
+        except Exception as e:
+            logger.warning(f"Could not add legacy endpoint guard: {e}")
 
         logger.info("✅ Middleware loaded successfully")
     except Exception as e:

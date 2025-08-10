@@ -35,7 +35,7 @@ from app.models.assessment_flow_state import (
     ComponentTreatment as ComponentTreatmentState,
 )
 from app.models.assessment_flow_state import SixRDecision as SixRDecisionState
-from app.repositories.base import ContextAwareRepository
+from app.repositories.context_aware_repository import ContextAwareRepository
 
 # Import command handlers
 from .commands import (

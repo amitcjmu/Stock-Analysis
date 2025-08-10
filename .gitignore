@@ -126,3 +126,13 @@ CLAUDE.md
 /docs/database/
 # Temporary validation data
 backend/backend/data/validation_sessions/
+
+# Reports, backups, large artifacts (do not track generated outputs)
+reports/**
+backups/**
+backend/backups/**
+test-results/**
+
+# Data artifacts (keep structure, ignore contents)
+backend/data/**
+!backend/data/.gitkeep

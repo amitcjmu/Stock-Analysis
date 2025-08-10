@@ -94,6 +94,28 @@ class ContextAwareRepository(Generic[ModelType]):
 
         return query
 
+    # Compatibility helper for repositories that operate on multiple models
+    def _apply_context_filter_stmt(
+        self, stmt: Select, model_class: Type[ModelType]
+    ) -> Select:
+        """
+        Apply client and engagement context filters to an arbitrary Select statement
+        using the provided model class. This preserves compatibility with legacy
+        repositories that query multiple models.
+        """
+        filters = []
+
+        if hasattr(model_class, "client_account_id") and self.client_account_id:
+            filters.append(model_class.client_account_id == self.client_account_id)
+
+        if hasattr(model_class, "engagement_id") and self.engagement_id:
+            filters.append(model_class.engagement_id == self.engagement_id)
+
+        if filters:
+            stmt = stmt.where(and_(*filters))
+
+        return stmt
+
     def _apply_context_to_instance(self, instance: ModelType) -> ModelType:
         """
         Apply context values to a model instance before saving.

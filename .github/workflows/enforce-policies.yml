@@ -1,0 +1,38 @@
+name: Enforce Code Policies
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  policy-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Block legacy discovery endpoint usage in app code
+        run: |
+          set -euo pipefail
+          if ! command -v rg >/dev/null 2>&1; then
+            echo "ripgrep (rg) is required for policy checks but not installed." >&2
+            exit 1
+          fi
+          if rg -n "/api/v1/discovery" backend/app backend/src | grep -v README | grep -v tests; then
+            echo "Legacy discovery endpoints found in application code. Use /api/v1/flows or /unified-discovery." >&2
+            exit 1
+          fi
+
+      - name: Block deprecated repository base imports
+        run: |
+          set -euo pipefail
+          if ! command -v rg >/dev/null 2>&1; then
+            echo "ripgrep (rg) is required for policy checks but not installed." >&2
+            exit 1
+          fi
+          if rg -n "from app\.repositories\.base import ContextAwareRepository" backend | grep -v README; then
+            echo "Deprecated ContextAwareRepository import detected. Use app.repositories.context_aware_repository." >&2
+            exit 1
+          fi
