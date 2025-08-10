@@ -19,7 +19,9 @@ class FlowStateAnalysisTool(BaseTool):
 
     name: str = "flow_state_analyzer"
     description: str = (
-        "Analyzes the current state of any flow type (Discovery, Assess, Plan, Execute, etc.) to determine progress and completion status using API validation endpoints"
+        "Analyzes the current state of any flow type (Discovery, Assess, Plan, "
+        "Execute, etc.) using API validation endpoints to determine progress and "
+        "completion status"
     )
 
     # API-based tool - no database access needed
@@ -38,7 +40,11 @@ class FlowStateAnalysisTool(BaseTool):
         try:
             # Use API calls to get flow status instead of direct database access
             result = self._get_flow_status_via_api(flow_id)
-            return f"Flow {flow_id} analysis: Type={result['flow_type']}, Phase={result['current_phase']}, Progress={result['progress_percentage']}%, Status={result['status']}"
+            return (
+                f"Flow {flow_id} analysis: Type={result['flow_type']}, "
+                f"Phase={result['current_phase']}, Progress={result['progress_percentage']}%, "
+                f"Status={result['status']}"
+            )
         except Exception as e:
             logger.error(f"Flow state analysis failed for {flow_id}: {e}")
             return f"Error analyzing flow {flow_id}: {str(e)}"
@@ -169,19 +175,18 @@ class FlowStateAnalysisTool(BaseTool):
                 "X-Engagement-Id": "22222222-2222-2222-2222-222222222222",
             }
 
-            # Try discovery flows first
+            # Try unified flows endpoint first (preferred)
             try:
                 response = requests.get(
-                    f"{self.base_url}/api/v1/discovery/flows",
+                    f"{self.base_url}/api/v1/flows/?flowId={flow_id}",
                     headers=headers,
                     timeout=self.timeout,
                 )
 
                 if response.status_code == 200:
-                    flows = response.json()
-                    for flow in flows:
-                        if flow.get("flow_id") == flow_id or flow.get("id") == flow_id:
-                            return "discovery"
+                    data = response.json()
+                    if data:
+                        return data.get("flow_type", "discovery")
             except Exception:
                 pass
 
