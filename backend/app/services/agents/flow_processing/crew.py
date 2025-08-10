@@ -6,7 +6,6 @@ and routing across all flow types (Discovery, Assess, Plan, Execute, etc.).
 """
 
 import logging
-import os
 from typing import Any, Dict, List
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -69,11 +68,9 @@ class UniversalFlowProcessingCrew:
         llm = get_crewai_llm() if LLM_AVAILABLE else None
 
         # Flow Analysis Agent
-        enable_memory = os.getenv("CREWAI_ENABLE_MEMORY", "false").lower() in {
-            "1",
-            "true",
-            "yes",
-        }
+        from app.core.env_flags import is_truthy_env
+
+        enable_memory = is_truthy_env("CREWAI_ENABLE_MEMORY", default=False)
 
         self.flow_analyst = Agent(
             role="Flow State Analyst",
@@ -142,11 +139,9 @@ class UniversalFlowProcessingCrew:
             self.crew = None
             return
 
-        enable_memory = os.getenv("CREWAI_ENABLE_MEMORY", "false").lower() in {
-            "1",
-            "true",
-            "yes",
-        }
+        from app.core.env_flags import is_truthy_env
+
+        enable_memory = is_truthy_env("CREWAI_ENABLE_MEMORY", default=False)
         self.crew = Crew(
             agents=[
                 self.flow_analyst,

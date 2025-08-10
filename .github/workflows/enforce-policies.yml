@@ -15,7 +15,8 @@ jobs:
 
       - name: Block legacy discovery endpoint usage in app code
         run: |
-          if rg -n "/api/v1/discovery" backend/app src | grep -v README | grep -v tests; then
+          set +e
+          if rg -n "/api/v1/discovery" backend/app backend/src | grep -v README | grep -v tests; then
             echo "Legacy discovery endpoints found in application code. Use /api/v1/flows or /unified-discovery." >&2
             exit 1
           fi

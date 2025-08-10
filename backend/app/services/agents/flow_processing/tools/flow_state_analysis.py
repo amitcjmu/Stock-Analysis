@@ -178,15 +178,19 @@ class FlowStateAnalysisTool(BaseTool):
             # Try unified flows endpoint first (preferred)
             try:
                 response = requests.get(
-                    f"{self.base_url}/api/v1/flows/?flowId={flow_id}",
+                    f"{self.base_url}/api/v1/flows",
                     headers=headers,
+                    params={"flowId": flow_id},
                     timeout=self.timeout,
                 )
 
                 if response.status_code == 200:
                     data = response.json()
-                    if data:
+                    if isinstance(data, dict) and data:
                         return data.get("flow_type", "discovery")
+                    if isinstance(data, list) and data:
+                        first = data[0] if isinstance(data[0], dict) else {}
+                        return first.get("flow_type", "discovery")
             except Exception:
                 pass
 

@@ -87,13 +87,9 @@ class IntelligentFlowAgent:
             self.navigation_tool = NavigationDecisionTool()
 
             # Create agent
-            import os
+            from app.core.env_flags import is_truthy_env
 
-            enable_memory = os.getenv("CREWAI_ENABLE_MEMORY", "false").lower() in {
-                "1",
-                "true",
-                "yes",
-            }
+            enable_memory = is_truthy_env("CREWAI_ENABLE_MEMORY", default=False)
 
             self.agent = Agent(
                 role="Flow Intelligence Specialist",

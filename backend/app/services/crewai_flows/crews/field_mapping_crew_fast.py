@@ -127,13 +127,9 @@ def create_fast_field_mapping_crew(
         )
 
         # 🚀 OPTIMIZED CREW: Sequential process, minimal overhead
-        import os
+        from app.core.env_flags import is_truthy_env
 
-        enable_memory = os.getenv("CREWAI_ENABLE_MEMORY", "false").lower() in {
-            "1",
-            "true",
-            "yes",
-        }
+        enable_memory = is_truthy_env("CREWAI_ENABLE_MEMORY", default=False)
 
         crew = Crew(
             agents=[field_mapping_specialist],

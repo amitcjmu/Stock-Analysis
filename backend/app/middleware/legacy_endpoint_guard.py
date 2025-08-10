@@ -12,6 +12,7 @@ This middleware is intentionally lightweight and early in the stack to prevent h
 """
 
 import os
+from app.core.env_flags import is_truthy_env
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
@@ -22,11 +23,7 @@ class LegacyEndpointGuardMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
         super().__init__(app)
         self.environment = os.getenv("ENVIRONMENT", "development").lower()
-        self.allow_flag = os.getenv("LEGACY_ENDPOINTS_ALLOW", "0") in {
-            "1",
-            "true",
-            "True",
-        }
+        self.allow_flag = is_truthy_env("LEGACY_ENDPOINTS_ALLOW", default=False)
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
