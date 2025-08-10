@@ -2,9 +2,52 @@ import type React from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import { Building2, BarChart3, Eye, Search, FileText, Wrench, Archive, Sparkles } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { apiCall } from '@/config/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { getAuthHeaders } from '@/utils/contextUtils';
+
+const DashboardOverviewStats: React.FC = () => {
+  const auth = useAuth();
+  const { data } = useQuery({
+    queryKey: ['workflow-summary', auth.client?.id, auth.engagement?.id],
+    queryFn: async () => {
+      const headers = getAuthHeaders({ user: auth.user, client: auth.client, engagement: auth.engagement });
+      const res = await apiCall('/api/v1/assets/workflow/summary', { method: 'GET', headers });
+      return res as {
+        total_assets: number;
+        assessment_ready: number;
+        phase_distribution: Record<string, number>;
+      };
+    },
+    staleTime: 60_000,
+  });
+
+  const total = data?.total_assets ?? 0;
+  const assessed = data?.assessment_ready ?? 0;
+  const inProgress = Math.max(0, total - assessed);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="text-center">
+        <div className="text-3xl font-bold text-blue-600">{total}</div>
+        <div className="text-gray-600">Total Applications</div>
+      </div>
+      <div className="text-center">
+        <div className="text-3xl font-bold text-green-600">{assessed}</div>
+        <div className="text-gray-600">Assessed</div>
+      </div>
+      <div className="text-center">
+        <div className="text-3xl font-bold text-orange-600">{inProgress}</div>
+        <div className="text-gray-600">In Progress</div>
+      </div>
+    </div>
+  );
+};
 
 const Index = (): JSX.Element => {
-  const phases = [
+  // Primary modules (2 rows x 3 cols): Discovery, Assess, Plan, Execute, Modernize, Decommission
+  const primaryPhases = [
     {
       title: 'Discovery',
       description: 'Discover and inventory your applications and infrastructure',
@@ -53,6 +96,9 @@ const Index = (): JSX.Element => {
       color: 'bg-red-500',
       status: 'Planned'
     },
+  ];
+
+  const secondaryModules = [
     {
       title: 'FinOps',
       description: 'Track costs and optimize financial operations',
@@ -86,8 +132,8 @@ const Index = (): JSX.Element => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {phases.map((phase) => {
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {primaryPhases.map((phase) => {
                 const Icon = phase.icon;
                 return (
                   <Link
@@ -124,20 +170,37 @@ const Index = (): JSX.Element => {
 
             <div className="mt-12 bg-white rounded-lg shadow-md p-6">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">Migration Overview</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">247</div>
-                  <div className="text-gray-600">Total Applications</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">89</div>
-                  <div className="text-gray-600">Assessed</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-600">34</div>
-                  <div className="text-gray-600">In Progress</div>
-                </div>
-              </div>
+              <DashboardOverviewStats />
+            </div>
+
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {secondaryModules.map((mod) => {
+                const Icon = mod.icon;
+                return (
+                  <Link
+                    key={mod.title}
+                    to={mod.path}
+                    className="group block"
+                  >
+                    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 p-6 border-l-4 border-gray-200 hover:border-blue-500">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className={`${mod.color} p-3 rounded-lg text-white`}>
+                          <Icon className="h-6 w-6" />
+                        </div>
+                        <span className={`px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600`}>
+                          {mod.status}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                        {mod.title}
+                      </h3>
+                      <p className="text-gray-600 text-sm">
+                        {mod.description}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </main>

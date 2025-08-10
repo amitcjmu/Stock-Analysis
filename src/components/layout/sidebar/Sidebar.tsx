@@ -106,11 +106,12 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       submenu: [
         { name: 'Overview', path: '/assess/overview', icon: FileText },
         { name: 'Treatment', path: '/assess/treatment', icon: ClipboardList },
-        { name: 'Tech Debt', path: '/assessment/:flowId/tech-debt', icon: ShieldAlert },
+        // Tech Debt deep route should only be accessed when a flow is active; hide the dynamic path from static menu
+        // { name: 'Tech Debt', path: '/assessment/:flowId/tech-debt', icon: ShieldAlert },
         { name: 'Wave Planning', path: '/assess/waveplanning', icon: Calendar },
         { name: 'Roadmap', path: '/assess/roadmap', icon: Route },
         { name: 'Editor', path: '/assess/editor', icon: Edit },
-        { name: 'Assessment Flow', path: '/assessment/initialize', icon: GitBranch }
+        { name: 'Assessment Flow', path: '/assess/overview', icon: GitBranch }
       ]
     },
     {
@@ -205,6 +206,11 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     },
   ];
 
+  // Split items: keep FinOps, Observability, Admin at the bottom near the profile block
+  const bottomNames = new Set(['FinOps', 'Observability', 'Admin']);
+  const topNavigationItems = navigationItems.filter((i) => !bottomNames.has(i.name));
+  const bottomNavigationItems = navigationItems.filter((i) => bottomNames.has(i.name));
+
   const handleToggleExpanded = (sectionName: string): void => {
     const key = sectionName.toLowerCase() as keyof ExpandedStates;
     setExpandedStates(prev => ({
@@ -232,7 +238,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   };
 
   return (
-    <div className={`fixed left-0 top-0 h-full w-64 bg-gray-800 text-white z-40 ${className || ''}`}>
+    <div className={`fixed left-0 top-0 h-full w-64 bg-gray-800 text-white z-40 ${className || ''} flex flex-col`}>
       <SidebarHeader
         onAuthClick={handleAuthClick}
         isAuthenticated={isAuthenticated}
@@ -241,14 +247,27 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         isAdmin={isAdmin}
       />
 
-      <NavigationMenu
-        navigationItems={navigationItems}
-        currentPath={location.pathname}
-        expandedStates={expandedStates}
-        onToggleExpanded={handleToggleExpanded}
-      />
+      <div className="flex-1 overflow-y-auto">
+        <NavigationMenu
+          navigationItems={topNavigationItems}
+          currentPath={location.pathname}
+          expandedStates={expandedStates}
+          onToggleExpanded={handleToggleExpanded}
+        />
 
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700">
+        {bottomNavigationItems.length > 0 && (
+          <div className="mt-4 border-t border-gray-700 pt-3">
+            <NavigationMenu
+              navigationItems={bottomNavigationItems}
+              currentPath={location.pathname}
+              expandedStates={expandedStates}
+              onToggleExpanded={handleToggleExpanded}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="p-4 border-t border-gray-700 mt-auto">
         <AuthenticationIndicator
           isAuthenticated={isAuthenticated}
           user={user}

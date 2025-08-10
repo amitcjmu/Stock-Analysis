@@ -3,7 +3,8 @@ Data Source Learning Module - Handles data source pattern learning
 """
 
 import logging
-from dataclasses import asdict
+
+# from dataclasses import asdict  # Removed - using context.to_dict() instead
 from datetime import datetime
 from typing import Any, Dict, Optional
 
@@ -53,7 +54,7 @@ class DataSourceLearning:
                 "pattern_type": "data_source",
                 "source_type": source_data.get("source_type"),
                 "confidence": pattern.confidence,
-                "context": asdict(context),
+                "context": context.to_dict(),
             },
         )
 

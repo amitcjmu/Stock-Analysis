@@ -36,7 +36,7 @@ check_container() {
     if ! docker ps | grep -q $CONTAINER_NAME; then
         print_error "Container $CONTAINER_NAME is not running!"
         print_status "Starting development environment..."
-        docker-compose -f docker-compose.dev.yml up -d
+        docker-compose -f config/docker/docker-compose.dev.yml up -d
         sleep 5
     fi
 }

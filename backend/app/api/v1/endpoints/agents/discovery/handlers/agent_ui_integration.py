@@ -5,7 +5,8 @@ Implements Phase 2 of the Discovery Flow redesign.
 """
 
 import logging
-from dataclasses import asdict
+
+# from dataclasses import asdict  # Removed - using context.to_dict() instead
 from datetime import datetime
 from typing import Any, Dict, Optional
 
@@ -218,7 +219,7 @@ async def answer_agent_question(
                 "response": response_data.response,
                 "confidence": response_data.confidence,
                 "timestamp": datetime.now().isoformat(),
-                "context": asdict(context),
+                "context": context.to_dict(),
             }
         )
 
@@ -326,7 +327,7 @@ async def perform_insight_action(
                 "insight_id": action_data.insight_id,
                 "action": action_data.action,
                 "data": action_data.data,
-                "context": asdict(context),
+                "context": context.to_dict(),
             }
         )
 

@@ -1,7 +1,5 @@
-import React from 'react'
-import { useState } from 'react'
-import { useEffect } from 'react'
-import { useParams } from 'react-router-dom';
+import React, { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ArchitectureStandardsForm } from '@/components/assessment/ArchitectureStandardsForm';
@@ -19,11 +17,24 @@ const ArchitecturePage: React.FC = () => {
     updateArchitectureStandards,
     resumeFlow
   } = useAssessmentFlow(flowId);
+  const navigate = useNavigate();
 
   const [standards, setStandards] = useState(state.engagementStandards);
   const [overrides, setOverrides] = useState(state.applicationOverrides);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
+
+  // Guard: redirect to overview if flowId missing
+  useEffect(() => {
+    if (!flowId) {
+      navigate('/assess/overview', { replace: true });
+    }
+  }, [flowId, navigate]);
+
+  // Prevent rendering until flow is hydrated
+  if (!flowId || state.status === 'idle') {
+    return <div className="p-6 text-sm text-muted-foreground">Loading assessment...</div>;
+  }
 
   // Update local state when flow state changes
   useEffect(() => {

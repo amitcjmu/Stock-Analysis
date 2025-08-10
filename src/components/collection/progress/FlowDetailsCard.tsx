@@ -200,6 +200,9 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
                   <div className="font-medium">{readiness.quality.collection_quality_score || 0} / {readiness.quality.confidence_score || 0}</div>
                 </div>
               </div>
+              <div className="mt-3 text-xs text-muted-foreground">
+                Intelligent gap analysis in progress. AI is enriching your data automatically; manual inputs will be requested only when needed.
+              </div>
             </div>
           )}
           {isFlowStuck && (

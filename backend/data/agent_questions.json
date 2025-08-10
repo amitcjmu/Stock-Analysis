@@ -1055,9 +1055,9 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-02T05:41:48.426786",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-08-10T02:22:37.782537",
+    "user_response": "Single application - grouping is correct",
+    "is_resolved": true
   },
   "25eacb71-4911-4bbe-91e1-05df8b147b98": {
     "id": "25eacb71-4911-4bbe-91e1-05df8b147b98",
@@ -1261,9 +1261,9 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-02T13:12:03.917659",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-08-10T02:56:27.226555",
+    "user_response": "Yes, standardize automatically",
+    "is_resolved": true
   },
   "3da860c3-c5c4-44fa-b94d-65f63cbb8b4d": {
     "id": "3da860c3-c5c4-44fa-b94d-65f63cbb8b4d",
@@ -2366,8 +2366,35 @@
     "confidence": "medium",
     "priority": "normal",
     "created_at": "2025-08-03T04:16:58.862326",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-08-09T04:06:37.754886",
+    "user_response": "Yes, confirm this dependency",
+    "is_resolved": true
+  },
+  "37f4db44-f6f6-424d-80cf-b7b635fc1670": {
+    "id": "37f4db44-f6f6-424d-80cf-b7b635fc1670",
+    "agent_id": "dependency_analysis_agent",
+    "agent_name": "Dependency Analysis Agent",
+    "question_type": "dependency_validation",
+    "page": "dependencies",
+    "title": "Verify Application Dependency",
+    "question": "Should 'WebApp-01' depend on 'Database-01' based on the network traffic patterns?",
+    "context": {
+      "source_app": "WebApp-01",
+      "target_app": "Database-01",
+      "confidence": 0.75,
+      "evidence": "Network traffic analysis shows regular connections"
+    },
+    "options": [
+      "Yes, confirm this dependency",
+      "No, this is incorrect",
+      "Need more analysis",
+      "Mark as optional dependency"
+    ],
+    "confidence": "medium",
+    "priority": "normal",
+    "created_at": "2025-08-10T02:21:26.590592",
+    "answered_at": "2025-08-10T02:21:56.516857",
+    "user_response": "Yes, confirm this dependency",
+    "is_resolved": true
   }
 }

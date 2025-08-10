@@ -15,6 +15,7 @@ from app.api.v1.endpoints import (
     analysis_router,
     assessment_events_router,
     assessment_flow_router,
+    asset_workflow_router,
     asset_inventory_router,
     chat_router,
     context_router,
@@ -502,6 +503,9 @@ api_router.include_router(
 )
 api_router.include_router(
     asset_inventory_router, prefix="/assets", tags=["Asset Inventory"]
+)
+api_router.include_router(
+    asset_workflow_router, prefix="/assets", tags=["Asset Workflow"]
 )
 
 # Top-level Field Mapping API (frontend compatibility)

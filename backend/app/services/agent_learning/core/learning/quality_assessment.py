@@ -3,7 +3,8 @@ Quality Assessment Learning Module - Handles quality assessment pattern learning
 """
 
 import logging
-from dataclasses import asdict
+
+# from dataclasses import asdict  # Removed - using context.to_dict() instead
 from datetime import datetime
 from typing import Any, Dict, Optional
 
@@ -52,7 +53,7 @@ class QualityAssessmentLearning:
                 "pattern_type": "quality_assessment",
                 "quality_metrics": quality_data.get("quality_metrics", {}),
                 "confidence": pattern.confidence,
-                "context": asdict(context),
+                "context": context.to_dict(),
             },
         )
 

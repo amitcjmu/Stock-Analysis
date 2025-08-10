@@ -530,7 +530,10 @@ export const apiCall = async (
         normalizedEndpoint.includes('/unified-discovery/flow/run') ||  // Updated endpoint check for unified-discovery migration
         normalizedEndpoint.includes('/assets/analyze') ||
         normalizedEndpoint.includes('/asset_inventory') ||
-        normalizedEndpoint.includes('/classification')
+        normalizedEndpoint.includes('/classification') ||
+        // Treat data import storage as a long-running, agent-triggering operation (no timeout)
+        normalizedEndpoint.includes('/data-import/store-import') ||
+        normalizedEndpoint.includes('/data-import/store-import-temp')
       );
 
       const timeoutMs = options.timeout || (

@@ -130,6 +130,8 @@ export interface CollectionFlowStatusResponse {
 
 class CollectionFlowApi {
   private readonly baseUrl = '/api/v1/collection';
+  private static readonly STALE_HOURS_THRESHOLD = 24; // hours
+  private static readonly OLD_FLOW_HOURS_THRESHOLD = 90 * 24; // 90 days
 
   async getFlowStatus(): Promise<CollectionFlowStatusResponse> {
     return await apiCall(`${this.baseUrl}/status`, { method: 'GET' });
@@ -140,6 +142,10 @@ class CollectionFlowApi {
       method: 'POST',
       body: JSON.stringify(data)
     });
+  }
+
+  async ensureFlow(): Promise<CollectionFlowResponse> {
+    return await apiCall(`${this.baseUrl}/flows/ensure`, { method: 'POST' });
   }
 
   async getFlowDetails(flowId: string): Promise<CollectionFlowResponse> {
@@ -234,6 +240,12 @@ class CollectionFlowApi {
   }
 
   // Utility methods for flow management
+  /**
+   * Compute a simple health summary across incomplete flows.
+   * - healthy_flows: number of non-problematic flows
+   * - problematic_flows: running/paused flows with low progress or failed
+   * - health_score: percentage of healthy flows
+   */
   async getFlowHealthStatus(): Promise<{
     healthy_flows: number;
     problematic_flows: number;
@@ -278,13 +290,15 @@ class CollectionFlowApi {
     }
   }
 
+  /** Determine whether a flow is stale based on last update time. */
   private isFlowStale(updatedAt: string): boolean {
     const updated = new Date(updatedAt);
     const now = new Date();
     const hoursSinceUpdate = (now.getTime() - updated.getTime()) / (1000 * 60 * 60);
-    return hoursSinceUpdate > 24; // Consider flows stale if not updated in 24 hours
+    return hoursSinceUpdate > CollectionFlowApi.STALE_HOURS_THRESHOLD;
   }
 
+  /** Produce cleanup recommendations based on preview results from cleanupFlows. */
   async getCleanupRecommendations(): Promise<{
     total_flows: number;
     cleanup_candidates: number;
@@ -302,7 +316,7 @@ class CollectionFlowApi {
       }
 
       // Check for very old flows (90+ days)
-      const oldFlowsPreview = await this.cleanupFlows(2160, true, false, true); // 90 days
+      const oldFlowsPreview = await this.cleanupFlows(CollectionFlowApi.OLD_FLOW_HOURS_THRESHOLD, true, false, true);
       if (oldFlowsPreview.flows_cleaned > 0) {
         recommendations.push(`${oldFlowsPreview.flows_cleaned} very old flows should be archived`);
       }

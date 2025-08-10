@@ -830,12 +830,9 @@ async def response_processing(
 
         await db.commit()
 
-        # Apply resolved gaps to assets (batched, async) behind feature flag
+        # Apply resolved gaps to assets (always on)
         try:
-            from os import getenv
-
-            if getenv("ENABLE_COLLECTION_WRITEBACK", "true").lower() == "true":
-                await _apply_resolved_gaps_to_assets(db, collection_flow["id"], context)
+            await _apply_resolved_gaps_to_assets(db, collection_flow["id"], context)
         except Exception as e:
             logger.error(f"❌ Write-back of resolved gaps failed: {e}")
 
@@ -890,9 +887,7 @@ async def _apply_resolved_gaps_to_assets(
     except Exception:
         logger.error("Invalid tenant identifiers; aborting write-back")
         raise RuntimeError("Invalid tenant identifiers for write-back scope")
-    import os
-
-    audit_enabled = os.getenv("ENABLE_COLLECTION_AUDIT", "false").lower() == "true"
+    audit_enabled = True
 
     resolved_rows = await db.execute(
         (

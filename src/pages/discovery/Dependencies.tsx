@@ -206,7 +206,14 @@ const Dependencies: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={analyzeDependencies}
+                onClick={async () => {
+                  if (isAnalyzing) return;
+                  try {
+                    await analyzeDependencies();
+                  } finally {
+                    await refreshDependencies();
+                  }
+                }}
                 disabled={isAnalyzing || !client || !engagement}
               >
                 {isAnalyzing ? (
@@ -237,7 +244,14 @@ const Dependencies: React.FC = () => {
             </p>
             <div className="flex items-center space-x-3">
               <Button
-                onClick={analyzeDependencies}
+                onClick={async () => {
+                  if (isAnalyzing) return;
+                  try {
+                    await analyzeDependencies();
+                  } finally {
+                    await refreshDependencies();
+                  }
+                }}
                 disabled={isAnalyzing}
                 className="bg-blue-600 hover:bg-blue-700"
               >

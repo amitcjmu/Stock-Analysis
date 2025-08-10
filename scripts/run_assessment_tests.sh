@@ -128,7 +128,7 @@ check_prerequisites() {
     # Check test database is available
     if ! docker ps --format "table {{.Names}}" | grep -q "migration_test_db"; then
         log_info "Starting test database..."
-        docker-compose -f docker-compose.test.yml up -d test-db
+        docker-compose -f config/docker/docker-compose.test.yml up -d test-db
 
         # Wait for database to be ready
         log_info "Waiting for test database to be ready..."
@@ -174,7 +174,7 @@ run_unit_tests() {
 
     log_info "Running: $test_command"
 
-    if docker-compose -f docker-compose.test.yml run --rm test-backend $test_command; then
+    if docker-compose -f config/docker/docker-compose.test.yml run --rm test-backend $test_command; then
         log_success "Unit tests passed"
         return 0
     else
@@ -196,7 +196,7 @@ run_integration_tests() {
 
     log_info "Running: $test_command"
 
-    if docker-compose -f docker-compose.test.yml --profile integration run --rm integration-test-backend $test_command; then
+    if docker-compose -f config/docker/docker-compose.test.yml --profile integration run --rm integration-test-backend $test_command; then
         log_success "Integration tests passed"
         return 0
     else
@@ -211,7 +211,7 @@ run_frontend_tests() {
 
     # Start backend for frontend tests
     log_info "Starting backend for frontend tests..."
-    docker-compose -f docker-compose.test.yml up -d test-backend
+    docker-compose -f config/docker/docker-compose.test.yml up -d test-backend
 
     # Wait for backend to be ready
     sleep 5
@@ -220,7 +220,7 @@ run_frontend_tests() {
 
     log_info "Running: $test_command"
 
-    if docker-compose -f docker-compose.test.yml --profile frontend run --rm test-frontend $test_command; then
+    if docker-compose -f config/docker/docker-compose.test.yml --profile frontend run --rm test-frontend $test_command; then
         log_success "Frontend tests passed"
         return 0
     else
@@ -237,7 +237,7 @@ run_performance_tests() {
 
     log_info "Running: $test_command"
 
-    if docker-compose -f docker-compose.test.yml --profile performance run --rm performance-test-backend $test_command; then
+    if docker-compose -f config/docker/docker-compose.test.yml --profile performance run --rm performance-test-backend $test_command; then
         log_success "Performance tests passed"
         return 0
     else
@@ -293,7 +293,7 @@ cleanup() {
     log_info "Cleaning up test environment..."
 
     # Stop test containers
-    docker-compose -f docker-compose.test.yml down -v 2>/dev/null || true
+    docker-compose -f config/docker/docker-compose.test.yml down -v 2>/dev/null || true
 
     # Clean up any temporary files
     docker system prune -f >/dev/null 2>&1 || true

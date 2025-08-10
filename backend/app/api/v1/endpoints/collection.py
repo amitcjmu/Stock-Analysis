@@ -44,10 +44,83 @@ from app.schemas.collection_flow import (
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.services.integration.data_flow_validator import DataFlowValidator
 from uuid import UUID
+from app.services.integration.failure_journal import log_failure
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+@router.post("/flows/ensure", response_model=CollectionFlowResponse)
+async def ensure_collection_flow(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> CollectionFlowResponse:
+    """Return an active Collection flow for the engagement, or create one via MFO.
+
+    This enables seamless navigation from Discovery to Collection without users
+    needing to manually start a flow. It reuses any non-completed flow; if none
+    exist, it creates a new one and returns it immediately.
+    """
+    require_role(current_user, COLLECTION_CREATE_ROLES, "ensure collection flows")
+
+    # Validate tenant context early
+    if not getattr(context, "client_account_id", None) or not getattr(
+        context, "engagement_id", None
+    ):
+        raise HTTPException(
+            status_code=400, detail="Missing tenant context identifiers"
+        )
+
+    try:
+        # Try to find an active collection flow for this engagement
+        result = await db.execute(
+            select(CollectionFlow)
+            .where(
+                CollectionFlow.client_account_id == context.client_account_id,
+                CollectionFlow.engagement_id == context.engagement_id,
+                CollectionFlow.status.notin_(
+                    [
+                        CollectionFlowStatus.COMPLETED.value,
+                        CollectionFlowStatus.CANCELLED.value,
+                    ]
+                ),
+            )
+            .order_by(CollectionFlow.created_at.desc())
+        )
+        existing = result.scalar_one_or_none()
+
+        if existing:
+            return CollectionFlowResponse(
+                id=str(existing.id),
+                client_account_id=str(existing.client_account_id),
+                engagement_id=str(existing.engagement_id),
+                status=existing.status,
+                automation_tier=existing.automation_tier,
+                current_phase=existing.current_phase,
+                progress=existing.progress_percentage or 0,
+                collection_config=existing.collection_config,
+                created_at=existing.created_at,
+                updated_at=existing.updated_at,
+                completed_at=existing.completed_at,
+            )
+
+        # Otherwise, create a new one (delegates to existing create logic)
+        return await create_collection_flow(
+            flow_data=CollectionFlowCreate(automation_tier=AutomationTier.TIER_2.value),
+            db=db,
+            current_user=current_user,
+            context=context,
+        )
+
+    except HTTPException:
+        # Pass through known HTTP exceptions intact
+        raise
+    except Exception:
+        logger.error("Error ensuring collection flow", exc_info=True)
+        # Sanitize error exposure
+        raise HTTPException(status_code=500, detail="Failed to ensure collection flow")
 
 
 @router.get("/status", response_model=Dict[str, Any])
@@ -546,15 +619,19 @@ async def get_collection_readiness(
                 status_code=400, detail="Invalid tenant identifiers in context"
             )
 
-        # Count assessment-ready assets for engagement
-        ready_count_row = await db.execute(
-            select(func.count(Asset.id)).where(
-                Asset.client_account_id == client_uuid,
-                Asset.engagement_id == engagement_uuid,
-                Asset.assessment_readiness == "ready",
+        # Count assessment-ready assets for engagement (best-effort)
+        try:
+            ready_count_row = await db.execute(
+                select(func.count(Asset.id)).where(
+                    Asset.client_account_id == client_uuid,
+                    Asset.engagement_id == engagement_uuid,
+                    Asset.assessment_readiness == "ready",
+                )
             )
-        )
-        apps_ready = int(ready_count_row.scalar() or 0)
+            apps_ready = int(ready_count_row.scalar() or 0)
+        except Exception as e:
+            logger.warning(f"Readiness count unavailable: {e}")
+            apps_ready = 0
 
         # Run validator for collection/discovery phases
         try:
@@ -576,10 +653,33 @@ async def get_collection_readiness(
                     [i for i in validation.issues if i.severity.value == "info"]
                 ),
             }
+            # Extended readiness details
+            readiness = {
+                "architecture_minimums_present": validation.summary.get(
+                    "architecture_minimums_present", False
+                ),
+                "missing_fields": validation.summary.get("missing_fields", []),
+                "readiness_score": validation.summary.get("readiness_score", 0.0),
+            }
         except Exception as e:  # validator is best-effort
             logger.warning(f"Validator unavailable for readiness: {e}")
             phase_scores = {"collection": 0.0, "discovery": 0.0}
             issues = {"total": 0, "critical": 0, "warning": 0, "info": 0}
+            readiness = {
+                "architecture_minimums_present": False,
+                "missing_fields": [],
+                "readiness_score": 0.0,
+            }
+            # Log to failure journal (best-effort)
+            await log_failure(
+                db,
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+                source="collection_readiness",
+                operation="validator",
+                payload={"flow_id": flow_id},
+                error_message=str(e),
+            )
 
         return {
             "flow_id": flow_id,
@@ -592,6 +692,7 @@ async def get_collection_readiness(
             },
             "phase_scores": phase_scores,
             "issues": issues,
+            "readiness": readiness,
             "updated_at": collection_flow.updated_at,
         }
 

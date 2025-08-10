@@ -6,6 +6,7 @@ API endpoints package.
 from . import (
     agent_learning_endpoints,
     analysis,
+    asset_workflow,
     assessment_events,
     assessment_flow,
     asset_inventory,
@@ -38,3 +39,4 @@ assessment_flow_router = assessment_flow.router
 assessment_events_router = assessment_events.router
 agents_router = agents_router  # Use the imported agents_router
 analysis_router = analysis.router
+asset_workflow_router = asset_workflow.router

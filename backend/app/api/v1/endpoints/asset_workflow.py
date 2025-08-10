@@ -71,7 +71,7 @@ class AssetWorkflowStatus(BaseModel):
     blocking_issues: List[str]
 
 
-@router.post("/assets/{asset_id}/workflow/advance")
+@router.post("/{asset_id}/workflow/advance")
 async def advance_asset_workflow(
     asset_id: int, request: WorkflowAdvanceRequest, db: AsyncSession = Depends(get_db)
 ) -> AssetWorkflowStatus:
@@ -110,9 +110,13 @@ async def advance_asset_workflow(
         asset.mapping_status = "in_progress"
     elif target_phase == "cleanup":
         asset.mapping_status = "completed"
-        asset.cleanup_status = "in_progress"
+        # Optional field in some schemas
+        if hasattr(asset, "cleanup_status"):
+            asset.cleanup_status = "in_progress"
     elif target_phase == "assessment":
-        asset.cleanup_status = "completed"
+        # Optional field in some schemas
+        if hasattr(asset, "cleanup_status"):
+            asset.cleanup_status = "completed"
         asset.assessment_readiness = "ready"
     else:
         raise HTTPException(
@@ -128,7 +132,7 @@ async def advance_asset_workflow(
     return _build_workflow_status(asset)
 
 
-@router.put("/assets/{asset_id}/workflow/status")
+@router.put("/{asset_id}/workflow/status")
 async def update_asset_workflow_status(
     asset_id: int, update: WorkflowStatusUpdate, db: AsyncSession = Depends(get_db)
 ) -> AssetWorkflowStatus:
@@ -147,7 +151,7 @@ async def update_asset_workflow_status(
         asset.discovery_status = update.discovery_status
     if update.mapping_status is not None:
         asset.mapping_status = update.mapping_status
-    if update.cleanup_status is not None:
+    if update.cleanup_status is not None and hasattr(asset, "cleanup_status"):
         asset.cleanup_status = update.cleanup_status
     if update.assessment_readiness is not None:
         asset.assessment_readiness = update.assessment_readiness
@@ -158,7 +162,7 @@ async def update_asset_workflow_status(
     return _build_workflow_status(asset)
 
 
-@router.get("/assets/{asset_id}/workflow/status")
+@router.get("/{asset_id}/workflow/status")
 async def get_asset_workflow_status(
     asset_id: int, db: AsyncSession = Depends(get_db)
 ) -> AssetWorkflowStatus:
@@ -175,7 +179,7 @@ async def get_asset_workflow_status(
     return _build_workflow_status(asset)
 
 
-@router.get("/assets/workflow/summary")
+@router.get("/workflow/summary")
 async def get_workflow_summary(
     db: AsyncSession = Depends(get_db),
 ) -> WorkflowSummaryResponse:
@@ -198,10 +202,13 @@ async def get_workflow_summary(
     )
     mapping_completed = mapping_result.scalar() or 0
 
-    cleanup_result = await db.execute(
-        select(func.count(Asset.id)).where(Asset.cleanup_status == "completed")
-    )
-    cleanup_completed = cleanup_result.scalar() or 0
+    if hasattr(Asset, "cleanup_status"):
+        cleanup_result = await db.execute(
+            select(func.count(Asset.id)).where(Asset.cleanup_status == "completed")
+        )
+        cleanup_completed = cleanup_result.scalar() or 0
+    else:
+        cleanup_completed = 0
 
     assessment_result = await db.execute(
         select(func.count(Asset.id)).where(Asset.assessment_readiness == "ready")
@@ -246,7 +253,7 @@ async def get_workflow_summary(
     )
 
 
-@router.get("/assets/workflow/by-phase/{phase}")
+@router.get("/workflow/by-phase/{phase}")
 async def get_assets_by_workflow_phase(
     phase: str, limit: int = 100, offset: int = 0, db: AsyncSession = Depends(get_db)
 ) -> List[AssetWorkflowStatus]:
@@ -288,7 +295,7 @@ def _get_current_phase(asset: Asset) -> str:
 
     if asset.assessment_readiness == "ready":
         return "assessment_ready"
-    if asset.cleanup_status == "completed":
+    if getattr(asset, "cleanup_status", None) == "completed":
         return "assessment_ready"
     if asset.mapping_status == "completed":
         return "cleanup"

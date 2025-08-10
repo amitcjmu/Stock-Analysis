@@ -9,7 +9,7 @@
 # entity-relationship diagrams.
 #
 # The script is configured to connect to the database service defined in the
-# project's docker-compose.yml file.
+# project's config/docker/docker-compose.yml file.
 #
 # Requirements:
 # - Docker must be running.
@@ -28,10 +28,10 @@ set -e # Exit immediately if a command exits with a non-zero status.
 
 # --- Configuration ---
 
-# Database connection details (from docker-compose.yml)
+# Database connection details (from config/docker/docker-compose.yml)
 # Note: We connect to the host machine's port, not the internal Docker network.
 DB_HOST="localhost"
-DB_PORT="5433" # Mapped to 5432 in docker-compose.yml
+DB_PORT="5433" # Mapped to 5432 in config/docker/docker-compose.yml
 DB_NAME="migration_db"
 DB_USER="postgres"
 DB_PASSWORD="postgres"

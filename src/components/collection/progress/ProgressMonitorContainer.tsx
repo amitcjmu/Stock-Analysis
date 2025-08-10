@@ -77,9 +77,7 @@ export const ProgressMonitorContainer: React.FC<ProgressMonitorContainerProps> =
       </div>
 
       {/* Metrics Overview */}
-      {metrics && (
-        <FlowMetricsGrid metrics={metrics} />
-      )}
+          {metrics && <FlowMetricsGrid metrics={metrics} />}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -101,20 +99,16 @@ export const ProgressMonitorContainer: React.FC<ProgressMonitorContainerProps> =
                 readiness={readiness}
               />
 
-              {/* Progress Tracker */}
+              {/* Progress Tracker (hide time if not available) */}
               <ProgressTracker
                 formId={selectedFlowData.id}
                 totalSections={getFlowMilestones(selectedFlowData).length}
                 completedSections={getFlowMilestones(selectedFlowData).filter(m => m.achieved).length}
                 overallCompletion={selectedFlowData.progress}
-                confidenceScore={85}
+                confidenceScore={Math.round((readiness?.quality?.confidence_score || 0) * 100)}
                 milestones={getFlowMilestones(selectedFlowData)}
-                timeSpent={Date.now() - new Date(selectedFlowData.startedAt).getTime()}
-                estimatedTimeRemaining={
-                  selectedFlowData.estimatedCompletion
-                    ? new Date(selectedFlowData.estimatedCompletion).getTime() - Date.now()
-                    : 0
-                }
+                timeSpent={selectedFlowData.startedAt ? Math.max(0, Date.now() - new Date(selectedFlowData.startedAt).getTime()) : 0}
+                estimatedTimeRemaining={selectedFlowData.estimatedCompletion ? Math.max(0, new Date(selectedFlowData.estimatedCompletion).getTime() - Date.now()) : 0}
               />
             </>
           ) : (
