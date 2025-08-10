@@ -31,6 +31,11 @@ const ArchitecturePage: React.FC = () => {
     }
   }, [flowId, navigate]);
 
+  // Prevent rendering until flow is hydrated
+  if (!flowId || state.status === 'idle') {
+    return <div className="p-6 text-sm text-muted-foreground">Loading assessment...</div>;
+  }
+
   // Update local state when flow state changes
   useEffect(() => {
     setStandards(state.engagementStandards);

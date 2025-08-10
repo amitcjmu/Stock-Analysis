@@ -99,12 +99,17 @@ const AssessmentFlowOverview = (): JSX.Element => {
     queryKey: ['assets-assessment-ready', collectionFlowId],
     enabled: !!collectionFlowId,
     queryFn: async () => {
-      const headers = getAuthHeaders();
-      const res = await apiCall('/assets/workflow/by-phase/assessment_ready', { method: 'GET', headers });
-      const items = Array.isArray(res) ? res : [];
-      return items
-        .map((a: any) => a?.id ?? a?.asset_id ?? a?.asset?.id)
-        .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0);
+      try {
+        const headers = getAuthHeaders();
+        const res = await apiCall('/assets/workflow/by-phase/assessment_ready', { method: 'GET', headers });
+        const items = Array.isArray(res) ? res : [];
+        return items
+          .map((a: any) => a?.id ?? a?.asset_id ?? a?.asset?.id)
+          .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0);
+      } catch (err) {
+        console.warn('Failed to fetch assessment-ready assets', err);
+        return [];
+      }
     }
   });
 
@@ -157,7 +162,7 @@ const AssessmentFlowOverview = (): JSX.Element => {
   };
 
   const handleStartAssessment = async (): Promise<void> => {
-    if (!readyAppIds.length) return;
+    if (isInitializingAssessment || !readyAppIds.length) return;
     setIsInitializingAssessment(true);
     try {
       const headers = getAuthHeaders();
@@ -166,15 +171,17 @@ const AssessmentFlowOverview = (): JSX.Element => {
         headers,
         body: JSON.stringify({ selected_application_ids: readyAppIds })
       });
+      const flowId = result && typeof result === 'object' ? (result as any).flow_id : undefined;
       // Fire-and-forget UX metric event (basic scaffolding)
       try {
         await apiCall('/monitoring/business/ux-event', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ event: 'assessment_started', ready_apps: readyAppIds.length, source: 'assessment_overview' })
+          body: JSON.stringify({ event: 'assessment_started', ready_apps: readyAppIds.length, source: 'assessment_overview', collection_flow_id: collectionFlowId })
         });
-      } catch {}
-      const flowId = result?.flow_id;
+      } catch (err) {
+        console.debug('UX event failed', err);
+      }
       if (flowId) {
         toast({ title: 'Assessment initialized', description: `${readyAppIds.length} applications included.` });
         navigate(`/assessment/${flowId}/architecture`);

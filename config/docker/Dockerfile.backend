@@ -19,13 +19,11 @@ RUN mkdir -p $PIP_CACHE_DIR
 
 # Copy requirements and install Python dependencies
 COPY backend/requirements.txt /tmp/requirements.txt
-COPY backend/requirements-dev.txt /tmp/requirements-dev.txt
 
 # Install dependencies with better caching
 RUN --mount=type=cache,target=/pip-cache \
     pip install --upgrade pip wheel setuptools && \
-    pip wheel --wheel-dir=/wheels -r /tmp/requirements.txt && \
-    pip wheel --wheel-dir=/wheels -r /tmp/requirements-dev.txt
+    pip wheel --wheel-dir=/wheels -r /tmp/requirements.txt
 
 # Final stage
 FROM python:3.11-slim-bookworm
@@ -51,16 +49,17 @@ RUN apt-get update \
 # Copy wheels from builder and install
 COPY --from=builder /wheels /wheels
 COPY backend/requirements.txt requirements.txt
-COPY backend/requirements-dev.txt requirements-dev.txt
 
 # Install Python dependencies from pre-built wheels
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir --no-index --find-links=/wheels -r requirements.txt \
-    && pip install --no-cache-dir --no-index --find-links=/wheels -r requirements-dev.txt \
     && rm -rf /wheels
 
 # Copy backend application code
 COPY backend/ .
+
+# Copy config files for organized structure
+COPY config/ config/
 
 # Copy and setup entrypoint script
 COPY backend/scripts/docker-entrypoint.sh /entrypoint.sh

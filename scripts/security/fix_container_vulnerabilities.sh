@@ -30,7 +30,7 @@ update_base_image() {
 add_build_time_scanning() {
     echo "🔍 Adding build-time vulnerability scanning..."
 
-    cat > docker-compose.security.yml << 'EOF'
+    cat > config/docker/docker-compose.security.yml << 'EOF'
 version: '3.8'
 
 services:
@@ -188,4 +188,4 @@ echo "To build with security scanning:"
 echo "  docker build -f Dockerfile.security -t migrate-platform:secure ."
 echo ""
 echo "To run with security options:"
-echo "  docker-compose -f docker-compose.security.yml up"
+echo "  docker-compose -f config/docker/docker-compose.security.yml up"

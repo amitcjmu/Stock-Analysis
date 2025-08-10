@@ -134,13 +134,13 @@ start_observability() {
     print_status "Starting observability stack..."
 
     # Start the observability services
-    docker-compose -f docker-compose.observability.yml up -d
+    docker-compose -f config/docker/docker-compose.observability.yml up -d
 
     print_status "Waiting for services to start..."
     sleep 10
 
     # Check if services are running
-    if docker-compose -f docker-compose.observability.yml ps | grep -q "Up"; then
+    if docker-compose -f config/docker/docker-compose.observability.yml ps | grep -q "Up"; then
         print_success "Observability services are starting up"
     else
         print_error "Failed to start observability services"
@@ -188,7 +188,7 @@ show_access_info() {
     echo ""
     echo "🐛 Debugging:"
     echo "  • View logs: docker-compose logs -f backend"
-    echo "  • View observability logs: docker-compose -f docker-compose.observability.yml logs -f"
+    echo "  • View observability logs: docker-compose -f config/docker/docker-compose.observability.yml logs -f"
     echo "  • Test CMDB import: Upload a CSV file at http://localhost:8081/discovery/import"
 }
 

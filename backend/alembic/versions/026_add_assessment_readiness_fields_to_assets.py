@@ -19,9 +19,9 @@ depends_on = None
 def upgrade() -> None:
     conn = op.get_bind()
 
-    # Determine schema dynamically; fallback to 'migration'
+    # Always use 'migration' schema
     inspector = sa.inspect(conn)
-    schema = getattr(inspector, "default_schema_name", None) or "migration"
+    schema = "migration"
 
     def _column_exists(table: str, column: str) -> bool:
         try:
@@ -97,9 +97,9 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Best-effort drop of readiness-related columns/indexes."""
-    bind = op.get_bind()
-    insp = sa.inspect(bind)
-    schema = getattr(insp, "default_schema_name", None) or "migration"
+    # bind = op.get_bind()  # Commented out - not used
+    # insp = sa.inspect(bind)  # Commented out - not used
+    schema = "migration"
 
     # Helper functions to keep complexity low
     def _drop_index(idx: str) -> None:

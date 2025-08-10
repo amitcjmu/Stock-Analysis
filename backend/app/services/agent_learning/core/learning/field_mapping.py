@@ -4,7 +4,8 @@ Field Mapping Learning Module - Handles field mapping patterns and suggestions
 
 import logging
 import uuid
-from dataclasses import asdict
+
+# from dataclasses import asdict  # Removed - using context.to_dict() instead
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -58,7 +59,7 @@ class FieldMappingLearning:
                 "original_field": learning_data.get("original_field"),
                 "mapped_field": learning_data.get("mapped_field"),
                 "confidence": pattern.confidence,
-                "context": asdict(context),
+                "context": context.to_dict(),
             },
         )
 
@@ -72,7 +73,8 @@ class FieldMappingLearning:
         self._save_learning_patterns()
 
         logger.info(
-            f"Learned field mapping pattern in context {context_key}: {learning_data.get('original_field')} -> {learning_data.get('mapped_field')}"
+            f"Learned field mapping pattern in context {context_key}: "
+            f"{learning_data.get('original_field')} -> {learning_data.get('mapped_field')}"
         )
 
     async def suggest_field_mapping(

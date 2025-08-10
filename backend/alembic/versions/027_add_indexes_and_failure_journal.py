@@ -27,7 +27,7 @@ def _get_target_schema(inspector: Inspector) -> str:
         schemas = []
     if "migration" in schemas:
         return "migration"
-    return inspector.default_schema_name or "public"
+    return "migration"  # Always default to migration schema
 
 
 def _index_exists(

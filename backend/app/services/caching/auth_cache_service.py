@@ -451,7 +451,7 @@ class AuthCacheService:
         context.last_updated = datetime.utcnow()
 
         # Convert to dict for serialization
-        context_data = asdict(context)
+        context_data = context.to_dict()
 
         # Convert datetime objects to ISO strings
         if context_data.get("last_updated"):

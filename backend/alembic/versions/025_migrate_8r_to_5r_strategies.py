@@ -45,7 +45,7 @@ def upgrade() -> None:
             text(
                 """
             SELECT COUNT(*) FROM information_schema.tables
-            WHERE table_name = 'assessment_flow_states' AND table_schema = 'public'
+            WHERE table_name = 'assessment_flow_states' AND table_schema = 'migration'
         """
             )
         )
@@ -72,7 +72,7 @@ def upgrade() -> None:
             text(
                 """
             SELECT COUNT(*) FROM information_schema.tables
-            WHERE table_name = 'assessment_results' AND table_schema = 'public'
+            WHERE table_name = 'assessment_results' AND table_schema = 'migration'
         """
             )
         )
@@ -99,7 +99,7 @@ def upgrade() -> None:
             text(
                 """
             SELECT COUNT(*) FROM information_schema.tables
-            WHERE table_name = 'sixr_analysis_results' AND table_schema = 'public'
+            WHERE table_name = 'sixr_analysis_results' AND table_schema = 'migration'
         """
             )
         )
@@ -186,7 +186,7 @@ def downgrade() -> None:
                 text(
                     """
                 SELECT COUNT(*) FROM information_schema.tables
-                WHERE table_name = :table_name AND table_schema = 'public'
+                WHERE table_name = :table_name AND table_schema = 'migration'
             """
                 ),
                 {"table_name": table_name},
@@ -227,7 +227,7 @@ def downgrade() -> None:
             text(
                 """
             SELECT COUNT(*) FROM information_schema.tables
-            WHERE table_name = 'sixr_analysis_results' AND table_schema = 'public'
+            WHERE table_name = 'sixr_analysis_results' AND table_schema = 'migration'
         """
             )
         )

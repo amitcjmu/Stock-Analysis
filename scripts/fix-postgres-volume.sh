@@ -57,10 +57,10 @@ fi
 print_status "Cleaning up Docker system artifacts..."
 docker system prune -f --volumes || true
 
-# Step 5: Verify docker-compose.override.yml configuration
-print_status "Verifying docker-compose.override.yml configuration..."
-if grep -q "device: \${PWD}/postgres-data-volume" docker-compose.override.yml; then
-    print_error "Found problematic bind mount configuration in docker-compose.override.yml"
+# Step 5: Verify config/docker/docker-compose.override.yml configuration
+print_status "Verifying config/docker/docker-compose.override.yml configuration..."
+if grep -q "device: \${PWD}/postgres-data-volume" config/docker/docker-compose.override.yml; then
+    print_error "Found problematic bind mount configuration in config/docker/docker-compose.override.yml"
     print_error "This should have been fixed. Please check the override file."
     exit 1
 else

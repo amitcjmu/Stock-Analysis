@@ -3,7 +3,8 @@ Feedback Processing Module - Handles user feedback processing and learning
 """
 
 import logging
-from dataclasses import asdict
+
+# from dataclasses import asdict  # Removed - using context.to_dict() instead
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -40,7 +41,7 @@ class FeedbackProcessor:
                 "corrections": user_corrections,
                 "asset_type_override": asset_type_override,
                 "original_analysis": original_analysis,
-                "context": asdict(context),
+                "context": context.to_dict(),
             },
         )
 
@@ -98,7 +99,7 @@ class FeedbackProcessor:
                 "future_analysis_improvement": f"Expected {int(confidence_boost * 100)}% accuracy boost",
             },
             "feedback_processing_mode": "context_aware_learning",
-            "context": asdict(context),
+            "context": context.to_dict(),
         }
 
     def _identify_feedback_patterns(
@@ -387,7 +388,7 @@ class FeedbackProcessor:
             {
                 "preferences": preference_data,
                 "engagement_id": engagement_id,
-                "context": asdict(context),
+                "context": context.to_dict(),
                 "timestamp": datetime.utcnow().isoformat(),
             },
         )

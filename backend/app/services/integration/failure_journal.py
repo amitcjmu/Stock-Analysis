@@ -77,12 +77,22 @@ async def log_failure(
             sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
         )
 
+        # Validate required identifiers before insert (table requires non-null UUIDs)
+        try:
+            client_uuid = (
+                uuid.UUID(str(client_account_id)) if client_account_id else None
+            )
+            engagement_uuid = uuid.UUID(str(engagement_id)) if engagement_id else None
+        except Exception:
+            return  # best-effort: abort logging on invalid UUIDs
+
+        if not client_uuid or not engagement_uuid:
+            return  # required identifiers missing; skip logging
+
         insert_stmt = sa.insert(table).values(
             id=uuid.uuid4(),
-            client_account_id=(
-                uuid.UUID(str(client_account_id)) if client_account_id else None
-            ),
-            engagement_id=uuid.UUID(str(engagement_id)) if engagement_id else None,
+            client_account_id=client_uuid,
+            engagement_id=engagement_uuid,
             source=source,
             operation=operation,
             payload=(payload or {}),

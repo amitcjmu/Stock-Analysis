@@ -3,7 +3,8 @@ Performance Learning Module - Handles performance-based learning and optimizatio
 """
 
 import logging
-from dataclasses import asdict
+
+# from dataclasses import asdict  # Removed - using context.to_dict() instead
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -59,7 +60,7 @@ class PerformanceLearning:
             performance_metrics=performance_metrics,
             optimization_applied=optimization_applied,
             improvement_factor=improvement_factor,
-            context_data=asdict(context),
+            context_data=context.to_dict(),
             created_at=datetime.utcnow(),
         )
 
@@ -79,7 +80,7 @@ class PerformanceLearning:
                 "improvement_factor": improvement_factor,
                 "optimizations": optimization_applied,
                 "metrics": performance_metrics,
-                "context": asdict(context),
+                "context": context.to_dict(),
             },
         )
 
@@ -216,7 +217,7 @@ class PerformanceLearning:
             {
                 "agent_id": agent_id,
                 "performance_data": performance_data,
-                "context": asdict(context),
+                "context": context.to_dict(),
                 "timestamp": datetime.utcnow().isoformat(),
             },
         )

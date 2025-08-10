@@ -117,8 +117,8 @@ async def ensure_collection_flow(
     except HTTPException:
         # Pass through known HTTP exceptions intact
         raise
-    except Exception as e:
-        logger.error(f"Error ensuring collection flow: {e}")
+    except Exception:
+        logger.error("Error ensuring collection flow", exc_info=True)
         # Sanitize error exposure
         raise HTTPException(status_code=500, detail="Failed to ensure collection flow")
 

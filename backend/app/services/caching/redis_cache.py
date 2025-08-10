@@ -366,6 +366,31 @@ class RedisCache:
         """Enqueue a failure payload to Redis for retry processing.
         Stores payload under fj:payload:{id} and pushes id to fj:queue:{client}:{engagement}.
         """
+
+        # Sanitize and persist payload (best-effort redaction, recursive)
+        def _sanitize(obj):
+            redacted_keys = {
+                "password",
+                "token",
+                "api_key",
+                "authorization",
+                "secret",
+                "bearer",
+            }
+            if isinstance(obj, dict):
+                out = {}
+                for k, v in obj.items():
+                    lk = str(k).lower()
+                    if any(x in lk for x in redacted_keys):
+                        out[k] = "***REDACTED***"
+                    else:
+                        out[k] = _sanitize(v)
+                return out
+            elif isinstance(obj, list):
+                return [_sanitize(i) for i in obj]
+            else:
+                return obj
+
         try:
             failure_id = payload.get("id") or str(uuid.uuid4())
             payload["id"] = failure_id
@@ -373,29 +398,12 @@ class RedisCache:
             engagement = payload.get("engagement_id") or "-"
             queue_key = f"fj:queue:{client}:{engagement}"
             payload_key = f"fj:payload:{failure_id}"
-
-            # Sanitize and persist payload (best-effort redaction)
-            try:
-                redacted_keys = {
-                    "password",
-                    "token",
-                    "api_key",
-                    "authorization",
-                    "secret",
-                    "bearer",
-                }
-                sanitized = {}
-                for k, v in (payload or {}).items():
-                    lk = str(k).lower()
-                    sanitized[k] = (
-                        "***REDACTED***" if any(x in lk for x in redacted_keys) else v
-                    )
-                payload = sanitized
-            except Exception:
-                pass
+            payload = _sanitize(payload or {})
+        except Exception:
+            pass
+        # Ensure JSON-serializable when storing and then push to queue
+        try:
             await self.set(payload_key, payload, ttl)
-
-            # Push to queue (RPUSH to preserve FIFO)
             if self.client_type == "upstash":
                 result = self.client.rpush(queue_key, failure_id)
                 if hasattr(result, "__await__"):

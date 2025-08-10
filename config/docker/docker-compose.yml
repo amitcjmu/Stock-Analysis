@@ -1,9 +1,9 @@
-#version: '3.8'
+name: migration
 
 services:
   # PostgreSQL Database with pgvector
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: migration_postgres
     environment:
       POSTGRES_DB: migration_db
@@ -24,11 +24,11 @@ services:
   # FastAPI Backend
   backend:
     build:
-      context: .
-      dockerfile: Dockerfile.backend
+      context: ../..
+      dockerfile: config/docker/Dockerfile.backend
     image: migrate-platform-backend:latest
     env_file:
-      - ./backend/.env
+      - ../../backend/.env
     container_name: migration_backend
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/migration_db
@@ -78,7 +78,7 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./backend:/app
+      - ../../backend:/app
     working_dir: /app
     networks:
       - migration_network
@@ -86,8 +86,8 @@ services:
   # Frontend (for development)
   frontend:
     build:
-      context: .
-      dockerfile: Dockerfile.frontend
+      context: ../..
+      dockerfile: config/docker/Dockerfile.frontend
     container_name: migration_frontend
     working_dir: /app
     environment:
@@ -105,20 +105,17 @@ services:
     ports:
       - "8081:8081"
     volumes:
-      - ./src:/app/src
-      - ./public:/app/public
-      - ./index.html:/app/index.html
-      - ./vite.config.ts:/app/vite.config.ts
-      - ./tsconfig.json:/app/tsconfig.json
-      - ./tsconfig.app.json:/app/tsconfig.app.json
-      - ./tsconfig.node.json:/app/tsconfig.node.json
-      - ./package.json:/app/package.json
-      - ./package-lock.json:/app/package-lock.json
-      - ./tailwind.config.ts:/app/tailwind.config.ts
-      - ./postcss.config.js:/app/postcss.config.js
-      - ./components.json:/app/components.json
-      - ./vitest.config.ts:/app/vitest.config.ts
-      - ./tests:/app/tests
+      - ../../src:/app/src
+      - ../../public:/app/public
+      - ../../index.html:/app/index.html
+      - ../../vite.config.ts:/app/vite.config.ts
+      - ../../tsconfig.json:/app/tsconfig.json
+      - ../../tsconfig.app.json:/app/tsconfig.app.json
+      - ../../tsconfig.node.json:/app/tsconfig.node.json
+      - ../../package.json:/app/package.json
+      - ../../package-lock.json:/app/package-lock.json
+      # Config files are copied during build instead of volume mounted
+      - ../../tests:/app/tests
       # Use named volume for node_modules to prevent conflicts
       - frontend_node_modules:/app/node_modules
     command: sh -c "npm install --legacy-peer-deps && npm run dev -- --host 0.0.0.0 --port 8081"
@@ -135,8 +132,8 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-      - ./redis/redis-simple.conf:/usr/local/etc/redis/redis.conf:ro
-      - ./data/redis/logs:/var/log/redis
+      - ../../config/database/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ../../data/redis/logs:/var/log/redis
     command: redis-server /usr/local/etc/redis/redis.conf
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-default_redis_password_change_in_production}
@@ -161,10 +158,10 @@ services:
   # Assessment Flow Worker (optional for heavy workloads)
   assessment-worker:
     build:
-      context: .
-      dockerfile: Dockerfile.backend
+      context: ../..
+      dockerfile: config/docker/Dockerfile.backend
     env_file:
-      - ./backend/.env
+      - ../../backend/.env
     container_name: migration_assessment_worker
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/migration_db
@@ -188,7 +185,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./backend:/app
+      - ../../backend:/app
     working_dir: /app
     command: ["python", "-m", "app.workers.assessment_worker"]
     networks:

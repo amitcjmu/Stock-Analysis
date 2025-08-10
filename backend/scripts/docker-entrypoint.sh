@@ -61,7 +61,7 @@ main() {
     # Step 3: Run Alembic migrations
     # This is the standard and idempotent way to ensure the database schema is up to date.
     echo "🔧 Running database migrations..."
-    alembic upgrade head
+    cd /app && PYTHONPATH=/app alembic upgrade head
 
     echo ""
     echo "✅ Database setup complete! Starting application..."
