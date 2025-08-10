@@ -213,10 +213,34 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
 
   const handleToggleExpanded = (sectionName: string): void => {
     const key = sectionName.toLowerCase() as keyof ExpandedStates;
-    setExpandedStates(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
+    setExpandedStates(prev => {
+      const isCurrentlyExpanded = prev[key];
+
+      // If the section is currently expanded, collapse it
+      if (isCurrentlyExpanded) {
+        return {
+          ...prev,
+          [key]: false
+        };
+      }
+
+      // If the section is collapsed, expand it and collapse all others
+      const newState: ExpandedStates = {
+        collection: false,
+        discovery: false,
+        assess: false,
+        plan: false,
+        execute: false,
+        modernize: false,
+        decommission: false,
+        finops: false,
+        observability: false,
+        admin: false
+      };
+
+      newState[key] = true;
+      return newState;
+    });
   };
 
   const handleVersionClick = (): void => {
@@ -256,7 +280,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         />
 
         {bottomNavigationItems.length > 0 && (
-          <div className="mt-4 border-t border-gray-700 pt-3">
+          <div className="mt-20 border-t border-gray-700 pt-12">
             <NavigationMenu
               navigationItems={bottomNavigationItems}
               currentPath={location.pathname}

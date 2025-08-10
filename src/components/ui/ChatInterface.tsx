@@ -3,7 +3,7 @@ import { useState, useRef } from 'react'
 import { useEffect } from 'react'
 import { MessageCircle } from 'lucide-react'
 import { Send, X, Bot, User, Star, ThumbsUp } from 'lucide-react'
-import { apiCall } from '../../config/api';
+import { apiCall, API_CONFIG } from '../../config/api';
 import { Markdown } from '../../utils/markdown';
 
 interface ChatMessage {
@@ -115,23 +115,25 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
     setIsLoading(true);
 
     try {
-      const response = await apiCall('discovery/chat-test', {
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.CHAT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           message: inputMessage,
-          task_type: 'chat',
-          system_prompt: getRestrictiveSystemPrompt(),
-          context: `User is currently on: ${currentPage}. Focus responses on migration and infrastructure topics only.`
+          context: `User is currently on: ${currentPage}. Focus responses on migration and infrastructure topics only.`,
+          conversation_history: messages.map(msg => ({
+            role: msg.role,
+            content: msg.content
+          }))
         })
       });
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response.chat_response || 'I apologize, but I couldn\'t generate a response. Please try again with a migration or infrastructure-related question.',
+        content: response.response || 'I apologize, but I couldn\'t generate a response. Please try again with a migration or infrastructure-related question.',
         timestamp: response.timestamp || new Date().toISOString()
       };
 
@@ -155,7 +157,7 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
 
     setIsSubmittingFeedback(true);
     try {
-      await apiCall('discovery/feedback', {
+      await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.FEEDBACK, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

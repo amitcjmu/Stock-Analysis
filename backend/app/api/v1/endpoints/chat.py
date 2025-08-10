@@ -355,3 +355,56 @@ async def test_chat_models():
     except Exception as e:
         logger.error(f"Error testing models: {e}")
         return {"status": "error", "error": str(e), "message": "Model testing failed"}
+
+
+# Feedback endpoint models
+class FeedbackRequest(BaseModel):
+    page: str
+    rating: int
+    comment: str
+    category: str = "ui"
+    breadcrumb: Optional[str] = None
+    timestamp: str
+
+
+@router.post("/feedback")
+async def submit_feedback(request: FeedbackRequest):
+    """
+    Submit user feedback for UI/UX improvements.
+    Global feedback endpoint for all app pages.
+    """
+    try:
+        logger.info(f"Feedback submission for page: {request.page}")
+
+        # For now, use the discovery feedback handler as a backend service
+        # In the future, this could be moved to a dedicated feedback service
+        from app.api.v1.endpoints.discovery_handlers.feedback import FeedbackHandler
+
+        feedback_handler = FeedbackHandler()
+
+        # Convert to feedback handler format
+        feedback_data = {
+            "type": "ui_feedback",
+            "content": request.comment,
+            "rating": request.rating,
+            "page": request.page,
+            "category": request.category,
+            "breadcrumb": request.breadcrumb,
+            "timestamp": request.timestamp,
+        }
+
+        # Submit feedback using the feedback handler
+        result = await feedback_handler.submit_feedback(feedback_data)
+
+        return {
+            "status": "success",
+            "message": "Feedback submitted successfully",
+            "feedback_id": result.get("feedback_id"),
+            "timestamp": request.timestamp,
+        }
+
+    except Exception as e:
+        logger.error(f"Feedback submission error: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Feedback submission failed: {str(e)}"
+        )

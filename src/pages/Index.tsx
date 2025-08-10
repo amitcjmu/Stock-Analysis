@@ -173,8 +173,13 @@ const Index = (): JSX.Element => {
               <DashboardOverviewStats />
             </div>
 
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-              {secondaryModules.map((mod) => {
+            <div className="mt-16">
+              <div className="border-t border-gray-200 pt-8 mb-8">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-6">Operations & Management</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {secondaryModules.map((mod) => {
                 const Icon = mod.icon;
                 return (
                   <Link
@@ -200,7 +205,8 @@ const Index = (): JSX.Element => {
                     </div>
                   </Link>
                 );
-              })}
+                })}
+              </div>
             </div>
           </div>
         </main>
