@@ -14,7 +14,12 @@ logger = logging.getLogger(__name__)
 
 
 class ContextAwareRepository:
-    """Base repository with context awareness for multi-tenant data access."""
+    """
+    DEPRECATED: Use `app.repositories.context_aware_repository.ContextAwareRepository` (async-first)
+
+    This sync-capable base is retained for backward compatibility in legacy scripts.
+    New repositories must import the async ContextAwareRepository.
+    """
 
     def __init__(
         self,
@@ -32,7 +37,10 @@ class ContextAwareRepository:
         # Log context for debugging
         if client_account_id or engagement_id:
             logger.debug(
-                f"Repository context: client_account_id={client_account_id}, engagement_id={engagement_id}, user_id={user_id}"
+                "Repository context: client_account_id=%s, engagement_id=%s, user_id=%s",
+                client_account_id,
+                engagement_id,
+                user_id,
             )
 
     async def _check_is_platform_admin(self) -> bool:
@@ -172,7 +180,10 @@ class ContextAwareRepository:
         self._is_platform_admin = None  # Reset admin cache when context changes
 
         logger.debug(
-            f"Updated repository context: client_account_id={client_account_id}, engagement_id={engagement_id}, user_id={user_id}"
+            "Updated repository context: client_account_id=%s, engagement_id=%s, user_id=%s",
+            client_account_id,
+            engagement_id,
+            user_id,
         )
 
 
