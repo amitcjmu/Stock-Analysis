@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Planning & Audit Reference
+    url: https://github.com/CryptoYogiLLC/migrate-ui-orchestrator/tree/main/docs/planning/code-analysis
+    about: Refer to the audit and implementation tracker before creating tasks.
