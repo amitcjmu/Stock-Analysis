@@ -17,7 +17,7 @@ from app.core.exceptions import FlowError, DataImportError
 from app.core.logging import get_logger
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.services.discovery_flow_service import DiscoveryFlowService
-from app.services.data_import.storage_manager import StorageManager
+from app.services.data_import.storage_manager import ImportStorageManager
 from app.models.data_import import DataImport
 
 logger = get_logger(__name__)
@@ -44,7 +44,7 @@ class DataImportService:
     def __init__(self, db: AsyncSession, context: RequestContext):
         self.db = db
         self.context = context
-        self.storage_manager = StorageManager(db, context)
+        self.storage_manager = ImportStorageManager(db, context.client_account_id)
 
     async def process_import_and_trigger_flow(
         self,

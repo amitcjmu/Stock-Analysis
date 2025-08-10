@@ -14,7 +14,7 @@ from app.core.logging import get_logger
 from app.models.data_import import DataImport
 from app.schemas.data_import_schemas import StoreImportRequest
 
-from .storage_manager import StorageManager
+from .storage_manager import ImportStorageManager
 from .import_service import DataImportService
 from .transaction_manager import TransactionManager
 from .response_builder import ResponseBuilder
@@ -56,7 +56,7 @@ class ImportStorageHandler:
             Dictionary containing import data and metadata, or None if no imports exist
         """
         try:
-            storage_manager = StorageManager(self.db, context)
+            storage_manager = ImportStorageManager(self.db, context.client_account_id)
 
             # Find the most recent import for this context
             query = (
@@ -100,7 +100,7 @@ class ImportStorageHandler:
                 engagement_id=None,
                 user_id=None,
             )
-            storage_manager = StorageManager(self.db, context)
+            storage_manager = ImportStorageManager(self.db, context.client_account_id)
 
             # Get the import data
             import_data = await storage_manager.get_import_data(data_import_id)

@@ -16,7 +16,6 @@ from fastapi import APIRouter
 
 # Import all sub-routers from monitoring modules
 from .monitoring.agent_monitoring import router as agent_router
-from .monitoring.crew_monitoring import router as crew_router
 from .monitoring.crewai_flow_monitoring import router as crewai_flow_router
 from .monitoring.error_monitoring import router as error_router
 from .monitoring.health_metrics import router as health_router
@@ -34,8 +33,7 @@ router.include_router(health_router, tags=["Health & Metrics"])
 # CrewAI flow monitoring endpoints
 router.include_router(crewai_flow_router, tags=["CrewAI Flow Monitoring"])
 
-# Phase 2 crew monitoring endpoints
-router.include_router(crew_router, tags=["Crew Monitoring"])
+# Phase 2 crew monitoring endpoints - REMOVED (legacy code cleaned up)
 
 # Error monitoring endpoints
 router.include_router(error_router, tags=["Error Monitoring"])
