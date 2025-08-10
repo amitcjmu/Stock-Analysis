@@ -209,7 +209,7 @@ class UniversalFlowProcessingCrew:
     ) -> List[Task]:
         """Create dynamic tasks for flow continuation analysis"""
 
-        # Task 1: Flow State Analysis
+        # Task 1: Flow State Analysis (with optional memory context)
         analysis_task = Task(
             description=f"""Analyze the current state of flow {flow_id}.
 
@@ -232,7 +232,7 @@ class UniversalFlowProcessingCrew:
             ),
         )
 
-        # Task 2: Phase Validation
+        # Task 2: Phase Validation (with optional memory context)
         validation_task = Task(
             description=(
                 f"Use the flow_validator tool to perform comprehensive validation on flow {flow_id}.\n\n"
