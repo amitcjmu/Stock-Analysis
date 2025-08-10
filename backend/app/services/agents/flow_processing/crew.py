@@ -70,51 +70,61 @@ class UniversalFlowProcessingCrew:
         # Flow Analysis Agent
         self.flow_analyst = Agent(
             role="Flow State Analyst",
-            goal="Analyze the current state and progress of any migration flow type to understand what has been completed and what needs to be done next",
-            backstory="""You are an expert migration flow analyst with deep knowledge of all migration phases across Discovery, Assessment, Planning, Execution, Modernization, FinOps, Observability, and Decommission workflows.
-
-            You have years of experience analyzing complex migration projects and can quickly assess the current state of any flow, identify completed tasks, and determine what needs attention. You understand the nuances of different flow types and their unique requirements.
-
-            Your analytical skills help teams understand exactly where they are in their migration journey and what the next logical steps should be.""",
+            goal=(
+                "Analyze the current state and progress of any migration flow type "
+                "to identify what is complete and what should happen next"
+            ),
+            backstory=(
+                "You analyze complex migration projects across Discovery, Assessment, "
+                "Planning, Execution, Modernization, FinOps, Observability, and Decommission. "
+                "You quickly assess current state, identify completed tasks, and determine "
+                "the next actions with awareness of each flow's nuances."
+            ),
             tools=[self.flow_analyzer],
             verbose=True,
             allow_delegation=False,
             max_iter=3,
-            memory=False,  # DISABLE MEMORY - Prevents APIStatusError
+            memory=False,
             llm=llm,
         )
 
         # Phase Validation Agent
         self.phase_validator_agent = Agent(
             role="Phase Completion Validator",
-            goal="Validate whether migration phases are truly complete and meet all required criteria before allowing progression to the next phase",
-            backstory="""You are a meticulous quality assurance specialist for migration projects. Your role is critical - you ensure that no phase is marked complete unless it truly meets all the necessary criteria.
-
-            You have extensive experience with migration best practices and understand that rushing through phases or marking them complete prematurely can lead to serious issues downstream. You carefully examine evidence of completion and apply rigorous validation criteria.
-
-            Teams rely on your thorough validation to ensure their migration foundation is solid before moving forward. You prevent costly mistakes by catching incomplete work early.""",
+            goal=(
+                "Validate that phases truly meet required criteria before allowing "
+                "progression to the next phase"
+            ),
+            backstory=(
+                "You are a meticulous QA specialist who prevents premature phase "
+                "completion by applying rigorous validation criteria grounded in "
+                "migration best practices."
+            ),
             tools=[self.phase_validator, self.flow_validator],
             verbose=True,
             allow_delegation=False,
             max_iter=3,
-            memory=False,  # DISABLE MEMORY - Prevents APIStatusError
+            memory=False,
             llm=llm,
         )
 
         # Route Decision Agent
         self.route_strategist = Agent(
             role="Flow Navigation Strategist",
-            goal="Make intelligent routing decisions to guide users to the exact right place in their migration flow based on current state and validation results",
-            backstory="""You are a strategic navigation expert who specializes in guiding teams through complex migration workflows. You understand the intricate relationships between different phases and know exactly where to direct teams based on their current situation.
-
-            Your deep knowledge of user experience and workflow optimization helps you make routing decisions that minimize confusion and maximize productivity. You consider not just what needs to be done, but the most efficient and logical way to guide users there.
-
-            Teams trust your routing decisions because you always consider the bigger picture and ensure they're directed to the most appropriate next step in their migration journey.""",
+            goal=(
+                "Route users to the most appropriate next step based on current "
+                "state and validation results"
+            ),
+            backstory=(
+                "You guide teams through complex workflows by understanding phase "
+                "relationships and user experience, minimizing confusion and "
+                "maximizing productivity."
+            ),
             tools=[self.route_decider],
             verbose=True,
             allow_delegation=False,
             max_iter=3,
-            memory=False,  # DISABLE MEMORY - Prevents APIStatusError
+            memory=False,
             llm=llm,
         )
 
@@ -134,7 +144,7 @@ class UniversalFlowProcessingCrew:
             tasks=[],  # Tasks will be created dynamically
             process=Process.sequential,
             verbose=True,
-            memory=False,  # DISABLE MEMORY - Prevents APIStatusError
+            memory=False,
         )
 
     async def process_flow_continuation(
@@ -204,67 +214,68 @@ class UniversalFlowProcessingCrew:
             User Context: {user_context}
             """,
             agent=self.flow_analyst,
-            expected_output="Detailed flow state analysis including flow type, current phase, progress percentage, and available data",
+            expected_output=(
+                "Detailed flow state analysis including flow type, current phase, "
+                "progress percentage, and available data"
+            ),
         )
 
         # Task 2: Phase Validation
         validation_task = Task(
-            description=f"""Use the flow_validator tool to perform comprehensive validation on flow {flow_id}.
-
-            The flow validator will:
-            1. Check all phases sequentially (data_import, attribute_mapping, data_cleansing, inventory, dependencies, tech_debt)
-            2. Stop at the FIRST incomplete phase (fail-fast approach)
-            3. Return detailed validation with specific data counts and issues
-            4. Provide ACTIONABLE GUIDANCE distinguishing between:
-               - USER_ACTION: What the user needs to do (upload data, configure mappings, etc.)
-               - SYSTEM_ACTION: What the system needs to do internally (trigger processing, etc.)
-               - ISSUE: Specific problems identified
-
-            Then use the phase_validator tool to get detailed validation for the identified incomplete phase.
-
-            Your job is to:
-            - Identify exactly what failed or is incomplete
-            - Determine if this requires user action or system action
-            - Provide specific, actionable guidance about what needs to be done
-            - Distinguish between things the user can control vs. system-level issues
-
-            DO NOT tell users to "ensure something is completed" - instead identify:
-            - If they need to upload data → route them to data import
-            - If they need to configure mappings → route them to attribute mapping
-            - If system processing failed → trigger system actions internally
-            """,
+            description=(
+                f"Use the flow_validator tool to perform comprehensive validation on flow {flow_id}.\n\n"
+                "The flow validator will:\n"
+                "1. Check all phases sequentially (data_import, attribute_mapping, "
+                "data_cleansing, inventory, dependencies, tech_debt)\n"
+                "2. Stop at the FIRST incomplete phase (fail-fast approach)\n"
+                "3. Return detailed validation with specific data counts and issues\n"
+                "4. Provide guidance distinguishing between USER_ACTION vs SYSTEM_ACTION vs ISSUE\n\n"
+                "Then use the phase_validator tool for detailed validation of the incomplete phase.\n\n"
+                "Your job is to:\n"
+                "- Identify exactly what failed or is incomplete\n"
+                "- Determine if this requires user vs system action\n"
+                "- Provide specific, actionable guidance\n\n"
+                "Do not say 'ensure completion'. Instead:\n"
+                "- If they need to upload data → route to data import\n"
+                "- If they need to configure mappings → route to attribute mapping\n"
+                "- If system processing failed → trigger system actions internally"
+            ),
             agent=self.phase_validator_agent,
-            expected_output="Detailed validation with specific actionable guidance distinguishing user actions from system actions",
+            expected_output=(
+                "Detailed validation with actionable guidance distinguishing user "
+                "actions from system actions"
+            ),
             context=[analysis_task],
         )
 
         # Task 3: Route Decision
         routing_task = Task(
-            description="""Based on the flow analysis and phase validation, make an intelligent routing decision that provides ACTIONABLE USER GUIDANCE.
-
-            Your routing decision must:
-            1. Parse the actionable guidance from validation results
-            2. Distinguish between user actions and system actions
-            3. Route users to pages where they can actually take action
-            4. Trigger system processes when needed (not user responsibility)
-            5. Provide clear, specific guidance about what the user should do
-
-            ROUTING LOGIC:
-            - If user needs to upload data → route to /discovery/data-import
-            - If user needs to configure mappings → route to /discovery/attribute-mapping
-            - If system needs to process data → stay on enhanced dashboard with processing indicator
-            - If phase is truly complete → advance to next phase
-
-            USER GUIDANCE PRINCIPLES:
-            - Never tell users to "ensure completion" of something they can't control
-            - Always provide specific, actionable steps
-            - Route them to pages where they can actually take the required action
-            - For system issues, explain that background processing is needed
-
-            Provide clear reasoning about why this route was chosen and what the user should expect.
-            """,
+            description=(
+                "Based on the flow analysis and validation, make a routing decision "
+                "that provides actionable user guidance.\n\n"
+                "Your routing decision must:\n"
+                "1. Parse guidance from validation results\n"
+                "2. Distinguish user vs system actions\n"
+                "3. Route users to pages where they can act\n"
+                "4. Trigger system processes when needed\n"
+                "5. Provide clear, specific guidance\n\n"
+                "ROUTING LOGIC:\n"
+                "- Upload data → /discovery/data-import\n"
+                "- Configure mappings → /discovery/attribute-mapping\n"
+                "- System processing → enhanced dashboard with processing indicator\n"
+                "- Phase complete → advance to next phase\n\n"
+                "USER GUIDANCE PRINCIPLES:\n"
+                "- No 'ensure completion' phrasing\n"
+                "- Provide specific, actionable steps\n"
+                "- Route to pages for required action\n"
+                "- Explain when background processing is needed\n\n"
+                "Provide clear reasoning about the route and set user expectations."
+            ),
             agent=self.route_strategist,
-            expected_output="Routing decision with specific user guidance and clear distinction between user vs system responsibilities",
+            expected_output=(
+                "Routing decision with specific user guidance and clear distinction "
+                "between user vs system responsibilities"
+            ),
             context=[analysis_task, validation_task],
         )
 
