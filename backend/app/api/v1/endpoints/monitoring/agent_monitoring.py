@@ -200,6 +200,484 @@ async def get_task_history(
         )
 
 
+def _build_agent_info_from_registry(agent, is_working: bool) -> dict:
+    """Build agent info dictionary from registry agent."""
+    return {
+        "agent_id": agent.agent_id,
+        "name": agent.name,
+        "role": agent.role,
+        "expertise": agent.expertise,
+        "specialization": agent.specialization,
+        "key_skills": agent.key_skills,
+        "capabilities": agent.capabilities,
+        "api_endpoints": agent.api_endpoints,
+        "description": agent.description,
+        "version": agent.version,
+        "source": "agent_registry",
+        "status": {
+            "current_status": agent.status.value,
+            "available": agent.status == AgentStatus.ACTIVE and not is_working,
+            "currently_working": is_working,
+            "health": ("healthy" if agent.status == AgentStatus.ACTIVE else "inactive"),
+        },
+        "features": {
+            "learning_enabled": agent.learning_enabled,
+            "cross_page_communication": agent.cross_page_communication,
+            "modular_handlers": agent.modular_handlers,
+        },
+        "performance": {
+            "tasks_completed": agent.tasks_completed,
+            "success_rate": (
+                f"{agent.success_rate:.1%}" if agent.success_rate > 0 else "N/A"
+            ),
+            "avg_execution_time": (
+                f"{agent.avg_execution_time:.1f}s"
+                if agent.avg_execution_time > 0
+                else "N/A"
+            ),
+        },
+        "registration_time": (
+            agent.registration_time.isoformat() if agent.registration_time else None
+        ),
+        "last_heartbeat": (
+            agent.last_heartbeat.isoformat() if agent.last_heartbeat else None
+        ),
+    }
+
+
+def _get_agents_from_registry(agent_details_by_phase: dict, status_report: dict):
+    """Get agents from agent registry and add to agent_details_by_phase."""
+    active_agents = {task["agent"] for task in status_report["active_task_details"]}
+
+    for phase in AgentPhase:
+        phase_agents = agent_registry.get_agents_by_phase(phase)
+        agents_list = []
+
+        for agent in phase_agents:
+            # Check if agent is currently working (simplified check)
+            is_working = any(
+                agent.name.lower().replace(" ", "_") in active_agent.lower()
+                for active_agent in active_agents
+            )
+
+            agent_info = _build_agent_info_from_registry(agent, is_working)
+            agents_list.append(agent_info)
+
+        # Store agents for this phase
+        if agents_list:
+            agent_details_by_phase[phase.value] = {
+                "phase_name": phase.value.replace("_", " ").title(),
+                "total_agents": len(agents_list),
+                "active_agents": len(
+                    [
+                        a
+                        for a in agents_list
+                        if a["status"]["current_status"] == "active"
+                    ]
+                ),
+                "agents": agents_list,
+            }
+
+
+def _determine_crew_phase(crew_type: str) -> str:
+    """Determine the phase for a crew type."""
+    if crew_type in [
+        "field_mapping",
+        "data_cleansing",
+        "asset_inventory",
+        "data_import_validation",
+        "attribute_mapping",
+    ]:
+        return "discovery"
+    elif crew_type in [
+        "sixr_strategy",
+        "complexity_assessment",
+        "risk_analysis",
+    ]:
+        return "assessment"
+    elif crew_type in [
+        "gap_analysis",
+        "automated_collection",
+        "collection_orchestrator",
+    ]:
+        return "collection"
+    else:
+        return "discovery"  # Default
+
+
+def _create_crew_agent_info(crew_type: str, crew_info: dict, agent, i: int) -> dict:
+    """Create agent info for a crew agent."""
+    crew_phase = _determine_crew_phase(crew_type)
+    return {
+        "agent_id": f"{crew_type}_agent_{i+1}",
+        "name": f"{crew_info['name']} Agent {i+1}",
+        "role": getattr(agent, "role", f"Crew Agent {i+1}"),
+        "expertise": crew_info.get("description", "Phase 2 crew-based agent"),
+        "specialization": (
+            getattr(agent, "backstory", "")[:100] + "..."
+            if len(getattr(agent, "backstory", "")) > 100
+            else getattr(agent, "backstory", "")
+        ),
+        "key_skills": [
+            crew_type.replace("_", " ").title(),
+            "Crew Collaboration",
+            "Task Execution",
+        ],
+        "capabilities": [
+            f"Tools: {len(getattr(agent, 'tools', []))}",
+            "CrewAI Integration",
+            "Phase 2 System",
+        ],
+        "api_endpoints": [f"/api/v1/crews/{crew_type}/status"],
+        "description": f"Phase 2 crew-based agent from {crew_info['name']} crew",
+        "version": "2.0.0",
+        "source": "phase2_crew_system",
+        "crew_type": crew_type,
+        "status": {
+            "current_status": "active",
+            "available": True,
+            "currently_working": False,
+            "health": "healthy",
+        },
+        "features": {
+            "learning_enabled": True,
+            "cross_page_communication": False,
+            "modular_handlers": True,
+        },
+        "performance": {
+            "tasks_completed": "N/A",
+            "success_rate": "N/A",
+            "avg_execution_time": "N/A",
+        },
+        "registration_time": datetime.utcnow().isoformat(),
+        "last_heartbeat": datetime.utcnow().isoformat(),
+    }, crew_phase
+
+
+def _get_fallback_agents_for_crew(crew_type: str) -> list:
+    """Get fallback agents for a specific crew type."""
+    if crew_type == "field_mapping":
+        return [
+            {
+                "name": "Field Mapping Specialist",
+                "role": "Data Analyst",
+                "description": (
+                    "Specialized in semantic field mapping "
+                    "and data structure analysis"
+                ),
+            },
+            {
+                "name": "Validation Specialist",
+                "role": "Quality Assurance",
+                "description": "Ensures data mapping accuracy and completeness",
+            },
+        ]
+    elif crew_type == "data_cleansing":
+        return [
+            {
+                "name": "Data Cleansing Specialist",
+                "role": "Data Quality Expert",
+                "description": "Expert in data standardization and quality improvement",
+            },
+            {
+                "name": "Format Validator",
+                "role": "Format Specialist",
+                "description": "Validates data formats and consistency",
+            },
+        ]
+    elif crew_type == "asset_inventory":
+        return [
+            {
+                "name": "Asset Classifier",
+                "role": "Classification Expert",
+                "description": "Classifies and categorizes IT assets for migration planning",
+            },
+            {
+                "name": "Criticality Assessor",
+                "role": "Risk Analyst",
+                "description": "Assesses business criticality and migration priority",
+            },
+        ]
+    return []
+
+
+def _add_fallback_agents(agent_details_by_phase: dict, crew_type: str):
+    """Add fallback agents for a crew type."""
+    fallback_agents = _get_fallback_agents_for_crew(crew_type)
+    crew_phase = _determine_crew_phase(crew_type)
+
+    for i, fallback in enumerate(fallback_agents):
+        agent_info = {
+            "agent_id": f"{crew_type}_fallback_{i+1}",
+            "name": fallback["name"],
+            "role": fallback["role"],
+            "expertise": fallback["description"],
+            "specialization": f"Phase 2 {crew_type.replace('_', ' ')} specialist",
+            "key_skills": [
+                crew_type.replace("_", " ").title(),
+                "CrewAI Framework",
+            ],
+            "capabilities": [
+                "Phase 2 System",
+                "Crew-based Processing",
+            ],
+            "api_endpoints": [f"/api/v1/crews/{crew_type}/status"],
+            "description": f"Phase 2 fallback agent for {crew_type} crew",
+            "version": "2.0.0",
+            "source": "phase2_crew_system_fallback",
+            "crew_type": crew_type,
+            "status": {
+                "current_status": "inactive",
+                "available": False,
+                "currently_working": False,
+                "health": "inactive",
+            },
+            "features": {
+                "learning_enabled": True,
+                "cross_page_communication": False,
+                "modular_handlers": True,
+            },
+            "performance": {
+                "tasks_completed": "N/A",
+                "success_rate": "N/A",
+                "avg_execution_time": "N/A",
+            },
+            "registration_time": datetime.utcnow().isoformat(),
+            "last_heartbeat": None,
+        }
+
+        if crew_phase not in agent_details_by_phase:
+            agent_details_by_phase[crew_phase] = {
+                "phase_name": crew_phase.replace("_", " ").title(),
+                "total_agents": 0,
+                "active_agents": 0,
+                "agents": [],
+            }
+
+        agent_details_by_phase[crew_phase]["agents"].append(agent_info)
+        agent_details_by_phase[crew_phase]["total_agents"] += 1
+
+
+def _add_individual_flow_agents(agent_details_by_phase: dict):
+    """Add individual flow agents to agent_details_by_phase."""
+    individual_agents = [
+        {
+            "agent_id": "data_import_validation_individual",
+            "name": "Data Import Validation Agent",
+            "role": "Data Import Specialist",
+            "phase": "discovery",
+            "expertise": "Individual specialized agent for data import validation",
+            "specialization": "Part of Discovery Flow Redesign - replaces old registry system",
+            "key_skills": [
+                "Data Validation",
+                "Import Processing",
+                "Quality Checks",
+            ],
+            "capabilities": [
+                "Individual Processing",
+                "Discovery Flow Integration",
+                "Real-time Validation",
+            ],
+            "api_endpoints": ["/api/v1/flows/data-import/validate"],
+            "description": "Individual specialized agent from Discovery Flow Redesign",
+            "status": "active",
+            "source": "individual_flow_agents",
+        },
+        {
+            "agent_id": "attribute_mapping_individual",
+            "name": "Attribute Mapping Agent",
+            "role": "Attribute Mapping Specialist",
+            "phase": "discovery",
+            "expertise": "Individual specialized agent for attribute mapping",
+            "specialization": "Part of Discovery Flow Redesign - field mapping intelligence",
+            "key_skills": [
+                "Attribute Mapping",
+                "Field Analysis",
+                "Semantic Matching",
+            ],
+            "capabilities": [
+                "Individual Processing",
+                "Discovery Flow Integration",
+                "Learning Enabled",
+            ],
+            "api_endpoints": ["/api/v1/flows/attribute-mapping"],
+            "description": "Individual specialized agent from Discovery Flow Redesign",
+            "status": "active",
+            "source": "individual_flow_agents",
+        },
+        {
+            "agent_id": "data_cleansing_individual",
+            "name": "Data Cleansing Agent",
+            "role": "Data Cleansing Specialist",
+            "phase": "discovery",
+            "expertise": "Individual specialized agent for data cleansing",
+            "specialization": "Part of Discovery Flow Redesign - data quality improvement",
+            "key_skills": [
+                "Data Cleansing",
+                "Quality Assessment",
+                "Data Standardization",
+            ],
+            "capabilities": [
+                "Individual Processing",
+                "Discovery Flow Integration",
+                "Quality Intelligence",
+            ],
+            "api_endpoints": ["/api/v1/flows/data-cleansing"],
+            "description": "Individual specialized agent from Discovery Flow Redesign",
+            "status": "active",
+            "source": "individual_flow_agents",
+        },
+    ]
+
+    for individual_agent in individual_agents:
+        phase = individual_agent["phase"]
+
+        agent_info = {
+            "agent_id": individual_agent["agent_id"],
+            "name": individual_agent["name"],
+            "role": individual_agent["role"],
+            "expertise": individual_agent["expertise"],
+            "specialization": individual_agent["specialization"],
+            "key_skills": individual_agent["key_skills"],
+            "capabilities": individual_agent["capabilities"],
+            "api_endpoints": individual_agent["api_endpoints"],
+            "description": individual_agent["description"],
+            "version": "3.0.0",  # Discovery Flow Redesign version
+            "source": individual_agent["source"],
+            "status": {
+                "current_status": individual_agent["status"],
+                "available": individual_agent["status"] == "active",
+                "currently_working": False,
+                "health": (
+                    "healthy" if individual_agent["status"] == "active" else "inactive"
+                ),
+            },
+            "features": {
+                "learning_enabled": True,
+                "cross_page_communication": True,
+                "modular_handlers": True,
+            },
+            "performance": {
+                "tasks_completed": "N/A",
+                "success_rate": "N/A",
+                "avg_execution_time": "N/A",
+            },
+            "registration_time": datetime.utcnow().isoformat(),
+            "last_heartbeat": datetime.utcnow().isoformat(),
+        }
+
+        if phase not in agent_details_by_phase:
+            agent_details_by_phase[phase] = {
+                "phase_name": phase.replace("_", " ").title(),
+                "total_agents": 0,
+                "active_agents": 0,
+                "agents": [],
+            }
+
+        agent_details_by_phase[phase]["agents"].append(agent_info)
+        agent_details_by_phase[phase]["total_agents"] += 1
+        if individual_agent["status"] == "active":
+            agent_details_by_phase[phase]["active_agents"] += 1
+
+
+def _calculate_summary_statistics(agent_details_by_phase: dict) -> dict:
+    """Calculate summary statistics for all agents."""
+    all_agents = []
+    for phase_data in agent_details_by_phase.values():
+        all_agents.extend(phase_data["agents"])
+
+    return {
+        "total_agents": len(all_agents),
+        "by_phase": {
+            phase: data["total_agents"]
+            for phase, data in agent_details_by_phase.items()
+        },
+        "by_status": {
+            "active": len(
+                [a for a in all_agents if a["status"]["current_status"] == "active"]
+            ),
+            "planned": len(
+                [a for a in all_agents if a["status"]["current_status"] == "planned"]
+            ),
+            "in_development": len(
+                [
+                    a
+                    for a in all_agents
+                    if a["status"]["current_status"] == "in_development"
+                ]
+            ),
+        },
+        "features": {
+            "learning_enabled": len(
+                [a for a in all_agents if a["features"]["learning_enabled"]]
+            ),
+            "cross_page_communication": len(
+                [a for a in all_agents if a["features"]["cross_page_communication"]]
+            ),
+            "modular_handlers": len(
+                [a for a in all_agents if a["features"]["modular_handlers"]]
+            ),
+        },
+    }
+
+
+def _process_single_crew(agent_details_by_phase: dict, crew_type: str, crew_factory):
+    """Process a single crew type and add its agents."""
+    try:
+        crew_info = crew_factory.get_crew_info(crew_type)
+        if not crew_info:
+            return
+
+        crew = crew_factory.create_crew(crew_type)
+        if not crew:
+            return
+
+        try:
+            sample_inputs = {"raw_data": [{"sample": "data"}]}
+            crew.initialize_crew(sample_inputs)
+
+            for i, agent in enumerate(crew.agents):
+                agent_info, crew_phase = _create_crew_agent_info(
+                    crew_type, crew_info, agent, i
+                )
+
+                # Add to appropriate phase
+                if crew_phase not in agent_details_by_phase:
+                    agent_details_by_phase[crew_phase] = {
+                        "phase_name": crew_phase.replace("_", " ").title(),
+                        "total_agents": 0,
+                        "active_agents": 0,
+                        "agents": [],
+                    }
+
+                agent_details_by_phase[crew_phase]["agents"].append(agent_info)
+                agent_details_by_phase[crew_phase]["total_agents"] += 1
+                agent_details_by_phase[crew_phase]["active_agents"] += 1
+
+        except Exception as crew_init_error:
+            logger.warning(
+                f"Could not initialize crew {crew_type} for agent details: {crew_init_error}"
+            )
+            _add_fallback_agents(agent_details_by_phase, crew_type)
+    except Exception as e:
+        logger.warning(f"Error processing crew {crew_type}: {e}")
+
+
+def _get_agents_from_phase2_crews(agent_details_by_phase: dict):
+    """Get agents from Phase 2 crew system."""
+    try:
+        from app.services.crews.factory import CrewFactory
+
+        available_crews = CrewFactory.list_crews()
+        logger.info(f"Found {len(available_crews)} crew types from Phase 2 system")
+
+        for crew_type in available_crews:
+            _process_single_crew(agent_details_by_phase, crew_type, CrewFactory)
+
+    except Exception as e:
+        logger.warning(f"Phase 2 crew system not available: {e}")
+
+
 @router.get("/agents")
 async def get_agent_details():
     """
@@ -214,488 +692,20 @@ async def get_agent_details():
     try:
         agent_details_by_phase = {}
 
-        # === 1. GET AGENTS FROM AGENT REGISTRY ===
-        for phase in AgentPhase:
-            phase_agents = agent_registry.get_agents_by_phase(phase)
+        # Get status report once for all registry operations
+        status_report = agent_monitor.get_status_report()
 
-            # Get current task assignments for status
-            status_report = agent_monitor.get_status_report()
-            active_agents = {
-                task["agent"] for task in status_report["active_task_details"]
-            }
+        # 1. GET AGENTS FROM AGENT REGISTRY
+        _get_agents_from_registry(agent_details_by_phase, status_report)
 
-            agents_list = []
-            for agent in phase_agents:
-                # Check if agent is currently working (simplified check)
-                is_working = any(
-                    agent.name.lower().replace(" ", "_") in active_agent.lower()
-                    for active_agent in active_agents
-                )
+        # 2. GET AGENTS FROM PHASE 2 CREW SYSTEM
+        _get_agents_from_phase2_crews(agent_details_by_phase)
 
-                agent_info = {
-                    "agent_id": agent.agent_id,
-                    "name": agent.name,
-                    "role": agent.role,
-                    "expertise": agent.expertise,
-                    "specialization": agent.specialization,
-                    "key_skills": agent.key_skills,
-                    "capabilities": agent.capabilities,
-                    "api_endpoints": agent.api_endpoints,
-                    "description": agent.description,
-                    "version": agent.version,
-                    "source": "agent_registry",
-                    "status": {
-                        "current_status": agent.status.value,
-                        "available": agent.status == AgentStatus.ACTIVE
-                        and not is_working,
-                        "currently_working": is_working,
-                        "health": (
-                            "healthy"
-                            if agent.status == AgentStatus.ACTIVE
-                            else "inactive"
-                        ),
-                    },
-                    "features": {
-                        "learning_enabled": agent.learning_enabled,
-                        "cross_page_communication": agent.cross_page_communication,
-                        "modular_handlers": agent.modular_handlers,
-                    },
-                    "performance": {
-                        "tasks_completed": agent.tasks_completed,
-                        "success_rate": (
-                            f"{agent.success_rate:.1%}"
-                            if agent.success_rate > 0
-                            else "N/A"
-                        ),
-                        "avg_execution_time": (
-                            f"{agent.avg_execution_time:.1f}s"
-                            if agent.avg_execution_time > 0
-                            else "N/A"
-                        ),
-                    },
-                    "registration_time": (
-                        agent.registration_time.isoformat()
-                        if agent.registration_time
-                        else None
-                    ),
-                    "last_heartbeat": (
-                        agent.last_heartbeat.isoformat()
-                        if agent.last_heartbeat
-                        else None
-                    ),
-                }
-                agents_list.append(agent_info)
-
-            # Store agents for this phase
-            if agents_list:
-                agent_details_by_phase[phase.value] = {
-                    "phase_name": phase.value.replace("_", " ").title(),
-                    "total_agents": len(agents_list),
-                    "active_agents": len(
-                        [
-                            a
-                            for a in agents_list
-                            if a["status"]["current_status"] == "active"
-                        ]
-                    ),
-                    "agents": agents_list,
-                }
-
-        # === 2. GET AGENTS FROM PHASE 2 CREW SYSTEM ===
-        try:
-            from app.services.crews.factory import CrewFactory
-
-            available_crews = CrewFactory.list_crews()
-            logger.info(f"Found {len(available_crews)} crew types from Phase 2 system")
-
-            for crew_type in available_crews:
-                try:
-                    crew_info = CrewFactory.get_crew_info(crew_type)
-                    if not crew_info:
-                        continue
-
-                    # Create crew to get agent composition
-                    crew = CrewFactory.create_crew(crew_type)
-                    if crew:
-                        try:
-                            sample_inputs = {"raw_data": [{"sample": "data"}]}
-                            crew.initialize_crew(sample_inputs)
-
-                            # Determine phase for crew type
-                            if crew_type in [
-                                "field_mapping",
-                                "data_cleansing",
-                                "asset_inventory",
-                                "data_import_validation",
-                                "attribute_mapping",
-                            ]:
-                                crew_phase = "discovery"
-                            elif crew_type in [
-                                "sixr_strategy",
-                                "complexity_assessment",
-                                "risk_analysis",
-                            ]:
-                                crew_phase = "assessment"
-                            elif crew_type in [
-                                "gap_analysis",
-                                "automated_collection",
-                                "collection_orchestrator",
-                            ]:
-                                crew_phase = "collection"
-                            else:
-                                crew_phase = "discovery"  # Default
-
-                            for i, agent in enumerate(crew.agents):
-                                agent_info = {
-                                    "agent_id": f"{crew_type}_agent_{i+1}",
-                                    "name": f"{crew_info['name']} Agent {i+1}",
-                                    "role": getattr(agent, "role", f"Crew Agent {i+1}"),
-                                    "expertise": crew_info.get(
-                                        "description", "Phase 2 crew-based agent"
-                                    ),
-                                    "specialization": (
-                                        getattr(agent, "backstory", "")[:100] + "..."
-                                        if len(getattr(agent, "backstory", "")) > 100
-                                        else getattr(agent, "backstory", "")
-                                    ),
-                                    "key_skills": [
-                                        crew_type.replace("_", " ").title(),
-                                        "Crew Collaboration",
-                                        "Task Execution",
-                                    ],
-                                    "capabilities": [
-                                        f"Tools: {len(getattr(agent, 'tools', []))}",
-                                        "CrewAI Integration",
-                                        "Phase 2 System",
-                                    ],
-                                    "api_endpoints": [
-                                        f"/api/v1/crews/{crew_type}/status"
-                                    ],
-                                    "description": f"Phase 2 crew-based agent from {crew_info['name']} crew",
-                                    "version": "2.0.0",
-                                    "source": "phase2_crew_system",
-                                    "crew_type": crew_type,
-                                    "status": {
-                                        "current_status": "active",
-                                        "available": True,
-                                        "currently_working": False,
-                                        "health": "healthy",
-                                    },
-                                    "features": {
-                                        "learning_enabled": True,
-                                        "cross_page_communication": False,
-                                        "modular_handlers": True,
-                                    },
-                                    "performance": {
-                                        "tasks_completed": "N/A",
-                                        "success_rate": "N/A",
-                                        "avg_execution_time": "N/A",
-                                    },
-                                    "registration_time": datetime.utcnow().isoformat(),
-                                    "last_heartbeat": datetime.utcnow().isoformat(),
-                                }
-
-                                # Add to appropriate phase
-                                if crew_phase not in agent_details_by_phase:
-                                    agent_details_by_phase[crew_phase] = {
-                                        "phase_name": crew_phase.replace(
-                                            "_", " "
-                                        ).title(),
-                                        "total_agents": 0,
-                                        "active_agents": 0,
-                                        "agents": [],
-                                    }
-
-                                agent_details_by_phase[crew_phase]["agents"].append(
-                                    agent_info
-                                )
-                                agent_details_by_phase[crew_phase]["total_agents"] += 1
-                                agent_details_by_phase[crew_phase]["active_agents"] += 1
-
-                        except Exception as crew_init_error:
-                            logger.warning(
-                                f"Could not initialize crew {crew_type} for agent details: {crew_init_error}"
-                            )
-                            # Add fallback agent data for known crew types
-                            fallback_agents = []
-                            if crew_type == "field_mapping":
-                                fallback_agents = [
-                                    {
-                                        "name": "Field Mapping Specialist",
-                                        "role": "Data Analyst",
-                                        "description": "Specialized in semantic field mapping and data structure analysis",
-                                    },
-                                    {
-                                        "name": "Validation Specialist",
-                                        "role": "Quality Assurance",
-                                        "description": "Ensures data mapping accuracy and completeness",
-                                    },
-                                ]
-                            elif crew_type == "data_cleansing":
-                                fallback_agents = [
-                                    {
-                                        "name": "Data Cleansing Specialist",
-                                        "role": "Data Quality Expert",
-                                        "description": "Expert in data standardization and quality improvement",
-                                    },
-                                    {
-                                        "name": "Format Validator",
-                                        "role": "Format Specialist",
-                                        "description": "Validates data formats and consistency",
-                                    },
-                                ]
-                            elif crew_type == "asset_inventory":
-                                fallback_agents = [
-                                    {
-                                        "name": "Asset Classifier",
-                                        "role": "Classification Expert",
-                                        "description": "Classifies and categorizes IT assets for migration planning",
-                                    },
-                                    {
-                                        "name": "Criticality Assessor",
-                                        "role": "Risk Analyst",
-                                        "description": "Assesses business criticality and migration priority",
-                                    },
-                                ]
-
-                            crew_phase = (
-                                "discovery"
-                                if crew_type
-                                in [
-                                    "field_mapping",
-                                    "data_cleansing",
-                                    "asset_inventory",
-                                ]
-                                else "assessment"
-                            )
-
-                            for i, fallback in enumerate(fallback_agents):
-                                agent_info = {
-                                    "agent_id": f"{crew_type}_fallback_{i+1}",
-                                    "name": fallback["name"],
-                                    "role": fallback["role"],
-                                    "expertise": fallback["description"],
-                                    "specialization": f"Phase 2 {crew_type.replace('_', ' ')} specialist",
-                                    "key_skills": [
-                                        crew_type.replace("_", " ").title(),
-                                        "CrewAI Framework",
-                                    ],
-                                    "capabilities": [
-                                        "Phase 2 System",
-                                        "Crew-based Processing",
-                                    ],
-                                    "api_endpoints": [
-                                        f"/api/v1/crews/{crew_type}/status"
-                                    ],
-                                    "description": f"Phase 2 fallback agent for {crew_type} crew",
-                                    "version": "2.0.0",
-                                    "source": "phase2_crew_system_fallback",
-                                    "crew_type": crew_type,
-                                    "status": {
-                                        "current_status": "inactive",
-                                        "available": False,
-                                        "currently_working": False,
-                                        "health": "inactive",
-                                    },
-                                    "features": {
-                                        "learning_enabled": True,
-                                        "cross_page_communication": False,
-                                        "modular_handlers": True,
-                                    },
-                                    "performance": {
-                                        "tasks_completed": "N/A",
-                                        "success_rate": "N/A",
-                                        "avg_execution_time": "N/A",
-                                    },
-                                    "registration_time": datetime.utcnow().isoformat(),
-                                    "last_heartbeat": None,
-                                }
-
-                                if crew_phase not in agent_details_by_phase:
-                                    agent_details_by_phase[crew_phase] = {
-                                        "phase_name": crew_phase.replace(
-                                            "_", " "
-                                        ).title(),
-                                        "total_agents": 0,
-                                        "active_agents": 0,
-                                        "agents": [],
-                                    }
-
-                                agent_details_by_phase[crew_phase]["agents"].append(
-                                    agent_info
-                                )
-                                agent_details_by_phase[crew_phase]["total_agents"] += 1
-                except Exception as e:
-                    logger.warning(f"Error processing crew {crew_type}: {e}")
-
-        except Exception as e:
-            logger.warning(f"Phase 2 crew system not available: {e}")
-
-        # === 3. ADD INDIVIDUAL FLOW AGENTS ===
-        # These are the specialized agents mentioned in the Discovery Flow Redesign
-        individual_agents = [
-            {
-                "agent_id": "data_import_validation_individual",
-                "name": "Data Import Validation Agent",
-                "role": "Data Import Specialist",
-                "phase": "discovery",
-                "expertise": "Individual specialized agent for data import validation",
-                "specialization": "Part of Discovery Flow Redesign - replaces old registry system",
-                "key_skills": [
-                    "Data Validation",
-                    "Import Processing",
-                    "Quality Checks",
-                ],
-                "capabilities": [
-                    "Individual Processing",
-                    "Discovery Flow Integration",
-                    "Real-time Validation",
-                ],
-                "api_endpoints": ["/api/v1/discovery/data-import/validate"],
-                "description": "Individual specialized agent from Discovery Flow Redesign",
-                "status": "active",
-                "source": "individual_flow_agents",
-            },
-            {
-                "agent_id": "attribute_mapping_individual",
-                "name": "Attribute Mapping Agent",
-                "role": "Attribute Mapping Specialist",
-                "phase": "discovery",
-                "expertise": "Individual specialized agent for attribute mapping",
-                "specialization": "Part of Discovery Flow Redesign - field mapping intelligence",
-                "key_skills": [
-                    "Attribute Mapping",
-                    "Field Analysis",
-                    "Semantic Matching",
-                ],
-                "capabilities": [
-                    "Individual Processing",
-                    "Discovery Flow Integration",
-                    "Learning Enabled",
-                ],
-                "api_endpoints": ["/api/v1/discovery/attribute-mapping"],
-                "description": "Individual specialized agent from Discovery Flow Redesign",
-                "status": "active",
-                "source": "individual_flow_agents",
-            },
-            {
-                "agent_id": "data_cleansing_individual",
-                "name": "Data Cleansing Agent",
-                "role": "Data Cleansing Specialist",
-                "phase": "discovery",
-                "expertise": "Individual specialized agent for data cleansing",
-                "specialization": "Part of Discovery Flow Redesign - data quality improvement",
-                "key_skills": [
-                    "Data Cleansing",
-                    "Quality Assessment",
-                    "Data Standardization",
-                ],
-                "capabilities": [
-                    "Individual Processing",
-                    "Discovery Flow Integration",
-                    "Quality Intelligence",
-                ],
-                "api_endpoints": ["/api/v1/discovery/data-cleansing"],
-                "description": "Individual specialized agent from Discovery Flow Redesign",
-                "status": "active",
-                "source": "individual_flow_agents",
-            },
-        ]
-
-        for individual_agent in individual_agents:
-            phase = individual_agent["phase"]
-
-            agent_info = {
-                "agent_id": individual_agent["agent_id"],
-                "name": individual_agent["name"],
-                "role": individual_agent["role"],
-                "expertise": individual_agent["expertise"],
-                "specialization": individual_agent["specialization"],
-                "key_skills": individual_agent["key_skills"],
-                "capabilities": individual_agent["capabilities"],
-                "api_endpoints": individual_agent["api_endpoints"],
-                "description": individual_agent["description"],
-                "version": "3.0.0",  # Discovery Flow Redesign version
-                "source": individual_agent["source"],
-                "status": {
-                    "current_status": individual_agent["status"],
-                    "available": individual_agent["status"] == "active",
-                    "currently_working": False,
-                    "health": (
-                        "healthy"
-                        if individual_agent["status"] == "active"
-                        else "inactive"
-                    ),
-                },
-                "features": {
-                    "learning_enabled": True,
-                    "cross_page_communication": True,
-                    "modular_handlers": True,
-                },
-                "performance": {
-                    "tasks_completed": "N/A",
-                    "success_rate": "N/A",
-                    "avg_execution_time": "N/A",
-                },
-                "registration_time": datetime.utcnow().isoformat(),
-                "last_heartbeat": datetime.utcnow().isoformat(),
-            }
-
-            if phase not in agent_details_by_phase:
-                agent_details_by_phase[phase] = {
-                    "phase_name": phase.replace("_", " ").title(),
-                    "total_agents": 0,
-                    "active_agents": 0,
-                    "agents": [],
-                }
-
-            agent_details_by_phase[phase]["agents"].append(agent_info)
-            agent_details_by_phase[phase]["total_agents"] += 1
-            if individual_agent["status"] == "active":
-                agent_details_by_phase[phase]["active_agents"] += 1
+        # 3. ADD INDIVIDUAL FLOW AGENTS
+        _add_individual_flow_agents(agent_details_by_phase)
 
         # Calculate summary statistics
-        all_agents = []
-        for phase_data in agent_details_by_phase.values():
-            all_agents.extend(phase_data["agents"])
-
-        summary = {
-            "total_agents": len(all_agents),
-            "by_phase": {
-                phase: data["total_agents"]
-                for phase, data in agent_details_by_phase.items()
-            },
-            "by_status": {
-                "active": len(
-                    [a for a in all_agents if a["status"]["current_status"] == "active"]
-                ),
-                "planned": len(
-                    [
-                        a
-                        for a in all_agents
-                        if a["status"]["current_status"] == "planned"
-                    ]
-                ),
-                "in_development": len(
-                    [
-                        a
-                        for a in all_agents
-                        if a["status"]["current_status"] == "in_development"
-                    ]
-                ),
-            },
-            "features": {
-                "learning_enabled": len(
-                    [a for a in all_agents if a["features"]["learning_enabled"]]
-                ),
-                "cross_page_communication": len(
-                    [a for a in all_agents if a["features"]["cross_page_communication"]]
-                ),
-                "modular_handlers": len(
-                    [a for a in all_agents if a["features"]["modular_handlers"]]
-                ),
-            },
-        }
+        summary = _calculate_summary_statistics(agent_details_by_phase)
 
         return {
             "success": True,

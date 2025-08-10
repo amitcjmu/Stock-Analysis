@@ -202,15 +202,15 @@ const DashboardPage = () => {
 The component relies on these backend endpoints:
 
 ### Required Endpoints
-- `GET /api/v1/discovery/flow/{flow_id}/processing-status` - Real-time processing status
-- `GET /api/v1/discovery/flow/{flow_id}/validation-status` - Validation results
-- `GET /api/v1/discovery/flow/{flow_id}/agent-insights` - Agent insights and updates
+- `GET /api/v1/flows/{flow_id}/processing-status` - Real-time processing status
+- `GET /api/v1/flows/{flow_id}/validation-status` - Validation results
+- `GET /api/v1/flows/{flow_id}/agent-insights` - Agent insights and updates
 
 ### Optional Endpoints
-- `POST /api/v1/discovery/flow/{flow_id}/validate` - Manual validation trigger
-- `POST /api/v1/discovery/flow/{flow_id}/retry` - Retry failed processing
-- `POST /api/v1/discovery/flow/{flow_id}/pause` - Pause processing
-- `POST /api/v1/discovery/flow/{flow_id}/resume` - Resume processing
+- `POST /api/v1/flows/{flow_id}/validate` - Manual validation trigger
+- `POST /api/v1/flows/{flow_id}/retry` - Retry failed processing
+- `POST /api/v1/flows/{flow_id}/pause` - Pause processing
+- `POST /api/v1/flows/{flow_id}/resume` - Resume processing
 
 ## Real-Time Data Flow
 

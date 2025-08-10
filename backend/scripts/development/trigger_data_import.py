@@ -15,7 +15,7 @@ def trigger_data_import_execution(flow_id: str):
 
     # API endpoint
     base_url = "http://localhost:8000"
-    execute_url = f"{base_url}/api/v1/discovery/flow/execute"
+    execute_url = f"{base_url}/api/v1/flows/{flow_id}/execute"
 
     # Headers with demo context
     headers = {
@@ -72,7 +72,7 @@ def check_flow_status(flow_id: str):
     """Check the current status of a flow"""
 
     base_url = "http://localhost:8000"
-    status_url = f"{base_url}/api/v1/discovery/flow/status/{flow_id}"
+    status_url = f"{base_url}/api/v1/flows/{flow_id}/status"
 
     headers = {
         "Content-Type": "application/json",
