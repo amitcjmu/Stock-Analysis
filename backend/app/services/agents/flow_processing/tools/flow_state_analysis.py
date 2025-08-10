@@ -185,12 +185,19 @@ class FlowStateAnalysisTool(BaseTool):
                 )
 
                 if response.status_code == 200:
-                    data = response.json()
+                    try:
+                        data = response.json()
+                    except Exception:
+                        data = None
                     if isinstance(data, dict) and data:
-                        return data.get("flow_type", "discovery")
-                    if isinstance(data, list) and data:
-                        first = data[0] if isinstance(data[0], dict) else {}
-                        return first.get("flow_type", "discovery")
+                        if str(data.get("id") or data.get("flow_id")) == str(flow_id):
+                            return data.get("flow_type", "discovery")
+                    elif isinstance(data, list) and data:
+                        for item in data:
+                            if isinstance(item, dict) and str(
+                                item.get("id") or item.get("flow_id")
+                            ) == str(flow_id):
+                                return item.get("flow_type", "discovery")
             except Exception:
                 pass
 

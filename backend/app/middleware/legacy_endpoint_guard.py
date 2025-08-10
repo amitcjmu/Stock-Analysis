@@ -30,7 +30,10 @@ class LegacyEndpointGuardMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         path = request.url.path or ""
 
-        if not path.startswith("/api/v1/discovery"):
+        # Only guard HTTP requests; skip websockets and other ASGI types
+        if request.scope.get("type") != "http" or not path.startswith(
+            "/api/v1/discovery"
+        ):
             return await call_next(request)
 
         # Always annotate so downstream proxies/clients can detect legacy use

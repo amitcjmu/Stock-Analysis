@@ -145,6 +145,14 @@ repos:
         language: system
         pass_filenames: false
 
+      # Architectural Policy Enforcement (replaces GitHub CI)
+      - id: policy-enforcement
+        name: Enforce architectural policies
+        entry: scripts/policy-checks.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
 # Exclude patterns
 exclude: |
   (?x)^(
