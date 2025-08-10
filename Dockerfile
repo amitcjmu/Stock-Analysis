@@ -6,8 +6,8 @@ FROM python:3.11-slim-bookworm@sha256:139020233cc412efe4c8135b0efe1c7569dc8b28dd
 # Set working directory
 WORKDIR /app
 
-# Force cache invalidation - Updated 2025-07-29
-ENV CACHE_BUST=2025-07-29-redis-fix
+# Force cache invalidation - Updated 2025-01-15
+ENV CACHE_BUST=2025-01-15-config-reorganization-fix
 
 # Install system dependencies with security updates
 RUN apt-get update \
@@ -21,8 +21,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* /var/tmp/*
 
-# Copy backend requirements
-COPY backend/requirements-docker.txt requirements.txt
+# Copy backend requirements from new config location
+COPY config/dependencies/requirements-docker.txt requirements.txt
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip \
