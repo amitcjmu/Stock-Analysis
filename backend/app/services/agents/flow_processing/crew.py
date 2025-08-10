@@ -6,6 +6,7 @@ and routing across all flow types (Discovery, Assess, Plan, Execute, etc.).
 """
 
 import logging
+import os
 from typing import Any, Dict, List
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -68,6 +69,12 @@ class UniversalFlowProcessingCrew:
         llm = get_crewai_llm() if LLM_AVAILABLE else None
 
         # Flow Analysis Agent
+        enable_memory = os.getenv("CREWAI_ENABLE_MEMORY", "false").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
+
         self.flow_analyst = Agent(
             role="Flow State Analyst",
             goal=(
@@ -84,7 +91,7 @@ class UniversalFlowProcessingCrew:
             verbose=True,
             allow_delegation=False,
             max_iter=3,
-            memory=False,
+            memory=enable_memory,
             llm=llm,
         )
 
@@ -104,7 +111,7 @@ class UniversalFlowProcessingCrew:
             verbose=True,
             allow_delegation=False,
             max_iter=3,
-            memory=False,
+            memory=enable_memory,
             llm=llm,
         )
 
@@ -124,7 +131,7 @@ class UniversalFlowProcessingCrew:
             verbose=True,
             allow_delegation=False,
             max_iter=3,
-            memory=False,
+            memory=enable_memory,
             llm=llm,
         )
 
@@ -135,6 +142,11 @@ class UniversalFlowProcessingCrew:
             self.crew = None
             return
 
+        enable_memory = os.getenv("CREWAI_ENABLE_MEMORY", "false").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
         self.crew = Crew(
             agents=[
                 self.flow_analyst,
@@ -144,7 +156,7 @@ class UniversalFlowProcessingCrew:
             tasks=[],  # Tasks will be created dynamically
             process=Process.sequential,
             verbose=True,
-            memory=False,
+            memory=enable_memory,
         )
 
     async def process_flow_continuation(
