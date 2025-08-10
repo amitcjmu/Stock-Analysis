@@ -109,87 +109,116 @@ class FeedbackProcessor:
         patterns = []
 
         # Asset type correction patterns
-        if asset_type_override:
-            patterns.append(
-                f"Asset type should be '{asset_type_override}' based on user correction"
-            )
+        patterns.extend(self._extract_asset_type_patterns(asset_type_override))
 
         # Analysis issues patterns
         analysis_issues = user_corrections.get("analysis_issues", "")
-        if analysis_issues:
-            # Extract specific patterns from analysis issues
-            if (
-                "server" in analysis_issues.lower()
-                and "application" in analysis_issues.lower()
-            ):
-                patterns.append(
-                    "Servers were misclassified as applications - improve server detection"
-                )
+        patterns.extend(self._extract_analysis_issue_patterns(analysis_issues))
 
-            if "ci_type" in analysis_issues.lower():
-                patterns.append(
-                    "CI_TYPE field is a strong indicator for asset classification"
-                )
-
-            if "hardware" in analysis_issues.lower():
-                patterns.append(
-                    "Hardware specifications are important for server identification"
-                )
-
-            if "ip address" in analysis_issues.lower():
-                patterns.append("IP Address is a key field for server assets")
-
-        # Missing fields feedback patterns with enhanced field mapping detection
+        # Missing fields feedback patterns
         missing_fields_feedback = user_corrections.get("missing_fields_feedback", "")
-        if missing_fields_feedback:
-            # Extract field importance patterns
-            if "ip address" in missing_fields_feedback.lower():
-                patterns.append("IP Address is required for server assets")
+        patterns.extend(self._extract_missing_fields_patterns(missing_fields_feedback))
 
-            if "os version" in missing_fields_feedback.lower():
-                patterns.append("OS Version is critical for server migration planning")
-
-            if "business owner" in missing_fields_feedback.lower():
-                patterns.append("Business Owner is important for application assets")
-
-            # Let AI agents learn field mappings dynamically from feedback text
-            if (
-                "available" in missing_fields_feedback.lower()
-                and "for" in missing_fields_feedback.lower()
-            ):
-                patterns.append(
-                    f"Field mapping pattern detected in feedback: {missing_fields_feedback}"
-                )
-
-            if (
-                "should map" in missing_fields_feedback.lower()
-                or "maps to" in missing_fields_feedback.lower()
-            ):
-                patterns.append(f"Field mapping instruction: {missing_fields_feedback}")
-
-            if (
-                "recognized as" in missing_fields_feedback.lower()
-                or "equivalent" in missing_fields_feedback.lower()
-            ):
-                patterns.append(f"Field equivalence pattern: {missing_fields_feedback}")
-
-        # Comments patterns with field mapping detection
+        # Comments patterns
         comments = user_corrections.get("comments", "")
-        if comments:
-            if "clearly indicates" in comments.lower():
-                patterns.append("Look for clear indicators in field values")
+        patterns.extend(self._extract_comment_patterns(comments))
 
-            if "field" in comments.lower() and "pattern" in comments.lower():
-                patterns.append("Field patterns are important for classification")
+        return patterns
 
-            # Detect field equivalence patterns in comments
-            if "same as" in comments.lower() or "equivalent" in comments.lower():
-                patterns.append("Field mapping: User identified equivalent field names")
+    def _extract_asset_type_patterns(
+        self, asset_type_override: Optional[str]
+    ) -> List[str]:
+        """Extract patterns related to asset type corrections."""
+        if asset_type_override:
+            return [
+                f"Asset type should be '{asset_type_override}' based on user correction"
+            ]
+        return []
 
-            if "available" in comments.lower() and "under" in comments.lower():
-                patterns.append(
-                    "Field mapping: Required fields available under different names"
-                )
+    def _extract_analysis_issue_patterns(self, analysis_issues: str) -> List[str]:
+        """Extract patterns from analysis issues feedback."""
+        if not analysis_issues:
+            return []
+
+        patterns = []
+        issues_lower = analysis_issues.lower()
+
+        if "server" in issues_lower and "application" in issues_lower:
+            patterns.append(
+                "Servers were misclassified as applications - improve server detection"
+            )
+
+        if "ci_type" in issues_lower:
+            patterns.append(
+                "CI_TYPE field is a strong indicator for asset classification"
+            )
+
+        if "hardware" in issues_lower:
+            patterns.append(
+                "Hardware specifications are important for server identification"
+            )
+
+        if "ip address" in issues_lower:
+            patterns.append("IP Address is a key field for server assets")
+
+        return patterns
+
+    def _extract_missing_fields_patterns(
+        self, missing_fields_feedback: str
+    ) -> List[str]:
+        """Extract patterns from missing fields feedback."""
+        if not missing_fields_feedback:
+            return []
+
+        patterns = []
+        feedback_lower = missing_fields_feedback.lower()
+
+        # Field importance patterns
+        if "ip address" in feedback_lower:
+            patterns.append("IP Address is required for server assets")
+
+        if "os version" in feedback_lower:
+            patterns.append("OS Version is critical for server migration planning")
+
+        if "business owner" in feedback_lower:
+            patterns.append("Business Owner is important for application assets")
+
+        # Field mapping patterns
+        if "available" in feedback_lower and "for" in feedback_lower:
+            patterns.append(
+                f"Field mapping pattern detected in feedback: {missing_fields_feedback}"
+            )
+
+        if "should map" in feedback_lower or "maps to" in feedback_lower:
+            patterns.append(f"Field mapping instruction: {missing_fields_feedback}")
+
+        if "recognized as" in feedback_lower or "equivalent" in feedback_lower:
+            patterns.append(f"Field equivalence pattern: {missing_fields_feedback}")
+
+        return patterns
+
+    def _extract_comment_patterns(self, comments: str) -> List[str]:
+        """Extract patterns from general comments."""
+        if not comments:
+            return []
+
+        patterns = []
+        comments_lower = comments.lower()
+
+        if "clearly indicates" in comments_lower:
+            patterns.append("Look for clear indicators in field values")
+
+        if "field" in comments_lower and "pattern" in comments_lower:
+            patterns.append("Field patterns are important for classification")
+
+        # Field equivalence patterns
+        if "same as" in comments_lower or "equivalent" in comments_lower:
+            patterns.append("Field mapping: User identified equivalent field names")
+
+        if "available" in comments_lower and "under" in comments_lower:
+            patterns.append(
+                "Field mapping: Required fields available under different names"
+            )
 
         return patterns
 
