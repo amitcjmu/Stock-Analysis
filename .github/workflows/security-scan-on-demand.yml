@@ -295,6 +295,6 @@ jobs:
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          text: 'Security scan completed for ${{ github.event.inputs.scan_type || "release" }} scan'
+          text: "Security scan completed for ${{ github.event.inputs.scan_type || 'release' }} scan"
           webhook_url: ${{ secrets.SLACK_WEBHOOK }}
         if: always()

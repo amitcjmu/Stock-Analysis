@@ -1,0 +1,125 @@
+name: Seed implementation tasks
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create issues for implementation tasks
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PROJECTS_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const labelsBase = ['backlog', 'type:task'];
+
+            const tasks = [
+              {
+                key: 'T01',
+                title: '[T01] Legacy discovery endpoint guard + telemetry',
+                body: `Implement runtime guard for /api/v1/discovery/* endpoints.\n- In dev/test: warn + allow via feature flag; in prod: default 410 Gone\n- Structured logs + metrics for any legacy hits\n- Document migration guidance\n\nAcceptance:\n- No prod traffic reaches legacy endpoints\n- Metrics dashboard shows zero legacy hits after migration window\n\nRef: docs/planning/code-analysis/crewai-architecture-and-code-sprawl-audit.md#phase-1--controller-unification-and-guards`
+              },
+              {
+                key: 'T02',
+                title: '[T02] Frontend migration to unified /api/v1/flows',
+                body: `Replace all frontend calls to legacy discovery endpoints with unified flow endpoints.\n- Update services, hooks, and pages\n- Feature flag for temporary fallback in dev only\n\nAcceptance:\n- No network calls to /api/v1/discovery/* in the app\n\nRef: audit Phase 1`
+              },
+              {
+                key: 'T03',
+                title: '[T03] Consolidate ContextAwareRepository to single async base',
+                body: `Make backend/app/repositories/context_aware_repository.py authoritative.\n- Deprecate variants in repositories/base.py and core/context_aware.py\n- Provide minimal adapter for any sync context\n\nAcceptance:\n- All repos import from unified base; others deprecated\n\nRef: audit Phase 2`
+              },
+              {
+                key: 'T04',
+                title: '[T04] Migrate all repos to unified ContextAwareRepository',
+                body: `Update imports and constructors; fix type mismatches.\n\nAcceptance:\n- Tests green; no refs to deprecated bases\n\nRef: audit Phase 2`
+              },
+              {
+                key: 'T05',
+                title: '[T05] Standardize on single get_db provider',
+                body: `Use app/core/database.py:get_db across app and services.\n- Deprecate database_context.py variant\n\nAcceptance:\n- Single provider in use; integration tests pass\n\nRef: audit Phase 2`
+              },
+              {
+                key: 'T06',
+                title: '[T06] Remove sync DB patterns from async code',
+                body: `Search and replace SessionLocal( and .query( with async patterns.\n\nAcceptance:\n- No grep hits for sync patterns in backend\n\nRef: audit Phase 2`
+              },
+              {
+                key: 'T07',
+                title: '[T07] Align dependencies and remove global memory-disable patches',
+                body: `Harmonize CrewAI/OpenAI/litellm/httpx versions; remove any global memory=false forcing.\n\nAcceptance:\n- Unit tests pass; no APIStatusError on simple agent runs\n\nRef: audit Phase 3`
+              },
+              {
+                key: 'T08',
+                title: '[T08] Re-enable memory in pilot crew with strict budget',
+                body: `Enable short-term memory for a low-risk crew (max_iter=1, timeouts). Add metrics for memory ops.\n\nAcceptance:\n- ≥99% success, p95 within budget; memory events logged\n\nRef: audit Phase 3`
+              },
+              {
+                key: 'T09',
+                title: '[T09] Integrate three-tier memory for targeted agents',
+                body: `Use agentic_memory/three_tier_memory_manager.py for selected agents. Ensure tenant isolation and persistence mounts.\n\nAcceptance:\n- Learned patterns reused; no cross-tenant leakage\n\nRef: audit Phase 3`
+              },
+              {
+                key: 'T10',
+                title: '[T10] Expand .gitignore and adopt Git LFS for media',
+                body: `Ignore reports/backups/data artifacts; track *.pdf, *.png, *.jpeg via LFS.\n\nAcceptance:\n- New large artifacts not tracked; LFS active\n\nRef: audit Phase 4`
+              },
+              {
+                key: 'T11',
+                title: '[T11] History rewrite to remove large artifacts',
+                body: `Use git filter-repo to purge large paths; coordinate and repack.\n\nAcceptance:\n- git count-objects -vH shows significant reduction\n\nRef: audit Phase 4`
+              },
+              {
+                key: 'T12',
+                title: '[T12] CI policy to block regressions',
+                body: `Add CI checks to fail on /api/v1/discovery in app code and deprecated repo-base imports.\n\nAcceptance:\n- CI fails on violations\n\nRef: audit Phase 4`
+              },
+              {
+                key: 'T13',
+                title: '[T13] Update tests/scripts to unified API',
+                body: `Rewrite tests/scripts off legacy endpoints; add test to assert no legacy calls in shipped code.\n\nAcceptance:\n- Tests pass; no legacy references outside fixtures\n\nRef: audit Phase 5`
+              },
+              {
+                key: 'T14',
+                title: '[T14] Observability for MFO and memory',
+                body: `Add counters/timers and health endpoints for MFO and memory.\n\nAcceptance:\n- Dashboards show latency/success/memory per tenant\n\nRef: audit Phase 5`
+              },
+              {
+                key: 'T15',
+                title: '[T15] Remove legacy discovery modules after stability window',
+                body: `After clean telemetry period, remove legacy services and endpoints; update docs.\n\nAcceptance:\n- Only unified controller remains; no legacy refs\n\nRef: audit Phase 5`
+              }
+            ];
+
+            // Fetch open issues once and reuse
+            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: 'open', per_page: 100
+            });
+
+            for (const t of tasks) {
+              const exists = openIssues.find(i => i.title === t.title);
+              if (exists) {
+                core.info(`Skipping existing issue: ${t.title} (#${exists.number})`);
+                continue;
+              }
+              try {
+                const res = await github.rest.issues.create({
+                  owner,
+                  repo,
+                  title: t.title,
+                  body: t.body,
+                  labels: labelsBase
+                });
+                core.info(`Created #${res.data.number}: ${t.title}`);
+              } catch (err) {
+                core.warning(`Failed to create ${t.title}: ${err.message}`);
+              }
+            }
