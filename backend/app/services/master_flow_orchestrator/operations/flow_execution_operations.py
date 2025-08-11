@@ -90,8 +90,7 @@ class FlowExecutionOperations:
                 flow_id=flow_id,
                 phase_name=phase_name,
                 phase_input=phase_input or {},
-                flow_config=self.flow_registry.get_flow_config(master_flow.flow_type),
-                context=self.context,
+                validation_overrides=validation_overrides,
             )
 
             # Update flow state based on execution result

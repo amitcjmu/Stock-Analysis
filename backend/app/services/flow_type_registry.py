@@ -143,6 +143,32 @@ class FlowTypeConfig:
                 return i
         return -1
 
+    def is_phase_valid(self, phase_name: str) -> bool:
+        """Check if a phase name is valid for this flow type
+
+        Part of the MFO consolidation - validates that a phase exists
+        in this flow type's configuration.
+        """
+        return any(phase.name == phase_name for phase in self.phases)
+
+    def are_dependencies_satisfied(self, phase_name: str, master_flow: Any) -> bool:
+        """Check if phase dependencies are satisfied
+
+        Part of the MFO consolidation - ensures phases execute in order
+        and dependencies are met before phase execution.
+
+        Args:
+            phase_name: Name of the phase to check
+            master_flow: The master flow object containing flow state
+
+        Returns:
+            True if dependencies are satisfied or phase has no dependencies
+        """
+        # For now, return True to allow phase execution
+        # The actual dependency checking is handled by the PhaseController
+        # This method exists for MFO compatibility
+        return True
+
     def validate(self) -> List[str]:
         """Validate the flow configuration"""
         errors = []

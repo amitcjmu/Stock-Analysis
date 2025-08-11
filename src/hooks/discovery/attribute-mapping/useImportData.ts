@@ -47,8 +47,14 @@ export const useImportData = (finalFlowId: string | null): ImportDataResult => {
 
         if (flowResponse) {
           // Extract import data from flow status response
+          // Note: Backend returns data_import_id, but frontend expects import_id
+          const importMetadata = flowResponse.import_metadata || {};
+          if (importMetadata.data_import_id && !importMetadata.import_id) {
+            importMetadata.import_id = importMetadata.data_import_id;
+          }
+
           const importData = {
-            import_metadata: flowResponse.import_metadata || { import_id: null },
+            import_metadata: importMetadata,
             raw_data: flowResponse.raw_data?.[0] || {},
             sample_record: flowResponse.raw_data?.[0] || {},
             record_count: flowResponse.raw_data?.length || 0,
