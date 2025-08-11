@@ -305,9 +305,9 @@ class FlowCrewExecutor:
 
         try:
             # Get CrewAI service
-            from app.services.crewai_service import CrewAIService
+            from app.services.crewai_flow_service import CrewAIFlowService
 
-            crewai_service = CrewAIService()
+            crewai_service = CrewAIFlowService()
 
             # Import the appropriate crew based on phase
             crew_factory_name = phase_config.crew_config.get("crew_factory")

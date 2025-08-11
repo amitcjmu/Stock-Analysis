@@ -57,7 +57,9 @@ async def check_assessment_tables_health():
                 try:
                     # Table names are hardcoded constants, not user input
                     # Use format() to avoid f-string SQL injection warnings
-                    query_string = "SELECT 1 FROM {} LIMIT 1".format(table)
+                    query_string = "SELECT 1 FROM {} LIMIT 1".format(  # nosec B608
+                        table
+                    )
                     await db.execute(text(query_string))
                 except Exception as e:
                     # Table might not exist yet or be empty - that's ok for development
@@ -73,9 +75,9 @@ async def check_crewai_health():
     """Check CrewAI service availability"""
     try:
         # Import here to avoid circular imports
-        from app.services.crewai_service import get_crewai_service
+        from app.services.crewai_flow_service import get_crewai_flow_service
 
-        service = get_crewai_service()
+        service = await get_crewai_flow_service()
 
         # Basic configuration check
         if not service or not hasattr(service, "is_configured"):
@@ -205,7 +207,7 @@ async def get_assessment_flow_metrics():
     return metrics
 
 
-if FASTAPI_AVAILABLE:
+if FASTAPI_AVAILABLE:  # noqa: C901
 
     @router.get("/health/assessment")
     async def assessment_health_check():

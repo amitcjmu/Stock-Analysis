@@ -137,10 +137,10 @@ def patch_crewai_service_for_rate_limiting():
     This should be called during application startup.
     """
     try:
-        from app.services.crewai_service import CrewAIService
+        from app.services.crewai_flow_service import CrewAIFlowService
 
         # Store original create_agent method
-        original_create_agent = CrewAIService.create_agent
+        original_create_agent = CrewAIFlowService.create_agent
 
         def rate_limited_create_agent(self, *args, **kwargs):
             # Call original method
@@ -156,7 +156,7 @@ def patch_crewai_service_for_rate_limiting():
             return agent
 
         # Replace the method
-        CrewAIService.create_agent = rate_limited_create_agent
+        CrewAIFlowService.create_agent = rate_limited_create_agent
 
         logger.info("✅ Successfully patched CrewAI service for rate limiting")
 

@@ -379,9 +379,9 @@ class FlowLifecycleOperations:
             # Create flow instance using crew_class if available (per MFO design)
             if flow_config.crew_class:
                 # Import and create CrewAI service for flow restoration
-                from app.services.crewai_service import CrewAIService
+                from app.services.crewai_flow_service import CrewAIFlowService
 
-                crewai_service = CrewAIService()
+                crewai_service = CrewAIFlowService()
 
                 # UnifiedDiscoveryFlow requires crewai_service as first parameter
                 flow_instance = flow_config.crew_class(
