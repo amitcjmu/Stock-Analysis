@@ -77,7 +77,7 @@ def upgrade() -> None:
     for table in MULTI_TENANT_TABLES:
         # Build the SQL statement safely without f-strings to avoid SQL injection warnings
         # Note: table names come from a static list, so this is safe
-        sql_statement = """  # nosec B608 - table name is from static list
+        sql_statement = """
             DO $$
             DECLARE
                 v_table_name text := '{table_name}';
@@ -106,7 +106,7 @@ def upgrade() -> None:
         # Build the SQL statement safely without f-strings to avoid SQL injection warnings
         # Note: table names come from a static list, so this is safe
         policy_name = f"rls_{table}_tenant_isolation"
-        sql_statement = """  # nosec B608 - table name is from static list
+        sql_statement = """
             DO $$
             DECLARE
                 v_table_name text := '{table_name}';
@@ -168,7 +168,7 @@ def upgrade() -> None:
         # Build the SQL statement safely without f-strings to avoid SQL injection warnings
         # Note: table names come from a static list, so this is safe
         bypass_policy_name = f"rls_{table}_superuser_bypass"
-        sql_statement = """  # nosec B608 - table name is from static list
+        sql_statement = """
             DO $$
             DECLARE
                 v_table_name text := '{table_name}';
@@ -253,7 +253,7 @@ def downgrade() -> None:
         # Note: table names come from a static list, so this is safe
         policy_name = f"rls_{table}_tenant_isolation"
         bypass_policy = f"rls_{table}_superuser_bypass"
-        sql_statement = """  # nosec B608 - table name is from static list
+        sql_statement = """
             DO $$
             DECLARE
                 v_table_name text := '{table_name}';
