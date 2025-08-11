@@ -5,6 +5,7 @@ Consolidated service for handling data imports and triggering discovery flows.
 This service replaces FlowTriggerService and directly orchestrates the import process.
 """
 
+import json
 import traceback
 import uuid
 from datetime import datetime
@@ -69,18 +70,33 @@ class DataImportService:
             logger.info(f"🚀 Starting data import process for file: {filename}")
 
             # 1. Store the imported file and create DataImport record
+            logger.info(f"🔍 DEBUG: Context user_id = {self.context.user_id}")
+            logger.info(
+                f"🔍 DEBUG: Context engagement_id = {self.context.engagement_id}"
+            )
             data_import = await self.storage_manager.store_import_data(
                 file_content=file_content,
                 filename=filename,
                 file_content_type=file_content_type,
                 import_type=import_type,
                 status="processing",
+                engagement_id=self.context.engagement_id,
+                imported_by=self.context.user_id,
             )
             logger.info(f"🗳️ Data import record created: {data_import.id}")
 
-            file_data = await self.storage_manager.get_import_data(data_import.id)
-            if not file_data:
-                raise DataImportError("Failed to retrieve parsed data from storage.")
+            # Parse the JSON data directly since it's already available
+            parsed_data = json.loads(file_content.decode("utf-8"))
+            file_data = {
+                "data": parsed_data,
+                "import_metadata": {
+                    "import_id": str(data_import.id),
+                    "filename": filename,
+                    "import_type": import_type,
+                    "total_records": len(parsed_data),
+                },
+                "success": True,
+            }
 
             # 2. Trigger the Discovery Flow
             logger.info(

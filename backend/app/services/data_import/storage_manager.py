@@ -33,6 +33,83 @@ class ImportStorageManager:
         self.db = db
         self.client_account_id = client_account_id
 
+    async def store_import_data(
+        self,
+        file_content: bytes,
+        filename: str,
+        file_content_type: str,
+        import_type: str,
+        status: str = "processing",
+        engagement_id: Optional[str] = None,
+        imported_by: Optional[str] = None,
+    ) -> DataImport:
+        """
+        Store import data and create DataImport record.
+
+        Args:
+            file_content: The raw file content as bytes
+            filename: Name of the imported file
+            file_content_type: MIME type of the file
+            import_type: Type of import (e.g., 'cmdb')
+            status: Initial status for the import
+
+        Returns:
+            DataImport: The created import record
+        """
+        import uuid
+        import json
+
+        try:
+            # Generate new import ID
+            import_id = uuid.uuid4()
+
+            # Create DataImport record
+            data_import = DataImport(
+                id=import_id,
+                client_account_id=self.client_account_id,
+                engagement_id=engagement_id,
+                import_name=f"{filename} Import",
+                import_type=import_type,
+                description=f"Data import for {import_type} category",
+                filename=filename,
+                file_size=len(file_content),
+                mime_type=file_content_type,
+                source_system=import_type,
+                status=status,
+                progress_percentage=0.0,
+                total_records=0,
+                processed_records=0,
+                failed_records=0,
+                imported_by=imported_by
+                or "33333333-3333-3333-3333-333333333333",  # Use demo user UUID as fallback
+            )
+            self.db.add(data_import)
+            await self.db.flush()  # Get the record in session
+
+            # Parse and store the file data as raw records
+            file_data = json.loads(file_content.decode("utf-8"))
+            if file_data:
+                # Store raw records
+                records_stored = await self.store_raw_records(
+                    data_import=data_import,
+                    file_data=file_data,
+                    engagement_id=engagement_id or "unknown",
+                )
+
+                # Update total records count
+                data_import.total_records = records_stored
+
+                logger.info(
+                    f"✅ Stored {records_stored} raw records for import {data_import.id}"
+                )
+
+            logger.info(f"✅ Created DataImport record: {data_import.id}")
+            return data_import
+
+        except Exception as e:
+            logger.error(f"Failed to store import data: {e}")
+            raise DatabaseError(f"Failed to store import data: {str(e)}")
+
     async def find_or_create_import(
         self,
         import_id: uuid.UUID,
@@ -315,7 +392,12 @@ class ImportStorageManager:
 
             # Get raw records
             raw_records = await self.get_raw_records(
-                uuid.UUID(data_import_id), limit=1000
+                (
+                    data_import_id
+                    if isinstance(data_import_id, uuid.UUID)
+                    else uuid.UUID(data_import_id)
+                ),
+                limit=1000,
             )
 
             # Build response data
@@ -330,7 +412,7 @@ class ImportStorageManager:
                 "filename": import_record.filename,
                 "import_type": import_record.import_type,
                 "status": import_record.status,
-                "record_count": import_record.record_count,
+                "record_count": import_record.total_records or 0,
                 "total_records": len(data),
                 "actual_total_records": len(data),
                 "imported_at": (
@@ -508,3 +590,32 @@ class ImportStorageManager:
             )
             # Re-raise the exception to be handled by the calling transaction manager
             raise
+
+    async def update_import_with_flow_id(
+        self, data_import_id: uuid.UUID, flow_id: str
+    ) -> None:
+        """
+        Update the data import record with the master flow ID.
+
+        Args:
+            data_import_id: The ID of the data import to update
+            flow_id: The master flow ID to link
+        """
+        try:
+            # Update the DataImport record with the master flow ID
+            from sqlalchemy import update
+
+            stmt = (
+                update(DataImport)
+                .where(DataImport.id == data_import_id)
+                .values(master_flow_id=flow_id)
+            )
+            await self.db.execute(stmt)
+
+            logger.info(
+                f"✅ Linked master flow {flow_id} to data import {data_import_id}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to update import with flow ID: {e}")
+            raise DatabaseError(f"Failed to update import with flow ID: {str(e)}")

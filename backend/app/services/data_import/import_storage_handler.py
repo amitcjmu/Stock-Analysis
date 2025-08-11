@@ -5,6 +5,7 @@ This class serves as the main orchestrator that coordinates all data import oper
 by composing the modular services into a cohesive API for the endpoints.
 """
 
+import json
 from typing import Any, Dict, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -143,7 +144,7 @@ class ImportStorageHandler:
                 "status": data_import.status,
                 "filename": data_import.filename,
                 "import_type": data_import.import_type,
-                "record_count": data_import.record_count,
+                "record_count": data_import.total_records or 0,
                 "created_at": (
                     data_import.created_at.isoformat()
                     if data_import.created_at
@@ -262,23 +263,21 @@ class ImportStorageHandler:
                 import_service = DataImportService(self.db, context)
 
                 data_import = await import_service.process_import_and_trigger_flow(
-                    file_content=store_request.file_content.encode("utf-8"),
-                    filename=store_request.filename,
-                    file_content_type=store_request.file_content_type,
-                    import_type=store_request.import_type,
+                    file_content=json.dumps(store_request.file_data).encode("utf-8"),
+                    filename=store_request.metadata.filename,
+                    file_content_type="application/json",
+                    import_type=store_request.upload_context.intended_type,
                 )
 
             return self.response_builder.success_response(
+                data_import_id=str(data_import.id),
+                flow_id=str(data_import.master_flow_id),
+                records_stored=data_import.total_records,
                 message="Data imported and discovery flow initiated successfully.",
-                data={
-                    "data_import_id": str(data_import.id),
-                    "flow_id": str(data_import.master_flow_id),
-                    "records_stored": data_import.record_count,
-                },
             )
 
         except Exception as e:
             logger.error(f"Failed to handle import: {e}")
             return self.response_builder.error_response(
-                message=f"Failed to store import data: {str(e)}"
+                error_message=f"Failed to store import data: {str(e)}"
             )
