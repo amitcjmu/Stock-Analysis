@@ -290,7 +290,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
                 fieldId: field.id,
                 message: 'Invalid validation pattern configuration'
               });
-              continue;
+              return; // Skip further validation for this field
             }
             const regex = new RegExp(field.validation.pattern);
             if (!regex.test(String(value))) {
