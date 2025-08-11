@@ -43,7 +43,8 @@ distro==1.9.0
 docker==7.1.0
 docstring_parser==0.16
 durationpy==0.10
-ecdsa==0.19.1  # NOTE: CVE-2024-23342 - side-channel attack vulnerability, latest version available
+# Removed ecdsa==0.19.1 due to CVE-2024-23342 - timing attack vulnerability
+# Replaced with secure PyJWT for JWT functionality
 embedchain==0.1.128
 et_xmlfile==2.0.0
 executing==2.2.0
@@ -238,7 +239,7 @@ typing_extensions==4.14.1
 tzdata==2025.2
 upstash-redis==1.4.0
 urllib3==2.5.0
-uv==0.7.20
+uv==0.8.8
 uvicorn==0.35.0
 uvloop==0.21.0
 virtualenv==20.31.2
