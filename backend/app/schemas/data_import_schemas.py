@@ -83,18 +83,11 @@ class UploadContext(BaseModel):
 
 
 class StoreImportRequest(BaseModel):
-    """Request schema for storing import data - supports both new and legacy formats"""
+    """Request schema for storing import data"""
 
-    # New format fields (direct)
-    file_content: Optional[str] = None
-    filename: Optional[str] = None
-    file_content_type: Optional[str] = None
-    import_type: Optional[str] = None
-
-    # Legacy format fields (nested structure)
-    file_data: Optional[List[Dict[str, Any]]] = None
-    metadata: Optional[FileMetadata] = None
-    upload_context: Optional[UploadContext] = None
+    file_data: List[Dict[str, Any]]
+    metadata: FileMetadata
+    upload_context: UploadContext
     client_id: Optional[str] = None
     engagement_id: Optional[str] = None
 

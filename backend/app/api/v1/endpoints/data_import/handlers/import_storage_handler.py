@@ -21,9 +21,7 @@ from app.core.logging import get_logger
 from app.schemas.data_import_schemas import StoreImportRequest
 
 # Import the new modular service
-from app.services.data_import.import_service import DataImportService
-from app.services.data_import.import_storage_handler import ImportStorageHandler
-from app.services.data_import.transaction_manager import ImportTransactionManager
+from app.services.data_import import ImportStorageHandler
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -42,63 +40,25 @@ async def store_import_data(
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context_dependency),
 ) -> Dict[str, Any]:
+    """
+    Store validated import data in the database and trigger Discovery Flow.
 
+    This endpoint receives the validated CSV data and:
+    1. Validates no existing incomplete discovery flow exists
+    2. Stores it in the database
+    3. Triggers the Discovery Flow for immediate processing
+    4. Returns the import session ID for tracking
+
+    Now uses modular service architecture for better maintainability.
+    """
     try:
-        # Handle both old and new payload formats for backward compatibility
-        if hasattr(store_request, "file_content") and store_request.file_content:
-            # New format - direct fields
-            file_content = store_request.file_content
-            filename = store_request.filename
-            file_content_type = store_request.file_content_type
-            import_type = store_request.import_type
-        elif hasattr(store_request, "metadata") and store_request.metadata:
-            # Old format - nested structure
-            file_content = None
-            if hasattr(store_request, "file_data") and store_request.file_data:
-                # Convert file_data to string format
-                import json
+        # Initialize the modular import handler
+        import_handler = ImportStorageHandler(db, context.client_account_id)
 
-                file_content = json.dumps(store_request.file_data)
+        # Delegate to the modular service
+        response = await import_handler.handle_import(store_request, context)
 
-            filename = store_request.metadata.filename
-            file_content_type = store_request.metadata.type
-            import_type = (
-                store_request.upload_context.intended_type
-                if store_request.upload_context
-                else "cmdb"
-            )
-
-            if not file_content:
-                raise ValueError(
-                    "No file content provided in either file_content or file_data fields"
-                )
-        else:
-            raise ValueError("Invalid payload format - missing required fields")
-
-        # Use a transaction manager to ensure atomicity
-        transaction_manager = ImportTransactionManager(db)
-
-        async with transaction_manager.transaction():
-            import_service = DataImportService(db, context)
-
-            data_import = await import_service.process_import_and_trigger_flow(
-                file_content=(
-                    file_content.encode("utf-8")
-                    if isinstance(file_content, str)
-                    else file_content
-                ),
-                filename=filename,
-                file_content_type=file_content_type,
-                import_type=import_type,
-            )
-
-        return {
-            "success": True,
-            "data_import_id": str(data_import.id),
-            "flow_id": str(data_import.master_flow_id),
-            "message": "Data imported and discovery flow initiated successfully.",
-            "records_stored": data_import.record_count,
-        }
+        return response
 
     except Exception as e:
         logger.error(f"Failed to store import data: {e}")
