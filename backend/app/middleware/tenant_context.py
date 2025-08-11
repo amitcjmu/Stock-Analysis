@@ -15,6 +15,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
 from app.core.database import AsyncSessionLocal
+from app.core.security.secure_logging import safe_log_format
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +40,16 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
             if client_id:
                 # Set tenant context in database session
                 await self._set_tenant_context(client_id)
-                logger.debug(f"Set tenant context to {client_id}")
+                logger.debug(
+                    safe_log_format(
+                        "Set tenant context to {client_id}", client_id=client_id
+                    )
+                )
             else:
                 logger.debug("No tenant context available for this request")
 
         except Exception as e:
-            logger.error(f"Error setting tenant context: {e}")
+            logger.error(safe_log_format("Error setting tenant context: {e}", e=e))
             # Continue processing even if tenant context fails
             # This prevents breaking non-tenant-specific endpoints
 
@@ -56,7 +61,7 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
             try:
                 await self._clear_tenant_context()
             except Exception as e:
-                logger.error(f"Error clearing tenant context: {e}")
+                logger.error(safe_log_format("Error clearing tenant context: {e}", e=e))
 
         return response
 
@@ -113,7 +118,7 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
                 )
                 await db.commit()
             except Exception as e:
-                logger.error(f"Failed to set tenant context: {e}")
+                logger.error(safe_log_format("Failed to set tenant context: {e}", e=e))
                 await db.rollback()
                 raise
 
@@ -125,7 +130,9 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
                 await db.execute(text("RESET app.client_id"))
                 await db.commit()
             except Exception as e:
-                logger.error(f"Failed to clear tenant context: {e}")
+                logger.error(
+                    safe_log_format("Failed to clear tenant context: {e}", e=e)
+                )
                 await db.rollback()
 
 

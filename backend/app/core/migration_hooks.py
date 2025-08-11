@@ -234,7 +234,10 @@ class MigrationHooks:
         missing_tables = []
         for table in required_tables:
             try:
-                result = bind.execute(text(f"SELECT to_regclass('{table}')"))
+                # Use parameterized query to prevent SQL injection warnings
+                result = bind.execute(
+                    text("SELECT to_regclass(:table_name)"), {"table_name": table}
+                )
                 if not result.scalar():
                     missing_tables.append(table)
             except Exception as e:
@@ -342,7 +345,8 @@ class MigrationHooks:
                         standards_created += 1
                     except Exception as e:
                         logger.error(
-                            f"Failed to create standard {standard['requirement_type']} for engagement {engagement_id}: {e}"
+                            "Failed to create standard %s for engagement %s: %s",
+                            standard['requirement_type'], engagement_id, e
                         )
                         continue
 

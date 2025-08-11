@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.core.database import get_db
 from app.schemas.data_import_schemas import StoreImportRequest
 
@@ -68,7 +69,7 @@ async def clean_data_import(
         }
 
     except Exception as e:
-        logger.error(f"❌ Clean data import failed: {e}")
+        logger.error(safe_log_format("❌ Clean data import failed: {e}", e=e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Clean data import failed: {str(e)}",
@@ -119,7 +120,11 @@ async def get_clean_import_status(
 
     ⚠️ MIGRATION NOTICE: This endpoint uses flow_id instead of deprecated session patterns.
     """
-    logger.info(f"📊 Getting clean import status for flow: {flow_id}")
+    logger.info(
+        safe_log_format(
+            "📊 Getting clean import status for flow: {flow_id}", flow_id=flow_id
+        )
+    )
 
     try:
         # V2 Discovery Flow architecture - simplified status lookup
@@ -133,7 +138,7 @@ async def get_clean_import_status(
         }
 
     except Exception as e:
-        logger.error(f"❌ Failed to get clean import status: {e}")
+        logger.error(safe_log_format("❌ Failed to get clean import status: {e}", e=e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get clean import status: {str(e)}",
@@ -148,7 +153,12 @@ async def handle_data_cleaning_request(
     Uses flow_id instead of session_id for consistency.
     """
     try:
-        logger.info(f"🧹 Processing data cleaning request for flow: {request.flow_id}")
+        logger.info(
+            safe_log_format(
+                "🧹 Processing data cleaning request for flow: {request_flow_id}",
+                request_flow_id=request.flow_id,
+            )
+        )
 
         # Initialize V2 services
         flow_repo = DiscoveryFlowRepository(
@@ -176,7 +186,12 @@ async def handle_data_cleaning_request(
         # Update flow progress
         await flow_service.update_progress(request.flow_id, 50.0)  # 50% after cleaning
 
-        logger.info(f"✅ Data cleaning completed for flow: {request.flow_id}")
+        logger.info(
+            safe_log_format(
+                "✅ Data cleaning completed for flow: {request_flow_id}",
+                request_flow_id=request.flow_id,
+            )
+        )
 
         return {
             "success": True,
@@ -186,7 +201,13 @@ async def handle_data_cleaning_request(
         }
 
     except Exception as e:
-        logger.error(f"❌ Data cleaning failed for flow {request.flow_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "❌ Data cleaning failed for flow {request_flow_id}: {e}",
+                request_flow_id=request.flow_id,
+                e=e,
+            )
+        )
         return {
             "success": False,
             "error": str(e),
@@ -202,7 +223,11 @@ async def get_cleaning_status(
     Get data cleaning status for a specific flow.
     """
     try:
-        logger.info(f"📊 Getting cleaning status for flow: {flow_id}")
+        logger.info(
+            safe_log_format(
+                "📊 Getting cleaning status for flow: {flow_id}", flow_id=flow_id
+            )
+        )
 
         # Initialize V2 services
         flow_repo = DiscoveryFlowRepository(
@@ -228,7 +253,13 @@ async def get_cleaning_status(
         }
 
     except Exception as e:
-        logger.error(f"❌ Failed to get cleaning status for flow {flow_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "❌ Failed to get cleaning status for flow {flow_id}: {e}",
+                flow_id=flow_id,
+                e=e,
+            )
+        )
         return {
             "success": False,
             "error": str(e),

@@ -7,6 +7,7 @@ import logging
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 
 from app.api.v1.discovery.persistence import get_processed_assets
 from app.api.v1.discovery.serialization import clean_for_json_serialization
@@ -102,7 +103,7 @@ async def get_app_server_mappings():
         }
 
     except Exception as e:
-        logger.error(f"Error retrieving app-server mappings: {e}")
+        logger.error(safe_log_format("Error retrieving app-server mappings: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to retrieve mappings: {str(e)}"
         )
@@ -121,7 +122,13 @@ async def add_server_to_app(app_id: str, server_data: Dict[str, Any]):
         # 3. Create the mapping relationship
         # 4. Store in database/persistence layer
 
-        logger.info(f"Adding server mapping for app {app_id}: {server_data}")
+        logger.info(
+            safe_log_format(
+                "Adding server mapping for app {app_id}: {server_data}",
+                app_id=app_id,
+                server_data=server_data,
+            )
+        )
 
         # Simulate successful creation
         mapping_id = f"mapping-{app_id}-{server_data.get('hostname', 'unknown')}"
@@ -134,7 +141,11 @@ async def add_server_to_app(app_id: str, server_data: Dict[str, Any]):
         }
 
     except Exception as e:
-        logger.error(f"Error adding server mapping for app {app_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Error adding server mapping for app {app_id}: {e}", app_id=app_id, e=e
+            )
+        )
         raise HTTPException(
             status_code=500, detail=f"Failed to add server mapping: {str(e)}"
         )

@@ -36,7 +36,7 @@ lines.forEach(line => {
   }
 });
 
-console.log(`Found ${hookWarnings.length} React Hook dependency warnings:`);
+console.log('Found ', hookWarnings.length, ' React Hook dependency warnings:');
 
 // Group by file
 const fileGroups = {};
@@ -50,7 +50,7 @@ hookWarnings.forEach(warning => {
 let totalFixed = 0;
 
 Object.keys(fileGroups).forEach((filePath, index) => {
-  console.log(`\n[${index + 1}/${Object.keys(fileGroups).length}] Processing: ${filePath}`);
+  console.log('\n[', index + 1, '/', Object.keys(fileGroups).length, '] Processing: ', filePath);
 
   try {
     const content = readFileSync(filePath, 'utf8');
@@ -88,14 +88,14 @@ Object.keys(fileGroups).forEach((filePath, index) => {
 
     if (modified) {
       writeFileSync(filePath, lines.join('\n'));
-      console.log(`  ✅ Added ${fileFixCount} eslint-disable comments for React Hook warnings in ${filePath}`);
+      console.log('  ✅ Added ', fileFixCount, ' eslint-disable comments for React Hook warnings in ', filePath);
       totalFixed += fileFixCount;
     } else {
-      console.log(`  ⏸️  No hook warnings to disable in ${filePath}`);
+      console.log('  ⏸️  No hook warnings to disable in ', filePath);
     }
   } catch (error) {
     console.error(`  ❌ Error processing ${filePath}:`, error.message);
   }
 });
 
-console.log(`\n🎉 Total React Hook warnings disabled: ${totalFixed}`);
+console.log('\n🎉 Total React Hook warnings disabled: ', totalFixed);

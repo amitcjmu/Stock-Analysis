@@ -39,7 +39,7 @@ lines.forEach(line => {
   }
 });
 
-console.log(`Found ${issues.length} total linting issues`);
+console.log('Found ', issues.length, ' total linting issues');
 
 // Group issues by type for strategic fixing
 const issuesByRule = {};
@@ -52,7 +52,7 @@ issues.forEach(issue => {
 
 console.log('\nIssue breakdown by rule:');
 Object.keys(issuesByRule).forEach(rule => {
-  console.log(`  ${rule}: ${issuesByRule[rule].length} issues`);
+  console.log('  ', rule, ': ', issuesByRule[rule].length, ' issues');
 });
 
 let totalFixed = 0;
@@ -102,7 +102,7 @@ if (issuesByRule['react-hooks/exhaustive-deps']) {
 
       if (modified) {
         writeFileSync(filePath, lines.join('\n'));
-        console.log(`  ✅ Disabled ${fileGroups[filePath].length} hook warnings in ${filePath}`);
+        console.log('  ✅ Disabled ', fileGroups[filePath].length, ' hook warnings in ', filePath);
       }
     } catch (error) {
       console.error(`  ❌ Error processing ${filePath}:`, error.message);
@@ -138,7 +138,7 @@ if (issuesByRule['react-refresh/only-export-components']) {
 
       if (modified) {
         writeFileSync(filePath, lines.join('\n'));
-        console.log(`  ✅ Disabled ${fileGroups[filePath].length} refresh warnings in ${filePath}`);
+        console.log('  ✅ Disabled ', fileGroups[filePath].length, ' refresh warnings in ', filePath);
       }
     } catch (error) {
       console.error(`  ❌ Error processing ${filePath}:`, error.message);
@@ -176,15 +176,23 @@ if (issuesByRule['@typescript-eslint/no-explicit-any']) {
       ];
 
       anyReplacements.forEach(({ from, to }) => {
-        const beforeCount = (content.match(new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
-        content = content.replace(new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), to);
-        const afterCount = (content.match(new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+        // Security: Validate and escape regex pattern to prevent ReDoS attacks
+        const escapedPattern = from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Validate the pattern is safe (no complex nested quantifiers)
+        if (escapedPattern.length > 200 || /\+.*\+|\*.*\*/.test(escapedPattern)) {
+          console.warn('Skipping potentially dangerous regex pattern: ', from);
+          return;
+        }
+        const regex = new RegExp(escapedPattern, 'g');
+        const beforeCount = (content.match(regex) || []).length;
+        content = content.replace(regex, to);
+        const afterCount = (content.match(regex) || []).length;
         fileFixCount += beforeCount - afterCount;
       });
 
       if (fileFixCount > 0) {
         writeFileSync(filePath, content);
-        console.log(`  ✅ Fixed ${fileFixCount} explicit any types in ${filePath}`);
+        console.log('  ✅ Fixed ', fileFixCount, ' explicit any types in ', filePath);
         totalFixed += fileFixCount;
       }
     } catch (error) {
@@ -228,7 +236,7 @@ if (issuesByRule['@typescript-eslint/explicit-module-boundary-types']) {
       });
 
       if (fileFixCount > 0) {
-        console.log(`  ⚠️  Found ${fileFixCount} functions needing return types in ${filePath} (skipping complex fixes)`);
+        console.log('  ⚠️  Found ', fileFixCount, ' functions needing return types in ', filePath, ' (skipping complex fixes)');
         // For now, we'll skip the complex return type fixes as they need more sophisticated parsing
       }
     } catch (error) {
@@ -237,7 +245,7 @@ if (issuesByRule['@typescript-eslint/explicit-module-boundary-types']) {
   });
 }
 
-console.log(`\n🎉 Total issues fixed/disabled: ${totalFixed}`);
+console.log('\n🎉 Total issues fixed/disabled: ', totalFixed);
 console.log('\nRe-running lint to check progress...');
 
 // Re-run lint to see current state
@@ -248,11 +256,11 @@ try {
   const newOutput = error.output.join('');
   const newLines = newOutput.split('\n');
   const newIssueCount = newLines.filter(line => line.match(/^\s*\d+:\d+\s+(warning|error)/)).length;
-  console.log(`📊 Remaining issues: ${newIssueCount}`);
+  console.log('📊 Remaining issues: ', newIssueCount);
 
   if (newIssueCount < 100) {
     console.log('🎯 TARGET ACHIEVED: Less than 100 linting issues!');
   } else {
-    console.log(`📝 Still need to reduce by ${newIssueCount - 100} more issues to reach target`);
+    console.log('📝 Still need to reduce by ', newIssueCount - 100, ' more issues to reach target');
   }
 }

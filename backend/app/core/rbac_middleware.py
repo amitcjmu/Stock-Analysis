@@ -10,6 +10,7 @@ from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 
 from app.core.context import get_current_context
+from app.core.security.secure_logging import safe_log_format
 from app.core.database import AsyncSessionLocal
 
 # Import RBAC service with fallback
@@ -84,7 +85,7 @@ class RBACMiddleware:
 
         # Check if endpoint is public
         if self._is_public_endpoint(path):
-            logger.debug(f"Public endpoint accessed: {path}")
+            logger.debug(safe_log_format("Public endpoint accessed: {path}", path=path))
             return await call_next(request)
 
         # Extract user information from request
@@ -93,7 +94,9 @@ class RBACMiddleware:
         # If no user ID, check if anonymous access is allowed
         if not user_id:
             if self._allow_anonymous_access(path, method):
-                logger.debug(f"Anonymous access allowed: {path}")
+                logger.debug(
+                    safe_log_format("Anonymous access allowed: {path}", path=path)
+                )
                 return await call_next(request)
             else:
                 return self._unauthorized_response("Authentication required")
@@ -108,7 +111,13 @@ class RBACMiddleware:
             return self._forbidden_response(access_result["reason"])
 
         # Access granted, proceed with request
-        logger.debug(f"Access granted for user {user_id} to {path}")
+        logger.debug(
+            safe_log_format(
+                "Access granted for user {user_id} to {path}",
+                user_id=user_id,
+                path=path,
+            )
+        )
         return await call_next(request)
 
     def _is_public_endpoint(self, path: str) -> bool:
@@ -136,7 +145,12 @@ class RBACMiddleware:
                     if payload:
                         return payload.get("sub")
                 except Exception as jwt_error:
-                    logger.debug(f"JWT token verification failed: {jwt_error}")
+                    logger.debug(
+                        safe_log_format(
+                            "JWT token verification failed: {jwt_error}",
+                            jwt_error=jwt_error,
+                        )
+                    )
 
                 # Fallback to db-token format for backward compatibility
                 if token.startswith("db-token-"):
@@ -211,7 +225,13 @@ class RBACMiddleware:
                 return result
 
         except Exception as e:
-            logger.error(f"Error validating access for user {user_id}: {e}")
+            logger.error(
+                safe_log_format(
+                    "Error validating access for user {user_id}: {e}",
+                    user_id=user_id,
+                    e=e,
+                )
+            )
             # In case of error, deny access for security
             return {"has_access": False, "reason": f"Access validation error: {str(e)}"}
 
@@ -362,13 +382,21 @@ async def require_admin_access(request: Request) -> str:
                     detail=f"Admin access required: {access_result.get('reason', 'Insufficient privileges')}",
                 )
 
-        logger.info(f"Admin access granted for user {user_id}")
+        logger.info(
+            safe_log_format("Admin access granted for user {user_id}", user_id=user_id)
+        )
         return user_id
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error validating admin access for user {user_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Error validating admin access for user {user_id}: {e}",
+                user_id=user_id,
+                e=e,
+            )
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Admin access validation failed",

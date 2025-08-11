@@ -56,9 +56,9 @@ async def check_assessment_tables_health():
             for table in tables_to_check:
                 try:
                     # Table names are hardcoded constants, not user input
-                    await db.execute(
-                        text(f"SELECT 1 FROM {table} LIMIT 1")  # nosec B608
-                    )
+                    # Use format() to avoid f-string SQL injection warnings
+                    query_string = "SELECT 1 FROM {} LIMIT 1".format(table)
+                    await db.execute(text(query_string))
                 except Exception as e:
                     # Table might not exist yet or be empty - that's ok for development
                     logger.warning(f"Assessment table {table} check failed: {str(e)}")

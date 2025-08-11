@@ -139,7 +139,7 @@ function processFile(filePath) {
                 modified = modified.replace(fullMatch, newDeclaration);
                 stats.componentsFixed++;
                 changesMade = true;
-                console.log(`  ✓ Added JSX.Element return type to ${componentName}`);
+                console.log('  ✓ Added JSX.Element return type to ', componentName);
               }
             }
           }
@@ -171,7 +171,7 @@ function processFile(filePath) {
               modified = modified.replace(fullMatch, newDeclaration);
               stats.voidFunctionsFixed++;
               changesMade = true;
-              console.log(`  ✓ Added void return type to ${functionName}`);
+              console.log('  ✓ Added void return type to ', functionName);
             }
           }
         }
@@ -212,25 +212,25 @@ async function main() {
     ],
   });
 
-  console.log(`Found ${files.length} TypeScript files to process\n`);
+  console.log('Found ', files.length, ' TypeScript files to process\n');
 
   // Process each file
   files.forEach((file, index) => {
     if (index % 10 === 0) {
-      console.log(`Processing file ${index + 1}/${files.length}...`);
+      console.log('Processing file ', index + 1, '/', files.length, '...');
     }
-    console.log(`\nProcessing: ${path.relative(config.srcDir, file)}`);
+    console.log('\nProcessing: ', path.relative(config.srcDir, file));
     processFile(file);
   });
 
   // Print statistics
   console.log('\n📊 Summary:');
-  console.log(`Files processed: ${stats.filesProcessed}`);
-  console.log(`React components fixed: ${stats.componentsFixed}`);
-  console.log(`Void functions fixed: ${stats.voidFunctionsFixed}`);
-  console.log(`Files skipped: ${stats.skipped}`);
-  console.log(`Errors: ${stats.errors}`);
-  console.log(`Total fixes: ${stats.componentsFixed + stats.voidFunctionsFixed}`);
+  console.log('Files processed: ', stats.filesProcessed);
+  console.log('React components fixed: ', stats.componentsFixed);
+  console.log('Void functions fixed: ', stats.voidFunctionsFixed);
+  console.log('Files skipped: ', stats.skipped);
+  console.log('Errors: ', stats.errors);
+  console.log('Total fixes: ', stats.componentsFixed + stats.voidFunctionsFixed);
 
   if (config.dryRun) {
     console.log('\n🔍 This was a dry run. Set dryRun to false to apply changes.');

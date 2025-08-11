@@ -95,7 +95,10 @@ class DatabaseSetup:
     def _get_app_db_url(self) -> str:
         """Get application database URL"""
         config = self.db_config
-        return f"postgresql+asyncpg://{config['user']}:{config['password']}@{config['host']}:{config['port']}/{config['database']}"
+        return (
+            f"postgresql+asyncpg://{config['user']}:{config['password']}@"
+            f"{config['host']}:{config['port']}/{config['database']}"
+        )
 
     async def wait_for_postgres(self, max_attempts: int = 30) -> bool:
         """Wait for PostgreSQL to be ready"""
@@ -155,17 +158,18 @@ class DatabaseSetup:
                     """,
                     self.db_config["database"],
                 )
-                await conn.execute(
-                    "DROP DATABASE IF EXISTS "
-                    + conn._quote_ident(self.db_config["database"])
-                )
+                # Build DROP DATABASE statement safely
+                quoted_db_name = conn._quote_ident(self.db_config["database"])
+                drop_stmt = "DROP DATABASE IF EXISTS {}".format(quoted_db_name)
+                await conn.execute(drop_stmt)
                 db_exists = False
 
             if not db_exists:
                 logger.info(f"📦 Creating database '{self.db_config['database']}'...")
-                await conn.execute(
-                    "CREATE DATABASE " + conn._quote_ident(self.db_config["database"])
-                )
+                # Build CREATE DATABASE statement safely
+                quoted_db_name = conn._quote_ident(self.db_config["database"])
+                create_stmt = "CREATE DATABASE {}".format(quoted_db_name)
+                await conn.execute(create_stmt)
                 logger.info("✅ Database created successfully!")
                 await conn.close()
                 return True

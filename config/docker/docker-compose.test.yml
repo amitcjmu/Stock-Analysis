@@ -145,7 +145,7 @@ services:
     environment:
       - NODE_ENV=test
       - VITE_BACKEND_URL=http://test-backend:8000
-      - VITE_WS_BASE_URL=ws://test-backend:8000/ws
+      - VITE_WS_BASE_URL=wss://test-backend:8000/ws
 
       # Test configuration
       - VITEST_REPORTER=verbose

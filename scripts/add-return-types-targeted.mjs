@@ -34,7 +34,7 @@ lines.forEach(line => {
   }
 });
 
-console.log(`Found ${boundaryIssues.length} boundary type issues`);
+console.log('Found', boundaryIssues.length, 'boundary type issues');
 
 // Group by file
 const fileGroups = {};
@@ -48,7 +48,7 @@ boundaryIssues.forEach(issue => {
 let totalFixed = 0;
 
 Object.keys(fileGroups).forEach((filePath, index) => {
-  console.log(`\n[${index + 1}/${Object.keys(fileGroups).length}] Processing: ${filePath}`);
+  console.log('\n[' + (index + 1) + '/' + Object.keys(fileGroups).length + '] Processing:', filePath);
 
   try {
     let content = readFileSync(filePath, 'utf8');
@@ -139,14 +139,14 @@ Object.keys(fileGroups).forEach((filePath, index) => {
 
     if (modified) {
       writeFileSync(filePath, content);
-      console.log(`  ✅ Added ${fileFixCount} return types in ${filePath}`);
+      console.log('  ✅ Added', fileFixCount, 'return types in', filePath);
       totalFixed += fileFixCount;
     } else {
-      console.log(`  ⏸️  No return types added in ${filePath}`);
+      console.log('  ⏸️  No return types added in', filePath);
     }
   } catch (error) {
     console.error(`  ❌ Error processing ${filePath}:`, error.message);
   }
 });
 
-console.log(`\n🎉 Total return types added: ${totalFixed}`);
+console.log('\n🎉 Total return types added:', totalFixed);

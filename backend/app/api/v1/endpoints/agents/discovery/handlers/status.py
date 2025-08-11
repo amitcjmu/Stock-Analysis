@@ -14,6 +14,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.core.database import get_db
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.services.discovery_flow_service import DiscoveryFlowService
@@ -40,7 +41,7 @@ async def get_crewai_flow_service(
 
         return _crewai_service_cache[cache_key]
     except Exception as e:
-        logger.warning(f"Discovery Flow service unavailable: {e}")
+        logger.warning(safe_log_format("Discovery Flow service unavailable: {e}", e=e))
 
         # Return a mock service for graceful degradation
         class MockDiscoveryFlowService:
@@ -242,7 +243,9 @@ async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext)
         return insights if insights else _get_fallback_agent_insights()
 
     except Exception as e:
-        logger.error(f"Error generating dynamic agent insights: {e}")
+        logger.error(
+            safe_log_format("Error generating dynamic agent insights: {e}", e=e)
+        )
         return _get_fallback_agent_insights()
 
 
@@ -347,7 +350,7 @@ async def get_discovery_status(
         }
 
     except Exception as e:
-        logger.error(f"❌ Failed to get discovery status: {e}")
+        logger.error(safe_log_format("❌ Failed to get discovery status: {e}", e=e))
         return {
             "success": False,
             "error": str(e),
@@ -431,7 +434,7 @@ async def get_agent_monitor(
         }
 
     except Exception as e:
-        logger.error(f"Error getting agent monitor data: {e}")
+        logger.error(safe_log_format("Error getting agent monitor data: {e}", e=e))
         return {
             "success": False,
             "data": {
@@ -574,7 +577,7 @@ async def _get_data_classifications(db: AsyncSession, context: RequestContext):
         return classifications
 
     except Exception as e:
-        logger.error(f"Error getting data classifications: {e}")
+        logger.error(safe_log_format("Error getting data classifications: {e}", e=e))
         return []
 
 
@@ -589,7 +592,12 @@ async def get_agent_status(
     This endpoint provides real-time agent insights for the frontend.
     """
     try:
-        logger.info(f"🔍 Getting agent status for page context: {page_context}")
+        logger.info(
+            safe_log_format(
+                "🔍 Getting agent status for page context: {page_context}",
+                page_context=page_context,
+            )
+        )
 
         # Get dynamic agent insights based on actual data
         agent_insights = await _get_dynamic_agent_insights(db, context)
@@ -611,7 +619,11 @@ async def get_agent_status(
                 )
                 agent_insights.extend(bridge_insights)
         except Exception as e:
-            logger.warning(f"⚠️ Could not get insights from agent_ui_bridge: {e}")
+            logger.warning(
+                safe_log_format(
+                    "⚠️ Could not get insights from agent_ui_bridge: {e}", e=e
+                )
+            )
 
         # Format response to match frontend expectations
         response = {
@@ -648,7 +660,7 @@ async def get_agent_status(
         return response
 
     except Exception as e:
-        logger.error(f"❌ Error getting agent status: {e}")
+        logger.error(safe_log_format("❌ Error getting agent status: {e}", e=e))
         return {
             "success": False,
             "status": "error",

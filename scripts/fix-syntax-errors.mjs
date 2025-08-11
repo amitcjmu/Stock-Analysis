@@ -7,10 +7,10 @@ import { glob } from 'glob';
 const files = glob.sync('src/**/*.{ts,tsx}');
 let totalFixed = 0;
 
-console.log(`Processing ${files.length} files for syntax error fixes...`);
+console.log('Processing ', files.length, ' files for syntax error fixes...');
 
 files.forEach((filePath, index) => {
-  console.log(`[${index + 1}/${files.length}] Processing: ${filePath}`);
+  console.log('[', index + 1, '/', files.length, '] Processing: ', filePath);
 
   try {
     let content = readFileSync(filePath, 'utf8');
@@ -122,7 +122,7 @@ files.forEach((filePath, index) => {
 
     if (modified) {
       writeFileSync(filePath, content);
-      console.log(`  ✅ Fixed ${fileFixCount} syntax errors in ${filePath}`);
+      console.log('  ✅ Fixed ', fileFixCount, ' syntax errors in ', filePath);
       totalFixed += fileFixCount;
     }
   } catch (error) {
@@ -130,4 +130,4 @@ files.forEach((filePath, index) => {
   }
 });
 
-console.log(`\n🎉 Total syntax errors fixed: ${totalFixed}`);
+console.log('\n🎉 Total syntax errors fixed: ', totalFixed);

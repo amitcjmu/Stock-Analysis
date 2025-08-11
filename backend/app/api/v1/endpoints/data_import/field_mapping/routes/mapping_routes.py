@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.core.database import get_db
 
 from ..models.mapping_schemas import (
@@ -57,7 +58,13 @@ async def get_field_mappings(
 
         return mappings
     except Exception as e:
-        logger.error(f"Error retrieving field mappings for import {import_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Error retrieving field mappings for import {import_id}: {e}",
+                import_id=import_id,
+                e=e,
+            )
+        )
         raise HTTPException(status_code=500, detail="Failed to retrieve field mappings")
 
 
@@ -72,10 +79,12 @@ async def create_field_mapping(
         mapping = await service.create_field_mapping(import_id, mapping_data)
         return mapping
     except ValueError as e:
-        logger.warning(f"Validation error creating field mapping: {e}")
+        logger.warning(
+            safe_log_format("Validation error creating field mapping: {e}", e=e)
+        )
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Error creating field mapping: {e}")
+        logger.error(safe_log_format("Error creating field mapping: {e}", e=e))
         raise HTTPException(status_code=500, detail="Failed to create field mapping")
 
 
@@ -90,10 +99,22 @@ async def update_field_mapping(
         mapping = await service.update_field_mapping(mapping_id, update_data)
         return mapping
     except ValueError as e:
-        logger.warning(f"Validation error updating field mapping {mapping_id}: {e}")
+        logger.warning(
+            safe_log_format(
+                "Validation error updating field mapping {mapping_id}: {e}",
+                mapping_id=mapping_id,
+                e=e,
+            )
+        )
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        logger.error(f"Error updating field mapping {mapping_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Error updating field mapping {mapping_id}: {e}",
+                mapping_id=mapping_id,
+                e=e,
+            )
+        )
         raise HTTPException(status_code=500, detail="Failed to update field mapping")
 
 
@@ -110,7 +131,13 @@ async def delete_field_mapping(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting field mapping {mapping_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Error deleting field mapping {mapping_id}: {e}",
+                mapping_id=mapping_id,
+                e=e,
+            )
+        )
         raise HTTPException(status_code=500, detail="Failed to delete field mapping")
 
 
@@ -126,7 +153,12 @@ async def trigger_field_mapping_reanalysis(
     This will regenerate field mappings with the latest logic.
     """
     try:
-        logger.info(f"🔄 Triggering field mapping re-analysis for import: {import_id}")
+        logger.info(
+            safe_log_format(
+                "🔄 Triggering field mapping re-analysis for import: {import_id}",
+                import_id=import_id,
+            )
+        )
 
         # Get the data import
         from uuid import UUID
@@ -142,7 +174,7 @@ async def trigger_field_mapping_reanalysis(
             else:
                 import_uuid = import_id
         except ValueError as e:
-            logger.error(f"❌ Invalid UUID format: {e}")
+            logger.error(safe_log_format("❌ Invalid UUID format: {e}", e=e))
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid UUID format for import_id: {import_id}",
@@ -173,7 +205,9 @@ async def trigger_field_mapping_reanalysis(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error triggering field mapping re-analysis: {e}")
+        logger.error(
+            safe_log_format("Error triggering field mapping re-analysis: {e}", e=e)
+        )
         raise HTTPException(
             status_code=500, detail="Failed to trigger field mapping re-analysis"
         )
@@ -189,7 +223,12 @@ async def generate_field_mappings(
     try:
         # If force_regenerate is True, delete existing mappings first
         if force_regenerate:
-            logger.info(f"🔄 Force regenerating field mappings for import {import_id}")
+            logger.info(
+                safe_log_format(
+                    "🔄 Force regenerating field mappings for import {import_id}",
+                    import_id=import_id,
+                )
+            )
             # Delete existing mappings to trigger CrewAI regeneration
             from sqlalchemy import and_, delete
 
@@ -204,15 +243,32 @@ async def generate_field_mappings(
             )
             await service.db.execute(delete_query)
             await service.db.commit()
-            logger.info(f"✅ Deleted existing field mappings for import {import_id}")
+            logger.info(
+                safe_log_format(
+                    "✅ Deleted existing field mappings for import {import_id}",
+                    import_id=import_id,
+                )
+            )
 
         result = await service.generate_mappings_for_import(import_id)
         return result
     except ValueError as e:
-        logger.warning(f"Error generating mappings for import {import_id}: {e}")
+        logger.warning(
+            safe_log_format(
+                "Error generating mappings for import {import_id}: {e}",
+                import_id=import_id,
+                e=e,
+            )
+        )
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Error generating mappings for import {import_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Error generating mappings for import {import_id}: {e}",
+                import_id=import_id,
+                e=e,
+            )
+        )
         raise HTTPException(status_code=500, detail="Failed to generate field mappings")
 
 
@@ -288,7 +344,9 @@ async def create_field_mapping_latest(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error with latest import field mapping: {e}")
+        logger.error(
+            safe_log_format("Error with latest import field mapping: {e}", e=e)
+        )
         raise HTTPException(
             status_code=500, detail="Failed to process field mapping request"
         )
@@ -304,7 +362,7 @@ async def validate_field_mappings(
         validation_result = await service.validate_mappings(request)
         return validation_result
     except Exception as e:
-        logger.error(f"Error validating field mappings: {e}")
+        logger.error(safe_log_format("Error validating field mappings: {e}", e=e))
         raise HTTPException(status_code=500, detail="Failed to validate field mappings")
 
 
@@ -322,7 +380,13 @@ async def get_mapping_count(
             "pending_mappings": len([m for m in mappings if not m.is_approved]),
         }
     except Exception as e:
-        logger.error(f"Error getting mapping count for import {import_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Error getting mapping count for import {import_id}: {e}",
+                import_id=import_id,
+                e=e,
+            )
+        )
         raise HTTPException(status_code=500, detail="Failed to get mapping count")
 
 

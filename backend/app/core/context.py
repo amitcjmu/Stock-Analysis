@@ -11,6 +11,7 @@ from functools import wraps
 from typing import Any, Callable, Dict, Optional, TypeVar
 
 from fastapi import HTTPException, Request
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ try:
 
     CLIENT_ACCOUNT_AVAILABLE = True
 except ImportError as e:
-    logger.warning(f"Client account models not available: {e}")
+    logger.warning(safe_log_format("Client account models not available: {e}", e=e))
     CLIENT_ACCOUNT_AVAILABLE = False
     ClientAccount = None
     Engagement = None
@@ -82,7 +83,10 @@ class RequestContext:
         return True
 
     def __repr__(self):
-        return f"RequestContext(client={self.client_account_id}, engagement={self.engagement_id}, user={self.user_id}, flow={self.flow_id})"
+        return (
+            f"RequestContext(client={self.client_account_id}, "
+            f"engagement={self.engagement_id}, user={self.user_id}, flow={self.flow_id})"
+        )
 
 
 def extract_context_from_request(request: Request) -> RequestContext:
@@ -103,7 +107,11 @@ def extract_context_from_request(request: Request) -> RequestContext:
     headers = request.headers
 
     # Debug logging to see what headers we're receiving
-    logger.info(f"🔍 Headers received: {dict(headers)}")
+    logger.info(
+        safe_log_format(
+            "🔍 Headers received: {dict_headers}", dict_headers=dict(headers)
+        )
+    )
 
     # Extract context from headers (primary format)
     # Handle both uppercase and lowercase variations
@@ -154,9 +162,10 @@ def extract_context_from_request(request: Request) -> RequestContext:
     if flow_id:
         flow_id = clean_header_value(flow_id)
 
-    # Debug logging to see what we extracted
+    # Debug logging to see what we extracted  
     logger.info(
-        f"🔍 Extracted values - Client: {client_account_id}, Engagement: {engagement_id}, User: {user_id}, Flow: {flow_id}"
+        "🔍 Extracted values - Client: %s, Engagement: %s, User: %s, Flow: %s",
+        client_account_id, engagement_id, user_id, flow_id
     )
 
     # Flow ID is optional - no auto-generation needed
@@ -171,7 +180,7 @@ def extract_context_from_request(request: Request) -> RequestContext:
         flow_id=flow_id,
     )
 
-    logger.info(f"🔍 Final context: {context}")
+    logger.info(safe_log_format("🔍 Final context: {context}", context=context))
     return context
 
 
@@ -213,7 +222,12 @@ def set_request_context(context: RequestContext) -> None:
     _engagement_id.set(context.engagement_id)
     _user_id.set(context.user_id)
     _flow_id.set(context.flow_id)
-    logger.debug(f"Set context for client {context.client_account_id}")
+    logger.debug(
+        safe_log_format(
+            "Set context for client {context_client_account_id}",
+            context_client_account_id=context.client_account_id,
+        )
+    )
 
 
 def set_context(context: RequestContext) -> None:
@@ -269,7 +283,10 @@ async def get_current_context_dependency() -> RequestContext:
     if not context:
         raise HTTPException(
             status_code=500,
-            detail="No request context available. This usually means the context middleware is not properly configured.",
+            detail=(
+                "No request context available. This usually means the context "
+                "middleware is not properly configured."
+            ),
         )
     return context
 
@@ -323,7 +340,10 @@ def validate_context(
     if require_client and not context.client_account_id:
         raise HTTPException(
             status_code=403,  # Changed from 400 to 403 for security
-            detail="Client account context is required for multi-tenant security. Please provide X-Client-Account-Id header.",
+            detail=(
+                "Client account context is required for multi-tenant security. "
+                "Please provide X-Client-Account-Id header."
+            ),
         )
 
     if require_engagement and not context.engagement_id:
@@ -405,10 +425,19 @@ async def resolve_demo_client_ids(db_session) -> None:
             if engagement:
                 DEMO_CLIENT_CONFIG["engagement_id"] = str(engagement.id)
 
-        logger.info(f"✅ Demo client configuration resolved: {DEMO_CLIENT_CONFIG}")
+        logger.info(
+            safe_log_format(
+                "✅ Demo client configuration resolved: {DEMO_CLIENT_CONFIG}",
+                DEMO_CLIENT_CONFIG=DEMO_CLIENT_CONFIG,
+            )
+        )
 
     except Exception as e:
-        logger.warning(f"⚠️ Could not resolve demo client IDs from database: {e}")
+        logger.warning(
+            safe_log_format(
+                "⚠️ Could not resolve demo client IDs from database: {e}", e=e
+            )
+        )
         # Keep using the hardcoded UUIDs as fallback
 
 

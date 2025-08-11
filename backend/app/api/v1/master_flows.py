@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.auth.auth_utils import get_current_user
 from app.api.v1.endpoints.context.services.user_service import UserService
 from app.core.database import get_db
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.models import User
 from app.repositories.asset_repository import AssetRepository
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
@@ -197,7 +198,7 @@ async def get_active_master_flows(
         return active_flows
 
     except Exception as e:
-        logger.error(f"Error retrieving active master flows: {e}")
+        logger.error(safe_log_format("Error retrieving active master flows: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Error retrieving active master flows: {str(e)}"
         )
@@ -617,5 +618,9 @@ async def delete_master_flow(
 
     except Exception as e:
         await db.rollback()
-        logger.error(f"❌ Failed to delete master flow {flow_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "❌ Failed to delete master flow {flow_id}: {e}", flow_id=flow_id, e=e
+            )
+        )
         raise HTTPException(status_code=500, detail=f"Failed to delete flow: {str(e)}")

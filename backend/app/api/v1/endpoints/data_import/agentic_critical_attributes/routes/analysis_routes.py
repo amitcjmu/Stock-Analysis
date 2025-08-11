@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.core.database import get_db
 
 from ..models.attribute_schemas import (
@@ -76,7 +77,9 @@ async def get_agentic_critical_attributes(
         return result
 
     except Exception as e:
-        logger.error(f"Error in agentic critical attributes analysis: {e}")
+        logger.error(
+            safe_log_format("Error in agentic critical attributes analysis: {e}", e=e)
+        )
         raise HTTPException(
             status_code=500, detail="Failed to analyze critical attributes"
         )
@@ -112,7 +115,7 @@ async def trigger_field_mapping_crew_analysis(
             else:
                 client_account_uuid = coordinator.context.client_account_id
         except ValueError as e:
-            logger.error(f"❌ Invalid UUID format: {e}")
+            logger.error(safe_log_format("❌ Invalid UUID format: {e}", e=e))
             raise HTTPException(status_code=400, detail=f"Invalid UUID format: {e}")
 
         import_query = select(DataImport).where(
@@ -195,7 +198,7 @@ async def trigger_field_mapping_crew_analysis(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in CrewAI execution: {e}")
+        logger.error(safe_log_format("Error in CrewAI execution: {e}", e=e))
         raise HTTPException(status_code=500, detail="Failed to execute CrewAI analysis")
 
 
@@ -214,7 +217,7 @@ async def get_analysis_status(
             "message": "Analysis status tracking not yet implemented",
         }
     except Exception as e:
-        logger.error(f"Error getting analysis status: {e}")
+        logger.error(safe_log_format("Error getting analysis status: {e}", e=e))
         raise HTTPException(status_code=500, detail="Failed to get analysis status")
 
 
@@ -238,7 +241,7 @@ async def reanalyze_import(
         return result
 
     except Exception as e:
-        logger.error(f"Error in reanalysis: {e}")
+        logger.error(safe_log_format("Error in reanalysis: {e}", e=e))
         raise HTTPException(status_code=500, detail="Failed to reanalyze import")
 
 

@@ -76,6 +76,12 @@ export class CacheManager {
       return;
     }
 
+    // Security: Validate regex pattern to prevent ReDoS attacks
+    if (!this.isValidRegexPattern(pattern)) {
+      console.warn('Invalid or potentially dangerous regex pattern detected in cache clear:', pattern);
+      return;
+    }
+
     const regex = new RegExp(pattern);
     const keysToDelete: string[] = [];
 
@@ -86,6 +92,30 @@ export class CacheManager {
     });
 
     keysToDelete.forEach(key => this.cache.delete(key));
+  }
+
+  private isValidRegexPattern(pattern: string): boolean {
+    try {
+      // Check for common dangerous patterns that could lead to ReDoS
+      const dangerousPatterns = [
+        /\(\?\![^\)]*\+/,    // Negative lookahead with quantifiers
+        /\([^\)]*\+[^\)]*\+/,  // Nested quantifiers
+        /\([^\)]*\*[^\)]*\*/,  // Nested star quantifiers
+        /\{\d+,\}/,         // Open-ended quantifiers
+      ];
+
+      for (const dangerous of dangerousPatterns) {
+        if (dangerous.test(pattern)) {
+          return false;
+        }
+      }
+
+      // Test if pattern compiles without throwing
+      new RegExp(pattern);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   size(): number {

@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.database import get_db
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.models import User
 
 # Make client_account import conditional to avoid deployment failures
@@ -153,9 +154,16 @@ async def get_context_clients(
             if logger.isEnabledFor(logging.DEBUG):
                 try:
                     compiled_query = str(access_query.compile())
-                    logger.debug(f"🔍 SQL Query structure: {compiled_query}")
+                    logger.debug(
+                        safe_log_format(
+                            "🔍 SQL Query structure: {compiled_query}",
+                            compiled_query=compiled_query,
+                        )
+                    )
                 except Exception as e:
-                    logger.debug(f"🔍 SQL Query compilation failed: {e}")
+                    logger.debug(
+                        safe_log_format("🔍 SQL Query compilation failed: {e}", e=e)
+                    )
 
             result = await db.execute(access_query)
             accessible_clients = result.all()
@@ -233,7 +241,9 @@ async def get_context_clients(
             return ClientsListResponse(clients=client_responses)
 
     except Exception as e:
-        logger.error(f"Error in context establishment - get clients: {e}")
+        logger.error(
+            safe_log_format("Error in context establishment - get clients: {e}", e=e)
+        )
         # Return demo data as fallback for demo user only
         if current_user.email and current_user.email.endswith("@demo-corp.com"):
             demo_clients = [
@@ -299,7 +309,13 @@ async def get_context_engagements(
         is_platform_admin = role_result.scalar_one_or_none() is not None
 
         # Verify client exists and is active
-        logger.info(f"🔍 Looking for client: {client_id} (type: {type(client_id)})")
+        logger.info(
+            safe_log_format(
+                "🔍 Looking for client: {client_id} (type: {type_client_id})",
+                client_id=client_id,
+                type_client_id=type(client_id),
+            )
+        )
 
         # First check if client exists at all
         client_exists_query = select(ClientAccount).where(ClientAccount.id == client_id)
@@ -307,7 +323,11 @@ async def get_context_engagements(
         client_exists = exists_result.scalar_one_or_none()
 
         if not client_exists:
-            logger.error(f"❌ Client not found in database: {client_id}")
+            logger.error(
+                safe_log_format(
+                    "❌ Client not found in database: {client_id}", client_id=client_id
+                )
+            )
             raise HTTPException(status_code=404, detail="Client not found")
 
         # Now check if it's active (handle NULL as active for backward compatibility)
@@ -326,7 +346,13 @@ async def get_context_engagements(
             )
             raise HTTPException(status_code=404, detail="Client not found or inactive")
 
-        logger.info(f"✅ Found active client: {client.name} ({client.id})")
+        logger.info(
+            safe_log_format(
+                "✅ Found active client: {client_name} ({client_id})",
+                client_name=client.name,
+                client_id=client.id,
+            )
+        )
 
         if not is_platform_admin:
             # Regular users: Verify they have access to this client
@@ -399,10 +425,19 @@ async def get_context_engagements(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in context establishment - get engagements: {e}")
+        logger.error(
+            safe_log_format(
+                "Error in context establishment - get engagements: {e}", e=e
+            )
+        )
         import traceback
 
-        logger.error(f"Traceback: {traceback.format_exc()}")
+        logger.error(
+            safe_log_format(
+                "Traceback: {traceback_format_exc}",
+                traceback_format_exc=traceback.format_exc(),
+            )
+        )
         # Return demo data as fallback only for demo client
         if client_id == DEMO_CLIENT_ID:
             demo_engagements = [
@@ -473,7 +508,12 @@ async def update_user_context(
                 user.default_engagement_id = request.engagement_id
                 await db.commit()
 
-                logger.info(f"✅ Updated default context for user {current_user.email}")
+                logger.info(
+                    safe_log_format(
+                        "✅ Updated default context for user {current_user_email}",
+                        current_user_email=current_user.email,
+                    )
+                )
 
                 return ContextUpdateResponse(
                     status="success",
@@ -495,5 +535,5 @@ async def update_user_context(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error updating user context: {e}")
+        logger.error(safe_log_format("Error updating user context: {e}", e=e))
         raise HTTPException(status_code=500, detail="Failed to update context")
