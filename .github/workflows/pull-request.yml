@@ -18,10 +18,10 @@ jobs:
           fetch-depth: 0  # Needed for change detection
 
       - name: Validate PR title and description
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          PR_BODY="${{ github.event.pull_request.body }}"
-
           echo "Validating PR title: $PR_TITLE"
 
           # Check if title follows conventional commit format

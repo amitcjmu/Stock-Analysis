@@ -11,7 +11,7 @@ from functools import wraps
 from typing import Any, Callable, Dict, Optional, TypeVar
 
 from fastapi import HTTPException, Request
-from app.core.security.secure_logging import safe_log_format, sanitize_log_input
+from app.core.security.secure_logging import safe_log_format
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
@@ -162,10 +162,13 @@ def extract_context_from_request(request: Request) -> RequestContext:
     if flow_id:
         flow_id = clean_header_value(flow_id)
 
-    # Debug logging to see what we extracted  
+    # Debug logging to see what we extracted
     logger.info(
         "🔍 Extracted values - Client: %s, Engagement: %s, User: %s, Flow: %s",
-        client_account_id, engagement_id, user_id, flow_id
+        client_account_id,
+        engagement_id,
+        user_id,
+        flow_id,
     )
 
     # Flow ID is optional - no auto-generation needed

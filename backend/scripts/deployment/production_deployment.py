@@ -21,6 +21,8 @@ from typing import Any, Dict
 
 import aiohttp
 
+from app.core.security.secure_logging import mask_id
+
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -38,8 +40,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# Import secure logging utilities
-from app.core.security.secure_logging import mask_id, mask_string
+# Secure logging utilities imported above
 
 
 def secure_subprocess_run(cmd_list, **kwargs):
@@ -241,7 +242,8 @@ fi
         with open(script_path, "w") as f:
             f.write(backup_script_content)
 
-        script_path.chmod(0o755)
+        # Use more secure permissions (0o750 instead of 0o755)
+        script_path.chmod(0o750)
 
     async def _verify_backup(self) -> bool:
         """Verify backup integrity"""
@@ -798,7 +800,8 @@ fi
 echo "Updating traffic split to {percentage}% green environment..."
 
 # Example for NGINX or ingress controller update
-# kubectl patch ingress app-ingress -p '{{"metadata":{{"annotations":{{"nginx.ingress.kubernetes.io/canary-weight":"{percentage}"}}}}}}'
+# kubectl patch ingress app-ingress -p \\
+#   '{{"metadata":{{"annotations":{{"nginx.ingress.kubernetes.io/canary-weight":"{percentage}"}}}}}}'
 
 # Example for AWS ALB
 # aws elbv2 modify-target-group --target-group-arn $GREEN_TG_ARN --health-check-enabled
@@ -831,9 +834,10 @@ echo "Traffic split updated to {percentage}% green"
                 f.write(traffic_script_content)
                 script_path = f.name
 
+            # Use more secure permissions (0o750 instead of 0o755)
             os.chmod(
-                script_path, 0o755
-            )  # nosec B103 - Deployment scripts require execute permissions for automation
+                script_path, 0o750
+            )  # Deployment scripts require execute permissions for automation
 
             result = secure_subprocess_run(
                 ["bash", script_path], timeout=60, capture_output=True, text=True
@@ -1060,9 +1064,10 @@ echo "Monitoring configuration updated"
                 f.write(monitoring_script_content)
                 script_path = f.name
 
+            # Use more secure permissions (0o750 instead of 0o755)
             os.chmod(
-                script_path, 0o755
-            )  # nosec B103 - Deployment scripts require execute permissions for automation
+                script_path, 0o750
+            )  # Deployment scripts require execute permissions for automation
 
             result = secure_subprocess_run(
                 ["bash", script_path], timeout=60, capture_output=True, text=True

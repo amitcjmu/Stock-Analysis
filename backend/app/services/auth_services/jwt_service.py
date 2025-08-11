@@ -66,33 +66,32 @@ class JWTService:
             logger.error(f"Token verification error: {e}")
             return None
 
-    def decode_token_without_verification(self, token: str) -> Optional[Dict[str, Any]]:
-        """Decode token without verification (for debugging/logging)."""
-        try:
-            return jwt.decode(token, options={"verify_signature": False})
-        except Exception as e:
-            logger.error(f"Token decoding error: {e}")
-            return None
+    def get_token_metadata(self, token: str) -> Optional[Dict[str, Any]]:
+        """Get token metadata with full verification for security."""
+        # Security fix: Always verify tokens - removed unverified decode
+        return self.verify_token(token)
 
     def is_token_expired(self, token: str) -> bool:
-        """Check if token is expired without full verification."""
-        try:
-            payload = jwt.decode(token, options={"verify_signature": False})
-            exp = payload.get("exp")
-            if exp:
-                return datetime.utcnow() > datetime.fromtimestamp(exp)
-            return True
-        except Exception:
-            return True
+        """Check if token is expired with proper verification."""
+        # Security fix: Use verified token decode instead of unverified
+        payload = self.verify_token(token)
+        if not payload:
+            return True  # Invalid tokens are considered expired
+
+        exp = payload.get("exp")
+        if exp:
+            return datetime.utcnow() > datetime.fromtimestamp(exp)
+        return True
 
     def get_token_remaining_time(self, token: str) -> Optional[int]:
-        """Get remaining time in seconds for a token."""
-        try:
-            payload = jwt.decode(token, options={"verify_signature": False})
-            exp = payload.get("exp")
-            if exp:
-                remaining = datetime.fromtimestamp(exp) - datetime.utcnow()
-                return max(0, int(remaining.total_seconds()))
-            return None
-        except Exception:
-            return None
+        """Get remaining time in seconds for a token with proper verification."""
+        # Security fix: Use verified token decode instead of unverified
+        payload = self.verify_token(token)
+        if not payload:
+            return None  # Invalid tokens have no remaining time
+
+        exp = payload.get("exp")
+        if exp:
+            remaining = datetime.fromtimestamp(exp) - datetime.utcnow()
+            return max(0, int(remaining.total_seconds()))
+        return None

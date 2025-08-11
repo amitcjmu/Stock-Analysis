@@ -346,7 +346,9 @@ class MigrationHooks:
                     except Exception as e:
                         logger.error(
                             "Failed to create standard %s for engagement %s: %s",
-                            standard['requirement_type'], engagement_id, e
+                            standard["requirement_type"],
+                            engagement_id,
+                            e,
                         )
                         continue
 
