@@ -418,7 +418,8 @@ class DiscoveryFlowCleanupService:
                 )
             )
             result = await db_session.execute(stmt)
-            return result.scalar() or 0
+            count_val = result.scalar_one()
+            return int(count_val)
         except Exception:
             return 0
 
@@ -436,7 +437,8 @@ class DiscoveryFlowCleanupService:
                 )
             )
             result = await db_session.execute(stmt)
-            return result.scalar() or 0
+            count_val = result.scalar_one()
+            return int(count_val)
         except Exception:
             return 0
 
@@ -455,7 +457,8 @@ class DiscoveryFlowCleanupService:
                 )
             )
             result = await db_session.execute(stmt)
-            return result.scalar() or 0
+            count_val = result.scalar_one()
+            return int(count_val)
         except Exception:
             return 0
 

@@ -150,6 +150,49 @@ def mask_token(token: Union[str, None], show_chars: int = 8) -> str:
     return f"***{token[-show_chars:]}"
 
 
+def sanitize_headers_for_logging(headers: dict) -> dict:
+    """
+    Sanitize HTTP headers for safe logging by masking sensitive values.
+
+    Args:
+        headers: Dictionary of HTTP headers
+
+    Returns:
+        Dictionary with sensitive headers masked
+    """
+    if not headers:
+        return {}
+
+    sensitive_headers = {
+        "authorization",
+        "cookie",
+        "set-cookie",
+        "x-api-key",
+        "x-auth-token",
+        "x-csrf-token",
+        "x-session-token",
+        "x-access-token",
+        "x-refresh-token",
+        "authentication",
+        "proxy-authorization",
+        "www-authenticate",
+    }
+
+    sanitized = {}
+    for key, value in headers.items():
+        key_lower = key.lower()
+        if (
+            key_lower in sensitive_headers
+            or "token" in key_lower
+            or "auth" in key_lower
+        ):
+            sanitized[key] = mask_token(str(value))
+        else:
+            sanitized[key] = sanitize_log_input(str(value))
+
+    return sanitized
+
+
 def secure_format(message: str, **kwargs: Any) -> str:
     """
     Secure string formatting that automatically masks sensitive data.

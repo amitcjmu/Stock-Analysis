@@ -13,11 +13,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.context_helpers import (
-from app.core.security.secure_logging import safe_log_format, sanitize_log_input
     verify_client_access,
     verify_engagement_access,
     verify_standards_modification_permission,
 )
+from app.core.security.secure_logging import safe_log_format
 from app.core.database import get_db
 from app.models.assessment_flow import AssessmentFlowStatus, AssessmentPhase
 from app.repositories.assessment_flow_repository import AssessmentFlowRepository
@@ -187,10 +187,18 @@ async def initialize_assessment_flow(
         )
 
     except ValueError as e:
-        logger.warning(safe_log_format("Assessment flow initialization validation error: {str_e}", str_e=str(e)))
+        logger.warning(
+            safe_log_format(
+                "Assessment flow initialization validation error: {str_e}", str_e=str(e)
+            )
+        )
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(safe_log_format("Assessment flow initialization failed: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format(
+                "Assessment flow initialization failed: {str_e}", str_e=str(e)
+            )
+        )
         raise HTTPException(
             status_code=500, detail="Assessment flow initialization failed"
         )
@@ -240,7 +248,11 @@ async def get_assessment_flow_status(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(safe_log_format("Failed to get assessment flow status: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format(
+                "Failed to get assessment flow status: {str_e}", str_e=str(e)
+            )
+        )
         raise HTTPException(status_code=500, detail="Failed to retrieve flow status")
 
 
@@ -302,7 +314,9 @@ async def resume_assessment_flow(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(safe_log_format("Failed to resume assessment flow: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format("Failed to resume assessment flow: {str_e}", str_e=str(e))
+        )
         raise HTTPException(status_code=500, detail="Failed to resume assessment flow")
 
 
@@ -352,7 +366,9 @@ async def navigate_to_assessment_phase(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(safe_log_format("Failed to navigate to phase: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format("Failed to navigate to phase: {str_e}", str_e=str(e))
+        )
         raise HTTPException(status_code=500, detail="Phase navigation failed")
 
 
@@ -396,7 +412,11 @@ async def get_architecture_standards(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(safe_log_format("Failed to get architecture standards: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format(
+                "Failed to get architecture standards: {str_e}", str_e=str(e)
+            )
+        )
         raise HTTPException(
             status_code=500, detail="Failed to retrieve architecture standards"
         )
@@ -449,7 +469,11 @@ async def update_architecture_standards(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(safe_log_format("Failed to update architecture standards: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format(
+                "Failed to update architecture standards: {str_e}", str_e=str(e)
+            )
+        )
         raise HTTPException(
             status_code=500, detail="Failed to update architecture standards"
         )
@@ -490,7 +514,11 @@ async def get_application_components(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(safe_log_format("Failed to get application components: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format(
+                "Failed to get application components: {str_e}", str_e=str(e)
+            )
+        )
         raise HTTPException(status_code=500, detail="Failed to retrieve components")
 
 
@@ -535,7 +563,11 @@ async def update_application_components(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(safe_log_format("Failed to update application components: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format(
+                "Failed to update application components: {str_e}", str_e=str(e)
+            )
+        )
         raise HTTPException(status_code=500, detail="Failed to update components")
 
 
@@ -571,7 +603,9 @@ async def get_tech_debt_analysis(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(safe_log_format("Failed to get tech debt analysis: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format("Failed to get tech debt analysis: {str_e}", str_e=str(e))
+        )
         raise HTTPException(
             status_code=500, detail="Failed to retrieve tech debt analysis"
         )
@@ -618,7 +652,11 @@ async def update_tech_debt_analysis(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(safe_log_format("Failed to update tech debt analysis: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format(
+                "Failed to update tech debt analysis: {str_e}", str_e=str(e)
+            )
+        )
         raise HTTPException(
             status_code=500, detail="Failed to update tech debt analysis"
         )
@@ -652,7 +690,9 @@ async def get_sixr_decisions(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(safe_log_format("Failed to get 6R decisions: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format("Failed to get 6R decisions: {str_e}", str_e=str(e))
+        )
         raise HTTPException(status_code=500, detail="Failed to retrieve 6R decisions")
 
 
@@ -695,7 +735,9 @@ async def update_sixr_decision(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(safe_log_format("Failed to update 6R decision: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format("Failed to update 6R decision: {str_e}", str_e=str(e))
+        )
         raise HTTPException(status_code=500, detail="Failed to update 6R decision")
 
 
@@ -746,7 +788,9 @@ async def get_app_on_page(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(safe_log_format("Failed to get app-on-page data: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format("Failed to get app-on-page data: {str_e}", str_e=str(e))
+        )
         raise HTTPException(
             status_code=500, detail="Failed to retrieve app-on-page data"
         )
@@ -782,7 +826,12 @@ async def finalize_assessment(
         if request.export_to_planning:
             # This would integrate with Planning Flow
             # For now, just log the export
-            logger.info(safe_log_format("Assessment {flow_id} ready for Planning Flow export", flow_id=flow_id))
+            logger.info(
+                safe_log_format(
+                    "Assessment {flow_id} ready for Planning Flow export",
+                    flow_id=flow_id,
+                )
+            )
 
         return {
             "message": "Assessment finalized successfully",
@@ -793,7 +842,9 @@ async def finalize_assessment(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(safe_log_format("Failed to finalize assessment: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format("Failed to finalize assessment: {str_e}", str_e=str(e))
+        )
         raise HTTPException(status_code=500, detail="Failed to finalize assessment")
 
 
@@ -841,7 +892,11 @@ async def get_assessment_report(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(safe_log_format("Failed to generate assessment report: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format(
+                "Failed to generate assessment report: {str_e}", str_e=str(e)
+            )
+        )
         raise HTTPException(
             status_code=500, detail="Failed to generate assessment report"
         )
@@ -855,16 +910,29 @@ async def execute_assessment_flow_initialization(
 ):
     """Execute assessment flow initialization in background."""
     try:
-        logger.info(safe_log_format("Starting background initialization for assessment flow {flow_id}", flow_id=flow_id))
+        logger.info(
+            safe_log_format(
+                "Starting background initialization for assessment flow {flow_id}",
+                flow_id=flow_id,
+            )
+        )
 
         # This would integrate with the actual UnifiedAssessmentFlow
         # For now, simulate initialization
         await asyncio.sleep(2)  # Simulate initialization work
 
-        logger.info(safe_log_format("Assessment flow {flow_id} initialized successfully", flow_id=flow_id))
+        logger.info(
+            safe_log_format(
+                "Assessment flow {flow_id} initialized successfully", flow_id=flow_id
+            )
+        )
 
     except Exception as e:
-        logger.error(safe_log_format("Assessment flow initialization failed: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format(
+                "Assessment flow initialization failed: {str_e}", str_e=str(e)
+            )
+        )
         # Update flow status to error state
         # await update_flow_error_state(flow_id, str(e))
 
@@ -877,16 +945,28 @@ async def resume_assessment_flow_execution(
 ):
     """Resume assessment flow execution from specific phase."""
     try:
-        logger.info(safe_log_format("Resuming assessment flow {flow_id} from phase {phase_value}", flow_id=flow_id, phase_value=phase.value))
+        logger.info(
+            safe_log_format(
+                "Resuming assessment flow {flow_id} from phase {phase_value}",
+                flow_id=flow_id,
+                phase_value=phase.value,
+            )
+        )
 
         # This would integrate with the actual UnifiedAssessmentFlow
         # For now, simulate resume work
         await asyncio.sleep(2)  # Simulate resume work
 
-        logger.info(safe_log_format("Assessment flow {flow_id} resumed successfully", flow_id=flow_id))
+        logger.info(
+            safe_log_format(
+                "Assessment flow {flow_id} resumed successfully", flow_id=flow_id
+            )
+        )
 
     except Exception as e:
-        logger.error(safe_log_format("Assessment flow resume failed: {str_e}", str_e=str(e)))
+        logger.error(
+            safe_log_format("Assessment flow resume failed: {str_e}", str_e=str(e))
+        )
         # await update_flow_error_state(flow_id, str(e))
 
 

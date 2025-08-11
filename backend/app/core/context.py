@@ -11,7 +11,11 @@ from functools import wraps
 from typing import Any, Callable, Dict, Optional, TypeVar
 
 from fastapi import HTTPException, Request
-from app.core.security.secure_logging import safe_log_format
+from app.core.security.secure_logging import (
+    safe_log_format,
+    sanitize_headers_for_logging,
+    mask_id,
+)
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
@@ -106,10 +110,11 @@ def extract_context_from_request(request: Request) -> RequestContext:
     """
     headers = request.headers
 
-    # Debug logging to see what headers we're receiving
-    logger.info(
+    # Debug logging to see what headers we're receiving (sanitized)
+    logger.debug(
         safe_log_format(
-            "🔍 Headers received: {dict_headers}", dict_headers=dict(headers)
+            "🔍 Headers received: {sanitized_headers}",
+            sanitized_headers=sanitize_headers_for_logging(dict(headers)),
         )
     )
 
@@ -162,13 +167,16 @@ def extract_context_from_request(request: Request) -> RequestContext:
     if flow_id:
         flow_id = clean_header_value(flow_id)
 
-    # Debug logging to see what we extracted
+    # Debug logging to see what we extracted (with ID masking)
     logger.info(
-        "🔍 Extracted values - Client: %s, Engagement: %s, User: %s, Flow: %s",
-        client_account_id,
-        engagement_id,
-        user_id,
-        flow_id,
+        safe_log_format(
+            "🔍 Extracted values - Client: {client_account_id}, Engagement: {engagement_id}, "
+            "User: {user_id}, Flow: {flow_id}",
+            client_account_id=mask_id(client_account_id),
+            engagement_id=mask_id(engagement_id),
+            user_id=mask_id(user_id),
+            flow_id=mask_id(flow_id),
+        )
     )
 
     # Flow ID is optional - no auto-generation needed

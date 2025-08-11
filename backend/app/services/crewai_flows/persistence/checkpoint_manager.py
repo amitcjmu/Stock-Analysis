@@ -334,9 +334,13 @@ class CheckpointManager:
                         else:
                             # Legacy pickle format no longer supported for security
                             logger.warning(
-                                f"Ignoring pickle-serialized attribute {key} for security. Use JSON format."
+                                "Ignoring pickle-serialized attribute %s for security. Use JSON format.",
+                                key,
                             )
                             secure_setattr(state, key, None)
+                            # Mark partial restore to allow callers to handle recomputation
+                            if not hasattr(state, "_partial_restore"):
+                                secure_setattr(state, "_partial_restore", True)
                     except Exception:
                         logger.warning(f"Could not deserialize attribute: {key}")
                         secure_setattr(state, key, None)
