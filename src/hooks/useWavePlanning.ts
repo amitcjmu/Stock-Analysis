@@ -35,7 +35,7 @@ export const useWavePlanning = (): JSX.Element => {
     queryKey: ['wave-planning'],
     queryFn: async () => {
       try {
-        const response = await apiCall('/api/v1/wave-planning');
+        const response = await apiCall('plan/waveplanning');
         return response;
       } catch (error: unknown) {
         // Handle 404 and 403 errors gracefully - endpoint may not exist yet
@@ -63,7 +63,7 @@ export const useUpdateWavePlanning = (): unknown => {
 
   return useMutation({
     mutationFn: async (data: WavePlanningData) => {
-      return apiCall('/api/v1/wave-planning', {
+      return apiCall('plan/waveplanning', {
         method: 'PUT',
         body: JSON.stringify(data),
       });

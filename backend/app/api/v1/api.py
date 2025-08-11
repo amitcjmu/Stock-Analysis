@@ -106,6 +106,14 @@ try:
 except ImportError:
     WAVE_PLANNING_AVAILABLE = False
 
+# Plan endpoints
+try:
+    from app.api.v1.endpoints.plan import router as plan_router
+
+    PLAN_AVAILABLE = True
+except ImportError:
+    PLAN_AVAILABLE = False
+
 # Import the /me endpoint function for root-level access
 # These imports are already at the top of the file
 
@@ -482,11 +490,17 @@ else:
 
 if WAVE_PLANNING_AVAILABLE:
     api_router.include_router(
-        wave_planning_router, prefix="/ave-planning", tags=["Wave Planning"]
+        wave_planning_router, prefix="/wave-planning", tags=["Wave Planning"]
     )
     logger.info("✅ Wave Planning router included")
 else:
     logger.warning("⚠️ Wave Planning router not available")
+
+if PLAN_AVAILABLE:
+    api_router.include_router(plan_router, prefix="/plan", tags=["Plan"])
+    logger.info("✅ Plan router included")
+else:
+    logger.warning("⚠️ Plan router not available")
 
 # Decommission Management
 if DECOMMISSION_AVAILABLE:
