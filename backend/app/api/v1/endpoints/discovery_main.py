@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.core.database import AsyncSessionLocal
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.services.discovery_flow_service import DiscoveryFlowService
@@ -42,7 +43,7 @@ try:
     )
     logger.info("✅ Agent discovery router included in discovery")
 except ImportError as e:
-    logger.warning(f"⚠️ Agent discovery router not available: {e}")
+    logger.warning(safe_log_format("⚠️ Agent discovery router not available: {e}", e=e))
 
 # Include applications endpoint
 try:
@@ -51,7 +52,7 @@ try:
     router.include_router(applications_router, tags=["discovery-applications"])
     logger.info("✅ Applications router included in discovery")
 except ImportError as e:
-    logger.warning(f"⚠️ Applications router not available: {e}")
+    logger.warning(safe_log_format("⚠️ Applications router not available: {e}", e=e))
 
 # Include dependency endpoints
 try:
@@ -60,7 +61,7 @@ try:
     router.include_router(dependency_router, tags=["discovery-dependencies"])
     logger.info("✅ Dependency router included in discovery")
 except ImportError as e:
-    logger.warning(f"⚠️ Dependency router not available: {e}")
+    logger.warning(safe_log_format("⚠️ Dependency router not available: {e}", e=e))
 
 # Real-time processing was part of legacy discovery architecture
 # TODO: Implement real-time discovery using CrewAI flows if needed
@@ -103,7 +104,12 @@ async def execute_dependency_analysis(
             - dependency_type: Type of dependency analysis ("app-server" or "app-app")
     """
     try:
-        logger.info(f"Starting dependency analysis for type: {request.dependency_type}")
+        logger.info(
+            safe_log_format(
+                "Starting dependency analysis for type: {request_dependency_type}",
+                request_dependency_type=request.dependency_type,
+            )
+        )
 
         if request.dependency_type == "app-server":
             # Analyze application-to-server dependencies
@@ -149,7 +155,7 @@ async def execute_dependency_analysis(
             )
 
     except Exception as e:
-        logger.error(f"Error in dependency analysis: {e}")
+        logger.error(safe_log_format("Error in dependency analysis: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to execute dependency analysis: {str(e)}"
         )
@@ -277,7 +283,11 @@ async def get_active_discovery_flows(
                 flow_service = DiscoveryFlowService(flow_repo)
                 flows = await flow_service.list_flows(status_filter="active")
 
-            logger.info(f"📊 Found {len(flows)} flows in database")
+            logger.info(
+                safe_log_format(
+                    "📊 Found {len_flows} flows in database", len_flows=len(flows)
+                )
+            )
 
             flow_details = []
             for flow in flows:
@@ -368,7 +378,9 @@ async def get_active_discovery_flows(
             }
 
     except Exception as e:
-        logger.error(f"❌ Failed to get active discovery flows: {e}")
+        logger.error(
+            safe_log_format("❌ Failed to get active discovery flows: {e}", e=e)
+        )
         import traceback
 
         traceback.print_exc()
@@ -388,7 +400,9 @@ async def get_flow_status(
     Uses flow_id instead of session_id.
     """
     try:
-        logger.info(f"📊 Getting flow status for: {flow_id}")
+        logger.info(
+            safe_log_format("📊 Getting flow status for: {flow_id}", flow_id=flow_id)
+        )
 
         # Initialize V2 services
         flow_repo = DiscoveryFlowRepository(
@@ -421,7 +435,11 @@ async def get_flow_status(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Failed to get flow status for {flow_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "❌ Failed to get flow status for {flow_id}: {e}", flow_id=flow_id, e=e
+            )
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get flow status: {str(e)}",
@@ -451,7 +469,12 @@ async def initialize_discovery_flow(
             initial_phase="data_import", metadata=request.get("metadata", {})
         )
 
-        logger.info(f"✅ Discovery flow initialized: {flow.flow_id}")
+        logger.info(
+            safe_log_format(
+                "✅ Discovery flow initialized: {flow_flow_id}",
+                flow_flow_id=flow.flow_id,
+            )
+        )
 
         return {
             "success": True,
@@ -462,7 +485,9 @@ async def initialize_discovery_flow(
         }
 
     except Exception as e:
-        logger.error(f"❌ Failed to initialize discovery flow: {e}")
+        logger.error(
+            safe_log_format("❌ Failed to initialize discovery flow: {e}", e=e)
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to initialize discovery flow: {str(e)}",
@@ -480,7 +505,9 @@ async def advance_flow_phase(
     Advance discovery flow to the next phase.
     """
     try:
-        logger.info(f"⏭️ Advancing flow phase for: {flow_id}")
+        logger.info(
+            safe_log_format("⏭️ Advancing flow phase for: {flow_id}", flow_id=flow_id)
+        )
 
         # Initialize V2 services
         flow_repo = DiscoveryFlowRepository(
@@ -532,7 +559,13 @@ async def advance_flow_phase(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Failed to advance flow phase for {flow_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "❌ Failed to advance flow phase for {flow_id}: {e}",
+                flow_id=flow_id,
+                e=e,
+            )
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to advance flow phase: {str(e)}",
@@ -550,7 +583,11 @@ async def get_attribute_mapping_data(
     This endpoint provides compatibility for the frontend AttributeMapping page.
     """
     try:
-        logger.info(f"📊 Getting attribute mapping data for flow: {flow_id}")
+        logger.info(
+            safe_log_format(
+                "📊 Getting attribute mapping data for flow: {flow_id}", flow_id=flow_id
+            )
+        )
 
         # Initialize V2 services
         flow_repo = DiscoveryFlowRepository(
@@ -592,7 +629,13 @@ async def get_attribute_mapping_data(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Failed to get attribute mapping data for {flow_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "❌ Failed to get attribute mapping data for {flow_id}: {e}",
+                flow_id=flow_id,
+                e=e,
+            )
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get attribute mapping data: {str(e)}",

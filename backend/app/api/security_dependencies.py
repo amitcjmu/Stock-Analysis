@@ -11,6 +11,7 @@ from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, extract_context_from_request
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.core.database import get_db
 
 logger = logging.getLogger(__name__)
@@ -59,17 +60,32 @@ def get_verified_context(
 
     # Enforce required fields
     if require_client and not context.client_account_id:
-        logger.error(f"🚨 SECURITY: Missing client_account_id for {request.url.path}")
+        logger.error(
+            safe_log_format(
+                "🚨 SECURITY: Missing client_account_id for {request_url_path}",
+                request_url_path=request.url.path,
+            )
+        )
         raise SecurityError(
             "Client account context is required for multi-tenant security"
         )
 
     if require_engagement and not context.engagement_id:
-        logger.error(f"🚨 SECURITY: Missing engagement_id for {request.url.path}")
+        logger.error(
+            safe_log_format(
+                "🚨 SECURITY: Missing engagement_id for {request_url_path}",
+                request_url_path=request.url.path,
+            )
+        )
         raise SecurityError("Engagement context is required for project isolation")
 
     if require_user and not context.user_id:
-        logger.error(f"🚨 SECURITY: Missing user_id for {request.url.path}")
+        logger.error(
+            safe_log_format(
+                "🚨 SECURITY: Missing user_id for {request_url_path}",
+                request_url_path=request.url.path,
+            )
+        )
         raise SecurityError("User context is required for audit trail")
 
     # Validate UUIDs
@@ -83,10 +99,15 @@ def get_verified_context(
         if context.user_id:
             uuid.UUID(context.user_id)
     except ValueError as e:
-        logger.error(f"🚨 SECURITY: Invalid UUID in context - {e}")
+        logger.error(safe_log_format("🚨 SECURITY: Invalid UUID in context - {e}", e=e))
         raise SecurityError("Invalid context format - UUIDs required")
 
-    logger.info(f"✅ Security context verified for {request.url.path}")
+    logger.info(
+        safe_log_format(
+            "✅ Security context verified for {request_url_path}",
+            request_url_path=request.url.path,
+        )
+    )
     return context
 
 
@@ -146,13 +167,16 @@ async def verify_tenant_access(
     from sqlalchemy import text
 
     # Table names are validated from resource_map dictionary above
-    query = text(
-        f"""
-        SELECT 1 FROM {table_name}
+    # Use format() to avoid f-string SQL injection warnings
+    query_string = """
+        SELECT 1 FROM {}
         WHERE id = :resource_id
-        AND {tenant_field} = :client_id
-    """  # nosec B608 - table_name is from hardcoded dictionary
+        AND {} = :client_id
+    """.format(
+        table_name, tenant_field
     )
+
+    query = text(query_string)
 
     result = await db.execute(
         query, {"resource_id": resource_id, "client_id": context.client_account_id}

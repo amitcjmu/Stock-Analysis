@@ -178,7 +178,7 @@ export const isFeatureEnabled = (featurePath: string): boolean => {
   let current: unknown = FEATURES;
 
   for (const key of keys) {
-    if (current && typeof current === 'object' && key in current) {
+    if (current && typeof current === 'object' && Object.prototype.hasOwnProperty.call(current, key)) {
       current = (current as Record<string, unknown>)[key];
     } else {
       return false;

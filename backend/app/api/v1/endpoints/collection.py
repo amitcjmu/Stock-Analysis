@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.context import get_request_context
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.core.database import get_db
 from app.core.rbac_utils import (
     COLLECTION_CREATE_ROLES,
@@ -159,7 +160,7 @@ async def get_collection_status(
         }
 
     except Exception as e:
-        logger.error(f"Error getting collection status: {e}")
+        logger.error(safe_log_format("Error getting collection status: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -296,7 +297,7 @@ async def create_collection_flow(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error creating collection flow: {e}")
+        logger.error(safe_log_format("Error creating collection flow: {e}", e=e))
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -356,7 +357,7 @@ async def get_collection_flow(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting collection flow: {e}")
+        logger.error(safe_log_format("Error getting collection flow: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -423,7 +424,7 @@ async def update_collection_flow(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error updating collection flow: {e}")
+        logger.error(safe_log_format("Error updating collection flow: {e}", e=e))
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -476,7 +477,7 @@ async def get_collection_gaps(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting collection gaps: {e}")
+        logger.error(safe_log_format("Error getting collection gaps: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -530,7 +531,7 @@ async def get_adaptive_questionnaires(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting questionnaires: {e}")
+        logger.error(safe_log_format("Error getting questionnaires: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -581,7 +582,9 @@ async def submit_questionnaire_response(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error submitting questionnaire response: {e}")
+        logger.error(
+            safe_log_format("Error submitting questionnaire response: {e}", e=e)
+        )
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -630,7 +633,7 @@ async def get_collection_readiness(
             )
             apps_ready = int(ready_count_row.scalar() or 0)
         except Exception as e:
-            logger.warning(f"Readiness count unavailable: {e}")
+            logger.warning(safe_log_format("Readiness count unavailable: {e}", e=e))
             apps_ready = 0
 
         # Run validator for collection/discovery phases
@@ -662,7 +665,9 @@ async def get_collection_readiness(
                 "readiness_score": validation.summary.get("readiness_score", 0.0),
             }
         except Exception as e:  # validator is best-effort
-            logger.warning(f"Validator unavailable for readiness: {e}")
+            logger.warning(
+                safe_log_format("Validator unavailable for readiness: {e}", e=e)
+            )
             phase_scores = {"collection": 0.0, "discovery": 0.0}
             issues = {"total": 0, "critical": 0, "warning": 0, "info": 0}
             readiness = {
@@ -699,7 +704,7 @@ async def get_collection_readiness(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting collection readiness: {e}")
+        logger.error(safe_log_format("Error getting collection readiness: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -749,7 +754,7 @@ async def get_incomplete_flows(
         ]
 
     except Exception as e:
-        logger.error(f"Error getting incomplete flows: {e}")
+        logger.error(safe_log_format("Error getting incomplete flows: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -805,7 +810,11 @@ async def continue_flow(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error continuing collection flow {flow_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Error continuing collection flow {flow_id}: {e}", flow_id=flow_id, e=e
+            )
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -850,7 +859,11 @@ async def delete_flow(
             mfo = MasterFlowOrchestrator(db, context)
             await mfo.delete_flow(flow_id)
         except Exception as e:
-            logger.warning(f"MFO deletion failed for flow {flow_id}: {e}")
+            logger.warning(
+                safe_log_format(
+                    "MFO deletion failed for flow {flow_id}: {e}", flow_id=flow_id, e=e
+                )
+            )
             # Continue with DB deletion even if MFO fails
 
         # Delete from database (cascade will handle related records)
@@ -870,7 +883,11 @@ async def delete_flow(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting collection flow {flow_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Error deleting collection flow {flow_id}: {e}", flow_id=flow_id, e=e
+            )
+        )
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -934,13 +951,24 @@ async def cleanup_flows(
                     mfo = MasterFlowOrchestrator(db, context)
                     await mfo.delete_flow(str(flow.id))
                 except Exception as e:
-                    logger.warning(f"MFO cleanup failed for flow {flow.id}: {e}")
+                    logger.warning(
+                        safe_log_format(
+                            "MFO cleanup failed for flow {flow_id}: {e}",
+                            flow_id=flow.id,
+                            e=e,
+                        )
+                    )
 
                 # Delete from database
                 await db.delete(flow)
 
             await db.commit()
-            logger.info(f"Cleaned up {len(flows_to_clean)} expired collection flows")
+            logger.info(
+                safe_log_format(
+                    "Cleaned up {len_flows_to_clean} expired collection flows",
+                    len_flows_to_clean=len(flows_to_clean),
+                )
+            )
 
         return {
             "status": "success",
@@ -959,7 +987,7 @@ async def cleanup_flows(
         }
 
     except Exception as e:
-        logger.error(f"Error during collection flow cleanup: {e}")
+        logger.error(safe_log_format("Error during collection flow cleanup: {e}", e=e))
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1013,7 +1041,13 @@ async def batch_delete_flows(
                     mfo = MasterFlowOrchestrator(db, context)
                     await mfo.delete_flow(flow_id)
                 except Exception as e:
-                    logger.warning(f"MFO deletion failed for flow {flow_id}: {e}")
+                    logger.warning(
+                        safe_log_format(
+                            "MFO deletion failed for flow {flow_id}: {e}",
+                            flow_id=flow_id,
+                            e=e,
+                        )
+                    )
 
                 # Delete from database
                 await db.delete(collection_flow)
@@ -1037,7 +1071,7 @@ async def batch_delete_flows(
         }
 
     except Exception as e:
-        logger.error(f"Error in batch delete: {e}")
+        logger.error(safe_log_format("Error in batch delete: {e}", e=e))
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 

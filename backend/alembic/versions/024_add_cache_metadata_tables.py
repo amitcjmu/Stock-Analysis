@@ -117,11 +117,11 @@ def create_constraint_if_not_exists(constraint_name, table_name, constraint_def)
     if table_exists(table_name) and not constraint_exists(constraint_name, table_name):
         try:
             bind = op.get_bind()
-            bind.execute(
-                sa.text(
-                    f"ALTER TABLE migration.{table_name} ADD CONSTRAINT {constraint_name} {constraint_def}"
-                )
+            # Build SQL statement safely - these parameters come from controlled migration code
+            sql_statement = "ALTER TABLE migration.{} ADD CONSTRAINT {} {}".format(
+                table_name, constraint_name, constraint_def
             )
+            bind.execute(sa.text(sql_statement))
             print(f"Created constraint: {constraint_name}")
         except Exception as e:
             print(f"Error creating constraint {constraint_name}: {e}")

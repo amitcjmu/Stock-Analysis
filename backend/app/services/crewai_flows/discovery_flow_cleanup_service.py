@@ -12,7 +12,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
@@ -409,7 +409,8 @@ class DiscoveryFlowCleanupService:
     ) -> int:
         """Count assets associated with the flow"""
         try:
-            stmt = select(DiscoveryAsset).where(
+            # Use count() for better performance instead of len(all())
+            stmt = select(func.count(DiscoveryAsset.id)).where(
                 and_(
                     DiscoveryAsset.flow_id == flow_id,
                     DiscoveryAsset.client_account_id == self.client_account_id,
@@ -417,7 +418,8 @@ class DiscoveryFlowCleanupService:
                 )
             )
             result = await db_session.execute(stmt)
-            return len(result.scalars().all())
+            count_val = result.scalar_one()
+            return int(count_val)
         except Exception:
             return 0
 
@@ -426,7 +428,8 @@ class DiscoveryFlowCleanupService:
     ) -> int:
         """Count import sessions associated with the flow"""
         try:
-            stmt = select(DataImportSession).where(
+            # Use count() for better performance instead of len(all())
+            stmt = select(func.count(DataImportSession.id)).where(
                 and_(
                     DataImportSession.flow_id == flow_id,
                     DataImportSession.client_account_id == self.client_account_id,
@@ -434,7 +437,8 @@ class DiscoveryFlowCleanupService:
                 )
             )
             result = await db_session.execute(stmt)
-            return len(result.scalars().all())
+            count_val = result.scalar_one()
+            return int(count_val)
         except Exception:
             return 0
 
@@ -444,7 +448,8 @@ class DiscoveryFlowCleanupService:
             return 0
 
         try:
-            stmt = select(Dependency).where(
+            # Use count() for better performance instead of len(all())
+            stmt = select(func.count(Dependency.id)).where(
                 and_(
                     Dependency.session_id == flow_id,
                     Dependency.client_account_id == self.client_account_id,
@@ -452,7 +457,8 @@ class DiscoveryFlowCleanupService:
                 )
             )
             result = await db_session.execute(stmt)
-            return len(result.scalars().all())
+            count_val = result.scalar_one()
+            return int(count_val)
         except Exception:
             return 0
 

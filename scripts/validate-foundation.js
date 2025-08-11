@@ -130,7 +130,7 @@ function validateAutoFixImprovements() {
       throw new Error('Auto-fix did not reduce error count');
     }
 
-    console.log(`✅ Auto-fix reduced errors (now ${errorCount})`);
+    console.log('✅ Auto-fix reduced errors (now', errorCount, ')');
     return true;
   } catch (error) {
     throw new Error('Auto-fix validation failed');
@@ -163,7 +163,7 @@ async function runValidation() {
 
   try {
     for (let i = 0; i < validators.length; i++) {
-      console.log(`\n[${i + 1}/${validators.length}] ${VALIDATION_CHECKS[i]}`);
+      console.log('\n[' + (i + 1) + '/' + validators.length + ']', VALIDATION_CHECKS[i]);
       await validators[i]();
     }
 
@@ -176,7 +176,7 @@ async function runValidation() {
     execSync('npm run lint:progress', { stdio: 'inherit' });
 
   } catch (error) {
-    console.error(`\n❌ Foundation validation failed: ${error.message}`);
+    console.error('\n❌ Foundation validation failed: ', error.message);
     process.exit(1);
   }
 }

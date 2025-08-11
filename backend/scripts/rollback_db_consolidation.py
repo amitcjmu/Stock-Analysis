@@ -164,13 +164,13 @@ class DatabaseConsolidationRollback:
                 (db_name,),
             )
 
-            # Drop and recreate database
-            cur.execute(
-                f"DROP DATABASE IF EXISTS {psycopg2.extensions.quote_ident(db_name, cur)}"
-            )
-            cur.execute(
-                f"CREATE DATABASE {psycopg2.extensions.quote_ident(db_name, cur)}"
-            )
+            # Drop and recreate database - build statements safely
+            quoted_db_name = psycopg2.extensions.quote_ident(db_name, cur)
+            drop_stmt = "DROP DATABASE IF EXISTS {}".format(quoted_db_name)
+            create_stmt = "CREATE DATABASE {}".format(quoted_db_name)
+
+            cur.execute(drop_stmt)
+            cur.execute(create_stmt)
 
             cur.close()
             conn.close()

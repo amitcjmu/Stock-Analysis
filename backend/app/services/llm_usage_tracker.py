@@ -349,11 +349,16 @@ class LLMUsageTracker:
                     conditions.append("feature_context = :feature_context")
                     params["feature_context"] = feature_context
 
-                where_clause = " AND ".join(conditions)
+                # Build WHERE clause safely without format() injection risk
+                where_sql = (
+                    " AND ".join(f"({condition})" for condition in conditions)
+                    if conditions
+                    else "TRUE"
+                )
 
-                # Summary query - WHERE clause built from safe parameterized conditions
+                # Summary query - fully parameterized
                 summary_query = text(
-                    f"""
+                    """
                     SELECT
                         COUNT(*) as total_requests,
                         COUNT(*) FILTER (WHERE success = true) as successful_requests,
@@ -366,17 +371,16 @@ class LLMUsageTracker:
                         MIN(created_at) as first_request,
                         MAX(created_at) as last_request
                     FROM llm_usage_logs
-                    WHERE {where_clause}
-                """  # nosec B608
+                    WHERE """
+                    + where_sql  # nosec B608 - where_sql built from validated parameterized conditions
                 )
 
                 summary_result = await session.execute(summary_query, params)
                 summary = summary_result.fetchone()
 
-                # Breakdown by provider/model
-                # WHERE clause built from safe parameterized conditions
+                # Breakdown by provider/model - fully parameterized
                 breakdown_query = text(
-                    f"""
+                    """
                     SELECT
                         llm_provider,
                         model_name,
@@ -384,30 +388,33 @@ class LLMUsageTracker:
                         COALESCE(SUM(total_tokens), 0) as tokens,
                         COALESCE(SUM(total_cost), 0) as cost
                     FROM llm_usage_logs
-                    WHERE {where_clause}
+                    WHERE """
+                    + where_sql  # nosec B608 - where_sql built from validated parameterized conditions
+                    + """
                     GROUP BY llm_provider, model_name
                     ORDER BY cost DESC
-                """  # nosec B608
+                """
                 )
 
                 breakdown_result = await session.execute(breakdown_query, params)
                 breakdown = [dict(row) for row in breakdown_result]
 
-                # Daily usage trend
-                # WHERE clause built from safe parameterized conditions
+                # Daily usage trend - fully parameterized
                 daily_query = text(
-                    f"""
+                    """
                     SELECT
                         DATE(created_at) as date,
                         COUNT(*) as requests,
                         COALESCE(SUM(total_tokens), 0) as tokens,
                         COALESCE(SUM(total_cost), 0) as cost
                     FROM llm_usage_logs
-                    WHERE {where_clause}
+                    WHERE """
+                    + where_sql  # nosec B608 - where_sql built from validated parameterized conditions
+                    + """
                     GROUP BY DATE(created_at)
                     ORDER BY date DESC
                     LIMIT 30
-                """  # nosec B608
+                """
                 )
 
                 daily_result = await session.execute(daily_query, params)

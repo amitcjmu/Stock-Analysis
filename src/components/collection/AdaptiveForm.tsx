@@ -19,6 +19,31 @@ import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Clock, Target, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Security: Helper function to validate regex patterns and prevent ReDoS attacks
+const isValidRegexPattern = (pattern: string): boolean => {
+  try {
+    // Check for common dangerous patterns that could lead to ReDoS
+    const dangerousPatterns = [
+      /\(\?\![^\)]*\+/,    // Negative lookahead with quantifiers
+      /\([^\)]*\+[^\)]*\+/,  // Nested quantifiers
+      /\([^\)]*\*[^\)]*\*/,  // Nested star quantifiers
+      /\{\d+,\}/,         // Open-ended quantifiers
+    ];
+
+    for (const dangerous of dangerousPatterns) {
+      if (dangerous.test(pattern)) {
+        return false;
+      }
+    }
+
+    // Test if pattern compiles without throwing
+    new RegExp(pattern);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 import { FormField } from './components/FormField';
 import { SectionCard } from './components/SectionCard';
 import { BulkDataGrid } from './BulkDataGrid';
@@ -257,6 +282,16 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
 
           // Pattern validation
           if (hasValue && field.validation?.pattern) {
+            // Validate regex pattern to prevent ReDoS attacks
+            if (!isValidRegexPattern(field.validation.pattern)) {
+              console.warn('Invalid or potentially dangerous regex pattern detected:', field.validation.pattern);
+              isValid = false;
+              errors.push({
+                fieldId: field.id,
+                message: 'Invalid validation pattern configuration'
+              });
+              return; // Skip further validation for this field
+            }
             const regex = new RegExp(field.validation.pattern);
             if (!regex.test(String(value))) {
               isValid = false;

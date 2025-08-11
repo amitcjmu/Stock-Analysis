@@ -10,13 +10,13 @@ const files = [...new Set(output.split('\n').filter(line => line.includes('.tsx'
   return match ? match[1] : null;
 }).filter(Boolean))];
 
-console.log(`Found ${files.length} files with return type issues:`);
-files.forEach(file => console.log(`  - ${file}`));
+console.log('Found ', files.length, ' files with return type issues:');
+files.forEach(file => console.log('  - ', file));
 
 let totalFixed = 0;
 
 files.forEach((filePath, index) => {
-  console.log(`\n[${index + 1}/${files.length}] Processing: ${filePath}`);
+  console.log('\n[', index + 1, '/', files.length, '] Processing: ', filePath);
 
   try {
     let content = readFileSync(filePath, 'utf8');
@@ -105,17 +105,17 @@ files.forEach((filePath, index) => {
 
     if (modified) {
       writeFileSync(filePath, content);
-      console.log(`  ✅ Fixed ${fileFixCount} return types in ${filePath}`);
+      console.log('  ✅ Fixed ', fileFixCount, ' return types in ', filePath);
       totalFixed += fileFixCount;
     } else {
-      console.log(`  ⏸️  No additional fixes needed in ${filePath}`);
+      console.log('  ⏸️  No additional fixes needed in ', filePath);
     }
   } catch (error) {
     console.error(`  ❌ Error processing ${filePath}:`, error.message);
   }
 });
 
-console.log(`\n🎉 Total return types fixed: ${totalFixed}`);
+console.log('\n🎉 Total return types fixed: ', totalFixed);
 
 // Helper function to infer return type based on function name and context
 function inferReturnTypeFromName(functionName, context = 'function') {

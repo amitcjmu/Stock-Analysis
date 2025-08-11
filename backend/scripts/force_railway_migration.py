@@ -199,8 +199,13 @@ async def main():
                 continue
 
             try:
-                # Use identifier quoting for column name
-                query = f"UPDATE client_accounts SET {psycopg2.extensions.quote_ident(col, None)} = $1::json WHERE {psycopg2.extensions.quote_ident(col, None)} IS NULL"
+                # Use identifier quoting for column name - build query safely
+                quoted_col = psycopg2.extensions.quote_ident(col, None)
+                query = (
+                    "UPDATE client_accounts SET {} = $1::json WHERE {} IS NULL".format(
+                        quoted_col, quoted_col
+                    )
+                )
                 await conn.execute(query, json.dumps(default_val))
                 print(f"  ✅ Set {col} defaults")
             except Exception as e:
@@ -238,8 +243,11 @@ async def main():
                 continue
 
             try:
-                # Use identifier quoting for column name
-                query = f"UPDATE engagements SET {psycopg2.extensions.quote_ident(col, None)} = $1::json WHERE {psycopg2.extensions.quote_ident(col, None)} IS NULL"
+                # Use identifier quoting for column name - build query safely
+                quoted_col = psycopg2.extensions.quote_ident(col, None)
+                query = "UPDATE engagements SET {} = $1::json WHERE {} IS NULL".format(
+                    quoted_col, quoted_col
+                )
                 await conn.execute(query, json.dumps(default_val))
                 print(f"  ✅ Set {col} defaults")
             except Exception as e:

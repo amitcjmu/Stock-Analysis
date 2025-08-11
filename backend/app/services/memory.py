@@ -5,7 +5,6 @@ Provides persistent memory with learning capabilities and pattern recognition.
 
 import json
 import logging
-import pickle
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -243,8 +242,9 @@ class AgentMemory:
                 "saved_at": datetime.utcnow().isoformat(),
             }
 
-            with open(self.memory_file, "wb") as f:
-                pickle.dump(memory_data, f)
+            # Use JSON serialization for security instead of pickle
+            with open(self.memory_file, "w", encoding="utf-8") as f:
+                json.dump(memory_data, f, indent=2, default=str)
 
             logger.debug(f"Memory saved to {self.memory_file}")
 
@@ -255,8 +255,9 @@ class AgentMemory:
         """Load memory from persistent storage."""
         try:
             if self.memory_file.exists():
-                with open(self.memory_file, "rb") as f:
-                    data = pickle.load(f)
+                # Use JSON deserialization for security instead of pickle
+                with open(self.memory_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
 
                 self.experiences = data.get("experiences", self.experiences)
                 self.learning_metrics = data.get(

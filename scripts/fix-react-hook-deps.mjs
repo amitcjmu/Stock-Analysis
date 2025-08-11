@@ -12,13 +12,13 @@ const fileMatches = [...new Set(lintOutput.split('\n').filter(line => line.inclu
   return match ? match[1] : null;
 }).filter(Boolean))];
 
-console.log(`Found ${fileMatches.length} files with React Hook dependency issues:`);
-fileMatches.forEach(file => console.log(`  - ${file}`));
+console.log('Found', fileMatches.length, 'files with React Hook dependency issues:');
+fileMatches.forEach(file => console.log('  -', file));
 
 let totalFixed = 0;
 
 fileMatches.forEach((filePath, index) => {
-  console.log(`\n[${index + 1}/${fileMatches.length}] Processing: ${filePath}`);
+  console.log('\n[' + (index + 1) + '/' + fileMatches.length + '] Processing:', filePath);
 
   try {
     let content = readFileSync(filePath, 'utf8');
@@ -119,14 +119,14 @@ fileMatches.forEach((filePath, index) => {
 
     if (modified) {
       writeFileSync(filePath, content);
-      console.log(`  ✅ Fixed ${fileFixCount} React Hook dependency issues in ${filePath}`);
+      console.log('  ✅ Fixed', fileFixCount, 'React Hook dependency issues in', filePath);
       totalFixed += fileFixCount;
     } else {
-      console.log(`  ⏸️  No hook dependency fixes applied in ${filePath}`);
+      console.log('  ⏸️  No hook dependency fixes applied in', filePath);
     }
   } catch (error) {
     console.error(`  ❌ Error processing ${filePath}:`, error.message);
   }
 });
 
-console.log(`\n🎉 Total React Hook dependency issues fixed: ${totalFixed}`);
+console.log('\n🎉 Total React Hook dependency issues fixed:', totalFixed);

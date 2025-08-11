@@ -19,7 +19,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
-from app.core.security.secure_logging import mask_id
+from app.core.security.secure_logging import (
+    mask_id,
+    safe_log_format,
+    sanitize_log_input,
+)
 from app.models.data_import.mapping import ImportFieldMapping
 from app.models.discovery_flow import DiscoveryFlow
 from app.services.flow_configs import initialize_all_flows
@@ -86,10 +90,18 @@ async def initialize_discovery_flow(
     try:
         logger.info("🎯 Initializing Discovery Flow via Master Flow Orchestrator")
         logger.info(
-            f"🔍 Client: {context.client_account_id}, Engagement: {context.engagement_id}, User: {context.user_id}"
+            safe_log_format(
+                "🔍 Client: {client_account_id}, Engagement: {engagement_id}, User: {user_id}",
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+                user_id=context.user_id,
+            )
         )
         logger.info(
-            f"🔍 Raw data count: {len(request.raw_data) if request.raw_data else 0}"
+            safe_log_format(
+                "🔍 Raw data count: {raw_data_count}",
+                raw_data_count=len(request.raw_data) if request.raw_data else 0,
+            )
         )
 
         # Ensure flow configurations are initialized
@@ -130,7 +142,10 @@ async def initialize_discovery_flow(
 
             # CC FIX: Create the corresponding DiscoveryFlow record that the system expects
             logger.info(
-                f"🔗 Creating discovery flow record in discovery_flows table: {flow_id_str}"
+                safe_log_format(
+                    "🔗 Creating discovery flow record in discovery_flows table: {flow_id_str}",
+                    flow_id_str=flow_id_str,
+                )
             )
             try:
                 from sqlalchemy import func
@@ -155,12 +170,18 @@ async def initialize_discovery_flow(
                 await db.commit()
 
                 logger.info(
-                    f"✅ Discovery flow record created in discovery_flows table: {flow_id_str}"
+                    safe_log_format(
+                        "✅ Discovery flow record created in discovery_flows table: {flow_id_str}",
+                        flow_id_str=flow_id_str,
+                    )
                 )
 
             except Exception as discovery_error:
                 logger.error(
-                    f"❌ Failed to create discovery flow record: {discovery_error}"
+                    safe_log_format(
+                        "❌ Failed to create discovery flow record: {discovery_error}",
+                        discovery_error=discovery_error,
+                    )
                 )
                 # Don't fail the entire flow creation, but log the error
                 logger.warning(
@@ -169,7 +190,12 @@ async def initialize_discovery_flow(
 
             flow_details = flow_result[1] if len(flow_result) > 1 else {}
 
-            logger.info(f"✅ Discovery flow created successfully: {flow_id_str}")
+            logger.info(
+                safe_log_format(
+                    "✅ Discovery flow created successfully: {flow_id_str}",
+                    flow_id_str=flow_id_str,
+                )
+            )
 
             return FlowInitializationResponse(
                 success=True,
@@ -179,7 +205,12 @@ async def initialize_discovery_flow(
                 message="Discovery flow initialized successfully with automatic kickoff",
             )
         else:
-            logger.error(f"❌ Unexpected flow creation result: {flow_result}")
+            logger.error(
+                safe_log_format(
+                    "❌ Unexpected flow creation result: {flow_result}",
+                    flow_result=flow_result,
+                )
+            )
             return FlowInitializationResponse(
                 success=False,
                 status="failed",
@@ -188,10 +219,17 @@ async def initialize_discovery_flow(
             )
 
     except Exception as e:
-        logger.error(f"❌ Discovery flow initialization failed: {e}")
+        logger.error(
+            safe_log_format("❌ Discovery flow initialization failed: {e}", e=e)
+        )
         import traceback
 
-        logger.error(f"Traceback: {traceback.format_exc()}")
+        logger.error(
+            safe_log_format(
+                "Traceback: {traceback_format_exc__}",
+                traceback_format_exc__=traceback.format_exc(),
+            )
+        )
 
         return FlowInitializationResponse(
             success=False,
@@ -215,9 +253,18 @@ async def get_discovery_flow_status(
     for frontend display and agent decisions.
     """
     try:
-        logger.info(f"🔍 Getting discovery flow operational status: {flow_id}")
         logger.info(
-            f"🔍 Context: Client={context.client_account_id}, Engagement={context.engagement_id}"
+            safe_log_format(
+                "🔍 Getting discovery flow operational status: {flow_id}",
+                flow_id=flow_id,
+            )
+        )
+        logger.info(
+            safe_log_format(
+                "🔍 Context: Client={client_account_id}, Engagement={engagement_id}",
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+            )
         )
 
         # ADR-012: Get child flow status directly from discovery_flows table
@@ -239,12 +286,21 @@ async def get_discovery_flow_status(
 
         if not discovery_flow:
             logger.warning(
-                f"Discovery flow not found in child table: {flow_id} for client {context.client_account_id}"
+                safe_log_format(
+                    "Discovery flow not found in child table: {flow_id} for client {client_account_id}",
+                    flow_id=flow_id,
+                    client_account_id=context.client_account_id,
+                )
             )
 
             # ADR-012 Fallback: If child flow doesn't exist, try to get from master flow
             # This handles cases where the flow was created but child flow sync failed
-            logger.info(f"🔄 Attempting fallback to master flow for {flow_id}")
+            logger.info(
+                safe_log_format(
+                    "🔄 Attempting fallback to master flow for {flow_id}",
+                    flow_id=flow_id,
+                )
+            )
 
             # Initialize Master Flow Orchestrator as fallback
             initialize_all_flows()
@@ -300,13 +356,22 @@ async def get_discovery_flow_status(
 
                 # Log this as a data integrity issue
                 logger.error(
-                    f"⚠️ DATA INTEGRITY: Discovery flow {flow_id} exists in master but not in child table"
+                    safe_log_format(
+                        "⚠️ DATA INTEGRITY: Discovery flow {flow_id} exists in master but not in child table",
+                        flow_id=flow_id,
+                    )
                 )
 
                 return response
 
             except Exception as e:
-                logger.error(f"❌ Master flow fallback also failed for {flow_id}: {e}")
+                logger.error(
+                    safe_log_format(
+                        "❌ Master flow fallback also failed for {flow_id}: {e}",
+                        flow_id=flow_id,
+                        e=e,
+                    )
+                )
                 raise ValueError(f"Discovery flow not found: {flow_id}")
 
         # Get field mappings
@@ -396,18 +461,34 @@ async def get_discovery_flow_status(
             "warnings": [],
         }
 
-        logger.info(f"✅ Retrieved discovery flow operational status for {flow_id}")
+        logger.info(
+            safe_log_format(
+                "✅ Retrieved discovery flow operational status for {flow_id}",
+                flow_id=flow_id,
+            )
+        )
         return response
 
     except ValueError:
         # Flow not found - proper 404 handling
-        logger.warning(f"Flow not found: {flow_id}")
+        logger.warning(safe_log_format("Flow not found: {flow_id}", flow_id=flow_id))
         raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
     except Exception as e:
-        logger.error(f"❌ Failed to get discovery flow status for {flow_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "❌ Failed to get discovery flow status for {flow_id}: {e}",
+                flow_id=flow_id,
+                e=e,
+            )
+        )
         import traceback
 
-        logger.error(f"Traceback: {traceback.format_exc()}")
+        logger.error(
+            safe_log_format(
+                "Traceback: {traceback_format_exc__}",
+                traceback_format_exc__=traceback.format_exc(),
+            )
+        )
         raise HTTPException(
             status_code=500, detail=f"Failed to get flow status: {str(e)}"
         )
@@ -425,7 +506,11 @@ async def pause_discovery_flow(
         result = await orchestrator.pause_flow(flow_id)
         return {"success": True, "flow_id": flow_id, "result": result}
     except Exception as e:
-        logger.error(f"❌ Failed to pause flow {flow_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "❌ Failed to pause flow {flow_id}: {e}", flow_id=flow_id, e=e
+            )
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -441,7 +526,11 @@ async def resume_discovery_flow(
         result = await orchestrator.resume_flow(flow_id)
         return {"success": True, "flow_id": flow_id, "result": result}
     except Exception as e:
-        logger.error(f"❌ Failed to resume flow {flow_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "❌ Failed to resume flow {flow_id}: {e}", flow_id=flow_id, e=e
+            )
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -453,7 +542,12 @@ async def delete_discovery_flow(
 ):
     """Delete a discovery flow - handles both master flow and discovery flow tables."""
     try:
-        logger.info(f"🗑️ Starting deletion process for flow: {mask_id(flow_id)}")
+        logger.info(
+            safe_log_format(
+                "🗑️ Starting deletion process for flow: {mask_id_flow_id_}",
+                mask_id_flow_id_=mask_id(flow_id),
+            )
+        )
         logger.info(
             f"🔍 Context - Client: {mask_id(context.client_account_id)}, Engagement: {mask_id(context.engagement_id)}"
         )
@@ -461,20 +555,29 @@ async def delete_discovery_flow(
         # First try to delete via Master Flow Orchestrator
         try:
             logger.info(
-                f"🔄 Attempting Master Flow Orchestrator deletion for flow: {flow_id}"
+                safe_log_format(
+                    "🔄 Attempting Master Flow Orchestrator deletion for flow: {flow_id}",
+                    flow_id=flow_id,
+                )
             )
             orchestrator = MasterFlowOrchestrator(db, context)
             result = await orchestrator.delete_flow(flow_id)
             logger.info(
-                f"✅ Flow {flow_id} successfully deleted via Master Flow Orchestrator"
+                safe_log_format(
+                    "✅ Flow {flow_id} successfully deleted via Master Flow Orchestrator",
+                    flow_id=flow_id,
+                )
             )
             return {"success": True, "flow_id": flow_id, "result": result}
         except (ValueError, RuntimeError) as mfo_error:
-            logger.info(f"⚠️ MFO Error: {mfo_error}")
+            logger.info(safe_log_format("⚠️ MFO Error: {error}", error=mfo_error))
             # If MFO can't find the flow, check if it exists in DiscoveryFlow table
             if "Flow not found" in str(mfo_error):
                 logger.info(
-                    f"🔍 Flow {flow_id} not found in master flows, searching discovery flows table..."
+                    safe_log_format(
+                        "🔍 Flow {flow_id} not found in master flows, searching discovery flows table...",
+                        flow_id=flow_id,
+                    )
                 )
 
                 try:
@@ -488,14 +591,23 @@ async def delete_discovery_flow(
                         )
                     )
                     logger.info(
-                        f"🔍 Executing DiscoveryFlow query with flow_id={flow_id}, client={context.client_account_id}, engagement={context.engagement_id}"
+                        safe_log_format(
+                            "🔍 Executing DiscoveryFlow query with flow_id={flow_id}, client={client_account_id}, engagement={engagement_id}",
+                            flow_id=flow_id,
+                            client_account_id=context.client_account_id,
+                            engagement_id=context.engagement_id,
+                        )
                     )
                     result = await db.execute(stmt)
                     discovery_flow = result.scalar_one_or_none()
 
                     if discovery_flow:
                         logger.info(
-                            f"✅ Found discovery flow: {flow_id} with status: {discovery_flow.status}"
+                            safe_log_format(
+                                "✅ Found discovery flow: {flow_id} with status: {status}",
+                                flow_id=flow_id,
+                                status=discovery_flow.status,
+                            )
                         )
 
                         # Soft delete the discovery flow directly
@@ -504,10 +616,19 @@ async def delete_discovery_flow(
                         discovery_flow.updated_at = datetime.now(timezone.utc)
 
                         logger.info(
-                            f"🔄 Committing status change from '{previous_status}' to 'deleted' for flow {flow_id}"
+                            safe_log_format(
+                                "🔄 Committing status change from '{previous_status}' to 'deleted' for flow {flow_id}",
+                                previous_status=previous_status,
+                                flow_id=flow_id,
+                            )
                         )
                         await db.commit()
-                        logger.info(f"✅ Database commit successful for flow {flow_id}")
+                        logger.info(
+                            safe_log_format(
+                                "✅ Database commit successful for flow {flow_id}",
+                                flow_id=flow_id,
+                            )
+                        )
 
                         return {
                             "success": True,
@@ -520,7 +641,12 @@ async def delete_discovery_flow(
                         }
                     else:
                         logger.error(
-                            f"❌ Flow {flow_id} not found in DiscoveryFlow table with context client={context.client_account_id}, engagement={context.engagement_id}"
+                            safe_log_format(
+                                "❌ Flow {flow_id} not found in DiscoveryFlow table with context client={client_account_id}, engagement={engagement_id}",
+                                flow_id=flow_id,
+                                client_account_id=context.client_account_id,
+                                engagement_id=context.engagement_id,
+                            )
                         )
 
                         # Debug: Check if flow exists without context constraints
@@ -532,11 +658,19 @@ async def delete_discovery_flow(
 
                         if debug_flow:
                             logger.error(
-                                f"❌ Flow {flow_id} exists but with different context: client={debug_flow.client_account_id}, engagement={debug_flow.engagement_id}"
+                                safe_log_format(
+                                    "❌ Flow {flow_id} exists but with different context: client={client_account_id}, engagement={engagement_id}",
+                                    flow_id=flow_id,
+                                    client_account_id=debug_flow.client_account_id,
+                                    engagement_id=debug_flow.engagement_id,
+                                )
                             )
                         else:
                             logger.error(
-                                f"❌ Flow {flow_id} does not exist in DiscoveryFlow table at all"
+                                safe_log_format(
+                                    "❌ Flow {flow_id} does not exist in DiscoveryFlow table at all",
+                                    flow_id=flow_id,
+                                )
                             )
 
                         raise HTTPException(
@@ -547,7 +681,12 @@ async def delete_discovery_flow(
                 except Exception as db_error:
                     logger.error("❌ Database error while checking DiscoveryFlow table")
                     # Log the actual error for debugging but don't expose to client
-                    logger.debug(f"Database error details: {str(db_error)}")
+                    logger.debug(
+                        safe_log_format(
+                            "Database error details: {str_db_error_}",
+                            str_db_error_=str(db_error),
+                        )
+                    )
                     raise HTTPException(
                         status_code=500,
                         detail="Database error during flow lookup",
@@ -555,14 +694,23 @@ async def delete_discovery_flow(
             else:
                 # Re-raise other MFO errors
                 logger.error("❌ MFO error (not 'Flow not found')")
-                logger.debug(f"MFO error details: {str(mfo_error)}")
+                logger.debug(
+                    safe_log_format(
+                        "MFO error details: {str_mfo_error_}",
+                        str_mfo_error_=str(mfo_error),
+                    )
+                )
                 raise HTTPException(
                     status_code=500,
                     detail="Master Flow Orchestrator error",
                 )
         except Exception as mfo_error:
             logger.error("❌ Unexpected MFO error")
-            logger.debug(f"Unexpected MFO error details: {str(mfo_error)}")
+            logger.debug(
+                safe_log_format(
+                    "Unexpected MFO error details: {error}", error=str(mfo_error)
+                )
+            )
             raise HTTPException(
                 status_code=500,
                 detail="Unexpected Master Flow Orchestrator error",
@@ -570,11 +718,20 @@ async def delete_discovery_flow(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Unexpected error during flow deletion {mask_id(flow_id)}")
-        logger.debug(f"Error details: {str(e)}")
+        logger.error(
+            safe_log_format(
+                "❌ Unexpected error during flow deletion {mask_id_flow_id_}",
+                mask_id_flow_id_=mask_id(flow_id),
+            )
+        )
+        logger.debug(safe_log_format("Error details: {error}", error=str(e)))
         import traceback
 
-        logger.debug(f"Full traceback: {traceback.format_exc()}")
+        logger.debug(
+            safe_log_format(
+                "Full traceback: {traceback}", traceback=traceback.format_exc()
+            )
+        )
         raise HTTPException(status_code=500, detail="Failed to delete flow") from e
 
 
@@ -585,7 +742,12 @@ async def get_active_flows(
 ):
     """Get active discovery flows for compatibility with frontend."""
     try:
-        logger.info(f"Getting active flows for client: {context.client_account_id}")
+        logger.info(
+            safe_log_format(
+                "Getting active flows for client: {context_client_account_id}",
+                context_client_account_id=context.client_account_id,
+            )
+        )
 
         # Import master flow model for status checking
         from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
@@ -668,7 +830,7 @@ async def get_active_flows(
         return flow_details
 
     except Exception as e:
-        logger.error(f"Failed to get active flows: {e}")
+        logger.error(safe_log_format("Failed to get active flows: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -680,7 +842,7 @@ async def execute_flow(
 ):
     """Execute a flow through Master Flow Orchestrator."""
     try:
-        logger.info(f"Executing flow: {flow_id}")
+        logger.info(safe_log_format("Executing flow: {flow_id}", flow_id=flow_id))
 
         # Check if flow exists in discovery_flows table first
         stmt = select(DiscoveryFlow).where(
@@ -694,7 +856,9 @@ async def execute_flow(
         discovery_flow = result.scalar_one_or_none()
 
         if not discovery_flow:
-            logger.warning(f"Discovery flow not found: {flow_id}")
+            logger.warning(
+                safe_log_format("Discovery flow not found: {flow_id}", flow_id=flow_id)
+            )
             raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
 
         # Determine the next phase based on current status
@@ -721,12 +885,22 @@ async def execute_flow(
             phase_to_execute = current_phase or "data_import"
 
         logger.info(
-            f"Executing phase '{phase_to_execute}' for flow {flow_id} (status: {discovery_flow.status})"
+            safe_log_format(
+                "Executing phase '{phase_to_execute}' for flow {flow_id} (status: {status})",
+                phase_to_execute=phase_to_execute,
+                flow_id=flow_id,
+                status=discovery_flow.status,
+            )
         )
 
         # ADR-015: Update status based on proper initialization with persistent agents
         if discovery_flow.status == "initializing":
-            logger.info(f"🔄 Performing proper initialization for flow {flow_id}")
+            logger.info(
+                safe_log_format(
+                    "🔄 Performing proper initialization for flow {flow_id}",
+                    flow_id=flow_id,
+                )
+            )
 
             # Try to use persistent agents with graceful fallback
             initialization_result = None
@@ -829,7 +1003,11 @@ async def execute_flow(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to execute flow {flow_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Failed to execute flow {flow_id}: {e}", flow_id=flow_id, e=e
+            )
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -841,14 +1019,16 @@ async def retry_flow(
 ):
     """Retry a failed flow through Master Flow Orchestrator."""
     try:
-        logger.info(f"Retrying flow: {flow_id}")
+        logger.info(safe_log_format("Retrying flow: {flow_id}", flow_id=flow_id))
         orchestrator = MasterFlowOrchestrator(db, context)
 
         # Resume the flow which effectively retries it
         result = await orchestrator.resume_flow(flow_id, {"retry": True})
         return {"success": True, "flow_id": flow_id, "result": result}
     except Exception as e:
-        logger.error(f"Failed to retry flow {flow_id}: {e}")
+        logger.error(
+            safe_log_format("Failed to retry flow {flow_id}: {e}", flow_id=flow_id, e=e)
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -860,7 +1040,11 @@ async def get_field_mappings(
 ):
     """Get field mappings for a discovery flow."""
     try:
-        logger.info(f"Getting field mappings for flow: {flow_id}")
+        logger.info(
+            safe_log_format(
+                "Getting field mappings for flow: {flow_id}", flow_id=flow_id
+            )
+        )
 
         # Get field mappings for this flow
         field_mappings_stmt = select(ImportFieldMapping).where(
@@ -890,7 +1074,13 @@ async def get_field_mappings(
         }
 
     except Exception as e:
-        logger.error(f"Failed to get field mappings for flow {flow_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Failed to get field mappings for flow {flow_id}: {e}",
+                flow_id=flow_id,
+                e=e,
+            )
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -903,7 +1093,11 @@ async def submit_clarifications(
 ):
     """Submit clarifications for a discovery flow."""
     try:
-        logger.info(f"Submitting clarifications for flow: {flow_id}")
+        logger.info(
+            safe_log_format(
+                "Submitting clarifications for flow: {flow_id}", flow_id=flow_id
+            )
+        )
 
         # Process clarifications through Master Flow Orchestrator by executing clarification phase
         orchestrator = MasterFlowOrchestrator(db, context)
@@ -920,7 +1114,13 @@ async def submit_clarifications(
         }
 
     except Exception as e:
-        logger.error(f"Failed to submit clarifications for flow {flow_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Failed to submit clarifications for flow {flow_id}: {e}",
+                flow_id=flow_id,
+                e=e,
+            )
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -932,7 +1132,11 @@ async def get_agent_insights(
 ):
     """Get agent insights for a discovery flow."""
     try:
-        logger.info(f"Getting agent insights for flow: {flow_id}")
+        logger.info(
+            safe_log_format(
+                "Getting agent insights for flow: {flow_id}", flow_id=flow_id
+            )
+        )
 
         # Try to import agent UI bridge, fallback to empty response if not available
         try:
@@ -951,7 +1155,13 @@ async def get_agent_insights(
         }
 
     except Exception as e:
-        logger.error(f"Failed to get agent insights for flow {flow_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Failed to get agent insights for flow {flow_id}: {e}",
+                flow_id=flow_id,
+                e=e,
+            )
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -963,7 +1173,11 @@ async def get_dependency_analysis(
 ):
     """Get dependency analysis results."""
     try:
-        logger.info(f"Getting dependency analysis for flow: {flow_id}")
+        logger.info(
+            safe_log_format(
+                "Getting dependency analysis for flow: {flow_id}", flow_id=flow_id
+            )
+        )
 
         if flow_id:
             # Get specific flow's dependency analysis
@@ -997,7 +1211,7 @@ async def get_dependency_analysis(
         return {"success": True, "data": {"dependency_analysis": dependencies}}
 
     except Exception as e:
-        logger.error(f"Failed to get dependency analysis: {e}")
+        logger.error(safe_log_format("Failed to get dependency analysis: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1009,7 +1223,12 @@ async def create_dependencies(
 ):
     """Create dependency analysis through Master Flow Orchestrator."""
     try:
-        logger.info(f"Creating dependency analysis: {request.analysis_type}")
+        logger.info(
+            safe_log_format(
+                "Creating dependency analysis: {request_analysis_type}",
+                request_analysis_type=request.analysis_type,
+            )
+        )
 
         # Create a new discovery flow for dependency analysis
         orchestrator = MasterFlowOrchestrator(db, context)
@@ -1033,7 +1252,7 @@ async def create_dependencies(
         }
 
     except Exception as e:
-        logger.error(f"Failed to create dependency analysis: {e}")
+        logger.error(safe_log_format("Failed to create dependency analysis: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1069,7 +1288,7 @@ async def get_available_applications(
         }
 
     except Exception as e:
-        logger.error(f"Failed to get available applications: {e}")
+        logger.error(safe_log_format("Failed to get available applications: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1101,7 +1320,7 @@ async def get_available_servers(
         return {"success": True, "servers": servers, "count": len(servers)}
 
     except Exception as e:
-        logger.error(f"Failed to get available servers: {e}")
+        logger.error(safe_log_format("Failed to get available servers: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1114,7 +1333,11 @@ async def analyze_dependencies(
 ):
     """Analyze dependencies of a specific type."""
     try:
-        logger.info(f"Analyzing dependencies: {analysis_type}")
+        logger.info(
+            safe_log_format(
+                "Analyzing dependencies: {analysis_type}", analysis_type=analysis_type
+            )
+        )
 
         # Create a new discovery flow focused on dependency analysis
         orchestrator = MasterFlowOrchestrator(db, context)
@@ -1149,7 +1372,13 @@ async def analyze_dependencies(
         }
 
     except Exception as e:
-        logger.error(f"Failed to analyze dependencies {analysis_type}: {e}")
+        logger.error(
+            safe_log_format(
+                "Failed to analyze dependencies {analysis_type}: {e}",
+                analysis_type=analysis_type,
+                e=e,
+            )
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1161,7 +1390,9 @@ async def get_agent_questions(
 ):
     """Get agent questions for discovery agents."""
     try:
-        logger.info(f"Getting agent questions for page: {page}")
+        logger.info(
+            safe_log_format("Getting agent questions for page: {page}", page=page)
+        )
 
         # Try to import agent UI bridge, fallback to sample data if not available
         try:
@@ -1239,7 +1470,7 @@ async def get_agent_questions(
         }
 
     except Exception as e:
-        logger.error(f"Failed to get agent questions: {e}")
+        logger.error(safe_log_format("Failed to get agent questions: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))
 
 

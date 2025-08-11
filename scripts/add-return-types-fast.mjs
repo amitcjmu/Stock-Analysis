@@ -171,13 +171,13 @@ function processFile(filePath) {
     if (fileFixCount > 0 && !config.dryRun) {
       fs.writeFileSync(filePath, modified, 'utf8');
       stats.filesProcessed++;
-      console.log(`✓ Fixed ${fileFixCount} in ${path.basename(filePath)}`);
+      console.log('✓ Fixed ', fileFixCount, ' in ', path.basename(filePath));
     } else if (fileFixCount > 0) {
-      console.log(`Would fix ${fileFixCount} in ${path.basename(filePath)}`);
+      console.log('Would fix ', fileFixCount, ' in ', path.basename(filePath));
     }
 
   } catch (error) {
-    console.error(`Error in ${filePath}: ${error.message}`);
+    console.error('Error in ', filePath, ': ', error.message);
   }
 }
 
@@ -210,12 +210,12 @@ async function main() {
   // Remove duplicates
   allFiles = [...new Set(allFiles)];
 
-  console.log(`Processing ${allFiles.length} files...\n`);
+  console.log('Processing ', allFiles.length, ' files...\n');
 
   // Process files
   for (const file of allFiles) {
     if (stats.totalFixes >= config.targetFixes) {
-      console.log(`\n⚡ Reached target of ${config.targetFixes} fixes, stopping.`);
+      console.log('\n⚡ Reached target of ', config.targetFixes, ' fixes, stopping.');
       break;
     }
     processFile(file);
@@ -223,12 +223,12 @@ async function main() {
 
   // Summary
   console.log('\n📊 Summary:');
-  console.log(`Files modified: ${stats.filesProcessed}`);
-  console.log(`React components: ${stats.componentsFixed}`);
-  console.log(`Void functions: ${stats.voidFunctionsFixed}`);
-  console.log(`Hooks marked: ${stats.hookReturnsFixed}`);
-  console.log(`Util functions: ${stats.utilFunctionsFixed}`);
-  console.log(`Total fixes: ${stats.totalFixes}`);
+  console.log('Files modified: ', stats.filesProcessed);
+  console.log('React components: ', stats.componentsFixed);
+  console.log('Void functions: ', stats.voidFunctionsFixed);
+  console.log('Hooks marked: ', stats.hookReturnsFixed);
+  console.log('Util functions: ', stats.utilFunctionsFixed);
+  console.log('Total fixes: ', stats.totalFixes);
 
   if (config.dryRun) {
     console.log('\n💡 Run with dryRun: false to apply changes');

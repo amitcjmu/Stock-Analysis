@@ -175,13 +175,22 @@ class SecureAgentRegistry:
                 ) and not filename.startswith("_"):
                     module_name = filename[:-3]
 
+                    # Enhanced security: Validate module name to prevent path traversal
+                    if not module_name.replace("_", "").isalnum():
+                        logger.warning(
+                            f"Skipping module with invalid name: {module_name}"
+                        )
+                        continue
+
                     # Skip base modules
                     if module_name in skip_modules:
                         continue
 
                     try:
+                        # Security: Only import from controlled package path
+                        module_path = f".agents.{module_name}"
                         module = importlib.import_module(
-                            f".agents.{module_name}", package="app.services"
+                            module_path, package="app.services"
                         )
 
                         # Find all Agent subclasses in the module

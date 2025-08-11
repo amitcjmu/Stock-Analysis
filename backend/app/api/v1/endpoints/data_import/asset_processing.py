@@ -13,6 +13,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.core.database import get_db
 from app.models.asset import Asset
 from app.models.data_import import RawImportRecord
@@ -103,7 +104,13 @@ async def process_raw_to_assets(
                 "flow_id": flow_id,
             }
 
-        logger.info(f"🔄 Processing {raw_count} raw records from flow: {flow_id}")
+        logger.info(
+            safe_log_format(
+                "🔄 Processing {raw_count} raw records from flow: {flow_id}",
+                raw_count=raw_count,
+                flow_id=flow_id,
+            )
+        )
 
         # Use the unified CrewAI Flow Service with proper modular architecture
         try:
@@ -207,7 +214,7 @@ async def process_raw_to_assets(
         return await _fallback_raw_to_assets_processing(flow_id, db, context)
 
     except Exception as e:
-        logger.error(f"Asset processing failed: {e}")
+        logger.error(safe_log_format("Asset processing failed: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Asset processing failed: {str(e)}"
         )
@@ -465,7 +472,7 @@ async def _fallback_raw_to_assets_processing(
 
     except Exception as e:
         await db.rollback()
-        logger.error(f"Fallback processing failed: {e}")
+        logger.error(safe_log_format("Fallback processing failed: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Fallback processing failed: {str(e)}"
         )
@@ -520,7 +527,7 @@ async def get_processing_status(
         }
 
     except Exception as e:
-        logger.error(f"Failed to get processing status: {e}")
+        logger.error(safe_log_format("Failed to get processing status: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to get processing status: {str(e)}"
         )

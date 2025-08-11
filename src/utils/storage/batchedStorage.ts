@@ -156,7 +156,7 @@ export class BatchedStorageManager {
       sessionStorage.setItem(key, JSON.stringify(storageItem)); // nosec - sessionStorage is browser-secured
     } catch (error) {
       // Handle storage quota exceeded or other errors
-      console.warn(`Failed to write ${operation.key} to storage:`, error);
+      console.warn('Failed to write', operation.key, 'to storage:', error);
 
       // Try to free up space
       this.freeStorageSpace();
@@ -171,7 +171,7 @@ export class BatchedStorageManager {
         };
         sessionStorage.setItem(operation.key, JSON.stringify(storageItem)); // nosec - sessionStorage is browser-secured
       } catch (retryError) {
-        console.warn(`Failed to write ${operation.key} on retry:`, retryError);
+        console.warn('Failed to write', operation.key, 'on retry:', retryError);
       }
     }
   }

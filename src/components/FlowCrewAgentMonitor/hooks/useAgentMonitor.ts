@@ -190,7 +190,7 @@ export const useAgentMonitor = (): AgentMonitorState & {
           performance_summary: {
             avg_flow_efficiency: agentRegistryData?.performance_metrics?.avg_flow_efficiency || 0.85,
             total_tasks_completed: agentRegistryData?.performance_metrics?.total_tasks_completed || 156,
-            success_rate: parseFloat(flowsData.crewai_flows?.performance_metrics?.success_rate?.replace('%', '') || '94.2'),
+            success_rate: parseFloat(flowsData.crewai_flows?.performance_metrics?.success_rate?.replace(/%/g, '') || '94.2'),
             collaboration_effectiveness: 0.88
           }
         };

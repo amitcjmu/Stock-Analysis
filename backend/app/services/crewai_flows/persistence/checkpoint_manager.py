@@ -3,10 +3,10 @@ Checkpoint Manager for Flow State
 Saves flow state at major steps to allow resuming from checkpoints
 """
 
-import base64
 import json
 import logging
-import pickle  # nosec B403 - Used only for backward compatibility
+
+# Pickle imports removed for security - using JSON-only serialization
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -321,8 +321,8 @@ class CheckpointManager:
                     # Deserialize complex object
                     try:
                         format_type = value.get(
-                            "format", "pickle"
-                        )  # Default to pickle for backward compatibility
+                            "format", "json"
+                        )  # Default to JSON for security
 
                         if format_type == "json":
                             # New JSON format
@@ -332,11 +332,15 @@ class CheckpointManager:
                             # String representation
                             secure_setattr(state, key, value["data"])
                         else:
-                            # Legacy pickle format - only for backward compatibility
-                            deserialized = pickle.loads(
-                                base64.b64decode(value["data"])
-                            )  # nosec B301
-                            secure_setattr(state, key, deserialized)
+                            # Legacy pickle format no longer supported for security
+                            logger.warning(
+                                "Ignoring pickle-serialized attribute %s for security. Use JSON format.",
+                                key,
+                            )
+                            secure_setattr(state, key, None)
+                            # Mark partial restore to allow callers to handle recomputation
+                            if not hasattr(state, "_partial_restore"):
+                                secure_setattr(state, "_partial_restore", True)
                     except Exception:
                         logger.warning(f"Could not deserialize attribute: {key}")
                         secure_setattr(state, key, None)

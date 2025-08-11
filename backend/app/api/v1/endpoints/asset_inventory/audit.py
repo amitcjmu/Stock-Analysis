@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.context import RequestContext, get_current_context
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.core.database import get_db
 from app.models.data_import.core import RawImportRecord
 from app.repositories.asset_repository import AssetRepository
@@ -126,5 +127,9 @@ async def get_asset_data_audit(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Data audit failed for asset {asset_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Data audit failed for asset {asset_id}: {e}", asset_id=asset_id, e=e
+            )
+        )
         raise HTTPException(status_code=500, detail=f"Data audit failed: {str(e)}")

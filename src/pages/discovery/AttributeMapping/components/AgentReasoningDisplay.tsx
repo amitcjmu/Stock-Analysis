@@ -158,7 +158,7 @@ export const AgentReasoningDisplay: React.FC<AgentReasoningDisplayProps> = ({
         const updatedDecision = { ...decision, status: newStatus };
 
         // Log the feedback for debugging
-        console.log(`🔄 Agent decision feedback: ${decision.field} -> ${decision.targetAttribute}`, {
+        console.log('🔄 Agent decision feedback:', decision.field, '->', decision.targetAttribute, {
           decisionId,
           previousStatus: decision.status,
           newStatus,

@@ -11,7 +11,8 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from .context import RequestContext, clear_request_context, validate_context
+from .context import RequestContext, validate_context
+from .security.secure_logging import safe_log_format
 
 # Import security audit service
 try:
@@ -99,85 +100,138 @@ class ContextMiddleware(BaseHTTPMiddleware):
             Response from downstream handler
         """
         start_time = time.time()
-
-        # Check if path is exempt from context requirements
         path = request.url.path
 
-        # CORS preflight requests (OPTIONS) should always be exempt
+        # CORS preflight requests should always be exempt
         if request.method == "OPTIONS":
             return await call_next(request)
 
-        # Special handling for root path - only match exactly '/'
-        is_exempt = False
-        for exempt_path in self.exempt_paths:
-            if exempt_path == "/" and path == "/":
-                is_exempt = True
-                break
-            elif exempt_path != "/" and path.startswith(exempt_path):
-                is_exempt = True
-                break
-
-        # Role-based exemption for admin endpoints
-        is_admin_endpoint = self._is_admin_endpoint(path)
-        user_id = self._extract_user_id(request)
-        is_platform_admin = False
-
-        if is_admin_endpoint:
-            if not user_id:
-                # Block unauthenticated access to admin endpoints
-                logger.warning(
-                    f"Unauthenticated access blocked for admin endpoint: {path}"
-                )
-                return JSONResponse(
-                    status_code=401,
-                    content={
-                        "error": "Authentication required",
-                        "detail": "Admin endpoints require authentication",
-                        "path": path,
-                    },
-                )
-
-            is_platform_admin = await self._check_platform_admin(user_id)
-            if not is_platform_admin:
-                # Block non-admin access to admin endpoints
-                logger.warning(f"Non-admin access blocked for {path} by user {user_id}")
-                return JSONResponse(
-                    status_code=403,
-                    content={
-                        "error": "Access denied",
-                        "detail": "Platform administrator role required",
-                        "path": path,
-                    },
-                )
-
-            # Grant exemption for platform admins
-            is_exempt = True
-            logger.info(f"Admin exemption granted for {path} to user {user_id}")
-
-            # Security audit logging for admin access
-            try:
-                from app.core.database import AsyncSessionLocal
-                from app.services.security_audit_service import SecurityAuditService
-
-                async with AsyncSessionLocal() as audit_db:
-                    audit_service = SecurityAuditService(audit_db)
-                    await audit_service.log_admin_access(
-                        user_id=user_id,
-                        endpoint=path,
-                        ip_address=request.client.host if request.client else None,
-                        user_agent=request.headers.get("user-agent"),
-                    )
-            except Exception as audit_error:
-                logger.warning(f"Failed to log admin access audit: {audit_error}")
-                # Don't fail the request if audit logging fails
+        # Check exemptions and handle admin access
+        is_exempt = await self._handle_exemptions_and_admin_access(request, path)
 
         if is_exempt:
             return await call_next(request)
 
-        # Initialize context variable
-        context = None
+        # Process request with context
+        return await self._process_request_with_context(
+            request, call_next, path, start_time
+        )
 
-        # Extract context from request
+    async def _handle_exemptions_and_admin_access(
+        self, request: Request, path: str
+    ) -> bool:
+        """Handle exemptions and admin endpoint access control."""
+        # Check standard path exemptions
+        is_exempt = self._check_path_exemptions(path)
+
+        # Handle admin endpoint access
+        if self._is_admin_endpoint(path):
+            admin_response = await self._handle_admin_access(request, path)
+            if admin_response is not None:
+                # Access denied - raise appropriate exception
+                from fastapi import HTTPException
+
+                raise HTTPException(status_code=admin_response.status_code)
+            is_exempt = True  # Admin access granted
+
+        return is_exempt
+
+    def _check_path_exemptions(self, path: str) -> bool:
+        """Check if path matches exemption patterns."""
+        for exempt_path in self.exempt_paths:
+            if exempt_path == "/" and path == "/":
+                return True
+            elif exempt_path != "/" and path.startswith(exempt_path):
+                return True
+        return False
+
+    async def _handle_admin_access(
+        self, request: Request, path: str
+    ) -> Optional[JSONResponse]:
+        """Handle admin endpoint access control."""
+        user_id = self._extract_user_id(request)
+
+        if not user_id:
+            logger.warning(f"Unauthenticated access blocked for admin endpoint: {path}")
+            return JSONResponse(
+                status_code=401, content={"error": "Authentication required"}
+            )
+
+        if not await self._check_platform_admin(user_id):
+            logger.warning(
+                safe_log_format(
+                    "Non-admin access blocked for {path} by user {user_id}",
+                    path=path,
+                    user_id=user_id,
+                )
+            )
+            return JSONResponse(status_code=403, content={"error": "Access denied"})
+
+        # Log successful admin access
+        logger.info(
+            safe_log_format(
+                "Admin exemption granted for {path} to user {user_id}",
+                path=path,
+                user_id=user_id,
+            )
+        )
+
+        # Security audit logging
+        await self._audit_admin_access(user_id, path, request)
+        return None  # Access granted
+
+    async def _audit_admin_access(self, user_id: str, path: str, request: Request):
+        """Log admin access for security audit."""
+        try:
+            from app.core.database import AsyncSessionLocal
+            from app.services.security_audit_service import SecurityAuditService
+
+            async with AsyncSessionLocal() as audit_db:
+                audit_service = SecurityAuditService(audit_db)
+                await audit_service.log_admin_access(
+                    user_id=user_id,
+                    endpoint=path,
+                    ip_address=request.client.host if request.client else None,
+                    user_agent=request.headers.get("user-agent"),
+                )
+        except Exception as audit_error:
+            logger.warning(
+                safe_log_format(
+                    "Failed to log admin access audit: {audit_error}",
+                    audit_error=audit_error,
+                )
+            )
+
+    async def _process_request_with_context(
+        self, request: Request, call_next: Callable, path: str, start_time: float
+    ) -> Response:
+        """Process request that requires context extraction."""
+        # Extract and validate context
+        context = await self._extract_and_validate_context(request, path)
+        if context is None:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Context extraction failed", "path": path},
+            )
+
+        # Process request
+        try:
+            response = await call_next(request)
+            self._add_context_headers(response, context)
+
+            # Log processing time
+            process_time = time.time() - start_time
+            logger.debug(
+                f"Request processed in {process_time:.3f}s | Context: {context}"
+            )
+
+            return response
+        except Exception as e:
+            logger.error(safe_log_format("Request processing failed: {e}", e=e))
+            raise
+
+    async def _extract_and_validate_context(self, request: Request, path: str):
+        """Extract and validate request context."""
         try:
             from app.core.context import (
                 extract_context_from_request,
@@ -187,15 +241,11 @@ class ContextMiddleware(BaseHTTPMiddleware):
             )
 
             context = extract_context_from_request(request)
-
-            # Validate context for non-exempt paths
             validate_context(
                 context,
                 require_client=self.require_client,
                 require_engagement=self.require_engagement,
             )
-
-            # Set context for the request
             set_request_context(context)
 
             # Log context info
@@ -206,49 +256,25 @@ class ContextMiddleware(BaseHTTPMiddleware):
             )
             logger.log(log_level, f"Request context: {context} | Path: {path}")
 
+            return context
         except Exception as e:
-            logger.error(f"Context extraction failed for {path}: {e}")
-
-            # Return error for non-exempt paths
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "error": "Context extraction failed",
-                    "detail": str(e),
-                    "path": path,
-                },
+            logger.error(
+                safe_log_format(
+                    "Context extraction failed for {path}: {e}", path=path, e=e
+                )
             )
+            return None
 
-        # Process request
-        try:
-            response = await call_next(request)
+    def _add_context_headers(self, response, context):
+        """Add context information to response headers."""
+        if hasattr(response, "headers"):
+            from app.core.context import is_demo_client
 
-            # Add context info to response headers for debugging
-            if hasattr(response, "headers"):
-                response.headers["X-Context-Client"] = (
-                    context.client_account_id or "none"
-                )
-                response.headers["X-Context-Engagement"] = (
-                    context.engagement_id or "none"
-                )
-                response.headers["X-Context-Demo"] = str(
-                    is_demo_client(context.client_account_id)
-                )
-
-            # Log processing time
-            process_time = time.time() - start_time
-            logger.debug(
-                f"Request processed in {process_time:.3f}s | Context: {context}"
+            response.headers["X-Context-Client"] = context.client_account_id or "none"
+            response.headers["X-Context-Engagement"] = context.engagement_id or "none"
+            response.headers["X-Context-Demo"] = str(
+                is_demo_client(context.client_account_id)
             )
-
-            return response
-
-        except Exception as e:
-            logger.error(f"Request processing failed: {e}")
-            raise
-        finally:
-            # Always clear context after request
-            clear_request_context()
 
     def _is_admin_endpoint(self, path: str) -> bool:
         """Check if endpoint is admin-only and should allow context exemption for platform admins."""
@@ -325,7 +351,11 @@ class ContextMiddleware(BaseHTTPMiddleware):
             try:
                 user_uuid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
             except ValueError:
-                logger.error(f"Invalid UUID format for user_id: {user_id}")
+                logger.error(
+                    safe_log_format(
+                        "Invalid UUID format for user_id: {user_id}", user_id=user_id
+                    )
+                )
                 return False
 
             async with AsyncSessionLocal() as db:
@@ -336,7 +366,12 @@ class ContextMiddleware(BaseHTTPMiddleware):
                 user = user_result.scalar_one_or_none()
 
                 if user and user.is_admin:
-                    logger.info(f"User {user_id} is platform admin (is_admin=True)")
+                    logger.info(
+                        safe_log_format(
+                            "User {user_id} is platform admin (is_admin=True)",
+                            user_id=user_id,
+                        )
+                    )
                     return True
 
                 # Also check UserRole for platform_admin role
@@ -351,14 +386,30 @@ class ContextMiddleware(BaseHTTPMiddleware):
                 role = result.scalar_one_or_none()
 
                 if role:
-                    logger.info(f"Platform admin role confirmed for user {user_id}")
+                    logger.info(
+                        safe_log_format(
+                            "Platform admin role confirmed for user {user_id}",
+                            user_id=user_id,
+                        )
+                    )
                     return True
                 else:
-                    logger.warning(f"No platform admin role found for user {user_id}")
+                    logger.warning(
+                        safe_log_format(
+                            "No platform admin role found for user {user_id}",
+                            user_id=user_id,
+                        )
+                    )
                     return False
 
         except Exception as e:
-            logger.error(f"Error checking platform admin status for {user_id}: {e}")
+            logger.error(
+                safe_log_format(
+                    "Error checking platform admin status for {user_id}: {e}",
+                    user_id=user_id,
+                    e=e,
+                )
+            )
             return False
 
 
@@ -426,7 +477,15 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         except Exception as e:
             process_time = time.time() - start_time
-            logger.error(f"❌ {method} {url} | Error: {e} | Time: {process_time:.3f}s")
+            logger.error(
+                safe_log_format(
+                    "❌ {method} {url} | Error: {e} | Time: {process_time:.3f}s",
+                    method=method,
+                    url=url,
+                    e=e,
+                    process_time=process_time,
+                )
+            )
             raise
 
 

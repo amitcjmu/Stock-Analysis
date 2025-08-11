@@ -16,7 +16,11 @@ import gzip
 import json
 import logging
 import os
-import pickle
+
+try:
+    import msgpack
+except ImportError:
+    msgpack = None
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
@@ -194,13 +198,22 @@ class StateSerializer:
             if self.config.include_metadata:
                 state = self._add_serialization_metadata(state)
 
-            # Serialize based on format
+            # Serialize based on format - removed pickle for security
             if self.config.format == "json":
                 serialized = json.dumps(state, default=self._json_serializer).encode(
                     "utf-8"
                 )
+            elif self.config.format == "msgpack":
+                if msgpack is None:
+                    raise StateSerializationError(
+                        "msgpack is not available. Install with: pip install msgpack"
+                    )
+                serialized = msgpack.packb(state, default=self._json_serializer)
             elif self.config.format == "pickle":
-                serialized = pickle.dumps(state)  # nosec B301 - controlled pickle usage
+                # Pickle disabled for security reasons - use json or msgpack instead
+                raise StateSerializationError(
+                    "Pickle serialization disabled for security. Use 'json' or 'msgpack' format instead."
+                )
             else:
                 raise StateSerializationError(
                     f"Unsupported serialization format: {self.config.format}"
@@ -237,11 +250,20 @@ class StateSerializer:
                     # Data might not be compressed (backward compatibility)
                     pass
 
-            # Deserialize based on format
+            # Deserialize based on format - removed pickle for security
             if self.config.format == "json":
                 state = json.loads(data.decode("utf-8"))
+            elif self.config.format == "msgpack":
+                if msgpack is None:
+                    raise StateSerializationError(
+                        "msgpack is not available. Install with: pip install msgpack"
+                    )
+                state = msgpack.unpackb(data, raw=False, strict_map_key=False)
             elif self.config.format == "pickle":
-                state = pickle.loads(data)  # nosec B301 - controlled pickle usage
+                # Pickle disabled for security reasons - use json or msgpack instead
+                raise StateSerializationError(
+                    "Pickle deserialization disabled for security. Use 'json' or 'msgpack' format instead."
+                )
             else:
                 raise StateSerializationError(
                     f"Unsupported deserialization format: {self.config.format}"

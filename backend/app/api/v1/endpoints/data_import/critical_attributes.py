@@ -206,8 +206,11 @@ async def _get_agentic_critical_attributes(
                     CrewAIFlowStateExtensions,
                 )
 
-                config_query = select(CrewAIFlowStateExtensions).where(
-                    sql_text(f"flow_configuration::text LIKE '%{data_import.id}%'")
+                # Use parameterized query to prevent SQL injection
+                config_query = (
+                    select(CrewAIFlowStateExtensions)
+                    .where(sql_text("flow_configuration::text LIKE :search_pattern"))
+                    .params(search_pattern=f"%{data_import.id}%")
                 )
                 config_result = await db.execute(config_query)
                 master_flows_with_import = config_result.scalars().all()
@@ -503,8 +506,11 @@ async def _trigger_field_mapping_reanalysis(
                     CrewAIFlowStateExtensions,
                 )
 
-                config_query = select(CrewAIFlowStateExtensions).where(
-                    sql_text(f"flow_configuration::text LIKE '%{data_import.id}%'")
+                # Use parameterized query to prevent SQL injection
+                config_query = (
+                    select(CrewAIFlowStateExtensions)
+                    .where(sql_text("flow_configuration::text LIKE :search_pattern"))
+                    .params(search_pattern=f"%{data_import.id}%")
                 )
                 config_result = await db.execute(config_query)
                 master_flows_with_import = config_result.scalars().all()

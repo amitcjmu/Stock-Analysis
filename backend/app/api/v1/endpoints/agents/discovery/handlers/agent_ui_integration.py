@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_request_context_dependency
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.core.database import get_db
 from app.services.agent_ui_bridge import agent_ui_bridge
 from app.services.agents.agent_communication_protocol import get_communication_protocol
@@ -124,7 +125,7 @@ async def get_agent_status(
         }
 
     except Exception as e:
-        logger.error(f"Error getting agent status: {e}")
+        logger.error(safe_log_format("Error getting agent status: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to get agent status: {str(e)}"
         )
@@ -192,7 +193,7 @@ async def get_agent_questions(
         }
 
     except Exception as e:
-        logger.error(f"Error getting agent questions: {e}")
+        logger.error(safe_log_format("Error getting agent questions: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to get agent questions: {str(e)}"
         )
@@ -230,7 +231,7 @@ async def answer_agent_question(
         }
 
     except Exception as e:
-        logger.error(f"Error answering agent question: {e}")
+        logger.error(safe_log_format("Error answering agent question: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to answer agent question: {str(e)}"
         )
@@ -298,7 +299,7 @@ async def get_agent_insights(
         }
 
     except Exception as e:
-        logger.error(f"Error getting agent insights: {e}")
+        logger.error(safe_log_format("Error getting agent insights: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to get agent insights: {str(e)}"
         )
@@ -338,7 +339,7 @@ async def perform_insight_action(
         }
 
     except Exception as e:
-        logger.error(f"Error performing insight action: {e}")
+        logger.error(safe_log_format("Error performing insight action: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to perform insight action: {str(e)}"
         )
@@ -384,7 +385,7 @@ async def agent_think(
         }
 
     except Exception as e:
-        logger.error(f"Error triggering agent thinking: {e}")
+        logger.error(safe_log_format("Error triggering agent thinking: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to trigger agent thinking: {str(e)}"
         )
@@ -431,7 +432,7 @@ async def agent_ponder_more(
         }
 
     except Exception as e:
-        logger.error(f"Error triggering crew collaboration: {e}")
+        logger.error(safe_log_format("Error triggering crew collaboration: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to trigger crew collaboration: {str(e)}"
         )
@@ -457,7 +458,7 @@ async def get_confidence_scores(
         }
 
     except Exception as e:
-        logger.error(f"Error getting confidence scores: {e}")
+        logger.error(safe_log_format("Error getting confidence scores: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to get confidence scores: {str(e)}"
         )
@@ -490,7 +491,7 @@ async def get_data_classifications(
         }
 
     except Exception as e:
-        logger.error(f"Error getting data classifications: {e}")
+        logger.error(safe_log_format("Error getting data classifications: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to get data classifications: {str(e)}"
         )
@@ -516,7 +517,7 @@ async def get_communication_status(
         }
 
     except Exception as e:
-        logger.error(f"Error getting communication status: {e}")
+        logger.error(safe_log_format("Error getting communication status: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to get communication status: {str(e)}"
         )
@@ -538,7 +539,7 @@ async def test_agent_communication(
         }
 
     except Exception as e:
-        logger.error(f"Error testing communication: {e}")
+        logger.error(safe_log_format("Error testing communication: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to test communication: {str(e)}"
         )

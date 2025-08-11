@@ -14,10 +14,13 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # Create alembic config
 config = Config("alembic.ini")
 
-# Get database URL
-db_url = os.environ.get(
-    "DATABASE_URL", "postgresql://postgres:postgres@postgres:5432/migration_db"
-)
+# Get database URL from environment - no hardcoded credentials for security
+db_url = os.environ.get("DATABASE_URL")
+if not db_url:
+    raise ValueError(
+        "DATABASE_URL environment variable is required. "
+        "Please set it to your database connection string."
+    )
 sync_url = db_url.replace("+asyncpg", "")
 
 print(f"Database URL: {sync_url}")

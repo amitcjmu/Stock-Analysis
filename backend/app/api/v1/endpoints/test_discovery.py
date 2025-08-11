@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import get_crewai_flow_service
 from app.core.context import extract_context_from_request
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.services.crewai_flow_service import CrewAIFlowService
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ async def test_agent_analysis(
         }
 
     except Exception as e:
-        logger.error(f"Test agent analysis failed: {e}")
+        logger.error(safe_log_format("Test agent analysis failed: {e}", e=e))
         raise HTTPException(status_code=500, detail=f"Test analysis failed: {str(e)}")
 
 
@@ -102,7 +103,7 @@ async def test_discovery_flow(
         }
 
     except Exception as e:
-        logger.error(f"Test discovery flow failed: {e}")
+        logger.error(safe_log_format("Test discovery flow failed: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Test flow initiation failed: {str(e)}"
         )
@@ -121,7 +122,11 @@ async def test_flow_status(
         # Get context without authentication
         context = extract_context_from_request(request)
 
-        logger.info(f"Test flow status request for flow: {flow_id}")
+        logger.info(
+            safe_log_format(
+                "Test flow status request for flow: {flow_id}", flow_id=flow_id
+            )
+        )
 
         # Get flow state
         flow_state = await service.get_flow_state_by_flow_id(flow_id, context)
@@ -147,7 +152,7 @@ async def test_flow_status(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Test flow status failed: {e}")
+        logger.error(safe_log_format("Test flow status failed: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Test status check failed: {str(e)}"
         )

@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.database import get_db
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.models.client_account import User
 from app.schemas.auth_schemas import UserRegistrationResponse
 from app.services.auth_services.admin_operations_service import AdminOperationsService
@@ -40,7 +41,7 @@ async def get_admin_dashboard_stats(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in get_admin_dashboard_stats: {e}")
+        logger.error(safe_log_format("Error in get_admin_dashboard_stats: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to get dashboard stats: {str(e)}"
         )
@@ -64,7 +65,7 @@ async def get_active_users(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in get_active_users: {e}")
+        logger.error(safe_log_format("Error in get_active_users: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to get active users: {str(e)}"
         )
@@ -103,14 +104,20 @@ async def admin_update_user(
         user_service = UserManagementService(db)
         result = await user_service.update_user_profile(user_id, user_updates)
 
-        logger.info(f"User {user_id} updated by admin {updated_by}")
+        logger.info(
+            safe_log_format(
+                "User {user_id} updated by admin {updated_by}",
+                user_id=user_id,
+                updated_by=updated_by,
+            )
+        )
 
         return result
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in admin_update_user: {e}")
+        logger.error(safe_log_format("Error in admin_update_user: {e}", e=e))
         raise HTTPException(status_code=500, detail=f"Failed to update user: {str(e)}")
 
 
@@ -136,7 +143,7 @@ async def get_access_logs(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in get_access_logs: {e}")
+        logger.error(safe_log_format("Error in get_access_logs: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to get access logs: {str(e)}"
         )
@@ -170,7 +177,7 @@ async def admin_create_user(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in admin_create_user: {e}")
+        logger.error(safe_log_format("Error in admin_create_user: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Admin user creation failed: {str(e)}"
         )
@@ -184,7 +191,7 @@ async def rbac_health_check(db: AsyncSession = Depends(get_db)):
         return await admin_service.health_check()
 
     except Exception as e:
-        logger.error(f"Error in rbac_health_check: {e}")
+        logger.error(safe_log_format("Error in rbac_health_check: {e}", e=e))
         return {
             "status": "unhealthy",
             "service": "RBAC Authentication System",
@@ -220,7 +227,7 @@ async def get_role_statistics(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in get_role_statistics: {e}")
+        logger.error(safe_log_format("Error in get_role_statistics: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to get role statistics: {str(e)}"
         )
@@ -256,7 +263,7 @@ async def ensure_basic_roles(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in ensure_basic_roles: {e}")
+        logger.error(safe_log_format("Error in ensure_basic_roles: {e}", e=e))
         raise HTTPException(
             status_code=500, detail=f"Failed to ensure basic roles: {str(e)}"
         )
@@ -292,7 +299,9 @@ async def get_user_type(
             is_platform_admin = platform_admin_role is not None
 
         except Exception as e:
-            logger.warning(f"Could not check user platform admin status: {e}")
+            logger.warning(
+                safe_log_format("Could not check user platform admin status: {e}", e=e)
+            )
 
         return {
             "status": "success",
@@ -306,5 +315,5 @@ async def get_user_type(
         }
 
     except Exception as e:
-        logger.error(f"Error in get_user_type: {e}")
+        logger.error(safe_log_format("Error in get_user_type: {e}", e=e))
         return {"status": "error", "message": f"Failed to get user type: {str(e)}"}

@@ -14,6 +14,9 @@ from .core_import import router as core_router
 from .critical_attributes import router as critical_router
 from .field_mapping_modular import router as field_mapping_router
 from .learning_integration import router as learning_router
+from .handlers.import_storage_handler import (
+    router as import_storage_router,
+)
 
 # Create main router that combines all modules
 router = APIRouter()
@@ -25,6 +28,7 @@ router.include_router(critical_router, tags=["Critical Attributes"])
 router.include_router(learning_router, tags=["AI Learning"])
 router.include_router(processing_router, tags=["Asset Processing"])
 router.include_router(field_mapping_router, tags=["Field Mapping"])
+router.include_router(import_storage_router, tags=["Import Storage"])
 
 __all__ = [
     "router",
@@ -34,4 +38,5 @@ __all__ = [
     "learning_router",
     "processing_router",
     "field_mapping_router",
+    "import_storage_router",
 ]

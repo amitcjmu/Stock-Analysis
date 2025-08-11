@@ -30,8 +30,8 @@ async function testDiscoveryFlowEndpoints() {
     });
     const data1 = await response1.json();
     console.log('✅ Response:', data1);
-    console.log(`   - Status: ${response1.status}`);
-    console.log(`   - Number of flows: ${Array.isArray(data1) ? data1.length : (data1.flows?.length || 0)}`);
+    console.log('   - Status: ', response1.status);
+    console.log('   - Number of flows: ', Array.isArray(data1) ? data1.length : (data1.flows?.length || 0));
     console.log('   - Structure:', Object.keys(data1));
     if (data1.flows?.length > 0 || (Array.isArray(data1) && data1.length > 0)) {
       const firstFlow = data1.flows?.[0] || data1[0];
@@ -53,8 +53,8 @@ async function testDiscoveryFlowEndpoints() {
     });
     const data2 = await response2.json();
     console.log('✅ Response:', data2);
-    console.log(`   - Status: ${response2.status}`);
-    console.log(`   - Number of flows: ${data2.flows?.length || 0}`);
+    console.log('   - Status: ', response2.status);
+    console.log('   - Number of flows: ', data2.flows?.length || 0);
     console.log('   - Structure:', Object.keys(data2));
     if (data2.flows?.length > 0) {
       console.log('   - First flow keys:', Object.keys(data2.flows[0]));
@@ -75,7 +75,7 @@ async function testDiscoveryFlowEndpoints() {
     });
     const data3 = await response3.json();
     console.log('✅ Response:', data3);
-    console.log(`   - Status: ${response3.status}`);
+    console.log('   - Status: ', response3.status);
     console.log('   - Structure:', Object.keys(data3));
   } catch (error) {
     console.error('❌ Error:', error);

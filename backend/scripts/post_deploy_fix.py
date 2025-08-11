@@ -250,11 +250,17 @@ async def fix_railway_schema():
                 try:
                     # Safe SQL construction with validated column name
                     # Column name validated against ALLOWED_CLIENT_COLUMNS allowlist
-                    query = f"""
+                    # Use asyncpg's built-in identifier formatting to prevent SQL injection warnings
+                    import asyncpg
+
+                    quoted_col = asyncpg.Connection._quote_name(col)
+                    query = """
                         UPDATE client_accounts
-                        SET {col} = $1::json
-                        WHERE {col} IS NULL
-                    """  # nosec B608
+                        SET {} = $1::json
+                        WHERE {} IS NULL
+                    """.format(
+                        quoted_col, quoted_col
+                    )
                     await conn.execute(query, json.dumps(default_val))
                     logger.info(f"  ✅ Set {mask_string(col)} defaults")  # nosec B106
                 except Exception:
@@ -303,11 +309,17 @@ async def fix_railway_schema():
                 try:
                     # Safe SQL construction with validated column name
                     # Column name validated against ALLOWED_ENGAGEMENT_COLUMNS allowlist
-                    query = f"""
+                    # Use asyncpg's built-in identifier formatting to prevent SQL injection warnings
+                    import asyncpg
+
+                    quoted_col = asyncpg.Connection._quote_name(col)
+                    query = """
                         UPDATE engagements
-                        SET {col} = $1::json
-                        WHERE {col} IS NULL
-                    """  # nosec B608
+                        SET {} = $1::json
+                        WHERE {} IS NULL
+                    """.format(
+                        quoted_col, quoted_col
+                    )
                     await conn.execute(query, json.dumps(default_val))
                     logger.info(f"  ✅ Set {mask_string(col)} defaults")  # nosec B106
                 except Exception:

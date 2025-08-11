@@ -9,10 +9,10 @@ import path from 'path';
 const files = glob.sync('src/**/*.{ts,tsx}');
 let totalFixed = 0;
 
-console.log(`Processing ${files.length} files for return type fixes...`);
+console.log('Processing ', files.length, ' files for return type fixes...');
 
 files.forEach((filePath, index) => {
-  console.log(`[${index + 1}/${files.length}] Processing: ${filePath}`);
+  console.log('[', index + 1, '/', files.length, '] Processing: ', filePath);
 
   try {
     let content = readFileSync(filePath, 'utf8');
@@ -75,7 +75,7 @@ files.forEach((filePath, index) => {
 
     if (modified) {
       writeFileSync(filePath, content);
-      console.log(`  ✅ Fixed ${fileFixCount} return types in ${filePath}`);
+      console.log('  ✅ Fixed ', fileFixCount, ' return types in ', filePath);
       totalFixed += fileFixCount;
     }
   } catch (error) {
@@ -83,7 +83,7 @@ files.forEach((filePath, index) => {
   }
 });
 
-console.log(`\n🎉 Total return types fixed: ${totalFixed}`);
+console.log('\n🎉 Total return types fixed: ', totalFixed);
 
 // Helper function to find the end of a function body
 function findFunctionEnd(content) {

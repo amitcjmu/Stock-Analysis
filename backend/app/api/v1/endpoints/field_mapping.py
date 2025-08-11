@@ -15,6 +15,7 @@ from app.api.v1.endpoints.data_import.field_mapping.services.mapping_service imp
     MappingService,
 )
 from app.core.context import RequestContext, get_current_context
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.core.database import get_db
 
 logger = logging.getLogger(__name__)
@@ -58,12 +59,20 @@ async def approve_field_mapping(
         }
 
     except ValueError as e:
-        logger.warning(f"Mapping {mapping_id} not found: {e}")
+        logger.warning(
+            safe_log_format(
+                "Mapping {mapping_id} not found: {e}", mapping_id=mapping_id, e=e
+            )
+        )
         raise HTTPException(
             status_code=404, detail=f"Field mapping not found: {mapping_id}"
         )
     except Exception as e:
-        logger.error(f"Error approving mapping {mapping_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Error approving mapping {mapping_id}: {e}", mapping_id=mapping_id, e=e
+            )
+        )
         raise HTTPException(status_code=500, detail="Failed to approve field mapping")
 
 

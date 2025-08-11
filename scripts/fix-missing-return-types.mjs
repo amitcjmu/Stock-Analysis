@@ -21,11 +21,11 @@ warnings.forEach(warning => {
   }
 });
 
-console.log(`Found ${Object.keys(fileWarnings).length} files with missing return types`);
+console.log('Found ', Object.keys(fileWarnings).length, ' files with missing return types');
 
 // Process each file
 Object.entries(fileWarnings).forEach(([filePath, positions]) => {
-  console.log(`\nProcessing ${filePath} (${positions.length} warnings)...`);
+  console.log('\nProcessing ', filePath, ' (', positions.length, ' warnings)...');
 
   try {
     const content = readFileSync(filePath, 'utf8');
@@ -68,7 +68,7 @@ Object.entries(fileWarnings).forEach(([filePath, positions]) => {
         const forwardRefMatch = currentLine.match(/(\s*)(.*?)React\.forwardRef\(/);
         if (forwardRefMatch) {
           // This is more complex - skip for now
-          console.log(`  Skipping React.forwardRef at line ${line} - requires manual fix`);
+          console.log('  Skipping React.forwardRef at line ', line, ' - requires manual fix');
         }
       }
     });
@@ -77,9 +77,9 @@ Object.entries(fileWarnings).forEach(([filePath, positions]) => {
     const newContent = lines.join('\n');
     if (newContent !== content) {
       writeFileSync(filePath, newContent);
-      console.log(`  Fixed ${filePath}`);
+      console.log('  Fixed ', filePath);
     } else {
-      console.log(`  No changes needed for ${filePath}`);
+      console.log('  No changes needed for ', filePath);
     }
 
   } catch (err) {

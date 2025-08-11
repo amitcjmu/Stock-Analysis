@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.repositories.demo_repository import DemoRepository
 from app.schemas.demo import (
     DemoAnalysisResponse,
@@ -64,7 +65,7 @@ async def get_demo_assets(
         return [DemoAssetResponse.from_orm(asset) for asset in assets]
 
     except Exception as e:
-        logger.error(f"Error fetching demo assets: {e}")
+        logger.error(safe_log_format("Error fetching demo assets: {e}", e=e))
         raise HTTPException(status_code=500, detail="Failed to fetch demo assets")
 
 
@@ -78,7 +79,7 @@ async def get_demo_assets_summary(
         return DemoSummaryResponse(**summary)
 
     except Exception as e:
-        logger.error(f"Error fetching demo assets summary: {e}")
+        logger.error(safe_log_format("Error fetching demo assets summary: {e}", e=e))
         raise HTTPException(
             status_code=500, detail="Failed to fetch demo assets summary"
         )
@@ -99,7 +100,11 @@ async def get_demo_asset(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching demo asset {asset_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Error fetching demo asset {asset_id}: {e}", asset_id=asset_id, e=e
+            )
+        )
         raise HTTPException(status_code=500, detail="Failed to fetch demo asset")
 
 
@@ -114,7 +119,7 @@ async def create_demo_asset(
         return DemoAssetResponse.from_orm(asset)
 
     except Exception as e:
-        logger.error(f"Error creating demo asset: {e}")
+        logger.error(safe_log_format("Error creating demo asset: {e}", e=e))
         raise HTTPException(status_code=500, detail="Failed to create demo asset")
 
 
@@ -137,7 +142,11 @@ async def update_demo_asset(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error updating demo asset {asset_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Error updating demo asset {asset_id}: {e}", asset_id=asset_id, e=e
+            )
+        )
         raise HTTPException(status_code=500, detail="Failed to update demo asset")
 
 
@@ -156,7 +165,11 @@ async def delete_demo_asset(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting demo asset {asset_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Error deleting demo asset {asset_id}: {e}", asset_id=asset_id, e=e
+            )
+        )
         raise HTTPException(status_code=500, detail="Failed to delete demo asset")
 
 
@@ -176,7 +189,7 @@ async def search_demo_assets_by_text(
         return [DemoAssetResponse.from_orm(asset) for asset in assets]
 
     except Exception as e:
-        logger.error(f"Error searching demo assets by text: {e}")
+        logger.error(safe_log_format("Error searching demo assets by text: {e}", e=e))
         raise HTTPException(status_code=500, detail="Failed to search demo assets")
 
 
@@ -204,7 +217,7 @@ async def find_similar_demo_assets(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error finding similar demo assets: {e}")
+        logger.error(safe_log_format("Error finding similar demo assets: {e}", e=e))
         raise HTTPException(
             status_code=500, detail="Failed to find similar demo assets"
         )
@@ -243,7 +256,11 @@ async def auto_tag_demo_asset(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error auto-tagging demo asset {asset_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Error auto-tagging demo asset {asset_id}: {e}", asset_id=asset_id, e=e
+            )
+        )
         raise HTTPException(status_code=500, detail="Failed to auto-tag demo asset")
 
 
@@ -267,7 +284,7 @@ async def get_demo_analyses(
         return [DemoAnalysisResponse.from_orm(analysis) for analysis in analyses]
 
     except Exception as e:
-        logger.error(f"Error fetching demo analyses: {e}")
+        logger.error(safe_log_format("Error fetching demo analyses: {e}", e=e))
         raise HTTPException(status_code=500, detail="Failed to fetch demo analyses")
 
 
@@ -281,7 +298,7 @@ async def get_demo_waves(
         return [DemoWaveResponse.from_orm(wave) for wave in waves]
 
     except Exception as e:
-        logger.error(f"Error fetching demo waves: {e}")
+        logger.error(safe_log_format("Error fetching demo waves: {e}", e=e))
         raise HTTPException(status_code=500, detail="Failed to fetch demo waves")
 
 
@@ -300,7 +317,7 @@ async def get_demo_tags(
         return [DemoTagResponse.from_orm(tag) for tag in tags]
 
     except Exception as e:
-        logger.error(f"Error fetching demo tags: {e}")
+        logger.error(safe_log_format("Error fetching demo tags: {e}", e=e))
         raise HTTPException(status_code=500, detail="Failed to fetch demo tags")
 
 
@@ -314,7 +331,7 @@ async def get_demo_engagement_info(
         return DemoEngagementResponse(**engagement_info)
 
     except Exception as e:
-        logger.error(f"Error fetching demo engagement info: {e}")
+        logger.error(safe_log_format("Error fetching demo engagement info: {e}", e=e))
         raise HTTPException(
             status_code=500, detail="Failed to fetch demo engagement info"
         )

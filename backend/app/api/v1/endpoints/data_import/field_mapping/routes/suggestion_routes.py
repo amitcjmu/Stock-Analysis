@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
+from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 from app.core.database import get_db
 
 from ..models.mapping_schemas import FieldMappingAnalysis
@@ -60,10 +61,22 @@ async def regenerate_suggestions(
         analysis = await service.regenerate_suggestions(import_id, feedback)
         return analysis
     except ValueError as e:
-        logger.warning(f"Error regenerating suggestions for import {import_id}: {e}")
+        logger.warning(
+            safe_log_format(
+                "Error regenerating suggestions for import {import_id}: {e}",
+                import_id=import_id,
+                e=e,
+            )
+        )
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        logger.error(f"Error regenerating suggestions for import {import_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Error regenerating suggestions for import {import_id}: {e}",
+                import_id=import_id,
+                e=e,
+            )
+        )
         raise HTTPException(status_code=500, detail="Failed to regenerate suggestions")
 
 
@@ -76,7 +89,13 @@ async def get_confidence_metrics(
         metrics = await service.get_suggestion_confidence_metrics(import_id)
         return metrics
     except Exception as e:
-        logger.error(f"Error getting confidence metrics for import {import_id}: {e}")
+        logger.error(
+            safe_log_format(
+                "Error getting confidence metrics for import {import_id}: {e}",
+                import_id=import_id,
+                e=e,
+            )
+        )
         raise HTTPException(status_code=500, detail="Failed to get confidence metrics")
 
 
@@ -105,7 +124,7 @@ async def get_available_target_fields(
             "message": "This endpoint is deprecated. Frontend uses hardcoded asset fields list.",
         }
     except Exception as e:
-        logger.error(f"Error getting available target fields: {e}")
+        logger.error(safe_log_format("Error getting available target fields: {e}", e=e))
         raise HTTPException(
             status_code=500, detail="Failed to get available target fields"
         )
