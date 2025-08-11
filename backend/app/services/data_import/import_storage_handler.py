@@ -17,7 +17,7 @@ from app.schemas.data_import_schemas import StoreImportRequest
 from .storage_manager import ImportStorageManager
 from .import_service import DataImportService
 from .transaction_manager import ImportTransactionManager
-from .response_builder import ResponseBuilder
+from .response_builder import ImportResponseBuilder
 
 logger = get_logger(__name__)
 
@@ -41,7 +41,7 @@ class ImportStorageHandler:
         """
         self.db = db
         self.client_account_id = client_account_id
-        self.response_builder = ResponseBuilder()
+        self.response_builder = ImportResponseBuilder()
 
     async def get_latest_import_data(
         self, context: RequestContext
