@@ -1,5 +1,9 @@
 # AI Modernize Migration Platform
 
+## 📋 Project Management
+
+**[AI Modernize Dev Board](https://github.com/users/CryptoYogiLLC/projects/3)** - Track development progress, issues, and features
+
 ## Overview
 
 The **AI Modernize Migration Platform** is a comprehensive cloud migration management application designed to orchestrate the entire cloud migration journey from discovery to decommission. Powered by **AI-driven automation** with **CrewAI agents**, this platform streamlines complex migration processes through intelligent insights, automated workflows, and continuous learning.
