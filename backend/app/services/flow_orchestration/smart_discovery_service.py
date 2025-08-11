@@ -267,11 +267,14 @@ class SmartDiscoveryService:
 
             status = {
                 "flow_id": flow_id,
+                "flow_type": "discovery",  # Default flow type for discovered flows
                 "status": "discovered",
                 "correlation_method": correlation_method,
                 "confidence": confidence,
                 "discovered_at": datetime.now(timezone.utc).isoformat(),
                 "data_sources": [],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
             }
 
             # Add data from different correlation methods

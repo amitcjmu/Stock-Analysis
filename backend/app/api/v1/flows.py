@@ -520,6 +520,12 @@ async def resume_flow(
     Resumes a paused flow from its last saved state.
     """
     try:
+        # Validate flow_id parameter
+        if flow_id in ("None", "null", "") or not flow_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid flow ID: Flow ID cannot be 'None', 'null', or empty",
+            )
         result = await orchestrator.resume_flow(flow_id)
 
         if result.get("status") == "resume_failed":
@@ -595,6 +601,12 @@ async def get_flow_status(
     current state, and performance metrics.
     """
     try:
+        # Validate flow_id parameter
+        if flow_id in ("None", "null", "") or not flow_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid flow ID: Flow ID cannot be 'None', 'null', or empty",
+            )
         flow_data = await orchestrator.get_flow_status(flow_id)
 
         if not flow_data:
@@ -611,8 +623,8 @@ async def get_flow_status(
         )
 
         return FlowStatusResponse(
-            flow_id=flow_data["flow_id"],
-            flow_type=flow_data["flow_type"],
+            flow_id=flow_data.get("flow_id", flow_id),
+            flow_type=flow_data.get("flow_type", "discovery"),
             flow_name=flow_data.get("flow_name"),
             status=flow_data.get("status", "unknown"),
             phase=flow_data.get("current_phase"),
