@@ -14,8 +14,8 @@ const TEST_TIMEOUT = 300000; // 5 minutes
 
 // Test user credentials
 const TEST_USER = {
-  email: 'chocka@gmail.com',
-  password: 'Password123!'
+  email: 'demo@demo-corp.com',
+  password: 'Demo123!'
 };
 
 interface FlowState {

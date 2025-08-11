@@ -24,14 +24,24 @@ export const TEST_USERS = {
     password: 'Admin123!',
     role: 'admin'
   },
-  user: {
-    email: 'user@demo.com',
-    password: 'User123!',
-    role: 'user'
+  manager: {
+    email: 'manager@demo-corp.com',
+    password: 'Demo123!',
+    role: 'manager'
+  },
+  analyst: {
+    email: 'analyst@demo-corp.com',
+    password: 'Demo123!',
+    role: 'analyst'
+  },
+  viewer: {
+    email: 'viewer@demo-corp.com',
+    password: 'Demo123!',
+    role: 'viewer'
   },
   demo: {
     email: 'demo@demo-corp.com',
-    password: 'demo123',
+    password: 'Demo123!',  // Fixed: was 'demo123', should be 'Demo123!'
     role: 'user'
   }
 };
@@ -73,11 +83,15 @@ export async function login(page: Page, user = TEST_USERS.demo): Promise<void> {
   // Click login button
   await page.click('button[type="submit"]');
 
-  // Wait for navigation to dashboard
-  await page.waitForURL('**/dashboard', { timeout: 10000 });
+  // Wait for successful login and navigation
+  // The app navigates to "/" after login, not "/dashboard"
+  await page.waitForResponse(response =>
+    response.url().includes('/api/v1/auth/login') && response.status() === 200,
+    { timeout: 10000 }
+  );
 
-  // Verify we're logged in
-  await expect(page).toHaveURL(/.*dashboard/);
+  // Wait for the main page to load
+  await page.waitForSelector('text=AI Modernize Migration Platform', { timeout: 5000 });
 }
 
 // Navigation helpers

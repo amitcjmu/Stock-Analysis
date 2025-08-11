@@ -2,8 +2,8 @@ import { test, expect, Page } from '@playwright/test';
 
 // Test data
 const TEST_USER = {
-  email: 'chocka@gmail.com',
-  password: 'Password123!'
+  email: 'demo@demo-corp.com',
+  password: 'Demo123!'
 };
 
 test.describe('Data Import Page', () => {

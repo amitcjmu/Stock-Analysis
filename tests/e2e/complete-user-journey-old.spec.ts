@@ -17,8 +17,8 @@ const TEST_TIMEOUT = 300000; // 5 minutes for complete journey
 
 // Test user credentials
 const TEST_USER = {
-  email: 'chocka@gmail.com',
-  password: 'Password123!'
+  email: 'demo@demo-corp.com',
+  password: 'Demo123!'
 };
 
 // Test client context

@@ -39,7 +39,7 @@ async function testFieldMappingAPI() {
   const headers = {
     'X-Client-Account-Id': '11111111-1111-1111-1111-111111111111',  // Demo Corporation
     'X-Engagement-Id': '58467010-6a72-44e8-ba37-cc0238724455',     // Azure Transformation 2025
-    'X-User-Id': '77b30e13-c331-40eb-a0ec-ed0717f72b22',           // chocka@gmail.com
+    'X-User-Id': '77b30e13-c331-40eb-a0ec-ed0717f72b22',           // demo@demo-corp.com
     'Content-Type': 'application/json'
   };
 

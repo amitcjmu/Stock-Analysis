@@ -10,8 +10,8 @@ async function loginAsAdmin(page: Page) {
   await page.evaluate(() => localStorage.clear());
   await page.goto(`${TEST_BASE_URL}/login`, { waitUntil: 'networkidle' });
 
-  await page.fill('input[type="email"]', 'chocka@gmail.com');
-  await page.fill('input[type="password"]', 'Password123!');
+  await page.fill('input[type="email"]', 'demo@demo-corp.com');
+  await page.fill('input[type="password"]', 'Demo123!');
 
   // Click and then wait for navigation, with better debugging
   await page.click('button[type="submit"]');

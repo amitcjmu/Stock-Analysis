@@ -15,8 +15,8 @@ test.describe('File Upload and Discovery Flow Initiation', () => {
     await page.goto('http://localhost:8081/login');
 
     // Login as platform admin (has access to all clients/engagements)
-    await page.fill('input[name="email"]', 'chocka@gmail.com');
-    await page.fill('input[name="password"]', 'Password123!');
+    await page.fill('input[name="email"]', 'demo@demo-corp.com');
+    await page.fill('input[name="password"]', 'Demo123!');
     await page.click('button[type="submit"]');
 
     // Wait for successful login and dashboard navigation

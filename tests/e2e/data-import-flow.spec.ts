@@ -4,8 +4,8 @@ test.describe('Data Import to Attribute Mapping Flow', () => {
   test('should successfully upload a file and navigate to attribute mapping', async ({ page }) => {
     // 1. First login to authenticate
     await page.goto('http://localhost:8081/login');
-    await page.fill('input[type="email"]', 'chocka@gmail.com');
-    await page.fill('input[type="password"]', 'Password123!');
+    await page.fill('input[type="email"]', 'demo@demo-corp.com');
+    await page.fill('input[type="password"]', 'Demo123!');
     await page.click('button[type="submit"]');
     await page.waitForURL('**/dashboard', { timeout: 10000 });
 

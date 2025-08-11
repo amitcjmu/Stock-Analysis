@@ -2,10 +2,10 @@
 const credentials = [
   { email: 'demo@demo-corp.com', password: 'demo123' },
   { email: 'demo@demo-corp.com', password: 'Demo123!' },
-  { email: 'demo@demo-corp.com', password: 'Password123!' },
+  { email: 'demo@demo-corp.com', password: 'Demo123!' },
   { email: 'admin@demo.com', password: 'Admin123!' },
   { email: 'user@demo.com', password: 'User123!' },
-  { email: 'chocka@gmail.com', password: 'Password123!' }
+  { email: 'demo@demo-corp.com', password: 'Demo123!' }
 ];
 
 async function testLogin(cred) {

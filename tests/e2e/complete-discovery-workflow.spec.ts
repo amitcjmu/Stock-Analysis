@@ -4,8 +4,8 @@ import * as path from 'path';
 
 // Test data
 const TEST_USER = {
-  email: 'chocka@gmail.com',
-  password: 'Password123!'
+  email: 'demo@demo-corp.com',
+  password: 'Demo123!'
 };
 
 // Create test CSV content
