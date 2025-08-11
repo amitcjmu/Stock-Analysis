@@ -44,6 +44,37 @@ async def store_import_data(
 ) -> Dict[str, Any]:
 
     try:
+        # Handle both old and new payload formats for backward compatibility
+        if hasattr(store_request, "file_content") and store_request.file_content:
+            # New format - direct fields
+            file_content = store_request.file_content
+            filename = store_request.filename
+            file_content_type = store_request.file_content_type
+            import_type = store_request.import_type
+        elif hasattr(store_request, "metadata") and store_request.metadata:
+            # Old format - nested structure
+            file_content = None
+            if hasattr(store_request, "file_data") and store_request.file_data:
+                # Convert file_data to string format
+                import json
+
+                file_content = json.dumps(store_request.file_data)
+
+            filename = store_request.metadata.filename
+            file_content_type = store_request.metadata.type
+            import_type = (
+                store_request.upload_context.intended_type
+                if store_request.upload_context
+                else "cmdb"
+            )
+
+            if not file_content:
+                raise ValueError(
+                    "No file content provided in either file_content or file_data fields"
+                )
+        else:
+            raise ValueError("Invalid payload format - missing required fields")
+
         # Use a transaction manager to ensure atomicity
         transaction_manager = ImportTransactionManager(db)
 
@@ -51,10 +82,14 @@ async def store_import_data(
             import_service = DataImportService(db, context)
 
             data_import = await import_service.process_import_and_trigger_flow(
-                file_content=store_request.file_content.encode("utf-8"),
-                filename=store_request.filename,
-                file_content_type=store_request.file_content_type,
-                import_type=store_request.import_type,
+                file_content=(
+                    file_content.encode("utf-8")
+                    if isinstance(file_content, str)
+                    else file_content
+                ),
+                filename=filename,
+                file_content_type=file_content_type,
+                import_type=import_type,
             )
 
         return {

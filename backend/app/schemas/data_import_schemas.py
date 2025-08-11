@@ -83,15 +83,15 @@ class UploadContext(BaseModel):
 
 
 class StoreImportRequest(BaseModel):
-    """Request schema for storing import data"""
+    """Request schema for storing import data - supports both new and legacy formats"""
 
-    # Fields expected by the endpoint
-    file_content: str
-    filename: str
-    file_content_type: str
-    import_type: str
+    # New format fields (direct)
+    file_content: Optional[str] = None
+    filename: Optional[str] = None
+    file_content_type: Optional[str] = None
+    import_type: Optional[str] = None
 
-    # Legacy fields for backward compatibility
+    # Legacy format fields (nested structure)
     file_data: Optional[List[Dict[str, Any]]] = None
     metadata: Optional[FileMetadata] = None
     upload_context: Optional[UploadContext] = None
