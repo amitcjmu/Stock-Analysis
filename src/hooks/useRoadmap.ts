@@ -28,7 +28,7 @@ export const useRoadmap = (): JSX.Element => {
     queryKey: ['roadmap'],
     queryFn: async () => {
       const headers = getAuthHeaders();
-      const response = await apiCall('assess/roadmap', { headers });
+      const response = await apiCall('plan/roadmap', { headers });
       return response;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -42,7 +42,7 @@ export const useUpdateRoadmap = (): unknown => {
   return useMutation({
     mutationFn: async (data: RoadmapData) => {
       const headers = getAuthHeaders();
-      return apiCall('assess/roadmap', {
+      return apiCall('plan/roadmap', {
         method: 'PUT',
         headers,
         body: JSON.stringify(data),

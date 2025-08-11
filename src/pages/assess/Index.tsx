@@ -147,25 +147,25 @@ const AssessIndex = (): JSX.Element => {
                 </div>
               </Link>
 
-              <Link to="/assess/waveplanning" className="group">
+              <Link to="/assess/tech-debt" className="group">
                 <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow duration-200">
                   <div className="flex items-center justify-between mb-4">
                     <Calendar className="h-8 w-8 text-green-500" />
                     <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-green-500 transition-colors duration-200" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Wave Planning</h3>
-                  <p className="text-gray-600 text-sm">Plan migration waves and group applications</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Tech Debt Analysis</h3>
+                  <p className="text-gray-600 text-sm">Analyze technical debt and cloud readiness</p>
                 </div>
               </Link>
 
-              <Link to="/assess/roadmap" className="group">
+              <Link to="/plan/waveplanning" className="group">
                 <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow duration-200">
                   <div className="flex items-center justify-between mb-4">
                     <Route className="h-8 w-8 text-purple-500" />
                     <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-purple-500 transition-colors duration-200" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Migration Roadmap</h3>
-                  <p className="text-gray-600 text-sm">View timeline and milestones for migration waves</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Wave Planning</h3>
+                  <p className="text-gray-600 text-sm">Plan migration waves and group applications (moved to Plan)</p>
                 </div>
               </Link>
 

@@ -32,14 +32,8 @@ export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string)
     'dependency_analysis': (flowId: string) => `/discovery/dependencies/${flowId}`,
     'dependencies': (flowId: string) => `/discovery/dependencies/${flowId}`,
 
-    // Tech debt assessment phases
-    'tech_debt_assessment': (flowId: string) => `/discovery/tech-debt/${flowId}`,
-    'tech_debt_analysis': (flowId: string) => `/discovery/tech-debt/${flowId}`,
-    'tech_debt': (flowId: string) => `/discovery/tech-debt/${flowId}`,
-    'technical_debt': (flowId: string) => `/discovery/tech-debt/${flowId}`,
-
-    // Completed flow
-    'completed': (flowId: string) => `/discovery/tech-debt/${flowId}`,
+    // Completed flow - moved tech debt to assessment
+    'completed': (flowId: string) => `/discovery/inventory/${flowId}`,
 
     // Status-based routing
     'waiting_for_user_approval': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
@@ -61,6 +55,11 @@ export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string)
     'migration_readiness': (flowId: string) => `/assess/migration-readiness/${flowId}`,
     'business_impact': (flowId: string) => `/assess/business-impact/${flowId}`,
     'technical_assessment': (flowId: string) => `/assess/technical-assessment/${flowId}`,
+    // Tech debt assessment phases (moved from discovery)
+    'tech_debt_assessment': (flowId: string) => `/assess/tech-debt/${flowId}`,
+    'tech_debt_analysis': (flowId: string) => `/assess/tech-debt/${flowId}`,
+    'tech_debt': (flowId: string) => `/assess/tech-debt/${flowId}`,
+    'technical_debt': (flowId: string) => `/assess/tech-debt/${flowId}`,
     'completed': (flowId: string) => `/assess/summary/${flowId}`,
 
     // Error states
@@ -70,7 +69,9 @@ export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string)
   },
 
   plan: {
-    'wave_planning': (flowId: string) => `/plan/wave-planning/${flowId}`,
+    'wave_planning': (flowId: string) => `/plan/waveplanning/${flowId}`,
+    'roadmap': (flowId: string) => `/plan/roadmap/${flowId}`,
+    'roadmap_planning': (flowId: string) => `/plan/roadmap/${flowId}`,
     'runbook_creation': (flowId: string) => `/plan/runbook-creation/${flowId}`,
     'resource_allocation': (flowId: string) => `/plan/resource-allocation/${flowId}`,
     'completed': (flowId: string) => `/plan/summary/${flowId}`,
@@ -144,9 +145,9 @@ export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string)
  * Phase sequences for determining next phase - matches backend phase_sequences
  */
 export const PHASE_SEQUENCES: Record<FlowType, string[]> = {
-  discovery: ['data_import', 'attribute_mapping', 'data_cleansing', 'inventory', 'dependencies', 'tech_debt'],
-  assessment: ['migration_readiness', 'business_impact', 'technical_assessment'],
-  plan: ['wave_planning', 'runbook_creation', 'resource_allocation'],
+  discovery: ['data_import', 'attribute_mapping', 'data_cleansing', 'inventory', 'dependencies'],
+  assessment: ['migration_readiness', 'business_impact', 'technical_assessment', 'tech_debt'],
+  plan: ['wave_planning', 'roadmap', 'runbook_creation', 'resource_allocation'],
   execute: ['pre_migration', 'migration_execution', 'post_migration'],
   modernize: ['modernization_assessment', 'architecture_design', 'implementation_planning'],
   finops: ['cost_analysis', 'budget_planning'],

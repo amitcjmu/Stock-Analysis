@@ -213,8 +213,6 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route path="/discovery/data-cleansing/:flowId" element={<LazyDataCleansing />} />
       <Route path="/discovery/attribute-mapping" element={<LazyAttributeMapping />} />
       <Route path="/discovery/attribute-mapping/:flowId" element={<LazyAttributeMapping />} />
-      <Route path="/discovery/tech-debt" element={<LazyTechDebtAnalysis />} />
-      <Route path="/discovery/tech-debt/:flowId" element={<LazyTechDebtAnalysis />} />
 
       {/* Collection workflow routes */}
       <Route path="/collection" element={<LazyCollectionIndex />} />
@@ -230,8 +228,7 @@ const AuthenticatedApp = (): JSX.Element => {
       {/* Assessment sub-routes */}
       <Route path="/assess/overview" element={<LazyAssessmentFlowOverview />} />
       <Route path="/assess/treatment" element={<LazyTreatment />} />
-      <Route path="/assess/waveplanning" element={<LazyWavePlanning />} />
-      <Route path="/assess/roadmap" element={<LazyRoadmap />} />
+      <Route path="/assess/tech-debt" element={<LazyTechDebtAnalysis />} />
       <Route path="/assess/editor" element={<LazyEditor />} />
 
       {/* Assessment Flow Routes */}
@@ -246,6 +243,8 @@ const AuthenticatedApp = (): JSX.Element => {
 
       {/* Plan sub-routes */}
       <Route path="/plan/overview" element={<LazyPlanIndex />} />
+      <Route path="/plan/waveplanning" element={<LazyWavePlanning />} />
+      <Route path="/plan/roadmap" element={<LazyRoadmap />} />
       <Route path="/plan/timeline" element={<LazyTimeline />} />
       <Route path="/plan/resource" element={<LazyResource />} />
       <Route path="/plan/target" element={<LazyTarget />} />
