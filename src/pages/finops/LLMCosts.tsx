@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCostMetrics, useResourceCosts } from '@/hooks/finops/useFinOpsQueries';
-import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
+import { useCostMetrics, useLLMCosts } from '@/hooks/finops/useFinOpsQueries';
+import Sidebar from '../../components/Sidebar';
 import { Brain, BarChart, LineChart, Filter, RefreshCw } from 'lucide-react'
 import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button';
@@ -16,43 +16,75 @@ const LLMCosts = (): JSX.Element => {
 
   // Queries
   const { data: metricsData, isLoading: isLoadingMetrics, error: metricsError } = useCostMetrics();
-  const { data: llmData, isLoading: isLoadingLLM, error: llmError } = useResourceCosts();
+  const { data: llmData, isLoading: isLoadingLLM, error: llmError } = useLLMCosts();
 
   if (!isAuthenticated) {
     return (
-      <Alert variant="destructive">
-        <AlertDescription>
-          Please log in to access LLM costs.
-        </AlertDescription>
-      </Alert>
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64">
+          <main className="p-8">
+            <Alert variant="destructive">
+              <AlertDescription>
+                Please log in to access LLM costs.
+              </AlertDescription>
+            </Alert>
+          </main>
+        </div>
+      </div>
     );
   }
 
   if (isLoadingLLM || isLoadingMetrics) {
-    return <LoadingSkeleton />;
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64">
+          <main className="p-8">
+            <LoadingSkeleton />
+          </main>
+        </div>
+      </div>
+    );
   }
 
   if (llmError) {
     return (
-      <Alert variant="destructive">
-        <AlertDescription>
-          Error: {llmError.message}
-        </AlertDescription>
-      </Alert>
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64">
+          <main className="p-8">
+            <Alert variant="destructive">
+              <AlertDescription>
+                Error: {llmError.message}
+              </AlertDescription>
+            </Alert>
+          </main>
+        </div>
+      </div>
     );
   }
 
   const models = llmData || [];
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   const llmMetrics = [
-    { label: 'Total Cloud Spend', value: metricsData?.totalCost || '$0', color: 'text-blue-600', icon: Brain },
-    { label: 'Projected Annual', value: metricsData?.projectedAnnual || '$0', color: 'text-green-600', icon: LineChart },
-    { label: 'Savings Identified', value: metricsData?.savingsIdentified || '$0', color: 'text-purple-600', icon: BarChart },
-    { label: 'Optimization Score', value: metricsData?.optimizationScore || '0', color: 'text-orange-600', icon: RefreshCw },
+    { label: 'Total Cloud Spend', value: formatCurrency(metricsData?.totalCost || 0), color: 'text-blue-600', icon: Brain },
+    { label: 'Projected Annual', value: formatCurrency(metricsData?.projectedAnnual || 0), color: 'text-green-600', icon: LineChart },
+    { label: 'Savings Identified', value: formatCurrency(metricsData?.savingsIdentified || 0), color: 'text-purple-600', icon: BarChart },
+    { label: 'Optimization Score', value: `${metricsData?.optimizationScore || 0}%`, color: 'text-orange-600', icon: RefreshCw },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <NavigationSidebar />
+      <Sidebar />
       <div className="flex-1 ml-64">
         <main className="p-8">
           <div className="max-w-7xl mx-auto">
@@ -132,7 +164,7 @@ const LLMCosts = (): JSX.Element => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4">
                           <div>
                             <span className="text-gray-600">Current Cost:</span>
-                            <span className="ml-2 font-medium">${model.currentCost}</span>
+                            <span className="ml-2 font-medium">{formatCurrency(model.currentCost || 0)}</span>
                           </div>
                           <div>
                             <span className="text-gray-600">Token Usage:</span>

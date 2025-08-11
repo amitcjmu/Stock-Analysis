@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCostMetrics, useResourceCosts, useSavingsOpportunities, useBudgetAlerts } from '@/hooks/finops/useFinOpsQueries';
-import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
+import Sidebar from '../../components/Sidebar';
 import { DollarSign, TrendingDown, TrendingUp, AlertTriangle, Sparkles, BarChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -73,7 +73,7 @@ const Overview = (): JSX.Element => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <NavigationSidebar />
+      <Sidebar />
       <div className="flex-1 ml-64">
         <main className="p-8">
           <div className="max-w-7xl mx-auto">

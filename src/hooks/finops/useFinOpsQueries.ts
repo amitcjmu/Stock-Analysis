@@ -107,6 +107,21 @@ export const useBudgetAlerts = (): unknown => {
   });
 };
 
+export const useLLMCosts = (): unknown => {
+  const { getAuthHeaders } = useAuth();
+
+  return useQuery({
+    queryKey: ['llmCosts'],
+    queryFn: async () => {
+      const response = await fetch('/api/v1/finops/llm-costs', {
+        headers: await getAuthHeaders()
+      });
+      if (!response.ok) throw new Error('Failed to fetch LLM costs');
+      return response.json();
+    }
+  });
+};
+
 // Mutations
 export const useUpdateSavingsOpportunity = (): JSX.Element => {
   const queryClient = useQueryClient();

@@ -431,7 +431,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                 <SelectValue placeholder="All agents" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All agents</SelectItem>
+                <SelectItem value="all">All agents</SelectItem>
                 <SelectItem value="DataImportValidationAgent">Data Import Validation</SelectItem>
                 <SelectItem value="AttributeMappingAgent">Attribute Mapping</SelectItem>
                 <SelectItem value="DataCleansingAgent">Data Cleansing</SelectItem>
@@ -446,7 +446,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                 <SelectValue placeholder="All types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All types</SelectItem>
+                <SelectItem value="all">All types</SelectItem>
                 <SelectItem value="task_started">Task Started</SelectItem>
                 <SelectItem value="task_completed">Task Completed</SelectItem>
                 <SelectItem value="task_failed">Task Failed</SelectItem>

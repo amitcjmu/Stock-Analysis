@@ -51,6 +51,43 @@ export const useAgentComparison = (options: UseAgentComparisonOptions): {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const getRankByMetric = useCallback((
+    data: AgentComparisonData[],
+    metric: keyof AgentComparisonData['metrics'],
+    agentName: string,
+    higherIsBetter: boolean
+  ): number => {
+    const sorted = [...data].sort((a, b) =>
+      higherIsBetter ? b.metrics[metric] - a.metrics[metric] : a.metrics[metric] - b.metrics[metric]
+    );
+    return sorted.findIndex(agent => agent.agentName === agentName) + 1;
+  }, []);
+
+  const calculateRankings = useCallback((data: AgentComparisonData[]): AgentComparisonData[] => {
+    const scoredData = data.map(agent => {
+      const performanceScore =
+        (agent.metrics.successRate * 0.3) +
+        ((1 - agent.metrics.errorRate) * 0.2) +
+        (agent.metrics.avgConfidence * 0.2) +
+        (Math.min(agent.metrics.throughput / 10, 1) * 0.15) +
+        (Math.max(0, 1 - agent.metrics.avgDuration / 60) * 0.15);
+
+      return { ...agent, performanceScore };
+    });
+
+    scoredData.sort((a, b) => b.performanceScore - a.performanceScore);
+
+    return scoredData.map((agent, index) => ({
+      ...agent,
+      ranking: {
+        overall: index + 1,
+        successRate: getRankByMetric(data, 'successRate', agent.agentName, true),
+        performance: getRankByMetric(data, 'avgDuration', agent.agentName, false),
+        reliability: getRankByMetric(data, 'errorRate', agent.agentName, false)
+      }
+    }));
+  }, [getRankByMetric]);
+
   const loadComparisonData = useCallback(async () => {
     if (selectedAgents.length === 0) return;
 
@@ -114,43 +151,6 @@ export const useAgentComparison = (options: UseAgentComparisonOptions): {
       setLoading(false);
     }
   }, [selectedAgents, period, calculateRankings]);
-
-  const calculateRankings = useCallback((data: AgentComparisonData[]): AgentComparisonData[] => {
-    const scoredData = data.map(agent => {
-      const performanceScore =
-        (agent.metrics.successRate * 0.3) +
-        ((1 - agent.metrics.errorRate) * 0.2) +
-        (agent.metrics.avgConfidence * 0.2) +
-        (Math.min(agent.metrics.throughput / 10, 1) * 0.15) +
-        (Math.max(0, 1 - agent.metrics.avgDuration / 60) * 0.15);
-
-      return { ...agent, performanceScore };
-    });
-
-    scoredData.sort((a, b) => b.performanceScore - a.performanceScore);
-
-    return scoredData.map((agent, index) => ({
-      ...agent,
-      ranking: {
-        overall: index + 1,
-        successRate: getRankByMetric(data, 'successRate', agent.agentName, true),
-        performance: getRankByMetric(data, 'avgDuration', agent.agentName, false),
-        reliability: getRankByMetric(data, 'errorRate', agent.agentName, false)
-      }
-    }));
-  }, [getRankByMetric]);
-
-  const getRankByMetric = useCallback((
-    data: AgentComparisonData[],
-    metric: keyof AgentComparisonData['metrics'],
-    agentName: string,
-    higherIsBetter: boolean
-  ): number => {
-    const sorted = [...data].sort((a, b) =>
-      higherIsBetter ? b.metrics[metric] - a.metrics[metric] : a.metrics[metric] - b.metrics[metric]
-    );
-    return sorted.findIndex(agent => agent.agentName === agentName) + 1;
-  }, []);
 
   useEffect(() => {
     loadComparisonData();

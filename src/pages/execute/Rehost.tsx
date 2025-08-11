@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { useRehostProjects, useExecutionMetrics, useUpdateRehostProject } from '@/hooks/execute/useExecuteQueries';
-import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
+import Sidebar from '../../components/Sidebar';
 import { AlertTriangle, ArrowRight } from 'lucide-react'
 import { Server, Sparkles, Play, Clock, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button';
@@ -65,7 +65,7 @@ const Rehost = (): JSX.Element => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <NavigationSidebar />
+      <Sidebar />
       <div className="flex-1 ml-64">
         <main className="p-8">
           <div className="max-w-7xl mx-auto">

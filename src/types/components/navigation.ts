@@ -37,13 +37,7 @@ export interface RouteConfig {
   metadata?: Record<string, string | number | boolean | null>;
 }
 
-// Sidebar component types
-export interface NavigationSidebarProps extends BaseNavigationProps {
-  currentRoute: string;
-  onNavigate: (route: string) => void;
-  collapsed?: boolean;
-  onToggleCollapse?: () => void;
-  items: NavigationItem[];
+// Sidebar component types (legacy NavigationSidebar removed)
   header?: ReactNode;
   footer?: ReactNode;
   variant?: 'default' | 'compact' | 'floating';

@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCostMetrics, useSavingsOpportunities } from '@/hooks/finops/useFinOpsQueries';
-import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
+import Sidebar from '../../components/Sidebar';
 import { DollarSign, BarChart, LineChart, Filter, RefreshCw } from 'lucide-react'
 import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button';
@@ -20,25 +20,48 @@ const SavingsAnalysis = (): JSX.Element => {
 
   if (!isAuthenticated) {
     return (
-      <Alert variant="destructive">
-        <AlertDescription>
-          Please log in to access savings analysis.
-        </AlertDescription>
-      </Alert>
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64">
+          <main className="p-8">
+            <Alert variant="destructive">
+              <AlertDescription>
+                Please log in to access savings analysis.
+              </AlertDescription>
+            </Alert>
+          </main>
+        </div>
+      </div>
     );
   }
 
   if (isLoadingSavings || isLoadingMetrics) {
-    return <LoadingSkeleton />;
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64">
+          <main className="p-8">
+            <LoadingSkeleton />
+          </main>
+        </div>
+      </div>
+    );
   }
 
   if (savingsError) {
     return (
-      <Alert variant="destructive">
-        <AlertDescription>
-          Error: {savingsError.message}
-        </AlertDescription>
-      </Alert>
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64">
+          <main className="p-8">
+            <Alert variant="destructive">
+              <AlertDescription>
+                Error: {savingsError.message}
+              </AlertDescription>
+            </Alert>
+          </main>
+        </div>
+      </div>
     );
   }
 
@@ -52,7 +75,7 @@ const SavingsAnalysis = (): JSX.Element => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <NavigationSidebar />
+      <Sidebar />
       <div className="flex-1 ml-64">
         <main className="p-8">
           <div className="max-w-7xl mx-auto">

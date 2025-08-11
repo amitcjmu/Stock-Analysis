@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCutoverEvents, useExecutionMetrics } from '@/hooks/execute/useExecuteQueries';
-import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
+import Sidebar from '../../components/Sidebar';
 import { Play, Clock, CheckCircle, AlertTriangle, ArrowRight } from 'lucide-react'
 import { Calendar, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button';
@@ -61,7 +61,7 @@ const Cutovers = (): JSX.Element => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <NavigationSidebar />
+      <Sidebar />
       <div className="flex-1 ml-64">
         <main className="p-8">
           <div className="max-w-7xl mx-auto">

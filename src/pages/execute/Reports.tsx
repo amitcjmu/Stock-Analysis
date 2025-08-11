@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useExecutionMetrics, useExecutionReports } from '@/hooks/execute/useExecuteQueries';
-import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
+import Sidebar from '../../components/Sidebar';
 import { BarChart, LineChart, PieChart, Filter, RefreshCw } from 'lucide-react'
 import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button';
@@ -61,7 +61,7 @@ const Reports = (): JSX.Element => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <NavigationSidebar />
+      <Sidebar />
       <div className="flex-1 ml-64">
         <main className="p-8">
           <div className="max-w-7xl mx-auto">

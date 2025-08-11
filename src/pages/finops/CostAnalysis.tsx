@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCostMetrics, useResourceCosts } from '@/hooks/finops/useFinOpsQueries';
-import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
+import Sidebar from '../../components/Sidebar';
 import { DollarSign, BarChart, LineChart, Filter, RefreshCw } from 'lucide-react'
 import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button';
@@ -20,39 +20,71 @@ const CostAnalysis = (): JSX.Element => {
 
   if (!isAuthenticated) {
     return (
-      <Alert variant="destructive">
-        <AlertDescription>
-          Please log in to access cost analysis.
-        </AlertDescription>
-      </Alert>
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64">
+          <main className="p-8">
+            <Alert variant="destructive">
+              <AlertDescription>
+                Please log in to access cost analysis.
+              </AlertDescription>
+            </Alert>
+          </main>
+        </div>
+      </div>
     );
   }
 
   if (isLoadingAnalysis || isLoadingMetrics) {
-    return <LoadingSkeleton />;
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64">
+          <main className="p-8">
+            <LoadingSkeleton />
+          </main>
+        </div>
+      </div>
+    );
   }
 
   if (analysisError) {
     return (
-      <Alert variant="destructive">
-        <AlertDescription>
-          Error: {analysisError.message}
-        </AlertDescription>
-      </Alert>
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64">
+          <main className="p-8">
+            <Alert variant="destructive">
+              <AlertDescription>
+                Error: {analysisError.message}
+              </AlertDescription>
+            </Alert>
+          </main>
+        </div>
+      </div>
     );
   }
 
   const analyses = analysisData || [];
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   const costMetrics = [
-    { label: 'Total Cloud Spend', value: metricsData?.totalCost || '$0', color: 'text-blue-600', icon: DollarSign },
-    { label: 'Projected Annual', value: metricsData?.projectedAnnual || '$0', color: 'text-green-600', icon: LineChart },
-    { label: 'Savings Identified', value: metricsData?.savingsIdentified || '$0', color: 'text-purple-600', icon: BarChart },
-    { label: 'Optimization Score', value: metricsData?.optimizationScore || '0', color: 'text-orange-600', icon: RefreshCw },
+    { label: 'Total Cloud Spend', value: formatCurrency(metricsData?.totalCost || 0), color: 'text-blue-600', icon: DollarSign },
+    { label: 'Projected Annual', value: formatCurrency(metricsData?.projectedAnnual || 0), color: 'text-green-600', icon: LineChart },
+    { label: 'Savings Identified', value: formatCurrency(metricsData?.savingsIdentified || 0), color: 'text-purple-600', icon: BarChart },
+    { label: 'Optimization Score', value: `${metricsData?.optimizationScore || 0}%`, color: 'text-orange-600', icon: RefreshCw },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <NavigationSidebar />
+      <Sidebar />
       <div className="flex-1 ml-64">
         <main className="p-8">
           <div className="max-w-7xl mx-auto">
@@ -116,11 +148,11 @@ const CostAnalysis = (): JSX.Element => {
                           <div>
                             <h4 className="font-medium text-gray-900">{analysis.name}</h4>
                             <div className="flex items-center space-x-2 mt-1">
-                              <Badge variant={analysis.type === 'Migration' ? 'destructive' : 'secondary'}>
+                              <Badge variant={analysis.type === 'AI/ML' ? 'destructive' : 'secondary'}>
                                 {analysis.type}
                               </Badge>
-                              <Badge variant={analysis.status === 'Active' ? 'default' : 'outline'}>
-                                {analysis.status}
+                              <Badge variant={analysis.trend === 'Increasing' ? 'destructive' : (analysis.trend === 'Decreasing' ? 'default' : 'outline')}>
+                                {analysis.trend || 'Stable'}
                               </Badge>
                             </div>
                           </div>
@@ -132,37 +164,26 @@ const CostAnalysis = (): JSX.Element => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4">
                           <div>
                             <span className="text-gray-600">Current Cost:</span>
-                            <span className="ml-2 font-medium">${analysis.currentCost}</span>
+                            <span className="ml-2 font-medium">{formatCurrency(analysis.currentCost || 0)}</span>
                           </div>
                           <div>
                             <span className="text-gray-600">Previous Period:</span>
-                            <span className="ml-2 font-medium">${analysis.previousCost}</span>
+                            <span className="ml-2 font-medium">{formatCurrency(analysis.previousCost || 0)}</span>
                           </div>
                           <div>
-                            <span className="text-gray-600">Change:</span>
-                            <span className={`ml-2 font-medium ${analysis.change >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                              {analysis.change >= 0 ? '+' : ''}{analysis.change}%
-                            </span>
+                            <span className="text-gray-600">Utilization:</span>
+                            <span className="ml-2 font-medium">{analysis.utilizationRate || 0}%</span>
                           </div>
                         </div>
                         <div className="space-y-4">
-                          {analysis.categories.map((category) => (
-                            <div key={category.name} className="space-y-2">
-                              <div className="flex justify-between text-sm mb-1">
-                                <span className="text-gray-600">{category.name}</span>
-                                <span className="font-medium">${category.cost}</span>
-                              </div>
-                              <Progress value={category.percentage} className="h-2" />
+                          {analysis.recommendations && analysis.recommendations.map((recommendation, idx) => (
+                            <div key={idx} className="p-3 bg-blue-50 rounded-lg">
+                              <p className="text-sm text-blue-800">
+                                <strong>Recommendation:</strong> {recommendation}
+                              </p>
                             </div>
                           ))}
                         </div>
-                        {analysis.recommendation && (
-                          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                            <p className="text-sm text-blue-800">
-                              <strong>Optimization:</strong> {analysis.recommendation}
-                            </p>
-                          </div>
-                        )}
                       </CardContent>
                     </Card>
                   ))}

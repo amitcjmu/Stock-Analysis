@@ -34,7 +34,7 @@ export const isAgentConfiguration = (obj: unknown): obj is import('./modules/flo
 };
 
 // Component Type Guards
-export const isNavigationProps = (obj: unknown): obj is import('./components/navigation').NavigationSidebarProps => {
+// Legacy NavigationSidebar type guard removed
   return obj &&
     typeof obj === 'object' &&
     typeof obj.isOpen === 'boolean' &&

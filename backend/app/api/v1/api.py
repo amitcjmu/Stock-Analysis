@@ -662,6 +662,15 @@ api_router.include_router(
     test_discovery_router, prefix="/test-discovery", tags=["Test Discovery"]
 )
 
+# FinOps (Financial Operations) API
+try:
+    from app.api.v1.finops.finops_router import router as finops_router
+
+    api_router.include_router(finops_router, tags=["FinOps - Financial Operations"])
+    logger.info("✅ FinOps router included at /finops")
+except ImportError as e:
+    logger.warning(f"⚠️ FinOps router not available: {e}")
+
 # Emergency system controls
 try:
     from app.api.v1.endpoints.system.emergency import router as emergency_router
