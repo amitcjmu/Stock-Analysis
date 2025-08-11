@@ -325,6 +325,36 @@ async def initialize_discovery_flow(
                     flow_id_str=flow_id_str,
                 )
             )
+            
+            # Automatically trigger field mapping generation after initialization
+            try:
+                logger.info(
+                    safe_log_format(
+                        "🎯 Auto-triggering field mapping generation for flow {flow_id_str}",
+                        flow_id_str=flow_id_str,
+                    )
+                )
+                
+                # Use internal execute to trigger field mapping
+                orchestrator = MasterFlowOrchestrator(db, context)
+                field_mapping_result = await orchestrator.execute_phase(
+                    flow_id_str, "field_mapping_suggestions", {}
+                )
+                
+                logger.info(
+                    safe_log_format(
+                        "✅ Field mapping generation triggered: {result}",
+                        result=field_mapping_result.get("status") if isinstance(field_mapping_result, dict) else "completed",
+                    )
+                )
+            except Exception as auto_trigger_error:
+                logger.warning(
+                    safe_log_format(
+                        "⚠️ Could not auto-trigger field mapping: {error}. User can trigger manually.",
+                        error=auto_trigger_error,
+                    )
+                )
+                # Don't fail initialization if auto-trigger fails
 
             return FlowInitializationResponse(
                 success=True,
@@ -660,11 +690,46 @@ async def resume_discovery_flow(
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
 ):
-    """Resume a discovery flow through Master Flow Orchestrator."""
+    """Resume a discovery flow through Master Flow Orchestrator.
+    
+    For field mapping operations, this internally uses execute to ensure
+    proper field mapping generation/regeneration.
+    """
     try:
-        orchestrator = MasterFlowOrchestrator(db, context)
-        result = await orchestrator.resume_flow(flow_id)
-        return {"success": True, "flow_id": flow_id, "result": result}
+        logger.info(safe_log_format("Resuming flow: {flow_id}", flow_id=flow_id))
+        
+        # Check the current flow phase to determine if we should execute instead
+        stmt = select(DiscoveryFlow).where(
+            and_(
+                DiscoveryFlow.flow_id == flow_id,
+                DiscoveryFlow.client_account_id == context.client_account_id,
+                DiscoveryFlow.engagement_id == context.engagement_id,
+            )
+        )
+        result = await db.execute(stmt)
+        discovery_flow = result.scalar_one_or_none()
+        
+        if discovery_flow and discovery_flow.current_phase in [
+            "field_mapping",
+            "field_mapping_suggestions", 
+            "field_mapping_approval",
+            None  # If no phase set, assume we need field mapping
+        ]:
+            # For field mapping phases, use execute to ensure proper generation
+            logger.info(
+                safe_log_format(
+                    "Flow is in field mapping phase, using execute instead of resume for {flow_id}",
+                    flow_id=flow_id,
+                )
+            )
+            orchestrator = MasterFlowOrchestrator(db, context)
+            result = await orchestrator.execute_phase(flow_id, "field_mapping_suggestions", {})
+            return {"success": True, "flow_id": flow_id, "result": result, "method": "execute"}
+        else:
+            # For other phases, use normal resume
+            orchestrator = MasterFlowOrchestrator(db, context)
+            result = await orchestrator.resume_flow(flow_id)
+            return {"success": True, "flow_id": flow_id, "result": result, "method": "resume"}
     except Exception as e:
         logger.error(
             safe_log_format(

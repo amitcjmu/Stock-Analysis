@@ -123,43 +123,20 @@ export const useAttributeMappingActions = (
       console.log('🆔 Flow ID:', flowId);
 
       if (flowId) {
-        // Check if we have VALID field mappings (not just placeholder mappings with "Unknown Field")
-        const hasValidFieldMappings = fieldMappings &&
-          fieldMappings.length > 0 &&
-          fieldMappings.some(m => m.sourceField && m.sourceField !== 'Unknown Field');
-
-        console.log('🔍 Has valid field mappings:', hasValidFieldMappings);
-        console.log('📊 Field mappings sample:', fieldMappings?.slice(0, 3));
-
-        if (!hasValidFieldMappings) {
-          // No valid field mappings exist - use execute to trigger field mapping phase
-          console.log('🔁 No valid field mappings found - executing field mapping phase');
-          console.log('📊 Current mappings:', fieldMappings?.slice(0, 3));
-          const result = await apiCall(`/unified-discovery/flow/${flowId}/execute`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...getAuthHeaders()
-            }
-          });
-          console.log('✅ Field mapping phase execution triggered:', result);
-        } else {
-          // Valid field mappings exist - normal resume flow
-          console.log('▶️ Resuming flow with existing valid field mappings');
-          const result = await apiCall(`/unified-discovery/flow/${flowId}/resume`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...getAuthHeaders()
-            },
-            body: JSON.stringify({
-              user_approval: true,
-              approval_timestamp: new Date().toISOString(),
-              notes: 'User triggered field mapping continuation'
-            })
-          });
-          console.log('✅ CrewAI Flow resumed successfully:', result);
-        }
+        // ALWAYS use execute to trigger/re-trigger field mapping phase
+        // This ensures field mappings are generated or regenerated as needed
+        console.log('🔁 Executing field mapping phase');
+        console.log('📊 Current mappings:', fieldMappings?.slice(0, 3));
+        
+        const result = await apiCall(`/unified-discovery/flow/${flowId}/execute`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          }
+        });
+        
+        console.log('✅ Field mapping phase execution triggered:', result);
 
         // Refresh the flow data to get updated state
         await refresh();
@@ -170,7 +147,7 @@ export const useAttributeMappingActions = (
     } catch (error) {
       console.error('❌ Failed to trigger field mapping analysis:', error);
     }
-  }, [flow, fieldMappings, refresh, getAuthHeaders]);
+  }, [flow, refresh, getAuthHeaders]);
 
   const handleApproveMapping = useCallback(async (mappingId: string) => {
     try {
