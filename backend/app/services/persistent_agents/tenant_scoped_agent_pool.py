@@ -75,6 +75,7 @@ class TenantScopedAgentPool:
     # Structure: {(client_id, engagement_id): {agent_type: agent_instance}}
     _agent_pools: Dict[Tuple[str, str], Dict[str, Agent]] = {}
     _pool_metadata: Dict[Tuple[str, str], TenantPoolStats] = {}
+    _agent_metadata: Dict[int, Dict[str, Any]] = {}  # Store metadata by agent ID
     _pool_lock = asyncio.Lock()  # Thread safety for agent pool access
 
     # Memory monitoring and cleanup scheduling
@@ -119,6 +120,7 @@ class TenantScopedAgentPool:
                     agent_count=0,
                     total_executions=0,
                     creation_time=datetime.utcnow(),
+                    last_activity=None,  # Will be updated when agents are used
                 )
                 logger.info(
                     f"🆕 Created new agent pool for tenant: {client_id}/{engagement_id}"
@@ -131,10 +133,19 @@ class TenantScopedAgentPool:
                 health = await cls._check_agent_health(existing_agent)
 
                 if health.is_healthy:
-                    # Update usage stats
-                    health.total_executions += 1
-                    health.last_used = datetime.utcnow()
+                    # Update usage stats in metadata
+                    agent_id = id(existing_agent)
+                    if (
+                        hasattr(cls, "_agent_metadata")
+                        and agent_id in cls._agent_metadata
+                    ):
+                        cls._agent_metadata[agent_id]["execution_count"] += 1
+                        cls._agent_metadata[agent_id][
+                            "last_execution"
+                        ] = datetime.utcnow()
+
                     cls._pool_metadata[tenant_key].last_activity = datetime.utcnow()
+                    cls._pool_metadata[tenant_key].total_executions += 1
 
                     logger.info(
                         f"🔄 Reusing healthy persistent agent: {agent_type} for {client_id}/{engagement_id}"
@@ -273,14 +284,18 @@ class TenantScopedAgentPool:
                 verbose=False,  # Reduce noise
             )
 
-            # Fix 3: Integrate with three-tier memory system
-            agent.memory_manager = memory_manager
+            # Fix 3: Store memory manager and metadata separately
+            # CrewAI Agent doesn't support custom attributes, so we store them externally
 
-            # Initialize agent-specific context
-            agent._agent_type = agent_type
-            agent._creation_time = datetime.utcnow()
-            agent._execution_count = 0
-            agent._last_execution = None
+            # Store agent metadata separately since we can't add attributes to CrewAI Agent
+            agent_id = id(agent)
+            cls._agent_metadata[agent_id] = {
+                "memory_manager": memory_manager,
+                "agent_type": agent_type,
+                "creation_time": datetime.utcnow(),
+                "execution_count": 0,
+                "last_execution": None,
+            }
 
             logger.info(f"🧠 Agent {agent_type} created with memory enabled")
             return agent
@@ -299,14 +314,19 @@ class TenantScopedAgentPool:
             agent_type: Type of agent for context
         """
         try:
-            # Load persistent patterns from memory
-            if hasattr(agent, "memory_manager"):
-                # Placeholder for memory loading - depends on memory manager implementation
-                logger.info(f"🔥 Warming up {agent_type} - loading memory patterns")
+            # Get agent metadata
+            agent_id = id(agent)
+            if hasattr(cls, "_agent_metadata") and agent_id in cls._agent_metadata:
+                metadata = cls._agent_metadata[agent_id]
 
-            # Initialize agent execution context
-            agent._warmed_up = True
-            agent._warm_up_time = datetime.utcnow()
+                # Load persistent patterns from memory if available
+                if metadata.get("memory_manager"):
+                    logger.info(f"🔥 Warming up {agent_type} - loading memory patterns")
+                    # TODO: Implement actual memory loading when memory manager supports it
+
+                # Update warm-up status
+                metadata["warmed_up"] = True
+                metadata["warm_up_time"] = datetime.utcnow()
 
             logger.info(f"✅ Agent {agent_type} warmed up successfully")
 
@@ -329,28 +349,39 @@ class TenantScopedAgentPool:
             # Basic health checks
             is_healthy = True
             error = None
+            last_used = None
+            execution_count = 0
 
-            # Check 1: Agent object integrity
-            if not hasattr(agent, "_agent_type"):
+            # Get agent metadata
+            agent_id = id(agent)
+            metadata = None
+            if hasattr(cls, "_agent_metadata") and agent_id in cls._agent_metadata:
+                metadata = cls._agent_metadata[agent_id]
+
+                # Check 1: Agent has metadata
+                if not metadata.get("agent_type"):
+                    is_healthy = False
+                    error = "Agent missing type metadata"
+
+                # Check 2: Memory system health
+                memory_status = bool(metadata.get("memory_manager"))
+
+                # Check 3: Recent activity (agents idle >24h might need refresh)
+                last_used = metadata.get("last_execution")
+                if last_used and (datetime.utcnow() - last_used).days > 1:
+                    logger.info("⏰ Agent has been idle for >24h")
+
+                execution_count = metadata.get("execution_count", 0)
+            else:
                 is_healthy = False
-                error = "Agent missing type metadata"
-
-            # Check 2: Memory system health
-            memory_status = True
-            if hasattr(agent, "memory_manager"):
-                # Placeholder for memory health check
-                pass
-
-            # Check 3: Recent activity (agents idle >24h might need refresh)
-            last_used = getattr(agent, "_last_execution", None)
-            if last_used and (datetime.utcnow() - last_used).days > 1:
-                logger.info("⏰ Agent has been idle for >24h")
+                error = "Agent metadata not found"
+                memory_status = False
 
             return AgentHealth(
                 is_healthy=is_healthy,
                 memory_status=memory_status,
                 last_used=last_used,
-                total_executions=getattr(agent, "_execution_count", 0),
+                total_executions=execution_count,
                 error=error,
             )
 

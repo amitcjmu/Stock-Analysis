@@ -83,6 +83,91 @@ class DataFlowValidator:
     def __init__(self):
         self.validation_rules = self._initialize_validation_rules()
 
+    async def _perform_validation(
+        self,
+        session: AsyncSession,
+        engagement_id: UUID,
+        validation_id: str,
+        validation_scope: Optional[Set[str]],
+        issues: List[ValidationIssue],
+        phase_scores: Dict[str, float],
+    ) -> ValidationResult:
+        """Perform the actual validation with a session"""
+        # Get all flows and assets
+        flows_data = await self._get_flows_data(session, engagement_id)
+        assets = await self._get_assets_with_dependencies(session, engagement_id)
+
+        # Phase-specific validations
+        if not validation_scope or "collection" in validation_scope:
+            (
+                collection_issues,
+                collection_score,
+            ) = await self._validate_collection_phase(session, flows_data, assets)
+            issues.extend(collection_issues)
+            phase_scores["collection"] = collection_score
+
+        if not validation_scope or "discovery" in validation_scope:
+            (
+                discovery_issues,
+                discovery_score,
+            ) = await self._validate_discovery_phase(session, flows_data, assets)
+            issues.extend(discovery_issues)
+            phase_scores["discovery"] = discovery_score
+
+        if not validation_scope or "assessment" in validation_scope:
+            (
+                assessment_issues,
+                assessment_score,
+            ) = await self._validate_assessment_phase(session, flows_data, assets)
+            issues.extend(assessment_issues)
+            phase_scores["assessment"] = assessment_score
+
+        # Cross-phase validations
+        if not validation_scope or "cross_phase" in validation_scope:
+            (
+                cross_phase_issues,
+                cross_phase_score,
+            ) = await self._validate_cross_phase_consistency(
+                session, flows_data, assets
+            )
+            issues.extend(cross_phase_issues)
+            phase_scores["cross_phase"] = cross_phase_score
+
+        # Calculate overall score
+        overall_score = (
+            sum(phase_scores.values()) / len(phase_scores) if phase_scores else 0.0
+        )
+
+        # Generate summary and recommendations
+        summary = self._generate_validation_summary(issues, phase_scores, assets)
+        recommendations = self._generate_recommendations(issues, phase_scores)
+
+        result = ValidationResult(
+            engagement_id=engagement_id,
+            validation_id=validation_id,
+            overall_score=overall_score,
+            issues=issues,
+            phase_scores=phase_scores,
+            summary=summary,
+            recommendations=recommendations,
+            validated_at=datetime.utcnow(),
+        )
+
+        logger.info(
+            "End-to-end data flow validation completed",
+            extra={
+                "engagement_id": str(engagement_id),
+                "validation_id": validation_id,
+                "overall_score": overall_score,
+                "issues_count": len(issues),
+                "critical_issues": len(
+                    [i for i in issues if i.severity == ValidationSeverity.CRITICAL]
+                ),
+            },
+        )
+
+        return result
+
     def _initialize_validation_rules(self) -> Dict[str, Any]:
         """Initialize validation rules for different phases and transitions"""
         return {
@@ -127,7 +212,10 @@ class DataFlowValidator:
 
     @track_performance("validation.data_flow.full")
     async def validate_end_to_end_data_flow(
-        self, engagement_id: UUID, validation_scope: Optional[Set[str]] = None
+        self,
+        engagement_id: UUID,
+        validation_scope: Optional[Set[str]] = None,
+        session: Optional[AsyncSession] = None,
     ) -> ValidationResult:
         """
         Perform comprehensive end-to-end data flow validation
@@ -150,97 +238,28 @@ class DataFlowValidator:
         phase_scores: Dict[str, float] = {}
 
         try:
-            async with AsyncSessionLocal() as session:
-                # Get all flows and assets
-                flows_data = await self._get_flows_data(session, engagement_id)
-                assets = await self._get_assets_with_dependencies(
-                    session, engagement_id
+            # Use provided session or create new one
+            if session:
+                # Use the provided session directly
+                return await self._perform_validation(
+                    session,
+                    engagement_id,
+                    validation_id,
+                    validation_scope,
+                    issues,
+                    phase_scores,
                 )
-
-                # Phase-specific validations
-                if not validation_scope or "collection" in validation_scope:
-                    (
-                        collection_issues,
-                        collection_score,
-                    ) = await self._validate_collection_phase(
-                        session, flows_data, assets
+            else:
+                # Create new session
+                async with AsyncSessionLocal() as new_session:
+                    return await self._perform_validation(
+                        new_session,
+                        engagement_id,
+                        validation_id,
+                        validation_scope,
+                        issues,
+                        phase_scores,
                     )
-                    issues.extend(collection_issues)
-                    phase_scores["collection"] = collection_score
-
-                if not validation_scope or "discovery" in validation_scope:
-                    (
-                        discovery_issues,
-                        discovery_score,
-                    ) = await self._validate_discovery_phase(
-                        session, flows_data, assets
-                    )
-                    issues.extend(discovery_issues)
-                    phase_scores["discovery"] = discovery_score
-
-                if not validation_scope or "assessment" in validation_scope:
-                    (
-                        assessment_issues,
-                        assessment_score,
-                    ) = await self._validate_assessment_phase(
-                        session, flows_data, assets
-                    )
-                    issues.extend(assessment_issues)
-                    phase_scores["assessment"] = assessment_score
-
-                # Cross-phase validations
-                if not validation_scope or "cross_phase" in validation_scope:
-                    (
-                        cross_phase_issues,
-                        cross_phase_score,
-                    ) = await self._validate_cross_phase_consistency(
-                        session, flows_data, assets
-                    )
-                    issues.extend(cross_phase_issues)
-                    phase_scores["cross_phase"] = cross_phase_score
-
-                # Calculate overall score
-                overall_score = (
-                    sum(phase_scores.values()) / len(phase_scores)
-                    if phase_scores
-                    else 0.0
-                )
-
-                # Generate summary and recommendations
-                summary = self._generate_validation_summary(
-                    issues, phase_scores, assets
-                )
-                recommendations = self._generate_recommendations(issues, phase_scores)
-
-                result = ValidationResult(
-                    engagement_id=engagement_id,
-                    validation_id=validation_id,
-                    overall_score=overall_score,
-                    issues=issues,
-                    phase_scores=phase_scores,
-                    summary=summary,
-                    recommendations=recommendations,
-                    validated_at=datetime.utcnow(),
-                )
-
-                logger.info(
-                    "End-to-end data flow validation completed",
-                    extra={
-                        "engagement_id": str(engagement_id),
-                        "validation_id": validation_id,
-                        "overall_score": overall_score,
-                        "issues_count": len(issues),
-                        "critical_issues": len(
-                            [
-                                i
-                                for i in issues
-                                if i.severity == ValidationSeverity.CRITICAL
-                            ]
-                        ),
-                    },
-                )
-
-                return result
 
         except Exception as e:
             logger.error(
@@ -258,21 +277,30 @@ class DataFlowValidator:
     ) -> Dict[str, Any]:
         """Get all flow data for the engagement"""
 
-        # Get collection flow
+        # Get collection flow - take the most recent active one
         collection_result = await session.execute(
-            select(CollectionFlow).where(CollectionFlow.engagement_id == engagement_id)
+            select(CollectionFlow)
+            .where(CollectionFlow.engagement_id == engagement_id)
+            .order_by(CollectionFlow.created_at.desc())
+            .limit(1)
         )
         collection_flow = collection_result.scalar_one_or_none()
 
-        # Get discovery flow
+        # Get discovery flow - take the most recent active one
         discovery_result = await session.execute(
-            select(DiscoveryFlow).where(DiscoveryFlow.engagement_id == engagement_id)
+            select(DiscoveryFlow)
+            .where(DiscoveryFlow.engagement_id == engagement_id)
+            .order_by(DiscoveryFlow.created_at.desc())
+            .limit(1)
         )
         discovery_flow = discovery_result.scalar_one_or_none()
 
-        # Get assessment flow
+        # Get assessment flow - take the most recent active one
         assessment_result = await session.execute(
-            select(AssessmentFlow).where(AssessmentFlow.engagement_id == engagement_id)
+            select(AssessmentFlow)
+            .where(AssessmentFlow.engagement_id == engagement_id)
+            .order_by(AssessmentFlow.created_at.desc())
+            .limit(1)
         )
         assessment_flow = assessment_result.scalar_one_or_none()
 
@@ -421,7 +449,10 @@ class DataFlowValidator:
                     category=ValidationCategory.DATA_COMPLETENESS,
                     severity=ValidationSeverity.WARNING,
                     title="Low Dependency Discovery Coverage",
-                    description=f"Only {dependency_coverage:.1%} of assets have discovered dependencies (target: {min_dependency_coverage:.1%})",
+                    description=(
+                        f"Only {dependency_coverage:.1%} of assets have discovered dependencies "
+                        f"(target: {min_dependency_coverage:.1%})"
+                    ),
                     affected_assets=[
                         asset.id for asset in assets if not asset.dependencies
                     ],
@@ -557,7 +588,10 @@ class DataFlowValidator:
                         category=ValidationCategory.CROSS_PHASE_ALIGNMENT,
                         severity=ValidationSeverity.WARNING,
                         title="Asset Count Inconsistency",
-                        description=f"Asset count differs between collection ({collection_count}) and discovery ({discovery_count})",
+                        description=(
+                            f"Asset count differs between collection ({collection_count}) "
+                            f"and discovery ({discovery_count})"
+                        ),
                         affected_assets=[],
                         metadata={
                             "collection_count": collection_count,

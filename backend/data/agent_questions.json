@@ -999,9 +999,9 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-02T05:41:48.421366",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-08-11T18:47:04.154661",
+    "user_response": "Not an application - infrastructure only",
+    "is_resolved": true
   },
   "30f76a24-3f19-42bb-a319-5115da174214": {
     "id": "30f76a24-3f19-42bb-a319-5115da174214",
@@ -1027,9 +1027,9 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-02T05:41:48.424057",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-08-11T18:46:17.435226",
+    "user_response": "Not an application - infrastructure only",
+    "is_resolved": true
   },
   "b0c4f2a0-1a2e-465a-84f3-3ded720e2938": {
     "id": "b0c4f2a0-1a2e-465a-84f3-3ded720e2938",
@@ -1083,9 +1083,9 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-02T05:41:48.428467",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-08-11T18:46:06.484488",
+    "user_response": "Single application - grouping is correct",
+    "is_resolved": true
   },
   "f6b36dd4-d18f-45b7-9485-c0f42d598e41": {
     "id": "f6b36dd4-d18f-45b7-9485-c0f42d598e41",
@@ -1111,9 +1111,9 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-02T05:41:48.429798",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-08-11T18:46:00.302082",
+    "user_response": "Single application - grouping is correct",
+    "is_resolved": true
   },
   "e72077d4-bde9-4354-b4fa-9581355674d1": {
     "id": "e72077d4-bde9-4354-b4fa-9581355674d1",
@@ -1139,9 +1139,9 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-02T05:41:48.431324",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-08-11T18:45:43.887911",
+    "user_response": "Single application - grouping is correct",
+    "is_resolved": true
   },
   "d4632783-57c9-4053-953e-b07475a03187": {
     "id": "d4632783-57c9-4053-953e-b07475a03187",
@@ -1173,9 +1173,9 @@
     "confidence": "high",
     "priority": "high",
     "created_at": "2025-06-02T13:12:03.908136",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-08-11T18:44:46.539108",
+    "user_response": "asset_name",
+    "is_resolved": true
   },
   "5b238c6c-cb86-43fa-b1f3-6b9452d572d2": {
     "id": "5b238c6c-cb86-43fa-b1f3-6b9452d572d2",
@@ -1224,9 +1224,9 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-02T13:12:03.914617",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-08-11T18:47:09.240621",
+    "user_response": "Asset identifier",
+    "is_resolved": true
   },
   "144c7340-9b57-4a12-85d2-ef37a04ed71f": {
     "id": "144c7340-9b57-4a12-85d2-ef37a04ed71f",
@@ -1710,9 +1710,9 @@
     "confidence": "high",
     "priority": "medium",
     "created_at": "2025-06-03T13:07:57.172530",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-08-11T18:44:59.901189",
+    "user_response": "Include (data may be elsewhere)",
+    "is_resolved": true
   },
   "1dfe4d71-417c-4bab-9ad6-15648d8103c6": {
     "id": "1dfe4d71-417c-4bab-9ad6-15648d8103c6",

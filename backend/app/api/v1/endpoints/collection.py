@@ -89,6 +89,7 @@ async def ensure_collection_flow(
                 ),
             )
             .order_by(CollectionFlow.created_at.desc())
+            .limit(1)  # Ensure we only get one row
         )
         existing = result.scalar_one_or_none()
 
@@ -132,7 +133,7 @@ async def get_collection_status(
 ) -> Dict[str, Any]:
     """Get collection flow status for current engagement"""
     try:
-        # Get active collection flow
+        # Get active collection flow - use first() to handle multiple rows
         result = await db.execute(
             select(CollectionFlow)
             .where(
@@ -140,6 +141,7 @@ async def get_collection_status(
                 CollectionFlow.status != CollectionFlowStatus.COMPLETED.value,
             )
             .order_by(CollectionFlow.created_at.desc())
+            .limit(1)  # Ensure we only get one row
         )
         collection_flow = result.scalar_one_or_none()
 
@@ -195,6 +197,7 @@ async def create_collection_flow(
                 ),
             )
             .order_by(CollectionFlow.created_at.desc())
+            .limit(1)  # Ensure we only get one row
         )
         existing_flow = existing.scalar_one_or_none()
 
@@ -642,6 +645,7 @@ async def get_collection_readiness(
             validation = await validator.validate_end_to_end_data_flow(
                 engagement_id=context.engagement_id,
                 validation_scope={"collection", "discovery"},
+                session=db,
             )
             phase_scores = validation.phase_scores
             issues = {
