@@ -36,7 +36,8 @@ export const useImportData = (finalFlowId: string | null): ImportDataResult => {
 
       console.log('🔍 Fetching import data for flow:', finalFlowId);
       try {
-        const flowResponse = await apiCall(`/api/v1/data-import/flow/${finalFlowId}/import-data`, {
+        // Use the unified flow status endpoint to get import data
+        const flowResponse = await apiCall(`/api/v1/flows/${finalFlowId}/status`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -45,11 +46,21 @@ export const useImportData = (finalFlowId: string | null): ImportDataResult => {
         });
 
         if (flowResponse) {
-          console.log('✅ Fetched flow-specific import data:', flowResponse);
-          return flowResponse;
+          // Extract import data from flow status response
+          const importData = {
+            import_metadata: flowResponse.import_metadata || { import_id: null },
+            raw_data: flowResponse.raw_data?.[0] || {},
+            sample_record: flowResponse.raw_data?.[0] || {},
+            record_count: flowResponse.raw_data?.length || 0,
+            field_count: flowResponse.raw_data?.[0] ? Object.keys(flowResponse.raw_data[0]).length : 0,
+            field_mappings: flowResponse.field_mappings || []
+          };
+
+          console.log('✅ Extracted import data from flow status:', importData);
+          return importData;
         }
       } catch (error) {
-        console.error('❌ Error fetching flow-specific import data:', error);
+        console.error('❌ Error fetching flow status for import data:', error);
         // Fall through to use latest import data from unified hook
       }
 
