@@ -9,7 +9,7 @@ from .import_storage_handler import ImportStorageHandler
 from .import_validator import ImportValidator
 from .response_builder import ResponseBuilder
 from .storage_manager import StorageManager
-from .transaction_manager import TransactionManager
+from .transaction_manager import ImportTransactionManager
 
 __all__ = [
     "BackgroundExecutionService",
@@ -18,5 +18,5 @@ __all__ = [
     "ImportValidator",
     "ResponseBuilder",
     "StorageManager",
-    "TransactionManager",
+    "ImportTransactionManager",
 ]

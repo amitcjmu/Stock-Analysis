@@ -23,7 +23,7 @@ from app.schemas.data_import_schemas import StoreImportRequest
 # Import the new modular service
 from app.services.data_import.import_service import DataImportService
 from app.services.data_import.import_storage_handler import ImportStorageHandler
-from app.services.data_import.transaction_manager import TransactionManager
+from app.services.data_import.transaction_manager import ImportTransactionManager
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -45,10 +45,10 @@ async def store_import_data(
 
     try:
         # Use a transaction manager to ensure atomicity
-        transaction_manager = TransactionManager(db, context)
+        transaction_manager = ImportTransactionManager(db)
 
-        async with transaction_manager.begin() as transactional_db:
-            import_service = DataImportService(transactional_db, context)
+        async with transaction_manager.transaction():
+            import_service = DataImportService(db, context)
 
             data_import = await import_service.process_import_and_trigger_flow(
                 file_content=store_request.file_content.encode("utf-8"),

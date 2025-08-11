@@ -16,7 +16,7 @@ from app.schemas.data_import_schemas import StoreImportRequest
 
 from .storage_manager import ImportStorageManager
 from .import_service import DataImportService
-from .transaction_manager import TransactionManager
+from .transaction_manager import ImportTransactionManager
 from .response_builder import ResponseBuilder
 
 logger = get_logger(__name__)
@@ -256,10 +256,10 @@ class ImportStorageHandler:
         """
         try:
             # Use transaction manager for atomic operations
-            transaction_manager = TransactionManager(self.db, context)
+            transaction_manager = ImportTransactionManager(self.db)
 
-            async with transaction_manager.begin() as transactional_db:
-                import_service = DataImportService(transactional_db, context)
+            async with transaction_manager.transaction():
+                import_service = DataImportService(self.db, context)
 
                 data_import = await import_service.process_import_and_trigger_flow(
                     file_content=store_request.file_content.encode("utf-8"),
