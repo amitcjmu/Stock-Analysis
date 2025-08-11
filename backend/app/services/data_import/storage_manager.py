@@ -294,6 +294,65 @@ class ImportStorageManager:
             logger.error(f"Failed to get import by ID: {e}")
             return None
 
+    async def get_import_data(self, data_import_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get complete import data including metadata and records.
+
+        Args:
+            data_import_id: The ID of the import to retrieve
+
+        Returns:
+            Dict containing import data and metadata, or None if not found
+        """
+        try:
+            logger.info(f"Getting import data for ID: {data_import_id}")
+
+            # Get the import record
+            import_record = await self.get_import_by_id(data_import_id)
+            if not import_record:
+                logger.warning(f"No import found for ID: {data_import_id}")
+                return None
+
+            # Get raw records
+            raw_records = await self.get_raw_records(
+                uuid.UUID(data_import_id), limit=1000
+            )
+
+            # Build response data
+            data = []
+            for record in raw_records:
+                if record.raw_data:
+                    data.append(record.raw_data)
+
+            # Build metadata
+            import_metadata = {
+                "import_id": str(import_record.id),
+                "filename": import_record.filename,
+                "import_type": import_record.import_type,
+                "status": import_record.status,
+                "record_count": import_record.record_count,
+                "total_records": len(data),
+                "actual_total_records": len(data),
+                "imported_at": (
+                    import_record.created_at.isoformat()
+                    if import_record.created_at
+                    else None
+                ),
+                "client_account_id": str(import_record.client_account_id),
+                "engagement_id": str(import_record.engagement_id),
+                "master_flow_id": (
+                    str(import_record.master_flow_id)
+                    if import_record.master_flow_id
+                    else None
+                ),
+            }
+
+            return {"data": data, "import_metadata": import_metadata, "success": True}
+
+        except Exception as e:
+            logger.error(f"Failed to get import data: {e}")
+            return None
+
     async def get_raw_records(
         self, data_import_id: uuid.UUID, limit: int = 1000
     ) -> List[RawImportRecord]:

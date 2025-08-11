@@ -85,9 +85,16 @@ class UploadContext(BaseModel):
 class StoreImportRequest(BaseModel):
     """Request schema for storing import data"""
 
-    file_data: List[Dict[str, Any]]
-    metadata: FileMetadata
-    upload_context: UploadContext
+    # Fields expected by the endpoint
+    file_content: str
+    filename: str
+    file_content_type: str
+    import_type: str
+
+    # Legacy fields for backward compatibility
+    file_data: Optional[List[Dict[str, Any]]] = None
+    metadata: Optional[FileMetadata] = None
+    upload_context: Optional[UploadContext] = None
     client_id: Optional[str] = None
     engagement_id: Optional[str] = None
 
