@@ -204,7 +204,7 @@ class AgentDiscoveredPatterns(Base):
             )""",
             name="chk_agent_patterns_insight_type",
         ),
-        {"extend_existing": True},
+        {"extend_existing": True, "schema": "migration"},
     )
 
     def __repr__(self):

@@ -213,8 +213,50 @@ class FlowStateBridge:
                         state_data["phase_completion"] = phase_completion
 
                         logger.info(
-                            f"✅ Merged state from DiscoveryFlow table - phase: {discovery_flow.current_phase}, progress: {discovery_flow.progress_percentage}%"
+                            f"✅ Merged state from DiscoveryFlow table - "
+                            f"phase: {discovery_flow.current_phase}, "
+                            f"progress: {discovery_flow.progress_percentage}%"
                         )
+
+                    # Handle different raw_data formats intelligently
+                    if "raw_data" in state_data:
+                        raw_data_value = state_data["raw_data"]
+
+                        # If raw_data is a dict with a 'data' key, extract the list
+                        if (
+                            isinstance(raw_data_value, dict)
+                            and "data" in raw_data_value
+                        ):
+                            logger.info(
+                                "🔄 Converting raw_data from dict format to list format"
+                            )
+                            state_data["raw_data"] = raw_data_value["data"]
+
+                            # Also preserve other metadata from the dict if needed
+                            if (
+                                "import_metadata" in raw_data_value
+                                and "import_metadata" not in state_data
+                            ):
+                                state_data["import_metadata"] = raw_data_value[
+                                    "import_metadata"
+                                ]
+
+                        # If raw_data is already a list, leave it as is
+                        elif isinstance(raw_data_value, list):
+                            logger.info("✅ raw_data already in correct list format")
+
+                        # If raw_data is something else, try to convert it
+                        else:
+                            logger.warning(
+                                f"⚠️ Unexpected raw_data format: {type(raw_data_value)}, attempting conversion"
+                            )
+                            # Wrap in a list if it's a single item
+                            if raw_data_value:
+                                state_data["raw_data"] = (
+                                    [raw_data_value]
+                                    if not isinstance(raw_data_value, list)
+                                    else raw_data_value
+                                )
 
                     # Reconstruct UnifiedDiscoveryFlowState from recovered data
                     restored_state = UnifiedDiscoveryFlowState(**state_data)
