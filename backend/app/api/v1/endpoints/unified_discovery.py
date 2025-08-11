@@ -22,7 +22,6 @@ from app.core.database import get_db
 from app.core.security.secure_logging import (
     mask_id,
     safe_log_format,
-    sanitize_log_input,
 )
 from app.models.data_import.mapping import ImportFieldMapping
 from app.models.discovery_flow import DiscoveryFlow
@@ -31,6 +30,135 @@ from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+def _extract_raw_data(crewai_state_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Extract raw_data from crewai_state_data, handling both old dict format and new list format.
+
+    Old format: raw_data: {'data': [...], 'import_metadata': {...}}
+    New format: raw_data: [...]
+    """
+    if not crewai_state_data:
+        logger.warning("⚠️ No crewai_state_data provided to _extract_raw_data")
+        return []
+
+    raw_data = crewai_state_data.get("raw_data", [])
+    logger.info(
+        f"📊 Raw data type: {type(raw_data)}, has 'data' key: {isinstance(raw_data, dict) and 'data' in raw_data}"
+    )
+
+    # If raw_data is a dict with 'data' key, extract the list
+    if isinstance(raw_data, dict) and "data" in raw_data:
+        extracted_data = raw_data["data"]
+        logger.info(
+            f"🔄 Converting raw_data from dict format to list format in API response, found {len(extracted_data)} records"
+        )
+        return extracted_data
+
+    # If raw_data is already a list, return it
+    if isinstance(raw_data, list):
+        logger.info(f"✅ raw_data already in list format with {len(raw_data)} records")
+        return raw_data
+
+    # Otherwise, wrap in a list or return empty
+    logger.warning(f"⚠️ Unexpected raw_data format: {type(raw_data)}")
+    return [raw_data] if raw_data else []
+
+
+def _extract_import_metadata(
+    crewai_state_data: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    """
+    Extract import_metadata from crewai_state_data, handling both locations.
+
+    Could be in:
+    1. crewai_state_data['import_metadata']
+    2. crewai_state_data['raw_data']['import_metadata'] (old format)
+    """
+    if not crewai_state_data:
+        return None
+
+    # First check direct location
+    if "import_metadata" in crewai_state_data:
+        return crewai_state_data["import_metadata"]
+
+    # Then check inside raw_data (old format)
+    raw_data = crewai_state_data.get("raw_data", {})
+    if isinstance(raw_data, dict) and "import_metadata" in raw_data:
+        logger.info("🔄 Extracting import_metadata from old raw_data dict format")
+        return raw_data["import_metadata"]
+
+    return None
+
+
+def _extract_detected_fields(crewai_state_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Extract detected fields from raw_data for attribute mapping display."""
+    if not crewai_state_data:
+        return []
+
+    # First, get the raw_data
+    raw_data = _extract_raw_data(crewai_state_data)
+
+    if not raw_data or len(raw_data) == 0:
+        return []
+
+    # Get field names from the first record
+    first_record = (
+        raw_data[0] if isinstance(raw_data, list) and len(raw_data) > 0 else {}
+    )
+
+    if not first_record:
+        return []
+
+    # Create detected_fields array with proper structure
+    detected_fields = []
+    for field_name in first_record.keys():
+        # Analyze field data from multiple records for better type detection
+        sample_values = []
+        for i, record in enumerate(raw_data[:10]):  # Sample first 10 records
+            if field_name in record and record[field_name]:
+                sample_values.append(record[field_name])
+
+        # Determine field type based on sample values
+        field_type = "string"  # Default
+        if sample_values:
+            # Check if all values are numbers
+            if all(
+                isinstance(v, (int, float))
+                or (
+                    isinstance(v, str) and v.replace(".", "").replace("-", "").isdigit()
+                )
+                for v in sample_values
+            ):
+                field_type = "number"
+            # Check if all values are booleans
+            elif all(
+                isinstance(v, bool) or v in ["true", "false", "True", "False"]
+                for v in sample_values
+            ):
+                field_type = "boolean"
+
+        detected_fields.append(
+            {
+                "name": field_name,
+                "type": field_type,
+                "sample_values": sample_values[:3],  # Include up to 3 sample values
+                "non_null_count": sum(
+                    1
+                    for record in raw_data
+                    if field_name in record and record[field_name]
+                ),
+                "null_count": sum(
+                    1
+                    for record in raw_data
+                    if field_name not in record or not record[field_name]
+                ),
+            }
+        )
+
+    logger.info(f"🔍 Detected {len(detected_fields)} fields from raw_data")
+    return detected_fields
 
 
 class FlowInitializationRequest(BaseModel):
@@ -154,6 +282,7 @@ async def initialize_discovery_flow(
 
                 discovery_flow = DiscoveryFlow(
                     flow_id=flow_id_str,
+                    master_flow_id=flow_id_str,  # Link to master flow for two-table design
                     flow_name=request.flow_name
                     or f"Discovery Flow {datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
                     flow_type="discovery",
@@ -448,12 +577,23 @@ async def get_discovery_flow_status(
             or {},  # Alternative key for compatibility
             "tech_debt_analysis": discovery_flow.tech_debt_analysis or {},
             "raw_data": (
-                discovery_flow.crewai_state_data.get("raw_data", [])
+                _extract_raw_data(discovery_flow.crewai_state_data)
                 if discovery_flow.crewai_state_data
                 else []
             ),
+            "import_metadata": (
+                _extract_import_metadata(discovery_flow.crewai_state_data)
+                if discovery_flow.crewai_state_data
+                else None
+            ),
             "cleaned_data": (
                 discovery_flow.crewai_state_data.get("cleaned_data", [])
+                if discovery_flow.crewai_state_data
+                else []
+            ),
+            # Add detected_fields for attribute mapping
+            "detected_fields": (
+                _extract_detected_fields(discovery_flow.crewai_state_data)
                 if discovery_flow.crewai_state_data
                 else []
             ),
@@ -863,7 +1003,18 @@ async def execute_flow(
 
         # Determine the next phase based on current status
         current_phase = discovery_flow.current_phase
-        phase_to_execute = current_phase or "data_import"
+
+        # Map the phase correctly to match PhaseController expectations
+        # When a flow is initialized but has no current_phase, it means we need to run field mapping
+        if discovery_flow.status == "initialized" and not current_phase:
+            # Flow is initialized but hasn't started any phase yet - run field mapping suggestions
+            phase_to_execute = "field_mapping_suggestions"
+        elif current_phase:
+            # Use the current phase from the flow
+            phase_to_execute = current_phase
+        else:
+            # Default phase mapping based on status
+            phase_to_execute = "initialization"
 
         # For flows that are completed or in specific phases, determine next action
         if discovery_flow.status == "completed":
@@ -875,14 +1026,17 @@ async def execute_flow(
                 "current_phase": current_phase,
             }
         elif discovery_flow.status in ["failed", "error"]:
-            # For failed flows, restart from current phase
-            phase_to_execute = current_phase or "data_import"
+            # For failed flows, restart from current phase or field mapping
+            phase_to_execute = current_phase or "field_mapping_suggestions"
         elif discovery_flow.status in ["paused", "waiting_for_approval"]:
-            # For paused flows, resume from current phase
-            phase_to_execute = current_phase or "field_mapping"
+            # For paused flows, use current phase or field mapping
+            phase_to_execute = current_phase or "field_mapping_suggestions"
+        elif discovery_flow.status == "initialized":
+            # Flow was initialized but needs to execute field mapping phase
+            phase_to_execute = "field_mapping_suggestions"
         else:
-            # For running flows, continue with next phase or current phase
-            phase_to_execute = current_phase or "data_import"
+            # For running flows, continue with current phase
+            phase_to_execute = current_phase or "initialization"
 
         logger.info(
             safe_log_format(
@@ -964,8 +1118,95 @@ async def execute_flow(
 
         # Continue with existing logic after initialization block...
 
-        # Try to execute through Master Flow Orchestrator
+        # Try to execute through Master Flow Orchestrator or direct PhaseController
         try:
+            # For field mapping suggestions phase, try direct execution first
+            if phase_to_execute == "field_mapping_suggestions":
+                logger.info(
+                    f"🎯 Attempting direct field mapping execution for flow {flow_id}"
+                )
+
+                # Try to execute field mapping directly using PhaseController
+                from app.services.crewai_flow_service import CrewAIFlowService
+                from app.services.crewai_flows.unified_discovery_flow.unified_discovery_flow import (
+                    UnifiedDiscoveryFlow,
+                )
+                from app.services.crewai_flows.unified_discovery_flow.phase_controller import (
+                    PhaseController,
+                    FlowPhase,
+                )
+
+                try:
+                    # Create flow instance for field mapping execution
+                    crewai_service = CrewAIFlowService()
+
+                    # Get flow persistence data from master flow if available
+                    from app.repositories.crewai_flow_state_extensions_repository import (
+                        CrewAIFlowStateExtensionsRepository,
+                    )
+
+                    master_repo = CrewAIFlowStateExtensionsRepository(
+                        db,
+                        context.client_account_id,
+                        context.engagement_id,
+                        context.user_id,
+                    )
+                    master_flow = await master_repo.get_by_flow_id(flow_id)
+
+                    initial_state = {}
+                    if master_flow and master_flow.flow_persistence_data:
+                        initial_state = master_flow.flow_persistence_data
+
+                    # Create UnifiedDiscoveryFlow instance
+                    flow_instance = UnifiedDiscoveryFlow(
+                        crewai_service,
+                        context=context,
+                        flow_id=flow_id,
+                        initial_state=initial_state,
+                        configuration=(
+                            master_flow.flow_configuration if master_flow else {}
+                        ),
+                    )
+
+                    # Create PhaseController and execute field mapping
+                    phase_controller = PhaseController(flow_instance)
+
+                    # Force re-run the field mapping phase with existing data
+                    result = await phase_controller.force_rerun_phase(
+                        phase=FlowPhase.FIELD_MAPPING_SUGGESTIONS,
+                        use_existing_data=True,
+                    )
+
+                    logger.info(
+                        f"✅ Field mapping phase executed successfully for flow {flow_id}"
+                    )
+
+                    # Update discovery flow status
+                    discovery_flow.status = "processing"
+                    discovery_flow.current_phase = "field_mapping_suggestions"
+                    await db.commit()
+
+                    return {
+                        "success": True,
+                        "flow_id": flow_id,
+                        "result": {
+                            "phase": result.phase.value,
+                            "status": result.status,
+                            "data": result.data,
+                            "requires_user_input": result.requires_user_input,
+                        },
+                        "phase_executed": phase_to_execute,
+                        "previous_status": discovery_flow.status,
+                        "message": "Field mapping phase executed successfully",
+                    }
+
+                except Exception as direct_error:
+                    logger.warning(
+                        f"Direct field mapping execution failed, trying MFO: {direct_error}"
+                    )
+                    # Fall through to try MasterFlowOrchestrator
+
+            # Try Master Flow Orchestrator as fallback or for other phases
             orchestrator = MasterFlowOrchestrator(db, context)
             result = await orchestrator.execute_phase(flow_id, phase_to_execute, {})
             return {
@@ -976,18 +1217,16 @@ async def execute_flow(
                 "previous_status": discovery_flow.status,
             }
         except Exception as orchestrator_error:
-            logger.warning(
-                f"Master Flow Orchestrator execution failed: {orchestrator_error}"
-            )
+            logger.error(f"Flow execution failed: {orchestrator_error}")
+            import traceback
 
-            # Return a graceful response indicating the issue
+            logger.error(f"Traceback: {traceback.format_exc()}")
+
+            # Return a more informative error response
             return {
                 "success": False,
                 "flow_id": flow_id,
-                "message": (
-                    "Flow execution currently unavailable due to architectural "
-                    "mismatch between discovery_flows and master flow tables"
-                ),
+                "message": f"Flow execution failed: {str(orchestrator_error)}",
                 "details": {
                     "current_status": discovery_flow.status,
                     "current_phase": current_phase,

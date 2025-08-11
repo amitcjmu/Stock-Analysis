@@ -15,7 +15,7 @@ from app.api.v1.endpoints.data_import.field_mapping.services.mapping_service imp
     MappingService,
 )
 from app.core.context import RequestContext, get_current_context
-from app.core.security.secure_logging import safe_log_format, sanitize_log_input
+from app.core.security.secure_logging import safe_log_format
 from app.core.database import get_db
 
 logger = logging.getLogger(__name__)

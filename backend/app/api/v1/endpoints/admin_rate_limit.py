@@ -6,7 +6,6 @@ import logging
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from app.core.security.secure_logging import safe_log_format, sanitize_log_input
 
 from app.api.v1.auth.auth_utils import get_current_user
 from app.middleware.adaptive_rate_limiter import get_adaptive_rate_limiter

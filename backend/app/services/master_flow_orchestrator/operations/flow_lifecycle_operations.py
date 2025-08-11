@@ -392,8 +392,54 @@ class FlowLifecycleOperations:
                     configuration=master_flow.flow_configuration,
                 )
 
-                # Call resume method on the instance if it exists
-                if hasattr(flow_instance, "resume_from_state"):
+                # Check if we should force re-run instead of resume
+                force_rerun = resume_context and resume_context.get(
+                    "force_rerun", False
+                )
+                rerun_phase = resume_context and resume_context.get("rerun_phase")
+
+                if force_rerun and rerun_phase:
+                    # Use PhaseController to force re-run a specific phase
+                    logger.info(
+                        f"🔄 Force re-running phase {rerun_phase} for flow {master_flow.flow_id}"
+                    )
+                    from app.services.crewai_flows.unified_discovery_flow.phase_controller import (
+                        PhaseController,
+                        FlowPhase,
+                    )
+
+                    phase_controller = PhaseController(flow_instance)
+
+                    # Map string phase name to FlowPhase enum
+                    phase_map = {
+                        "field_mapping": FlowPhase.FIELD_MAPPING_SUGGESTIONS,
+                        "field_mapping_suggestions": FlowPhase.FIELD_MAPPING_SUGGESTIONS,
+                        "field_mapping_approval": FlowPhase.FIELD_MAPPING_APPROVAL,
+                        "data_cleansing": FlowPhase.DATA_CLEANSING,
+                        "asset_inventory": FlowPhase.ASSET_INVENTORY,
+                    }
+
+                    target_phase = phase_map.get(rerun_phase)
+                    if target_phase:
+                        result = await phase_controller.force_rerun_phase(
+                            phase=target_phase, use_existing_data=True
+                        )
+
+                        resume_result = {
+                            "status": "phase_rerun_completed",
+                            "message": f"Successfully re-ran phase {rerun_phase}",
+                            "phase": rerun_phase,
+                            "phase_result": result.data,
+                            "requires_user_input": result.requires_user_input,
+                        }
+                    else:
+                        resume_result = {
+                            "status": "error",
+                            "message": f"Unknown phase for re-run: {rerun_phase}",
+                        }
+
+                # Normal resume flow
+                elif hasattr(flow_instance, "resume_from_state"):
                     resume_result = await flow_instance.resume_from_state(
                         resume_context or {}
                     )

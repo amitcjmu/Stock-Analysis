@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
-from app.core.security.secure_logging import safe_log_format, sanitize_log_input
+from app.core.security.secure_logging import safe_log_format
 from app.core.database import AsyncSessionLocal
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.services.discovery_flow_service import DiscoveryFlowService

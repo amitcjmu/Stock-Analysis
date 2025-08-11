@@ -141,6 +141,161 @@ class PhaseController:
 
         return await self.execute_current_phase()
 
+    async def force_rerun_phase(
+        self, phase: FlowPhase, use_existing_data: bool = True
+    ) -> PhaseExecutionResult:
+        """
+        Force re-run a specific phase with existing data.
+
+        This method intelligently detects the current state and re-executes
+        the specified phase, ensuring all necessary data is available.
+
+        Args:
+            phase: Phase to re-run
+            use_existing_data: Whether to use existing raw data or phase results
+
+        Returns:
+            PhaseExecutionResult: Result of the re-executed phase
+        """
+        logger.info(f"🔄 Force re-running phase: {phase.value}")
+        logger.info(f"📊 Using existing data: {use_existing_data}")
+
+        # Check if we have the necessary data for the phase
+        if use_existing_data:
+            # For field mapping, we need raw data
+            if phase in [
+                FlowPhase.FIELD_MAPPING_SUGGESTIONS,
+                FlowPhase.FIELD_MAPPING_APPROVAL,
+            ]:
+                if (
+                    not hasattr(self.discovery_flow.state, "raw_data")
+                    or not self.discovery_flow.state.raw_data
+                ):
+                    logger.info(
+                        "⚠️ No raw data in memory, attempting to load from database"
+                    )
+
+                    # Try to load raw data from database
+                    await self._load_raw_data_from_database()
+
+                    # Check again after loading
+                    if (
+                        not hasattr(self.discovery_flow.state, "raw_data")
+                        or not self.discovery_flow.state.raw_data
+                    ):
+                        logger.error(
+                            "❌ No raw data available for field mapping re-run"
+                        )
+                        return PhaseExecutionResult(
+                            phase=phase,
+                            status="failed",
+                            data={"error": "No raw data available for re-run"},
+                        )
+
+                logger.info(
+                    f"✅ Found {len(self.discovery_flow.state.raw_data)} raw data records"
+                )
+
+            # For data cleansing, we need field mappings
+            elif phase == FlowPhase.DATA_CLEANSING:
+                if (
+                    not hasattr(self.discovery_flow.state, "field_mappings")
+                    or not self.discovery_flow.state.field_mappings
+                ):
+                    logger.warning(
+                        "⚠️ No field mappings found, will need to generate them first"
+                    )
+                    # First re-run field mapping
+                    mapping_result = await self.force_rerun_phase(
+                        FlowPhase.FIELD_MAPPING_SUGGESTIONS, use_existing_data=True
+                    )
+                    if mapping_result.status != "completed":
+                        return mapping_result
+
+        # Set the current phase
+        self.current_phase = phase
+        self.execution_halted = False
+
+        # Clear previous result for this phase to force re-execution
+        if phase in self.phase_results:
+            logger.info(f"🗑️ Clearing previous result for phase {phase.value}")
+            del self.phase_results[phase]
+
+        # Execute the phase
+        logger.info(f"🚀 Executing phase {phase.value} with fresh execution")
+        return await self.execute_current_phase()
+
+    async def _load_raw_data_from_database(self):
+        """Load raw data from database when not available in memory"""
+        try:
+            from app.core.database import AsyncSessionLocal
+            from app.models.data_import import DataImport, RawImportRecord
+            from sqlalchemy import select
+
+            flow_id = getattr(self.discovery_flow.state, "flow_id", None)
+            if not flow_id:
+                logger.error("❌ No flow_id available to load raw data")
+                return
+
+            async with AsyncSessionLocal() as db:
+                # Find data import linked to this flow
+                data_import_query = select(DataImport).where(
+                    DataImport.master_flow_id == flow_id
+                )
+                result = await db.execute(data_import_query)
+                data_import = result.scalar_one_or_none()
+
+                if data_import:
+                    logger.info(f"📦 Found data import record: {data_import.id}")
+
+                    # Get raw records
+                    raw_records_query = select(RawImportRecord.raw_data).where(
+                        RawImportRecord.data_import_id == data_import.id
+                    )
+                    raw_result = await db.execute(raw_records_query)
+                    raw_records = raw_result.scalars().all()
+
+                    if raw_records:
+                        # Set raw data in the state
+                        self.discovery_flow.state.raw_data = raw_records
+                        logger.info(
+                            f"✅ Loaded {len(raw_records)} raw records from database"
+                        )
+                    else:
+                        logger.warning("⚠️ No raw records found in database")
+                else:
+                    # Try to load from master flow persistence data
+                    from app.repositories.crewai_flow_state_extensions_repository import (
+                        CrewAIFlowStateExtensionsRepository,
+                    )
+
+                    repo = CrewAIFlowStateExtensionsRepository(
+                        db,
+                        client_account_id=getattr(
+                            self.discovery_flow.state, "client_account_id", ""
+                        ),
+                        engagement_id=getattr(
+                            self.discovery_flow.state, "engagement_id", ""
+                        ),
+                        user_id=getattr(self.discovery_flow.state, "user_id", "system"),
+                    )
+
+                    master_flow = await repo.get_by_flow_id(flow_id)
+                    if master_flow and master_flow.flow_persistence_data:
+                        raw_data = master_flow.flow_persistence_data.get("raw_data")
+                        if raw_data:
+                            self.discovery_flow.state.raw_data = raw_data
+                            logger.info(
+                                f"✅ Loaded {len(raw_data)} raw records from flow persistence"
+                            )
+                        else:
+                            logger.warning("⚠️ No raw data in flow persistence")
+                    else:
+                        logger.warning("⚠️ No master flow found or no persistence data")
+
+        except Exception as e:
+            logger.error(f"❌ Failed to load raw data from database: {e}")
+
     async def execute_current_phase(self) -> PhaseExecutionResult:
         """
         Execute the current phase.

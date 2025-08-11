@@ -269,30 +269,32 @@ export const useFieldMappings = (
     // Use the API field mappings data
     if (realFieldMappings && Array.isArray(realFieldMappings)) {
       const mappedData = realFieldMappings.map(mapping => {
-        // Check if this is an unmapped field
-        const isUnmapped = mapping.target_field === 'UNMAPPED' || mapping.target_field === null;
+        // Check if this is an unmapped field (handle both camelCase and snake_case)
+        const targetField = mapping.targetAttribute || mapping.target_field;
+        const isUnmapped = targetField === 'UNMAPPED' || targetField === null;
 
-        // Ensure source_field is always a string
-        const sourceField = String(mapping.source_field || 'Unknown Field');
+        // Ensure source field is always a string (handle both camelCase and snake_case)
+        const sourceField = String(mapping.sourceField || mapping.source_field || 'Unknown Field');
 
         return {
           id: mapping.id,
           sourceField: sourceField,
-          targetAttribute: isUnmapped ? null : mapping.target_field, // Show null for unmapped fields
+          targetAttribute: isUnmapped ? null : targetField, // Show null for unmapped fields
           confidence: mapping.confidence || 0,
-          mapping_type: isUnmapped ? 'unmapped' : 'ai_suggested',
-          sample_values: [],
+          mapping_type: mapping.mapping_type || (isUnmapped ? 'unmapped' : 'ai_suggested'),
+          sample_values: mapping.sample_values || [],
           // IMPORTANT: Always present as 'pending' until user explicitly approves
           // Unmapped fields should show as 'unmapped' status
-          status: isUnmapped ? 'unmapped' : (mapping.is_approved === true ? 'approved' : 'pending'),
-          ai_reasoning: isUnmapped ? `Field "${sourceField}" needs mapping assignment` : `AI suggested mapping to ${mapping.target_field}`,
-          is_user_defined: false,
-          user_feedback: null,
-          validation_method: 'semantic_analysis',
-          is_validated: mapping.is_approved === true,
+          status: mapping.status || (isUnmapped ? 'unmapped' : (mapping.is_approved === true ? 'approved' : 'pending')),
+          ai_reasoning: mapping.ai_reasoning || (isUnmapped ? `Field "${sourceField}" needs mapping assignment` : `AI suggested mapping to ${targetField}`),
+          is_user_defined: mapping.is_user_defined || false,
+          user_feedback: mapping.user_feedback || null,
+          validation_method: mapping.validation_method || 'semantic_analysis',
+          is_validated: mapping.is_validated || mapping.is_approved === true,
           transformation_rule: mapping.transformation_rule,
           validation_rule: mapping.validation_rule,
-          is_required: mapping.is_required
+          is_required: mapping.is_required,
+          is_placeholder: mapping.is_placeholder
         };
       });
 

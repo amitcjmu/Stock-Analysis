@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.database import get_db
-from app.core.security.secure_logging import safe_log_format, sanitize_log_input
+from app.core.security.secure_logging import safe_log_format
 from app.models.client_account import User
 from app.schemas.auth_schemas import UserRegistrationResponse
 from app.services.auth_services.admin_operations_service import AdminOperationsService

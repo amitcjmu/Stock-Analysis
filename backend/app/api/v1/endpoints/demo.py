@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security.secure_logging import safe_log_format, sanitize_log_input
+from app.core.security.secure_logging import safe_log_format
 from app.repositories.demo_repository import DemoRepository
 from app.schemas.demo import (
     DemoAnalysisResponse,

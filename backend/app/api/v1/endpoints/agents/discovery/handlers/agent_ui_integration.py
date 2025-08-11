@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_request_context_dependency
-from app.core.security.secure_logging import safe_log_format, sanitize_log_input
+from app.core.security.secure_logging import safe_log_format
 from app.core.database import get_db
 from app.services.agent_ui_bridge import agent_ui_bridge
 from app.services.agents.agent_communication_protocol import get_communication_protocol

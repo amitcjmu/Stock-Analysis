@@ -62,6 +62,9 @@ class StateManager:
 
             logger.info(f"✅ Phase '{phase_name}' status updated to: {status}")
 
+        # Sync state to both master and discovery flow tables after phase update
+        await self.safe_update_flow_state()
+
     def _store_phase_result(self, phase_name: str, result: Dict[str, Any]):
         """Store phase-specific results in appropriate state fields"""
         phase_mappings = {

@@ -20,7 +20,6 @@ os.environ["DATABASE_URL"] = (
 async def test_user_update():
     """Test user update functionality"""
     try:
-        import uuid
 
         from sqlalchemy import select
 
@@ -36,7 +35,7 @@ async def test_user_update():
                 print("❌ No users found in database")
                 return
 
-            print(f"=== TESTING USER UPDATE ===")
+            print("=== TESTING USER UPDATE ===")
             print(f"User: {user.email}")
             print(f"Current default_client_id: {user.default_client_id}")
             print(f"Current default_engagement_id: {user.default_engagement_id}")
@@ -66,7 +65,7 @@ async def test_user_update():
             await db.commit()
             await db.refresh(user)
 
-            print(f"\n✅ Update successful!")
+            print("\n✅ Update successful!")
             print(f"New default_client_id: {user.default_client_id}")
             print(f"New default_engagement_id: {user.default_engagement_id}")
 
@@ -75,7 +74,7 @@ async def test_user_update():
             user.default_engagement_id = None
             await db.commit()
 
-            print(f"\n✅ Reset successful!")
+            print("\n✅ Reset successful!")
 
     except Exception as e:
         print(f"❌ Error: {e}")

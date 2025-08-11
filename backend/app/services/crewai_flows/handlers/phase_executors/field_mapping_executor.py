@@ -243,15 +243,23 @@ class FieldMappingExecutor(BasePhaseExecutor):
             return datetime.utcnow().isoformat()
 
     def _update_database_field_mappings(self, results: Dict[str, Any]):
-        """Update field mappings in the database based on phase results"""
+        """Update or create field mappings in the database based on phase results"""
         try:
-            # Get data_import_id from state
+            # Get flow IDs - prefer master_flow_id for MFO pattern, fallback to data_import_id
+            master_flow_id = getattr(self.state, "flow_id", None) or getattr(
+                self.state, "master_flow_id", None
+            )
             data_import_id = getattr(self.state, "data_import_id", None)
-            if not data_import_id:
+
+            if not master_flow_id and not data_import_id:
                 logger.warning(
-                    "No data_import_id in state - cannot update field mappings"
+                    "No master_flow_id or data_import_id in state - cannot update field mappings"
                 )
                 return
+
+            logger.info(
+                f"🔍 Creating field mappings for flow: {master_flow_id or data_import_id}"
+            )
 
             # Get mappings and details from results
             mappings = results.get("mappings", {})
@@ -272,22 +280,126 @@ class FieldMappingExecutor(BasePhaseExecutor):
                     from app.models.data_import import ImportFieldMapping
 
                     async with AsyncSessionLocal() as db:
-                        # Convert data_import_id to UUID if needed
-                        if isinstance(data_import_id, str):
-                            import_uuid = uuid_pkg.UUID(data_import_id)
-                        else:
-                            import_uuid = data_import_id
+                        # Convert IDs to UUID if needed
+                        master_uuid = None
+                        if master_flow_id:
+                            if isinstance(master_flow_id, str):
+                                master_uuid = uuid_pkg.UUID(master_flow_id)
+                            else:
+                                master_uuid = master_flow_id
 
-                        # Get existing field mappings
-                        query = select(ImportFieldMapping).where(
-                            ImportFieldMapping.data_import_id == import_uuid
-                        )
-                        result = await db.execute(query)
-                        existing_mappings = result.scalars().all()
+                        import_uuid = None
+                        if data_import_id:
+                            if isinstance(data_import_id, str):
+                                import_uuid = uuid_pkg.UUID(data_import_id)
+                            else:
+                                import_uuid = data_import_id
+
+                        # Try to get existing field mappings
+                        existing_mappings = []
+                        if master_uuid:
+                            # First try by master_flow_id
+                            query = select(ImportFieldMapping).where(
+                                ImportFieldMapping.master_flow_id == master_uuid
+                            )
+                            result = await db.execute(query)
+                            existing_mappings = result.scalars().all()
+
+                        if not existing_mappings and import_uuid:
+                            # Fallback to data_import_id
+                            query = select(ImportFieldMapping).where(
+                                ImportFieldMapping.data_import_id == import_uuid
+                            )
+                            result = await db.execute(query)
+                            existing_mappings = result.scalars().all()
 
                         updated_count = 0
 
-                        # Update each mapping based on the results
+                        # If no existing mappings, create new ones
+                        if not existing_mappings and mappings:
+                            logger.info(
+                                f"📝 Creating new field mappings for {len(mappings)} fields"
+                            )
+
+                            # Get client_account_id from state
+                            client_account_id = getattr(
+                                self.state, "client_account_id", None
+                            )
+                            if not client_account_id:
+                                logger.error(
+                                    "No client_account_id in state - cannot create mappings"
+                                )
+                                return
+
+                            # Create new mappings for each field
+                            for source_field, target_field in mappings.items():
+                                details = mapping_details.get(source_field, {})
+
+                                # Get data_import_id - try to find or create one
+                                if not import_uuid and master_uuid:
+                                    # Try to get data_import_id from data_imports table
+                                    from app.models.data_import import DataImport
+
+                                    import_query = select(DataImport).where(
+                                        DataImport.master_flow_id == master_uuid
+                                    )
+                                    import_result = await db.execute(import_query)
+                                    data_import = import_result.scalar_one_or_none()
+
+                                    if data_import:
+                                        import_uuid = data_import.id
+                                    else:
+                                        # Create a data import record if needed
+                                        logger.info(
+                                            "Creating data import record for flow"
+                                        )
+                                        data_import = DataImport(
+                                            id=uuid_pkg.uuid4(),
+                                            master_flow_id=master_uuid,
+                                            client_account_id=client_account_id,
+                                            engagement_id=getattr(
+                                                self.state, "engagement_id", None
+                                            ),
+                                            status="processing",
+                                        )
+                                        db.add(data_import)
+                                        import_uuid = data_import.id
+
+                                new_mapping = ImportFieldMapping(
+                                    id=uuid_pkg.uuid4(),
+                                    data_import_id=import_uuid,
+                                    master_flow_id=master_uuid,
+                                    client_account_id=client_account_id,
+                                    source_field=source_field,
+                                    target_field=target_field,
+                                    match_type=(
+                                        "agent" if crew_execution else "intelligent"
+                                    ),
+                                    confidence_score=details.get("confidence", 0.7),
+                                    status="suggested",
+                                    suggested_by="ai_mapper",
+                                    transformation_rules={
+                                        "method": (
+                                            "agent_mapping"
+                                            if crew_execution
+                                            else "pattern_mapping"
+                                        ),
+                                        "reasoning": details.get("reasoning", ""),
+                                        "crew_execution": crew_execution,
+                                        "fallback_used": fallback_used,
+                                        "created_at": datetime.utcnow().isoformat(),
+                                    },
+                                )
+                                db.add(new_mapping)
+                                updated_count += 1
+
+                            await db.commit()
+                            logger.info(
+                                f"✅ Created {updated_count} new field mappings in database"
+                            )
+                            return
+
+                        # Update existing mappings if they exist
                         for mapping_record in existing_mappings:
                             source_field = mapping_record.source_field
 

@@ -21,6 +21,20 @@ from app.services.validator_registry import ValidatorRegistry
 
 logger = get_logger(__name__)
 
+# Import these at module level to avoid reimport issues during execution
+# This prevents SQLAlchemy metadata conflicts when models are imported multiple times
+try:
+    from app.core.database import AsyncSessionLocal
+    from app.services.crewai_flow_service import CrewAIFlowService
+    from app.services.persistent_agents.tenant_scoped_agent_pool import (
+        TenantScopedAgentPool,
+    )
+except ImportError as e:
+    logger.warning(f"Optional imports for CrewAI execution not available: {e}")
+    AsyncSessionLocal = None
+    CrewAIFlowService = None
+    TenantScopedAgentPool = None
+
 
 class FlowCrewExecutor:
     """
@@ -113,11 +127,7 @@ class FlowCrewExecutor:
         phase_input: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Execute discovery flow phase using persistent agents (ADR-015)"""
-        from app.core.database import AsyncSessionLocal
-        from app.services.crewai_flow_service import CrewAIFlowService
-        from app.services.persistent_agents.tenant_scoped_agent_pool import (
-            TenantScopedAgentPool,
-        )
+        # Imports moved to module level to prevent reimport issues
 
         # ADR-015: Use persistent agents instead of creating new ones
         logger.info(f"🔄 Using persistent agents for phase: {phase_config.name}")

@@ -22,7 +22,6 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
-from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
 from app.core.database import Base
@@ -137,14 +136,14 @@ class AgentDiscoveredPatterns(Base):
     # Multi-tenant fields
     client_account_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("client_accounts.id"),
+        ForeignKey("migration.client_accounts.id"),
         nullable=False,
         index=True,
         comment="Client account this pattern belongs to",
     )
     engagement_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("engagements.id"),
+        ForeignKey("migration.engagements.id"),
         nullable=False,
         index=True,
         comment="Engagement this pattern is part of",
@@ -163,17 +162,8 @@ class AgentDiscoveredPatterns(Base):
         comment="When this record was last updated",
     )
 
-    # Foreign key relationships
-    client_account = relationship(
-        "ClientAccount",
-        foreign_keys=[client_account_id],
-        primaryjoin="AgentDiscoveredPatterns.client_account_id == ClientAccount.id",
-    )
-    engagement = relationship(
-        "Engagement",
-        foreign_keys=[engagement_id],
-        primaryjoin="AgentDiscoveredPatterns.engagement_id == Engagement.id",
-    )
+    # Foreign key relationships - removed to avoid circular dependencies
+    # Relationships can be accessed via foreign key queries if needed
 
     # Table constraints
     __table_args__ = (

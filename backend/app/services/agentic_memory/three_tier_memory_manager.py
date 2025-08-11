@@ -35,8 +35,12 @@ except ImportError:
 
 try:
     from app.core.database import AsyncSessionLocal
+
+    # Use the correct model from agent_discovered_patterns (with 's')
+    from app.models.agent_discovered_patterns import (
+        AgentDiscoveredPatterns as AgentDiscoveredPattern,
+    )
     from app.models.agent_memory import (
-        AgentDiscoveredPattern,
         PatternType,
         create_asset_enrichment_pattern,
         get_patterns_for_agent_reasoning,

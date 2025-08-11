@@ -7,7 +7,7 @@ import logging
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException
-from app.core.security.secure_logging import safe_log_format, sanitize_log_input
+from app.core.security.secure_logging import safe_log_format
 
 from app.api.v1.discovery.persistence import get_processed_assets
 from app.api.v1.discovery.serialization import clean_for_json_serialization

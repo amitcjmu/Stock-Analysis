@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import get_crewai_flow_service
 from app.core.context import extract_context_from_request
-from app.core.security.secure_logging import safe_log_format, sanitize_log_input
+from app.core.security.secure_logging import safe_log_format
 from app.services.crewai_flow_service import CrewAIFlowService
 
 logger = logging.getLogger(__name__)

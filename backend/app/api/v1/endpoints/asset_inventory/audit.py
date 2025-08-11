@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.context import RequestContext, get_current_context
-from app.core.security.secure_logging import safe_log_format, sanitize_log_input
+from app.core.security.secure_logging import safe_log_format
 from app.core.database import get_db
 from app.models.data_import.core import RawImportRecord
 from app.repositories.asset_repository import AssetRepository

@@ -3,7 +3,6 @@
 Test CORS configuration on Railway deployment
 """
 
-import sys
 
 import requests
 
@@ -41,7 +40,7 @@ def test_cors_on_railway():
         )
 
         print(f"   Status Code: {response.status_code}")
-        print(f"   Headers:")
+        print("   Headers:")
 
         # Check CORS headers
         cors_headers = {
@@ -64,9 +63,9 @@ def test_cors_on_railway():
 
         # Check if origin is allowed
         if cors_headers["Access-Control-Allow-Origin"] == frontend_origin:
-            print(f"\n   ✅ Frontend origin IS allowed!")
+            print("\n   ✅ Frontend origin IS allowed!")
         elif cors_headers["Access-Control-Allow-Origin"] == "*":
-            print(f"\n   ✅ All origins allowed (wildcard)")
+            print("\n   ✅ All origins allowed (wildcard)")
         else:
             print(
                 f"\n   ❌ Frontend origin NOT allowed. Got: {cors_headers['Access-Control-Allow-Origin']}"
