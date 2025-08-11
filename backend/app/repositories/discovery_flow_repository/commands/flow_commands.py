@@ -219,6 +219,16 @@ class FlowCommands:
         if updated_flow:
             await self._invalidate_flow_cache(updated_flow)
 
+        # 🔧 CC FIX: Check if all required phases are complete and auto-complete flow
+        if updated_flow and completed:
+            try:
+                await self._check_and_complete_flow_if_ready(updated_flow)
+            except Exception as completion_error:
+                logger.error(
+                    f"❌ Error during flow completion check for {flow_id}: {completion_error}"
+                )
+                # Don't fail the main operation if completion check fails
+
         return updated_flow
 
     async def update_flow_status(
@@ -334,6 +344,129 @@ class FlowCommands:
             await self._invalidate_flow_cache(updated_flow)
 
         return updated_flow
+
+    async def complete_discovery_flow(self, flow_id: str) -> Optional[DiscoveryFlow]:
+        """
+        Complete discovery flow and prepare for assessment handoff.
+        This method wraps mark_flow_complete with additional discovery-specific logic.
+        """
+        try:
+            logger.info(f"🏁 Completing discovery flow: {flow_id}")
+
+            # Use the existing mark_flow_complete method
+            completed_flow = await self.mark_flow_complete(flow_id)
+
+            if not completed_flow:
+                logger.error(f"❌ Failed to complete flow {flow_id} - flow not found")
+                return None
+
+            # Update master flow state as well
+            await self._update_master_flow_completion(flow_id)
+
+            logger.info(f"✅ Discovery flow completed successfully: {flow_id}")
+            return completed_flow
+
+        except Exception as e:
+            logger.error(f"❌ Failed to complete discovery flow {flow_id}: {e}")
+            return None
+
+    async def _check_and_complete_flow_if_ready(self, flow: DiscoveryFlow) -> bool:
+        """
+        Check if all required phases are complete and automatically complete the flow.
+
+        Args:
+            flow: The discovery flow to check
+
+        Returns:
+            True if flow was completed, False otherwise
+        """
+        try:
+            # Define the required phases for completion (all 6 phases per spec)
+            required_phases = {
+                "data_import": flow.data_import_completed,
+                "field_mapping": flow.field_mapping_completed,
+                "data_cleansing": flow.data_cleansing_completed,
+                "asset_inventory": flow.asset_inventory_completed,
+                "dependency_analysis": flow.dependency_analysis_completed,
+                "tech_debt_assessment": flow.tech_debt_assessment_completed,
+            }
+
+            # Check if all required phases are complete
+            all_phases_complete = all(required_phases.values())
+
+            logger.info(
+                f"🔍 Flow {flow.flow_id} phase completion status: {required_phases}, "
+                f"all_complete={all_phases_complete}, current_status={flow.status}"
+            )
+
+            # Only complete if all phases are done and flow is not already complete
+            if all_phases_complete and flow.status not in ["complete", "completed"]:
+                logger.info(
+                    f"🎯 Auto-completing flow {flow.flow_id} - all required phases complete"
+                )
+                # Use mark_flow_complete directly to avoid potential recursion
+                await self.mark_flow_complete(str(flow.flow_id))
+                # Update master flow state separately
+                await self._update_master_flow_completion(str(flow.flow_id))
+                return True
+
+            return False
+
+        except Exception as e:
+            logger.error(
+                f"❌ Error checking flow completion readiness for {flow.flow_id}: {e}"
+            )
+            return False
+
+    async def _update_master_flow_completion(self, flow_id: str) -> bool:
+        """
+        Update the master flow state to completed status.
+
+        Args:
+            flow_id: The flow ID
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Import here to avoid circular imports
+            from app.repositories.crewai_flow_state_extensions_repository import (
+                CrewAIFlowStateExtensionsRepository,
+            )
+
+            # Create master repo with same context
+            master_repo = CrewAIFlowStateExtensionsRepository(
+                db=self.db,
+                client_account_id=str(self.client_account_id),
+                engagement_id=str(self.engagement_id),
+                user_id="system",
+            )
+
+            # Update master flow status
+            await master_repo.update_flow_status(
+                flow_id=flow_id,
+                status="completed",
+                phase_data={
+                    "completed_by": "discovery_flow_completion",
+                    "completion_timestamp": datetime.utcnow().isoformat(),
+                },
+                collaboration_entry={
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "action": "flow_completed",
+                    "source": "discovery_flow_completion",
+                    "message": "Discovery flow completed successfully - all phases finished",
+                },
+            )
+
+            logger.info(f"✅ Master flow state updated to completed for: {flow_id}")
+            return True
+
+        except Exception as e:
+            logger.warning(
+                f"⚠️ Failed to update master flow completion for {flow_id}: {e}"
+            )
+            # Don't fail the whole operation if master flow update fails
+            return False
 
     async def delete_flow(self, flow_id: str) -> bool:
         """Delete discovery flow"""
