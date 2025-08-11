@@ -34,7 +34,7 @@ test.describe('Assessment Flow E2E Tests', () => {
   let assessmentData: any[] = [];
 
   // Load test assessment data
-  const testAssessmentFile = path.join(__dirname, '..', 'fixtures', 'assessment-test-applications.json');
+  const testAssessmentFile = path.join(process.cwd(), 'tests', 'e2e', 'fixtures', 'assessment-test-applications.json');
   let testApplications: any = {};
 
   test.beforeAll(async () => {

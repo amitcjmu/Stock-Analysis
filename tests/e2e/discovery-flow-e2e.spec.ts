@@ -37,7 +37,7 @@ test.describe('Discovery Flow E2E Tests', () => {
 
   test.beforeAll(async () => {
     // Create test data file
-    const testDir = path.join(__dirname, 'test-data');
+    const testDir = path.join(process.cwd(), 'tests', 'e2e', 'test-data');
     if (!fs.existsSync(testDir)) {
       fs.mkdirSync(testDir, { recursive: true });
     }
@@ -458,7 +458,7 @@ test.describe('Discovery Flow E2E Tests', () => {
     await page.waitForURL('**/discovery/cmdb-import');
 
     // Test 1: Upload non-CSV file
-    const textFile = path.join(__dirname, 'test-data', 'invalid.txt');
+    const textFile = path.join(process.cwd(), 'tests', 'e2e', 'test-data', 'invalid.txt');
     if (!fs.existsSync(path.dirname(textFile))) {
       fs.mkdirSync(path.dirname(textFile), { recursive: true });
     }
@@ -498,7 +498,7 @@ test.describe('Discovery Flow E2E Tests', () => {
     }
 
     // Test 2: Upload empty CSV
-    const emptyCSV = path.join(__dirname, 'test-data', 'empty.csv');
+    const emptyCSV = path.join(process.cwd(), 'tests', 'e2e', 'test-data', 'empty.csv');
     fs.writeFileSync(emptyCSV, 'Name,Type,Status\n');
 
     try {
