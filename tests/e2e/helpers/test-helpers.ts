@@ -73,7 +73,7 @@ export function generateTestCSV(recordCount: number = 10): string {
 
 // Login helper
 export async function login(page: Page, user = TEST_USERS.demo): Promise<void> {
-  await page.goto('/login');
+  await page.goto(`${TEST_CONFIG.baseURL}/login`);
   await page.waitForLoadState('networkidle');
 
   // Fill login form
@@ -308,6 +308,185 @@ export async function cleanup(context: BrowserContext): Promise<void> {
   }
 }
 
+// Flow management helpers
+export async function deleteAllFlows(page: Page): Promise<void> {
+  console.log('Checking for existing flows to delete...');
+
+  try {
+    // Navigate to discovery overview to check for flows
+    await navigateToDiscovery(page);
+    await page.waitForTimeout(2000);
+
+    // Look for existing flows and delete them
+    const manageFlowsButton = page.locator('button:has-text("Manage Flows"), button:has-text("Delete"), [data-testid="manage-flows"]');
+
+    if (await manageFlowsButton.isVisible({ timeout: 5000 })) {
+      console.log('Found Manage Flows button, clicking to delete existing flows...');
+      await manageFlowsButton.click();
+      await page.waitForTimeout(1000);
+
+      // Look for delete buttons or flow management UI
+      const deleteButtons = page.locator('button:has-text("Delete"), [data-testid="delete-flow"], .delete-flow-btn');
+      const deleteCount = await deleteButtons.count();
+
+      if (deleteCount > 0) {
+        console.log(`Found ${deleteCount} flows to delete`);
+
+        // Delete all flows one by one
+        for (let i = 0; i < deleteCount; i++) {
+          const deleteBtn = deleteButtons.nth(i);
+          if (await deleteBtn.isVisible({ timeout: 3000 })) {
+            await deleteBtn.click();
+            await page.waitForTimeout(1000);
+
+            // Handle confirmation dialog if it appears
+            const confirmButtons = [
+              'button:has-text("Confirm")',
+              'button:has-text("Yes")',
+              'button:has-text("Delete Permanently")'
+            ];
+
+            for (const buttonSelector of confirmButtons) {
+              const confirmButton = page.locator(buttonSelector).first();
+              if (await confirmButton.isVisible({ timeout: 3000 })) {
+                await confirmButton.click();
+                await page.waitForTimeout(1000);
+                break;
+              }
+            }
+          }
+        }
+
+        console.log('All flows deleted successfully');
+      } else {
+        console.log('No flows found to delete');
+      }
+    }
+
+    // Alternative approach: Check for upload blocked message and handle it
+    const uploadBlockedMessage = page.locator('text="Upload Blocked"');
+    if (await uploadBlockedMessage.isVisible({ timeout: 3000 })) {
+      console.log('Upload blocked message found, attempting to resolve...');
+
+      // Click manage flows from the blocked upload message
+      const manageFromBlock = page.locator('button:has-text("Manage Flows")');
+      if (await manageFromBlock.isVisible()) {
+        await manageFromBlock.click();
+        await page.waitForTimeout(2000);
+
+        // Delete the blocking flow
+        const deleteFlow = page.locator('button:has-text("Delete"), [data-testid="delete-flow"]');
+        if (await deleteFlow.isVisible()) {
+          await deleteFlow.click();
+          await page.waitForTimeout(1000);
+
+          // Confirm deletion
+          const confirmButtons = [
+            'button:has-text("Confirm")',
+            'button:has-text("Yes")',
+            'button:has-text("Delete Permanently")'
+          ];
+
+          for (const buttonSelector of confirmButtons) {
+            const confirmButton = page.locator(buttonSelector).first();
+            if (await confirmButton.isVisible({ timeout: 3000 })) {
+              await confirmButton.click();
+              await page.waitForTimeout(1000);
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    console.log('Flow cleanup completed');
+  } catch (error) {
+    console.log(`Flow cleanup encountered an issue: ${error.message}`);
+    // Don't throw error as this is cleanup - just log and continue
+  }
+}
+
+export async function handleBlockingFlows(page: Page): Promise<boolean> {
+  console.log('Checking for blocking flows...');
+
+  try {
+    // Check if upload is blocked
+    const uploadBlockedMessage = page.locator('text="Upload Blocked"');
+
+    if (await uploadBlockedMessage.isVisible({ timeout: 3000 })) {
+      console.log('Upload blocked - handling blocking flows...');
+
+      // Click Manage Flows button
+      const manageFlowsBtn = page.locator('button:has-text("Manage Flows")');
+      if (await manageFlowsBtn.isVisible({ timeout: 5000 })) {
+        await manageFlowsBtn.click();
+        await page.waitForTimeout(2000);
+
+        // Delete the blocking flow
+        const deleteButton = page.locator('button:has-text("Delete"), [data-testid="delete-flow"], .delete-btn').first();
+        if (await deleteButton.isVisible({ timeout: 5000 })) {
+          await deleteButton.click();
+          await page.waitForTimeout(1000);
+
+          // Handle confirmation dialog
+          const confirmButtons = [
+            'button:has-text("Confirm")',
+            'button:has-text("Yes")',
+            'button:has-text("Delete Permanently")',
+            '[data-testid="confirm-delete"]'
+          ];
+
+          for (const selector of confirmButtons) {
+            const confirmBtn = page.locator(selector).first();
+            if (await confirmBtn.isVisible({ timeout: 3000 })) {
+              await confirmBtn.click();
+              await page.waitForTimeout(1000);
+              break;
+            }
+          }
+
+          console.log('✓ Blocking flow deleted successfully');
+
+          // Navigate back to data import
+          await navigateToDiscovery(page);
+          await clickWithRetry(page, 'text=Data Import');
+          await page.waitForURL('**/discovery/cmdb-import', { timeout: 15000 });
+
+          return true;
+        }
+      }
+    }
+
+    console.log('No blocking flows detected');
+    return false;
+  } catch (error) {
+    console.log(`Error handling blocking flows: ${error.message}`);
+    return false;
+  }
+}
+
+export async function ensureCleanUploadState(page: Page): Promise<void> {
+  console.log('Ensuring clean upload state...');
+
+  // First check if we're already on data import page
+  const currentUrl = page.url();
+  if (!currentUrl.includes('/discovery/cmdb-import')) {
+    await navigateToDiscovery(page);
+    await clickWithRetry(page, 'text=Data Import');
+    await page.waitForURL('**/discovery/cmdb-import', { timeout: 15000 });
+  }
+
+  // Wait for page to stabilize
+  await page.waitForTimeout(2000);
+
+  // Check for and handle blocking flows
+  await handleBlockingFlows(page);
+
+  // Verify upload area is ready
+  await waitForElement(page, 'input[type="file"], .upload-area, .border-dashed');
+  console.log('✓ Upload state is clean and ready');
+}
+
 // Export all helpers
 export default {
   TEST_CONFIG,
@@ -328,5 +507,8 @@ export default {
   expectElementText,
   checkFlowStatus,
   waitForAgents,
-  cleanup
+  cleanup,
+  deleteAllFlows,
+  handleBlockingFlows,
+  ensureCleanUploadState
 };

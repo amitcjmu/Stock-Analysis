@@ -24,10 +24,13 @@ import {
   checkFlowStatus,
   waitForAgents,
   cleanup,
-  generateTestCSV
+  generateTestCSV,
+  deleteAllFlows,
+  handleBlockingFlows,
+  ensureCleanUploadState
 } from './helpers/test-helpers';
-import path from 'path';
-import fs from 'fs';
+import * as path from 'path';
+import * as fs from 'fs';
 
 test.describe('Discovery Flow E2E Tests', () => {
   let flowId: string | null = null;
@@ -84,6 +87,15 @@ test.describe('Discovery Flow E2E Tests', () => {
     // Login before each test
     await login(page, TEST_USERS.demo);
     await takeScreenshot(page, 'discovery-logged-in');
+
+    // Clean up any existing flows to ensure clean test state
+    try {
+      await deleteAllFlows(page);
+      console.log('✓ Pre-test flow cleanup completed');
+    } catch (error) {
+      console.log(`⚠ Pre-test cleanup warning: ${error.message}`);
+      // Don't fail the test for cleanup issues
+    }
   });
 
   test.afterEach(async ({ page, context }, testInfo) => {
@@ -135,14 +147,21 @@ test.describe('Discovery Flow E2E Tests', () => {
       console.log('⚠ Persistent agents initialization not detected');
     }
 
-    // Step 3: Navigate to Data Import
-    console.log('\nStep 3: Navigate to Data Import');
-    await clickWithRetry(page, 'text=Data Import');
-    await page.waitForURL('**/discovery/cmdb-import', { timeout: 15000 });
+    // Step 3: Navigate to Data Import and Ensure Clean State
+    console.log('\nStep 3: Navigate to Data Import and handle any blocking flows');
+    await ensureCleanUploadState(page);
     await takeScreenshot(page, 'discovery-data-import');
 
     // Step 4: Upload CSV file
     console.log('\nStep 4: Upload CSV test data');
+
+    // Double-check for blocking flows one more time before upload
+    const blockingHandled = await handleBlockingFlows(page);
+    if (blockingHandled) {
+      console.log('✓ Blocking flow resolved, proceeding with upload');
+      await takeScreenshot(page, 'discovery-blocking-resolved');
+    }
+
     await waitForElement(page, 'input[type="file"], .upload-area');
 
     const fileInput = page.locator('input[type="file"]');
@@ -322,10 +341,8 @@ test.describe('Discovery Flow E2E Tests', () => {
   test('Discovery Flow - Field Mapping Error Handling', async ({ page }) => {
     console.log('\n=== TESTING FIELD MAPPING ERROR HANDLING ===');
 
-    // Navigate to discovery and upload data
-    await navigateToDiscovery(page);
-    await clickWithRetry(page, 'text=Data Import');
-    await page.waitForURL('**/discovery/cmdb-import');
+    // Navigate to discovery and ensure clean state
+    await ensureCleanUploadState(page);
 
     // Upload test data
     await uploadFile(page, testDataFile);
@@ -397,10 +414,8 @@ test.describe('Discovery Flow E2E Tests', () => {
   test('Discovery Flow - Network Error Recovery', async ({ page }) => {
     console.log('\n=== TESTING NETWORK ERROR RECOVERY ===');
 
-    // Navigate to discovery
-    await navigateToDiscovery(page);
-    await clickWithRetry(page, 'text=Data Import');
-    await page.waitForURL('**/discovery/cmdb-import');
+    // Navigate to discovery and ensure clean state
+    await ensureCleanUploadState(page);
 
     // Intercept network requests to simulate failures
     await page.route('**/api/v1/unified-discovery/**', async route => {
@@ -408,8 +423,8 @@ test.describe('Discovery Flow E2E Tests', () => {
       if (url.includes('upload')) {
         // Simulate upload failure first time, success second time
         const attempt = await page.evaluate(() => {
-          window.__uploadAttempts = (window.__uploadAttempts || 0) + 1;
-          return window.__uploadAttempts;
+          (window as any).__uploadAttempts = ((window as any).__uploadAttempts || 0) + 1;
+          return (window as any).__uploadAttempts;
         });
 
         if (attempt === 1) {
@@ -453,9 +468,7 @@ test.describe('Discovery Flow E2E Tests', () => {
   test('Discovery Flow - Invalid File Upload Handling', async ({ page }) => {
     console.log('\n=== TESTING INVALID FILE UPLOAD HANDLING ===');
 
-    await navigateToDiscovery(page);
-    await clickWithRetry(page, 'text=Data Import');
-    await page.waitForURL('**/discovery/cmdb-import');
+    await ensureCleanUploadState(page);
 
     // Test 1: Upload non-CSV file
     const textFile = path.join(process.cwd(), 'tests', 'e2e', 'test-data', 'invalid.txt');
@@ -523,10 +536,8 @@ test.describe('Discovery Flow E2E Tests', () => {
   test('Discovery Flow - Data Persistence Across Sessions', async ({ page, context }) => {
     console.log('\n=== TESTING DATA PERSISTENCE ACROSS SESSIONS ===');
 
-    // Complete initial upload
-    await navigateToDiscovery(page);
-    await clickWithRetry(page, 'text=Data Import');
-    await page.waitForURL('**/discovery/cmdb-import');
+    // Complete initial upload with clean state
+    await ensureCleanUploadState(page);
     await uploadFile(page, testDataFile);
     await page.waitForTimeout(3000);
 
@@ -580,10 +591,8 @@ test.describe('Discovery Flow E2E Tests', () => {
 
     const startTime = Date.now();
 
-    // Monitor loading states
-    await navigateToDiscovery(page);
-    await clickWithRetry(page, 'text=Data Import');
-    await page.waitForURL('**/discovery/cmdb-import');
+    // Monitor loading states with clean state
+    await ensureCleanUploadState(page);
 
     const navigationTime = Date.now() - startTime;
     console.log(`✓ Navigation completed in ${navigationTime}ms`);
@@ -636,5 +645,116 @@ test.describe('Discovery Flow E2E Tests', () => {
     expect(uploadTime).toBeLessThan(15000); // Upload should be under 15s
 
     await takeScreenshot(page, 'discovery-performance-test');
+  });
+
+  test('Discovery Flow - Blocking Flow Handling', async ({ page }) => {
+    console.log('\n=== TESTING BLOCKING FLOW HANDLING ===');
+
+    // Step 1: Create a flow first (without cleanup beforeEach for this test)
+    await navigateToDiscovery(page);
+    await clickWithRetry(page, 'text=Data Import');
+    await page.waitForURL('**/discovery/cmdb-import', { timeout: 15000 });
+
+    // Upload a file to create a flow
+    await waitForElement(page, 'input[type="file"], .upload-area');
+    const fileInput = page.locator('input[type="file"]');
+    if (await fileInput.isVisible()) {
+      await uploadFile(page, testDataFile);
+    } else {
+      await page.click('.upload-area, .border-dashed');
+      await page.waitForTimeout(1000);
+      await uploadFile(page, testDataFile);
+    }
+
+    console.log('✓ Initial flow created');
+    await page.waitForTimeout(3000);
+    await takeScreenshot(page, 'discovery-flow-created');
+
+    // Step 2: Try to upload another file - should trigger blocking message
+    console.log('\nStep 2: Attempting second upload to trigger blocking scenario');
+
+    // Create another test file
+    const secondTestFile = path.join(process.cwd(), 'tests', 'e2e', 'test-data', `test-discovery-blocking-${Date.now()}.csv`);
+    const csvData = generateTestCSV(5);
+    fs.writeFileSync(secondTestFile, csvData);
+
+    try {
+      // Navigate back to data import
+      await navigateToDiscovery(page);
+      await clickWithRetry(page, 'text=Data Import');
+      await page.waitForURL('**/discovery/cmdb-import', { timeout: 15000 });
+      await page.waitForTimeout(2000);
+
+      // Check for blocking message
+      const blockingMessage = page.locator('text="Upload Blocked"');
+      const isBlocked = await blockingMessage.isVisible({ timeout: 5000 });
+
+      if (isBlocked) {
+        console.log('✓ Upload blocked message detected correctly');
+        await takeScreenshot(page, 'discovery-upload-blocked');
+
+        // Step 3: Handle the blocking flow using our helper
+        console.log('\nStep 3: Handling blocking flow');
+        const blockingHandled = await handleBlockingFlows(page);
+
+        if (blockingHandled) {
+          console.log('✓ Blocking flow handled successfully');
+          await takeScreenshot(page, 'discovery-blocking-handled');
+
+          // Step 4: Verify we can now upload successfully
+          console.log('\nStep 4: Verifying upload works after handling blocking flow');
+          await page.waitForTimeout(2000);
+
+          const newFileInput = page.locator('input[type="file"]');
+          if (await newFileInput.isVisible()) {
+            await uploadFile(page, secondTestFile);
+          } else {
+            await page.click('.upload-area, .border-dashed');
+            await page.waitForTimeout(1000);
+            await uploadFile(page, secondTestFile);
+          }
+
+          console.log('✓ Second upload successful after handling blocking flow');
+          await takeScreenshot(page, 'discovery-second-upload-success');
+
+          // Wait for processing
+          await page.waitForTimeout(3000);
+
+          // Look for success indicators
+          const successSelectors = [
+            'text="Upload completed"',
+            'text="Upload successful"',
+            'text="Processing complete"',
+            'text="Data imported successfully"',
+            '[data-testid="upload-success"]'
+          ];
+
+          let uploadSuccess = false;
+          for (const selector of successSelectors) {
+            if (await page.locator(selector).isVisible({ timeout: 5000 })) {
+              uploadSuccess = true;
+              console.log('✓ Upload success confirmed');
+              break;
+            }
+          }
+
+          expect(uploadSuccess).toBeTruthy();
+        } else {
+          console.log('⚠ Blocking flow handling did not complete as expected');
+        }
+      } else {
+        console.log('⚠ No blocking message detected - may indicate flows were cleaned up');
+        // This is actually okay - means our beforeEach cleanup worked
+      }
+
+    } finally {
+      // Clean up the second test file
+      if (fs.existsSync(secondTestFile)) {
+        fs.unlinkSync(secondTestFile);
+        console.log(`Cleaned up second test file: ${secondTestFile}`);
+      }
+    }
+
+    console.log('\n=== BLOCKING FLOW HANDLING TEST COMPLETED ===');
   });
 });

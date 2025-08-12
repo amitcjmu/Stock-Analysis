@@ -293,6 +293,10 @@ class Asset(Base):
         JSON,
         comment="A JSON blob for storing any custom fields or attributes not in the standard schema.",
     )
+    technical_details = Column(
+        JSON,
+        comment="A JSON blob containing technical details and enrichments for the asset.",
+    )
 
     # Migration assessment
     six_r_strategy = Column(
@@ -375,6 +379,10 @@ class Asset(Base):
     )
     quality_score = Column(
         Float, comment="An overall data quality score for the asset record."
+    )
+    confidence_score = Column(
+        Float,
+        comment="A confidence score (0.0-1.0) indicating reliability of asset data.",
     )
 
     # Cost information

@@ -468,6 +468,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
             inventoryProgress={inventoryProgress}
             selectedAssetType={filters.selectedAssetType}
             onAssetTypeSelect={handleClassificationCardClick}
+            flowId={flowId}
           />
           <NextStepCard inventoryProgress={inventoryProgress} />
 

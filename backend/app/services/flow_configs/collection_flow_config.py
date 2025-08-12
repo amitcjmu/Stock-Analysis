@@ -13,6 +13,9 @@ from app.services.flow_type_registry import (
     RetryConfig,
 )
 
+# Import the UnifiedCollectionFlow class for crew_class registration
+from app.services.crewai_flows.unified_collection_flow import UnifiedCollectionFlow
+
 
 def get_collection_flow_config() -> FlowTypeConfig:
     """
@@ -529,6 +532,7 @@ def get_collection_flow_config() -> FlowTypeConfig:
             manual_collection_phase,
             synthesis_phase,
         ],
+        crew_class=UnifiedCollectionFlow,  # Fix: Register crew class for flow type
         capabilities=capabilities,
         default_configuration={
             "automation_tier": "tier_2",  # Default to Tier 2

@@ -46,10 +46,197 @@ from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.services.integration.data_flow_validator import DataFlowValidator
 from uuid import UUID
 from app.services.integration.failure_journal import log_failure
+from app.models.discovery_flow import DiscoveryFlow, DiscoveryFlowStatus
+from app.models.application import Application
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+@router.post("/flows/from-discovery", response_model=CollectionFlowResponse)
+async def create_collection_from_discovery(
+    discovery_flow_id: str,
+    selected_application_ids: List[str],
+    collection_strategy: Optional[Dict[str, Any]] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> CollectionFlowResponse:
+    """Create a Collection flow from Discovery results with selected applications.
+
+    This endpoint enables seamless transition from Discovery to Collection,
+    allowing users to select applications from the Discovery inventory for
+    detailed data collection and gap analysis.
+
+    Args:
+        discovery_flow_id: The Discovery flow ID to transition from
+        selected_application_ids: List of application IDs to collect data for
+        collection_strategy: Optional configuration for collection approach
+
+    Returns:
+        CollectionFlowResponse with the created Collection flow details
+    """
+    require_role(current_user, COLLECTION_CREATE_ROLES, "create collection flows")
+
+    try:
+        # Validate Discovery flow exists and is complete
+        discovery_result = await db.execute(
+            select(DiscoveryFlow).where(
+                DiscoveryFlow.id == uuid.UUID(discovery_flow_id),
+                DiscoveryFlow.engagement_id == context.engagement_id,
+                DiscoveryFlow.status == DiscoveryFlowStatus.COMPLETED.value,
+            )
+        )
+        discovery_flow = discovery_result.scalar_one_or_none()
+
+        if not discovery_flow:
+            raise HTTPException(
+                status_code=404, detail="Discovery flow not found or not completed"
+            )
+
+        # Validate selected applications exist and belong to the engagement
+        if selected_application_ids:
+            app_result = await db.execute(
+                select(Application).where(
+                    Application.id.in_(
+                        [uuid.UUID(aid) for aid in selected_application_ids]
+                    ),
+                    Application.engagement_id == context.engagement_id,
+                )
+            )
+            applications = app_result.scalars().all()
+
+            if len(applications) != len(selected_application_ids):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Some selected applications not found or don't belong to this engagement",
+                )
+        else:
+            # If no applications selected, get all from engagement
+            app_result = await db.execute(
+                select(Application).where(
+                    Application.engagement_id == context.engagement_id
+                )
+            )
+            applications = app_result.scalars().all()
+            selected_application_ids = [str(app.id) for app in applications]
+
+        # Determine automation tier from Discovery results
+        strategy = collection_strategy or {}
+        automation_tier = strategy.get("automation_tier", AutomationTier.TIER_2.value)
+
+        # If tier should be inherited from Discovery, check the discovery metadata
+        if strategy.get("automation_tier") == "inherited":
+            # Extract tier from Discovery flow metadata
+            discovery_metadata = discovery_flow.metadata or {}
+            detected_tier = discovery_metadata.get(
+                "detected_tier", AutomationTier.TIER_2.value
+            )
+            automation_tier = detected_tier
+
+        # Create collection flow configuration
+        collection_config = {
+            "discovery_flow_id": discovery_flow_id,
+            "selected_application_ids": selected_application_ids,
+            "application_count": len(selected_application_ids),
+            "start_phase": strategy.get("start_phase", "gap_analysis"),
+            "priority": strategy.get("priority", "critical_gaps_first"),
+            "discovery_metadata": {
+                "completed_at": (
+                    discovery_flow.completed_at.isoformat()
+                    if discovery_flow.completed_at
+                    else None
+                ),
+                "data_quality_score": discovery_flow.data_quality_score,
+            },
+            "application_snapshots": [
+                {
+                    "id": str(app.id),
+                    "name": app.name,
+                    "business_criticality": app.business_criticality,
+                    "technology_stack": app.technology_stack,
+                    "architecture_pattern": app.architecture_pattern,
+                }
+                for app in applications[:10]  # Limit to first 10 for metadata size
+            ],
+        }
+
+        # Create collection flow record
+        flow_id = uuid.uuid4()
+        collection_flow = CollectionFlow(
+            flow_id=flow_id,
+            flow_name=f"Collection from Discovery - {len(selected_application_ids)} apps",
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id,
+            user_id=current_user.id,
+            created_by=current_user.id,
+            status=CollectionFlowStatus.INITIALIZED.value,
+            automation_tier=automation_tier,
+            collection_config=collection_config,
+            current_phase=CollectionPhase.GAP_ANALYSIS.value,  # Start with gap analysis
+            discovery_flow_id=uuid.UUID(discovery_flow_id),  # Link to Discovery flow
+        )
+
+        db.add(collection_flow)
+        await db.commit()
+        await db.refresh(collection_flow)
+
+        # Initialize with Master Flow Orchestrator
+        mfo = MasterFlowOrchestrator(db, context)
+
+        # Start the collection flow through MFO
+        flow_input = {
+            "flow_id": str(collection_flow.id),
+            "automation_tier": collection_flow.automation_tier,
+            "collection_config": collection_flow.collection_config,
+            "start_phase": "gap_analysis",  # Skip platform detection since we have Discovery data
+        }
+
+        # Create the flow - it will be automatically started by the execution engine
+        master_flow_id, master_flow_data = await mfo.create_flow(
+            flow_type="collection", initial_state=flow_input
+        )
+
+        # Update collection flow with master flow ID
+        collection_flow.master_flow_id = master_flow_id
+        await db.commit()
+        await db.refresh(collection_flow)
+
+        logger.info(
+            "Created collection flow %s from discovery flow %s with %d applications",
+            collection_flow.id,
+            discovery_flow_id,
+            len(selected_application_ids),
+        )
+
+        return CollectionFlowResponse(
+            id=str(collection_flow.id),
+            client_account_id=str(collection_flow.client_account_id),
+            engagement_id=str(collection_flow.engagement_id),
+            status=collection_flow.status,
+            automation_tier=collection_flow.automation_tier,
+            current_phase=collection_flow.current_phase,
+            progress=collection_flow.progress_percentage or 0,
+            collection_config=collection_flow.collection_config,
+            created_at=collection_flow.created_at,
+            updated_at=collection_flow.updated_at,
+            gaps_identified=0,  # Will be populated after gap analysis
+            collection_metrics={
+                "applications_selected": len(selected_application_ids),
+                "discovery_flow_id": discovery_flow_id,
+                "automation_tier": automation_tier,
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            safe_log_format("Error creating collection from discovery: {e}", e=e)
+        )
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/flows/ensure", response_model=CollectionFlowResponse)
@@ -316,7 +503,7 @@ async def get_collection_flow(
     try:
         result = await db.execute(
             select(CollectionFlow).where(
-                CollectionFlow.id == uuid.UUID(flow_id),
+                CollectionFlow.flow_id == uuid.UUID(flow_id),
                 CollectionFlow.engagement_id == context.engagement_id,
             )
         )
@@ -334,7 +521,7 @@ async def get_collection_flow(
         gap_list = gaps.scalars().all()
 
         response = CollectionFlowResponse(
-            id=str(collection_flow.id),
+            id=str(collection_flow.flow_id),
             client_account_id=str(collection_flow.client_account_id),
             engagement_id=str(collection_flow.engagement_id),
             status=collection_flow.status,
@@ -377,7 +564,7 @@ async def update_collection_flow(
         # Get the flow
         result = await db.execute(
             select(CollectionFlow).where(
-                CollectionFlow.id == uuid.UUID(flow_id),
+                CollectionFlow.flow_id == uuid.UUID(flow_id),
                 CollectionFlow.engagement_id == context.engagement_id,
             )
         )
@@ -496,20 +683,21 @@ async def get_adaptive_questionnaires(
 ) -> List[AdaptiveQuestionnaireResponse]:
     """Get adaptive questionnaires for manual collection"""
     try:
-        # Verify flow exists
+        # Get flow by flow_id (not database id)
         flow_result = await db.execute(
             select(CollectionFlow).where(
-                CollectionFlow.id == uuid.UUID(flow_id),
+                CollectionFlow.flow_id == uuid.UUID(flow_id),
                 CollectionFlow.engagement_id == context.engagement_id,
             )
         )
-        if not flow_result.scalar_one_or_none():
+        collection_flow = flow_result.scalar_one_or_none()
+        if not collection_flow:
             raise HTTPException(status_code=404, detail="Collection flow not found")
 
-        # Get questionnaires
+        # Get questionnaires using the database id
         result = await db.execute(
             select(AdaptiveQuestionnaire)
-            .where(AdaptiveQuestionnaire.collection_flow_id == uuid.UUID(flow_id))
+            .where(AdaptiveQuestionnaire.collection_flow_id == collection_flow.id)
             .order_by(AdaptiveQuestionnaire.created_at.desc())
         )
         questionnaires = result.scalars().all()
@@ -549,11 +737,22 @@ async def submit_questionnaire_response(
 ) -> Dict[str, Any]:
     """Submit responses to an adaptive questionnaire"""
     try:
-        # Get questionnaire
+        # First get the collection flow to get its database id
+        flow_result = await db.execute(
+            select(CollectionFlow).where(
+                CollectionFlow.flow_id == uuid.UUID(flow_id),
+                CollectionFlow.engagement_id == context.engagement_id,
+            )
+        )
+        collection_flow = flow_result.scalar_one_or_none()
+        if not collection_flow:
+            raise HTTPException(status_code=404, detail="Collection flow not found")
+
+        # Get questionnaire using the database id
         result = await db.execute(
             select(AdaptiveQuestionnaire).where(
                 AdaptiveQuestionnaire.id == uuid.UUID(questionnaire_id),
-                AdaptiveQuestionnaire.collection_flow_id == uuid.UUID(flow_id),
+                AdaptiveQuestionnaire.collection_flow_id == collection_flow.id,
             )
         )
         questionnaire = result.scalar_one_or_none()
@@ -742,7 +941,7 @@ async def get_incomplete_flows(
 
         return [
             CollectionFlowResponse(
-                id=str(flow.id),
+                id=str(flow.flow_id),  # Use flow_id instead of database id
                 client_account_id=str(flow.client_account_id),
                 engagement_id=str(flow.engagement_id),
                 status=flow.status,
@@ -775,7 +974,7 @@ async def continue_flow(
         # Verify flow exists and belongs to engagement
         result = await db.execute(
             select(CollectionFlow).where(
-                CollectionFlow.id == uuid.UUID(flow_id),
+                CollectionFlow.flow_id == uuid.UUID(flow_id),
                 CollectionFlow.engagement_id == context.engagement_id,
             )
         )
@@ -838,7 +1037,7 @@ async def delete_flow(
         # Get the flow
         result = await db.execute(
             select(CollectionFlow).where(
-                CollectionFlow.id == uuid.UUID(flow_id),
+                CollectionFlow.flow_id == uuid.UUID(flow_id),
                 CollectionFlow.engagement_id == context.engagement_id,
             )
         )

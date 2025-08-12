@@ -316,9 +316,7 @@ class DataFlowValidator:
         """Get all assets with their dependencies for the engagement"""
 
         result = await session.execute(
-            select(Asset)
-            .where(Asset.engagement_id == engagement_id)
-            .options(selectinload(Asset.dependencies))
+            select(Asset).where(Asset.engagement_id == engagement_id)
         )
         return result.scalars().all()
 
@@ -614,9 +612,16 @@ class DataFlowValidator:
             for asset in assets:
                 if asset.confidence_score:
                     # Confidence should generally increase through phases
-                    initial_confidence = asset.metadata.get(
-                        "initial_confidence", asset.confidence_score
-                    )
+                    # Use phase_context or raw_data for initial_confidence if available
+                    initial_confidence = asset.confidence_score
+                    if asset.phase_context and isinstance(asset.phase_context, dict):
+                        initial_confidence = asset.phase_context.get(
+                            "initial_confidence", asset.confidence_score
+                        )
+                    elif asset.raw_data and isinstance(asset.raw_data, dict):
+                        initial_confidence = asset.raw_data.get(
+                            "initial_confidence", asset.confidence_score
+                        )
                     if asset.confidence_score < initial_confidence:
                         confidence_issues += 1
 
