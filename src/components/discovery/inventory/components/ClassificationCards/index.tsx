@@ -1,9 +1,6 @@
 import React from 'react';
-import { useState } from 'react';
-import { Server, Database, Cpu, Router, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Server, Database, Cpu, Router } from 'lucide-react';
 import { ClassificationCard } from './ClassificationCard';
-import { ApplicationSelectionModal } from '../ApplicationSelectionModal';
 import type { InventoryProgress } from '../../types/inventory.types';
 
 interface ClassificationCardsProps {
@@ -19,8 +16,6 @@ export const ClassificationCards: React.FC<ClassificationCardsProps> = ({
   onAssetTypeSelect,
   flowId
 }) => {
-  const [showApplicationModal, setShowApplicationModal] = useState(false);
-
   const classificationCards = [
     {
       type: 'servers',
@@ -73,42 +68,18 @@ export const ClassificationCards: React.FC<ClassificationCardsProps> = ({
       <h3 className="text-lg font-semibold mb-4">Asset Classification</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {classificationCards.map((card) => (
-          <div key={card.type} className="relative">
-            <ClassificationCard
-              type={card.type}
-              label={card.label}
-              count={card.count}
-              Icon={card.icon}
-              color={card.color}
-              isActive={selectedAssetType === card.filterValue}
-              onClick={() => handleCardClick(card)}
-            />
-            {card.isApplicationCard && inventoryProgress.applications > 0 && (
-              <Button
-                size="sm"
-                variant="default"
-                className="absolute bottom-2 right-2 z-10"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowApplicationModal(true);
-                }}
-              >
-                Process for Assessment
-                <ArrowRight className="ml-1 h-3 w-3" />
-              </Button>
-            )}
-          </div>
+          <ClassificationCard
+            key={card.type}
+            type={card.type}
+            label={card.label}
+            count={card.count}
+            Icon={card.icon}
+            color={card.color}
+            isActive={selectedAssetType === card.filterValue}
+            onClick={() => handleCardClick(card)}
+          />
         ))}
       </div>
-
-      {/* Application Selection Modal */}
-      {showApplicationModal && (
-        <ApplicationSelectionModal
-          isOpen={showApplicationModal}
-          onClose={() => setShowApplicationModal(false)}
-          flowId={flowId}
-        />
-      )}
     </div>
   );
 };

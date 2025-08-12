@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Filter } from 'lucide-react'
-import { Search, Download, RefreshCw } from 'lucide-react'
+import { Search, Download, RefreshCw, ArrowRight } from 'lucide-react'
 
 interface AssetTableFiltersProps {
   searchTerm: string;
@@ -17,6 +17,8 @@ interface AssetTableFiltersProps {
   selectedCount: number;
   onReclassifySelected?: () => void;
   isReclassifying?: boolean;
+  onProcessForAssessment?: () => void;
+  isApplicationsSelected?: boolean;
 }
 
 export const AssetTableFilters: React.FC<AssetTableFiltersProps> = ({
@@ -30,7 +32,9 @@ export const AssetTableFilters: React.FC<AssetTableFiltersProps> = ({
   onExport,
   selectedCount,
   onReclassifySelected,
-  isReclassifying = false
+  isReclassifying = false,
+  onProcessForAssessment,
+  isApplicationsSelected = false
 }) => {
   return (
     <div className="space-y-4">
@@ -86,6 +90,17 @@ export const AssetTableFilters: React.FC<AssetTableFiltersProps> = ({
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isReclassifying ? 'animate-spin' : ''}`} />
               {isReclassifying ? 'Reclassifying...' : 'Reclassify Selected'}
+            </Button>
+          )}
+          {onProcessForAssessment && isApplicationsSelected && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onProcessForAssessment}
+              className="text-green-600 border-green-600 hover:bg-green-50"
+            >
+              Process for Assessment
+              <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           )}
         </div>
