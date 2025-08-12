@@ -432,6 +432,9 @@ class TenantScopedAgentPool:
             from app.services.crewai_flows.tools.data_validation_tool import (
                 create_data_validation_tools,
             )
+            from app.services.crewai_flows.tools.critical_attributes_tool import (
+                create_critical_attributes_tools,
+            )
             from app.services.tools.asset_intelligence_tools import (
                 get_asset_intelligence_tools,
             )
@@ -467,7 +470,7 @@ class TenantScopedAgentPool:
                 tools.extend(intelligence_tools)
 
             elif agent_type == "field_mapper":
-                # Field mapper needs specific mapping tools if available
+                # Field mapper needs specific mapping tools and critical attributes assessment
                 try:
                     from app.services.crewai_flows.tools.mapping_confidence_tool import (
                         MappingConfidenceTool,
@@ -477,6 +480,10 @@ class TenantScopedAgentPool:
                     tools.append(mapping_tool)
                 except ImportError:
                     logger.debug(f"Mapping tools not available for {agent_type}")
+
+                # Add critical attributes assessment tools for field mapper
+                critical_tools = create_critical_attributes_tools(context_info)
+                tools.extend(critical_tools)
 
             logger.info(f"✅ Loaded {len(tools)} tools for {agent_type} agent")
             return tools
