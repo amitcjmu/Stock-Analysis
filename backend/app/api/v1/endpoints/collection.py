@@ -182,7 +182,7 @@ async def create_collection_from_discovery(
 
         # Start the collection flow through MFO
         flow_input = {
-            "flow_id": str(collection_flow.id),
+            "flow_id": str(collection_flow.flow_id),
             "automation_tier": collection_flow.automation_tier,
             "collection_config": collection_flow.collection_config,
             "start_phase": "gap_analysis",  # Skip platform detection since we have Discovery data
@@ -206,7 +206,7 @@ async def create_collection_from_discovery(
         )
 
         return CollectionFlowResponse(
-            id=str(collection_flow.id),
+            id=str(collection_flow.flow_id),
             client_account_id=str(collection_flow.client_account_id),
             engagement_id=str(collection_flow.engagement_id),
             status=collection_flow.status,
@@ -334,7 +334,7 @@ async def get_collection_status(
             }
 
         return {
-            "flow_id": str(collection_flow.id),
+            "flow_id": str(collection_flow.flow_id),
             "status": collection_flow.status,
             "current_phase": collection_flow.current_phase,
             "automation_tier": collection_flow.automation_tier,
@@ -444,7 +444,7 @@ async def create_collection_flow(
 
         # Start the collection flow through MFO
         flow_input = {
-            "flow_id": str(collection_flow.id),
+            "flow_id": str(collection_flow.flow_id),
             "automation_tier": collection_flow.automation_tier,
             "collection_config": collection_flow.collection_config,
         }
@@ -467,7 +467,7 @@ async def create_collection_flow(
         )
 
         return CollectionFlowResponse(
-            id=str(collection_flow.id),
+            id=str(collection_flow.flow_id),
             client_account_id=str(collection_flow.client_account_id),
             engagement_id=str(collection_flow.engagement_id),
             status=collection_flow.status,
@@ -593,7 +593,7 @@ async def update_collection_flow(
         await db.refresh(collection_flow)
 
         return CollectionFlowResponse(
-            id=str(collection_flow.id),
+            id=str(collection_flow.flow_id),
             client_account_id=str(collection_flow.client_account_id),
             engagement_id=str(collection_flow.engagement_id),
             status=collection_flow.status,
@@ -1198,7 +1198,7 @@ async def cleanup_flows(
 
         for flow in expired_flows:
             flow_data = {
-                "flow_id": str(flow.id),
+                "flow_id": str(flow.flow_id),
                 "status": flow.status,
                 "age_hours": (
                     datetime.now(timezone.utc) - flow.updated_at
@@ -1217,12 +1217,12 @@ async def cleanup_flows(
                 try:
                     # Try to cleanup from MFO first
                     mfo = MasterFlowOrchestrator(db, context)
-                    await mfo.delete_flow(str(flow.id))
+                    await mfo.delete_flow(str(flow.flow_id))
                 except Exception as e:
                     logger.warning(
                         safe_log_format(
                             "MFO cleanup failed for flow {flow_id}: {e}",
-                            flow_id=flow.id,
+                            flow_id=flow.flow_id,
                             e=e,
                         )
                     )
