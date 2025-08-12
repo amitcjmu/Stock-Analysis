@@ -5,7 +5,7 @@ export type { ImportDataResult } from './useImportData';
 export type { CriticalAttribute, CriticalAttributesResult } from './useCriticalAttributes';
 export type { AttributeMappingActionsResult } from './useAttributeMappingActions';
 export type { MappingProgress, AttributeMappingStateResult } from './useAttributeMappingState';
-export type { RecoveryProgress } from '../../../services/flow-recovery';
+export type { RecoveryProgress, BlockingFlow } from '../../../services/flow-recovery';
 
 // Additional types for attribute mapping
 interface AttributeMappingAttribute {
@@ -134,4 +134,9 @@ export interface AttributeMappingLogicResult {
   triggerFlowRecovery: (flowId: string) => Promise<boolean>;
   isInterceptingTransition: boolean;
   transitionIntercepted: boolean;
+
+  // Multi-flow blocking state
+  blockingFlows: BlockingFlow[];
+  hasMultipleBlockingFlows: boolean;
+  refreshFlowState: () => Promise<void>;
 }

@@ -364,7 +364,15 @@ class BaseDataValidationTool(BaseTool):
 
     def _run(self, raw_data: List[Dict[str, Any]]) -> str:
         """Sync wrapper for async implementation"""
-        return asyncio.run(self._arun(raw_data))
+        try:
+            loop = asyncio.get_running_loop()
+            # Already in an event loop, create task
+            future = asyncio.ensure_future(self._arun(raw_data))
+            # This will block but won't create a new loop
+            return loop.run_until_complete(future)
+        except RuntimeError:
+            # No event loop running, safe to use asyncio.run
+            return asyncio.run(self._arun(raw_data))
 
 
 class BaseDataStructureAnalyzerTool(BaseTool):
@@ -394,7 +402,15 @@ class BaseDataStructureAnalyzerTool(BaseTool):
 
     def _run(self, raw_data: List[Dict[str, Any]]) -> str:
         """Sync wrapper for async implementation"""
-        return asyncio.run(self._arun(raw_data))
+        try:
+            loop = asyncio.get_running_loop()
+            # Already in an event loop, create task
+            future = asyncio.ensure_future(self._arun(raw_data))
+            # This will block but won't create a new loop
+            return loop.run_until_complete(future)
+        except RuntimeError:
+            # No event loop running, safe to use asyncio.run
+            return asyncio.run(self._arun(raw_data))
 
 
 class BaseFieldSuggestionTool(BaseTool):

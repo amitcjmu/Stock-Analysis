@@ -64,7 +64,11 @@ const AttributeMappingContainer: React.FC = () => {
     recoveryProgress,
     recoveryError,
     recoveredFlowId,
-    triggerFlowRecovery
+    triggerFlowRecovery,
+    // Multi-flow blocking state
+    blockingFlows,
+    hasMultipleBlockingFlows,
+    refreshFlowState
   } = state;
 
 
@@ -160,6 +164,10 @@ const AttributeMappingContainer: React.FC = () => {
               recoveryError={recoveryError}
               recoveredFlowId={recoveredFlowId}
               onTriggerFlowRecovery={triggerFlowRecovery}
+              // Multi-flow blocking props
+              blockingFlows={blockingFlows}
+              hasMultipleBlockingFlows={hasMultipleBlockingFlows}
+              onRefresh={refreshFlowState}
             />
 
             {/* Only render main content if flow is found */}

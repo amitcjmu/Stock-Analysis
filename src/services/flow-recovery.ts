@@ -40,7 +40,19 @@ export interface TransitionInterceptResult {
     fieldMappingReady: boolean;
     canProceedToAttributeMapping: boolean;
   };
+  blockingFlows?: BlockingFlow[];
+  hasMultipleBlockingFlows?: boolean;
   metadata?: Record<string, unknown>;
+}
+
+export interface BlockingFlow {
+  id: string;
+  phase: string;
+  status: string;
+  created_at: string;
+  issues: string[];
+  canRecover: boolean;
+  canDelete: boolean;
 }
 
 export interface FlowHealthStatus {
@@ -223,6 +235,161 @@ class FlowRecoveryService {
           phaseTransition: false
         },
         message: `Health check failed: ${error.message || 'Unknown error'}`
+      };
+    }
+  }
+
+  /**
+   * Detects all blocking flows for the current context
+   */
+  async detectBlockingFlows(): Promise<BlockingFlow[]> {
+    try {
+      console.log(`🔍 [FlowRecovery] Detecting blocking flows`);
+
+      const response: ExternalApiResponse<{ blockingFlows: BlockingFlow[] }> = await api.get(
+        `${this.baseEndpoint}/blocking-flows`
+      );
+
+      if (!response || typeof response !== 'object') {
+        throw new Error('Invalid response from blocking flows detection API');
+      }
+
+      console.log(`📊 [FlowRecovery] Found ${response.blockingFlows?.length || 0} blocking flows`);
+      return response.blockingFlows || [];
+    } catch (error) {
+      console.error(`❌ [FlowRecovery] Failed to detect blocking flows:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Deletes a specific flow
+   */
+  async deleteFlow(flowId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      console.log(`🗑️ [FlowRecovery] Deleting flow: ${flowId}`);
+
+      const response: ExternalApiResponse<{ success: boolean; message: string }> = await api.delete(
+        `${this.baseEndpoint}/${flowId}`
+      );
+
+      if (!response || typeof response !== 'object') {
+        throw new Error('Invalid response from delete flow API');
+      }
+
+      console.log(`${response.success ? '✅' : '❌'} [FlowRecovery] Delete flow result:`, response.message);
+      return response;
+    } catch (error) {
+      console.error(`❌ [FlowRecovery] Flow deletion failed for ${flowId}:`, error);
+      return {
+        success: false,
+        message: `Failed to delete flow: ${error.message || 'Unknown error'}`
+      };
+    }
+  }
+
+  /**
+   * Deletes multiple flows in bulk
+   */
+  async deleteMultipleFlows(flowIds: string[]): Promise<{
+    success: boolean;
+    message: string;
+    results: Array<{ flowId: string; success: boolean; message: string }>;
+  }> {
+    try {
+      console.log(`🗑️ [FlowRecovery] Deleting ${flowIds.length} flows in bulk`);
+
+      const response: ExternalApiResponse<{
+        success: boolean;
+        message: string;
+        results: Array<{ flowId: string; success: boolean; message: string }>;
+      }> = await api.delete(`${this.baseEndpoint}/bulk`, {
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ flowIds })
+      });
+
+      if (!response || typeof response !== 'object') {
+        throw new Error('Invalid response from bulk delete flows API');
+      }
+
+      const successCount = response.results?.filter(r => r.success).length || 0;
+      console.log(`📊 [FlowRecovery] Bulk delete completed: ${successCount}/${flowIds.length} successful`);
+
+      return response;
+    } catch (error) {
+      console.error(`❌ [FlowRecovery] Bulk flow deletion failed:`, error);
+
+      // Fallback to individual deletions
+      console.log(`🔄 [FlowRecovery] Attempting individual flow deletions as fallback`);
+      const results = await Promise.all(
+        flowIds.map(async (flowId) => {
+          const result = await this.deleteFlow(flowId);
+          return { flowId, success: result.success, message: result.message };
+        })
+      );
+
+      const successCount = results.filter(r => r.success).length;
+      return {
+        success: successCount === flowIds.length,
+        message: `Completed individual deletions: ${successCount}/${flowIds.length} successful`,
+        results
+      };
+    }
+  }
+
+  /**
+   * Enhanced transition interception with multi-flow blocking detection
+   */
+  async interceptTransitionWithBlockingDetection(
+    flowId: string,
+    fromPhase: string,
+    toPhase: string
+  ): Promise<TransitionInterceptResult> {
+    try {
+      console.log(`🛡️ [FlowRecovery] Enhanced interception for flow ${flowId}: ${fromPhase} → ${toPhase}`);
+
+      // First, detect all blocking flows
+      const blockingFlows = await this.detectBlockingFlows();
+
+      // Standard interception
+      const result = await this.interceptTransition(flowId, fromPhase, toPhase);
+
+      // Enhance with blocking flow information
+      const hasMultipleBlockingFlows = blockingFlows.length > 1;
+
+      if (hasMultipleBlockingFlows) {
+        console.warn(`⚠️ [FlowRecovery] Multiple blocking flows detected (${blockingFlows.length})`);
+
+        return {
+          ...result,
+          allowTransition: false, // Block transition when multiple flows are blocking
+          reason: `Multiple incomplete flows detected (${blockingFlows.length} flows blocking). Please resolve conflicts before proceeding.`,
+          blockingFlows,
+          hasMultipleBlockingFlows: true,
+          redirectPath: undefined // Don't redirect, show resolution UI instead
+        };
+      }
+
+      return {
+        ...result,
+        blockingFlows,
+        hasMultipleBlockingFlows: false
+      };
+    } catch (error) {
+      console.error(`❌ [FlowRecovery] Enhanced transition interception failed:`, error);
+
+      // Return safe fallback with basic blocking flow detection
+      return {
+        allowTransition: false,
+        reason: `Transition check failed: ${error.message || 'Unknown error'}`,
+        flowReadiness: {
+          dataImportComplete: false,
+          fieldMappingReady: false,
+          canProceedToAttributeMapping: false
+        },
+        blockingFlows: [],
+        hasMultipleBlockingFlows: false,
+        metadata: { error: true, originalError: error }
       };
     }
   }

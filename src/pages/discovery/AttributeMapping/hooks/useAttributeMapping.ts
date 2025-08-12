@@ -44,6 +44,10 @@ export const useAttributeMapping = (): JSX.Element => {
     recoveryError,
     recoveredFlowId,
     triggerFlowRecovery,
+    // Multi-flow blocking state
+    blockingFlows,
+    hasMultipleBlockingFlows,
+    refreshFlowState,
   } = useAttributeMappingLogic();
 
   // Navigation logic
@@ -120,7 +124,11 @@ export const useAttributeMapping = (): JSX.Element => {
     recoveryProgress,
     recoveryError,
     recoveredFlowId,
-    triggerFlowRecovery
+    triggerFlowRecovery,
+    // Multi-flow blocking state
+    blockingFlows,
+    hasMultipleBlockingFlows,
+    refreshFlowState
   };
 
   // Actions object

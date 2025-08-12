@@ -8,6 +8,7 @@ import { useCriticalAttributes } from './useCriticalAttributes';
 import { useAttributeMappingActions } from './useAttributeMappingActions';
 import { useAttributeMappingState } from './useAttributeMappingState';
 import { flowRecoveryService } from '../../../services/flow-recovery';
+import type { BlockingFlow } from '../../../services/flow-recovery';
 import type { AttributeMappingLogicResult } from './types';
 
 /**
@@ -20,6 +21,8 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
   // Phase transition interception state
   const [isInterceptingTransition, setIsInterceptingTransition] = useState(false);
   const [transitionIntercepted, setTransitionIntercepted] = useState(false);
+  const [blockingFlows, setBlockingFlows] = useState<BlockingFlow[]>([]);
+  const [hasMultipleBlockingFlows, setHasMultipleBlockingFlows] = useState(false);
 
   // 1. Flow Detection with recovery support
   const flowDetection = useFlowDetection();
@@ -99,14 +102,25 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
       try {
         setIsInterceptingTransition(true);
 
-        // Call the flow recovery service to check if transition should be allowed
-        const result = await flowRecoveryService.interceptTransition(
+        // Use enhanced transition interception with blocking flow detection
+        const result = await flowRecoveryService.interceptTransitionWithBlockingDetection(
           finalFlowId,
           'data_import',
           'attribute_mapping'
         );
 
         setTransitionIntercepted(true);
+
+        // Store blocking flows information for UI display
+        setBlockingFlows(result.blockingFlows || []);
+        setHasMultipleBlockingFlows(result.hasMultipleBlockingFlows || false);
+
+        // Handle multiple blocking flows scenario - don't redirect, let UI handle it
+        if (result.hasMultipleBlockingFlows) {
+          console.warn(`⚠️ [useAttributeMappingComposition] Multiple blocking flows detected (${result.blockingFlows?.length}), blocking transition without redirect`);
+          // Don't navigate anywhere - let the ErrorAndStatusAlerts component show the resolution UI
+          return;
+        }
 
         if (!result.allowTransition && result.redirectPath) {
           console.log(`🔄 [useAttributeMappingComposition] Transition blocked, redirecting to: ${result.redirectPath}`);
@@ -117,8 +131,8 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
         if (!result.flowReadiness.canProceedToAttributeMapping) {
           console.warn(`⚠️ [useAttributeMappingComposition] Flow not ready for attribute mapping:`, result.flowReadiness);
 
-          // If data import is not complete, redirect to data import
-          if (!result.flowReadiness.dataImportComplete) {
+          // If data import is not complete, redirect to data import (only if not multiple blocking flows)
+          if (!result.flowReadiness.dataImportComplete && !result.hasMultipleBlockingFlows) {
             console.log(`🔄 [useAttributeMappingComposition] Redirecting to data import due to incomplete data import`);
             navigate('/discovery/cmdb-import');
             return;
@@ -149,6 +163,23 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
   const refetchClarifications = useCallback(() => {
     return Promise.resolve();
   }, []);
+
+  // Refresh function for after flow cleanup
+  const refreshFlowState = useCallback(async () => {
+    console.log(`🔄 [useAttributeMappingComposition] Refreshing flow state after cleanup`);
+
+    // Reset blocking flows state
+    setBlockingFlows([]);
+    setHasMultipleBlockingFlows(false);
+    setTransitionIntercepted(false);
+
+    // Refresh all data
+    await Promise.all([
+      refresh(),
+      fieldMappingsHook.refetchFieldMappings(),
+      flowDetection.refetchFlows?.() // If flow detection has a refresh method
+    ]);
+  }, [refresh, fieldMappingsHook, flowDetection]);
 
   return {
     // Data
@@ -212,6 +243,11 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
     recoveredFlowId,
     triggerFlowRecovery,
     isInterceptingTransition,
-    transitionIntercepted
+    transitionIntercepted,
+
+    // Multi-flow blocking state
+    blockingFlows,
+    hasMultipleBlockingFlows,
+    refreshFlowState
   };
 };

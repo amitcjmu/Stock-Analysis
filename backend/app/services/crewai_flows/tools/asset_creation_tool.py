@@ -7,7 +7,6 @@ Provides tools for persistent agents to create assets in the database
 import asyncio
 import json
 import logging
-import uuid
 from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
@@ -172,15 +171,9 @@ class AssetCreationToolImpl:
         from datetime import datetime
 
         return Asset(
-            # Multi-tenant context
-            client_account_id=(
-                uuid.UUID(context.client_account_id)
-                if context.client_account_id
-                else None
-            ),
-            engagement_id=(
-                uuid.UUID(context.engagement_id) if context.engagement_id else None
-            ),
+            # Multi-tenant context - no double UUID conversion
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id,
             # Basic information
             name=asset_data.get("name", "Unknown Asset"),
             asset_name=asset_data.get("name", "Unknown Asset"),

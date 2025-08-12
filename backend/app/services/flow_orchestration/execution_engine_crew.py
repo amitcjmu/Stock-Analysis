@@ -200,6 +200,7 @@ class FlowCrewExecutor:
         self, mapped_phase: str, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Execute the mapped phase using appropriate agents"""
+        # All phase execution methods are synchronous, no await needed
         if mapped_phase == "data_import_validation":
             return self._execute_discovery_data_import_validation(
                 agent_pool, phase_input
