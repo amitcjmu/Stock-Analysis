@@ -13,9 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
-from app.core.logging import safe_log_format
+from app.core.security.secure_logging import safe_log_format
 from app.models.discovery_flow import DiscoveryFlow
-from app.models.master_flow import MasterFlow
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -94,13 +94,16 @@ def _extract_questions_from_discovery_flow(discovery_flow):
     return questions, has_pending
 
 
-def _extract_questions_from_master_flow(master_flow, existing_questions):
+def _extract_questions_from_crewai_flow(crewai_flow, existing_questions):
     """Extract questions from master flow phase state."""
     questions = []
     has_pending = False
 
-    if master_flow and master_flow.current_phase_state:
-        phase_questions = master_flow.current_phase_state.get("pending_questions", [])
+    if crewai_flow and crewai_flow.flow_persistence_data:
+        current_phase_state = crewai_flow.flow_persistence_data.get(
+            "current_phase_state", {}
+        )
+        phase_questions = current_phase_state.get("pending_questions", [])
         for q in phase_questions:
             if q not in existing_questions:
                 questions.append(q)
@@ -169,19 +172,20 @@ async def get_agent_questions(
             questions.extend(flow_questions)
             has_pending_questions = has_pending_questions or flow_has_pending
 
-            # Check MasterFlow for additional context
-            master_stmt = select(MasterFlow).where(
+            # Check CrewAI Flow State for additional context
+            master_stmt = select(CrewAIFlowStateExtensions).where(
                 and_(
-                    MasterFlow.flow_id == flow_id,
-                    MasterFlow.client_account_id == context.client_account_id,
-                    MasterFlow.engagement_id == context.engagement_id,
+                    CrewAIFlowStateExtensions.flow_id == flow_id,
+                    CrewAIFlowStateExtensions.client_account_id
+                    == context.client_account_id,
+                    CrewAIFlowStateExtensions.engagement_id == context.engagement_id,
                 )
             )
             master_result = await db.execute(master_stmt)
             master_flow = master_result.scalar_one_or_none()
 
             # Extract questions from master flow
-            master_questions, master_has_pending = _extract_questions_from_master_flow(
+            master_questions, master_has_pending = _extract_questions_from_crewai_flow(
                 master_flow, questions
             )
             questions.extend(master_questions)

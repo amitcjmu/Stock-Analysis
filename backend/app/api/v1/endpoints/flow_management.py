@@ -14,10 +14,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
-from app.core.logging import safe_log_format
-from app.models.discovery_flow import DiscoveryFlow, DiscoveryFlowStatus
-from app.models.master_flow import MasterFlow
+from app.core.security.secure_logging import safe_log_format
+from app.models.discovery_flow import DiscoveryFlow
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+from app.utils.flow_constants.flow_states import FlowStatus
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -123,22 +124,26 @@ async def delete_flow(
             raise HTTPException(status_code=404, detail="Flow not found")
 
         # Soft delete by updating status
-        flow.status = DiscoveryFlowStatus.DELETED.value
+        flow.status = FlowStatus.ARCHIVED.value
         flow.updated_at = datetime.now(timezone.utc)
 
         await db.commit()
 
-        # Also update MasterFlow if it exists
+        # Also update CrewAI Flow State if it exists
         master_stmt = (
-            update(MasterFlow)
+            update(CrewAIFlowStateExtensions)
             .where(
                 and_(
-                    MasterFlow.flow_id == flow_id,
-                    MasterFlow.client_account_id == context.client_account_id,
-                    MasterFlow.engagement_id == context.engagement_id,
+                    CrewAIFlowStateExtensions.flow_id == flow_id,
+                    CrewAIFlowStateExtensions.client_account_id
+                    == context.client_account_id,
+                    CrewAIFlowStateExtensions.engagement_id == context.engagement_id,
                 )
             )
-            .values(is_active=False, updated_at=datetime.now(timezone.utc))
+            .values(
+                flow_status=FlowStatus.ARCHIVED.value,
+                updated_at=datetime.now(timezone.utc),
+            )
         )
 
         await db.execute(master_stmt)

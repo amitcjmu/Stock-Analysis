@@ -22,7 +22,6 @@ from app.api.v1.endpoints import (
     data_import_router,
     monitoring_router,
     sixr_router,
-    test_discovery_router,
 )
 
 # Analysis endpoints (including queues)
@@ -702,9 +701,7 @@ else:
     logger.warning("⚠️ Simple admin router not available")
 
 # Testing and Debug
-api_router.include_router(
-    test_discovery_router, prefix="/test-discovery", tags=["Test Discovery"]
-)
+# Removed test_discovery_router - unnecessary test endpoint with auth bypass
 
 # FinOps (Financial Operations) API
 try:

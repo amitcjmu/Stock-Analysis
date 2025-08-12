@@ -10,10 +10,11 @@ from datetime import datetime, timezone
 from sqlalchemy import select, and_, desc, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.discovery_flow import DiscoveryFlow, DiscoveryFlowStatus
-from app.models.master_flow import MasterFlow, FlowType
+from app.models.discovery_flow import DiscoveryFlow
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.utils.flow_constants.flow_states import FlowType, FlowStatus
 from app.core.context import RequestContext
-from app.core.logging import safe_log_format
+from app.core.security.secure_logging import safe_log_format
 
 logger = logging.getLogger(__name__)
 
@@ -65,36 +66,76 @@ async def get_flow_status(
                 )
             )
 
-            # Get additional data from MasterFlow if available
+            # Get additional data from CrewAI Flow State if available
             master_result = await db.execute(
-                select(MasterFlow).where(
+                select(CrewAIFlowStateExtensions).where(
                     and_(
-                        MasterFlow.flow_id == flow_id,
-                        MasterFlow.client_account_id == context.client_account_id,
-                        MasterFlow.engagement_id == context.engagement_id,
+                        CrewAIFlowStateExtensions.flow_id == flow_id,
+                        CrewAIFlowStateExtensions.client_account_id
+                        == context.client_account_id,
+                        CrewAIFlowStateExtensions.engagement_id
+                        == context.engagement_id,
                     )
                 )
             )
             master_flow = master_result.scalar_one_or_none()
 
             phase_state = discovery_flow.phase_state or {}
-            if master_flow and master_flow.current_phase_state:
-                phase_state.update(master_flow.current_phase_state)
+            if master_flow and master_flow.flow_persistence_data:
+                # Extract phase state from flow persistence data
+                master_phase_state = master_flow.flow_persistence_data.get(
+                    "current_phase_state", {}
+                )
+                if master_phase_state:
+                    phase_state.update(master_phase_state)
+
+            # Ensure all data is JSON serializable to avoid recursion errors
+            safe_metadata = {}
+            if discovery_flow.metadata:
+                try:
+                    # Only include basic types to avoid circular references
+                    import json
+
+                    safe_metadata = json.loads(json.dumps(discovery_flow.metadata))
+                except (TypeError, ValueError, RecursionError):
+                    safe_metadata = {"error": "metadata_serialization_failed"}
+
+            safe_phase_state = {}
+            if phase_state:
+                try:
+                    import json
+
+                    safe_phase_state = json.loads(json.dumps(phase_state))
+                except (TypeError, ValueError, RecursionError):
+                    safe_phase_state = {"error": "phase_state_serialization_failed"}
+
+            safe_phases_completed = {}
+            if discovery_flow.phases_completed:
+                try:
+                    import json
+
+                    safe_phases_completed = json.loads(
+                        json.dumps(discovery_flow.phases_completed)
+                    )
+                except (TypeError, ValueError, RecursionError):
+                    safe_phases_completed = {
+                        "error": "phases_completed_serialization_failed"
+                    }
 
             return {
                 "flow_id": flow_id,
                 "status": discovery_flow.status,
                 "current_phase": discovery_flow.current_phase,
-                "progress": discovery_flow.progress or 0,
-                "phase_state": phase_state,
-                "metadata": discovery_flow.metadata,
+                "progress": discovery_flow.progress_percentage or 0,
+                "phase_state": safe_phase_state,
+                "metadata": safe_metadata,
                 "last_activity": (
                     discovery_flow.updated_at.isoformat()
                     if discovery_flow.updated_at
                     else None
                 ),
                 "error_message": discovery_flow.error_message,
-                "phase_completion": discovery_flow.phase_completion,
+                "phase_completion": safe_phases_completed,
             }
 
     # Debug: Check if flow exists but with different context
@@ -186,11 +227,11 @@ async def get_active_flows(
                 DiscoveryFlow.engagement_id == context.engagement_id,
                 DiscoveryFlow.status.in_(
                     [
-                        DiscoveryFlowStatus.INITIALIZED.value,
-                        DiscoveryFlowStatus.RUNNING.value,
-                        DiscoveryFlowStatus.PROCESSING.value,
-                        DiscoveryFlowStatus.PAUSED.value,
-                        DiscoveryFlowStatus.WAITING_FOR_APPROVAL.value,
+                        FlowStatus.INITIALIZING.value,
+                        FlowStatus.RUNNING.value,
+                        FlowStatus.RUNNING.value,  # processing mapped to running
+                        FlowStatus.PAUSED.value,
+                        FlowStatus.WAITING.value,
                     ]
                 ),
             )
@@ -202,18 +243,26 @@ async def get_active_flows(
     result = await db.execute(stmt)
     flows = result.scalars().all()
 
-    # Also check MasterFlow for active flows
+    # Also check CrewAI Flow State for active flows
     master_stmt = (
-        select(MasterFlow)
+        select(CrewAIFlowStateExtensions)
         .where(
             and_(
-                MasterFlow.client_account_id == context.client_account_id,
-                MasterFlow.engagement_id == context.engagement_id,
-                MasterFlow.flow_type == FlowType.DISCOVERY.value,
-                MasterFlow.is_active.is_(True),
+                CrewAIFlowStateExtensions.client_account_id
+                == context.client_account_id,
+                CrewAIFlowStateExtensions.engagement_id == context.engagement_id,
+                CrewAIFlowStateExtensions.flow_type == FlowType.DISCOVERY.value,
+                CrewAIFlowStateExtensions.flow_status.in_(
+                    [
+                        FlowStatus.INITIALIZING.value,
+                        FlowStatus.RUNNING.value,
+                        FlowStatus.WAITING.value,
+                        FlowStatus.PAUSED.value,
+                    ]
+                ),
             )
         )
-        .order_by(desc(MasterFlow.updated_at))
+        .order_by(desc(CrewAIFlowStateExtensions.updated_at))
         .limit(limit)
     )
 
@@ -233,7 +282,7 @@ async def get_active_flows(
                     "flow_name": flow.flow_name,
                     "status": flow.status,
                     "current_phase": flow.current_phase,
-                    "progress": flow.progress or 0,
+                    "progress": flow.progress_percentage or 0,
                     "created_at": (
                         flow.created_at.isoformat() if flow.created_at else None
                     ),
@@ -250,21 +299,21 @@ async def get_active_flows(
             active_flows.append(
                 {
                     "flow_id": master_flow.flow_id,
-                    "flow_name": master_flow.flow_name,
-                    "status": master_flow.status,
-                    "current_phase": master_flow.current_phase,
-                    "progress": master_flow.progress or 0,
+                    "flow_name": getattr(master_flow, "flow_name", "Unnamed Flow"),
+                    "status": getattr(master_flow, "flow_status", "unknown"),
+                    "current_phase": getattr(master_flow, "current_phase", None),
+                    "progress": getattr(master_flow, "progress_percentage", 0) or 0,
                     "created_at": (
                         master_flow.created_at.isoformat()
-                        if master_flow.created_at
+                        if getattr(master_flow, "created_at", None)
                         else None
                     ),
                     "updated_at": (
                         master_flow.updated_at.isoformat()
-                        if master_flow.updated_at
+                        if getattr(master_flow, "updated_at", None)
                         else None
                     ),
-                    "source": "master_flow",
+                    "source": "crewai_flow",
                 }
             )
 

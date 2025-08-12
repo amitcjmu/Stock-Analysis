@@ -174,12 +174,37 @@ async def get_flow_status(
 @router.get("/flows/active")
 async def get_active_flows(
     limit: int = Query(10, description="Maximum number of flows to return"),
+    flowType: Optional[str] = Query(
+        None, description="Filter by flow type (e.g., 'discovery')"
+    ),
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
 ):
     """Get active discovery flows for the current context."""
     try:
         flows = await get_active_flows_service(db, context, limit)
+
+        # Filter by flowType if specified (for frontend compatibility)
+        if flowType and flowType.lower() == "discovery":
+            # Convert to the format expected by the frontend
+            formatted_flows = []
+            for flow in flows:
+                formatted_flows.append(
+                    {
+                        "flowId": flow["flow_id"],
+                        "flowType": "discovery",
+                        "flowName": flow["flow_name"],
+                        "status": flow["status"],
+                        "progress": flow["progress"],
+                        "currentPhase": flow["current_phase"],
+                        "createdAt": flow["created_at"],
+                        "updatedAt": flow["updated_at"],
+                        "source": flow.get("source", "discovery_flow"),
+                        "metadata": {"flow_name": flow["flow_name"]},
+                    }
+                )
+            return formatted_flows
+
         return {
             "success": True,
             "flows": flows,

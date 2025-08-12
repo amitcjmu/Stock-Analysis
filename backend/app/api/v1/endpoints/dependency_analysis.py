@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
-from app.core.logging import safe_log_format
+from app.core.security.secure_logging import safe_log_format
 from app.models.discovery_flow import DiscoveryFlow
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 

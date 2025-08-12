@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.discovery_flow import DiscoveryFlow
 from app.core.context import RequestContext
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-from app.core.logging import safe_log_format
+from app.core.security.secure_logging import safe_log_format
 
 logger = logging.getLogger(__name__)
 
