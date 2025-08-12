@@ -84,6 +84,18 @@ try:
     from app.api.v1.endpoints.unified_discovery import (
         router as unified_discovery_router,
     )
+    from app.api.v1.endpoints.dependency_analysis import (
+        router as dependency_analysis_router,
+    )
+    from app.api.v1.endpoints.agent_insights import (
+        router as agent_insights_router,
+    )
+    from app.api.v1.endpoints.clarifications import (
+        router as clarifications_router,
+    )
+    from app.api.v1.endpoints.flow_management import (
+        router as flow_management_router,
+    )
 
     UNIFIED_DISCOVERY_AVAILABLE = True
 except ImportError as e:
@@ -345,12 +357,44 @@ else:
 
 # Unified Discovery Flow API - Master Flow Orchestrator Integration
 if UNIFIED_DISCOVERY_AVAILABLE:
+    # Main unified discovery router
     api_router.include_router(
         unified_discovery_router,
         prefix="/unified-discovery",
         tags=["Unified Discovery Flow"],
     )
     logger.info("✅ Unified Discovery Flow API router included at /unified-discovery")
+
+    # Modular discovery routers
+    api_router.include_router(
+        dependency_analysis_router,
+        prefix="/unified-discovery/dependencies",
+        tags=["Discovery - Dependency Analysis"],
+    )
+    logger.info(
+        "✅ Dependency Analysis router included at /unified-discovery/dependencies"
+    )
+
+    api_router.include_router(
+        agent_insights_router,
+        prefix="/unified-discovery",
+        tags=["Discovery - Agent Insights"],
+    )
+    logger.info("✅ Agent Insights router included at /unified-discovery")
+
+    api_router.include_router(
+        clarifications_router,
+        prefix="/unified-discovery",
+        tags=["Discovery - Clarifications"],
+    )
+    logger.info("✅ Clarifications router included at /unified-discovery")
+
+    api_router.include_router(
+        flow_management_router,
+        prefix="/unified-discovery/flow",
+        tags=["Discovery - Flow Management"],
+    )
+    logger.info("✅ Flow Management router included at /unified-discovery/flow")
 else:
     logger.warning("⚠️ Unified Discovery Flow API router not available")
 
