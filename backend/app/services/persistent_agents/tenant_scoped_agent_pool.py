@@ -429,6 +429,9 @@ class TenantScopedAgentPool:
             from app.services.crewai_flows.tools.asset_creation_tool import (
                 create_asset_creation_tools,
             )
+            from app.services.crewai_flows.tools.data_validation_tool import (
+                create_data_validation_tools,
+            )
             from app.services.tools.asset_intelligence_tools import (
                 get_asset_intelligence_tools,
             )
@@ -441,6 +444,10 @@ class TenantScopedAgentPool:
 
             # Agent-specific tools
             if agent_type in ["data_analyst", "pattern_discovery_agent"]:
+                # Data analyst needs data validation tools
+                validation_tools = create_data_validation_tools(context_info)
+                tools.extend(validation_tools)
+
                 # These agents need asset creation capabilities
                 asset_tools = create_asset_creation_tools(context_info)
                 tools.extend(asset_tools)
