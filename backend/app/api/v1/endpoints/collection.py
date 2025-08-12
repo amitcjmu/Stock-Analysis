@@ -449,7 +449,7 @@ async def create_collection_flow(
             "collection_config": collection_flow.collection_config,
         }
 
-        # Create the flow - it will be automatically started by the execution engine
+        # Create the flow
         master_flow_id, master_flow_data = await mfo.create_flow(
             flow_type="collection", initial_state=flow_input
         )
@@ -459,8 +459,40 @@ async def create_collection_flow(
         await db.commit()
         await db.refresh(collection_flow)
 
+        # Start the flow execution immediately
+        try:
+            logger.info(
+                "Starting execution for collection flow %s (master flow %s)",
+                collection_flow.id,
+                master_flow_id,
+            )
+
+            # Execute the initialization phase
+            execution_result = await mfo.execute_phase(
+                flow_id=str(collection_flow.flow_id),
+                phase_name="initialization",
+                phase_input=flow_input,
+            )
+
+            # Update flow status to running
+            collection_flow.status = CollectionFlowStatus.RUNNING.value
+            collection_flow.current_phase = execution_result.get(
+                "next_phase", CollectionPhase.PLATFORM_DETECTION.value
+            )
+            await db.commit()
+            await db.refresh(collection_flow)
+
+            logger.info(
+                "Successfully started collection flow %s with initial phase %s",
+                collection_flow.id,
+                collection_flow.current_phase,
+            )
+        except Exception as e:
+            logger.error(f"Failed to start collection flow execution: {e}")
+            # Flow is created but not started - user can manually start it later
+
         logger.info(
-            "Created collection flow %s linked to master flow %s for engagement %s - execution started",
+            "Created collection flow %s linked to master flow %s for engagement %s",
             collection_flow.id,
             master_flow_id,
             context.engagement_id,
