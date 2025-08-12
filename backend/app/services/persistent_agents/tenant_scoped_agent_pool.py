@@ -9,6 +9,7 @@ This addresses ADR-015: Persistent Multi-Tenant Agent Architecture
 """
 
 import asyncio
+import atexit
 import logging
 import threading
 import uuid
@@ -260,6 +261,9 @@ class TenantScopedAgentPool:
         # Get agent configuration
         agent_config = cls._get_agent_config(agent_type)
 
+        # Get tools for this agent type (including context info)
+        tools = cls._get_agent_tools(agent_type, memory_manager)
+
         # Fix 1: Resolve API compatibility issues with proper config
         memory_config = {
             "provider": "DeepInfra",
@@ -278,7 +282,7 @@ class TenantScopedAgentPool:
                 backstory=agent_config["backstory"],
                 memory=True,  # Re-enable memory
                 memory_config=memory_config,
-                tools=agent_config.get("tools", []),
+                tools=tools,  # Use the actual tools instead of empty array
                 allow_delegation=False,  # Performance optimization
                 max_iter=1,  # Single iteration for performance
                 verbose=False,  # Reduce noise
@@ -387,6 +391,92 @@ class TenantScopedAgentPool:
 
         except Exception as e:
             return AgentHealth(is_healthy=False, error=f"Health check failed: {e}")
+
+    @classmethod
+    def _get_agent_tools(
+        cls, agent_type: str, memory_manager: ThreeTierMemoryManager
+    ) -> List:
+        """
+        Get tools for different agent types
+
+        Args:
+            agent_type: Type of agent
+            memory_manager: Memory manager for context
+
+        Returns:
+            List of CrewAI tools for the agent
+        """
+        try:
+            # Extract context from memory manager (it has client_account_id and engagement_id)
+            context_info = {
+                "client_account_id": (
+                    str(memory_manager.client_account_id)
+                    if hasattr(memory_manager, "client_account_id")
+                    else None
+                ),
+                "engagement_id": (
+                    str(memory_manager.engagement_id)
+                    if hasattr(memory_manager, "engagement_id")
+                    else None
+                ),
+                "agent_type": agent_type,
+            }
+
+            # Import tool creators
+            from app.services.crewai_flows.tools.task_completion_tools import (
+                create_task_completion_tools,
+            )
+            from app.services.crewai_flows.tools.asset_creation_tool import (
+                create_asset_creation_tools,
+            )
+            from app.services.tools.asset_intelligence_tools import (
+                get_asset_intelligence_tools,
+            )
+
+            tools = []
+
+            # Common tools for all agents
+            completion_tools = create_task_completion_tools(context_info)
+            tools.extend(completion_tools)
+
+            # Agent-specific tools
+            if agent_type in ["data_analyst", "pattern_discovery_agent"]:
+                # These agents need asset creation capabilities
+                asset_tools = create_asset_creation_tools(context_info)
+                tools.extend(asset_tools)
+
+                # Add intelligence tools
+                intelligence_tools = get_asset_intelligence_tools()
+                tools.extend(intelligence_tools)
+
+            elif agent_type == "quality_assessor":
+                # Quality assessor needs asset enrichment tools
+                intelligence_tools = get_asset_intelligence_tools()
+                tools.extend(intelligence_tools)
+
+            elif agent_type in ["business_value_analyst", "risk_assessment_agent"]:
+                # These agents analyze but don't create assets
+                intelligence_tools = get_asset_intelligence_tools()
+                tools.extend(intelligence_tools)
+
+            elif agent_type == "field_mapper":
+                # Field mapper needs specific mapping tools if available
+                try:
+                    from app.services.crewai_flows.tools.mapping_confidence_tool import (
+                        MappingConfidenceTool,
+                    )
+
+                    mapping_tool = MappingConfidenceTool()
+                    tools.append(mapping_tool)
+                except ImportError:
+                    logger.debug(f"Mapping tools not available for {agent_type}")
+
+            logger.info(f"✅ Loaded {len(tools)} tools for {agent_type} agent")
+            return tools
+
+        except Exception as e:
+            logger.error(f"❌ Failed to load tools for {agent_type}: {e}")
+            return []
 
     @classmethod
     def _get_agent_config(cls, agent_type: str) -> Dict[str, Any]:
@@ -616,8 +706,6 @@ async def validate_agent_pool_health(
 
     return health_report
 
-
-import atexit
 
 # Automatic cleanup initialization - start monitoring when module loads
 # Register cleanup on application shutdown
