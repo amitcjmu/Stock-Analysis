@@ -19,6 +19,7 @@ from .monitoring.agent_monitoring import router as agent_router
 from .monitoring.crewai_flow_monitoring import router as crewai_flow_router
 from .monitoring.error_monitoring import router as error_router
 from .monitoring.health_metrics import router as health_router
+from .monitoring.agent_performance import router as performance_router
 
 # Create main monitoring router
 router = APIRouter()
@@ -26,6 +27,9 @@ router = APIRouter()
 # Include all sub-routers
 # Agent monitoring endpoints
 router.include_router(agent_router, tags=["Agent Monitoring"])
+
+# Agent performance and analytics endpoints
+router.include_router(performance_router, tags=["Agent Performance"])
 
 # Health and metrics endpoints
 router.include_router(health_router, tags=["Health & Metrics"])

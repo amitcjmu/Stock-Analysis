@@ -48,6 +48,53 @@ class PhaseTransitionRequest(BaseModel):
     to_phase: str
 
 
+class BulkFlowDeleteRequest(BaseModel):
+    """Request model for bulk flow deletion"""
+
+    flowIds: List[str]
+
+
+class BlockingFlow(BaseModel):
+    """Model representing a blocking flow"""
+
+    flow_id: str
+    phase: str
+    status: str
+    created_at: str
+    issue: str
+
+
+class BlockingFlowsResponse(BaseModel):
+    """Response model for blocking flows detection"""
+
+    blocking_flows: List[BlockingFlow]
+    count: int
+
+
+class FlowDeleteResponse(BaseModel):
+    """Response model for single flow deletion"""
+
+    success: bool
+    message: str
+    flow_id: str
+
+
+class FlowDeleteResult(BaseModel):
+    """Individual flow deletion result"""
+
+    flowId: str
+    success: bool
+    message: str
+
+
+class BulkFlowDeleteResponse(BaseModel):
+    """Response model for bulk flow deletion"""
+
+    success: bool
+    message: str
+    results: List[FlowDeleteResult]
+
+
 @router.post("/validate/{flow_id}")
 async def validate_flow_state(
     flow_id: str,
@@ -380,6 +427,343 @@ async def get_routing_recommendations(
         )
 
 
+@router.get("/blocking-flows", response_model=BlockingFlowsResponse)
+async def get_blocking_flows(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """
+    Detect all incomplete/blocking flows for the current user context.
+
+    Returns list of blocking flows with details (id, phase, status, created_at, issues).
+    Uses proper context filtering (client_id, engagement_id, user_id) for multi-tenant safety.
+    """
+    try:
+        logger.info("🔍 Detecting blocking flows for current context")
+
+        # Initialize Master Flow Orchestrator to get flow detector
+        orchestrator = MasterFlowOrchestrator(db, context)
+        flow_detector = orchestrator.status_manager.flow_detector
+
+        # Get system-wide analysis to find all incomplete flows
+        analysis = await flow_detector.detect_system_wide_issues()
+
+        blocking_flows = []
+
+        # Process critical flows from the analysis
+        if "critical_flows" in analysis:
+            for critical_flow in analysis["critical_flows"]:
+                flow_id = critical_flow.get("flow_id", "")
+                issue = critical_flow.get("issue", "Unknown issue")
+
+                # Get additional flow information
+                try:
+                    master_flow = await orchestrator.master_repo.get_by_flow_id(flow_id)
+                    if master_flow:
+                        # Try to get discovery flow for phase information
+                        phase = "unknown"
+                        if master_flow.flow_type == "discovery":
+                            discovery_flow = await flow_detector._get_discovery_flow(
+                                flow_id
+                            )
+                            if discovery_flow:
+                                phase = getattr(
+                                    discovery_flow, "current_phase", "unknown"
+                                )
+
+                        blocking_flows.append(
+                            BlockingFlow(
+                                flow_id=flow_id,
+                                phase=phase,
+                                status=master_flow.flow_status,
+                                created_at=master_flow.created_at.isoformat(),
+                                issue=issue,
+                            )
+                        )
+                except Exception as flow_error:
+                    logger.warning(
+                        f"Could not get details for flow {flow_id}: {flow_error}"
+                    )
+                    # Still add the flow with basic info
+                    blocking_flows.append(
+                        BlockingFlow(
+                            flow_id=flow_id,
+                            phase="unknown",
+                            status="incomplete",
+                            created_at="",
+                            issue=issue,
+                        )
+                    )
+
+        # Additionally, check for flows with non-critical issues that might still be blocking
+        if analysis.get("flows_with_issues", 0) > len(
+            analysis.get("critical_flows", [])
+        ):
+            logger.info("Detecting additional blocking flows with non-critical issues")
+
+            # Get all active flows and check each for blocking issues
+            from sqlalchemy import and_, select
+            from app.models.crewai_flow_state_extensions import (
+                CrewAIFlowStateExtensions,
+            )
+
+            master_flows_query = select(CrewAIFlowStateExtensions).where(
+                and_(
+                    CrewAIFlowStateExtensions.client_account_id
+                    == context.client_account_id,
+                    CrewAIFlowStateExtensions.engagement_id == context.engagement_id,
+                    CrewAIFlowStateExtensions.flow_status.in_(
+                        [
+                            "active",
+                            "running",
+                            "waiting_for_approval",
+                            "paused",
+                            "incomplete",
+                        ]
+                    ),
+                )
+            )
+            result = await db.execute(master_flows_query)
+            master_flows = list(result.scalars().all())
+
+            # Check each flow for issues
+            for master_flow in master_flows:
+                flow_id = str(master_flow.flow_id)
+
+                # Skip if already in critical flows
+                if any(
+                    cf.get("flow_id") == flow_id
+                    for cf in analysis.get("critical_flows", [])
+                ):
+                    continue
+
+                # Check for issues
+                issues = await flow_detector.detect_incomplete_initialization(flow_id)
+                if issues:
+                    # Get the most severe issue
+                    high_priority_issue = next(
+                        (
+                            issue
+                            for issue in issues
+                            if issue.severity in ["critical", "high"]
+                        ),
+                        issues[0] if issues else None,
+                    )
+
+                    if high_priority_issue:
+                        phase = "unknown"
+                        if master_flow.flow_type == "discovery":
+                            discovery_flow = await flow_detector._get_discovery_flow(
+                                flow_id
+                            )
+                            if discovery_flow:
+                                phase = getattr(
+                                    discovery_flow, "current_phase", "unknown"
+                                )
+
+                        blocking_flows.append(
+                            BlockingFlow(
+                                flow_id=flow_id,
+                                phase=phase,
+                                status=master_flow.flow_status,
+                                created_at=master_flow.created_at.isoformat(),
+                                issue=high_priority_issue.description,
+                            )
+                        )
+
+        logger.info(f"📊 Found {len(blocking_flows)} blocking flows")
+
+        return BlockingFlowsResponse(
+            blocking_flows=blocking_flows, count=len(blocking_flows)
+        )
+
+    except Exception as e:
+        logger.error(f"❌ Failed to detect blocking flows: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to detect blocking flows: {str(e)}"
+        )
+
+
+@router.delete("/{flow_id}", response_model=FlowDeleteResponse)
+async def delete_flow(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """
+    Delete a single flow and all its related records.
+
+    Ensures cascade deletion of child records with proper context filtering
+    for multi-tenant safety. Returns success/failure status.
+    """
+    try:
+        logger.info(
+            safe_log_format(
+                "🗑️ Deleting flow: {flow_id}",
+                flow_id=mask_id(flow_id),
+            )
+        )
+
+        # Initialize Master Flow Orchestrator
+        orchestrator = MasterFlowOrchestrator(db, context)
+
+        # First, validate the flow exists and belongs to this tenant
+        master_flow = await orchestrator.master_repo.get_by_flow_id(flow_id)
+        if not master_flow:
+            logger.warning(
+                safe_log_format(
+                    "Flow not found for deletion: {flow_id}",
+                    flow_id=mask_id(flow_id),
+                )
+            )
+            raise HTTPException(status_code=404, detail=f"Flow not found: {flow_id}")
+
+        # Delete the flow using the orchestrator's cleanup capabilities (hard delete for cleanup)
+        await orchestrator.lifecycle_manager.delete_flow(
+            flow_id, soft_delete=False, reason="blocking_flow_cleanup"
+        )
+
+        logger.info(
+            safe_log_format(
+                "✅ Successfully deleted flow: {flow_id}",
+                flow_id=mask_id(flow_id),
+            )
+        )
+
+        return FlowDeleteResponse(
+            success=True, message="Flow deleted successfully", flow_id=flow_id
+        )
+
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        logger.error(
+            safe_log_format(
+                "❌ Failed to delete flow {flow_id}: {error}",
+                flow_id=mask_id(flow_id),
+                error=str(e),
+            )
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to delete flow: {str(e)}")
+
+
+@router.delete("/bulk", response_model=BulkFlowDeleteResponse)
+async def delete_multiple_flows(
+    request: BulkFlowDeleteRequest,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """
+    Delete multiple flows in a single transaction.
+
+    Accepts list of flow IDs in request body and deletes multiple flows.
+    Returns results for each flow (success/failure) and handles partial failures gracefully.
+    All operations use proper context filtering for multi-tenant safety.
+    """
+    try:
+        flow_ids = request.flowIds
+        logger.info(f"🗑️ Starting bulk deletion of {len(flow_ids)} flows")
+
+        if not flow_ids:
+            raise HTTPException(
+                status_code=400, detail="No flow IDs provided for deletion"
+            )
+
+        if len(flow_ids) > 100:  # Safety limit
+            raise HTTPException(
+                status_code=400,
+                detail="Too many flows requested for bulk deletion (max: 100)",
+            )
+
+        # Initialize Master Flow Orchestrator
+        orchestrator = MasterFlowOrchestrator(db, context)
+
+        results = []
+        deleted_count = 0
+        failed_count = 0
+
+        # Process each flow deletion
+        for flow_id in flow_ids:
+            try:
+                logger.info(
+                    safe_log_format(
+                        "🗑️ Processing bulk deletion for flow: {flow_id}",
+                        flow_id=mask_id(flow_id),
+                    )
+                )
+
+                # Validate the flow exists and belongs to this tenant
+                master_flow = await orchestrator.master_repo.get_by_flow_id(flow_id)
+                if not master_flow:
+                    results.append(
+                        FlowDeleteResult(
+                            flowId=flow_id, success=False, message="Flow not found"
+                        )
+                    )
+                    failed_count += 1
+                    continue
+
+                # Delete the flow (hard delete for cleanup)
+                await orchestrator.lifecycle_manager.delete_flow(
+                    flow_id, soft_delete=False, reason="bulk_blocking_flow_cleanup"
+                )
+
+                results.append(
+                    FlowDeleteResult(
+                        flowId=flow_id,
+                        success=True,
+                        message="Flow deleted successfully",
+                    )
+                )
+                deleted_count += 1
+
+                logger.info(
+                    safe_log_format(
+                        "✅ Successfully deleted flow in bulk: {flow_id}",
+                        flow_id=mask_id(flow_id),
+                    )
+                )
+
+            except Exception as flow_error:
+                logger.error(
+                    safe_log_format(
+                        "❌ Failed to delete flow {flow_id} in bulk: {error}",
+                        flow_id=mask_id(flow_id),
+                        error=str(flow_error),
+                    )
+                )
+                results.append(
+                    FlowDeleteResult(
+                        flowId=flow_id, success=False, message=str(flow_error)
+                    )
+                )
+                failed_count += 1
+
+        logger.info(
+            f"📊 Bulk deletion completed: {deleted_count} deleted, {failed_count} failed"
+        )
+
+        # Determine overall success
+        overall_success = failed_count == 0
+        message = (
+            f"Bulk deletion completed: {deleted_count} deleted, {failed_count} failed"
+        )
+
+        return BulkFlowDeleteResponse(
+            success=overall_success, message=message, results=results
+        )
+
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        logger.error(f"❌ Bulk flow deletion failed: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Bulk flow deletion failed: {str(e)}"
+        )
+
+
 @router.get("/health")
 async def health_check():
     """Health check endpoint for the flow recovery API."""
@@ -392,6 +776,9 @@ async def health_check():
             "automatic_recovery": "active",
             "phase_transition_interception": "active",
             "system_wide_analysis": "active",
+            "blocking_flows_detection": "active",
+            "single_flow_deletion": "active",
+            "bulk_flow_deletion": "active",
         },
         "timestamp": "2025-01-12T00:00:00Z",
     }
