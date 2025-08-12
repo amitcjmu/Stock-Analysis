@@ -13,10 +13,8 @@ from . import (
     chat,
     context,
     data_import,
-    discovery,
     flow_processing,
     sixr_analysis,
-    test_discovery,
 )
 from .agents import router as agents_router
 
@@ -25,7 +23,7 @@ from .monitoring_main import router as monitoring_router
 
 # Expose the routers for the main api.py to collect
 sixr_router = sixr_analysis.router
-discovery_router = discovery.router
+# discovery_router removed - functionality moved to unified_discovery
 asset_inventory_router = asset_inventory.router
 monitoring_router = monitoring_router  # Use the imported monitoring_router
 chat_router = chat.router
@@ -33,7 +31,7 @@ chat_router = chat.router
 agent_learning_router = agent_learning_endpoints.router
 data_import_router = data_import.router
 context_router = context.router
-test_discovery_router = test_discovery.router
+# test_discovery_router removed - was dead code with auth bypass
 flow_processing_router = flow_processing.router
 assessment_flow_router = assessment_flow.router
 assessment_events_router = assessment_events.router

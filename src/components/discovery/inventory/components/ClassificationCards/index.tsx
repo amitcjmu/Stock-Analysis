@@ -7,12 +7,14 @@ interface ClassificationCardsProps {
   inventoryProgress: InventoryProgress;
   selectedAssetType: string;
   onAssetTypeSelect: (type: string) => void;
+  flowId?: string;
 }
 
 export const ClassificationCards: React.FC<ClassificationCardsProps> = ({
   inventoryProgress,
   selectedAssetType,
-  onAssetTypeSelect
+  onAssetTypeSelect,
+  flowId
 }) => {
   const classificationCards = [
     {
@@ -49,6 +51,13 @@ export const ClassificationCards: React.FC<ClassificationCardsProps> = ({
     }
   ];
 
+  const handleCardClick = (card: any) => {
+    // Trigger the filter behavior - toggle if already selected, otherwise select
+    onAssetTypeSelect(
+      selectedAssetType === card.filterValue ? 'all' : card.filterValue
+    );
+  };
+
   return (
     <div className="mb-6">
       <h3 className="text-lg font-semibold mb-4">Asset Classification</h3>
@@ -62,9 +71,7 @@ export const ClassificationCards: React.FC<ClassificationCardsProps> = ({
             Icon={card.icon}
             color={card.color}
             isActive={selectedAssetType === card.filterValue}
-            onClick={() => onAssetTypeSelect(
-              selectedAssetType === card.filterValue ? 'all' : card.filterValue
-            )}
+            onClick={() => handleCardClick(card)}
           />
         ))}
       </div>

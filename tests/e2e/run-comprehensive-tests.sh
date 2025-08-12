@@ -33,7 +33,7 @@ print_section() {
 # Function to check prerequisites
 check_prerequisites() {
     print_section "CHECKING PREREQUISITES"
-    
+
     # Check if Docker containers are running
     echo "Checking Docker containers..."
     if ! docker ps | grep -q "migrate-ui-orchestrator"; then
@@ -42,7 +42,7 @@ check_prerequisites() {
     else
         echo -e "${GREEN}✓ Docker containers are running${NC}"
     fi
-    
+
     # Check if services are accessible
     echo "Checking service availability..."
     if ! curl -s "${BASE_URL}/health" > /dev/null 2>&1; then
@@ -51,14 +51,14 @@ check_prerequisites() {
     else
         echo -e "${GREEN}✓ Frontend accessible at ${BASE_URL}${NC}"
     fi
-    
+
     if ! curl -s "${API_URL}/health" > /dev/null 2>&1; then
         echo -e "${YELLOW}⚠ Backend health check failed at ${API_URL}${NC}"
         echo "  (This may be normal if health endpoint doesn't exist)"
     else
         echo -e "${GREEN}✓ Backend accessible at ${API_URL}${NC}"
     fi
-    
+
     # Check if Playwright is installed
     if ! npx playwright --version > /dev/null 2>&1; then
         echo -e "${RED}❌ Playwright not installed. Please run 'npm install'${NC}"
@@ -66,18 +66,18 @@ check_prerequisites() {
     else
         echo -e "${GREEN}✓ Playwright is installed${NC}"
     fi
-    
+
     echo ""
 }
 
 # Function to create necessary directories
 setup_directories() {
     print_section "SETTING UP DIRECTORIES"
-    
+
     mkdir -p "${SCREENSHOTS_DIR}"
     mkdir -p "${REPORTS_DIR}"
     mkdir -p "tests/e2e/test-data"
-    
+
     echo -e "${GREEN}✓ Test directories created${NC}"
     echo ""
 }
@@ -87,12 +87,12 @@ run_test_suite() {
     local test_file=$1
     local test_name=$2
     local start_time=$(date +%s)
-    
+
     print_section "RUNNING ${test_name} TESTS"
     echo "Test file: ${test_file}"
     echo "Start time: $(date)"
     echo ""
-    
+
     # Run the test with timeout
     local exit_code=0
     timeout 1800 npx playwright test "${test_file}" \
@@ -103,10 +103,10 @@ run_test_suite() {
         --retries=1 \
         --max-failures=5 \
         || exit_code=$?
-    
+
     local end_time=$(date +%s)
     local duration=$((end_time - start_time))
-    
+
     if [ $exit_code -eq 0 ]; then
         echo -e "${GREEN}✅ ${test_name} tests PASSED (${duration}s)${NC}"
         return 0
@@ -126,43 +126,43 @@ generate_summary() {
     local assessment_result=$3
     local total_start_time=$4
     local total_end_time=$5
-    
+
     print_section "TEST EXECUTION SUMMARY"
-    
+
     local total_duration=$((total_end_time - total_start_time))
     local minutes=$((total_duration / 60))
     local seconds=$((total_duration % 60))
-    
+
     echo "Total execution time: ${minutes}m ${seconds}s"
     echo ""
     echo "Test Suite Results:"
     echo "==================="
-    
+
     if [ $discovery_result -eq 0 ]; then
         echo -e "Discovery Flow:    ${GREEN}✅ PASSED${NC}"
     else
         echo -e "Discovery Flow:    ${RED}❌ FAILED${NC}"
     fi
-    
+
     if [ $collection_result -eq 0 ]; then
         echo -e "Collection Flow:   ${GREEN}✅ PASSED${NC}"
     else
         echo -e "Collection Flow:   ${RED}❌ FAILED${NC}"
     fi
-    
+
     if [ $assessment_result -eq 0 ]; then
         echo -e "Assessment Flow:   ${GREEN}✅ PASSED${NC}"
     else
         echo -e "Assessment Flow:   ${RED}❌ FAILED${NC}"
     fi
-    
+
     echo ""
-    
+
     local passed_count=0
     [ $discovery_result -eq 0 ] && ((passed_count++))
     [ $collection_result -eq 0 ] && ((passed_count++))
     [ $assessment_result -eq 0 ] && ((passed_count++))
-    
+
     if [ $passed_count -eq 3 ]; then
         echo -e "${GREEN}🎉 ALL TESTS PASSED! (3/3)${NC}"
         echo "The AI Migration Orchestrator is ready for production!"
@@ -176,55 +176,55 @@ generate_summary() {
         echo -e "${RED}💥 SYSTEM FAILURE (0/3 test suites passed)${NC}"
         echo "Core functionality is not working. Do not deploy to production."
     fi
-    
+
     echo ""
     echo "Artifacts Generated:"
     echo "===================="
     echo "📸 Screenshots: ${SCREENSHOTS_DIR}/"
     echo "📊 HTML Reports: ${REPORTS_DIR}/"
     echo "📝 Test Data: tests/e2e/test-data/"
-    
+
     # Check for specific issue patterns
     echo ""
     print_section "ISSUE ANALYSIS"
-    
+
     # Check for persistent agent issues
     if grep -r "persistent agent" "${REPORTS_DIR}" 2>/dev/null | grep -i "error\|fail" > /dev/null; then
         echo -e "${RED}🤖 Persistent Agent Issues Detected${NC}"
         echo "  Check that persistent agents are properly initialized"
     fi
-    
+
     # Check for multiple rows issues
     if grep -r "multiple rows\|duplicate key" "${REPORTS_DIR}" 2>/dev/null > /dev/null; then
         echo -e "${RED}🔑 Database Constraint Issues Detected${NC}"
         echo "  The multiple rows fix may not be working properly"
     fi
-    
+
     # Check for network issues
     if grep -r "Network Error\|HTTP 500" "${REPORTS_DIR}" 2>/dev/null > /dev/null; then
         echo -e "${YELLOW}🌐 Network/API Issues Detected${NC}"
         echo "  Check backend service health and API endpoints"
     fi
-    
+
     # Check for flow completion issues
     if grep -r "flow.*not.*complete\|incomplete.*flow" "${REPORTS_DIR}" 2>/dev/null > /dev/null; then
         echo -e "${YELLOW}🔄 Flow Completion Issues Detected${NC}"
         echo "  Workflows may not be properly marking completion status"
     fi
-    
+
     echo ""
 }
 
 # Function to cleanup old test artifacts
 cleanup_old_artifacts() {
     print_section "CLEANING UP OLD ARTIFACTS"
-    
+
     # Remove old screenshots (keep last 10 runs)
     find "${SCREENSHOTS_DIR}" -name "*.png" -mtime +7 -delete 2>/dev/null || true
-    
+
     # Remove old test reports (keep last 5 runs)
     find "${REPORTS_DIR}" -type d -mtime +3 -exec rm -rf {} + 2>/dev/null || true
-    
+
     echo -e "${GREEN}✓ Cleanup completed${NC}"
     echo ""
 }
@@ -232,7 +232,7 @@ cleanup_old_artifacts() {
 # Main execution
 main() {
     local start_time=$(date +%s)
-    
+
     # Check if we're in the right directory
     if [ ! -f "tests/e2e/playwright.config.ts" ]; then
         echo -e "${RED}❌ Must be run from project root directory${NC}"
@@ -240,47 +240,47 @@ main() {
         echo "Looking for: tests/e2e/playwright.config.ts"
         exit 1
     fi
-    
+
     # Initialize
     cleanup_old_artifacts
     check_prerequisites
     setup_directories
-    
+
     # Export environment variables
     export BASE_URL="${BASE_URL}"
     export API_URL="${API_URL}"
     export PLAYWRIGHT_JUNIT_OUTPUT_NAME="${REPORTS_DIR}/junit.xml"
-    
+
     # Run test suites
     local discovery_result=1
     local collection_result=1
     local assessment_result=1
-    
+
     # Discovery Flow Tests
     if run_test_suite "tests/e2e/discovery-flow-e2e.spec.ts" "DISCOVERY"; then
         discovery_result=0
     fi
-    
+
     echo ""
-    
+
     # Collection Flow Tests
     if run_test_suite "tests/e2e/collection-flow-e2e.spec.ts" "COLLECTION"; then
         collection_result=0
     fi
-    
+
     echo ""
-    
-    # Assessment Flow Tests  
+
+    # Assessment Flow Tests
     if run_test_suite "tests/e2e/assessment-flow-e2e.spec.ts" "ASSESSMENT"; then
         assessment_result=0
     fi
-    
+
     echo ""
-    
+
     # Generate summary
     local end_time=$(date +%s)
     generate_summary $discovery_result $collection_result $assessment_result $start_time $end_time
-    
+
     # Return appropriate exit code
     if [ $discovery_result -eq 0 ] && [ $collection_result -eq 0 ] && [ $assessment_result -eq 0 ]; then
         exit 0

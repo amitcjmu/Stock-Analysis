@@ -454,6 +454,174 @@ class FlowCrewExecutor:
 
             crew_factory_name = phase_config.crew_config.get("crew_factory", "unknown")
 
+            # Special handling for questionnaire generation phase
+            if phase_config.name == "questionnaire_generation":
+                logger.info(
+                    "🔄 Executing questionnaire generation with persistent agents"
+                )
+
+                # Import the questionnaire generator to use its logic with persistent agents
+                from app.services.ai_analysis.questionnaire_generator import (
+                    AdaptiveQuestionnaireGenerator,
+                )
+
+                # Create questionnaire generator with persistent agents
+                questionnaire_generator = AdaptiveQuestionnaireGenerator()
+
+                # Override the agents with persistent ones
+                questionnaire_generator.agents = [
+                    agent_pool.get("data_analyst"),
+                    agent_pool.get("business_value_analyst"),
+                    agent_pool.get("quality_assessor"),
+                ]
+
+                # Extract input mappings
+                input_mapping = phase_config.crew_config.get("input_mapping", {})
+                crew_inputs = self._build_crew_inputs(phase_input, input_mapping)
+
+                # Add proper context for questionnaire generation
+                generation_inputs = {
+                    "gap_analysis": crew_inputs.get("gap_analysis", {}),
+                    "collection_flow_id": str(master_flow.flow_id),
+                    "business_context": crew_inputs.get("business_context", {}),
+                    "stakeholder_context": crew_inputs.get("stakeholder_context", {}),
+                    "automation_tier": crew_inputs.get("automation_tier", "tier_2"),
+                }
+
+                # Generate questionnaires using the persistent agents
+                logger.info(
+                    f"📝 Generating questionnaires with inputs: {list(generation_inputs.keys())}"
+                )
+
+                # Execute actual questionnaire generation
+                from app.services.ai_analysis.questionnaire_generator import (
+                    CREWAI_AVAILABLE,
+                )
+
+                if CREWAI_AVAILABLE:
+                    # Create tasks for questionnaire generation
+                    tasks = questionnaire_generator.create_tasks(generation_inputs)
+
+                    # Execute tasks using persistent agents
+                    from crewai import Crew, Process
+
+                    crew = Crew(
+                        agents=questionnaire_generator.agents,
+                        tasks=tasks,
+                        process=Process.sequential,
+                        verbose=True,
+                        memory=True,
+                        cache=True,
+                    )
+
+                    # Execute crew
+                    result = await crew.kickoff_async(inputs=generation_inputs)
+
+                    # Process results
+                    processed_results = questionnaire_generator.process_results(result)
+
+                    # Extract questionnaires
+                    questionnaire_data = processed_results.get("questionnaire", {})
+                    sections = questionnaire_data.get("sections", [])
+
+                    # Build actual questionnaires
+                    questionnaires = []
+                    for section in sections:
+                        questionnaire = {
+                            "id": section.get(
+                                "section_id", f"questionnaire-{len(questionnaires)}"
+                            ),
+                            "title": section.get(
+                                "section_title", "Data Collection Questionnaire"
+                            ),
+                            "description": section.get("section_description", ""),
+                            "questions": section.get("questions", []),
+                            "target_stakeholders": section.get(
+                                "target_stakeholders", []
+                            ),
+                            "estimated_duration": section.get(
+                                "estimated_duration_minutes", 15
+                            ),
+                        }
+                        questionnaires.append(questionnaire)
+
+                    crew_result = {
+                        "phase": "questionnaire_generation",
+                        "status": "completed",
+                        "questionnaires_generated": questionnaires,
+                        "total_questionnaires": len(questionnaires),
+                        "total_questions": sum(
+                            len(q.get("questions", [])) for q in questionnaires
+                        ),
+                        "agents_used": [
+                            "data_analyst",
+                            "business_value_analyst",
+                            "quality_assessor",
+                        ],
+                        "method": "persistent_agent_crewai_execution",
+                    }
+
+                    logger.info(
+                        f"✅ Generated {len(questionnaires)} questionnaires with CrewAI"
+                    )
+
+                else:
+                    # Fallback: Generate minimal questionnaires without CrewAI
+                    logger.warning(
+                        "⚠️ CrewAI not available - generating basic questionnaires"
+                    )
+
+                    questionnaires = [
+                        {
+                            "id": "fallback-questionnaire-1",
+                            "title": "Basic Data Collection",
+                            "description": "Essential information for migration planning",
+                            "questions": [
+                                {
+                                    "question_id": "q-001",
+                                    "question_text": "What is the application name?",
+                                    "question_type": "text_input",
+                                    "priority": "critical",
+                                    "required": True,
+                                },
+                                {
+                                    "question_id": "q-002",
+                                    "question_text": "What is the current technology stack?",
+                                    "question_type": "text_input",
+                                    "priority": "high",
+                                    "required": True,
+                                },
+                                {
+                                    "question_id": "q-003",
+                                    "question_text": "What are the main dependencies?",
+                                    "question_type": "text_input",
+                                    "priority": "high",
+                                    "required": True,
+                                },
+                            ],
+                            "target_stakeholders": ["technical_team"],
+                            "estimated_duration": 10,
+                        }
+                    ]
+
+                    crew_result = {
+                        "phase": "questionnaire_generation",
+                        "status": "completed",
+                        "questionnaires_generated": questionnaires,
+                        "total_questionnaires": 1,
+                        "total_questions": 3,
+                        "agents_used": ["fallback"],
+                        "method": "basic_generation",
+                        "warning": "CrewAI not available - using basic questionnaire generation",
+                    }
+
+                return {
+                    "phase": phase_config.name,
+                    "status": "completed",
+                    "crew_results": crew_result,
+                    "method": "questionnaire_generation_execution",
+                }
+
             # Map crew factory names to required agents
             factory_agent_mapping = {
                 "create_platform_detection_crew": [

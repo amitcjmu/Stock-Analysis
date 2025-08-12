@@ -3,7 +3,7 @@ Discovery endpoints package
 """
 
 # Make this directory a proper Python package
-# Export the main discovery router to resolve naming conflicts
-from ..discovery_main import router
+# Note: discovery_main.py was removed as legacy dead code
+# Discovery functionality is now handled by unified_discovery.py
 
-__all__ = ["router"]
+__all__ = []

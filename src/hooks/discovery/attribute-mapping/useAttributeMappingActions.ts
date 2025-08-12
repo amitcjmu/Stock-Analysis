@@ -127,7 +127,7 @@ export const useAttributeMappingActions = (
         // This ensures field mappings are generated or regenerated as needed
         console.log('🔁 Executing field mapping phase');
         console.log('📊 Current mappings:', fieldMappings?.slice(0, 3));
-        
+
         const result = await apiCall(`/unified-discovery/flow/${flowId}/execute`, {
           method: 'POST',
           headers: {
@@ -135,7 +135,7 @@ export const useAttributeMappingActions = (
             ...getAuthHeaders()
           }
         });
-        
+
         console.log('✅ Field mapping phase execution triggered:', result);
 
         // Refresh the flow data to get updated state

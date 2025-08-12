@@ -16,6 +16,7 @@ import { AssetTable } from './components/AssetTable';
 import { NextStepCard } from './components/NextStepCard';
 import EnhancedInventoryInsights from './EnhancedInventoryInsights';
 import { InventoryContentFallback } from './InventoryContentFallback';
+import { ApplicationSelectionModal } from './components/ApplicationSelectionModal';
 
 // Hooks
 import { useInventoryProgress } from './hooks/useInventoryProgress';
@@ -64,6 +65,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   const [hasTriggeredInventory, setHasTriggeredInventory] = useState(false);
   const [needsClassification, setNeedsClassification] = useState(false);
   const [isReclassifying, setIsReclassifying] = useState(false);
+  const [showApplicationModal, setShowApplicationModal] = useState(false);
 
   // Get assets data - fetch from API endpoint that returns all assets for the client/engagement
   const { data: assetsData, isLoading: assetsLoading, refetch: refetchAssets } = useQuery({
@@ -225,6 +227,21 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       refetchAssets();
     }
   };
+
+  // Process selected applications for assessment
+  const handleProcessForAssessment = (): void => {
+    setShowApplicationModal(true);
+  };
+
+  // Get selected application IDs
+  const selectedApplicationIds = useMemo(() => {
+    return filteredAssets
+      .filter(asset => selectedAssets.includes(asset.id) && asset.asset_type === 'Application')
+      .map(asset => asset.id);
+  }, [selectedAssets, filteredAssets]);
+
+  // Check if any selected assets are applications
+  const isApplicationsSelected = selectedApplicationIds.length > 0;
 
   // Reclassify selected assets function
   const handleReclassifySelected = async (): void => {
@@ -468,6 +485,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
             inventoryProgress={inventoryProgress}
             selectedAssetType={filters.selectedAssetType}
             onAssetTypeSelect={handleClassificationCardClick}
+            flowId={flowId}
           />
           <NextStepCard inventoryProgress={inventoryProgress} />
 
@@ -499,6 +517,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
                 onToggleColumn={toggleColumn}
                 onReclassifySelected={handleReclassifySelected}
                 isReclassifying={isReclassifying}
+                onProcessForAssessment={handleProcessForAssessment}
+                isApplicationsSelected={isApplicationsSelected}
               />
             </div>
           )}
@@ -527,6 +547,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
             onToggleColumn={toggleColumn}
             onReclassifySelected={handleReclassifySelected}
             isReclassifying={isReclassifying}
+            onProcessForAssessment={handleProcessForAssessment}
+            isApplicationsSelected={isApplicationsSelected}
           />
         </TabsContent>
 
@@ -534,6 +556,16 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           <EnhancedInventoryInsights flowId={flowId} />
         </TabsContent>
       </Tabs>
+
+      {/* Application Selection Modal */}
+      {showApplicationModal && (
+        <ApplicationSelectionModal
+          isOpen={showApplicationModal}
+          onClose={() => setShowApplicationModal(false)}
+          flowId={flowId}
+          preSelectedApplicationIds={selectedApplicationIds}
+        />
+      )}
     </div>
   );
 };

@@ -64,14 +64,24 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
 
     def __init__(self):
         """Initialize questionnaire generation crew"""
-        super().__init__(
-            name="questionnaire_generation_crew",
-            description="AI-powered adaptive questionnaire generation for data gap resolution",
-            process=Process.sequential,
-            verbose=True,
-            memory=True,
-            cache=True,
-        )
+        if CREWAI_AVAILABLE:
+            super().__init__(
+                name="questionnaire_generation_crew",
+                description="AI-powered adaptive questionnaire generation for data gap resolution",
+                process=Process.sequential,
+                verbose=True,
+                memory=True,
+                cache=True,
+            )
+        else:
+            # Fallback initialization when CrewAI is not available
+            self.name = "questionnaire_generation_crew"
+            self.description = (
+                "AI-powered adaptive questionnaire generation for data gap resolution"
+            )
+            self.verbose = True
+            self.agents = []
+            self.tasks = []
 
     def create_agents(self) -> List[Any]:
         """Create specialized AI agents for questionnaire generation"""
@@ -885,6 +895,102 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
         )
 
         return requirements
+
+    async def generate_questionnaires(
+        self,
+        data_gaps: List[Dict[str, Any]],
+        business_context: Optional[Dict[str, Any]] = None,
+        automation_tier: str = "tier_2",
+        collection_flow_id: Optional[str] = None,
+        stakeholder_context: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate questionnaires based on identified data gaps.
+
+        Args:
+            data_gaps: List of identified data gaps from gap analysis
+            business_context: Business environment context
+            automation_tier: Current automation tier
+            collection_flow_id: Optional collection flow ID
+            stakeholder_context: Available stakeholder information
+
+        Returns:
+            List of generated questionnaires
+        """
+        try:
+            logger.info(f"Starting questionnaire generation for {len(data_gaps)} gaps")
+
+            # Prepare gap analysis structure
+            gap_analysis = {
+                "identified_gaps": data_gaps,
+                "gaps_identified": len(data_gaps),
+                "priority_gaps": [
+                    gap for gap in data_gaps if gap.get("priority", 3) <= 2
+                ],
+                "gap_categories": list(
+                    set(gap.get("category", "unknown") for gap in data_gaps)
+                ),
+            }
+
+            # Prepare generation inputs
+            generation_inputs = {
+                "gap_analysis": gap_analysis,
+                "collection_flow_id": collection_flow_id or "unknown",
+                "business_context": business_context or {},
+                "stakeholder_context": stakeholder_context or {},
+                "automation_tier": automation_tier,
+            }
+
+            # Execute questionnaire generation using CrewAI
+            logger.info(
+                f"Executing questionnaire generation crew for automation tier: {automation_tier}"
+            )
+            results = await self.kickoff_async(generation_inputs)
+
+            # Process results
+            processed_results = self.process_results(results)
+
+            # Extract questionnaires from processed results
+            questionnaire_data = processed_results.get("questionnaire", {})
+            sections = questionnaire_data.get("sections", [])
+
+            # Convert sections to questionnaire format expected by the system
+            questionnaires = []
+            for section in sections:
+                questionnaire = {
+                    "id": section.get(
+                        "section_id", f"questionnaire-{len(questionnaires)}"
+                    ),
+                    "title": section.get(
+                        "section_title", "Data Collection Questionnaire"
+                    ),
+                    "description": section.get("section_description", ""),
+                    "questions": section.get("questions", []),
+                    "target_stakeholders": section.get("target_stakeholders", []),
+                    "estimated_duration": section.get("estimated_duration_minutes", 15),
+                    "metadata": {
+                        "generation_timestamp": processed_results.get(
+                            "metadata", {}
+                        ).get("generation_timestamp"),
+                        "automation_tier": automation_tier,
+                        "gaps_addressed": len(
+                            [
+                                q
+                                for q in section.get("questions", [])
+                                if q.get("gap_resolution")
+                            ]
+                        ),
+                    },
+                }
+                questionnaires.append(questionnaire)
+
+            logger.info(f"Successfully generated {len(questionnaires)} questionnaires")
+            return questionnaires
+
+        except Exception as e:
+            logger.error(f"Failed to generate questionnaires: {e}")
+            # Return empty list on failure to prevent infinite loops
+            return []
 
 
 async def generate_adaptive_questionnaire(

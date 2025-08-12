@@ -195,6 +195,18 @@ class CollectionFlowApi {
     );
   }
 
+  async executeFlowPhase(flowId: string, phaseInput?: Record<string, unknown>): Promise<{
+    phase: string;
+    status: string;
+    next_phase?: string;
+    requires_user_input?: boolean;
+  }> {
+    return await apiCall(`${this.baseUrl}/flows/${flowId}/execute`, {
+      method: 'POST',
+      body: JSON.stringify(phaseInput || {})
+    });
+  }
+
   // Flow Management Endpoints
   async getIncompleteFlows(): Promise<CollectionFlowResponse[]> {
     return await apiCall(`${this.baseUrl}/incomplete`, { method: 'GET' });

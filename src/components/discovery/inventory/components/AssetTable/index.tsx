@@ -32,6 +32,8 @@ interface AssetTableProps {
   onToggleColumn: (column: string) => void;
   onReclassifySelected?: () => void;
   isReclassifying?: boolean;
+  onProcessForAssessment?: () => void;
+  isApplicationsSelected?: boolean;
 }
 
 export const AssetTable: React.FC<AssetTableProps> = ({
@@ -55,7 +57,9 @@ export const AssetTable: React.FC<AssetTableProps> = ({
   allColumns,
   onToggleColumn,
   onReclassifySelected,
-  isReclassifying
+  isReclassifying,
+  onProcessForAssessment,
+  isApplicationsSelected
 }) => {
   const totalPages = Math.ceil(filteredAssets.length / recordsPerPage);
   const startIndex = (currentPage - 1) * recordsPerPage;
@@ -132,6 +136,8 @@ export const AssetTable: React.FC<AssetTableProps> = ({
           selectedCount={selectedAssets.length}
           onReclassifySelected={onReclassifySelected}
           isReclassifying={isReclassifying}
+          onProcessForAssessment={onProcessForAssessment}
+          isApplicationsSelected={isApplicationsSelected}
         />
 
         <div className="mt-4 border rounded-lg overflow-hidden">
