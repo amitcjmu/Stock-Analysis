@@ -475,11 +475,19 @@ async def create_collection_flow(
                 phase_input=flow_input,
             )
 
-            # Update flow status to running
-            collection_flow.status = CollectionFlowStatus.RUNNING.value
-            collection_flow.current_phase = execution_result.get(
+            # Update flow status based on next phase
+            next_phase = execution_result.get(
                 "next_phase", CollectionPhase.PLATFORM_DETECTION.value
             )
+            collection_flow.current_phase = next_phase
+
+            # Set status based on the phase
+            if next_phase == CollectionPhase.PLATFORM_DETECTION.value:
+                collection_flow.status = CollectionFlowStatus.PLATFORM_DETECTION.value
+            elif next_phase == CollectionPhase.GAP_ANALYSIS.value:
+                collection_flow.status = CollectionFlowStatus.GAP_ANALYSIS.value
+            else:
+                collection_flow.status = CollectionFlowStatus.AUTOMATED_COLLECTION.value
             await db.commit()
             await db.refresh(collection_flow)
 
