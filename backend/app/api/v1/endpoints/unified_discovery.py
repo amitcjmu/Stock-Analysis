@@ -52,7 +52,8 @@ def _extract_raw_data(crewai_state_data: Dict[str, Any]) -> List[Dict[str, Any]]
     if isinstance(raw_data, dict) and "data" in raw_data:
         extracted_data = raw_data["data"]
         logger.info(
-            f"🔄 Converting raw_data from dict format to list format in API response, found {len(extracted_data)} records"
+            f"🔄 Converting raw_data from dict format to list format in API response, "
+            f"found {len(extracted_data)} records"
         )
         return extracted_data
 
@@ -325,7 +326,7 @@ async def initialize_discovery_flow(
                     flow_id_str=flow_id_str,
                 )
             )
-            
+
             # Automatically trigger field mapping generation after initialization
             try:
                 logger.info(
@@ -334,17 +335,21 @@ async def initialize_discovery_flow(
                         flow_id_str=flow_id_str,
                     )
                 )
-                
+
                 # Use internal execute to trigger field mapping
                 orchestrator = MasterFlowOrchestrator(db, context)
                 field_mapping_result = await orchestrator.execute_phase(
                     flow_id_str, "field_mapping_suggestions", {}
                 )
-                
+
                 logger.info(
                     safe_log_format(
                         "✅ Field mapping generation triggered: {result}",
-                        result=field_mapping_result.get("status") if isinstance(field_mapping_result, dict) else "completed",
+                        result=(
+                            field_mapping_result.get("status")
+                            if isinstance(field_mapping_result, dict)
+                            else "completed"
+                        ),
                     )
                 )
             except Exception as auto_trigger_error:
@@ -691,13 +696,13 @@ async def resume_discovery_flow(
     context: RequestContext = Depends(get_current_context),
 ):
     """Resume a discovery flow through Master Flow Orchestrator.
-    
+
     For field mapping operations, this internally uses execute to ensure
     proper field mapping generation/regeneration.
     """
     try:
         logger.info(safe_log_format("Resuming flow: {flow_id}", flow_id=flow_id))
-        
+
         # Check the current flow phase to determine if we should execute instead
         stmt = select(DiscoveryFlow).where(
             and_(
@@ -708,12 +713,12 @@ async def resume_discovery_flow(
         )
         result = await db.execute(stmt)
         discovery_flow = result.scalar_one_or_none()
-        
+
         if discovery_flow and discovery_flow.current_phase in [
             "field_mapping",
-            "field_mapping_suggestions", 
+            "field_mapping_suggestions",
             "field_mapping_approval",
-            None  # If no phase set, assume we need field mapping
+            None,  # If no phase set, assume we need field mapping
         ]:
             # For field mapping phases, use execute to ensure proper generation
             logger.info(
@@ -723,13 +728,25 @@ async def resume_discovery_flow(
                 )
             )
             orchestrator = MasterFlowOrchestrator(db, context)
-            result = await orchestrator.execute_phase(flow_id, "field_mapping_suggestions", {})
-            return {"success": True, "flow_id": flow_id, "result": result, "method": "execute"}
+            result = await orchestrator.execute_phase(
+                flow_id, "field_mapping_suggestions", {}
+            )
+            return {
+                "success": True,
+                "flow_id": flow_id,
+                "result": result,
+                "method": "execute",
+            }
         else:
             # For other phases, use normal resume
             orchestrator = MasterFlowOrchestrator(db, context)
             result = await orchestrator.resume_flow(flow_id)
-            return {"success": True, "flow_id": flow_id, "result": result, "method": "resume"}
+            return {
+                "success": True,
+                "flow_id": flow_id,
+                "result": result,
+                "method": "resume",
+            }
     except Exception as e:
         logger.error(
             safe_log_format(
@@ -797,7 +814,8 @@ async def delete_discovery_flow(
                     )
                     logger.info(
                         safe_log_format(
-                            "🔍 Executing DiscoveryFlow query with flow_id={flow_id}, client={client_account_id}, engagement={engagement_id}",
+                            "🔍 Executing DiscoveryFlow query with flow_id={flow_id}, "
+                            "client={client_account_id}, engagement={engagement_id}",
                             flow_id=flow_id,
                             client_account_id=context.client_account_id,
                             engagement_id=context.engagement_id,
@@ -847,7 +865,8 @@ async def delete_discovery_flow(
                     else:
                         logger.error(
                             safe_log_format(
-                                "❌ Flow {flow_id} not found in DiscoveryFlow table with context client={client_account_id}, engagement={engagement_id}",
+                                "❌ Flow {flow_id} not found in DiscoveryFlow table with context "
+                                "client={client_account_id}, engagement={engagement_id}",
                                 flow_id=flow_id,
                                 client_account_id=context.client_account_id,
                                 engagement_id=context.engagement_id,
@@ -864,7 +883,8 @@ async def delete_discovery_flow(
                         if debug_flow:
                             logger.error(
                                 safe_log_format(
-                                    "❌ Flow {flow_id} exists but with different context: client={client_account_id}, engagement={engagement_id}",
+                                    "❌ Flow {flow_id} exists but with different context: "
+                                    "client={client_account_id}, engagement={engagement_id}",
                                     flow_id=flow_id,
                                     client_account_id=debug_flow.client_account_id,
                                     engagement_id=debug_flow.engagement_id,
