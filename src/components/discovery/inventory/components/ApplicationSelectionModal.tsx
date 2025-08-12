@@ -22,18 +22,27 @@ interface ApplicationSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   flowId?: string;
+  preSelectedApplicationIds?: string[];
 }
 
 export const ApplicationSelectionModal: React.FC<ApplicationSelectionModalProps> = ({
   isOpen,
   onClose,
-  flowId
+  flowId,
+  preSelectedApplicationIds = []
 }) => {
   const navigate = useNavigate();
   const { client, engagement } = useAuth();
-  const [selectedApplications, setSelectedApplications] = useState<Set<string>>(new Set());
+  const [selectedApplications, setSelectedApplications] = useState<Set<string>>(new Set(preSelectedApplicationIds));
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [transitionError, setTransitionError] = useState<string | null>(null);
+
+  // Update selected applications when pre-selected IDs change
+  useEffect(() => {
+    if (preSelectedApplicationIds && preSelectedApplicationIds.length > 0) {
+      setSelectedApplications(new Set(preSelectedApplicationIds));
+    }
+  }, [preSelectedApplicationIds]);
 
   // Fetch applications from the inventory
   const { data: applications, isLoading } = useQuery({
@@ -125,10 +134,14 @@ export const ApplicationSelectionModal: React.FC<ApplicationSelectionModalProps>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Cpu className="h-5 w-5" />
-            Select Applications for Assessment
+            {preSelectedApplicationIds.length > 0
+              ? `Process ${preSelectedApplicationIds.length} Selected Application${preSelectedApplicationIds.length > 1 ? 's' : ''} for Assessment`
+              : 'Select Applications for Assessment'}
           </DialogTitle>
           <DialogDescription>
-            Choose which applications you want to process for detailed migration assessment.
+            {preSelectedApplicationIds.length > 0
+              ? 'The following applications have been selected from your inventory. You can modify the selection before processing.'
+              : 'Choose which applications you want to process for detailed migration assessment.'}
             The selected applications will undergo gap analysis and data collection.
           </DialogDescription>
         </DialogHeader>

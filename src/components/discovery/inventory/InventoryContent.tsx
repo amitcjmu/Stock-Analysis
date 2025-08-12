@@ -233,13 +233,15 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     setShowApplicationModal(true);
   };
 
-  // Check if any selected assets are applications
-  const isApplicationsSelected = useMemo(() => {
-    if (selectedAssets.length === 0) return false;
+  // Get selected application IDs
+  const selectedApplicationIds = useMemo(() => {
     return filteredAssets
-      .filter(asset => selectedAssets.includes(asset.id))
-      .some(asset => asset.asset_type === 'Application');
+      .filter(asset => selectedAssets.includes(asset.id) && asset.asset_type === 'Application')
+      .map(asset => asset.id);
   }, [selectedAssets, filteredAssets]);
+
+  // Check if any selected assets are applications
+  const isApplicationsSelected = selectedApplicationIds.length > 0;
 
   // Reclassify selected assets function
   const handleReclassifySelected = async (): void => {
@@ -561,6 +563,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           isOpen={showApplicationModal}
           onClose={() => setShowApplicationModal(false)}
           flowId={flowId}
+          preSelectedApplicationIds={selectedApplicationIds}
         />
       )}
     </div>

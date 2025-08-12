@@ -31,8 +31,7 @@ export const ClassificationCards: React.FC<ClassificationCardsProps> = ({
       count: inventoryProgress.applications,
       icon: Cpu,
       color: 'green',
-      filterValue: 'Application',
-      isApplicationCard: true
+      filterValue: 'Application'
     },
     {
       type: 'databases',
@@ -53,11 +52,7 @@ export const ClassificationCards: React.FC<ClassificationCardsProps> = ({
   ];
 
   const handleCardClick = (card: any) => {
-    if (card.isApplicationCard) {
-      // For Applications card, show selection modal
-      setShowApplicationModal(true);
-    }
-    // Also trigger the normal filter behavior
+    // Trigger the filter behavior - toggle if already selected, otherwise select
     onAssetTypeSelect(
       selectedAssetType === card.filterValue ? 'all' : card.filterValue
     );
