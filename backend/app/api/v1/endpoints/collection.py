@@ -82,7 +82,8 @@ async def create_collection_from_discovery(
         # Validate Discovery flow exists and is complete
         discovery_result = await db.execute(
             select(DiscoveryFlow).where(
-                DiscoveryFlow.id == uuid.UUID(discovery_flow_id),
+                DiscoveryFlow.flow_id
+                == discovery_flow_id,  # Use flow_id, not database id
                 DiscoveryFlow.engagement_id == context.engagement_id,
                 DiscoveryFlow.status == "completed",
             )
@@ -277,7 +278,7 @@ async def ensure_collection_flow(
 
         if existing:
             return CollectionFlowResponse(
-                id=str(existing.id),
+                id=str(existing.flow_id),  # Use flow_id, not database id
                 client_account_id=str(existing.client_account_id),
                 engagement_id=str(existing.engagement_id),
                 status=existing.status,
