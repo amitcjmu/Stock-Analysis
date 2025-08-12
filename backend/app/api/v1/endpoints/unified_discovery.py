@@ -235,91 +235,21 @@ async def execute_flow(
         discovery_flow = result.scalar_one_or_none()
 
         if not discovery_flow:
-            # Enhanced error handling - attempt recovery
-            logger.warning(f"Discovery flow not found: {flow_id}, attempting recovery")
+            # Simple error - flow not found
+            logger.warning(f"Discovery flow not found: {flow_id}")
+            raise HTTPException(
+                status_code=404, detail=f"Discovery flow not found: {flow_id}"
+            )
 
-            try:
-                # Import here to avoid circular imports
-                from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-
-                orchestrator = MasterFlowOrchestrator(db, context)
-                recovery_result = (
-                    await orchestrator.status_manager.attempt_flow_recovery(flow_id)
-                )
-
-                if recovery_result.get("success", False):
-                    logger.info(
-                        f"✅ Flow recovery successful for {flow_id}, retrying execution"
-                    )
-                    # Retry getting the discovery flow after recovery
-                    result = await db.execute(stmt)
-                    discovery_flow = result.scalar_one_or_none()
-
-                    if not discovery_flow:
-                        raise HTTPException(
-                            status_code=404,
-                            detail=(
-                                f"Flow not found even after recovery attempt: "
-                                f"{recovery_result.get('action', 'unknown')}"
-                            ),
-                        )
-                else:
-                    raise HTTPException(
-                        status_code=404,
-                        detail=f"Flow not found and recovery failed: {recovery_result.get('error', 'unknown error')}",
-                    )
-            except Exception as recovery_error:
-                logger.error(f"❌ Flow recovery failed for {flow_id}: {recovery_error}")
-                raise HTTPException(
-                    status_code=404, detail="Flow not found and recovery failed"
-                )
-
-        # Validate phase transition before execution
+        # Simple phase validation - removed complex interception
         current_phase = discovery_flow.current_phase or "unknown"
         next_phase = _determine_next_phase(discovery_flow)
 
+        # Log phase transition for debugging
         if next_phase and next_phase != current_phase:
-            try:
-                from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-
-                orchestrator = MasterFlowOrchestrator(db, context)
-                interception = (
-                    await orchestrator.status_manager.intercept_phase_transition(
-                        flow_id, current_phase, next_phase
-                    )
-                )
-
-                if interception.get("intercepted", False):
-                    # Phase transition was intercepted - return routing guidance
-                    logger.info(
-                        f"🚫 Phase transition intercepted for {flow_id}: "
-                        f"{current_phase} → {next_phase}, redirected to {interception.get('redirected_to')}"
-                    )
-
-                    return {
-                        "success": False,
-                        "flow_id": flow_id,
-                        "intercepted": True,
-                        "message": f"Flow execution intercepted: {interception.get('routing_reason')}",
-                        "routing": {
-                            "original_phase": next_phase,
-                            "redirected_to": interception.get("redirected_to"),
-                            "reason": interception.get("routing_reason"),
-                            "confidence": interception.get("confidence", 0.0),
-                        },
-                        "recommended_action": (
-                            "redirect_to_data_import"
-                            if interception.get("redirected_to") == "data_import"
-                            else "follow_routing"
-                        ),
-                        "execution_blocked": True,
-                    }
-
-            except Exception as interception_error:
-                logger.warning(
-                    f"⚠️ Phase transition interception failed for {flow_id}: {interception_error}"
-                )
-                # Continue with normal execution if interception fails
+            logger.info(
+                f"Phase transition for {flow_id}: {current_phase} → {next_phase}"
+            )
 
         # Execute the flow phase
         result = await execute_flow_phase(flow_id, discovery_flow, context, db)

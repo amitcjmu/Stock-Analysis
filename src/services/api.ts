@@ -4,10 +4,14 @@
 
 import type { ExternalApiRequestPayload, ExternalApiResponse } from '../config/api';
 
+// Import apiCall first so it's available for the api object
+import { apiCall, apiCallWithFallback, API_CONFIG, updateApiContext } from '../config/api';
+
+// Re-export the functions
 export { apiCall as get, apiCall as post, apiCall as put, apiCall as patch, apiCall as del } from '../config/api';
 
-// Re-export the main apiCall function
-export { apiCall, apiCallWithFallback, API_CONFIG, updateApiContext } from '../config/api';
+// Re-export the main functions
+export { apiCall, apiCallWithFallback, API_CONFIG, updateApiContext };
 
 // Create a default api object for convenience
 export const api = {
