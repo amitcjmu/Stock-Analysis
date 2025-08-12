@@ -46,8 +46,7 @@ from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.services.integration.data_flow_validator import DataFlowValidator
 from uuid import UUID
 from app.services.integration.failure_journal import log_failure
-from app.models.discovery_flow import DiscoveryFlow, DiscoveryFlowStatus
-from app.models.application import Application
+from app.models.discovery_flow import DiscoveryFlow
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +84,7 @@ async def create_collection_from_discovery(
             select(DiscoveryFlow).where(
                 DiscoveryFlow.id == uuid.UUID(discovery_flow_id),
                 DiscoveryFlow.engagement_id == context.engagement_id,
-                DiscoveryFlow.status == DiscoveryFlowStatus.COMPLETED.value,
+                DiscoveryFlow.status == "completed",
             )
         )
         discovery_flow = discovery_result.scalar_one_or_none()
@@ -98,11 +97,9 @@ async def create_collection_from_discovery(
         # Validate selected applications exist and belong to the engagement
         if selected_application_ids:
             app_result = await db.execute(
-                select(Application).where(
-                    Application.id.in_(
-                        [uuid.UUID(aid) for aid in selected_application_ids]
-                    ),
-                    Application.engagement_id == context.engagement_id,
+                select(Asset).where(
+                    Asset.id.in_([uuid.UUID(aid) for aid in selected_application_ids]),
+                    Asset.engagement_id == context.engagement_id,
                 )
             )
             applications = app_result.scalars().all()
@@ -115,9 +112,7 @@ async def create_collection_from_discovery(
         else:
             # If no applications selected, get all from engagement
             app_result = await db.execute(
-                select(Application).where(
-                    Application.engagement_id == context.engagement_id
-                )
+                select(Asset).where(Asset.engagement_id == context.engagement_id)
             )
             applications = app_result.scalars().all()
             selected_application_ids = [str(app.id) for app in applications]
@@ -616,6 +611,76 @@ async def update_collection_flow(
     except Exception as e:
         logger.error(safe_log_format("Error updating collection flow: {e}", e=e))
         await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/flows/{flow_id}/execute")
+async def execute_collection_flow(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Execute a collection flow phase through Master Flow Orchestrator.
+
+    This endpoint triggers actual CrewAI execution of the collection flow,
+    enabling phase progression and questionnaire generation.
+    """
+    try:
+        # Get the collection flow
+        result = await db.execute(
+            select(CollectionFlow).where(
+                CollectionFlow.flow_id == uuid.UUID(flow_id),
+                CollectionFlow.engagement_id == context.engagement_id,
+            )
+        )
+        collection_flow = result.scalar_one_or_none()
+
+        if not collection_flow:
+            raise HTTPException(status_code=404, detail="Collection flow not found")
+
+        # Check if flow can be executed
+        if collection_flow.status in [
+            CollectionFlowStatus.COMPLETED.value,
+            CollectionFlowStatus.CANCELLED.value,
+            CollectionFlowStatus.FAILED.value,
+        ]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot execute flow with status: {collection_flow.status}",
+            )
+
+        # Execute through Master Flow Orchestrator
+        mfo = MasterFlowOrchestrator(db, context)
+
+        # Execute the current phase
+        current_phase = collection_flow.current_phase or "initialization"
+        execution_result = await mfo.execute_phase(
+            flow_id=flow_id,
+            phase_name=current_phase,
+            phase_input={},  # Can be extended for phase-specific input
+        )
+
+        logger.info(
+            f"Executed collection flow {flow_id} for engagement {context.engagement_id}"
+        )
+
+        return {
+            "success": True,
+            "flow_id": flow_id,
+            "status": "executed",
+            "execution_result": execution_result,
+            "message": "Collection flow phase executed successfully",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            safe_log_format(
+                "Error executing collection flow {flow_id}: {e}", flow_id=flow_id, e=e
+            )
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 

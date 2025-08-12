@@ -6,22 +6,20 @@ to Collection flow inputs (gap analysis and questionnaire generation).
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 from uuid import UUID
 from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.discovery_flow import DiscoveryFlow, DiscoveryFlowStatus
+from app.models.discovery_flow import DiscoveryFlow
 from app.models.collection_flow import (
     CollectionFlow,
     CollectionFlowStatus,
     CollectionPhase,
     AutomationTier,
-    CollectionGapAnalysis,
 )
-from app.models.application import Application
 from app.models.asset import Asset
 from app.core.context import RequestContext
 
@@ -41,7 +39,7 @@ class DiscoveryToCollectionBridge:
             select(DiscoveryFlow).where(
                 DiscoveryFlow.id == discovery_flow_id,
                 DiscoveryFlow.engagement_id == self.context.engagement_id,
-                DiscoveryFlow.status == DiscoveryFlowStatus.COMPLETED.value,
+                DiscoveryFlow.status == "completed",
             )
         )
         discovery_flow = result.scalar_one_or_none()
@@ -58,9 +56,9 @@ class DiscoveryToCollectionBridge:
     ) -> List[Dict[str, Any]]:
         """Extract application data from inventory for selected applications"""
         result = await self.db.execute(
-            select(Application).where(
-                Application.id.in_(selected_app_ids),
-                Application.engagement_id == self.context.engagement_id,
+            select(Asset).where(
+                Asset.id.in_(selected_app_ids),
+                Asset.engagement_id == self.context.engagement_id,
             )
         )
         applications = result.scalars().all()
@@ -177,7 +175,7 @@ class DiscoveryToCollectionBridge:
         }
         await self.db.commit()
 
-    def _calculate_completeness(self, app: Application) -> float:
+    def _calculate_completeness(self, app: Asset) -> float:
         """Calculate completeness score for an application based on available attributes"""
         # List of critical attributes for 6R decision
         critical_attributes = [
