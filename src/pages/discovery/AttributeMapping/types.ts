@@ -6,6 +6,7 @@ import type {
   MappingConflict
 } from '../../../types/hooks/discovery/attribute-mapping-hooks';
 import type { ApiError } from '../../../types/shared/api-types';
+import type { RecoveryProgress } from '../../../services/flow-recovery';
 
 // TypeScript interfaces for Attribute Mapping
 export interface AttributeMappingState {
@@ -27,6 +28,12 @@ export interface AttributeMappingState {
   effectiveFlowId: string | null;
   hasEffectiveFlow: boolean;
   flowList: FlowInfo[];
+  // Flow recovery state
+  isRecovering: boolean;
+  recoveryProgress: RecoveryProgress;
+  recoveryError: string | null;
+  recoveredFlowId: string | null;
+  triggerFlowRecovery: (flowId: string) => Promise<boolean>;
 }
 
 // Supporting interface definitions

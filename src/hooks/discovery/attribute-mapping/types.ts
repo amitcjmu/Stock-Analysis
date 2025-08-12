@@ -5,6 +5,7 @@ export type { ImportDataResult } from './useImportData';
 export type { CriticalAttribute, CriticalAttributesResult } from './useCriticalAttributes';
 export type { AttributeMappingActionsResult } from './useAttributeMappingActions';
 export type { MappingProgress, AttributeMappingStateResult } from './useAttributeMappingState';
+export type { RecoveryProgress } from '../../../services/flow-recovery';
 
 // Additional types for attribute mapping
 interface AttributeMappingAttribute {
@@ -124,4 +125,13 @@ export interface AttributeMappingLogicResult {
   isClarificationsLoading: boolean;
   clarificationsError: Error | null;
   refetchClarifications: () => Promise<void>;
+
+  // Flow recovery state
+  isRecovering: boolean;
+  recoveryProgress: RecoveryProgress;
+  recoveryError: string | null;
+  recoveredFlowId: string | null;
+  triggerFlowRecovery: (flowId: string) => Promise<boolean>;
+  isInterceptingTransition: boolean;
+  transitionIntercepted: boolean;
 }

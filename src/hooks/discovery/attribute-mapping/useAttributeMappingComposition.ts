@@ -1,4 +1,5 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useUnifiedDiscoveryFlow } from '../../useUnifiedDiscoveryFlow';
 import { useFlowDetection } from './useFlowDetection';
 import { useFieldMappings } from './useFieldMappings';
@@ -6,6 +7,7 @@ import { useImportData } from './useImportData';
 import { useCriticalAttributes } from './useCriticalAttributes';
 import { useAttributeMappingActions } from './useAttributeMappingActions';
 import { useAttributeMappingState } from './useAttributeMappingState';
+import { flowRecoveryService } from '../../../services/flow-recovery';
 import type { AttributeMappingLogicResult } from './types';
 
 /**
@@ -13,9 +15,23 @@ import type { AttributeMappingLogicResult } from './types';
  * Maintains the same API as the original useAttributeMappingLogic hook
  */
 export const useAttributeMappingComposition = (): AttributeMappingLogicResult => {
-  // 1. Flow Detection
+  const navigate = useNavigate();
+
+  // Phase transition interception state
+  const [isInterceptingTransition, setIsInterceptingTransition] = useState(false);
+  const [transitionIntercepted, setTransitionIntercepted] = useState(false);
+
+  // 1. Flow Detection with recovery support
   const flowDetection = useFlowDetection();
-  const { finalFlowId, effectiveFlowId } = flowDetection;
+  const {
+    finalFlowId,
+    effectiveFlowId,
+    isRecovering,
+    recoveryProgress,
+    recoveryError,
+    recoveredFlowId,
+    triggerFlowRecovery
+  } = flowDetection;
 
   // 2. Import Data
   const importDataHook = useImportData(finalFlowId);
@@ -72,6 +88,58 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
     importDataHook.importDataError,
     fieldMappingsHook.fieldMappingsError
   );
+
+  // Phase transition interception - validate flow readiness before allowing attribute mapping
+  useEffect(() => {
+    const interceptTransition = async () => {
+      if (!finalFlowId || transitionIntercepted || isInterceptingTransition) return;
+
+      console.log(`🛡️ [useAttributeMappingComposition] Intercepting transition to attribute mapping for flow: ${finalFlowId}`);
+
+      try {
+        setIsInterceptingTransition(true);
+
+        // Call the flow recovery service to check if transition should be allowed
+        const result = await flowRecoveryService.interceptTransition(
+          finalFlowId,
+          'data_import',
+          'attribute_mapping'
+        );
+
+        setTransitionIntercepted(true);
+
+        if (!result.allowTransition && result.redirectPath) {
+          console.log(`🔄 [useAttributeMappingComposition] Transition blocked, redirecting to: ${result.redirectPath}`);
+          navigate(result.redirectPath);
+          return;
+        }
+
+        if (!result.flowReadiness.canProceedToAttributeMapping) {
+          console.warn(`⚠️ [useAttributeMappingComposition] Flow not ready for attribute mapping:`, result.flowReadiness);
+
+          // If data import is not complete, redirect to data import
+          if (!result.flowReadiness.dataImportComplete) {
+            console.log(`🔄 [useAttributeMappingComposition] Redirecting to data import due to incomplete data import`);
+            navigate('/discovery/cmdb-import');
+            return;
+          }
+        }
+
+        console.log(`✅ [useAttributeMappingComposition] Transition allowed to attribute mapping`);
+
+      } catch (error) {
+        console.error(`❌ [useAttributeMappingComposition] Phase transition interception failed:`, error);
+        // Allow transition to continue on error to avoid blocking users
+        setTransitionIntercepted(true);
+      } finally {
+        setIsInterceptingTransition(false);
+      }
+    };
+
+    if (finalFlowId) {
+      interceptTransition();
+    }
+  }, [finalFlowId, navigate, transitionIntercepted, isInterceptingTransition]);
 
   // Debug import data loading - removed to prevent console spam
   const refetchAgentic = useCallback(() => {
@@ -135,6 +203,15 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
     agentClarifications: state.agentClarifications,
     isClarificationsLoading: state.isClarificationsLoading,
     clarificationsError: state.clarificationsError,
-    refetchClarifications
+    refetchClarifications,
+
+    // Flow recovery state
+    isRecovering,
+    recoveryProgress,
+    recoveryError,
+    recoveredFlowId,
+    triggerFlowRecovery,
+    isInterceptingTransition,
+    transitionIntercepted
   };
 };

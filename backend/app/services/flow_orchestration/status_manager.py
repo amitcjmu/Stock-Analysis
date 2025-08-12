@@ -17,6 +17,10 @@ from app.repositories.crewai_flow_state_extensions_repository import (
 from app.services.agent_ui_bridge import AgentUIBridge
 from app.services.flow_type_registry import FlowTypeRegistry
 
+# Import flow state detection and routing services
+from .flow_state_detector import FlowStateDetector
+from .flow_routing_agent import FlowRoutingAgent
+
 logger = get_logger(__name__)
 
 
@@ -46,6 +50,10 @@ class FlowStatusManager:
         self.master_repo = master_repo
         self.flow_registry = flow_registry
 
+        # Initialize flow state detection and routing services
+        self.flow_detector = FlowStateDetector(db, context)
+        self.flow_router = FlowRoutingAgent(db, context)
+
         logger.info(
             f"✅ Flow Status Manager initialized for client {context.client_account_id}"
         )
@@ -70,7 +78,39 @@ class FlowStatusManager:
             # Get flow
             master_flow = await self.master_repo.get_by_flow_id(flow_id)
             if not master_flow:
+                # Enhanced error handling - check for flow state issues
+                logger.warning(
+                    f"Master flow not found: {flow_id}, performing state analysis"
+                )
+
+                # Try to detect and resolve flow state issues
+                issues = await self.flow_detector.detect_incomplete_initialization(
+                    flow_id
+                )
+                if issues:
+                    critical_issues = [i for i in issues if i.severity == "critical"]
+                    if critical_issues:
+                        # Flow has critical initialization issues
+                        raise ValueError(
+                            f"Flow {flow_id} has critical initialization issues: "
+                            f"{critical_issues[0].description}. Suggested action: {critical_issues[0].suggested_action}"
+                        )
+
                 raise ValueError(f"Flow not found: {flow_id}")
+
+            # Perform flow state validation and routing check
+            routing_decision = await self.flow_router.analyze_and_route_flow(flow_id)
+
+            # Log routing decision if significant action needed
+            if (
+                routing_decision.confidence > 0.8
+                and routing_decision.target_phase not in ["continue", "unknown"]
+            ):
+                logger.info(
+                    f"🧭 Flow routing recommendation for {flow_id}: "
+                    f"{routing_decision.current_phase} → {routing_decision.target_phase} "
+                    f"(confidence: {routing_decision.confidence:.2f})"
+                )
 
             # Get flow configuration
             flow_config = self.flow_registry.get_flow_config(master_flow.flow_type)
@@ -93,6 +133,12 @@ class FlowStatusManager:
                     else {}
                 ),
                 "metadata": {},
+                "routing_info": {
+                    "routing_decision": routing_decision.__dict__,
+                    "requires_routing": routing_decision.confidence > 0.8
+                    and routing_decision.target_phase not in ["continue", "unknown"],
+                    "routing_available": True,
+                },
             }
 
             if include_details:
@@ -209,150 +255,15 @@ class FlowStatusManager:
                 f"🔍 _get_flow_agent_insights called for flow_id={flow_id}, flow_type={flow_type}"
             )
 
-            # Try to get insights from agent_ui_bridge service
-            try:
-                bridge = AgentUIBridge(data_dir="backend/data")
+            # Get insights from bridge
+            bridge_insights = self._get_bridge_insights(flow_id, flow_type)
+            insights.extend(bridge_insights)
 
-                # Get insights by page context based on flow type
-                page_context = (
-                    "discovery"
-                    if flow_type == "discovery"
-                    else "assessment" if flow_type == "assessment" else "general"
-                )
-                logger.info(
-                    f"🔍 Searching for insights with page_context: {page_context}"
-                )
-                bridge_insights = bridge.get_insights_for_page(page_context)
-
-                # Also get flow-specific insights
-                flow_page_context = f"flow_{flow_id}"
-                logger.info(
-                    f"🔍 Searching for flow-specific insights with page_context: {flow_page_context}"
-                )
-                flow_insights = bridge.get_insights_for_page(flow_page_context)
-
-                if bridge_insights:
-                    logger.info(
-                        f"🔗 Found {len(bridge_insights)} insights from agent_ui_bridge for {flow_type} flow"
-                    )
-                    # Filter insights by flow_id if available, or include those with null flow_id for the flow type
-                    flow_specific_insights = [
-                        insight
-                        for insight in bridge_insights
-                        if insight.get("flow_id") == flow_id
-                        or (
-                            insight.get("flow_id") is None
-                            and insight.get("page") == page_context
-                        )
-                    ]
-                    insights.extend(flow_specific_insights)
-                    logger.info(
-                        f"🔍 Filtered {len(flow_specific_insights)} flow-specific insights for flow {flow_id} from {len(bridge_insights)} total insights"
-                    )
-                    if len(flow_specific_insights) > 0:
-                        logger.info(f"🔍 Sample insight: {flow_specific_insights[0]}")
-                else:
-                    logger.info(
-                        f"🔍 No bridge insights found for page_context: {page_context}"
-                    )
-
-                if flow_insights:
-                    logger.info(
-                        f"🔗 Found {len(flow_insights)} flow-specific insights for flow {flow_id}"
-                    )
-                    insights.extend(flow_insights)
-                    if len(flow_insights) > 0:
-                        logger.info(f"🔍 Sample flow insight: {flow_insights[0]}")
-                else:
-                    logger.info(
-                        f"🔍 No flow-specific insights found for page_context: {flow_page_context}"
-                    )
-
-            except Exception as e:
-                logger.warning(f"⚠️ Could not get insights from agent_ui_bridge: {e}")
-
-            # Get insights from flow persistence data if available
-            try:
-                master_flow = await self.master_repo.get_by_flow_id(flow_id)
-                if master_flow and master_flow.flow_persistence_data:
-                    flow_data = master_flow.flow_persistence_data
-
-                    # Check if there are agent insights stored in the flow data
-                    flow_insights_found = []
-
-                    # Look for agent insights in multiple possible locations
-                    if "agent_insights" in flow_data:
-                        flow_insights = flow_data["agent_insights"]
-                        if isinstance(flow_insights, list):
-                            flow_insights_found.extend(flow_insights)
-                            logger.info(
-                                f"📊 Found {len(flow_insights)} insights from flow_data.agent_insights"
-                            )
-
-                    # Check for insights in nested structures (like crewai_state_data)
-                    if "crewai_state_data" in flow_data and isinstance(
-                        flow_data["crewai_state_data"], dict
-                    ):
-                        crewai_data = flow_data["crewai_state_data"]
-                        if "agent_insights" in crewai_data and isinstance(
-                            crewai_data["agent_insights"], list
-                        ):
-                            nested_insights = crewai_data["agent_insights"]
-                            # Transform nested insights to standard format
-                            for insight in nested_insights:
-                                if isinstance(insight, dict):
-                                    # Convert from nested format to standard format
-                                    standardized_insight = {
-                                        "id": f"nested-{flow_id}-{len(flow_insights_found)}",
-                                        "agent_id": insight.get("agent", "unknown")
-                                        .lower()
-                                        .replace(" ", "_"),
-                                        "agent_name": insight.get(
-                                            "agent", "Unknown Agent"
-                                        ),
-                                        "insight_type": "agent_analysis",
-                                        "title": (
-                                            insight.get("insight", "")[:50] + "..."
-                                            if len(insight.get("insight", "")) > 50
-                                            else insight.get("insight", "")
-                                        ),
-                                        "description": insight.get(
-                                            "insight", "No description available"
-                                        ),
-                                        "confidence": insight.get("confidence", 0.5),
-                                        "supporting_data": {
-                                            "flow_id": flow_id,
-                                            "timestamp": insight.get("timestamp"),
-                                            "original_data": insight,
-                                        },
-                                        "actionable": True,
-                                        "page": f"flow_{flow_id}",
-                                        "created_at": insight.get("timestamp"),
-                                        "flow_id": flow_id,
-                                    }
-                                    flow_insights_found.append(standardized_insight)
-                            logger.info(
-                                f"📊 Found {len(nested_insights)} insights from crewai_state_data.agent_insights"
-                            )
-
-                    # Add all found insights
-                    if flow_insights_found:
-                        insights.extend(flow_insights_found)
-                        logger.info(
-                            f"📊 Total {len(flow_insights_found)} insights extracted from flow persistence data"
-                        )
-
-                    # Generate insights from flow state
-                    status_insight = self._generate_flow_status_insight(
-                        flow_id, flow_type, master_flow, flow_data
-                    )
-                    if status_insight:
-                        insights.append(status_insight)
-
-            except Exception as e:
-                logger.warning(
-                    f"⚠️ Could not get insights from flow persistence data: {e}"
-                )
+            # Get insights from flow persistence
+            persistence_insights = await self._get_persistence_insights(
+                flow_id, flow_type
+            )
+            insights.extend(persistence_insights)
 
             # If no insights found, provide a default message
             if not insights:
@@ -366,6 +277,160 @@ class FlowStatusManager:
         except Exception as e:
             logger.error(f"❌ Error getting agent insights for flow {flow_id}: {e}")
             return []
+
+    def _get_bridge_insights(
+        self, flow_id: str, flow_type: str
+    ) -> List[Dict[str, Any]]:
+        """Get insights from agent_ui_bridge service"""
+        insights = []
+        try:
+            bridge = AgentUIBridge(data_dir="backend/data")
+
+            # Get insights by page context based on flow type
+            page_context = (
+                "discovery"
+                if flow_type == "discovery"
+                else "assessment" if flow_type == "assessment" else "general"
+            )
+            logger.info(f"🔍 Searching for insights with page_context: {page_context}")
+            bridge_insights = bridge.get_insights_for_page(page_context)
+
+            # Also get flow-specific insights
+            flow_page_context = f"flow_{flow_id}"
+            logger.info(
+                f"🔍 Searching for flow-specific insights with page_context: {flow_page_context}"
+            )
+            flow_insights = bridge.get_insights_for_page(flow_page_context)
+
+            if bridge_insights:
+                logger.info(
+                    f"🔗 Found {len(bridge_insights)} insights from agent_ui_bridge for {flow_type} flow"
+                )
+                # Filter insights by flow_id if available, or include those with null flow_id for the flow type
+                flow_specific_insights = [
+                    insight
+                    for insight in bridge_insights
+                    if insight.get("flow_id") == flow_id
+                    or (
+                        insight.get("flow_id") is None
+                        and insight.get("page") == page_context
+                    )
+                ]
+                insights.extend(flow_specific_insights)
+                logger.info(
+                    (
+                        f"🔍 Filtered {len(flow_specific_insights)} flow-specific insights "
+                        f"for flow {flow_id} from {len(bridge_insights)} total insights"
+                    )
+                )
+                if len(flow_specific_insights) > 0:
+                    logger.info(f"🔍 Sample insight: {flow_specific_insights[0]}")
+            else:
+                logger.info(
+                    f"🔍 No bridge insights found for page_context: {page_context}"
+                )
+
+            if flow_insights:
+                logger.info(
+                    f"🔗 Found {len(flow_insights)} flow-specific insights for flow {flow_id}"
+                )
+                insights.extend(flow_insights)
+                if len(flow_insights) > 0:
+                    logger.info(f"🔍 Sample flow insight: {flow_insights[0]}")
+            else:
+                logger.info(
+                    f"🔍 No flow-specific insights found for page_context: {flow_page_context}"
+                )
+
+        except Exception as e:
+            logger.warning(f"⚠️ Could not get insights from agent_ui_bridge: {e}")
+
+        return insights
+
+    async def _get_persistence_insights(
+        self, flow_id: str, flow_type: str
+    ) -> List[Dict[str, Any]]:
+        """Get insights from flow persistence data"""
+        insights = []
+        try:
+            master_flow = await self.master_repo.get_by_flow_id(flow_id)
+            if master_flow and master_flow.flow_persistence_data:
+                flow_data = master_flow.flow_persistence_data
+
+                # Check if there are agent insights stored in the flow data
+                flow_insights_found = []
+
+                # Look for agent insights in multiple possible locations
+                if "agent_insights" in flow_data:
+                    flow_insights = flow_data["agent_insights"]
+                    if isinstance(flow_insights, list):
+                        flow_insights_found.extend(flow_insights)
+                        logger.info(
+                            f"📊 Found {len(flow_insights)} insights from flow_data.agent_insights"
+                        )
+
+                # Check for insights in nested structures (like crewai_state_data)
+                if "crewai_state_data" in flow_data and isinstance(
+                    flow_data["crewai_state_data"], dict
+                ):
+                    crewai_data = flow_data["crewai_state_data"]
+                    if "agent_insights" in crewai_data and isinstance(
+                        crewai_data["agent_insights"], list
+                    ):
+                        nested_insights = crewai_data["agent_insights"]
+                        # Transform nested insights to standard format
+                        for insight in nested_insights:
+                            if isinstance(insight, dict):
+                                # Convert from nested format to standard format
+                                standardized_insight = {
+                                    "id": f"nested-{flow_id}-{len(flow_insights_found)}",
+                                    "agent_id": insight.get("agent", "unknown")
+                                    .lower()
+                                    .replace(" ", "_"),
+                                    "agent_name": insight.get("agent", "Unknown Agent"),
+                                    "insight_type": "agent_analysis",
+                                    "title": (
+                                        insight.get("insight", "")[:50] + "..."
+                                        if len(insight.get("insight", "")) > 50
+                                        else insight.get("insight", "")
+                                    ),
+                                    "description": insight.get(
+                                        "insight", "No description available"
+                                    ),
+                                    "confidence": insight.get("confidence", 0.5),
+                                    "supporting_data": {
+                                        "flow_id": flow_id,
+                                        "timestamp": insight.get("timestamp"),
+                                        "original_data": insight,
+                                    },
+                                    "actionable": True,
+                                    "page": f"flow_{flow_id}",
+                                    "created_at": insight.get("timestamp"),
+                                    "flow_id": flow_id,
+                                }
+                                flow_insights_found.append(standardized_insight)
+                        logger.info(
+                            f"📊 Found {len(nested_insights)} insights from crewai_state_data.agent_insights"
+                        )
+
+                # Add all found insights
+                if flow_insights_found:
+                    insights.extend(flow_insights_found)
+                    logger.info(
+                        f"📊 Total {len(flow_insights_found)} insights extracted from flow persistence data"
+                    )
+
+                # Generate insights from flow state
+                status_insight = self._generate_flow_status_insight(
+                    flow_id, flow_type, master_flow, flow_data
+                )
+                if status_insight:
+                    insights.append(status_insight)
+
+        except Exception as e:
+            logger.warning(f"⚠️ Could not get insights from flow persistence data: {e}")
+
+        return insights
 
     def _generate_flow_status_insight(
         self, flow_id: str, flow_type: str, master_flow, flow_data: Dict[str, Any]
@@ -405,7 +470,10 @@ class FlowStatusManager:
             current_phase = current_phase or "unknown"
 
             logger.info(
-                f"🔍 Flow status insight: phase={current_phase}, progress={progress_percentage}, status={master_flow.flow_status}"
+                (
+                    f"🔍 Flow status insight: phase={current_phase}, "
+                    f"progress={progress_percentage}, status={master_flow.flow_status}"
+                )
             )
 
             if master_flow.flow_status:
@@ -447,7 +515,10 @@ class FlowStatusManager:
             "agent_name": "System Monitor",
             "insight_type": "system_status",
             "title": "Flow Monitoring Active",
-            "description": f"Flow {flow_id} is being monitored - agents will provide insights as they analyze your data",
+            "description": (
+                f"Flow {flow_id} is being monitored - agents will provide "
+                "insights as they analyze your data"
+            ),
             "confidence": "medium",
             "supporting_data": {"flow_id": flow_id, "flow_type": flow_type},
             "actionable": False,
@@ -472,7 +543,10 @@ class FlowStatusManager:
             # Fallback method: Smart discovery of related field mappings
             if not field_mappings:
                 logger.info(
-                    f"🔍 No field mappings found by data_import_id, attempting smart discovery for flow {master_flow.flow_id}"
+                    (
+                        f"🔍 No field mappings found by data_import_id, attempting "
+                        f"smart discovery for flow {master_flow.flow_id}"
+                    )
                 )
                 field_mappings = await self._smart_discover_field_mappings(master_flow)
 
@@ -1113,3 +1187,201 @@ class FlowStatusManager:
             return round(runtime, 2)
         except Exception:
             return 0.0
+
+    async def validate_flow_state_consistency(self, flow_id: str) -> Dict[str, Any]:
+        """
+        Validate flow state consistency and detect initialization issues.
+
+        Args:
+            flow_id: The flow ID to validate
+
+        Returns:
+            Dictionary containing validation results and recommendations
+        """
+        try:
+            logger.info(f"🔍 Validating flow state consistency for: {flow_id}")
+
+            # Detect initialization issues
+            issues = await self.flow_detector.detect_incomplete_initialization(flow_id)
+
+            # Get routing recommendation
+            routing_decision = await self.flow_router.analyze_and_route_flow(flow_id)
+
+            # Build validation result
+            validation_result = {
+                "flow_id": flow_id,
+                "is_consistent": len(issues) == 0,
+                "issues_detected": len(issues),
+                "issues": [issue.__dict__ for issue in issues],
+                "routing_decision": routing_decision.__dict__,
+                "requires_intervention": routing_decision.confidence > 0.8
+                and routing_decision.target_phase not in ["continue", "unknown"],
+                "validation_timestamp": datetime.utcnow().isoformat(),
+            }
+
+            # Categorize issues by severity
+            if issues:
+                validation_result["issues_by_severity"] = {
+                    "critical": [
+                        i.__dict__ for i in issues if i.severity == "critical"
+                    ],
+                    "high": [i.__dict__ for i in issues if i.severity == "high"],
+                    "medium": [i.__dict__ for i in issues if i.severity == "medium"],
+                    "low": [i.__dict__ for i in issues if i.severity == "low"],
+                }
+
+            logger.info(
+                f"🔍 Flow validation complete for {flow_id}: "
+                f"consistent={validation_result['is_consistent']}, "
+                f"issues={validation_result['issues_detected']}, "
+                f"requires_intervention={validation_result['requires_intervention']}"
+            )
+
+            return validation_result
+
+        except Exception as e:
+            logger.error(
+                f"❌ Error validating flow state consistency for {flow_id}: {e}"
+            )
+            return {
+                "flow_id": flow_id,
+                "is_consistent": False,
+                "error": str(e),
+                "validation_timestamp": datetime.utcnow().isoformat(),
+            }
+
+    async def attempt_flow_recovery(self, flow_id: str) -> Dict[str, Any]:
+        """
+        Attempt automatic recovery of a flow with initialization issues.
+
+        Args:
+            flow_id: The flow ID to recover
+
+        Returns:
+            Dictionary containing recovery results
+        """
+        try:
+            logger.info(f"🔄 Attempting automatic flow recovery for: {flow_id}")
+
+            # First validate the flow state
+            validation_result = await self.validate_flow_state_consistency(flow_id)
+
+            if validation_result.get("is_consistent", False):
+                return {
+                    "success": True,
+                    "action": "no_recovery_needed",
+                    "message": "Flow is already in consistent state",
+                    "flow_id": flow_id,
+                }
+
+            # Get routing decision
+            routing_decision = await self.flow_router.analyze_and_route_flow(flow_id)
+
+            if routing_decision.confidence < 0.7:
+                return {
+                    "success": False,
+                    "action": "manual_intervention_required",
+                    "message": "Automatic recovery not possible - manual intervention required",
+                    "flow_id": flow_id,
+                    "routing_decision": routing_decision.__dict__,
+                }
+
+            # Execute routing decision for recovery
+            recovery_result = await self.flow_router.execute_routing_decision(
+                routing_decision
+            )
+
+            if recovery_result.get("success", False):
+                logger.info(f"✅ Flow recovery successful for {flow_id}")
+                return {
+                    "success": True,
+                    "action": "automatic_recovery_completed",
+                    "flow_id": flow_id,
+                    "recovery_action": recovery_result.get("action"),
+                    "routing_decision": routing_decision.__dict__,
+                    "recovery_timestamp": datetime.utcnow().isoformat(),
+                }
+            else:
+                logger.warning(f"⚠️ Flow recovery failed for {flow_id}")
+                return {
+                    "success": False,
+                    "action": "recovery_failed",
+                    "flow_id": flow_id,
+                    "error": recovery_result.get("error", "Unknown recovery error"),
+                    "routing_decision": routing_decision.__dict__,
+                }
+
+        except Exception as e:
+            logger.error(f"❌ Error attempting flow recovery for {flow_id}: {e}")
+            return {
+                "success": False,
+                "action": "recovery_error",
+                "flow_id": flow_id,
+                "error": str(e),
+            }
+
+    async def intercept_phase_transition(
+        self, flow_id: str, from_phase: str, to_phase: str
+    ) -> Dict[str, Any]:
+        """
+        Intercept and validate phase transitions, redirecting if necessary.
+
+        Args:
+            flow_id: The flow ID
+            from_phase: Current phase
+            to_phase: Requested target phase
+
+        Returns:
+            Dictionary containing interception results
+        """
+        try:
+            logger.info(
+                f"🔍 Intercepting phase transition for {flow_id}: {from_phase} → {to_phase}"
+            )
+
+            # Check if interception is needed
+            should_intercept, routing_decision = (
+                await self.flow_router.should_intercept_phase_transition(
+                    flow_id, from_phase, to_phase
+                )
+            )
+
+            if not should_intercept:
+                return {
+                    "intercepted": False,
+                    "allow_transition": True,
+                    "message": f"Phase transition {from_phase} → {to_phase} is allowed",
+                    "flow_id": flow_id,
+                }
+
+            # Transition should be intercepted
+            logger.info(
+                f"🚫 Intercepting phase transition for {flow_id}: {from_phase} → {to_phase} "
+                f"routing to {routing_decision.target_phase}"
+            )
+
+            # Execute the routing decision
+            execution_result = await self.flow_router.execute_routing_decision(
+                routing_decision
+            )
+
+            return {
+                "intercepted": True,
+                "allow_transition": False,
+                "original_transition": f"{from_phase} → {to_phase}",
+                "redirected_to": routing_decision.target_phase,
+                "routing_reason": routing_decision.routing_reason,
+                "confidence": routing_decision.confidence,
+                "execution_result": execution_result,
+                "flow_id": flow_id,
+                "interception_timestamp": datetime.utcnow().isoformat(),
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Error intercepting phase transition for {flow_id}: {e}")
+            return {
+                "intercepted": False,
+                "allow_transition": False,  # Fail safe - don't allow transition on error
+                "error": str(e),
+                "flow_id": flow_id,
+            }

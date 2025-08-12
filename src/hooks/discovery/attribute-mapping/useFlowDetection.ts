@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAttributeMappingFlowDetection } from '../useDiscoveryFlowAutoDetection';
+import { flowRecoveryService, type RecoveryProgress } from '../../../services/flow-recovery';
 
 export interface FlowDetectionResult {
   urlFlowId: string | null;
@@ -14,6 +15,12 @@ export interface FlowDetectionResult {
   flowListError: unknown;
   pathname: string;
   navigate: (path: string) => void;
+  // Flow recovery state
+  isRecovering: boolean;
+  recoveryProgress: RecoveryProgress;
+  recoveryError: string | null;
+  recoveredFlowId: string | null;
+  triggerFlowRecovery: (flowId: string) => Promise<boolean>;
 }
 
 /**
@@ -23,6 +30,19 @@ export interface FlowDetectionResult {
 export const useFlowDetection = (): FlowDetectionResult => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+
+  // Flow recovery state
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [recoveryProgress, setRecoveryProgress] = useState<RecoveryProgress>({
+    isValidating: false,
+    isRecovering: false,
+    isIntercepting: false,
+    currentStep: null,
+    progress: 0,
+    message: null
+  });
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const [recoveredFlowId, setRecoveredFlowId] = useState<string | null>(null);
 
   // Use the new auto-detection hook for consistent flow detection
   const {
@@ -88,8 +108,51 @@ export const useFlowDetection = (): FlowDetectionResult => {
     }
   }, [effectiveFlowId, hasEffectiveFlow, flowList?.length, isFlowListLoading]); // Reduced dependencies to prevent excessive re-renders
 
-  // Use unified discovery flow with effective flow ID or emergency fallback
-  const finalFlowId = effectiveFlowId || emergencyFlowId;
+  // Flow recovery function
+  const triggerFlowRecovery = useCallback(async (flowId: string): Promise<boolean> => {
+    console.log(`🔧 [useFlowDetection] Starting flow recovery for: ${flowId}`);
+
+    try {
+      setIsRecovering(true);
+      setRecoveryError(null);
+      setRecoveredFlowId(null);
+
+      // Perform full recovery using the flow recovery service
+      const recoveryResult = await flowRecoveryService.performFullRecovery(flowId);
+
+      // Update progress throughout the process
+      setRecoveryProgress(recoveryResult.progress);
+
+      if (recoveryResult.success) {
+        if (recoveryResult.action === 'recovered') {
+          // Flow was successfully recovered
+          console.log(`✅ [useFlowDetection] Flow recovery successful:`, recoveryResult);
+          setRecoveredFlowId(recoveryResult.flowId || flowId);
+          return true;
+        } else if (recoveryResult.action === 'redirect' && recoveryResult.redirectPath) {
+          // Recovery suggests redirecting to another page
+          console.log(`🔄 [useFlowDetection] Recovery suggests redirect to: ${recoveryResult.redirectPath}`);
+          navigate(recoveryResult.redirectPath);
+          return true;
+        }
+      }
+
+      // Recovery failed or requires manual action
+      console.warn(`⚠️ [useFlowDetection] Flow recovery failed:`, recoveryResult);
+      setRecoveryError(recoveryResult.message);
+      return false;
+
+    } catch (error) {
+      console.error(`❌ [useFlowDetection] Flow recovery error:`, error);
+      setRecoveryError(error.message || 'Recovery failed with unknown error');
+      return false;
+    } finally {
+      setIsRecovering(false);
+    }
+  }, [navigate]);
+
+  // Use unified discovery flow with effective flow ID, recovered flow ID, or emergency fallback
+  const finalFlowId = recoveredFlowId || effectiveFlowId || emergencyFlowId;
 
   // Only log final flow resolution when it changes (prevent spam)
   const finalFlowIdRef = useRef<string | null>(null);
@@ -117,6 +180,12 @@ export const useFlowDetection = (): FlowDetectionResult => {
     isFlowListLoading,
     flowListError,
     pathname,
-    navigate
+    navigate,
+    // Flow recovery state
+    isRecovering,
+    recoveryProgress,
+    recoveryError,
+    recoveredFlowId,
+    triggerFlowRecovery
   };
 };

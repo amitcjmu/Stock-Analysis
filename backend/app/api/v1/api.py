@@ -95,6 +95,9 @@ try:
     from app.api.v1.endpoints.flow_management import (
         router as flow_management_router,
     )
+    from app.api.v1.endpoints.flow_recovery import (
+        router as flow_recovery_router,
+    )
 
     UNIFIED_DISCOVERY_AVAILABLE = True
 except ImportError as e:
@@ -394,6 +397,13 @@ if UNIFIED_DISCOVERY_AVAILABLE:
         tags=["Discovery - Flow Management"],
     )
     logger.info("✅ Flow Management router included at /unified-discovery/flow")
+
+    api_router.include_router(
+        flow_recovery_router,
+        prefix="/unified-discovery/flow",
+        tags=["Discovery - Flow Recovery"],
+    )
+    logger.info("✅ Flow Recovery router included at /unified-discovery/flow")
 else:
     logger.warning("⚠️ Unified Discovery Flow API router not available")
 

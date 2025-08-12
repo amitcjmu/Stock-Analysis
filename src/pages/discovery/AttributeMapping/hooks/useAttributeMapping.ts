@@ -38,6 +38,12 @@ export const useAttributeMapping = (): JSX.Element => {
     effectiveFlowId,
     hasEffectiveFlow,
     flowList,
+    // Flow recovery state
+    isRecovering,
+    recoveryProgress,
+    recoveryError,
+    recoveredFlowId,
+    triggerFlowRecovery,
   } = useAttributeMappingLogic();
 
   // Navigation logic
@@ -108,7 +114,13 @@ export const useAttributeMapping = (): JSX.Element => {
     autoDetectedFlowId,
     effectiveFlowId,
     hasEffectiveFlow,
-    flowList
+    flowList,
+    // Flow recovery state
+    isRecovering,
+    recoveryProgress,
+    recoveryError,
+    recoveredFlowId,
+    triggerFlowRecovery
   };
 
   // Actions object

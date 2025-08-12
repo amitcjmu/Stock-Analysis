@@ -435,6 +435,9 @@ class TenantScopedAgentPool:
             from app.services.crewai_flows.tools.critical_attributes_tool import (
                 create_critical_attributes_tools,
             )
+            from app.services.crewai_flows.tools.dependency_analysis_tool import (
+                create_dependency_analysis_tools,
+            )
             from app.services.tools.asset_intelligence_tools import (
                 get_asset_intelligence_tools,
             )
@@ -459,6 +462,11 @@ class TenantScopedAgentPool:
                 intelligence_tools = get_asset_intelligence_tools()
                 tools.extend(intelligence_tools)
 
+                # Pattern discovery agent needs dependency analysis tools
+                if agent_type == "pattern_discovery_agent":
+                    dependency_tools = create_dependency_analysis_tools(context_info)
+                    tools.extend(dependency_tools)
+
             elif agent_type == "quality_assessor":
                 # Quality assessor needs asset enrichment tools
                 intelligence_tools = get_asset_intelligence_tools()
@@ -468,6 +476,10 @@ class TenantScopedAgentPool:
                 # These agents analyze but don't create assets
                 intelligence_tools = get_asset_intelligence_tools()
                 tools.extend(intelligence_tools)
+
+                # Add dependency analysis tools for these analysis agents
+                dependency_tools = create_dependency_analysis_tools(context_info)
+                tools.extend(dependency_tools)
 
             elif agent_type == "field_mapper":
                 # Field mapper needs specific mapping tools and critical attributes assessment
