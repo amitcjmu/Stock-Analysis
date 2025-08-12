@@ -73,6 +73,7 @@ class CollectionFlow(Base, TimestampMixin):
     """
 
     __tablename__ = "collection_flows"
+    __table_args__ = {"schema": "migration"}
 
     # Primary key
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -356,6 +357,7 @@ class CollectionGapAnalysis(Base):
     """
 
     __tablename__ = "collection_gap_analysis"
+    __table_args__ = {"schema": "migration"}
 
     # Primary identification
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
@@ -464,6 +466,7 @@ class AdaptiveQuestionnaire(Base):
     """
 
     __tablename__ = "adaptive_questionnaires"
+    __table_args__ = {"schema": "migration"}
 
     # Primary identification
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)

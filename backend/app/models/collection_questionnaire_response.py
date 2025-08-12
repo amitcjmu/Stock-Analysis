@@ -19,6 +19,7 @@ class CollectionQuestionnaireResponse(Base, TimestampMixin):
     """
 
     __tablename__ = "collection_questionnaire_responses"
+    __table_args__ = {"schema": "migration"}
 
     # Primary key
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
