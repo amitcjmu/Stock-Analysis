@@ -125,17 +125,20 @@ class FlowDeletionService {
    */
   private analyzeFlowForDeletion(flow: ExternalFlowData): FlowDeletionCandidate | null {
     const now = new Date();
-    const updatedAt = new Date(flow.updated_at || flow.updatedAt);
+    const updatedAt = new Date(flow.updated_at || flow.updatedAt || now);
     const daysSinceUpdate = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
 
     let reason_for_deletion: FlowDeletionCandidate['reason_for_deletion'] | null = null;
     let auto_cleanup_eligible = false;
+    
+    // Get progress as a number, defaulting to 0 if undefined
+    const progressValue = flow.progress || flow.progress_percentage || 0;
 
     // Analyze flow status and determine recommendation
     if (flow.status === 'failed' || flow.status === 'error') {
       reason_for_deletion = 'failed';
       auto_cleanup_eligible = daysSinceUpdate > 1; // Failed flows older than 1 day
-    } else if (flow.status === 'completed' && flow.progress >= 100) {
+    } else if (flow.status === 'completed' && progressValue >= 100) {
       reason_for_deletion = 'completed';
       auto_cleanup_eligible = daysSinceUpdate > 7; // Completed flows older than 7 days
     } else if (flow.status === 'cancelled') {
@@ -150,15 +153,20 @@ class FlowDeletionService {
     if (!reason_for_deletion) {
       return null;
     }
+    
+    // Ensure we have required string fields
+    const flowId = flow.master_flow_id || flow.flowId || flow.flow_id || '';
+    const createdAt = flow.created_at || flow.createdAt || now.toISOString();
+    const updatedAtStr = flow.updated_at || flow.updatedAt || now.toISOString();
 
     return {
-      flowId: flow.master_flow_id || flow.flowId || flow.flow_id,
+      flowId,
       flow_name: flow.flow_name || flow.flowType || 'Unknown Flow',
       status: flow.status,
       current_phase: flow.currentPhase || flow.current_phase || 'unknown',
-      progress_percentage: flow.progress || flow.progress_percentage || 0,
-      created_at: flow.created_at || flow.createdAt,
-      updated_at: flow.updated_at || flow.updatedAt,
+      progress_percentage: progressValue,
+      created_at: createdAt,
+      updated_at: updatedAtStr,
       reason_for_deletion,
       auto_cleanup_eligible,
       deletion_impact: flow.deletion_impact || {
