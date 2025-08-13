@@ -15,7 +15,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "017_add_agent_execution_history"
-down_revision: Union[str, None] = "51470c6d6288"
+down_revision: Union[str, None] = "016_add_security_constraints"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -66,8 +66,18 @@ def upgrade() -> None:
             sa.Column("error_message", sa.Text(), nullable=True),
             sa.Column("error_details", sa.JSON(), nullable=True),
             sa.Column("metadata", sa.JSON(), nullable=True),
-            sa.Column("created_at", sa.DateTime(), nullable=False),
-            sa.Column("updated_at", sa.DateTime(), nullable=False),
+            sa.Column(
+                "created_at",
+                sa.DateTime(),
+                nullable=False,
+                server_default=sa.func.now(),
+            ),
+            sa.Column(
+                "updated_at",
+                sa.DateTime(),
+                nullable=False,
+                server_default=sa.func.now(),
+            ),
             sa.PrimaryKeyConstraint("id"),
             schema="migration",
         )

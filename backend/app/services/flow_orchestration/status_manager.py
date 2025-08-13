@@ -115,8 +115,8 @@ class FlowStatusManager:
             return status
 
         except Exception as e:
-            logger.error(f"Failed to get flow status for {flow_id}: {e}")
-            raise
+            logger.error(f"Failed to get flow status for {flow_id}: {e}", exc_info=True)
+            raise RuntimeError(f"Failed to get flow status: {str(e)}") from e
 
     async def _get_child_flow_status(
         self, flow_id: str, flow_type: str
@@ -187,16 +187,22 @@ class FlowStatusManager:
             # Get phase information from flow config
             flow_config = self.flow_registry.get_flow_config(flow_type)
             if flow_config and hasattr(flow_config, "phases"):
-                # total_phases = len(flow_config.phases)  # Not needed for now
+                # Compare phase names, handling both string and object phases
+                def get_phase_name(phase):
+                    return getattr(phase, "name", phase)
+
                 current_phase_index = next(
                     (
                         i
                         for i, p in enumerate(flow_config.phases)
-                        if p == progress["phase"]
+                        if get_phase_name(p) == progress["phase"]
                     ),
-                    0,
+                    -1,
                 )
-                progress["phases_completed"] = flow_config.phases[:current_phase_index]
+                if current_phase_index >= 0:
+                    progress["phases_completed"] = flow_config.phases[
+                        :current_phase_index
+                    ]
 
         return progress
 

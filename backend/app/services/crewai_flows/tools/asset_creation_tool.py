@@ -170,13 +170,26 @@ class AssetCreationToolImpl:
         from app.models.asset import Asset, AssetStatus
         from datetime import datetime
 
+        # Validate required context
+        if not context.client_account_id or not context.engagement_id:
+            raise ValueError(
+                "Missing tenant context: client_account_id and engagement_id are required"
+            )
+
+        # Validate required asset name
+        name = asset_data.get("name")
+        if not name or not str(name).strip():
+            raise ValueError("Asset name is required and cannot be empty")
+
+        name = str(name).strip()
+
         return Asset(
             # Multi-tenant context - no double UUID conversion
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
             # Basic information
-            name=asset_data.get("name", "Unknown Asset"),
-            asset_name=asset_data.get("name", "Unknown Asset"),
+            name=name,
+            asset_name=name,
             asset_type=asset_type,
             description=asset_data.get("description", "Discovered by persistent agent"),
             # Network information
