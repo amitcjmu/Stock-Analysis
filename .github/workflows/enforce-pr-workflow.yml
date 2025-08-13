@@ -1,0 +1,186 @@
+name: Enforce PR Workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+jobs:
+  check-direct-push:
+    name: Block Direct Push to Main
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Check if push was from a merge
+        id: check_merge
+        run: |
+          # Check if this is a merge commit (has 2 parents)
+          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
+          COMMITTER="${{ github.event.head_commit.committer.username }}"
+
+          # GitHub merge commits typically have these patterns
+          if [[ "$COMMIT_MESSAGE" == "Merge pull request #"* ]] || \
+             [[ "$COMMIT_MESSAGE" == "Merge branch"* ]] || \
+             [[ "$COMMITTER" == "web-flow" ]] || \
+             [[ "$COMMITTER" == "github-actions[bot]" ]]; then
+            echo "is_merge=true" >> $GITHUB_OUTPUT
+            echo "✅ This is a merge from a PR - allowed"
+          else
+            echo "is_merge=false" >> $GITHUB_OUTPUT
+            echo "❌ Direct push to main detected!"
+          fi
+
+      - name: Revert Direct Push
+        if: steps.check_merge.outputs.is_merge == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "⚠️ Direct push to main branch detected!"
+          echo "Pusher: ${{ github.actor }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Message: ${{ github.event.head_commit.message }}"
+
+          # Create an issue to notify about the direct push
+          gh issue create \
+            --title "⚠️ Direct Push to Main Detected" \
+            --body "A direct push to the main branch was detected and needs to be reverted.
+
+            **Details:**
+            - Pusher: @${{ github.actor }}
+            - Commit: ${{ github.sha }}
+            - Message: ${{ github.event.head_commit.message }}
+            - Time: ${{ github.event.head_commit.timestamp }}
+
+            **Action Required:**
+            Please revert this commit and create a proper PR instead.
+
+            To revert locally:
+            \`\`\`bash
+            git checkout main
+            git pull origin main
+            git revert ${{ github.sha }}
+            git push origin main
+            \`\`\`
+
+            Or create a new branch from before this commit:
+            \`\`\`bash
+            git checkout -b fix/revert-direct-push ${{ github.event.before }}
+            # Make your changes
+            git push origin fix/revert-direct-push
+            # Create a PR
+            \`\`\`
+
+            **Reminder:** All changes to main should go through a PR with proper review!" \
+            --repo ${{ github.repository }}
+
+          # Fail the workflow to signal the problem
+          exit 1
+
+  pr-checks:
+    name: PR Validation Checks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check PR Title
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+
+          # Enforce conventional commit format in PR title
+          if [[ ! "$PR_TITLE" =~ ^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?:\ .+ ]]; then
+            echo "❌ PR title doesn't follow conventional commit format!"
+            echo "Expected format: type(scope): description"
+            echo "Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert"
+            echo "Example: feat(backend): Add service registry implementation"
+            exit 1
+          fi
+
+          echo "✅ PR title follows conventional commit format"
+
+      - name: Check PR Description
+        run: |
+          PR_BODY="${{ github.event.pull_request.body }}"
+
+          if [ -z "$PR_BODY" ] || [ ${#PR_BODY} -lt 50 ]; then
+            echo "❌ PR description is too short (minimum 50 characters)"
+            echo "Please provide a meaningful description of your changes"
+            exit 1
+          fi
+
+          echo "✅ PR has adequate description"
+
+      - name: Check Branch Name
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+
+          # Enforce branch naming convention
+          if [[ ! "$BRANCH_NAME" =~ ^(feature|fix|hotfix|docs|test|refactor|chore)/.+ ]]; then
+            echo "❌ Branch name doesn't follow naming convention!"
+            echo "Expected format: type/description"
+            echo "Types: feature, fix, hotfix, docs, test, refactor, chore"
+            echo "Example: feature/add-service-registry"
+            exit 1
+          fi
+
+          echo "✅ Branch name follows convention"
+
+      - name: Add PR Labels
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+
+          # Auto-label based on branch prefix
+          if [[ "$BRANCH_NAME" == feature/* ]]; then
+            gh pr edit ${{ github.event.pull_request.number }} --add-label "enhancement"
+          elif [[ "$BRANCH_NAME" == fix/* ]] || [[ "$BRANCH_NAME" == hotfix/* ]]; then
+            gh pr edit ${{ github.event.pull_request.number }} --add-label "bug"
+          elif [[ "$BRANCH_NAME" == docs/* ]]; then
+            gh pr edit ${{ github.event.pull_request.number }} --add-label "documentation"
+          elif [[ "$BRANCH_NAME" == test/* ]]; then
+            gh pr edit ${{ github.event.pull_request.number }} --add-label "testing"
+          fi
+
+      - name: Comment PR Guidelines
+        if: github.event.action == 'opened'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "## PR Review Checklist
+
+          Thank you for your contribution! Please ensure:
+
+          - [ ] Code follows project conventions
+          - [ ] Tests have been added/updated
+          - [ ] Documentation has been updated if needed
+          - [ ] No sensitive information (keys, passwords) in code
+          - [ ] Pre-commit hooks pass locally
+          - [ ] Branch is up to date with main
+
+          **Reviewer:** Please check these items before approving."
+
+  require-approval:
+    name: Check for Approval
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Check Reviews
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get PR reviews
+          REVIEWS=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews --jq '[.[] | select(.state == "APPROVED")] | length')
+
+          echo "Number of approvals: $REVIEWS"
+
+          if [ "$REVIEWS" -eq 0 ]; then
+            echo "⚠️ This PR needs at least one approval before merging"
+            echo "::warning::PR needs approval from a reviewer"
+          else
+            echo "✅ PR has $REVIEWS approval(s)"
+          fi

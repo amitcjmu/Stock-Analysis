@@ -1,0 +1,133 @@
+name: Merge Guardian
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    branches:
+      - main
+  pull_request_review:
+    types: [submitted, dismissed]
+
+jobs:
+  merge-requirements:
+    name: Check Merge Requirements
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check Approval Status
+        id: approval_check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get PR details
+          PR_NUMBER=${{ github.event.pull_request.number }}
+
+          # Get reviews
+          APPROVALS=$(gh api repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews \
+            --jq '[.[] | select(.state == "APPROVED")] | length')
+
+          CHANGES_REQUESTED=$(gh api repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews \
+            --jq '[.[] | select(.state == "CHANGES_REQUESTED")] | length')
+
+          echo "approvals=$APPROVALS" >> $GITHUB_OUTPUT
+          echo "changes_requested=$CHANGES_REQUESTED" >> $GITHUB_OUTPUT
+
+          # Check if PR author is trying to self-approve
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+          APPROVED_BY=$(gh api repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews \
+            --jq '.[] | select(.state == "APPROVED") | .user.login')
+
+          if [[ "$APPROVED_BY" == *"$PR_AUTHOR"* ]]; then
+            echo "self_approved=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Self-approval detected!"
+          else
+            echo "self_approved=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update PR Status
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          APPROVALS=${{ steps.approval_check.outputs.approvals }}
+          CHANGES_REQUESTED=${{ steps.approval_check.outputs.changes_requested }}
+          SELF_APPROVED=${{ steps.approval_check.outputs.self_approved }}
+
+          # Determine merge readiness
+          MERGE_READY="false"
+          STATUS_MESSAGE=""
+
+          if [ "$CHANGES_REQUESTED" -gt 0 ]; then
+            STATUS_MESSAGE="❌ Changes requested by reviewer(s)"
+          elif [ "$SELF_APPROVED" == "true" ]; then
+            STATUS_MESSAGE="⚠️ Self-approval not allowed - needs review from another contributor"
+          elif [ "$APPROVALS" -eq 0 ]; then
+            STATUS_MESSAGE="⏳ Waiting for approval"
+          else
+            STATUS_MESSAGE="✅ Approved and ready to merge"
+            MERGE_READY="true"
+          fi
+
+          # Add status comment
+          EXISTING_COMMENT=$(gh pr view ${PR_NUMBER} --json comments \
+            --jq '.comments[] | select(.author.login == "github-actions[bot]" and (.body | contains("## Merge Status"))) | .id' \
+            | head -n1)
+
+          COMMENT_BODY="## Merge Status
+
+          ${STATUS_MESSAGE}
+
+          **Current Status:**
+          - Approvals: ${APPROVALS}
+          - Changes Requested: ${CHANGES_REQUESTED}
+          - Self-Approved: ${SELF_APPROVED}
+
+          **Requirements for Merging:**
+          - ✅ At least 1 approval from a reviewer (not self)
+          - ✅ No changes requested
+          - ✅ All CI checks passing
+
+          ---
+          *This comment is automatically updated by the Merge Guardian workflow.*"
+
+          if [ -n "$EXISTING_COMMENT" ]; then
+            # Update existing comment
+            gh api repos/${{ github.repository }}/issues/comments/${EXISTING_COMMENT} \
+              --method PATCH \
+              -f body="${COMMENT_BODY}"
+          else
+            # Create new comment
+            gh pr comment ${PR_NUMBER} --body "${COMMENT_BODY}"
+          fi
+
+          # Set merge readiness as output for other steps
+          echo "merge_ready=$MERGE_READY" >> $GITHUB_ENV
+
+      - name: Add/Remove Labels
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+
+          if [ "${{ env.merge_ready }}" == "true" ]; then
+            gh pr edit ${PR_NUMBER} --add-label "ready-to-merge" --remove-label "needs-review" 2>/dev/null || true
+          else
+            gh pr edit ${PR_NUMBER} --add-label "needs-review" --remove-label "ready-to-merge" 2>/dev/null || true
+          fi
+
+  block-unapproved-merge:
+    name: Block Unapproved Merge
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
+    steps:
+      - name: Reset Approvals on New Commits
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "📝 New commits detected - previous approvals may be stale"
+
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "⚠️ **New commits pushed** - Previous approvals may need to be re-reviewed.
+
+            Reviewers: Please review the latest changes."

@@ -13,9 +13,13 @@ import sys
 from pathlib import Path
 from typing import List, Tuple
 
-# Add backend to path for imports
+# Store original sys.path to restore later
+_original_sys_path = sys.path.copy()
+
+# Add backend to path for imports temporarily
 backend_path = Path(__file__).parent.parent
-sys.path.insert(0, str(backend_path))
+if str(backend_path) not in sys.path:
+    sys.path.insert(0, str(backend_path))
 
 
 class ServiceRegistryChecker(ast.NodeVisitor):
@@ -163,50 +167,56 @@ def check_directory(
 
 def main():
     """Main entry point for CI guard"""
-    print("🔍 Service Registry Pattern Compliance Check")
-    print("=" * 60)
+    try:
+        print("🔍 Service Registry Pattern Compliance Check")
+        print("=" * 60)
 
-    # Check backend directory
-    backend_dir = Path(__file__).parent.parent
+        # Check backend directory
+        backend_dir = Path(__file__).parent.parent
 
-    # Directories to check
-    check_dirs = [
-        backend_dir / "app" / "services",
-        backend_dir / "app" / "api",
-        backend_dir / "app" / "repositories",
-    ]
+        # Directories to check
+        check_dirs = [
+            backend_dir / "app" / "services",
+            backend_dir / "app" / "api",
+            backend_dir / "app" / "repositories",
+        ]
 
-    all_violations = []
-    total_files = 0
+        all_violations = []
+        total_files = 0
 
-    for check_dir in check_dirs:
-        if check_dir.exists():
-            print(f"\nChecking {check_dir.relative_to(backend_dir)}...")
-            violations, files_checked = check_directory(check_dir)
-            all_violations.extend(violations)
-            total_files += files_checked
-            print(f"  ✓ Checked {files_checked} files")
+        for check_dir in check_dirs:
+            if check_dir.exists():
+                print(f"\nChecking {check_dir.relative_to(backend_dir)}...")
+                violations, files_checked = check_directory(check_dir)
+                all_violations.extend(violations)
+                total_files += files_checked
+                print(f"  ✓ Checked {files_checked} files")
 
-    print(f"\n{'=' * 60}")
-    print(f"Total files checked: {total_files}")
+        print(f"\n{'=' * 60}")
+        print(f"Total files checked: {total_files}")
 
-    if all_violations:
-        print(f"\n❌ Found {len(all_violations)} Service Registry violations:\n")
-        for violation in all_violations:
-            print(f"  • {violation}")
+        if all_violations:
+            print(f"\n❌ Found {len(all_violations)} Service Registry violations:\n")
+            for violation in all_violations:
+                print(f"  • {violation}")
 
-        print("\n💡 Fix suggestions:")
-        print("  1. Replace AsyncSessionLocal with ServiceRegistry pattern")
-        print("  2. Update tool creators to accept 'registry' parameter")
-        print("  3. Move legacy code to *_legacy.py files")
-        print("  4. Tools should use ServiceRegistry, not import models directly")
-        print("  5. Set USE_SERVICE_REGISTRY=true environment variable")
+            print("\n💡 Fix suggestions:")
+            print("  1. Replace AsyncSessionLocal with ServiceRegistry pattern")
+            print("  2. Update tool creators to accept 'registry' parameter")
+            print("  3. Move legacy code to *_legacy.py files")
+            print("  4. Tools should use ServiceRegistry, not import models directly")
+            print("  5. Set USE_SERVICE_REGISTRY=true environment variable")
 
-        sys.exit(1)
-    else:
-        print("\n✅ All checks passed! Service Registry pattern compliance verified.")
-        sys.exit(0)
+            return 1
+        else:
+            print(
+                "\n✅ All checks passed! Service Registry pattern compliance verified."
+            )
+            return 0
+    finally:
+        # Restore original sys.path to avoid side effects
+        sys.path = _original_sys_path
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

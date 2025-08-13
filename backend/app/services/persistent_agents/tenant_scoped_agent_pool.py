@@ -40,6 +40,45 @@ except ImportError:
 
 from app.services.agentic_memory.three_tier_memory_manager import ThreeTierMemoryManager
 
+# Move all tool imports to module level to avoid per-call dynamic imports
+# This improves performance and avoids repeated import overhead
+try:
+    from app.services.crewai_flows.tools.asset_creation_tool import (
+        create_asset_creation_tools,
+    )
+    from app.services.crewai_flows.tools.task_completion_tools import (
+        create_task_completion_tools,
+    )
+    from app.services.crewai_flows.tools.data_validation_tool import (
+        create_data_validation_tools,
+    )
+    from app.services.crewai_flows.tools.critical_attributes_tool import (
+        create_critical_attributes_tools,
+    )
+    from app.services.crewai_flows.tools.dependency_analysis_tool import (
+        create_dependency_analysis_tools,
+    )
+    from app.services.crewai_flows.tools.mapping_confidence_tool import (
+        MappingConfidenceTool,
+    )
+    from app.services.tools.asset_intelligence_tools import (
+        get_asset_intelligence_tools,
+    )
+
+    TOOLS_AVAILABLE = True
+except ImportError as e:
+    logger = logging.getLogger(__name__)
+    logger.warning(f"Some tools not available: {e}")
+    TOOLS_AVAILABLE = False
+    # Define placeholders for missing imports
+    create_asset_creation_tools = None
+    create_task_completion_tools = None
+    create_data_validation_tools = None
+    create_critical_attributes_tools = None
+    create_dependency_analysis_tools = None
+    MappingConfidenceTool = None
+    get_asset_intelligence_tools = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -464,10 +503,12 @@ class TenantScopedAgentPool:
             if service_registry:
                 logger.info(f"Using ServiceRegistry for {agent_type} tools")
 
-                # Import tool creators that support ServiceRegistry
-                from app.services.crewai_flows.tools.asset_creation_tool import (
-                    create_asset_creation_tools,
-                )
+                # Use module-level imports - no dynamic imports needed
+                if not TOOLS_AVAILABLE:
+                    logger.warning(
+                        f"Tools not available at module level for {agent_type}"
+                    )
+                    return []
 
                 # Get tools from ServiceRegistry-aware creators
                 if agent_type in [
@@ -477,70 +518,56 @@ class TenantScopedAgentPool:
                     "quality_assessor",
                 ]:
                     # These agents need asset creation capabilities
-                    asset_tools = create_asset_creation_tools(
-                        context_info, registry=service_registry
-                    )
-                    if isinstance(asset_tools, list):
-                        tools.extend(asset_tools)
-                        logger.info(
-                            f"Added {len(asset_tools)} asset creation tools via ServiceRegistry"
+                    if create_asset_creation_tools:
+                        asset_tools = create_asset_creation_tools(
+                            context_info, registry=service_registry
                         )
-
-                # CRITICAL: Also include legacy tools to ensure parity while migration is incomplete
-                # Without these, agents are missing essential tools and cannot function properly
-                # TODO: Phase 5 - Migrate these tool creators to ServiceRegistry pattern
-                # Priority order for migration:
-                # 1. task_completion_tools - used by all agents
-                # 2. data_validation_tool - critical for data import phase
-                # 3. critical_attributes_tool - essential for field mapping
-                # 4. dependency_analysis_tool - needed for analysis phase
-                # 5. mapping_confidence_tool - specific to field mapper
-                from app.services.crewai_flows.tools.task_completion_tools import (
-                    create_task_completion_tools,
-                )
-                from app.services.crewai_flows.tools.data_validation_tool import (
-                    create_data_validation_tools,
-                )
-                from app.services.crewai_flows.tools.critical_attributes_tool import (
-                    create_critical_attributes_tools,
-                )
-                from app.services.crewai_flows.tools.dependency_analysis_tool import (
-                    create_dependency_analysis_tools,
-                )
+                        if isinstance(asset_tools, list):
+                            tools.extend(asset_tools)
+                            logger.info(
+                                f"Added {len(asset_tools)} asset creation tools via ServiceRegistry"
+                            )
 
                 # Add all essential tools that haven't been migrated to ServiceRegistry yet
                 # This ensures agents have ALL required tools, not just asset creation
-                _safe_extend(
-                    lambda: create_task_completion_tools(context_info),
-                    "task completion tools",
-                )
+                if create_task_completion_tools:
+                    _safe_extend(
+                        lambda: create_task_completion_tools(context_info),
+                        "task completion tools",
+                    )
 
                 # Add agent-specific tools based on type
                 if agent_type in ["data_analyst", "pattern_discovery_agent"]:
-                    _safe_extend(
-                        lambda: create_data_validation_tools(context_info),
-                        "data validation tools",
-                    )
-                    if agent_type == "pattern_discovery_agent":
+                    if create_data_validation_tools:
+                        _safe_extend(
+                            lambda: create_data_validation_tools(context_info),
+                            "data validation tools",
+                        )
+                    if (
+                        agent_type == "pattern_discovery_agent"
+                        and create_dependency_analysis_tools
+                    ):
                         _safe_extend(
                             lambda: create_dependency_analysis_tools(context_info),
                             "dependency analysis tools",
                         )
 
                 elif agent_type == "field_mapper":
-                    _safe_extend(
-                        lambda: create_critical_attributes_tools(context_info),
-                        "critical attributes tools",
-                    )
+                    if create_critical_attributes_tools:
+                        _safe_extend(
+                            lambda: create_critical_attributes_tools(context_info),
+                            "critical attributes tools",
+                        )
 
                 elif agent_type in ["business_value_analyst", "risk_assessment_agent"]:
-                    _safe_extend(
-                        lambda: create_dependency_analysis_tools(context_info),
-                        "dependency analysis tools",
-                    )
+                    if create_dependency_analysis_tools:
+                        _safe_extend(
+                            lambda: create_dependency_analysis_tools(context_info),
+                            "dependency analysis tools",
+                        )
 
             else:
-                # Legacy path: Import all tool creators
+                # Legacy path: Use module-level imports
                 logger.info(f"Using legacy tool creation for {agent_type}")
 
                 # Log missed opportunity to use ServiceRegistry
@@ -548,57 +575,48 @@ class TenantScopedAgentPool:
                     f"ServiceRegistry not provided for {agent_type} tools - using legacy pattern. "
                     f"Consider enabling USE_SERVICE_REGISTRY=true for better performance and consistency."
                 )
-                from app.services.crewai_flows.tools.task_completion_tools import (
-                    create_task_completion_tools,
-                )
-                from app.services.crewai_flows.tools.asset_creation_tool import (
-                    create_asset_creation_tools,
-                )
-                from app.services.crewai_flows.tools.data_validation_tool import (
-                    create_data_validation_tools,
-                )
-                from app.services.crewai_flows.tools.critical_attributes_tool import (
-                    create_critical_attributes_tools,
-                )
-                from app.services.crewai_flows.tools.dependency_analysis_tool import (
-                    create_dependency_analysis_tools,
-                )
+
+                if not TOOLS_AVAILABLE:
+                    logger.warning(
+                        f"Tools not available at module level for {agent_type}"
+                    )
+                    return []
 
             # Common tools for all agents
-            _safe_extend(
-                lambda: create_task_completion_tools(context_info),
-                "task completion tools",
-            )
+            if create_task_completion_tools:
+                _safe_extend(
+                    lambda: create_task_completion_tools(context_info),
+                    "task completion tools",
+                )
 
             # Agent-specific tools
             if agent_type in ["data_analyst", "pattern_discovery_agent"]:
                 # Data analyst needs data validation tools
-                _safe_extend(
-                    lambda: create_data_validation_tools(context_info),
-                    "data validation tools",
-                )
-
-                # These agents need asset creation capabilities
-                _safe_extend(
-                    lambda: create_asset_creation_tools(context_info),
-                    "asset creation tools",
-                )
-
-                # Add intelligence tools
-                try:
-                    from app.services.tools.asset_intelligence_tools import (
-                        get_asset_intelligence_tools,
+                if create_data_validation_tools:
+                    _safe_extend(
+                        lambda: create_data_validation_tools(context_info),
+                        "data validation tools",
                     )
 
+                # These agents need asset creation capabilities
+                if create_asset_creation_tools:
+                    _safe_extend(
+                        lambda: create_asset_creation_tools(context_info),
+                        "asset creation tools",
+                    )
+
+                # Add intelligence tools
+                if get_asset_intelligence_tools:
                     _safe_extend(
                         lambda: get_asset_intelligence_tools(),
                         "asset intelligence tools",
                     )
-                except ImportError as e:
-                    logger.debug(f"Asset intelligence tools unavailable: {e}")
 
                 # Pattern discovery agent needs dependency analysis tools
-                if agent_type == "pattern_discovery_agent":
+                if (
+                    agent_type == "pattern_discovery_agent"
+                    and create_dependency_analysis_tools
+                ):
                     _safe_extend(
                         lambda: create_dependency_analysis_tools(context_info),
                         "dependency analysis tools",
@@ -606,67 +624,50 @@ class TenantScopedAgentPool:
 
             elif agent_type == "quality_assessor":
                 # Quality assessor needs asset enrichment tools
-                try:
-                    from app.services.tools.asset_intelligence_tools import (
-                        get_asset_intelligence_tools,
-                    )
-
+                if get_asset_intelligence_tools:
                     _safe_extend(
                         lambda: get_asset_intelligence_tools(),
                         "asset intelligence tools",
-                    )
-                except ImportError as e:
-                    logger.debug(
-                        f"Asset intelligence tools unavailable for {agent_type}: {e}"
                     )
 
             elif agent_type in ["business_value_analyst", "risk_assessment_agent"]:
                 # These agents analyze but don't create assets
-                try:
-                    from app.services.tools.asset_intelligence_tools import (
-                        get_asset_intelligence_tools,
-                    )
-
+                if get_asset_intelligence_tools:
                     _safe_extend(
                         lambda: get_asset_intelligence_tools(),
                         "asset intelligence tools",
                     )
-                except ImportError as e:
-                    logger.debug(
-                        f"Asset intelligence tools unavailable for {agent_type}: {e}"
-                    )
 
                 # Add dependency analysis tools for these analysis agents
-                _safe_extend(
-                    lambda: create_dependency_analysis_tools(context_info),
-                    "dependency analysis tools",
-                )
+                if create_dependency_analysis_tools:
+                    _safe_extend(
+                        lambda: create_dependency_analysis_tools(context_info),
+                        "dependency analysis tools",
+                    )
 
             elif agent_type == "field_mapper":
                 # Field mapper needs specific mapping tools and critical attributes assessment
-                try:
-                    from app.services.crewai_flows.tools.mapping_confidence_tool import (
-                        MappingConfidenceTool,
-                    )
-
-                    mapping_tool = MappingConfidenceTool()
-                    tools.append(mapping_tool)
-                except Exception as e:
-                    logger.debug(f"Mapping tools not available for {agent_type}: {e}")
+                if MappingConfidenceTool:
+                    try:
+                        mapping_tool = MappingConfidenceTool()
+                        tools.append(mapping_tool)
+                    except Exception as e:
+                        logger.debug(f"Failed to create MappingConfidenceTool: {e}")
 
                 # Add critical attributes assessment tools for field mapper
-                try:
-                    critical_tools = create_critical_attributes_tools(context_info)
-                    if isinstance(critical_tools, list):
-                        tools.extend(critical_tools)
-                    else:
+                if create_critical_attributes_tools:
+                    try:
+                        critical_tools = create_critical_attributes_tools(context_info)
+                        if isinstance(critical_tools, list):
+                            tools.extend(critical_tools)
+                        else:
+                            logger.warning(
+                                f"Critical attributes tools returned non-list for {agent_type}"
+                            )
+                    except Exception as e:
                         logger.warning(
-                            f"Critical attributes tools returned non-list for {agent_type}"
+                            f"Failed to load critical attributes tools for {agent_type}: {e}"
                         )
-                except Exception as e:
-                    logger.warning(
-                        f"Failed to load critical attributes tools for {agent_type}: {e}"
-                    )
 
             logger.info(f"✅ Loaded {len(tools)} tools for {agent_type} agent")
             return tools
