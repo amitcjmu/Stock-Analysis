@@ -15,7 +15,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "017_add_vector_search_to_agent_patterns"
-down_revision = "016_add_security_constraints"
+down_revision = "017_add_agent_execution_history"
 branch_labels = None
 depends_on = None
 
