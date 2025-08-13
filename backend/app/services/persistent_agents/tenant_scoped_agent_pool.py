@@ -471,7 +471,13 @@ class TenantScopedAgentPool:
                         )
 
                 # Fall back to legacy tool creators for other tools
-                # These will be migrated to ServiceRegistry in future phases
+                # TODO: Phase 5 - Migrate these tool creators to ServiceRegistry pattern
+                # Priority order for migration:
+                # 1. task_completion_tools - used by all agents
+                # 2. data_validation_tool - critical for data import phase
+                # 3. critical_attributes_tool - essential for field mapping
+                # 4. dependency_analysis_tool - needed for analysis phase
+                # 5. mapping_confidence_tool - specific to field mapper
                 from app.services.crewai_flows.tools.task_completion_tools import (
                     create_task_completion_tools,
                 )
@@ -487,6 +493,12 @@ class TenantScopedAgentPool:
             else:
                 # Legacy path: Import all tool creators
                 logger.info(f"Using legacy tool creation for {agent_type}")
+
+                # Log missed opportunity to use ServiceRegistry
+                logger.warning(
+                    f"ServiceRegistry not provided for {agent_type} tools - using legacy pattern. "
+                    f"Consider enabling USE_SERVICE_REGISTRY=true for better performance and consistency."
+                )
                 from app.services.crewai_flows.tools.task_completion_tools import (
                     create_task_completion_tools,
                 )

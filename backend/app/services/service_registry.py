@@ -12,15 +12,18 @@ Key Features:
 - Provides get_audit_logger() for tools to access injected logger
 - Includes bounded metrics buffer (max 100 items) with automatic flushing
 - Implements async context manager for proper cleanup
+- Integrated performance monitoring via ServiceRegistryMonitor
 
 Security & Performance:
 - Bounded metrics buffer prevents memory exhaustion
 - Non-blocking metrics flushing prevents I/O bottlenecks
 - Proper cleanup ensures no resource leaks
 - Session ownership remains with orchestrator for transaction control
+- Real-time performance tracking and cache hit rate monitoring
 """
 
 import asyncio
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Type, TypeVar, cast
 from collections import deque
@@ -31,6 +34,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.core.logging import get_logger
 from app.services.flow_orchestration.tool_audit_logger import ToolAuditLogger
+from app.services.service_registry_metrics import get_monitor
 
 # Type variable for service classes
 T = TypeVar("T")
@@ -123,6 +127,12 @@ class ServiceRegistry:
         # This avoids issues with event loop not being available during init
         self._periodic_flush_started = False
 
+        # Get the global monitor instance for performance tracking
+        self._monitor = get_monitor()
+
+        # Track registry creation in monitor
+        self._monitor.track_registry_creation(self._registry_id)
+
         self._logger.debug(
             f"Initialized ServiceRegistry {self._registry_id}",
             extra={
@@ -161,8 +171,21 @@ class ServiceRegistry:
         if service_class is None:
             raise ValueError("Service class cannot be None")
 
+        # Track start time for instantiation measurement
+        start_time = time.perf_counter()
+
         # Check cache first
         if service_class in self._service_cache:
+            execution_time_ms = (time.perf_counter() - start_time) * 1000
+
+            # Track cache hit in monitor
+            self._monitor.track_service_instantiation(
+                self._registry_id,
+                service_class.__name__,
+                execution_time_ms,
+                cache_hit=True,
+            )
+
             self._logger.debug(
                 f"Returning cached service {service_class.__name__}",
                 extra={
@@ -180,6 +203,17 @@ class ServiceRegistry:
 
             # Cache the instance
             self._service_cache[service_class] = service_instance
+
+            # Calculate instantiation time
+            execution_time_ms = (time.perf_counter() - start_time) * 1000
+
+            # Track cache miss and instantiation in monitor
+            self._monitor.track_service_instantiation(
+                self._registry_id,
+                service_class.__name__,
+                execution_time_ms,
+                cache_hit=False,
+            )
 
             self._logger.debug(
                 f"Created and cached service {service_class.__name__}",
@@ -329,6 +363,9 @@ class ServiceRegistry:
         try:
             # Write metrics asynchronously
             await self._write_metrics_async(metrics_to_flush)
+
+            # Track metrics flush in monitor
+            self._monitor.track_metrics_flush(self._registry_id, len(metrics_to_flush))
 
             self._logger.debug(
                 f"Successfully flushed {len(metrics_to_flush)} metrics",
@@ -517,6 +554,9 @@ class ServiceRegistry:
 
             # Mark as closed
             self._is_closed = True
+
+            # Track registry cleanup in monitor
+            self._monitor.track_registry_cleanup(self._registry_id)
 
             self._logger.debug(
                 f"ServiceRegistry cleanup completed {self._registry_id}",

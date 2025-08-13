@@ -6,6 +6,7 @@ Tracks service instantiation, cache hits, resource usage, and cleanup efficiency
 """
 
 import asyncio
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Dict, Optional, Any
@@ -75,12 +76,23 @@ class ServiceRegistryMonitor:
         self._service_metrics: Dict[str, Dict[str, ServiceMetrics]] = defaultdict(dict)
         self._lock = asyncio.Lock()
 
-        # Performance thresholds for alerting
-        self.instantiation_threshold_ms = 100  # Alert if service creation takes >100ms
-        self.memory_threshold_mb = 500  # Alert if registry uses >500MB
-        self.cache_hit_threshold = 80  # Alert if cache hit rate <80%
+        # Performance thresholds for alerting (configurable via environment)
+        self.instantiation_threshold_ms = float(
+            os.getenv("SERVICE_REGISTRY_INSTANTIATION_THRESHOLD_MS", "100")
+        )  # Alert if service creation takes > this many ms
+        self.memory_threshold_mb = float(
+            os.getenv("SERVICE_REGISTRY_MEMORY_THRESHOLD_MB", "500")
+        )  # Alert if registry uses > this many MB
+        self.cache_hit_threshold = float(
+            os.getenv("SERVICE_REGISTRY_CACHE_HIT_THRESHOLD", "80")
+        )  # Alert if cache hit rate < this percentage
 
-        logger.info("ServiceRegistryMonitor initialized")
+        logger.info(
+            f"ServiceRegistryMonitor initialized with thresholds: "
+            f"instantiation>{self.instantiation_threshold_ms}ms, "
+            f"memory>{self.memory_threshold_mb}MB, "
+            f"cache_hit<{self.cache_hit_threshold}%"
+        )
 
     def track_registry_creation(self, registry_id: str) -> None:
         """Track creation of a new Service Registry"""

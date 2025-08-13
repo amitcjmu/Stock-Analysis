@@ -27,9 +27,10 @@ class ServiceRegistryChecker(ast.NodeVisitor):
         self.async_session_imports = []
         self.direct_db_session_creations = []
         self.tool_without_registry = []
+        self.model_imports_in_tools = []
 
     def visit_ImportFrom(self, node):
-        """Check for AsyncSessionLocal imports"""
+        """Check for AsyncSessionLocal imports and model imports in tools"""
         if node.module and "AsyncSessionLocal" in str(node.module):
             for alias in node.names:
                 if alias.name == "AsyncSessionLocal":
@@ -42,6 +43,16 @@ class ServiceRegistryChecker(ast.NodeVisitor):
             for alias in node.names:
                 if alias.name == "AsyncSession":
                     self.async_session_imports.append(node.lineno)
+
+        # Check for model imports in tool files (enforce layering)
+        if (
+            "/tools/" in self.filepath
+            and node.module
+            and node.module.startswith("app.models")
+        ):
+            self.model_imports_in_tools.append(
+                f"{self.filepath}:{node.lineno}: Direct model import in tool file (use Service Registry pattern)"
+            )
 
         self.generic_visit(node)
 
@@ -113,6 +124,7 @@ def check_file(filepath: Path) -> List[str]:
 
         violations.extend(checker.violations)
         violations.extend(checker.tool_without_registry)
+        violations.extend(checker.model_imports_in_tools)
 
     except Exception as e:
         print(f"Error checking {filepath}: {e}", file=sys.stderr)
@@ -187,7 +199,8 @@ def main():
         print("  1. Replace AsyncSessionLocal with ServiceRegistry pattern")
         print("  2. Update tool creators to accept 'registry' parameter")
         print("  3. Move legacy code to *_legacy.py files")
-        print("  4. Set USE_SERVICE_REGISTRY=true environment variable")
+        print("  4. Tools should use ServiceRegistry, not import models directly")
+        print("  5. Set USE_SERVICE_REGISTRY=true environment variable")
 
         sys.exit(1)
     else:
