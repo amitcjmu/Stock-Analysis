@@ -9,6 +9,7 @@ This addresses ADR-015: Persistent Multi-Tenant Agent Architecture
 """
 
 import asyncio
+import atexit
 import logging
 import threading
 import uuid
@@ -260,6 +261,9 @@ class TenantScopedAgentPool:
         # Get agent configuration
         agent_config = cls._get_agent_config(agent_type)
 
+        # Get tools for this agent type (including context info)
+        tools = cls._get_agent_tools(agent_type, memory_manager)
+
         # Fix 1: Resolve API compatibility issues with proper config
         memory_config = {
             "provider": "DeepInfra",
@@ -278,7 +282,7 @@ class TenantScopedAgentPool:
                 backstory=agent_config["backstory"],
                 memory=True,  # Re-enable memory
                 memory_config=memory_config,
-                tools=agent_config.get("tools", []),
+                tools=tools,  # Use the actual tools instead of empty array
                 allow_delegation=False,  # Performance optimization
                 max_iter=1,  # Single iteration for performance
                 verbose=False,  # Reduce noise
@@ -387,6 +391,182 @@ class TenantScopedAgentPool:
 
         except Exception as e:
             return AgentHealth(is_healthy=False, error=f"Health check failed: {e}")
+
+    @classmethod
+    def _get_agent_tools(
+        cls, agent_type: str, memory_manager: ThreeTierMemoryManager
+    ) -> List:
+        """
+        Get tools for different agent types
+
+        Args:
+            agent_type: Type of agent
+            memory_manager: Memory manager for context
+
+        Returns:
+            List of CrewAI tools for the agent
+        """
+        try:
+            # Extract context from memory manager (it has client_account_id and engagement_id)
+            context_info = {
+                "client_account_id": (
+                    str(memory_manager.client_account_id)
+                    if hasattr(memory_manager, "client_account_id")
+                    else None
+                ),
+                "engagement_id": (
+                    str(memory_manager.engagement_id)
+                    if hasattr(memory_manager, "engagement_id")
+                    else None
+                ),
+                "agent_type": agent_type,
+            }
+
+            # Import tool creators
+            from app.services.crewai_flows.tools.task_completion_tools import (
+                create_task_completion_tools,
+            )
+            from app.services.crewai_flows.tools.asset_creation_tool import (
+                create_asset_creation_tools,
+            )
+            from app.services.crewai_flows.tools.data_validation_tool import (
+                create_data_validation_tools,
+            )
+            from app.services.crewai_flows.tools.critical_attributes_tool import (
+                create_critical_attributes_tools,
+            )
+            from app.services.crewai_flows.tools.dependency_analysis_tool import (
+                create_dependency_analysis_tools,
+            )
+
+            tools = []
+
+            # Helper function to safely extend tools list
+            def _safe_extend(getter, tool_name="tools"):
+                try:
+                    result = getter()
+                    if isinstance(result, list):
+                        tools.extend(result)
+                        return len(result)
+                    else:
+                        logger.warning(
+                            f"{tool_name} returned non-list type: {type(result)}"
+                        )
+                        return 0
+                except Exception as e:
+                    logger.debug(f"Skipping {tool_name} due to error: {e}")
+                    return 0
+
+            # Common tools for all agents
+            _safe_extend(
+                lambda: create_task_completion_tools(context_info),
+                "task completion tools",
+            )
+
+            # Agent-specific tools
+            if agent_type in ["data_analyst", "pattern_discovery_agent"]:
+                # Data analyst needs data validation tools
+                _safe_extend(
+                    lambda: create_data_validation_tools(context_info),
+                    "data validation tools",
+                )
+
+                # These agents need asset creation capabilities
+                _safe_extend(
+                    lambda: create_asset_creation_tools(context_info),
+                    "asset creation tools",
+                )
+
+                # Add intelligence tools
+                try:
+                    from app.services.tools.asset_intelligence_tools import (
+                        get_asset_intelligence_tools,
+                    )
+
+                    _safe_extend(
+                        lambda: get_asset_intelligence_tools(),
+                        "asset intelligence tools",
+                    )
+                except ImportError as e:
+                    logger.debug(f"Asset intelligence tools unavailable: {e}")
+
+                # Pattern discovery agent needs dependency analysis tools
+                if agent_type == "pattern_discovery_agent":
+                    _safe_extend(
+                        lambda: create_dependency_analysis_tools(context_info),
+                        "dependency analysis tools",
+                    )
+
+            elif agent_type == "quality_assessor":
+                # Quality assessor needs asset enrichment tools
+                try:
+                    from app.services.tools.asset_intelligence_tools import (
+                        get_asset_intelligence_tools,
+                    )
+
+                    _safe_extend(
+                        lambda: get_asset_intelligence_tools(),
+                        "asset intelligence tools",
+                    )
+                except ImportError as e:
+                    logger.debug(
+                        f"Asset intelligence tools unavailable for {agent_type}: {e}"
+                    )
+
+            elif agent_type in ["business_value_analyst", "risk_assessment_agent"]:
+                # These agents analyze but don't create assets
+                try:
+                    from app.services.tools.asset_intelligence_tools import (
+                        get_asset_intelligence_tools,
+                    )
+
+                    _safe_extend(
+                        lambda: get_asset_intelligence_tools(),
+                        "asset intelligence tools",
+                    )
+                except ImportError as e:
+                    logger.debug(
+                        f"Asset intelligence tools unavailable for {agent_type}: {e}"
+                    )
+
+                # Add dependency analysis tools for these analysis agents
+                _safe_extend(
+                    lambda: create_dependency_analysis_tools(context_info),
+                    "dependency analysis tools",
+                )
+
+            elif agent_type == "field_mapper":
+                # Field mapper needs specific mapping tools and critical attributes assessment
+                try:
+                    from app.services.crewai_flows.tools.mapping_confidence_tool import (
+                        MappingConfidenceTool,
+                    )
+
+                    mapping_tool = MappingConfidenceTool()
+                    tools.append(mapping_tool)
+                except Exception as e:
+                    logger.debug(f"Mapping tools not available for {agent_type}: {e}")
+
+                # Add critical attributes assessment tools for field mapper
+                try:
+                    critical_tools = create_critical_attributes_tools(context_info)
+                    if isinstance(critical_tools, list):
+                        tools.extend(critical_tools)
+                    else:
+                        logger.warning(
+                            f"Critical attributes tools returned non-list for {agent_type}"
+                        )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to load critical attributes tools for {agent_type}: {e}"
+                    )
+
+            logger.info(f"✅ Loaded {len(tools)} tools for {agent_type} agent")
+            return tools
+
+        except Exception as e:
+            logger.error(f"❌ Failed to load tools for {agent_type}: {e}")
+            return []
 
     @classmethod
     def _get_agent_config(cls, agent_type: str) -> Dict[str, Any]:
@@ -616,8 +796,6 @@ async def validate_agent_pool_health(
 
     return health_report
 
-
-import atexit
 
 # Automatic cleanup initialization - start monitoring when module loads
 # Register cleanup on application shutdown

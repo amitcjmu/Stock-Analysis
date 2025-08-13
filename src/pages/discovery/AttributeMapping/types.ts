@@ -27,6 +27,7 @@ export interface AttributeMappingState {
   effectiveFlowId: string | null;
   hasEffectiveFlow: boolean;
   flowList: FlowInfo[];
+  refreshFlowState: () => Promise<void>;
 }
 
 // Supporting interface definitions

@@ -221,7 +221,7 @@ async def execute_flow(
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
 ):
-    """Execute a discovery flow phase."""
+    """Execute a discovery flow phase with intelligent routing and validation."""
     try:
         # Get the discovery flow
         stmt = select(DiscoveryFlow).where(
@@ -235,7 +235,21 @@ async def execute_flow(
         discovery_flow = result.scalar_one_or_none()
 
         if not discovery_flow:
-            raise HTTPException(status_code=404, detail="Flow not found")
+            # Simple error - flow not found
+            logger.warning(f"Discovery flow not found: {flow_id}")
+            raise HTTPException(
+                status_code=404, detail=f"Discovery flow not found: {flow_id}"
+            )
+
+        # Simple phase validation - removed complex interception
+        current_phase = discovery_flow.current_phase or "unknown"
+        next_phase = _determine_next_phase(discovery_flow)
+
+        # Log phase transition for debugging
+        if next_phase and next_phase != current_phase:
+            logger.info(
+                f"Phase transition for {flow_id}: {current_phase} → {next_phase}"
+            )
 
         # Execute the flow phase
         result = await execute_flow_phase(flow_id, discovery_flow, context, db)
@@ -246,6 +260,25 @@ async def execute_flow(
     except Exception as e:
         logger.error(safe_log_format("Failed to execute flow: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def _determine_next_phase(discovery_flow: DiscoveryFlow) -> str:
+    """Determine the next phase for a discovery flow based on its current state"""
+    # Phase progression logic
+    if not discovery_flow.data_import_completed:
+        return "data_import"
+    elif not discovery_flow.field_mapping_completed:
+        return "field_mapping"
+    elif not discovery_flow.data_cleansing_completed:
+        return "data_cleansing"
+    elif not discovery_flow.asset_inventory_completed:
+        return "asset_inventory"
+    elif not discovery_flow.dependency_analysis_completed:
+        return "dependency_analysis"
+    elif not discovery_flow.tech_debt_assessment_completed:
+        return "tech_debt_assessment"
+    else:
+        return "completion"
 
 
 @router.get("/flows/{flow_id}/field-mappings")

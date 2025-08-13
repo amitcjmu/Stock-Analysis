@@ -124,4 +124,6 @@ export interface AttributeMappingLogicResult {
   isClarificationsLoading: boolean;
   clarificationsError: Error | null;
   refetchClarifications: () => Promise<void>;
+
+  refreshFlowState: () => Promise<void>;
 }

@@ -354,6 +354,17 @@ if COLLECTION_AVAILABLE:
 else:
     logger.warning("⚠️ Collection Flow API router not available")
 
+# Simple Blocking Flows Check (replaces complex flow recovery)
+try:
+    from app.api.v1.endpoints.blocking_flows import router as blocking_flows_router
+
+    api_router.include_router(
+        blocking_flows_router, prefix="/blocking-flows", tags=["Flow Blocking Check"]
+    )
+    logger.info("✅ Simple blocking flows check included at /blocking-flows")
+except ImportError as e:
+    logger.warning(f"⚠️ Blocking flows router not available: {e}")
+
 # Unified Discovery Flow API - Master Flow Orchestrator Integration
 if UNIFIED_DISCOVERY_AVAILABLE:
     # Main unified discovery router

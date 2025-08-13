@@ -1,15 +1,19 @@
 
 # E2E Data Flow Analysis: Dependency Analysis
 
-**Analysis Date:** 2025-07-13
+**Analysis Date:** 2025-08-12  
+**Status:** Enhanced with Persistent Agents and Specialized Dependency Analysis Tools
 
 This document provides a complete, end-to-end data flow analysis for the `Dependency Analysis` page and the backend processes that generate the dependency graph.
 
 **Core Architecture:**
-*   **Parallel Execution:** The Dependency Analysis and Technical Debt Analysis phases are executed **in parallel** by the `CrewCoordinator` to optimize performance. The results are stored in the flow's state as they become available.
-*   **State-Driven Visualization:** The frontend dependency graph is a direct visualization of the `dependencies` object stored within the flow's main state. The frontend does not fetch dependency data separately.
-*   **Orchestrated Agent Execution:** A dedicated `DependencyAnalysisExecutor` manages the execution of a specialized CrewAI crew to perform the analysis.
-*   **Fail-Fast Execution:** The backend is designed to fail fast. If the primary CrewAI agents fail, the process halts. There is no fallback to a non-AI or rule-based classification system.
+*   **Persistent Agents (ADR-015):** Dependency analysis uses persistent, tenant-scoped agents with specialized tools for comprehensive dependency mapping
+*   **Multi-Type Analysis:** Agents analyze network, configuration, data, and service dependencies to build a complete picture
+*   **Critical Path Detection:** Identifies bottlenecks, circular dependencies, and critical migration paths
+*   **Migration Wave Planning:** Automatically groups assets into migration waves based on dependency analysis
+*   **Parallel Execution:** Dependency Analysis and Technical Debt Analysis can be executed in parallel for optimization
+*   **State-Driven Visualization:** The frontend dependency graph visualizes the `dependencies` object from the flow state
+*   **Memory-Enabled Learning:** Agents remember patterns from previous analyses to improve accuracy over time
 
 ---
 
@@ -32,43 +36,128 @@ The `Dependencies` page is responsible for rendering a graph of the application 
 
 ---
 
-## 2. Backend: The Dependency Analysis Crew
+## 2. Dependency Analysis Tools and Capabilities
+
+The persistent agents have access to specialized tools for comprehensive dependency analysis:
+
+### Available Tools
+
+1. **DependencyAnalysisTool** (`dependency_analyzer`)
+   - Analyzes multiple dependency types (network, configuration, data, service)
+   - Identifies bottlenecks and critical components
+   - Detects circular dependencies
+   - Provides migration insights
+
+2. **DependencyGraphBuilderTool** (`dependency_graph_builder`)
+   - Builds visual dependency graphs with nodes and edges
+   - Calculates confidence scores for dependencies
+   - Supports hierarchical and force-directed layouts
+   - Prepares visualization-ready data structures
+
+3. **MigrationWavePlannerTool** (`migration_wave_planner`)
+   - Plans migration waves based on dependencies
+   - Groups interdependent assets
+   - Minimizes migration disruption
+   - Provides risk assessment per wave
+
+4. **TopologyMappingTool** (`topology_mapping_tool`)
+   - Maps application topology and hosting relationships
+   - Identifies application tiers
+   - Analyzes network topology
+   - Builds dependency chains
+
+5. **IntegrationAnalysisTool** (`integration_analysis_tool`)
+   - Analyzes integration patterns between applications
+   - Maps communication flows
+   - Assesses integration complexity
+   - Identifies modernization opportunities
+
+### Dependency Types Analyzed
+
+- **Network Dependencies**: IP addresses, ports, network connections
+- **Configuration Dependencies**: Connection strings, endpoints, API references
+- **Data Dependencies**: Database connections, data flows, shared storage
+- **Service Dependencies**: Load balancers, security groups, shared services
+
+## 3. Backend: The Dependency Analysis Crew
 
 The dependency analysis is performed by the `DependencyAnalysisExecutor`, which is triggered when the `MasterFlowOrchestrator` advances the flow to this phase.
 
-### Execution Flow
+### Execution Flow with Persistent Agents
 
-1.  **Executor Invocation:** The `MasterFlowOrchestrator` calls the `DependencyAnalysisExecutor`.
-2.  **CrewAI Execution:**
-    *   The executor takes the `asset_inventory` generated in the previous phase as its primary input.
-    *   It creates and runs the `dependencies` crew. This crew is composed of multiple agents working together:
-        *   **Network Log Analyst:** Scans network traffic data.
-        *   **Configuration File Parser:** Finds connection strings and endpoints in configuration files.
-        *   **Process Communication Analyst:** Identifies inter-process communication on servers.
-        *   **Dependency Synthesis Expert:** Consolidates all findings into a unified dependency graph.
-3.  **State Persistence:**
-    *   The `_store_results` method in the executor takes the final dependency graph object from the crew.
-    *   It saves this entire object to the `dependencies` key within the main `state` object of the flow.
+1.  **Phase Invocation:** The `MasterFlowOrchestrator` triggers the `dependency_analysis` phase
+2.  **Persistent Agent Retrieval:** The execution engine retrieves persistent agents from `TenantScopedAgentPool`:
+    *   **pattern_discovery_agent**: Primary agent for dependency analysis with all dependency tools
+    *   **business_value_analyst**: Assesses business impact of dependencies
+    *   **risk_assessment_agent**: Identifies dependency-related risks
+3.  **Tool-Based Analysis:**
+    *   Pattern discovery agent uses `dependency_analyzer` to analyze all dependency types
+    *   Uses `dependency_graph_builder` to create visual graph structure
+    *   Applies `migration_wave_planner` to group assets for migration
+    *   Leverages existing `topology_mapping_tool` and `integration_analysis_tool`
+4.  **Memory and Learning:**
+    *   Agents remember successful dependency patterns
+    *   Learn client-specific integration patterns
+    *   Improve accuracy with each analysis
+5.  **State Persistence:**
+    *   Results saved to `dependencies` key in flow state
+    *   Includes graph structure, analysis results, and migration waves
 
 ### Database Interaction
 
 *   **Table:** `crewai_flow_state_extensions`
 *   **Operation:** The executor performs an `UPDATE` on the `state` JSONB column for the active `flow_id`. The `dependencies` key within the JSON object is populated with the complete dependency graph, including nodes and edges. No separate `dependencies` table is used.
 
+### Critical Path and Bottleneck Detection
+
+The dependency analysis identifies:
+
+- **Bottlenecks**: Assets with high connectivity that could block migration
+- **Circular Dependencies**: Components that depend on each other (must migrate together)
+- **Critical Paths**: Longest dependency chains that require careful sequencing
+- **Independent Components**: Assets with no dependencies (can migrate first)
+
+### Migration Wave Planning
+
+Based on dependency analysis, assets are grouped into waves:
+
+1. **Wave 1 - Independent Components**: No dependencies, low risk, parallel migration
+2. **Wave 2 - Low Dependency Components**: Few dependencies, medium risk
+3. **Wave 3 - Critical Dependencies**: Bottlenecks and high-connectivity assets
+4. **Wave 4 - Circular Dependency Groups**: Must migrate as atomic units
+
 ---
 
-## 3. End-to-End Flow Sequence: Generating and Viewing the Graph
+## 4. End-to-End Flow Sequence: Generating and Viewing the Graph
 
-1.  **Frontend (User Action):** After the inventory is built, the user clicks the "Analyze Dependencies" button.
-2.  **Frontend (API Call):** The `useUnifiedDiscoveryFlow` hook sends a `POST` request to `/api/v1/master-flows/{flowId}/resume`, instructing the orchestrator to start the `dependency_analysis` phase.
-3.  **Backend (Parallel Execution):** The `MasterFlowOrchestrator` invokes the `CrewCoordinator`, which runs the **Dependency Analysis** and **Technical Debt** crews in parallel.
-4.  **Backend (Database Update):** As the `DependencyAnalysisExecutor` finishes, it saves the resulting dependency graph into the flow's `state` object in the database.
-5.  **Frontend (UI Update):** The `useUnifiedDiscoveryFlow` hook on the frontend receives the updated flow state via its WebSocket or polling mechanism.
-6.  **Frontend (Render):** The `DependencyGraph` component accesses `flowState.dependencies`, and if the data is present, it renders the visual graph of the application and server relationships.
+1.  **Frontend (User Action):** After the inventory is built, user clicks "Analyze Dependencies"
+2.  **Frontend (API Call):** POST to `/api/v1/master-flows/{flowId}/resume` to start `dependency_analysis` phase
+3.  **Backend (Agent Execution):** 
+    - Persistent agents retrieved from TenantScopedAgentPool
+    - Pattern discovery agent analyzes dependencies using specialized tools
+    - Business and risk agents assess impact and risks
+    - Dependency graph built with confidence scores
+    - Migration waves planned automatically
+4.  **Backend (Memory Update):** Agents update their memory with discovered patterns
+5.  **Backend (State Persistence):** Dependency graph and analysis saved to flow state
+6.  **Frontend (UI Update):** Receives updated state via WebSocket/polling
+7.  **Frontend (Visualization):** Renders interactive dependency graph with:
+    - Nodes colored by asset type and criticality
+    - Edges showing dependency types and confidence
+    - Bottlenecks and critical paths highlighted
+    - Migration wave groupings displayed
 
 ---
 
-## 4. Troubleshooting Breakpoints
+## 5. Agent Tool Distribution for Dependency Analysis
+
+| Agent | Dependency Tools | Purpose |
+|-------|-----------------|---------||
+| **pattern_discovery_agent** | All 3 dependency tools + topology/integration tools | Primary dependency analysis |
+| **business_value_analyst** | Dependency tools for impact assessment | Business impact of dependencies |
+| **risk_assessment_agent** | Dependency tools for risk analysis | Dependency-related risk assessment |
+
+## 6. Troubleshooting Breakpoints
 
 | Stage      | Potential Failure Point                                                                                                | Diagnostic Checks                                                                                                                                                                                                                                                                                           |
 |------------|------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|

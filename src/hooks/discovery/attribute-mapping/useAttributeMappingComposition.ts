@@ -1,4 +1,5 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useUnifiedDiscoveryFlow } from '../../useUnifiedDiscoveryFlow';
 import { useFlowDetection } from './useFlowDetection';
 import { useFieldMappings } from './useFieldMappings';
@@ -13,9 +14,15 @@ import type { AttributeMappingLogicResult } from './types';
  * Maintains the same API as the original useAttributeMappingLogic hook
  */
 export const useAttributeMappingComposition = (): AttributeMappingLogicResult => {
+  const navigate = useNavigate();
+
+
   // 1. Flow Detection
   const flowDetection = useFlowDetection();
-  const { finalFlowId, effectiveFlowId } = flowDetection;
+  const {
+    finalFlowId,
+    effectiveFlowId
+  } = flowDetection;
 
   // 2. Import Data
   const importDataHook = useImportData(finalFlowId);
@@ -73,6 +80,7 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
     fieldMappingsHook.fieldMappingsError
   );
 
+
   // Debug import data loading - removed to prevent console spam
   const refetchAgentic = useCallback(() => {
     return Promise.all([refresh(), fieldMappingsHook.refetchFieldMappings()]);
@@ -81,6 +89,18 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
   const refetchClarifications = useCallback(() => {
     return Promise.resolve();
   }, []);
+
+  // Refresh function for after flow cleanup
+  const refreshFlowState = useCallback(async () => {
+    console.log(`🔄 [useAttributeMappingComposition] Refreshing flow state after cleanup`);
+
+    // Refresh all data
+    await Promise.all([
+      refresh(),
+      fieldMappingsHook.refetchFieldMappings(),
+      flowDetection.refetchFlows?.() // If flow detection has a refresh method
+    ]);
+  }, [refresh, fieldMappingsHook, flowDetection]);
 
   return {
     // Data
@@ -135,6 +155,8 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
     agentClarifications: state.agentClarifications,
     isClarificationsLoading: state.isClarificationsLoading,
     clarificationsError: state.clarificationsError,
-    refetchClarifications
+    refetchClarifications,
+
+    refreshFlowState
   };
 };

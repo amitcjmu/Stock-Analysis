@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAttributeMappingFlowDetection } from '../useDiscoveryFlowAutoDetection';
 
@@ -23,6 +23,7 @@ export interface FlowDetectionResult {
 export const useFlowDetection = (): FlowDetectionResult => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+
 
   // Use the new auto-detection hook for consistent flow detection
   const {
@@ -87,6 +88,7 @@ export const useFlowDetection = (): FlowDetectionResult => {
       }
     }
   }, [effectiveFlowId, hasEffectiveFlow, flowList?.length, isFlowListLoading]); // Reduced dependencies to prevent excessive re-renders
+
 
   // Use unified discovery flow with effective flow ID or emergency fallback
   const finalFlowId = effectiveFlowId || emergencyFlowId;
