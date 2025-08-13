@@ -564,7 +564,8 @@ class BulkAssetCreationToolWithServiceImpl:
                         )
 
             logger.info(
-                f"✅ Bulk creation via ServiceRegistry complete: {len(created_assets)} created, {len(failed_assets)} failed"
+                f"✅ Bulk creation via ServiceRegistry complete: "
+                f"{len(created_assets)} created, {len(failed_assets)} failed"
             )
 
             # Log operation result
@@ -618,7 +619,7 @@ class BulkAssetCreationToolWithServiceImpl:
 
 
 # CrewAI-specific tool wrappers
-if CREWAI_TOOLS_AVAILABLE:
+if CREWAI_TOOLS_AVAILABLE:  # noqa: C901
 
     class AssetCreationTool(BaseTool):
         """CrewAI Tool wrapper for asset creation"""

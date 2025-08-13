@@ -121,7 +121,7 @@ class ToolAuditLogger:
                         "engagement_id": self.context.engagement_id,
                         "tool_name": tool_name,
                         "operation": operation,
-                    }
+                    },
                 )
                 # Use tenant IDs in placeholder for better tracking
                 flow_id = f"unknown_flow_{self.context.client_account_id}_{self.context.engagement_id}"

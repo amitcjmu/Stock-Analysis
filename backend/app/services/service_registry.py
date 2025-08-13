@@ -30,13 +30,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.core.logging import get_logger
+from app.services.flow_orchestration.tool_audit_logger import ToolAuditLogger
 
 # Type variable for service classes
 T = TypeVar("T")
-
-
-# Import the real ToolAuditLogger
-from app.services.flow_orchestration.tool_audit_logger import ToolAuditLogger
 
 
 @dataclass
@@ -121,7 +118,7 @@ class ServiceRegistry:
         # Track registry lifecycle for debugging
         self._registry_id = f"registry_{id(self)}"
         self._is_closed = False
-        
+
         # Don't start periodic flush immediately - defer until first use or context entry
         # This avoids issues with event loop not being available during init
         self._periodic_flush_started = False
@@ -312,7 +309,7 @@ class ServiceRegistry:
         # Start periodic flush if not started (first async operation)
         if not self._periodic_flush_started:
             self._start_periodic_flush()
-            
+
         if not self._metrics_buffer:
             return
 
@@ -357,35 +354,34 @@ class ServiceRegistry:
         # Only start if we have an event loop and haven't started yet
         if self._periodic_flush_started:
             return
-            
+
         try:
-            loop = asyncio.get_running_loop()
+            asyncio.get_running_loop()
         except RuntimeError:
             # No event loop available, skip periodic flush
             self._logger.debug(
                 "No event loop available for periodic flush, will start on first async operation"
             )
             return
-            
+
         if not self._periodic_flush_task or self._periodic_flush_task.done():
             self._periodic_flush_task = asyncio.create_task(
-                self._periodic_flush_loop(),
-                name=f"periodic_flush_{self._registry_id}"
+                self._periodic_flush_loop(), name=f"periodic_flush_{self._registry_id}"
             )
             self._periodic_flush_started = True
-    
+
     async def _periodic_flush_loop(self) -> None:
         """Periodically flush metrics to prevent long-lived buffers."""
         try:
             while not self._is_closed:
                 # Wait 30 seconds between flushes
                 await asyncio.sleep(30)
-                
+
                 # Flush if we have any metrics
                 if self._metrics_buffer and not self._is_closed:
                     self._logger.debug(
                         f"Periodic flush triggered for {len(self._metrics_buffer)} metrics",
-                        extra={"registry_id": self._registry_id}
+                        extra={"registry_id": self._registry_id},
                     )
                     await self._flush_metrics()
         except asyncio.CancelledError:
@@ -394,9 +390,9 @@ class ServiceRegistry:
         except Exception as e:
             self._logger.error(
                 f"Periodic flush task failed: {e}",
-                extra={"registry_id": self._registry_id, "error": str(e)}
+                extra={"registry_id": self._registry_id, "error": str(e)},
             )
-    
+
     async def _write_metrics_async(self, metrics: List[MetricRecord]) -> None:
         """
         Write metrics asynchronously without blocking main execution.
@@ -461,11 +457,11 @@ class ServiceRegistry:
             f"Entering ServiceRegistry context {self._registry_id}",
             extra={"registry_id": self._registry_id},
         )
-        
+
         # Start periodic flush when entering context (event loop available)
         if not self._periodic_flush_started:
             self._start_periodic_flush()
-        
+
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -506,7 +502,7 @@ class ServiceRegistry:
                     await self._metrics_flush_task
                 except asyncio.CancelledError:
                     pass
-            
+
             # Cancel periodic flush task
             if self._periodic_flush_task and not self._periodic_flush_task.done():
                 self._periodic_flush_task.cancel()

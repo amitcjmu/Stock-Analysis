@@ -24,12 +24,18 @@ from sqlalchemy.exc import DatabaseError
 
 from app.core.context import RequestContext
 from app.services.service_registry import ServiceRegistry, MetricRecord
+
 # Import just the interface to avoid circular dependency
 from typing import Protocol
 
+
 class ToolAuditLogger(Protocol):
     """Protocol for tool audit logger interface"""
-    async def log_tool_execution(self, *args, **kwargs): ...
+
+    async def log_tool_execution(self, *args, **kwargs):  # noqa: E704
+        ...
+
+
 from app.services.base_service import ServiceBase
 
 
@@ -41,7 +47,7 @@ class TestToolAuditLogger:
         # Since we're using a Protocol, we can't instantiate it
         # Just verify the protocol is defined
         assert ToolAuditLogger is not None
-        assert hasattr(ToolAuditLogger, 'log_tool_execution')
+        assert hasattr(ToolAuditLogger, "log_tool_execution")
 
 
 class TestMetricRecord:

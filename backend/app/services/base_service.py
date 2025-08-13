@@ -323,11 +323,19 @@ class ServiceBase(ABC):
         try:
             # First, persist to failure journal
             from app.services.integration.failure_journal import log_failure
-            
+
             await log_failure(
                 self._session,
-                client_account_id=str(self._context.client_account_id) if self._context.client_account_id else None,
-                engagement_id=str(self._context.engagement_id) if self._context.engagement_id else None,
+                client_account_id=(
+                    str(self._context.client_account_id)
+                    if self._context.client_account_id
+                    else None
+                ),
+                engagement_id=(
+                    str(self._context.engagement_id)
+                    if self._context.engagement_id
+                    else None
+                ),
                 source=self._service_name,
                 operation=failure_record.operation,
                 payload={
@@ -338,17 +346,16 @@ class ServiceBase(ABC):
                 error_message=failure_record.error_message,
                 trace=None,  # Could add stack trace if needed
             )
-            
+
             # Then enqueue to ErrorRecoverySystem DLQ (if available)
             try:
                 from app.services.recovery.error_recovery_system import (
-                    ErrorRecoverySystem,
                     get_error_recovery_system,
                     RecoveryOperation,
                 )
-                
+
                 recovery_system = get_error_recovery_system()
-                if recovery_system and hasattr(recovery_system, 'enqueue_to_dlq'):
+                if recovery_system and hasattr(recovery_system, "enqueue_to_dlq"):
                     operation = RecoveryOperation(
                         id=failure_record.correlation_id or str(uuid.uuid4()),
                         operation_type=failure_record.operation,
@@ -359,7 +366,7 @@ class ServiceBase(ABC):
                         created_at=failure_record.timestamp,
                     )
                     await recovery_system.enqueue_to_dlq(operation)
-                    
+
                     self._logger.info(
                         f"DLQ: Enqueued severe failure from {self._service_name} to ErrorRecoverySystem",
                         extra={
@@ -370,7 +377,7 @@ class ServiceBase(ABC):
             except ImportError:
                 # ErrorRecoverySystem not available, failure journal is sufficient
                 pass
-                
+
         except Exception as e:
             # Log DLQ failures but don't propagate them
             self._logger.error(

@@ -222,7 +222,7 @@ class ContextAwareRepository(Generic[ModelType]):
         instance = self._apply_context_to_instance(instance)
 
         self.db.add(instance)
-        
+
         if commit:
             # Legacy behavior - commit immediately
             await self.db.commit()
@@ -235,14 +235,14 @@ class ContextAwareRepository(Generic[ModelType]):
 
         logger.info(f"Created {self.model_class.__name__} with ID {instance.id}")
         return instance
-    
+
     async def create_no_commit(self, **data) -> ModelType:
         """
         Create a new record without committing (Service Registry pattern).
-        
+
         Args:
             **data: Field values for the new record
-            
+
         Returns:
             Created model instance (flushed but not committed)
         """
