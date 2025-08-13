@@ -52,6 +52,38 @@ class IdempotencyManager(ServiceBase):
     are processed exactly once, even in the face of retries, failures,
     or distributed processing.
 
+    Current Implementation:
+    - In-memory cache only (suitable for single-instance deployments)
+    - Per-execution lifecycle (cache cleared between executions)
+    - Bounded cache with LRU eviction
+
+    Future Database Backing:
+    When scaling to multi-instance deployments, this service will be backed
+    by a database table with the following schema:
+
+    CREATE TABLE idempotency_records (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        idempotency_key VARCHAR(255) NOT NULL,
+        client_account_id UUID NOT NULL,
+        engagement_id UUID,
+        operation VARCHAR(100) NOT NULL,
+        status VARCHAR(20) NOT NULL,
+        result JSONB,
+        error_message TEXT,
+        request_hash VARCHAR(64) NOT NULL,
+        metadata JSONB,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        UNIQUE(client_account_id, idempotency_key)
+    );
+
+    The check_idempotency and related methods will be updated to:
+    1. Check cache first (for performance)
+    2. Fall back to database query
+    3. Use database transactions for atomic state transitions
+    4. Implement distributed locking for IN_PROGRESS state
+
     Key features:
     - Idempotency key generation and validation
     - Operation deduplication

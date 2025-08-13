@@ -18,7 +18,7 @@ from app.services.field_mapping_service import (
     MappingAnalysis,
     MappingRule,
 )
-from app.models.data_import.mapping import FieldMapping
+from app.models.data_import.mapping import ImportFieldMapping as FieldMapping
 
 
 class TestFieldMappingServiceInitialization:
@@ -97,7 +97,10 @@ class TestFieldMappingAnalysis:
         service._learned_mappings_cache = {}
 
         columns = ["host_name", "ip_addr", "env", "unknown_field"]
-        analysis = await service.analyze_columns(columns, "server")
+        data_import_id = uuid.uuid4()
+        analysis = await service.analyze_columns(
+            columns, data_import_id=data_import_id, asset_type="server"
+        )
 
         assert isinstance(analysis, MappingAnalysis)
         assert "host_name" in analysis.mapped_fields
@@ -129,7 +132,8 @@ class TestFieldMappingAnalysis:
         }
 
         columns = ["my_custom_column", "hostname"]
-        analysis = await service.analyze_columns(columns)
+        data_import_id = uuid.uuid4()
+        analysis = await service.analyze_columns(columns, data_import_id=data_import_id)
 
         assert "my_custom_column" in analysis.mapped_fields
         assert analysis.mapped_fields["my_custom_column"] == "custom_field"
@@ -142,7 +146,10 @@ class TestFieldMappingAnalysis:
 
         # Analyze columns missing required server fields
         columns = ["some_field", "another_field"]
-        analysis = await service.analyze_columns(columns, "server")
+        data_import_id = uuid.uuid4()
+        analysis = await service.analyze_columns(
+            columns, data_import_id=data_import_id, asset_type="server"
+        )
 
         # Should identify missing required fields
         assert "hostname" in analysis.missing_required_fields
@@ -155,7 +162,8 @@ class TestFieldMappingAnalysis:
         service._learned_mappings_cache = {}
 
         columns = ["hostname", "ip_address", "unknown1", "unknown2"]
-        analysis = await service.analyze_columns(columns)
+        data_import_id = uuid.uuid4()
+        analysis = await service.analyze_columns(columns, data_import_id=data_import_id)
 
         # 2 out of 4 columns mapped perfectly
         expected_confidence = (1.0 + 1.0 + 0.0 + 0.0) / 4
@@ -186,9 +194,11 @@ class TestFieldMappingLearning:
         service._get_existing_mapping = AsyncMock(return_value=None)
         service._learned_mappings_cache = {}
 
+        data_import_id = uuid.uuid4()
         result = await service.learn_field_mapping(
             source_field="Custom_Field",
             target_field="asset_name",
+            data_import_id=data_import_id,
             confidence=0.9,
             source="user",
             context="manual_mapping",
@@ -218,8 +228,13 @@ class TestFieldMappingLearning:
         service._get_existing_mapping = AsyncMock(return_value=existing_mapping)
         service._learned_mappings_cache = {}
 
+        data_import_id = uuid.uuid4()
         result = await service.learn_field_mapping(
-            source_field="field1", target_field="target1", confidence=0.95, source="ai"
+            source_field="field1",
+            target_field="target1",
+            data_import_id=data_import_id,
+            confidence=0.95,
+            source="ai",
         )
 
         assert result["success"] is True
@@ -236,8 +251,12 @@ class TestFieldMappingLearning:
 
         service._get_existing_mapping = AsyncMock(return_value=existing_mapping)
 
+        data_import_id = uuid.uuid4()
         result = await service.learn_field_mapping(
-            source_field="field1", target_field="target1", confidence=0.7
+            source_field="field1",
+            target_field="target1",
+            data_import_id=data_import_id,
+            confidence=0.7,
         )
 
         assert result["success"] is True
@@ -249,9 +268,11 @@ class TestFieldMappingLearning:
         """Test learning a negative mapping (what not to map)"""
         service._negative_mappings_cache = set()
 
+        data_import_id = uuid.uuid4()
         result = await service.learn_negative_mapping(
             source_field="Field_A",
             target_field="wrong_target",
+            data_import_id=data_import_id,
             reason="User indicated this is incorrect",
         )
 
@@ -261,16 +282,20 @@ class TestFieldMappingLearning:
         # Verify database entry was created
         service._session.add.assert_called_once()
         added_mapping = service._session.add.call_args[0][0]
-        assert added_mapping.confidence_score == -1.0
-        assert added_mapping.mapping_type == "negative"
+        assert added_mapping.confidence_score == 0.0  # 0 for rejected
+        assert added_mapping.status == "rejected"
 
     @pytest.mark.asyncio
     async def test_reject_negative_mapping_in_learning(self, service):
         """Test that negative mappings are rejected in normal learning"""
         service._negative_mappings_cache = {("field_a", "wrong_target")}
 
+        data_import_id = uuid.uuid4()
         result = await service.learn_field_mapping(
-            source_field="field_a", target_field="wrong_target", confidence=0.8
+            source_field="field_a",
+            target_field="wrong_target",
+            data_import_id=data_import_id,
+            confidence=0.8,
         )
 
         assert result["success"] is False

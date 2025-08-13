@@ -8,6 +8,7 @@ and multi-tenant context propagation.
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Set
+from uuid import UUID
 from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -127,10 +128,7 @@ class FieldMappingService(ServiceBase):
         try:
             # Count mappings in database
             query = select(func.count(FieldMapping.id)).where(
-                and_(
-                    FieldMapping.client_account_id == self.context.client_account_id,
-                    FieldMapping.engagement_id == self.context.engagement_id,
-                )
+                FieldMapping.client_account_id == self.context.client_account_id
             )
             result = await self.session.execute(query)
             mapping_count = result.scalar() or 0
@@ -163,6 +161,8 @@ class FieldMappingService(ServiceBase):
     async def analyze_columns(
         self,
         columns: List[str],
+        data_import_id: Optional[UUID] = None,
+        master_flow_id: Optional[UUID] = None,
         asset_type: str = "server",
         sample_data: Optional[List[List[Any]]] = None,
     ) -> MappingAnalysis:
@@ -171,6 +171,8 @@ class FieldMappingService(ServiceBase):
 
         Args:
             columns: List of column names to analyze
+            data_import_id: Optional data import ID for context
+            master_flow_id: Optional master flow ID for context
             asset_type: Type of asset being analyzed
             sample_data: Optional sample data for content analysis
 
@@ -184,7 +186,7 @@ class FieldMappingService(ServiceBase):
 
             # Load learned mappings if not cached
             if self._learned_mappings_cache is None:
-                await self._load_learned_mappings()
+                await self._load_learned_mappings(data_import_id, master_flow_id)
 
             mapped_fields = {}
             unmapped_fields = []
@@ -264,6 +266,8 @@ class FieldMappingService(ServiceBase):
         self,
         source_field: str,
         target_field: str,
+        data_import_id: UUID,
+        master_flow_id: Optional[UUID] = None,
         confidence: float = 0.9,
         source: str = "user",
         context: Optional[str] = None,
@@ -274,6 +278,8 @@ class FieldMappingService(ServiceBase):
         Args:
             source_field: Source field name
             target_field: Target canonical field name
+            data_import_id: Required data import ID
+            master_flow_id: Optional master flow ID
             confidence: Confidence score (0-1)
             source: Source of the mapping (user, ai, system)
             context: Optional context information
@@ -294,7 +300,7 @@ class FieldMappingService(ServiceBase):
 
             # Create or update mapping in database
             existing_mapping = await self._get_existing_mapping(
-                normalized_source, normalized_target
+                normalized_source, normalized_target, data_import_id
             )
 
             if existing_mapping:
@@ -338,8 +344,9 @@ class FieldMappingService(ServiceBase):
             else:
                 # Create new mapping
                 new_mapping = FieldMapping(
+                    data_import_id=data_import_id,  # Required field
+                    master_flow_id=master_flow_id,  # Optional field
                     client_account_id=self.context.client_account_id,
-                    engagement_id=self.context.engagement_id,
                     source_field=normalized_source,
                     target_field=normalized_target,
                     confidence_score=confidence,
@@ -349,7 +356,10 @@ class FieldMappingService(ServiceBase):
                         {"context": context} if context else {}
                     ),  # Use transformation_rules instead of metadata
                     status="approved",  # Set status as approved since it's being learned
-                    # Note: ImportFieldMapping doesn't have created_by or is_active fields
+                    approved_by=(
+                        str(self.context.user_id) if self.context.user_id else None
+                    ),
+                    approved_at=datetime.utcnow() if source == "user" else None,
                 )
 
                 self.session.add(new_mapping)
@@ -394,7 +404,12 @@ class FieldMappingService(ServiceBase):
             return {"success": False, "error": str(e)}
 
     async def learn_negative_mapping(
-        self, source_field: str, target_field: str, reason: Optional[str] = None
+        self,
+        source_field: str,
+        target_field: str,
+        data_import_id: UUID,
+        master_flow_id: Optional[UUID] = None,
+        reason: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Learn that a field mapping should NOT be made.
@@ -402,6 +417,8 @@ class FieldMappingService(ServiceBase):
         Args:
             source_field: Source field that should not map
             target_field: Target field to avoid
+            data_import_id: Required data import ID
+            master_flow_id: Optional master flow ID
             reason: Optional reason for rejection
 
         Returns:
@@ -414,20 +431,22 @@ class FieldMappingService(ServiceBase):
             # Add to negative cache
             self._negative_mappings_cache.add((normalized_source, normalized_target))
 
-            # Store in database as negative mapping
+            # Store in database as negative mapping using status field
             negative_mapping = FieldMapping(
+                data_import_id=data_import_id,  # Required field
+                master_flow_id=master_flow_id,  # Optional field
                 client_account_id=self.context.client_account_id,
-                engagement_id=self.context.engagement_id,
                 source_field=normalized_source,
                 target_field=normalized_target,
-                confidence_score=-1.0,  # Negative confidence indicates rejection
-                match_type="negative",  # Use match_type instead of mapping_type
-                suggested_by="user_rejection",  # Use suggested_by instead of source
+                confidence_score=0.0,  # Use 0 confidence for rejected
+                match_type="manual",  # User rejected this
+                suggested_by="user",  # User made this decision
                 transformation_rules=(
                     {"rejection_reason": reason} if reason else {}
-                ),  # Use transformation_rules instead of metadata
+                ),  # Store rejection reason
                 status="rejected",  # Set status as rejected
-                # Note: ImportFieldMapping doesn't have created_by or is_active fields
+                approved_by=str(self.context.user_id) if self.context.user_id else None,
+                approved_at=datetime.utcnow(),  # Rejection timestamp
             )
 
             self.session.add(negative_mapping)
@@ -455,12 +474,17 @@ class FieldMappingService(ServiceBase):
             return {"success": False, "error": str(e)}
 
     async def get_field_mappings(
-        self, asset_type: Optional[str] = None
+        self,
+        data_import_id: Optional[UUID] = None,
+        master_flow_id: Optional[UUID] = None,
+        asset_type: Optional[str] = None,
     ) -> Dict[str, List[str]]:
         """
         Get all field mappings for the current context.
 
         Args:
+            data_import_id: Optional data import ID filter
+            master_flow_id: Optional master flow ID filter
             asset_type: Optional asset type filter
 
         Returns:
@@ -472,7 +496,7 @@ class FieldMappingService(ServiceBase):
 
             # Load learned mappings
             if self._learned_mappings_cache is None:
-                await self._load_learned_mappings()
+                await self._load_learned_mappings(data_import_id, master_flow_id)
 
             # Merge learned mappings
             if self._learned_mappings_cache:
@@ -508,6 +532,8 @@ class FieldMappingService(ServiceBase):
         self,
         source_field: str,
         target_field: str,
+        data_import_id: Optional[UUID] = None,
+        master_flow_id: Optional[UUID] = None,
         sample_values: Optional[List[Any]] = None,
     ) -> Dict[str, Any]:
         """
@@ -516,6 +542,8 @@ class FieldMappingService(ServiceBase):
         Args:
             source_field: Source field name
             target_field: Target field name
+            data_import_id: Optional data import ID for context
+            master_flow_id: Optional master flow ID for context
             sample_values: Optional sample values for validation
 
         Returns:
@@ -549,7 +577,7 @@ class FieldMappingService(ServiceBase):
 
             # Check learned mappings
             existing = await self._get_existing_mapping(
-                normalized_source, normalized_target
+                normalized_source, normalized_target, data_import_id
             )
             if existing and existing.confidence_score > 0:
                 return {
@@ -586,18 +614,27 @@ class FieldMappingService(ServiceBase):
 
     # Private helper methods
 
-    async def _load_learned_mappings(self) -> None:
+    async def _load_learned_mappings(
+        self,
+        data_import_id: Optional[UUID] = None,
+        master_flow_id: Optional[UUID] = None,
+    ) -> None:
         """Load learned mappings from database into cache."""
         try:
-            query = select(FieldMapping).where(
-                and_(
-                    FieldMapping.client_account_id == self.context.client_account_id,
-                    FieldMapping.engagement_id == self.context.engagement_id,
-                    FieldMapping.status
-                    == "approved",  # Use status instead of is_active
-                    FieldMapping.confidence_score > 0,  # Exclude negative mappings
-                )
-            )
+            # Build query with proper filters
+            conditions = [
+                FieldMapping.client_account_id == self.context.client_account_id,
+                FieldMapping.status == "approved",  # Only approved mappings
+                FieldMapping.confidence_score > 0,  # Exclude rejected
+            ]
+
+            # Add data_import_id or master_flow_id filter if provided
+            if data_import_id:
+                conditions.append(FieldMapping.data_import_id == data_import_id)
+            elif master_flow_id:
+                conditions.append(FieldMapping.master_flow_id == master_flow_id)
+
+            query = select(FieldMapping).where(and_(*conditions))
 
             result = await self.session.execute(query)
             mappings = result.scalars().all()
@@ -624,14 +661,22 @@ class FieldMappingService(ServiceBase):
                 )
                 self._learned_mappings_cache[target].append(rule)
 
-            # Load negative mappings
-            negative_query = select(FieldMapping).where(
-                and_(
-                    FieldMapping.client_account_id == self.context.client_account_id,
-                    FieldMapping.engagement_id == self.context.engagement_id,
-                    FieldMapping.confidence_score < 0,  # Negative mappings
+            # Load rejected mappings
+            negative_conditions = [
+                FieldMapping.client_account_id == self.context.client_account_id,
+                FieldMapping.status == "rejected",  # Use status field
+            ]
+
+            if data_import_id:
+                negative_conditions.append(
+                    FieldMapping.data_import_id == data_import_id
                 )
-            )
+            elif master_flow_id:
+                negative_conditions.append(
+                    FieldMapping.master_flow_id == master_flow_id
+                )
+
+            negative_query = select(FieldMapping).where(and_(*negative_conditions))
 
             negative_result = await self.session.execute(negative_query)
             negative_mappings = negative_result.scalars().all()
@@ -729,20 +774,24 @@ class FieldMappingService(ServiceBase):
         return prioritized + others
 
     async def _get_existing_mapping(
-        self, source_field: str, target_field: str
+        self,
+        source_field: str,
+        target_field: str,
+        data_import_id: Optional[UUID] = None,
     ) -> Optional[FieldMapping]:
         """Get existing mapping from database."""
-        query = select(FieldMapping).where(
-            and_(
-                FieldMapping.client_account_id == self.context.client_account_id,
-                FieldMapping.engagement_id == self.context.engagement_id,
-                FieldMapping.source_field == source_field,
-                FieldMapping.target_field == target_field,
-                FieldMapping.status.in_(
-                    ["approved", "suggested"]
-                ),  # Use status instead of is_active
-            )
-        )
+        conditions = [
+            FieldMapping.client_account_id == self.context.client_account_id,
+            FieldMapping.source_field == source_field,
+            FieldMapping.target_field == target_field,
+            FieldMapping.status.in_(["approved", "suggested"]),
+        ]
+
+        # Add data_import_id filter if provided
+        if data_import_id:
+            conditions.append(FieldMapping.data_import_id == data_import_id)
+
+        query = select(FieldMapping).where(and_(*conditions))
 
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
