@@ -476,30 +476,46 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             return []
 
     async def get_active_flows(
-        self, limit: int = 10
+        self, limit: int = 10, flow_type: Optional[str] = None
     ) -> List[CrewAIFlowStateExtensions]:
         """Get all active master flows for the current client/engagement"""
         try:
             client_uuid = uuid.UUID(self.client_account_id)
             engagement_uuid = uuid.UUID(self.engagement_id)
 
-            active_statuses = ["initialized", "active", "processing", "paused"]
+            active_statuses = [
+                "initialized",
+                "active",
+                "processing",
+                "paused",
+                "waiting_for_approval",
+            ]
+
+            # Build query conditions
+            conditions = [
+                CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                CrewAIFlowStateExtensions.flow_status.in_(active_statuses),
+            ]
+
+            # Add flow type filter if specified
+            if flow_type:
+                conditions.append(CrewAIFlowStateExtensions.flow_type == flow_type)
 
             stmt = (
                 select(CrewAIFlowStateExtensions)
-                .where(
-                    and_(
-                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                        CrewAIFlowStateExtensions.flow_status.in_(active_statuses),
-                    )
-                )
+                .where(and_(*conditions))
                 .order_by(desc(CrewAIFlowStateExtensions.created_at))
                 .limit(limit)
             )
 
             result = await self.db.execute(stmt)
-            return result.scalars().all()
+            flows = result.scalars().all()
+
+            logger.info(
+                f"Found {len(flows)} active flows (flow_type: {flow_type}, limit: {limit})"
+            )
+            return flows
 
         except Exception as e:
             logger.error(f"❌ Failed to get active flows: {e}")

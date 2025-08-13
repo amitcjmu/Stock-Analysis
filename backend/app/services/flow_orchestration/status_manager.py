@@ -270,3 +270,97 @@ class FlowStatusManager:
         except Exception as e:
             logger.error(f"Failed to update flow status for {flow_id}: {e}")
             return False
+
+    async def get_active_flows(
+        self, flow_type: Optional[str] = None, limit: int = 10
+    ) -> List[Dict[str, Any]]:
+        """
+        Get list of active flows
+
+        Args:
+            flow_type: Optional flow type filter
+            limit: Maximum number of flows to return
+
+        Returns:
+            List of flow summaries
+        """
+        try:
+            # Get active master flows from repository
+            master_flows = await self.master_repo.get_active_flows(limit, flow_type)
+
+            # Build summaries
+            summaries = []
+            for flow in master_flows:
+                summary = {
+                    "flow_id": str(flow.flow_id),
+                    "flow_type": flow.flow_type,
+                    "flow_status": flow.flow_status,
+                    "status": flow.flow_status,  # Alias for compatibility
+                    "flow_name": flow.flow_name,
+                    "current_phase": flow.current_phase,
+                    "progress_percentage": flow.progress_percentage or 0.0,
+                    "created_at": flow.created_at,
+                    "updated_at": flow.updated_at,
+                    "created_by": str(flow.user_id) if flow.user_id else "system",
+                    "flow_configuration": flow.flow_configuration or {},
+                    "metadata": flow.flow_persistence_data or {},
+                }
+                summaries.append(summary)
+
+            logger.info(
+                f"Found {len(summaries)} active flows (filtered by flow_type: {flow_type})"
+            )
+            return summaries
+
+        except Exception as e:
+            logger.error(f"Failed to get active flows: {e}")
+            return []
+
+    async def list_flows_by_engagement(
+        self, engagement_id: str, flow_type: Optional[str] = None, limit: int = 50
+    ) -> List[Dict[str, Any]]:
+        """
+        List flows for a specific engagement
+
+        Args:
+            engagement_id: Engagement identifier
+            flow_type: Optional flow type filter
+            limit: Maximum number of flows to return
+
+        Returns:
+            List of flow summaries
+        """
+        try:
+            # Build filters
+            filters = {"engagement_id": engagement_id}
+            if flow_type:
+                filters["flow_type"] = flow_type
+
+            # Get flows from repository
+            master_flows = await self.master_repo.get_all(**filters)
+
+            # Build summaries
+            summaries = []
+            for flow in master_flows[:limit]:  # Apply limit
+                summary = {
+                    "flow_id": str(flow.flow_id),
+                    "flow_type": flow.flow_type,
+                    "flow_status": flow.flow_status,
+                    "status": flow.flow_status,  # Alias for compatibility
+                    "flow_name": flow.flow_name,
+                    "current_phase": flow.current_phase,
+                    "progress_percentage": flow.progress_percentage or 0.0,
+                    "created_at": flow.created_at,
+                    "updated_at": flow.updated_at,
+                    "created_by": str(flow.user_id) if flow.user_id else "system",
+                    "flow_configuration": flow.flow_configuration or {},
+                    "metadata": flow.flow_persistence_data or {},
+                }
+                summaries.append(summary)
+
+            logger.info(f"Found {len(summaries)} flows for engagement {engagement_id}")
+            return summaries
+
+        except Exception as e:
+            logger.error(f"Failed to list flows by engagement {engagement_id}: {e}")
+            return []

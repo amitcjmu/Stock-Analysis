@@ -286,6 +286,58 @@ async def list_flows(
         )
 
 
+@router.get("/active", response_model=List[FlowResponse])
+async def get_active_flows(
+    flowType: Optional[str] = Query(
+        None,
+        alias="flowType",
+        description="Filter by flow type (discovery, assessment, planning, execution, etc.)",
+    ),
+    limit: int = Query(
+        10, ge=1, le=100, description="Maximum number of flows to return"
+    ),
+    orchestrator: MasterFlowOrchestrator = Depends(get_orchestrator),
+) -> List[FlowResponse]:
+    """
+    Get all active flows with optional flow type filtering
+
+    This endpoint provides compatibility with the frontend's expected /flows/active endpoint.
+    Returns only active flows (not completed, failed, or deleted flows).
+    """
+    try:
+        # Get active flows filtered by type
+        flows = await orchestrator.get_active_flows(flow_type=flowType, limit=limit)
+
+        # Convert to response models
+        flow_responses = []
+        for flow in flows:
+            flow_responses.append(
+                FlowResponse(
+                    flow_id=flow["flow_id"],
+                    flow_type=flow["flow_type"],
+                    flow_name=flow.get("flow_name"),
+                    status=flow.get("flow_status", "unknown"),
+                    phase=flow.get("current_phase"),
+                    progress_percentage=flow.get("progress_percentage", 0.0),
+                    created_at=flow["created_at"],
+                    updated_at=flow["updated_at"],
+                    created_by=flow.get("created_by", "system"),
+                    configuration=flow.get("flow_configuration", {}),
+                    metadata=flow.get("metadata", {}),
+                )
+            )
+
+        logger.info(f"Found {len(flow_responses)} active flows (flowType: {flowType})")
+        return flow_responses
+
+    except Exception as e:
+        logger.error(f"Error getting active flows: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get active flows: {str(e)}",
+        )
+
+
 @router.get("/{flow_id}", response_model=FlowResponse)
 async def get_flow(
     flow_id: str, orchestrator: MasterFlowOrchestrator = Depends(get_orchestrator)

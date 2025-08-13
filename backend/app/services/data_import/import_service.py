@@ -115,17 +115,34 @@ class DataImportService:
                 "data_import_id": str(data_import.id),
             }
 
-            flow_result = await orchestrator.create_flow(
-                flow_type="discovery",
-                flow_name=f"Discovery Import {data_import.id}",
-                configuration=convert_uuids_to_str(configuration),
-                initial_state=convert_uuids_to_str(initial_state),
-                atomic=True,  # Ensure it runs within the existing transaction
-            )
+            try:
+                flow_result = await orchestrator.create_flow(
+                    flow_type="discovery",
+                    flow_name=f"Discovery Import {data_import.id}",
+                    configuration=convert_uuids_to_str(configuration),
+                    initial_state=convert_uuids_to_str(initial_state),
+                    atomic=True,  # Ensure it runs within the existing transaction
+                )
 
-            master_flow_id = flow_result[0] if isinstance(flow_result, tuple) else None
-            if not master_flow_id:
-                raise FlowError("Failed to create master flow.")
+                logger.info(
+                    f"🔍 Flow creation result: {flow_result}, type: {type(flow_result)}"
+                )
+
+                master_flow_id = (
+                    flow_result[0] if isinstance(flow_result, tuple) else None
+                )
+                if not master_flow_id:
+                    logger.error(
+                        f"❌ Master flow creation returned None or invalid result: {flow_result}"
+                    )
+                    raise FlowError(
+                        "Failed to create master flow - no flow ID returned"
+                    )
+            except Exception as flow_error:
+                logger.error(
+                    f"❌ Exception during flow creation: {flow_error}", exc_info=True
+                )
+                raise FlowError(f"Failed to create master flow: {str(flow_error)}")
 
             logger.info(f"✅ Master flow created successfully: {master_flow_id}")
 
