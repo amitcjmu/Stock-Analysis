@@ -6,7 +6,6 @@ Test script to verify ADR-015 compliance - NO FALLBACK to service pattern
 import asyncio
 import logging
 import uuid
-from datetime import datetime
 from unittest.mock import MagicMock, AsyncMock
 
 # Configure logging

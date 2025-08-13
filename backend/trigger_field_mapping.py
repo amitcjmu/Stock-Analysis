@@ -3,7 +3,6 @@
 Script to manually trigger field mapping phase for a stuck discovery flow
 """
 import asyncio
-import json
 import logging
 import sys
 import uuid
@@ -14,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from app.core.database import AsyncSessionLocal
 from app.models.discovery_flow import DiscoveryFlow
-from app.models.data_import import DataImport, ImportFieldMapping, RawImportRecord
+from app.models.data_import import ImportFieldMapping, RawImportRecord
 from sqlalchemy import select
 from datetime import datetime
 

@@ -203,11 +203,12 @@ class ContextAwareRepository(Generic[ModelType]):
         result = await self.db.execute(query)
         return result.scalars().all()
 
-    async def create(self, **data) -> ModelType:
+    async def create(self, commit: bool = True, **data) -> ModelType:
         """
         Create a new record with context applied.
 
         Args:
+            commit: Whether to commit the transaction (default True for backward compat)
             **data: Field values for the new record
 
         Returns:
@@ -221,11 +222,31 @@ class ContextAwareRepository(Generic[ModelType]):
         instance = self._apply_context_to_instance(instance)
 
         self.db.add(instance)
-        await self.db.commit()
-        await self.db.refresh(instance)
+        
+        if commit:
+            # Legacy behavior - commit immediately
+            await self.db.commit()
+            await self.db.refresh(instance)
+        else:
+            # Service Registry pattern - flush only to get ID
+            await self.db.flush()
+            # Refresh to get database-generated values
+            await self.db.refresh(instance)
 
         logger.info(f"Created {self.model_class.__name__} with ID {instance.id}")
         return instance
+    
+    async def create_no_commit(self, **data) -> ModelType:
+        """
+        Create a new record without committing (Service Registry pattern).
+        
+        Args:
+            **data: Field values for the new record
+            
+        Returns:
+            Created model instance (flushed but not committed)
+        """
+        return await self.create(commit=False, **data)
 
     async def update(self, id: Any, **data) -> Optional[ModelType]:
         """

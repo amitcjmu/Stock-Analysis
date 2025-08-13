@@ -193,7 +193,7 @@ async def test_flow_execution_with_persistent_agents():
         )
 
         if result and result.get("status") != "failed":
-            logger.info(f"✅ Discovery phase executed successfully")
+            logger.info("✅ Discovery phase executed successfully")
             logger.info(f"   Result status: {result.get('status')}")
             logger.info(f"   Method used: {result.get('method')}")
         else:
