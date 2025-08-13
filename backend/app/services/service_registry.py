@@ -292,7 +292,8 @@ class ServiceRegistry:
                 f"Metrics buffer full ({len(self._metrics_buffer)}), triggering auto-flush",
                 extra={"registry_id": self._registry_id},
             )
-            asyncio.create_task(
+            # Track the flush task so it can be cancelled on cleanup
+            self._metrics_flush_task = asyncio.create_task(
                 self._flush_metrics(), name=f"metrics_flush_{self._registry_id}"
             )
 

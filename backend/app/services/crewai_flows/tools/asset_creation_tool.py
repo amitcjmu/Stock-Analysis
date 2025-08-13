@@ -53,7 +53,15 @@ def create_asset_creation_tools(
 
         tools = []
 
-        if use_service_registry and registry is not None:
+        if use_service_registry:
+            if registry is None:
+                logger.error(
+                    "USE_SERVICE_REGISTRY=true but no ServiceRegistry instance was provided"
+                )
+                raise ValueError(
+                    "ServiceRegistry instance is required when USE_SERVICE_REGISTRY=true"
+                )
+
             # Use new ServiceRegistry pattern
             logger.info("✅ Using ServiceRegistry pattern for asset creation tools")
             asset_creator = AssetCreationToolWithService(registry)
@@ -63,13 +71,12 @@ def create_asset_creation_tools(
             tools.append(bulk_creator)
         else:
             # Use legacy pattern with deprecation warning
-            if not use_service_registry:
-                warnings.warn(
-                    "Legacy asset creation tools are deprecated and will be removed on 2025-02-01. "
-                    "Set USE_SERVICE_REGISTRY=true to use the new ServiceRegistry pattern.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
+            warnings.warn(
+                "Legacy asset creation tools are deprecated and will be removed on 2025-02-01. "
+                "Set USE_SERVICE_REGISTRY=true to use the new ServiceRegistry pattern.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
             logger.info("⚠️ Using legacy asset creation tools (deprecated)")
             # Import legacy tools only when needed

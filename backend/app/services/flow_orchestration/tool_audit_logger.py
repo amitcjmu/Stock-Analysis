@@ -11,7 +11,6 @@ from app.core.context import RequestContext
 from app.core.logging import get_logger
 from app.services.flow_orchestration.audit_logger import (
     FlowAuditLogger,
-    AuditCategory,
     AuditLevel,
 )
 
@@ -78,17 +77,19 @@ class ToolAuditLogger:
             if not agent_name:
                 agent_name = "unknown"
 
-            # Map string level to AuditLevel enum
+            # Map string level to AuditLevel enum for internal consistency
             audit_level = self._map_level(level)
 
-            # Use TEXT constant instead of DB enum to avoid ALTER TYPE issues
-            # Map to existing enum for internal processing
+            # Use text constant category consistently to avoid enum ALTER TYPE issues
             audit_category = (
-                AuditCategory.SYSTEM_EVENT
-            )  # Map tool operations to system events
+                "TOOL_OPERATION"  # Consistent text category for all tool operations
+            )
 
-            # Build operation name that includes tool context
-            operation_name = f"tool_{operation}" if operation else f"tool_{tool_name}"
+            # Build operation name that includes both tool and operation context
+            if operation:
+                operation_name = f"tool_{tool_name}_{operation}"
+            else:
+                operation_name = f"tool_{tool_name}"
 
             # Build detailed information for the audit event
             details = {
