@@ -486,11 +486,12 @@ class TestFieldMappingCacheManagement:
         mapping2.metadata = None
         mapping2.created_at = datetime.now(timezone.utc)
 
-        # Mock negative mapping
+        # Mock negative mapping (rejected status)
         negative_mapping = MagicMock(spec=FieldMapping)
         negative_mapping.source_field = "bad_field"
         negative_mapping.target_field = "wrong_target"
-        negative_mapping.confidence_score = -1.0
+        negative_mapping.status = "rejected"
+        negative_mapping.confidence_score = 0.0
 
         # Setup mock results
         mock_result1 = MagicMock()

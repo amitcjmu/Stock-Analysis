@@ -112,8 +112,15 @@ class IdempotencyManager(ServiceBase):
         self._recent_keys_cache: Dict[str, IdempotencyRecord] = {}
         self._cache_max_size = 100
 
+        # Process-unique salt for cache keys to avoid collisions in parallel workers
+        import os
+        import uuid
+
+        self._process_salt = f"{os.getpid()}_{uuid.uuid4().hex[:8]}"
+
         self.logger.debug(
-            f"Initialized IdempotencyManager for client {context.client_account_id}"
+            f"Initialized IdempotencyManager for client {context.client_account_id} "
+            f"with process salt {self._process_salt}"
         )
 
     async def health_check(self) -> Dict[str, Any]:
@@ -175,6 +182,13 @@ class IdempotencyManager(ServiceBase):
 
             if custom_key:
                 key_components["custom"] = custom_key
+
+            # Add process salt in dev/test environments to avoid cache collisions
+            import os
+
+            env = os.getenv("ENV", "development").lower()
+            if env in ["development", "test", "testing"]:
+                key_components["process_salt"] = self._process_salt
 
             # Generate stable hash
             key_string = json.dumps(key_components, sort_keys=True)
