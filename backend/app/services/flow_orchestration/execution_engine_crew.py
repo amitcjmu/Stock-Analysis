@@ -36,7 +36,7 @@ except ImportError as e:
 class FlowCrewExecutor:
     """
     Handles execution of CrewAI flow phases for different flow types.
-    
+
     Now supports ServiceRegistry pattern for centralized service and tool management.
     """
 
@@ -52,7 +52,7 @@ class FlowCrewExecutor:
     ):
         """
         Initialize the CrewAI flow executor.
-        
+
         Args:
             db: Database session
             context: Request context with tenant information
@@ -69,19 +69,38 @@ class FlowCrewExecutor:
         self.handler_registry = handler_registry
         self.validator_registry = validator_registry
         self.service_registry = service_registry
+        self._owns_service_registry = False
+        self._registry_initialized = False
 
-        # If ServiceRegistry not provided, create one for this executor
+        # If ServiceRegistry not provided, we'll create one lazily when needed
+        # This avoids issues with async context management in __init__
         if self.service_registry is None:
-            logger.info("Creating ServiceRegistry for FlowCrewExecutor")
-            self.service_registry = ServiceRegistry(db, context)
-            self._owns_service_registry = True
-        else:
-            self._owns_service_registry = False
+            logger.info("ServiceRegistry will be created when first needed")
+            # Store db and context for lazy creation
+            self._pending_db = db
+            self._pending_context = context
 
         logger.info(
             f"✅ Flow CrewAI Executor initialized for client {context.client_account_id} "
-            f"(ServiceRegistry: {'provided' if not self._owns_service_registry else 'created'})"
+            f"(ServiceRegistry: {'provided' if self.service_registry else 'deferred'})"
         )
+
+    async def _ensure_service_registry(self):
+        """Ensure ServiceRegistry is initialized with proper async context management."""
+        if self.service_registry is None and not self._registry_initialized:
+            logger.info("Creating and initializing ServiceRegistry")
+            self.service_registry = ServiceRegistry(
+                self._pending_db, self._pending_context
+            )
+            self._owns_service_registry = True
+            try:
+                await self.service_registry.__aenter__()
+                self._registry_initialized = True
+            except Exception as e:
+                logger.error(f"Failed to initialize ServiceRegistry context: {e}")
+                self.service_registry = None
+                self._owns_service_registry = False
+                raise
 
     async def execute_crew_phase(
         self,
@@ -196,10 +215,13 @@ class FlowCrewExecutor:
         self, master_flow: CrewAIFlowStateExtensions
     ) -> Dict[str, Any]:
         """Initialize persistent agent pool for the tenant with ServiceRegistry support"""
+        # Ensure ServiceRegistry is initialized before using it
+        await self._ensure_service_registry()
+
         agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
-            str(master_flow.client_account_id), 
+            str(master_flow.client_account_id),
             str(master_flow.engagement_id),
-            service_registry=self.service_registry  # Pass ServiceRegistry to agent pool
+            service_registry=self.service_registry,  # Pass ServiceRegistry to agent pool
         )
 
         if not agent_pool:
@@ -561,11 +583,14 @@ class FlowCrewExecutor:
         logger.info(f"📊 Executing assessment phase: {phase_config.name}")
 
         try:
+            # Ensure ServiceRegistry is initialized before using it
+            await self._ensure_service_registry()
+
             # Get persistent agent pool for this tenant with ServiceRegistry - this is REQUIRED
             agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
-                str(master_flow.client_account_id), 
+                str(master_flow.client_account_id),
                 str(master_flow.engagement_id),
-                service_registry=self.service_registry  # Pass ServiceRegistry to agent pool
+                service_registry=self.service_registry,  # Pass ServiceRegistry to agent pool
             )
 
             if not agent_pool:
@@ -657,11 +682,14 @@ class FlowCrewExecutor:
         logger.info(f"📊 Executing collection phase: {phase_config.name}")
 
         try:
+            # Ensure ServiceRegistry is initialized before using it
+            await self._ensure_service_registry()
+
             # Get persistent agent pool for this tenant with ServiceRegistry - this is REQUIRED
             agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
-                str(master_flow.client_account_id), 
+                str(master_flow.client_account_id),
                 str(master_flow.engagement_id),
-                service_registry=self.service_registry  # Pass ServiceRegistry to agent pool
+                service_registry=self.service_registry,  # Pass ServiceRegistry to agent pool
             )
 
             if not agent_pool:
@@ -746,28 +774,33 @@ class FlowCrewExecutor:
         processed["raw_result"] = crew_result
 
         return processed
-    
+
     async def cleanup(self):
         """
         Cleanup resources including ServiceRegistry if owned by this executor.
-        
+
         This should be called when the executor is no longer needed to ensure
         proper resource cleanup and prevent memory leaks.
         """
-        if self._owns_service_registry and self.service_registry:
+        if (
+            self._owns_service_registry
+            and self.service_registry
+            and self._registry_initialized
+        ):
             logger.info("Cleaning up owned ServiceRegistry")
             try:
-                # Use context manager cleanup
+                # Only call __aexit__ if we called __aenter__
                 await self.service_registry.__aexit__(None, None, None)
             except Exception as e:
                 logger.error(f"Error cleaning up ServiceRegistry: {e}")
             finally:
                 self.service_registry = None
-        
+                self._registry_initialized = False
+
     async def __aenter__(self):
         """Async context manager entry"""
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit with cleanup"""
         await self.cleanup()

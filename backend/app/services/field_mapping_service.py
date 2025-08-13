@@ -859,11 +859,12 @@ class FieldMappingService(ServiceBase):
         return issues[:3]  # Return max 3 issues
 
     def _is_valid_ip(self, value: str) -> bool:
-        """Check if value is a valid IP address."""
-        parts = value.split(".")
-        if len(parts) != 4:
-            return False
+        """Check if value is a valid IP address (IPv4 or IPv6)."""
+        import ipaddress
+
         try:
-            return all(0 <= int(part) <= 255 for part in parts)
-        except ValueError:
+            # This validates both IPv4 and IPv6 addresses
+            ipaddress.ip_address(value)
+            return True
+        except (ValueError, AttributeError):
             return False

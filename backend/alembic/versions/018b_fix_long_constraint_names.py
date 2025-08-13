@@ -1,7 +1,7 @@
 """Fix overly long constraint names for PostgreSQL compatibility
 
-Revision ID: 018_fix_long_constraint_names
-Revises: 017_add_vector_search_to_agent_patterns
+Revision ID: 018b_fix_long_constraint_names
+Revises: 018_add_agent_execution_history
 Create Date: 2025-01-24
 
 This migration fixes constraint names that exceed PostgreSQL's 63-character limit.
@@ -11,8 +11,8 @@ Specifically fixes the collection flow foreign key constraint name.
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "018_fix_long_constraint_names"
-down_revision = "017_add_vector_search_to_agent_patterns"
+revision = "018b_fix_long_constraint_names"
+down_revision = "018_add_agent_execution_history"
 branch_labels = None
 depends_on = None
 

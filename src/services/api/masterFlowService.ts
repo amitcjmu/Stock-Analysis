@@ -225,7 +225,7 @@ export const masterFlowService = {
       const params = new URLSearchParams();
       if (flowType) params.append('flowType', flowType);
 
-      const endpoint = `/unified-discovery/flows/active${params.toString() ? `?${params}` : ''}`;  // Updated to unified-discovery endpoint as part of API migration
+      const endpoint = `/flows/active${params.toString() ? `?${params}` : ''}`;  // Fixed: Use MFO endpoint
       const headers = getMultiTenantHeaders(clientAccountId, engagementId);
 
       console.log('🔍 MasterFlowService.getActiveFlows - Making API call:', {
@@ -279,25 +279,11 @@ export const masterFlowService = {
     engagementId?: string
   ): Promise<void> {
     try {
-      // First try to delete via unified-discovery flow endpoint
-      await apiClient.delete(`/unified-discovery/flow/${flowId}`, undefined, {  // Updated to unified-discovery endpoint as part of API migration
+      // Use proper MFO endpoint for flow deletion
+      await apiClient.delete(`/flows/${flowId}`, undefined, {  // Fixed: Use MFO endpoint
         headers: getMultiTenantHeaders(clientAccountId, engagementId),
       });
     } catch (error) {
-      // If master flow delete fails with 404, try discovery flow endpoint
-      const apiError = error as EnhancedApiError;
-      if (apiError?.response?.status === 404 || apiError?.status === 404) {
-        console.log('Master flow not found, trying unified-discovery flow delete endpoint...');  // Updated message for unified-discovery endpoint migration
-        try {
-          await apiClient.delete(`/unified-discovery/flow/${flowId}`, undefined, {  // Updated to unified-discovery endpoint as part of API migration
-            headers: getMultiTenantHeaders(clientAccountId, engagementId),
-          });
-          return; // Success via unified-discovery endpoint
-        } catch (discoveryError) {
-          console.error('Unified-discovery flow delete also failed:', discoveryError);  // Updated message for unified-discovery endpoint migration
-          // Continue to throw the original error
-        }
-      }
       handleApiError(error, 'deleteFlow');
       throw error;
     }
@@ -367,6 +353,58 @@ export const masterFlowService = {
       return response;
     } catch (error) {
       handleApiError(error, 'resumeFlow');
+      throw error;
+    }
+  },
+
+  /**
+   * Retry a failed flow
+   */
+  async retryFlow(
+    flowId: string,
+    clientAccountId: string,
+    engagementId?: string
+  ): Promise<ApiResponse<{ success: boolean; message?: string }>> {
+    try {
+      const response = await apiClient.post<ApiResponse<{ success: boolean; message?: string }>>(
+        `/flows/${flowId}/retry`,
+        {},
+        {
+          headers: getMultiTenantHeaders(clientAccountId, engagementId),
+        }
+      );
+      return response;
+    } catch (error) {
+      handleApiError(error, 'retryFlow');
+      throw error;
+    }
+  },
+
+  /**
+   * Execute a specific phase of a flow
+   */
+  async executePhase(
+    flowId: string,
+    phase: string,
+    data: Record<string, unknown>,
+    clientAccountId: string,
+    engagementId?: string
+  ): Promise<{ success: boolean; phase: string; status: string; message?: string; data?: Record<string, unknown>; errors?: string[] }> {
+    try {
+      const response = await apiClient.post<{ success: boolean; phase: string; status: string; message?: string; data?: Record<string, unknown>; errors?: string[] }>(
+        `/flows/${flowId}/execute`,
+        {
+          phase,
+          phase_input: data,
+          force: false
+        },
+        {
+          headers: getMultiTenantHeaders(clientAccountId, engagementId),
+        }
+      );
+      return response;
+    } catch (error) {
+      handleApiError(error, 'executePhase');
       throw error;
     }
   },

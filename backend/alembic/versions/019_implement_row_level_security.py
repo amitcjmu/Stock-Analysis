@@ -12,7 +12,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "019_implement_row_level_security"
-down_revision = "018_fix_long_constraint_names"
+down_revision = "018b_fix_long_constraint_names"
 branch_labels = None
 depends_on = None
 
@@ -179,13 +179,23 @@ def upgrade() -> None:
                     WHERE table_schema = 'migration'
                     AND table_name = v_table_name
                 ) THEN
-                    -- Create bypass policy for superusers
-                    EXECUTE format(
-                        'CREATE POLICY %I ON migration.%I FOR ALL TO postgres USING (true)',
-                        v_policy_name, v_table_name
-                    );
+                    -- Check if policy already exists
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_policies
+                        WHERE schemaname = 'migration'
+                        AND tablename = v_table_name
+                        AND policyname = v_policy_name
+                    ) THEN
+                        -- Create bypass policy for superusers
+                        EXECUTE format(
+                            'CREATE POLICY %I ON migration.%I FOR ALL TO postgres USING (true)',
+                            v_policy_name, v_table_name
+                        );
 
-                    RAISE NOTICE 'Created superuser bypass policy for %', v_table_name;
+                        RAISE NOTICE 'Created superuser bypass policy for %', v_table_name;
+                    ELSE
+                        RAISE NOTICE 'Policy % already exists for %', v_policy_name, v_table_name;
+                    END IF;
                 END IF;
             END $$;
         """.format(

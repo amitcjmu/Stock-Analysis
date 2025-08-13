@@ -35,51 +35,28 @@ export const useDiscoveryFlowList = (): UseQueryResult<DiscoveryFlow[], Error> =
 
         console.log('🔍 Fetching discovery flows for:', { clientId: client.id, engagementId: engagement.id });
 
-        // Use unified discovery endpoint - Updated to unified-discovery as part of API migration
-        const response = await apiCall('/api/v1/unified-discovery/flows/active', {  // Updated to unified-discovery endpoint as part of API migration
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Client-Account-ID': client.id,
-            'X-Engagement-ID': engagement.id
-          }
-        });
+        // FIXED: Use masterFlowService instead of direct API calls to unified-discovery
+        const activeFlows = await masterFlowServiceExtended.getActiveDiscoveryFlows(client.id, engagement.id);
 
-        console.log('✅ Raw discovery flows response:', response);
+        console.log('✅ Raw discovery flows response from MFO:', activeFlows);
 
-        // Handle both array response and object with flows array (same as dashboard)
-        let flowsToProcess = [];
-
-        if (Array.isArray(response)) {
-          // Direct array response from unified-discovery endpoint
-          flowsToProcess = response;
-        } else if (response.flows && Array.isArray(response.flows)) {
-          // Object with flows array
-          flowsToProcess = response.flows;
-        } else if (response.flow_details && Array.isArray(response.flow_details)) {
-          // Legacy structure
-          flowsToProcess = response.flow_details;
-        }
-
-        console.log(`✅ Processing ${flowsToProcess.length} flows from discovery API...`);
-
-        // Transform to expected format (matching the dashboard flow structure)
-        const transformedFlows = flowsToProcess.map(flow => ({
-          id: flow.flow_id, // Add id field for compatibility
-          flow_id: flow.flow_id,
+        // Transform ActiveFlowSummary[] to DiscoveryFlow[]
+        const transformedFlows = activeFlows.map(flow => ({
+          id: flow.flowId, // Add id field for compatibility
+          flow_id: flow.flowId,
           status: flow.status,
-          current_phase: flow.current_phase || '',
-          next_phase: flow.next_phase || flow.current_phase || '',
-          created_at: flow.created_at,
-          updated_at: flow.updated_at,
-          // Use the existing phase completion flags from the flow
+          current_phase: flow.currentPhase || '',
+          next_phase: flow.currentPhase || '', // Use current phase as next phase fallback
+          created_at: flow.startTime || new Date().toISOString(),
+          updated_at: flow.startTime || new Date().toISOString(),
+          // Use reasonable defaults for phase completion flags since MFO doesn't provide these
           phases: {},
-          data_import_completed: flow.data_import_completed === true,
-          attribute_mapping_completed: flow.attribute_mapping_completed === true,
-          data_cleansing_completed: flow.data_cleansing_completed === true,
-          inventory_completed: flow.inventory_completed === true,
-          dependencies_completed: flow.dependencies_completed === true,
-          tech_debt_completed: flow.tech_debt_completed === true,
+          data_import_completed: flow.progress > 10,
+          attribute_mapping_completed: flow.progress > 25,
+          data_cleansing_completed: flow.progress > 50,
+          inventory_completed: flow.progress > 70,
+          dependencies_completed: flow.progress > 85,
+          tech_debt_completed: flow.progress >= 100,
         }));
 
         console.log('✅ Transformed discovery flows:', transformedFlows);
@@ -141,35 +118,18 @@ export const getFlows = async (clientId?: string, engagementId?: string): Promis
 
     console.log('🔍 getFlows utility - Fetching discovery flows for:', { clientId, engagementId });
 
-    // Use unified discovery endpoint for consistency - Updated to unified-discovery as part of API migration
-    const response = await apiCall('/api/v1/unified-discovery/flows/active', {  // Updated to unified-discovery endpoint as part of API migration
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Client-Account-ID': clientId,
-        'X-Engagement-ID': engagementId
-      }
-    });
+    // FIXED: Use masterFlowService instead of direct API calls to unified-discovery
+    const response = await masterFlowServiceExtended.getActiveDiscoveryFlows(clientId, engagementId);
 
-    console.log('✅ getFlows utility - Raw response:', response);
+    console.log('✅ getFlows utility - Raw response from MFO:', response);
 
-    // Handle response format (same as main hook)
-    let flowsToProcess = [];
-    if (Array.isArray(response)) {
-      flowsToProcess = response;
-    } else if (response.flows && Array.isArray(response.flows)) {
-      flowsToProcess = response.flows;
-    } else if (response.flow_details && Array.isArray(response.flow_details)) {
-      flowsToProcess = response.flow_details;
-    }
-
-    // Transform to legacy format for compatibility
-    const transformedFlows = flowsToProcess.map(flow => ({
-      flow_id: flow.flow_id,
+    // Transform ActiveFlowSummary[] to DiscoveryFlow[] for compatibility
+    const transformedFlows = response.map(flow => ({
+      flow_id: flow.flowId,
       status: flow.status,
-      current_phase: flow.current_phase || '',
-      created_at: flow.created_at,
-      updated_at: flow.updated_at
+      current_phase: flow.currentPhase || '',
+      created_at: flow.startTime || new Date().toISOString(),
+      updated_at: flow.startTime || new Date().toISOString()
     }));
 
     console.log('✅ getFlows utility - Transformed flows:', transformedFlows);

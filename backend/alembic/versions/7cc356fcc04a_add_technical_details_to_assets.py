@@ -18,17 +18,30 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Add technical_details column to assets table
-    op.add_column(
-        "assets",
-        sa.Column(
-            "technical_details",
-            sa.JSON(),
-            nullable=True,
-            comment="A JSON blob containing technical details and enrichments for the asset.",
-        ),
-        schema="migration",
+    # Add technical_details column to assets table if it doesn't exist
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'migration'
+            AND table_name = 'assets'
+            AND column_name = 'technical_details'
+        """
+        )
     )
+    if not result.fetchone():
+        op.add_column(
+            "assets",
+            sa.Column(
+                "technical_details",
+                sa.JSON(),
+                nullable=True,
+                comment="A JSON blob containing technical details and enrichments for the asset.",
+            ),
+            schema="migration",
+        )
 
 
 def downgrade() -> None:

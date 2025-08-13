@@ -113,7 +113,7 @@ class FlowDeletionService {
     try {
       const flows = await masterFlowService.getActiveFlows(clientAccountId, engagementId, flowType);
 
-      return flows.map(flow => this.analyzeFlowForDeletion(flow)).filter(Boolean);
+      return flows.map(flow => this.analyzeFlowForDeletion(flow)).filter((f): f is FlowDeletionCandidate => f !== null);
     } catch (error) {
       console.error('Failed to identify deletion candidates:', error);
       return [];
@@ -125,14 +125,17 @@ class FlowDeletionService {
    */
   private analyzeFlowForDeletion(flow: ExternalFlowData): FlowDeletionCandidate | null {
     const now = new Date();
-    const updatedAt = new Date(flow.updated_at || flow.updatedAt || now);
+    // Safely handle date parsing with validation
+    const updatedAtStr = flow.updated_at || flow.updatedAt;
+    const updatedAt = updatedAtStr ? new Date(updatedAtStr) : now;
     const daysSinceUpdate = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
 
     let reason_for_deletion: FlowDeletionCandidate['reason_for_deletion'] | null = null;
     let auto_cleanup_eligible = false;
-    
-    // Get progress as a number, defaulting to 0 if undefined
-    const progressValue = flow.progress || flow.progress_percentage || 0;
+
+    // Get progress as a number, ensuring it's within valid range
+    const progressRaw = flow.progress ?? flow.progress_percentage ?? 0;
+    const progressValue = typeof progressRaw === 'number' ? Math.max(0, Math.min(100, progressRaw)) : 0;
 
     // Analyze flow status and determine recommendation
     if (flow.status === 'failed' || flow.status === 'error') {
@@ -153,11 +156,20 @@ class FlowDeletionService {
     if (!reason_for_deletion) {
       return null;
     }
-    
-    // Ensure we have required string fields
+
+    // Ensure we have required string fields with proper validation
     const flowId = flow.master_flow_id || flow.flowId || flow.flow_id || '';
-    const createdAt = flow.created_at || flow.createdAt || now.toISOString();
-    const updatedAtStr = flow.updated_at || flow.updatedAt || now.toISOString();
+
+    // Validate flowId is not empty
+    if (!flowId) {
+      console.warn('Flow missing ID, skipping as deletion candidate');
+      return null;
+    }
+
+    // Safely handle date strings
+    const createdAtStr = flow.created_at || flow.createdAt;
+    const createdAt = createdAtStr || now.toISOString();
+    const updatedAtStrFinal = flow.updated_at || flow.updatedAt || now.toISOString();
 
     return {
       flowId,
@@ -166,7 +178,7 @@ class FlowDeletionService {
       current_phase: flow.currentPhase || flow.current_phase || 'unknown',
       progress_percentage: progressValue,
       created_at: createdAt,
-      updated_at: updatedAtStr,
+      updated_at: updatedAtStrFinal,
       reason_for_deletion,
       auto_cleanup_eligible,
       deletion_impact: flow.deletion_impact || {
@@ -359,14 +371,15 @@ class FlowDeletionService {
     try {
       // Get flow details for confirmation
       const allFlows = await masterFlowService.getActiveFlows(clientAccountId, engagementId);
-      const targetFlows = allFlows.filter(flow =>
-        flowIds.includes(flow.master_flow_id || flow.flowId || flow.flow_id)
-      );
+      const targetFlows = allFlows.filter(flow => {
+        const flowId = flow.master_flow_id || flow.flowId || flow.flow_id;
+        return flowId ? flowIds.includes(flowId) : false;
+      });
 
       // Convert to deletion candidates
       const candidates = targetFlows
         .map(flow => this.analyzeFlowForDeletion(flow))
-        .filter(Boolean);
+        .filter((f): f is FlowDeletionCandidate => f !== null);
 
       // If no flows found in master flows, create a candidate for the requested flow ID
       if (candidates.length === 0 && flowIds.length > 0) {

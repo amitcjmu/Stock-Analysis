@@ -18,17 +18,30 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Add confidence_score column to assets table
-    op.add_column(
-        "assets",
-        sa.Column(
-            "confidence_score",
-            sa.Float(),
-            nullable=True,
-            comment="A confidence score (0.0-1.0) indicating reliability of asset data.",
-        ),
-        schema="migration",
+    # Add confidence_score column to assets table if it doesn't exist
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'migration'
+            AND table_name = 'assets'
+            AND column_name = 'confidence_score'
+        """
+        )
     )
+    if not result.fetchone():
+        op.add_column(
+            "assets",
+            sa.Column(
+                "confidence_score",
+                sa.Float(),
+                nullable=True,
+                comment="A confidence score (0.0-1.0) indicating reliability of asset data.",
+            ),
+            schema="migration",
+        )
 
 
 def downgrade() -> None:
