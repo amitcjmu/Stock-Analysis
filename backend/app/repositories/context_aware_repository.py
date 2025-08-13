@@ -248,12 +248,13 @@ class ContextAwareRepository(Generic[ModelType]):
         """
         return await self.create(commit=False, **data)
 
-    async def update(self, id: Any, **data) -> Optional[ModelType]:
+    async def update(self, id: Any, commit: bool = True, **data) -> Optional[ModelType]:
         """
         Update a record by ID with context filtering.
 
         Args:
             id: Primary key value
+            commit: Whether to commit the transaction (default True for backward compat)
             **data: Field values to update
 
         Returns:
@@ -275,18 +276,39 @@ class ContextAwareRepository(Generic[ModelType]):
         # Ensure context is maintained
         instance = self._apply_context_to_instance(instance)
 
-        await self.db.commit()
-        await self.db.refresh(instance)
+        if commit:
+            # Legacy behavior - commit immediately
+            await self.db.commit()
+            await self.db.refresh(instance)
+        else:
+            # Service Registry pattern - flush only
+            await self.db.flush()
+            # Refresh to get any database-updated values
+            await self.db.refresh(instance)
 
         logger.info(f"Updated {self.model_class.__name__} with ID {id}")
         return instance
 
-    async def delete(self, id: Any) -> bool:
+    async def update_no_commit(self, id: Any, **data) -> Optional[ModelType]:
+        """
+        Update a record without committing (Service Registry pattern).
+
+        Args:
+            id: Primary key value
+            **data: Field values to update
+
+        Returns:
+            Updated model instance or None if not found (flushed but not committed)
+        """
+        return await self.update(id, commit=False, **data)
+
+    async def delete(self, id: Any, commit: bool = True) -> bool:
         """
         Delete a record by ID with context filtering.
 
         Args:
             id: Primary key value
+            commit: Whether to commit the transaction (default True for backward compat)
 
         Returns:
             True if deleted, False if not found
@@ -296,10 +318,28 @@ class ContextAwareRepository(Generic[ModelType]):
             return False
 
         await self.db.delete(instance)
-        await self.db.commit()
+
+        if commit:
+            # Legacy behavior - commit immediately
+            await self.db.commit()
+        else:
+            # Service Registry pattern - flush only
+            await self.db.flush()
 
         logger.info(f"Deleted {self.model_class.__name__} with ID {id}")
         return True
+
+    async def delete_no_commit(self, id: Any) -> bool:
+        """
+        Delete a record without committing (Service Registry pattern).
+
+        Args:
+            id: Primary key value
+
+        Returns:
+            True if deleted, False if not found (flushed but not committed)
+        """
+        return await self.delete(id, commit=False)
 
     async def count(self, **filters) -> int:
         """
