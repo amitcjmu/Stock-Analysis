@@ -17,7 +17,16 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
-import psutil
+# Make psutil optional - not critical for core functionality
+try:
+    import psutil
+
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    logging.getLogger(__name__).warning(
+        "psutil not available - memory monitoring disabled. Install with: pip install psutil"
+    )
 
 if TYPE_CHECKING:
     from app.services.service_registry import ServiceRegistry
@@ -798,6 +807,9 @@ class TenantScopedAgentPool:
     @classmethod
     def _get_current_memory_usage(cls) -> float:
         """Get current memory usage in MB"""
+        if not PSUTIL_AVAILABLE:
+            # Return 0 if psutil is not available
+            return 0.0
         try:
             process = psutil.Process()
             memory_info = process.memory_info()
@@ -816,12 +828,22 @@ class TenantScopedAgentPool:
                 current_memory = cls._get_current_memory_usage()
                 pool_count = len(cls._agent_pools)
 
-                logger.info(
-                    f"🔍 Memory check: {current_memory:.1f}MB, {pool_count} pools"
-                )
+                # Skip memory-based cleanup if psutil is not available
+                if PSUTIL_AVAILABLE:
+                    logger.info(
+                        f"🔍 Memory check: {current_memory:.1f}MB, {pool_count} pools"
+                    )
+                else:
+                    logger.info(
+                        f"🔍 Pool check: {pool_count} pools (memory monitoring disabled)"
+                    )
 
                 # Trigger cleanup if memory threshold exceeded or routine maintenance
-                if current_memory > cls._memory_threshold_mb or pool_count > 50:
+                # Without psutil, only use pool count for cleanup decision
+                should_cleanup = (
+                    PSUTIL_AVAILABLE and current_memory > cls._memory_threshold_mb
+                ) or pool_count > 50
+                if should_cleanup:
                     logger.info(
                         f"🧹 Triggering cleanup - Memory: {current_memory:.1f}MB"
                     )

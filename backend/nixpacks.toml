@@ -1,0 +1,24 @@
+# nixpacks.toml
+# Railway build configuration
+
+[phases.setup]
+# Install system dependencies needed by Python packages
+aptPkgs = [
+    "gcc",
+    "g++",
+    "make",
+    "python3-dev",
+    "libpq-dev",
+    "build-essential"
+]
+
+[phases.install]
+# Install Python dependencies
+cmds = [
+    "pip install --upgrade pip",
+    "pip install -r requirements.txt"
+]
+
+[start]
+# Start command for the application
+cmd = "uvicorn main:app --host 0.0.0.0 --port $PORT"
