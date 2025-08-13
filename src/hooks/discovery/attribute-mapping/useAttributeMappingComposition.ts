@@ -7,8 +7,6 @@ import { useImportData } from './useImportData';
 import { useCriticalAttributes } from './useCriticalAttributes';
 import { useAttributeMappingActions } from './useAttributeMappingActions';
 import { useAttributeMappingState } from './useAttributeMappingState';
-import { flowRecoveryService } from '../../../services/flow-recovery';
-import type { BlockingFlow } from '../../../services/flow-recovery';
 import type { AttributeMappingLogicResult } from './types';
 
 /**
@@ -18,22 +16,12 @@ import type { AttributeMappingLogicResult } from './types';
 export const useAttributeMappingComposition = (): AttributeMappingLogicResult => {
   const navigate = useNavigate();
 
-  // Phase transition interception state
-  const [isInterceptingTransition, setIsInterceptingTransition] = useState(false);
-  const [transitionIntercepted, setTransitionIntercepted] = useState(false);
-  const [blockingFlows, setBlockingFlows] = useState<BlockingFlow[]>([]);
-  const [hasMultipleBlockingFlows, setHasMultipleBlockingFlows] = useState(false);
 
-  // 1. Flow Detection with recovery support
+  // 1. Flow Detection
   const flowDetection = useFlowDetection();
   const {
     finalFlowId,
-    effectiveFlowId,
-    isRecovering,
-    recoveryProgress,
-    recoveryError,
-    recoveredFlowId,
-    triggerFlowRecovery
+    effectiveFlowId
   } = flowDetection;
 
   // 2. Import Data
@@ -92,68 +80,6 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
     fieldMappingsHook.fieldMappingsError
   );
 
-  // Phase transition interception - validate flow readiness before allowing attribute mapping
-  useEffect(() => {
-    const interceptTransition = async () => {
-      if (!finalFlowId || transitionIntercepted || isInterceptingTransition) return;
-
-      console.log(`🛡️ [useAttributeMappingComposition] Intercepting transition to attribute mapping for flow: ${finalFlowId}`);
-
-      try {
-        setIsInterceptingTransition(true);
-
-        // Use enhanced transition interception with blocking flow detection
-        const result = await flowRecoveryService.interceptTransitionWithBlockingDetection(
-          finalFlowId,
-          'data_import',
-          'attribute_mapping'
-        );
-
-        setTransitionIntercepted(true);
-
-        // Store blocking flows information for UI display
-        setBlockingFlows(result.blockingFlows || []);
-        setHasMultipleBlockingFlows(result.hasMultipleBlockingFlows || false);
-
-        // Handle multiple blocking flows scenario - don't redirect, let UI handle it
-        if (result.hasMultipleBlockingFlows) {
-          console.warn(`⚠️ [useAttributeMappingComposition] Multiple blocking flows detected (${result.blockingFlows?.length}), blocking transition without redirect`);
-          // Don't navigate anywhere - let the ErrorAndStatusAlerts component show the resolution UI
-          return;
-        }
-
-        if (!result.allowTransition && result.redirectPath) {
-          console.log(`🔄 [useAttributeMappingComposition] Transition blocked, redirecting to: ${result.redirectPath}`);
-          navigate(result.redirectPath);
-          return;
-        }
-
-        if (!result.flowReadiness.canProceedToAttributeMapping) {
-          console.warn(`⚠️ [useAttributeMappingComposition] Flow not ready for attribute mapping:`, result.flowReadiness);
-
-          // If data import is not complete, redirect to data import (only if not multiple blocking flows)
-          if (!result.flowReadiness.dataImportComplete && !result.hasMultipleBlockingFlows) {
-            console.log(`🔄 [useAttributeMappingComposition] Redirecting to data import due to incomplete data import`);
-            navigate('/discovery/cmdb-import');
-            return;
-          }
-        }
-
-        console.log(`✅ [useAttributeMappingComposition] Transition allowed to attribute mapping`);
-
-      } catch (error) {
-        console.error(`❌ [useAttributeMappingComposition] Phase transition interception failed:`, error);
-        // Allow transition to continue on error to avoid blocking users
-        setTransitionIntercepted(true);
-      } finally {
-        setIsInterceptingTransition(false);
-      }
-    };
-
-    if (finalFlowId) {
-      interceptTransition();
-    }
-  }, [finalFlowId, navigate, transitionIntercepted, isInterceptingTransition]);
 
   // Debug import data loading - removed to prevent console spam
   const refetchAgentic = useCallback(() => {
@@ -167,11 +93,6 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
   // Refresh function for after flow cleanup
   const refreshFlowState = useCallback(async () => {
     console.log(`🔄 [useAttributeMappingComposition] Refreshing flow state after cleanup`);
-
-    // Reset blocking flows state
-    setBlockingFlows([]);
-    setHasMultipleBlockingFlows(false);
-    setTransitionIntercepted(false);
 
     // Refresh all data
     await Promise.all([
@@ -236,18 +157,6 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
     clarificationsError: state.clarificationsError,
     refetchClarifications,
 
-    // Flow recovery state
-    isRecovering,
-    recoveryProgress,
-    recoveryError,
-    recoveredFlowId,
-    triggerFlowRecovery,
-    isInterceptingTransition,
-    transitionIntercepted,
-
-    // Multi-flow blocking state
-    blockingFlows,
-    hasMultipleBlockingFlows,
     refreshFlowState
   };
 };
