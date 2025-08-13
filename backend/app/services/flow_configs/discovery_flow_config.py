@@ -16,6 +16,9 @@ from app.services.flow_type_registry import (
 # Import the UnifiedDiscoveryFlow class for crew_class registration
 from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
 
+# Import the DiscoveryChildFlowService for child flow operations
+from app.services.child_flow_services import DiscoveryChildFlowService
+
 
 def get_discovery_flow_config() -> FlowTypeConfig:
     """
@@ -448,6 +451,7 @@ def get_discovery_flow_config() -> FlowTypeConfig:
             dependency_analysis_phase,
         ],
         crew_class=UnifiedDiscoveryFlow,  # Fix: Register crew class for flow type
+        child_flow_service=DiscoveryChildFlowService,  # Service for child flow operations
         capabilities=capabilities,
         default_configuration={
             "enable_real_time_validation": True,
