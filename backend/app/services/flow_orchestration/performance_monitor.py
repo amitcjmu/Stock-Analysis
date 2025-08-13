@@ -9,7 +9,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-import psutil
+# Make psutil optional - not critical for core functionality
+try:
+    import psutil
+
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
 
 from app.core.logging import get_logger
 from app.services.performance_tracker import (
@@ -169,6 +175,22 @@ class FlowPerformanceMonitor:
 
     def _capture_resource_snapshot(self) -> Dict[str, Any]:
         """Capture current system resource usage"""
+        if not PSUTIL_AVAILABLE:
+            # Return mock data when psutil is not available
+            return {
+                "timestamp": datetime.utcnow().isoformat(),
+                "cpu_percent": 0.0,
+                "memory_percent": 0.0,
+                "memory_mb": 0.0,
+                "disk_usage": {
+                    "total_gb": 0.0,
+                    "used_gb": 0.0,
+                    "free_gb": 0.0,
+                    "percent": 0.0,
+                },
+                "network_io": {},
+            }
+
         try:
             # Get CPU usage
             cpu_percent = psutil.cpu_percent(interval=0.1)
@@ -306,22 +328,26 @@ class FlowPerformanceMonitor:
             # Check CPU threshold
             cpu_percent = final_resources.get("cpu_percent", 0)
             if cpu_percent > self.performance_thresholds["cpu_threshold_percent"]:
+                cpu_threshold = self.performance_thresholds["cpu_threshold_percent"]
                 warnings.append(
-                    f"High CPU usage: {cpu_percent:.1f}% (threshold: {self.performance_thresholds['cpu_threshold_percent']}%)"
+                    f"High CPU usage: {cpu_percent:.1f}% (threshold: {cpu_threshold}%)"
                 )
 
             # Check memory threshold
             memory_percent = final_resources.get("memory_percent", 0)
             if memory_percent > self.performance_thresholds["memory_threshold_percent"]:
+                mem_threshold = self.performance_thresholds["memory_threshold_percent"]
                 warnings.append(
-                    f"High memory usage: {memory_percent:.1f}% (threshold: {self.performance_thresholds['memory_threshold_percent']}%)"
+                    f"High memory usage: {memory_percent:.1f}% (threshold: {mem_threshold}%)"
                 )
 
         # Log warnings
         if warnings:
-            logger.warning(
-                f"⚠️ Performance thresholds exceeded for {metric.operation_type} in flow {metric.flow_id}: {'; '.join(warnings)}"
+            warning_msg = (
+                f"⚠️ Performance thresholds exceeded for {metric.operation_type} "
+                f"in flow {metric.flow_id}: {'; '.join(warnings)}"
             )
+            logger.warning(warning_msg)
 
     def get_flow_performance_summary(self, flow_id: str) -> Dict[str, Any]:
         """

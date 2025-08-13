@@ -34,7 +34,13 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List
 
-import psutil
+# Make psutil optional - not critical for core functionality
+try:
+    import psutil
+
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
 
 from app.core.logging import get_logger
 from app.services.monitoring.auth_performance_monitor import (
@@ -228,6 +234,31 @@ class SystemHealthDashboard:
 
     async def _collect_system_stats(self) -> Dict[str, Any]:
         """Collect system resource statistics"""
+        if not PSUTIL_AVAILABLE:
+            # Return mock data when psutil is not available
+            return {
+                "cpu": {"usage_percent": 0.0, "core_count": 1},
+                "memory": {
+                    "total_bytes": 0,
+                    "used_bytes": 0,
+                    "available_bytes": 0,
+                    "usage_percent": 0.0,
+                },
+                "disk_io": {
+                    "read_bytes": 0,
+                    "write_bytes": 0,
+                    "read_count": 0,
+                    "write_count": 0,
+                },
+                "network_io": {
+                    "bytes_sent": 0,
+                    "bytes_recv": 0,
+                    "packets_sent": 0,
+                    "packets_recv": 0,
+                },
+                "processes": {"count": 0},
+            }
+
         try:
             # CPU usage
             cpu_percent = psutil.cpu_percent(interval=1)

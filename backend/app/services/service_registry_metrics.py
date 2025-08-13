@@ -11,8 +11,18 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Dict, Optional, Any
 from collections import defaultdict
-import psutil
 import logging
+
+# Make psutil optional - not critical for core functionality
+try:
+    import psutil
+
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    logging.getLogger(__name__).warning(
+        "psutil not available - memory monitoring disabled. Install with: pip install psutil"
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -166,8 +176,15 @@ class ServiceRegistryMonitor:
             ).total_seconds()
 
             # Calculate final memory usage
-            process = psutil.Process()
-            metrics.memory_usage_mb = process.memory_info().rss / 1024 / 1024
+            if PSUTIL_AVAILABLE:
+                try:
+                    process = psutil.Process()
+                    metrics.memory_usage_mb = process.memory_info().rss / 1024 / 1024
+                except Exception as e:
+                    logger.warning(f"Failed to get memory usage: {e}")
+                    metrics.memory_usage_mb = 0.0
+            else:
+                metrics.memory_usage_mb = 0.0
 
             logger.info(
                 f"Registry {registry_id} cleaned up - "
