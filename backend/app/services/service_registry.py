@@ -329,6 +329,15 @@ class ServiceRegistry:
             # Trigger flush only if no flush task is currently running
             # This prevents concurrent flushes and potential race conditions
             if not self._metrics_flush_task or self._metrics_flush_task.done():
+                try:
+                    asyncio.get_running_loop()
+                except RuntimeError:
+                    # No running loop; skip scheduling and allow periodic/next async op to flush
+                    self._logger.debug(
+                        "No event loop running, skipping auto-flush scheduling",
+                        extra={"registry_id": self._registry_id},
+                    )
+                    return
                 self._metrics_flush_task = asyncio.create_task(
                     self._flush_metrics(), name=f"metrics_flush_{self._registry_id}"
                 )
@@ -531,6 +540,9 @@ class ServiceRegistry:
         )
 
         try:
+            # Mark as closed first to prevent new metrics from being recorded during shutdown
+            self._is_closed = True
+            
             # Flush any remaining metrics
             if self._metrics_buffer:
                 await self._flush_metrics()
@@ -553,9 +565,6 @@ class ServiceRegistry:
 
             # Clear service cache (services will be garbage collected)
             self._service_cache.clear()
-
-            # Mark as closed
-            self._is_closed = True
 
             # Track registry cleanup in monitor
             self._monitor.track_registry_cleanup(self._registry_id)

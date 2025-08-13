@@ -391,9 +391,18 @@ if CREWAI_TOOLS_AVAILABLE:  # noqa: C901
         """CrewAI Tool wrapper for ServiceRegistry-based asset creation"""
 
         name: str = "asset_creator"
-        description: str = AssetCreationToolWithServiceImpl(None).get_tool_config()[
-            "description"
-        ]
+        description: str = (
+            "Create an asset in the database from discovery data using ServiceRegistry pattern. "
+            "Use this tool to persist discovered assets to the inventory.\n\n"
+            "Input: Single asset data dictionary with fields like:\n"
+            "- name: Asset name\n"
+            "- hostname: Hostname or FQDN\n"
+            "- ip_address: IP address (optional)\n"
+            "- operating_system: OS details\n"
+            "- environment: Environment (production/development/etc)\n"
+            "- other fields as discovered\n\n"
+            "Output: JSON response with success status and asset information"
+        )
 
         def __init__(self, registry):
             super().__init__()
@@ -409,9 +418,12 @@ if CREWAI_TOOLS_AVAILABLE:  # noqa: C901
         """CrewAI Tool wrapper for ServiceRegistry-based bulk asset creation"""
 
         name: str = "bulk_asset_creator"
-        description: str = BulkAssetCreationToolWithServiceImpl(None).get_tool_config()[
-            "description"
-        ]
+        description: str = (
+            "Create multiple assets in the database in a single operation using ServiceRegistry pattern. "
+            "Use this tool when you have multiple assets to create from discovery.\n\n"
+            "Input: List of asset data dictionaries\n"
+            "Output: JSON response with summary of created assets"
+        )
 
         def __init__(self, registry):
             super().__init__()
