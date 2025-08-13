@@ -1,7 +1,7 @@
 """Add agent execution history table
 
-Revision ID: 017_add_agent_execution_history
-Revises: 016_add_security_constraints
+Revision ID: 018_add_agent_execution_history
+Revises: 017_add_vector_search_to_agent_patterns
 Create Date: 2025-01-12 15:55:00.000000
 
 CC: Create table for tracking agent execution history for observability
@@ -14,8 +14,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = "017_add_agent_execution_history"
-down_revision: Union[str, None] = "016_add_security_constraints"
+revision: str = "018_add_agent_execution_history"
+down_revision: Union[str, None] = "017_add_vector_search_to_agent_patterns"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

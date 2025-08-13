@@ -7,6 +7,7 @@ Create Date: 2025-08-08
 
 from alembic import op
 import sqlalchemy as sa
+import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
@@ -32,11 +33,35 @@ def upgrade() -> None:
 
     # Add columns if missing
     if not _column_exists("assets", "discovery_status"):
-        op.add_column(
-            "assets",
-            sa.Column("discovery_status", sa.VARCHAR(length=50), nullable=True),
-            schema=schema,
+        # Check if column already exists
+
+        conn = op.get_bind()
+
+        result = conn.execute(
+            sa.text(
+                """
+
+            SELECT column_name
+
+            FROM information_schema.columns
+
+            WHERE table_schema = 'migration'
+
+            AND table_name = 'assets'
+
+            AND column_name = 'discovery_status'
+
+        """
+            )
         )
+
+        if not result.fetchone():
+
+            op.add_column(
+                "assets",
+                sa.Column("discovery_status", sa.VARCHAR(length=50), nullable=True),
+                schema=schema,
+            )
         op.create_index(
             op.f("ix_assets_discovery_status"),
             "assets",
@@ -46,25 +71,73 @@ def upgrade() -> None:
         )
 
     if not _column_exists("assets", "discovery_completed_at"):
-        op.add_column(
-            "assets",
-            sa.Column(
-                "discovery_completed_at", sa.TIMESTAMP(timezone=True), nullable=True
-            ),
-            schema=schema,
+        # Check if column already exists
+
+        conn = op.get_bind()
+
+        result = conn.execute(
+            sa.text(
+                """
+
+            SELECT column_name
+
+            FROM information_schema.columns
+
+            WHERE table_schema = 'migration'
+
+            AND table_name = 'assets'
+
+            AND column_name = 'discovery_completed_at'
+
+        """
+            )
         )
 
+        if not result.fetchone():
+
+            op.add_column(
+                "assets",
+                sa.Column(
+                    "discovery_completed_at", sa.TIMESTAMP(timezone=True), nullable=True
+                ),
+                schema=schema,
+            )
+
     if not _column_exists("assets", "assessment_readiness"):
-        op.add_column(
-            "assets",
-            sa.Column(
-                "assessment_readiness",
-                sa.VARCHAR(length=50),
-                nullable=True,
-                server_default=sa.text("'not_ready'"),
-            ),
-            schema=schema,
+        # Check if column already exists
+
+        conn = op.get_bind()
+
+        result = conn.execute(
+            sa.text(
+                """
+
+            SELECT column_name
+
+            FROM information_schema.columns
+
+            WHERE table_schema = 'migration'
+
+            AND table_name = 'assets'
+
+            AND column_name = 'assessment_readiness'
+
+        """
+            )
         )
+
+        if not result.fetchone():
+
+            op.add_column(
+                "assets",
+                sa.Column(
+                    "assessment_readiness",
+                    sa.VARCHAR(length=50),
+                    nullable=True,
+                    server_default=sa.text("'not_ready'"),
+                ),
+                schema=schema,
+            )
         op.create_index(
             op.f("ix_assets_assessment_readiness"),
             "assets",
@@ -74,25 +147,97 @@ def upgrade() -> None:
         )
 
     if not _column_exists("assets", "assessment_readiness_score"):
-        op.add_column(
-            "assets",
-            sa.Column("assessment_readiness_score", sa.Float(), nullable=True),
-            schema=schema,
+        # Check if column already exists
+
+        conn = op.get_bind()
+
+        result = conn.execute(
+            sa.text(
+                """
+
+            SELECT column_name
+
+            FROM information_schema.columns
+
+            WHERE table_schema = 'migration'
+
+            AND table_name = 'assets'
+
+            AND column_name = 'assessment_readiness_score'
+
+        """
+            )
         )
+
+        if not result.fetchone():
+
+            op.add_column(
+                "assets",
+                sa.Column("assessment_readiness_score", sa.Float(), nullable=True),
+                schema=schema,
+            )
 
     if not _column_exists("assets", "assessment_blockers"):
-        op.add_column(
-            "assets",
-            sa.Column("assessment_blockers", sa.JSON(), nullable=True),
-            schema=schema,
+        # Check if column already exists
+
+        conn = op.get_bind()
+
+        result = conn.execute(
+            sa.text(
+                """
+
+            SELECT column_name
+
+            FROM information_schema.columns
+
+            WHERE table_schema = 'migration'
+
+            AND table_name = 'assets'
+
+            AND column_name = 'assessment_blockers'
+
+        """
+            )
         )
 
+        if not result.fetchone():
+
+            op.add_column(
+                "assets",
+                sa.Column("assessment_blockers", sa.JSON(), nullable=True),
+                schema=schema,
+            )
+
     if not _column_exists("assets", "assessment_recommendations"):
-        op.add_column(
-            "assets",
-            sa.Column("assessment_recommendations", sa.JSON(), nullable=True),
-            schema=schema,
+        # Check if column already exists
+
+        conn = op.get_bind()
+
+        result = conn.execute(
+            sa.text(
+                """
+
+            SELECT column_name
+
+            FROM information_schema.columns
+
+            WHERE table_schema = 'migration'
+
+            AND table_name = 'assets'
+
+            AND column_name = 'assessment_recommendations'
+
+        """
+            )
         )
+
+        if not result.fetchone():
+
+            op.add_column(
+                "assets",
+                sa.Column("assessment_recommendations", sa.JSON(), nullable=True),
+                schema=schema,
+            )
 
 
 def downgrade() -> None:

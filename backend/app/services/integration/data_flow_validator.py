@@ -15,7 +15,6 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.database import AsyncSessionLocal
 from app.core.logging import get_logger

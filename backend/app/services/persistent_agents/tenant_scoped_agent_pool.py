@@ -15,9 +15,12 @@ import threading
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import psutil
+
+if TYPE_CHECKING:
+    from app.services.service_registry import ServiceRegistry
 
 try:
     from crewai import Agent, Crew
@@ -92,6 +95,7 @@ class TenantScopedAgentPool:
         engagement_id: str,
         agent_type: str,
         force_recreate: bool = False,
+        service_registry: Optional["ServiceRegistry"] = None,
     ) -> Agent:
         """
         Get existing agent or create new one with full memory integration
@@ -169,8 +173,10 @@ class TenantScopedAgentPool:
                     engagement_id=uuid.UUID(engagement_id),
                 )
 
-                # Create agent with memory enabled
-                agent = await cls._create_agent_with_memory(agent_type, memory_manager)
+                # Create agent with memory enabled and ServiceRegistry if available
+                agent = await cls._create_agent_with_memory(
+                    agent_type, memory_manager, service_registry=service_registry
+                )
 
                 # Store in pool
                 cls._agent_pools[tenant_key][agent_type] = agent
@@ -192,14 +198,18 @@ class TenantScopedAgentPool:
 
     @classmethod
     async def initialize_tenant_pool(
-        cls, client_id: str, engagement_id: str
+        cls,
+        client_id: str,
+        engagement_id: str,
+        service_registry: Optional["ServiceRegistry"] = None,
     ) -> Dict[str, Agent]:
         """
-        Pre-initialize common agents for a tenant
+        Pre-initialize common agents for a tenant with optional ServiceRegistry support
 
         Args:
             client_id: Client account identifier
             engagement_id: Engagement identifier
+            service_registry: Optional ServiceRegistry for tool management
 
         Returns:
             Dictionary of initialized agents by type
@@ -222,7 +232,10 @@ class TenantScopedAgentPool:
         for agent_type in required_agents:
             try:
                 agent = await cls.get_or_create_agent(
-                    client_id, engagement_id, agent_type
+                    client_id,
+                    engagement_id,
+                    agent_type,
+                    service_registry=service_registry,
                 )
                 await cls._warm_up_agent(agent, agent_type)
                 pool[agent_type] = agent
@@ -246,7 +259,10 @@ class TenantScopedAgentPool:
 
     @classmethod
     async def _create_agent_with_memory(
-        cls, agent_type: str, memory_manager: ThreeTierMemoryManager
+        cls,
+        agent_type: str,
+        memory_manager: ThreeTierMemoryManager,
+        service_registry: Optional["ServiceRegistry"] = None,
     ) -> Agent:
         """
         Create agent with memory bugs fixed and full memory integration
@@ -261,8 +277,8 @@ class TenantScopedAgentPool:
         # Get agent configuration
         agent_config = cls._get_agent_config(agent_type)
 
-        # Get tools for this agent type (including context info)
-        tools = cls._get_agent_tools(agent_type, memory_manager)
+        # Get tools for this agent type with ServiceRegistry if available
+        tools = cls._get_agent_tools(agent_type, memory_manager, service_registry)
 
         # Fix 1: Resolve API compatibility issues with proper config
         memory_config = {
@@ -394,14 +410,18 @@ class TenantScopedAgentPool:
 
     @classmethod
     def _get_agent_tools(
-        cls, agent_type: str, memory_manager: ThreeTierMemoryManager
+        cls,
+        agent_type: str,
+        memory_manager: ThreeTierMemoryManager,
+        service_registry: Optional["ServiceRegistry"] = None,
     ) -> List:
         """
-        Get tools for different agent types
+        Get tools for different agent types with optional ServiceRegistry support
 
         Args:
             agent_type: Type of agent
             memory_manager: Memory manager for context
+            service_registry: Optional ServiceRegistry for centralized tool management
 
         Returns:
             List of CrewAI tools for the agent
@@ -422,23 +442,6 @@ class TenantScopedAgentPool:
                 "agent_type": agent_type,
             }
 
-            # Import tool creators
-            from app.services.crewai_flows.tools.task_completion_tools import (
-                create_task_completion_tools,
-            )
-            from app.services.crewai_flows.tools.asset_creation_tool import (
-                create_asset_creation_tools,
-            )
-            from app.services.crewai_flows.tools.data_validation_tool import (
-                create_data_validation_tools,
-            )
-            from app.services.crewai_flows.tools.critical_attributes_tool import (
-                create_critical_attributes_tools,
-            )
-            from app.services.crewai_flows.tools.dependency_analysis_tool import (
-                create_dependency_analysis_tools,
-            )
-
             tools = []
 
             # Helper function to safely extend tools list
@@ -456,6 +459,110 @@ class TenantScopedAgentPool:
                 except Exception as e:
                     logger.debug(f"Skipping {tool_name} due to error: {e}")
                     return 0
+
+            # If ServiceRegistry is available, use it for tool creation
+            if service_registry:
+                logger.info(f"Using ServiceRegistry for {agent_type} tools")
+
+                # Import tool creators that support ServiceRegistry
+                from app.services.crewai_flows.tools.asset_creation_tool import (
+                    create_asset_creation_tools,
+                )
+
+                # Get tools from ServiceRegistry-aware creators
+                if agent_type in [
+                    "data_analyst",
+                    "pattern_discovery_agent",
+                    "field_mapper",
+                    "quality_assessor",
+                ]:
+                    # These agents need asset creation capabilities
+                    asset_tools = create_asset_creation_tools(
+                        context_info, registry=service_registry
+                    )
+                    if isinstance(asset_tools, list):
+                        tools.extend(asset_tools)
+                        logger.info(
+                            f"Added {len(asset_tools)} asset creation tools via ServiceRegistry"
+                        )
+
+                # CRITICAL: Also include legacy tools to ensure parity while migration is incomplete
+                # Without these, agents are missing essential tools and cannot function properly
+                # TODO: Phase 5 - Migrate these tool creators to ServiceRegistry pattern
+                # Priority order for migration:
+                # 1. task_completion_tools - used by all agents
+                # 2. data_validation_tool - critical for data import phase
+                # 3. critical_attributes_tool - essential for field mapping
+                # 4. dependency_analysis_tool - needed for analysis phase
+                # 5. mapping_confidence_tool - specific to field mapper
+                from app.services.crewai_flows.tools.task_completion_tools import (
+                    create_task_completion_tools,
+                )
+                from app.services.crewai_flows.tools.data_validation_tool import (
+                    create_data_validation_tools,
+                )
+                from app.services.crewai_flows.tools.critical_attributes_tool import (
+                    create_critical_attributes_tools,
+                )
+                from app.services.crewai_flows.tools.dependency_analysis_tool import (
+                    create_dependency_analysis_tools,
+                )
+
+                # Add all essential tools that haven't been migrated to ServiceRegistry yet
+                # This ensures agents have ALL required tools, not just asset creation
+                _safe_extend(
+                    lambda: create_task_completion_tools(context_info),
+                    "task completion tools",
+                )
+
+                # Add agent-specific tools based on type
+                if agent_type in ["data_analyst", "pattern_discovery_agent"]:
+                    _safe_extend(
+                        lambda: create_data_validation_tools(context_info),
+                        "data validation tools",
+                    )
+                    if agent_type == "pattern_discovery_agent":
+                        _safe_extend(
+                            lambda: create_dependency_analysis_tools(context_info),
+                            "dependency analysis tools",
+                        )
+
+                elif agent_type == "field_mapper":
+                    _safe_extend(
+                        lambda: create_critical_attributes_tools(context_info),
+                        "critical attributes tools",
+                    )
+
+                elif agent_type in ["business_value_analyst", "risk_assessment_agent"]:
+                    _safe_extend(
+                        lambda: create_dependency_analysis_tools(context_info),
+                        "dependency analysis tools",
+                    )
+
+            else:
+                # Legacy path: Import all tool creators
+                logger.info(f"Using legacy tool creation for {agent_type}")
+
+                # Log missed opportunity to use ServiceRegistry
+                logger.warning(
+                    f"ServiceRegistry not provided for {agent_type} tools - using legacy pattern. "
+                    f"Consider enabling USE_SERVICE_REGISTRY=true for better performance and consistency."
+                )
+                from app.services.crewai_flows.tools.task_completion_tools import (
+                    create_task_completion_tools,
+                )
+                from app.services.crewai_flows.tools.asset_creation_tool import (
+                    create_asset_creation_tools,
+                )
+                from app.services.crewai_flows.tools.data_validation_tool import (
+                    create_data_validation_tools,
+                )
+                from app.services.crewai_flows.tools.critical_attributes_tool import (
+                    create_critical_attributes_tools,
+                )
+                from app.services.crewai_flows.tools.dependency_analysis_tool import (
+                    create_dependency_analysis_tools,
+                )
 
             # Common tools for all agents
             _safe_extend(

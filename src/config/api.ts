@@ -101,7 +101,7 @@ export const API_CONFIG = {
     DISCOVERY: {
       AGENT_ANALYSIS: '/agents/discovery/analysis', // FIXED: Use actual agent analysis endpoint
       ANALYZE_CMDB: '/agents/discovery/analysis', // FIXED: Use actual agent analysis endpoint
-      PROCESS_CMDB: '/unified-discovery/flow/run', // Updated to unified-discovery endpoint as part of API migration
+      PROCESS_CMDB: '/flows/execute', // Fixed: Use MFO endpoint for flow execution
       CMDB_TEMPLATES: '/unified-discovery/cmdb-templates',  // Updated to unified-discovery endpoint as part of API migration
       CMDB_FEEDBACK: '/unified-discovery/cmdb-feedback',  // Updated to unified-discovery endpoint as part of API migration
       ASSETS: '/unified-discovery/assets',  // Updated to unified-discovery endpoint as part of API migration
@@ -179,6 +179,19 @@ export const API_CONFIG = {
       HEALTH: '/agent-learning/health'
     },
     HEALTH: '/health',
+    // Master Flow Orchestrator (MFO) Endpoints - All flow management must go through these
+    FLOWS: {
+      CREATE: '/flows/',
+      STATUS: '/flows/{flowId}/status',
+      ACTIVE: '/flows/active',
+      DELETE: '/flows/{flowId}',
+      PAUSE: '/flows/{flowId}/pause',
+      RESUME: '/flows/{flowId}/resume',
+      RETRY: '/flows/{flowId}/retry',
+      EXECUTE: '/flows/{flowId}/execute',
+      CONFIG: '/flows/{flowId}/config',
+      METRICS: '/flows/metrics'
+    },
     // SIXR Endpoints
     SIXR_ANALYSIS: '/6r/analyze'
   }
@@ -527,7 +540,7 @@ export const apiCall = async (
       // UI interactions have reasonable timeouts
       const isAgenticActivity = (
         normalizedEndpoint.includes('/assets/list/paginated') ||
-        normalizedEndpoint.includes('/unified-discovery/flow/run') ||  // Updated endpoint check for unified-discovery migration
+        normalizedEndpoint.includes('/flows/execute') ||  // Fixed: Use MFO endpoint for flow execution
         normalizedEndpoint.includes('/assets/analyze') ||
         normalizedEndpoint.includes('/asset_inventory') ||
         normalizedEndpoint.includes('/classification') ||

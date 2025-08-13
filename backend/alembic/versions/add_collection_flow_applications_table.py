@@ -20,6 +20,22 @@ depends_on = None
 def upgrade() -> None:
     """Create collection_flow_applications table to track selected applications for collection"""
 
+    # Check if table already exists
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text(
+            """
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'migration'
+            AND table_name = 'collection_flow_applications'
+        """
+        )
+    )
+    if result.fetchone():
+        # Table already exists, skip creation
+        return
+
     # Create the collection_flow_applications table
     # Note: Using asset_id instead of application_id since applications table doesn't exist yet
     op.create_table(

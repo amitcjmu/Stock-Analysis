@@ -1,0 +1,6 @@
+Hostname,IP Address,Operating System,CPU Cores,RAM (GB),Environment
+srv-web-01,192.168.1.10,Windows Server 2019,4,16,Production
+srv-db-01,192.168.1.11,Red Hat Enterprise Linux 8,8,32,Production
+srv-app-01,192.168.1.12,Ubuntu Server 20.04,4,8,Development
+srv-backup-01,192.168.1.13,Windows Server 2016,2,8,Production
+srv-test-01,192.168.1.14,CentOS 7,2,4,Testing

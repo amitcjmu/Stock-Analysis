@@ -12,6 +12,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 from alembic import op
+import sqlalchemy as sa
+import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "017_add_vector_search_to_agent_patterns"
@@ -30,28 +32,78 @@ def upgrade() -> None:
     op.execute("CREATE EXTENSION IF NOT EXISTS vector")
 
     # Add vector embedding column for similarity search
-    op.add_column(
-        "agent_discovered_patterns",
-        sa.Column(
-            "embedding",
-            postgresql.ARRAY(sa.Float, dimensions=1536),  # OpenAI embedding dimension
-            nullable=True,  # Allow null initially for existing records
-            comment="Vector embedding for similarity search",
-        ),
-        schema="migration",
+    # Check if column already exists
+
+    conn = op.get_bind()
+
+    result = conn.execute(
+        sa.text(
+            """
+
+        SELECT column_name
+
+        FROM information_schema.columns
+
+        WHERE table_schema = 'migration'
+
+        AND table_name = 'agent_discovered_patterns'
+
+        AND column_name = 'embedding'
+
+    """
+        )
     )
 
+    if not result.fetchone():
+
+        op.add_column(
+            "agent_discovered_patterns",
+            sa.Column(
+                "embedding",
+                postgresql.ARRAY(
+                    sa.Float, dimensions=1536
+                ),  # OpenAI embedding dimension
+                nullable=True,  # Allow null initially for existing records
+                comment="Vector embedding for similarity search",
+            ),
+            schema="migration",
+        )
+
     # Add insight_type column for structured pattern classification
-    op.add_column(
-        "agent_discovered_patterns",
-        sa.Column(
-            "insight_type",
-            sa.String(50),
-            nullable=True,  # Allow null initially for existing records
-            comment="Structured classification of the pattern type",
-        ),
-        schema="migration",
+    # Check if column already exists
+
+    conn = op.get_bind()
+
+    result = conn.execute(
+        sa.text(
+            """
+
+        SELECT column_name
+
+        FROM information_schema.columns
+
+        WHERE table_schema = 'migration'
+
+        AND table_name = 'agent_discovered_patterns'
+
+        AND column_name = 'insight_type'
+
+    """
+        )
     )
+
+    if not result.fetchone():
+
+        op.add_column(
+            "agent_discovered_patterns",
+            sa.Column(
+                "insight_type",
+                sa.String(50),
+                nullable=True,  # Allow null initially for existing records
+                comment="Structured classification of the pattern type",
+            ),
+            schema="migration",
+        )
 
     # Create check constraint for insight_type values
     op.create_check_constraint(
@@ -97,20 +149,64 @@ def upgrade() -> None:
     )
 
     # Create index on insight_type for filtering during similarity search
-    op.create_index(
-        "ix_agent_patterns_insight_type",
-        "agent_discovered_patterns",
-        ["insight_type"],
-        schema="migration",
+    # Check if index already exists
+
+    conn = op.get_bind()
+
+    result = conn.execute(
+        sa.text(
+            """
+
+        SELECT indexname
+
+        FROM pg_indexes
+
+        WHERE schemaname = 'migration'
+
+        AND indexname = 'ix_agent_patterns_insight_type'
+
+    """
+        )
     )
 
+    if not result.fetchone():
+
+        op.create_index(
+            "ix_agent_patterns_insight_type",
+            "agent_discovered_patterns",
+            ["insight_type"],
+            schema="migration",
+        )
+
     # Create composite index for multi-tenant similarity queries
-    op.create_index(
-        "ix_agent_patterns_client_insight_type",
-        "agent_discovered_patterns",
-        ["client_account_id", "insight_type"],
-        schema="migration",
+    # Check if index already exists
+
+    conn = op.get_bind()
+
+    result = conn.execute(
+        sa.text(
+            """
+
+        SELECT indexname
+
+        FROM pg_indexes
+
+        WHERE schemaname = 'migration'
+
+        AND indexname = 'ix_agent_patterns_client_insight_type'
+
+    """
+        )
     )
+
+    if not result.fetchone():
+
+        op.create_index(
+            "ix_agent_patterns_client_insight_type",
+            "agent_discovered_patterns",
+            ["client_account_id", "insight_type"],
+            schema="migration",
+        )
 
     print("✅ Vector search capability added to agent_discovered_patterns")
 

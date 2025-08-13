@@ -5,8 +5,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext';
 import masterFlowServiceExtended from '../services/api/masterFlowService.extensions';
 import type { FlowStatusResponse } from '../services/api/masterFlowService';
-import { discoveryFlowService } from '../services/api/discoveryFlowService';
-import type { DiscoveryFlowStatusResponse } from '../services/api/discoveryFlowService';
+import { masterFlowService } from '../services/api/masterFlowService';
+import type { FlowStatusResponse } from '../services/api/masterFlowService';
 import type {
   FlowInitializationData,
   PhaseExecutionData,
@@ -176,7 +176,7 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
 
     // ADR-012: Use discovery flow service for operational status
     // This provides child flow status for operational decisions
-    const response: DiscoveryFlowStatusResponse = await discoveryFlowService.getOperationalStatus(flowId, clientAccountId, engagementId);
+    const response: FlowStatusResponse = await masterFlowService.getFlowStatus(flowId, clientAccountId, engagementId);
 
     SecureLogger.debug('Discovery flow API response received', {
       hasFieldMappings: !!response.field_mappings,
@@ -330,7 +330,7 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
     errors?: string[];
   }> {
     // ADR-012: Use discovery flow service for operational phase execution
-    return discoveryFlowService.executePhase(flowId, phase, data, clientAccountId, engagementId);
+    return masterFlowService.executePhase(flowId, phase, data, clientAccountId, engagementId);
   },
 
   async getHealthStatus(): Promise<{

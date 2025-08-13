@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 import masterFlowServiceExtended from '@/services/api/masterFlowService.extensions';
-import discoveryFlowService from '@/services/api/discoveryFlowService';
+import { masterFlowService } from '@/services/api/masterFlowService';
 import { useToast } from '@/components/ui/use-toast';
 
 export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgress?: unknown): unknown => {
@@ -75,7 +75,7 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
         if (flowStatus === 'failed') {
           try {
             console.log('⚠️ Flow is in failed state, retrying first');
-            const retryResult = await discoveryFlowService.retryFlow(flowId, clientAccountId, engagementId);
+            const retryResult = await masterFlowService.retryFlow(flowId, clientAccountId, engagementId);
             console.log('✅ Flow retry successful');
 
             // Verify retry was successful before proceeding
@@ -92,7 +92,7 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
         }
 
         // Execute the next phase with mapping approval data using discovery flow service
-        await discoveryFlowService.executePhase(
+        await masterFlowService.executePhase(
           flowId,
           'data_cleansing',
           {
