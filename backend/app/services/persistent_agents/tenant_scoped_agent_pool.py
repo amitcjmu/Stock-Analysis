@@ -457,6 +457,232 @@ class TenantScopedAgentPool:
             return AgentHealth(is_healthy=False, error=f"Health check failed: {e}")
 
     @classmethod
+    def _extract_context_info(
+        cls, memory_manager: ThreeTierMemoryManager
+    ) -> Dict[str, Any]:
+        """Extract context information from memory manager."""
+        return {
+            "client_account_id": (
+                str(memory_manager.client_account_id)
+                if hasattr(memory_manager, "client_account_id")
+                else None
+            ),
+            "engagement_id": (
+                str(memory_manager.engagement_id)
+                if hasattr(memory_manager, "engagement_id")
+                else None
+            ),
+        }
+
+    @classmethod
+    def _add_tools_with_registry(
+        cls,
+        agent_type: str,
+        context_info: Dict[str, Any],
+        service_registry: "ServiceRegistry",
+        tools: List,
+    ) -> None:
+        """Add tools using ServiceRegistry pattern."""
+        if not TOOLS_AVAILABLE:
+            logger.warning(f"Tools not available at module level for {agent_type}")
+            return
+
+        # Asset creation tools for specific agents
+        if agent_type in [
+            "data_analyst",
+            "pattern_discovery_agent",
+            "field_mapper",
+            "quality_assessor",
+        ]:
+            if create_asset_creation_tools:
+                asset_tools = create_asset_creation_tools(
+                    context_info, registry=service_registry
+                )
+                if isinstance(asset_tools, list):
+                    tools.extend(asset_tools)
+                    logger.info(
+                        f"Added {len(asset_tools)} asset creation tools via ServiceRegistry"
+                    )
+
+        # Task completion tools (common)
+        if create_task_completion_tools:
+            cls._safe_extend_tools(
+                tools,
+                lambda: create_task_completion_tools(context_info),
+                "task completion tools",
+            )
+
+        # Agent-specific tool additions
+        cls._add_agent_specific_tools(agent_type, context_info, tools)
+
+    @classmethod
+    def _add_agent_specific_tools(
+        cls,
+        agent_type: str,
+        context_info: Dict[str, Any],
+        tools: List,
+    ) -> None:
+        """Add tools specific to each agent type."""
+        if agent_type in ["data_analyst", "pattern_discovery_agent"]:
+            if create_data_validation_tools:
+                cls._safe_extend_tools(
+                    tools,
+                    lambda: create_data_validation_tools(context_info),
+                    "data validation tools",
+                )
+            if (
+                agent_type == "pattern_discovery_agent"
+                and create_dependency_analysis_tools
+            ):
+                cls._safe_extend_tools(
+                    tools,
+                    lambda: create_dependency_analysis_tools(context_info),
+                    "dependency analysis tools",
+                )
+
+        elif agent_type == "field_mapper":
+            if create_critical_attributes_tools:
+                cls._safe_extend_tools(
+                    tools,
+                    lambda: create_critical_attributes_tools(context_info),
+                    "critical attributes tools",
+                )
+
+        elif agent_type in ["business_value_analyst", "risk_assessment_agent"]:
+            if create_dependency_analysis_tools:
+                cls._safe_extend_tools(
+                    tools,
+                    lambda: create_dependency_analysis_tools(context_info),
+                    "dependency analysis tools",
+                )
+
+    @classmethod
+    def _add_legacy_tools(
+        cls,
+        agent_type: str,
+        context_info: Dict[str, Any],
+        tools: List,
+    ) -> None:
+        """Add tools using legacy pattern (without ServiceRegistry)."""
+        if not TOOLS_AVAILABLE:
+            logger.warning(f"Tools not available at module level for {agent_type}")
+            return
+
+        # Common tools
+        if create_task_completion_tools:
+            cls._safe_extend_tools(
+                tools,
+                lambda: create_task_completion_tools(context_info),
+                "task completion tools",
+            )
+
+        # Agent-specific tool loading
+        if agent_type in ["data_analyst", "pattern_discovery_agent"]:
+            cls._add_data_analysis_tools(agent_type, context_info, tools)
+        elif agent_type == "quality_assessor":
+            cls._add_quality_tools(context_info, tools)
+        elif agent_type in ["business_value_analyst", "risk_assessment_agent"]:
+            cls._add_business_analysis_tools(context_info, tools)
+        elif agent_type == "field_mapper":
+            cls._add_field_mapper_tools(context_info, tools)
+
+    @classmethod
+    def _add_data_analysis_tools(
+        cls,
+        agent_type: str,
+        context_info: Dict[str, Any],
+        tools: List,
+    ) -> None:
+        """Add tools for data analysis agents."""
+        if create_data_validation_tools:
+            cls._safe_extend_tools(
+                tools,
+                lambda: create_data_validation_tools(context_info),
+                "data validation tools",
+            )
+        if create_asset_creation_tools:
+            cls._safe_extend_tools(
+                tools,
+                lambda: create_asset_creation_tools(context_info),
+                "asset creation tools",
+            )
+        if get_asset_intelligence_tools:
+            cls._safe_extend_tools(
+                tools,
+                lambda: get_asset_intelligence_tools(),
+                "asset intelligence tools",
+            )
+        if agent_type == "pattern_discovery_agent" and create_dependency_analysis_tools:
+            cls._safe_extend_tools(
+                tools,
+                lambda: create_dependency_analysis_tools(context_info),
+                "dependency analysis tools",
+            )
+
+    @classmethod
+    def _add_quality_tools(cls, context_info: Dict[str, Any], tools: List) -> None:
+        """Add tools for quality assessor agent."""
+        if get_asset_intelligence_tools:
+            cls._safe_extend_tools(
+                tools,
+                lambda: get_asset_intelligence_tools(),
+                "asset intelligence tools",
+            )
+
+    @classmethod
+    def _add_business_analysis_tools(
+        cls, context_info: Dict[str, Any], tools: List
+    ) -> None:
+        """Add tools for business analysis agents."""
+        if get_asset_intelligence_tools:
+            cls._safe_extend_tools(
+                tools,
+                lambda: get_asset_intelligence_tools(),
+                "asset intelligence tools",
+            )
+        if create_dependency_analysis_tools:
+            cls._safe_extend_tools(
+                tools,
+                lambda: create_dependency_analysis_tools(context_info),
+                "dependency analysis tools",
+            )
+
+    @classmethod
+    def _add_field_mapper_tools(cls, context_info: Dict[str, Any], tools: List) -> None:
+        """Add tools for field mapper agent."""
+        if MappingConfidenceTool:
+            try:
+                mapping_tool = MappingConfidenceTool()
+                tools.append(mapping_tool)
+            except Exception as e:
+                logger.debug(f"Failed to create MappingConfidenceTool: {e}")
+
+        if create_critical_attributes_tools:
+            try:
+                critical_tools = create_critical_attributes_tools(context_info)
+                if isinstance(critical_tools, list):
+                    tools.extend(critical_tools)
+                else:
+                    logger.warning("Critical attributes tools returned non-list")
+            except Exception as e:
+                logger.warning(f"Failed to load critical attributes tools: {e}")
+
+    @classmethod
+    def _safe_extend_tools(cls, tools: List, getter, tool_name: str = "tools") -> int:
+        """Safely extend tools list with error handling."""
+        try:
+            result = getter()
+            if isinstance(result, list):
+                tools.extend(result)
+                return len(result)
+            else:
+                logger.warning(f"{tool_name} returned non-list type: {type(result)}")
+                return 0
+        except Exception as e:
+            logger.debug(f"Skipping {tool_name} due to error: {e}")
+            return 0
+
+    @classmethod
     def _get_agent_tools(
         cls,
         agent_type: str,
@@ -475,208 +701,22 @@ class TenantScopedAgentPool:
             List of CrewAI tools for the agent
         """
         try:
-            # Extract context from memory manager (it has client_account_id and engagement_id)
-            context_info = {
-                "client_account_id": (
-                    str(memory_manager.client_account_id)
-                    if hasattr(memory_manager, "client_account_id")
-                    else None
-                ),
-                "engagement_id": (
-                    str(memory_manager.engagement_id)
-                    if hasattr(memory_manager, "engagement_id")
-                    else None
-                ),
-                "agent_type": agent_type,
-            }
-
+            context_info = cls._extract_context_info(memory_manager)
+            context_info["agent_type"] = agent_type
             tools = []
 
-            # Helper function to safely extend tools list
-            def _safe_extend(getter, tool_name="tools"):
-                try:
-                    result = getter()
-                    if isinstance(result, list):
-                        tools.extend(result)
-                        return len(result)
-                    else:
-                        logger.warning(
-                            f"{tool_name} returned non-list type: {type(result)}"
-                        )
-                        return 0
-                except Exception as e:
-                    logger.debug(f"Skipping {tool_name} due to error: {e}")
-                    return 0
-
-            # If ServiceRegistry is available, use it for tool creation
             if service_registry:
                 logger.info(f"Using ServiceRegistry for {agent_type} tools")
-
-                # Use module-level imports - no dynamic imports needed
-                if not TOOLS_AVAILABLE:
-                    logger.warning(
-                        f"Tools not available at module level for {agent_type}"
-                    )
-                    return []
-
-                # Get tools from ServiceRegistry-aware creators
-                if agent_type in [
-                    "data_analyst",
-                    "pattern_discovery_agent",
-                    "field_mapper",
-                    "quality_assessor",
-                ]:
-                    # These agents need asset creation capabilities
-                    if create_asset_creation_tools:
-                        asset_tools = create_asset_creation_tools(
-                            context_info, registry=service_registry
-                        )
-                        if isinstance(asset_tools, list):
-                            tools.extend(asset_tools)
-                            logger.info(
-                                f"Added {len(asset_tools)} asset creation tools via ServiceRegistry"
-                            )
-
-                # Add all essential tools that haven't been migrated to ServiceRegistry yet
-                # This ensures agents have ALL required tools, not just asset creation
-                if create_task_completion_tools:
-                    _safe_extend(
-                        lambda: create_task_completion_tools(context_info),
-                        "task completion tools",
-                    )
-
-                # Add agent-specific tools based on type
-                if agent_type in ["data_analyst", "pattern_discovery_agent"]:
-                    if create_data_validation_tools:
-                        _safe_extend(
-                            lambda: create_data_validation_tools(context_info),
-                            "data validation tools",
-                        )
-                    if (
-                        agent_type == "pattern_discovery_agent"
-                        and create_dependency_analysis_tools
-                    ):
-                        _safe_extend(
-                            lambda: create_dependency_analysis_tools(context_info),
-                            "dependency analysis tools",
-                        )
-
-                elif agent_type == "field_mapper":
-                    if create_critical_attributes_tools:
-                        _safe_extend(
-                            lambda: create_critical_attributes_tools(context_info),
-                            "critical attributes tools",
-                        )
-
-                elif agent_type in ["business_value_analyst", "risk_assessment_agent"]:
-                    if create_dependency_analysis_tools:
-                        _safe_extend(
-                            lambda: create_dependency_analysis_tools(context_info),
-                            "dependency analysis tools",
-                        )
-
+                cls._add_tools_with_registry(
+                    agent_type, context_info, service_registry, tools
+                )
             else:
-                # Legacy path: Use module-level imports
                 logger.info(f"Using legacy tool creation for {agent_type}")
-
-                # Log missed opportunity to use ServiceRegistry
                 logger.warning(
                     f"ServiceRegistry not provided for {agent_type} tools - using legacy pattern. "
-                    f"Consider enabling USE_SERVICE_REGISTRY=true for better performance and consistency."
+                    f"Consider enabling USE_SERVICE_REGISTRY=true for better performance."
                 )
-
-                if not TOOLS_AVAILABLE:
-                    logger.warning(
-                        f"Tools not available at module level for {agent_type}"
-                    )
-                    return []
-
-            # Common tools for all agents
-            if create_task_completion_tools:
-                _safe_extend(
-                    lambda: create_task_completion_tools(context_info),
-                    "task completion tools",
-                )
-
-            # Agent-specific tools
-            if agent_type in ["data_analyst", "pattern_discovery_agent"]:
-                # Data analyst needs data validation tools
-                if create_data_validation_tools:
-                    _safe_extend(
-                        lambda: create_data_validation_tools(context_info),
-                        "data validation tools",
-                    )
-
-                # These agents need asset creation capabilities
-                if create_asset_creation_tools:
-                    _safe_extend(
-                        lambda: create_asset_creation_tools(context_info),
-                        "asset creation tools",
-                    )
-
-                # Add intelligence tools
-                if get_asset_intelligence_tools:
-                    _safe_extend(
-                        lambda: get_asset_intelligence_tools(),
-                        "asset intelligence tools",
-                    )
-
-                # Pattern discovery agent needs dependency analysis tools
-                if (
-                    agent_type == "pattern_discovery_agent"
-                    and create_dependency_analysis_tools
-                ):
-                    _safe_extend(
-                        lambda: create_dependency_analysis_tools(context_info),
-                        "dependency analysis tools",
-                    )
-
-            elif agent_type == "quality_assessor":
-                # Quality assessor needs asset enrichment tools
-                if get_asset_intelligence_tools:
-                    _safe_extend(
-                        lambda: get_asset_intelligence_tools(),
-                        "asset intelligence tools",
-                    )
-
-            elif agent_type in ["business_value_analyst", "risk_assessment_agent"]:
-                # These agents analyze but don't create assets
-                if get_asset_intelligence_tools:
-                    _safe_extend(
-                        lambda: get_asset_intelligence_tools(),
-                        "asset intelligence tools",
-                    )
-
-                # Add dependency analysis tools for these analysis agents
-                if create_dependency_analysis_tools:
-                    _safe_extend(
-                        lambda: create_dependency_analysis_tools(context_info),
-                        "dependency analysis tools",
-                    )
-
-            elif agent_type == "field_mapper":
-                # Field mapper needs specific mapping tools and critical attributes assessment
-                if MappingConfidenceTool:
-                    try:
-                        mapping_tool = MappingConfidenceTool()
-                        tools.append(mapping_tool)
-                    except Exception as e:
-                        logger.debug(f"Failed to create MappingConfidenceTool: {e}")
-
-                # Add critical attributes assessment tools for field mapper
-                if create_critical_attributes_tools:
-                    try:
-                        critical_tools = create_critical_attributes_tools(context_info)
-                        if isinstance(critical_tools, list):
-                            tools.extend(critical_tools)
-                        else:
-                            logger.warning(
-                                f"Critical attributes tools returned non-list for {agent_type}"
-                            )
-                    except Exception as e:
-                        logger.warning(
-                            f"Failed to load critical attributes tools for {agent_type}: {e}"
-                        )
+                cls._add_legacy_tools(agent_type, context_info, tools)
 
             logger.info(f"✅ Loaded {len(tools)} tools for {agent_type} agent")
             return tools
