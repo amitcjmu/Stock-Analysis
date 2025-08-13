@@ -444,6 +444,22 @@ class TenantScopedAgentPool:
 
             tools = []
 
+            # Helper function to safely extend tools list
+            def _safe_extend(getter, tool_name="tools"):
+                try:
+                    result = getter()
+                    if isinstance(result, list):
+                        tools.extend(result)
+                        return len(result)
+                    else:
+                        logger.warning(
+                            f"{tool_name} returned non-list type: {type(result)}"
+                        )
+                        return 0
+                except Exception as e:
+                    logger.debug(f"Skipping {tool_name} due to error: {e}")
+                    return 0
+
             # If ServiceRegistry is available, use it for tool creation
             if service_registry:
                 logger.info(f"Using ServiceRegistry for {agent_type} tools")
@@ -470,7 +486,8 @@ class TenantScopedAgentPool:
                             f"Added {len(asset_tools)} asset creation tools via ServiceRegistry"
                         )
 
-                # Fall back to legacy tool creators for other tools
+                # CRITICAL: Also include legacy tools to ensure parity while migration is incomplete
+                # Without these, agents are missing essential tools and cannot function properly
                 # TODO: Phase 5 - Migrate these tool creators to ServiceRegistry pattern
                 # Priority order for migration:
                 # 1. task_completion_tools - used by all agents
@@ -490,6 +507,38 @@ class TenantScopedAgentPool:
                 from app.services.crewai_flows.tools.dependency_analysis_tool import (
                     create_dependency_analysis_tools,
                 )
+
+                # Add all essential tools that haven't been migrated to ServiceRegistry yet
+                # This ensures agents have ALL required tools, not just asset creation
+                _safe_extend(
+                    lambda: create_task_completion_tools(context_info),
+                    "task completion tools",
+                )
+
+                # Add agent-specific tools based on type
+                if agent_type in ["data_analyst", "pattern_discovery_agent"]:
+                    _safe_extend(
+                        lambda: create_data_validation_tools(context_info),
+                        "data validation tools",
+                    )
+                    if agent_type == "pattern_discovery_agent":
+                        _safe_extend(
+                            lambda: create_dependency_analysis_tools(context_info),
+                            "dependency analysis tools",
+                        )
+
+                elif agent_type == "field_mapper":
+                    _safe_extend(
+                        lambda: create_critical_attributes_tools(context_info),
+                        "critical attributes tools",
+                    )
+
+                elif agent_type in ["business_value_analyst", "risk_assessment_agent"]:
+                    _safe_extend(
+                        lambda: create_dependency_analysis_tools(context_info),
+                        "dependency analysis tools",
+                    )
+
             else:
                 # Legacy path: Import all tool creators
                 logger.info(f"Using legacy tool creation for {agent_type}")
@@ -514,22 +563,6 @@ class TenantScopedAgentPool:
                 from app.services.crewai_flows.tools.dependency_analysis_tool import (
                     create_dependency_analysis_tools,
                 )
-
-            # Helper function to safely extend tools list
-            def _safe_extend(getter, tool_name="tools"):
-                try:
-                    result = getter()
-                    if isinstance(result, list):
-                        tools.extend(result)
-                        return len(result)
-                    else:
-                        logger.warning(
-                            f"{tool_name} returned non-list type: {type(result)}"
-                        )
-                        return 0
-                except Exception as e:
-                    logger.debug(f"Skipping {tool_name} due to error: {e}")
-                    return 0
 
             # Common tools for all agents
             _safe_extend(

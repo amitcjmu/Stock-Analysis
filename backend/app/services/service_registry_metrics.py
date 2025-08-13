@@ -257,12 +257,31 @@ class ServiceRegistryMonitor:
 
     def export_metrics(self) -> Dict[str, Any]:
         """Export all metrics for monitoring systems"""
+
+        def serialize_registry(m: RegistryMetrics) -> Dict[str, Any]:
+            """Serialize registry metrics with proper datetime handling"""
+            d = vars(m).copy()
+            d["creation_time"] = (
+                m.creation_time.isoformat() if m.creation_time else None
+            )
+            d["cleanup_time"] = m.cleanup_time.isoformat() if m.cleanup_time else None
+            return d
+
+        def serialize_service(s: ServiceMetrics) -> Dict[str, Any]:
+            """Serialize service metrics with proper datetime handling"""
+            d = vars(s).copy()
+            d["last_accessed"] = (
+                s.last_accessed.isoformat() if s.last_accessed else None
+            )
+            d["cache_hit_rate"] = s.cache_hit_rate
+            return d
+
         return {
             "registries": {
                 rid: {
-                    "metrics": vars(metrics),
+                    "metrics": serialize_registry(metrics),
                     "services": {
-                        sname: vars(smetric)
+                        sname: serialize_service(smetric)
                         for sname, smetric in self._service_metrics.get(rid, {}).items()
                     },
                 }
