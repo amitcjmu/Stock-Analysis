@@ -174,6 +174,11 @@ class DataImportService:
                 f"✅ Linked flow {master_flow_id} to data import {data_import.id}"
             )
 
+            # IMPORTANT: Set the master_flow_id on the in-memory object
+            # The update_import_with_flow_id only updates the database record,
+            # not the in-memory object, so we need to set it here for the response
+            data_import.master_flow_id = master_flow_id
+
             # The transaction will be committed by the calling service (e.g., in transaction_manager)
 
             return data_import
