@@ -91,7 +91,10 @@ async def get_agent_performance(
                     AgentExecutionHistory.engagement_id == context.engagement_id,
                 )
             )
-            .order_by(AgentExecutionHistory.created_at.desc())
+            .order_by(
+                AgentExecutionHistory.updated_at.desc(),
+                AgentExecutionHistory.created_at.desc(),
+            )
         )
 
         result = await db.execute(query)
@@ -118,9 +121,21 @@ async def get_agent_performance(
         last_activity = None
 
         if latest_execution:
-            last_activity = latest_execution.created_at.isoformat()
+            # Use the most recent timestamp for activity tracking
+            last_ts = (
+                latest_execution.updated_at
+                or latest_execution.end_time
+                or latest_execution.start_time
+                or latest_execution.created_at
+            )
+            last_activity = last_ts.isoformat() if last_ts else None
+
             # Check if there's an ongoing task (started but not completed)
-            if latest_execution.status == "running":
+            if (
+                latest_execution.status == "running"
+                and latest_execution.start_time
+                and not latest_execution.end_time
+            ):
                 is_active = True
                 current_task = latest_execution.task_name
 

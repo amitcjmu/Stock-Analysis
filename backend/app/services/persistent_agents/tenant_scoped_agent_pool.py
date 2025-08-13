@@ -438,48 +438,102 @@ class TenantScopedAgentPool:
             from app.services.crewai_flows.tools.dependency_analysis_tool import (
                 create_dependency_analysis_tools,
             )
-            from app.services.tools.asset_intelligence_tools import (
-                get_asset_intelligence_tools,
-            )
 
             tools = []
 
+            # Helper function to safely extend tools list
+            def _safe_extend(getter, tool_name="tools"):
+                try:
+                    result = getter()
+                    if isinstance(result, list):
+                        tools.extend(result)
+                        return len(result)
+                    else:
+                        logger.warning(
+                            f"{tool_name} returned non-list type: {type(result)}"
+                        )
+                        return 0
+                except Exception as e:
+                    logger.debug(f"Skipping {tool_name} due to error: {e}")
+                    return 0
+
             # Common tools for all agents
-            completion_tools = create_task_completion_tools(context_info)
-            tools.extend(completion_tools)
+            _safe_extend(
+                lambda: create_task_completion_tools(context_info),
+                "task completion tools",
+            )
 
             # Agent-specific tools
             if agent_type in ["data_analyst", "pattern_discovery_agent"]:
                 # Data analyst needs data validation tools
-                validation_tools = create_data_validation_tools(context_info)
-                tools.extend(validation_tools)
+                _safe_extend(
+                    lambda: create_data_validation_tools(context_info),
+                    "data validation tools",
+                )
 
                 # These agents need asset creation capabilities
-                asset_tools = create_asset_creation_tools(context_info)
-                tools.extend(asset_tools)
+                _safe_extend(
+                    lambda: create_asset_creation_tools(context_info),
+                    "asset creation tools",
+                )
 
                 # Add intelligence tools
-                intelligence_tools = get_asset_intelligence_tools()
-                tools.extend(intelligence_tools)
+                try:
+                    from app.services.tools.asset_intelligence_tools import (
+                        get_asset_intelligence_tools,
+                    )
+
+                    _safe_extend(
+                        lambda: get_asset_intelligence_tools(),
+                        "asset intelligence tools",
+                    )
+                except ImportError as e:
+                    logger.debug(f"Asset intelligence tools unavailable: {e}")
 
                 # Pattern discovery agent needs dependency analysis tools
                 if agent_type == "pattern_discovery_agent":
-                    dependency_tools = create_dependency_analysis_tools(context_info)
-                    tools.extend(dependency_tools)
+                    _safe_extend(
+                        lambda: create_dependency_analysis_tools(context_info),
+                        "dependency analysis tools",
+                    )
 
             elif agent_type == "quality_assessor":
                 # Quality assessor needs asset enrichment tools
-                intelligence_tools = get_asset_intelligence_tools()
-                tools.extend(intelligence_tools)
+                try:
+                    from app.services.tools.asset_intelligence_tools import (
+                        get_asset_intelligence_tools,
+                    )
+
+                    _safe_extend(
+                        lambda: get_asset_intelligence_tools(),
+                        "asset intelligence tools",
+                    )
+                except ImportError as e:
+                    logger.debug(
+                        f"Asset intelligence tools unavailable for {agent_type}: {e}"
+                    )
 
             elif agent_type in ["business_value_analyst", "risk_assessment_agent"]:
                 # These agents analyze but don't create assets
-                intelligence_tools = get_asset_intelligence_tools()
-                tools.extend(intelligence_tools)
+                try:
+                    from app.services.tools.asset_intelligence_tools import (
+                        get_asset_intelligence_tools,
+                    )
+
+                    _safe_extend(
+                        lambda: get_asset_intelligence_tools(),
+                        "asset intelligence tools",
+                    )
+                except ImportError as e:
+                    logger.debug(
+                        f"Asset intelligence tools unavailable for {agent_type}: {e}"
+                    )
 
                 # Add dependency analysis tools for these analysis agents
-                dependency_tools = create_dependency_analysis_tools(context_info)
-                tools.extend(dependency_tools)
+                _safe_extend(
+                    lambda: create_dependency_analysis_tools(context_info),
+                    "dependency analysis tools",
+                )
 
             elif agent_type == "field_mapper":
                 # Field mapper needs specific mapping tools and critical attributes assessment
@@ -490,12 +544,22 @@ class TenantScopedAgentPool:
 
                     mapping_tool = MappingConfidenceTool()
                     tools.append(mapping_tool)
-                except ImportError:
-                    logger.debug(f"Mapping tools not available for {agent_type}")
+                except Exception as e:
+                    logger.debug(f"Mapping tools not available for {agent_type}: {e}")
 
                 # Add critical attributes assessment tools for field mapper
-                critical_tools = create_critical_attributes_tools(context_info)
-                tools.extend(critical_tools)
+                try:
+                    critical_tools = create_critical_attributes_tools(context_info)
+                    if isinstance(critical_tools, list):
+                        tools.extend(critical_tools)
+                    else:
+                        logger.warning(
+                            f"Critical attributes tools returned non-list for {agent_type}"
+                        )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to load critical attributes tools for {agent_type}: {e}"
+                    )
 
             logger.info(f"✅ Loaded {len(tools)} tools for {agent_type} agent")
             return tools

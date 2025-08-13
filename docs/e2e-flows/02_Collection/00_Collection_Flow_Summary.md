@@ -6,31 +6,19 @@ This document outlines the end-to-end user and data flow for the **Collection** 
 
 The primary objective of the Collection flow is to gather detailed information about the assets identified during the **Discovery** phase. This involves a combination of automated data collection, manual data entry through adaptive forms, and bulk data uploads. The goal is to enrich the asset inventory with the necessary details to perform a comprehensive assessment.
 
-## 2. Flow Summary
+## 2. API Call Summary
 
-The Collection flow is initiated from the main Collection dashboard. Users can choose from several collection methods depending on their environment and the data they need to collect.
+| # | Method | Endpoint                              | Trigger                               | Description                                      |
+|---|--------|---------------------------------------|---------------------------------------|--------------------------------------------------|
+| 1 | `POST` | `/collection/flows`                   | User selects a collection method.     | Creates a new collection flow.                   |
+| 2 | `GET`  | `/collection/flows`                   | Loading the collection progress page. | Fetches all collection flows.                    |
+| 3 | `GET`  | `/collection/flows/{flow_id}`         | Viewing details of a specific flow.   | Fetches a single collection flow.                |
+| 4 | `POST` | `/collection/flows/{flow_id}/start`   | User action to start a paused flow.   | Starts or resumes a collection flow.             |
+| 5 | `POST` | `/collection/flows/{flow_id}/complete`| Automatic, upon flow completion.      | Marks a collection flow as complete.             |
+| 6 | `GET`  | `/collection/questionnaires/{flow_id}`| Adaptive forms page loads.            | Fetches the questionnaire for a flow.            |
+| 7 | `POST` | `/collection/questionnaires/{flow_id}`| User submits a form.                  | Submits answers to a questionnaire.              |
 
-```mermaid
-graph TD
-    A[Start] --> B(Collection Dashboard);
-    B --> C{Choose Collection Method};
-    C --> D[Adaptive Forms];
-    C --> E[Bulk Upload];
-    C --> F[Data Integration];
-    D --> G(Enrichment & Validation);
-    E --> G;
-    F --> G;
-    G --> H(Handoff to Assess);
-```
-
-## 3. Key Features & Components
-
-- **Adaptive Data Collection**: The system intelligently determines the data collection method based on the environment and user input.
-- **Multiple Collection Methods**: Supports adaptive forms, bulk uploads, and direct data integrations.
-- **CrewAI-Powered Orchestration**: The entire flow is orchestrated by CrewAI agents, ensuring a flexible and intelligent data collection process.
-- **Data Validation & Enrichment**: Collected data is validated and enriched before being handed off to the Assessment phase.
-
-## 4. Directory Structure
+## 3. Directory Structure
 
 The documentation for the Collection flow is organized as follows:
 
