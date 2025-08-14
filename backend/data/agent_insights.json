@@ -12832,9 +12832,9 @@
     },
     "page": "flow_04c057f1-ec41-4876-8c2e-4e979dcbcd05",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "04c057f1-ec41-4876-8c2e-4e979dcbcd05",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T14:39:49.661635",
     "user_feedback": null,
     "is_validated": false
@@ -12854,9 +12854,9 @@
     },
     "page": "flow_04c057f1-ec41-4876-8c2e-4e979dcbcd05",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "04c057f1-ec41-4876-8c2e-4e979dcbcd05",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T14:39:49.815074",
     "user_feedback": null,
     "is_validated": false
@@ -12877,9 +12877,9 @@
     },
     "page": "flow_04c057f1-ec41-4876-8c2e-4e979dcbcd05",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "04c057f1-ec41-4876-8c2e-4e979dcbcd05",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T14:39:59.268869",
     "user_feedback": null,
     "is_validated": false
@@ -12929,9 +12929,9 @@
     },
     "page": "flow_04c057f1-ec41-4876-8c2e-4e979dcbcd05",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "04c057f1-ec41-4876-8c2e-4e979dcbcd05",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T14:39:59.291478",
     "user_feedback": null,
     "is_validated": false
@@ -12951,9 +12951,9 @@
     },
     "page": "flow_04c057f1-ec41-4876-8c2e-4e979dcbcd05",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "04c057f1-ec41-4876-8c2e-4e979dcbcd05",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T14:39:59.335371",
     "user_feedback": null,
     "is_validated": false
@@ -12974,9 +12974,9 @@
     },
     "page": "flow_04c057f1-ec41-4876-8c2e-4e979dcbcd05",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "04c057f1-ec41-4876-8c2e-4e979dcbcd05",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T14:41:07.004447",
     "user_feedback": null,
     "is_validated": false
@@ -13090,9 +13090,9 @@
     },
     "page": "flow_04c057f1-ec41-4876-8c2e-4e979dcbcd05",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "04c057f1-ec41-4876-8c2e-4e979dcbcd05",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T14:41:07.042369",
     "user_feedback": null,
     "is_validated": false
@@ -13208,9 +13208,9 @@
     },
     "page": "flow_04c057f1-ec41-4876-8c2e-4e979dcbcd05",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "04c057f1-ec41-4876-8c2e-4e979dcbcd05",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T14:41:07.058870",
     "user_feedback": null,
     "is_validated": false
@@ -13231,9 +13231,9 @@
     },
     "page": "flow_c2f9ea28-5d04-47f1-a208-a12a162b9ee6",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "c2f9ea28-5d04-47f1-a208-a12a162b9ee6",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T14:43:40.738252",
     "user_feedback": null,
     "is_validated": false
@@ -13253,9 +13253,9 @@
     },
     "page": "flow_c2f9ea28-5d04-47f1-a208-a12a162b9ee6",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "c2f9ea28-5d04-47f1-a208-a12a162b9ee6",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T14:43:40.894695",
     "user_feedback": null,
     "is_validated": false
@@ -13276,9 +13276,9 @@
     },
     "page": "flow_c2f9ea28-5d04-47f1-a208-a12a162b9ee6",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "c2f9ea28-5d04-47f1-a208-a12a162b9ee6",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T14:43:48.475690",
     "user_feedback": null,
     "is_validated": false
@@ -13328,9 +13328,9 @@
     },
     "page": "flow_c2f9ea28-5d04-47f1-a208-a12a162b9ee6",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "c2f9ea28-5d04-47f1-a208-a12a162b9ee6",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T14:43:48.505210",
     "user_feedback": null,
     "is_validated": false
@@ -13350,9 +13350,9 @@
     },
     "page": "flow_c2f9ea28-5d04-47f1-a208-a12a162b9ee6",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "c2f9ea28-5d04-47f1-a208-a12a162b9ee6",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T14:43:48.549799",
     "user_feedback": null,
     "is_validated": false
@@ -13373,9 +13373,9 @@
     },
     "page": "flow_c2f9ea28-5d04-47f1-a208-a12a162b9ee6",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "c2f9ea28-5d04-47f1-a208-a12a162b9ee6",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T14:44:51.070798",
     "user_feedback": null,
     "is_validated": false
@@ -13454,9 +13454,9 @@
     },
     "page": "flow_c2f9ea28-5d04-47f1-a208-a12a162b9ee6",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "c2f9ea28-5d04-47f1-a208-a12a162b9ee6",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T14:44:51.101641",
     "user_feedback": null,
     "is_validated": false
@@ -13537,10 +13537,925 @@
     },
     "page": "flow_c2f9ea28-5d04-47f1-a208-a12a162b9ee6",
     "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T14:44:51.145669",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "749227f3-1a14-44d6-a479-72e60da847ea": {
+    "id": "749227f3-1a14-44d6-a479-72e60da847ea",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID cae88740-eb0c-423b-9c86-abae36cea0e2",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "cae88740-eb0c-423b-9c86-abae36cea0e2"
+    },
+    "page": "flow_cae88740-eb0c-423b-9c86-abae36cea0e2",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T15:39:06.575091",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "29cc0087-870f-436f-a8dd-4a94179e5d37": {
+    "id": "29cc0087-870f-436f-a8dd-4a94179e5d37",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_cae88740-eb0c-423b-9c86-abae36cea0e2",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T15:39:06.751347",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "5d099c84-93b1-418a-8554-d7a4c905713c": {
+    "id": "5d099c84-93b1-418a-8554-d7a4c905713c",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "The data appears to be CMDB or asset inventory data, is clean with no detected PII or threats, and is suitable for asset inventory creation."
+    },
+    "page": "flow_cae88740-eb0c-423b-9c86-abae36cea0e2",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T15:39:18.077348",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "190f76a3-6f4d-4b0b-baf6-138de61666c5": {
+    "id": "190f76a3-6f4d-4b0b-baf6-138de61666c5",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "cae88740-eb0c-423b-9c86-abae36cea0e2",
+      "raw_result": "{\n                \"file_type\": \"CMDB\",\n                \"confidence\": 0.9,\n                \"recommended_agent\": \"CMDB_Data_Analyst_Agent\",\n                \"security_status\": \"clean\",\n                \"pii_found\": false,\n                \"threats_found\": false,\n                \"asset_inventory_suitable\": true,\n                \"summary\": \"The data appears to be CMDB or asset inventory data, is clean with no detected PII or threats, and is suitable for asset inventory creation.\",\n                \"user_approval_required\": true\n            }",
+      "processed": true,
+      "is_valid": true,
+      "file_analysis": {
+        "detected_type": "CMDB",
+        "confidence": 0.9,
+        "recommended_agent": "CMDB_Data_Analyst_Agent"
+      },
+      "security_status": "clean",
+      "pii_detected": false,
+      "asset_inventory_suitable": true,
+      "summary": "The data appears to be CMDB or asset inventory data, is clean with no detected PII or threats, and is suitable for asset inventory creation.",
+      "user_approval_required": true,
+      "quality_score": 0.9,
+      "total_records": 3,
+      "validated_data": [
+        {
+          "Location": "Datacenter-A",
+          "Device_ID": "DEV001",
+          "IP_Address": "192.168.1.10",
+          "Device_Name": "web-server-01",
+          "Device_Type": "Server",
+          "Status_Code": "Active"
+        },
+        {
+          "Location": "Datacenter-B",
+          "Device_ID": "DEV002",
+          "IP_Address": "192.168.1.20",
+          "Device_Name": "db-server-01",
+          "Device_Type": "Database",
+          "Status_Code": "Active"
+        },
+        {
+          "Location": "Datacenter-A",
+          "Device_ID": "DEV003",
+          "IP_Address": "192.168.1.30",
+          "Device_Name": "app-server-01",
+          "Device_Type": "Application",
+          "Status_Code": "Active"
+        }
+      ]
+    },
+    "page": "flow_cae88740-eb0c-423b-9c86-abae36cea0e2",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T15:39:18.100241",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "32f29da1-c482-42af-9a8d-2aef37cb7966": {
+    "id": "32f29da1-c482-42af-9a8d-2aef37cb7966",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Attribute Mapping",
+    "description": "Beginning execution of attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "starting",
+      "progress": 16.7
+    },
+    "page": "flow_cae88740-eb0c-423b-9c86-abae36cea0e2",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T15:39:18.143122",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "ed2c6317-9d0c-4722-8ac9-2ee090a40338": {
+    "id": "ed2c6317-9d0c-4722-8ac9-2ee090a40338",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Attribute Mapping",
+    "description": "Successfully completed attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_cae88740-eb0c-423b-9c86-abae36cea0e2",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T15:40:24.444916",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "3230aa5a-a207-482e-a63e-56a30a5375eb": {
+    "id": "3230aa5a-a207-482e-a63e-56a30a5375eb",
+    "agent_id": "unified_discovery_field_mapping",
+    "agent_name": "Discovery Field Mapping Agent",
+    "insight_type": "phase_completion",
+    "title": "Field Mapping Suggestions Generated",
+    "description": "Field mapping suggestions have been generated and are ready for review",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "field_mapping",
+      "progress": 40,
+      "flow_id": "cae88740-eb0c-423b-9c86-abae36cea0e2",
+      "mappings": {
+        "mappings": "{",
+        "Location": "{",
+        "target_field": "asset_type\",",
+        "reasoning": "Type or category of a device\",",
+        "requires_transformation": "false",
+        "Device_ID": "{",
+        "IP_Address": "{",
+        "Device_Name": "{",
+        "Device_Type": "{",
+        "skipped_fields": "[],",
+        "synthesis_required": "[]"
+      },
+      "mapping_details": {
+        "mappings": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "Location": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "target_field": {
+          "target": "asset_type\",",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "reasoning": {
+          "target": "Type or category of a device\",",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "requires_transformation": {
+          "target": "false",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "Device_ID": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "IP_Address": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "Device_Name": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "Device_Type": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "skipped_fields": {
+          "target": "[],",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "synthesis_required": {
+          "target": "[]",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        }
+      },
+      "confidence_scores": {
+        "mappings": 0.7,
+        "Location": 0.7,
+        "target_field": 0.7,
+        "reasoning": 0.7,
+        "requires_transformation": 0.7,
+        "Device_ID": 0.7,
+        "IP_Address": 0.7,
+        "Device_Name": 0.7,
+        "Device_Type": 0.7,
+        "skipped_fields": 0.7,
+        "synthesis_required": 0.7
+      },
+      "validation_results": {
+        "total_fields": 11,
+        "mapped_fields": 11,
+        "mapping_confidence": 0.7000000000000001,
+        "fallback_used": false
+      },
+      "crew_execution": true,
+      "execution_metadata": {
+        "timestamp": "2025-08-14T15:39:18.076210",
+        "method": "crewai_field_mapping"
+      }
+    },
+    "page": "flow_cae88740-eb0c-423b-9c86-abae36cea0e2",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T15:40:24.463795",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "83696ac9-dab5-4fc4-9bbd-43ac6be12f92": {
+    "id": "83696ac9-dab5-4fc4-9bbd-43ac6be12f92",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow cae88740-eb0c-423b-9c86-abae36cea0e2",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "cae88740-eb0c-423b-9c86-abae36cea0e2",
+      "approval_data": {
+        "mappings": {
+          "mappings": "{",
+          "Location": "{",
+          "target_field": "asset_type\",",
+          "reasoning": "Type or category of a device\",",
+          "requires_transformation": "false",
+          "Device_ID": "{",
+          "IP_Address": "{",
+          "Device_Name": "{",
+          "Device_Type": "{",
+          "skipped_fields": "[],",
+          "synthesis_required": "[]"
+        },
+        "mapping_details": {
+          "mappings": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "Location": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "target_field": {
+            "target": "asset_type\",",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "reasoning": {
+            "target": "Type or category of a device\",",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "requires_transformation": {
+            "target": "false",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "Device_ID": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "IP_Address": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "Device_Name": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "Device_Type": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "skipped_fields": {
+            "target": "[],",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "synthesis_required": {
+            "target": "[]",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          }
+        },
+        "confidence_scores": {
+          "mappings": 0.7,
+          "Location": 0.7,
+          "target_field": 0.7,
+          "reasoning": 0.7,
+          "requires_transformation": 0.7,
+          "Device_ID": 0.7,
+          "IP_Address": 0.7,
+          "Device_Name": 0.7,
+          "Device_Type": 0.7,
+          "skipped_fields": 0.7,
+          "synthesis_required": 0.7
+        },
+        "validation_results": {
+          "total_fields": 11,
+          "mapped_fields": 11,
+          "mapping_confidence": 0.7000000000000001,
+          "fallback_used": false
+        },
+        "crew_execution": true,
+        "execution_metadata": {
+          "timestamp": "2025-08-14T15:39:18.076210",
+          "method": "crewai_field_mapping"
+        }
+      }
+    },
+    "page": "flow_cae88740-eb0c-423b-9c86-abae36cea0e2",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T15:40:24.480436",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "c22eb3f0-e663-4f82-bd53-0655e3632278": {
+    "id": "c22eb3f0-e663-4f82-bd53-0655e3632278",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID 47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "47e96bc8-6426-4e3d-adf7-b34e329be25a"
+    },
+    "page": "flow_47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "actionable": true,
     "client_account_id": "11111111-1111-1111-1111-111111111111",
     "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "c2f9ea28-5d04-47f1-a208-a12a162b9ee6",
-    "created_at": "2025-08-14T14:44:51.145669",
+    "flow_id": "47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "created_at": "2025-08-14T18:15:21.590769",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "5d0d3268-e99e-4125-9aef-b645fc696981": {
+    "id": "5d0d3268-e99e-4125-9aef-b645fc696981",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "created_at": "2025-08-14T18:15:21.750646",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "5180bff6-2db4-496b-9a3a-a618ee9bc881": {
+    "id": "5180bff6-2db4-496b-9a3a-a618ee9bc881",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Validation completed by CrewAI"
+    },
+    "page": "flow_47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "created_at": "2025-08-14T18:15:32.530975",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "c5c13a35-3316-4644-99f3-44050eb18d08": {
+    "id": "c5c13a35-3316-4644-99f3-44050eb18d08",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "47e96bc8-6426-4e3d-adf7-b34e329be25a",
+      "raw_result": "```json\n{\n    \"file_type\": \"CMDB\",\n    \"confidence\": 0.8,\n    \"recommended_agent\": \"CMDB_Data_Analyst_Agent\",\n    \"security_status\": \"clean\",\n    \"pii_found\": false,\n    \"threats_found\": false,\n    \"asset_inventory_suitable\": true,\n    \"summary\": \"The data appears to be CMDB-related, is clean, and suitable for asset inventory creation.\",\n    \"user_approval_required\": true\n}\n```",
+      "processed": true,
+      "is_valid": true,
+      "summary": "Validation completed by CrewAI",
+      "validated_data": [
+        {
+          "os": "Linux",
+          "ram_gb": "16",
+          "hostname": "web01.demo.com",
+          "cpu_cores": "8",
+          "ip_address": "10.0.1.10",
+          "os_version": "Ubuntu 20.04",
+          "application": "Web Portal",
+          "environment": "Production",
+          "server_name": "WEB-SERVER-01",
+          "business_unit": "IT"
+        },
+        {
+          "os": "Linux",
+          "ram_gb": "32",
+          "hostname": "app01.demo.com",
+          "cpu_cores": "16",
+          "ip_address": "10.0.1.20",
+          "os_version": "RHEL 8",
+          "application": "Business App",
+          "environment": "Production",
+          "server_name": "APP-SERVER-01",
+          "business_unit": "Finance"
+        },
+        {
+          "os": "Linux",
+          "ram_gb": "64",
+          "hostname": "db01.demo.com",
+          "cpu_cores": "32",
+          "ip_address": "10.0.1.30",
+          "os_version": "CentOS 7",
+          "application": "Database",
+          "environment": "Production",
+          "server_name": "DB-SERVER-01",
+          "business_unit": "IT"
+        },
+        {
+          "os": "Windows",
+          "ram_gb": "8",
+          "hostname": "test01.demo.com",
+          "cpu_cores": "4",
+          "ip_address": "10.0.2.10",
+          "os_version": "Server 2019",
+          "application": "Test Suite",
+          "environment": "Test",
+          "server_name": "TEST-SERVER-01",
+          "business_unit": "QA"
+        },
+        {
+          "os": "Linux",
+          "ram_gb": "8",
+          "hostname": "dev01.demo.com",
+          "cpu_cores": "4",
+          "ip_address": "10.0.2.20",
+          "os_version": "Ubuntu 18.04",
+          "application": "Dev Tools",
+          "environment": "Development",
+          "server_name": "DEV-SERVER-01",
+          "business_unit": "Development"
+        }
+      ]
+    },
+    "page": "flow_47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "created_at": "2025-08-14T18:15:32.557621",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "1cc6f0a9-1524-4f87-894d-a312d9374b72": {
+    "id": "1cc6f0a9-1524-4f87-894d-a312d9374b72",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Attribute Mapping",
+    "description": "Beginning execution of attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "starting",
+      "progress": 16.7
+    },
+    "page": "flow_47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "created_at": "2025-08-14T18:15:32.599036",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "8a9a851f-7907-4f74-8324-7205d9ba9aa5": {
+    "id": "8a9a851f-7907-4f74-8324-7205d9ba9aa5",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Attribute Mapping",
+    "description": "Successfully completed attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "created_at": "2025-08-14T18:16:54.465321",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "2cd8e12c-7793-4b74-8c7e-cbd5cf11e6e2": {
+    "id": "2cd8e12c-7793-4b74-8c7e-cbd5cf11e6e2",
+    "agent_id": "unified_discovery_field_mapping",
+    "agent_name": "Discovery Field Mapping Agent",
+    "insight_type": "phase_completion",
+    "title": "Field Mapping Suggestions Generated",
+    "description": "Field mapping suggestions have been generated and are ready for review",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "field_mapping",
+      "progress": 40,
+      "flow_id": "47e96bc8-6426-4e3d-adf7-b34e329be25a",
+      "mappings": {
+        "mappings": "{",
+        "os": "{",
+        "target_field": "department\",",
+        "reasoning": "Semantic match for business department or unit\",",
+        "requires_transformation": "false",
+        "ram_gb": "{",
+        "hostname": "{",
+        "cpu_cores": "{",
+        "ip_address": "{",
+        "os_version": "{",
+        "application": "{",
+        "environment": "{",
+        "server_name": "{",
+        "business_unit": "{",
+        "skipped_fields": "[],",
+        "synthesis_required": "[]"
+      },
+      "mapping_details": {
+        "mappings": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "os": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "target_field": {
+          "target": "department\",",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "reasoning": {
+          "target": "Semantic match for business department or unit\",",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "requires_transformation": {
+          "target": "false",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "ram_gb": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "hostname": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "cpu_cores": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "ip_address": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "os_version": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "application": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "environment": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "server_name": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "business_unit": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "skipped_fields": {
+          "target": "[],",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "synthesis_required": {
+          "target": "[]",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        }
+      },
+      "confidence_scores": {
+        "mappings": 0.7,
+        "os": 0.7,
+        "target_field": 0.7,
+        "reasoning": 0.7,
+        "requires_transformation": 0.7,
+        "ram_gb": 0.7,
+        "hostname": 0.7,
+        "cpu_cores": 0.7,
+        "ip_address": 0.7,
+        "os_version": 0.7,
+        "application": 0.7,
+        "environment": 0.7,
+        "server_name": 0.7,
+        "business_unit": 0.7,
+        "skipped_fields": 0.7,
+        "synthesis_required": 0.7
+      },
+      "validation_results": {
+        "total_fields": 16,
+        "mapped_fields": 16,
+        "mapping_confidence": 0.6999999999999998,
+        "fallback_used": false
+      },
+      "crew_execution": true,
+      "execution_metadata": {
+        "timestamp": "2025-08-14T18:15:32.530518",
+        "method": "crewai_field_mapping"
+      }
+    },
+    "page": "flow_47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "created_at": "2025-08-14T18:16:54.493686",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "14c192b5-ec9a-4b78-84e9-ddcd481bef11": {
+    "id": "14c192b5-ec9a-4b78-84e9-ddcd481bef11",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow 47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "47e96bc8-6426-4e3d-adf7-b34e329be25a",
+      "approval_data": {
+        "mappings": {
+          "mappings": "{",
+          "os": "{",
+          "target_field": "department\",",
+          "reasoning": "Semantic match for business department or unit\",",
+          "requires_transformation": "false",
+          "ram_gb": "{",
+          "hostname": "{",
+          "cpu_cores": "{",
+          "ip_address": "{",
+          "os_version": "{",
+          "application": "{",
+          "environment": "{",
+          "server_name": "{",
+          "business_unit": "{",
+          "skipped_fields": "[],",
+          "synthesis_required": "[]"
+        },
+        "mapping_details": {
+          "mappings": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "os": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "target_field": {
+            "target": "department\",",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "reasoning": {
+            "target": "Semantic match for business department or unit\",",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "requires_transformation": {
+            "target": "false",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "ram_gb": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "hostname": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "cpu_cores": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "ip_address": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "os_version": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "application": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "environment": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "server_name": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "business_unit": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "skipped_fields": {
+            "target": "[],",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "synthesis_required": {
+            "target": "[]",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          }
+        },
+        "confidence_scores": {
+          "mappings": 0.7,
+          "os": 0.7,
+          "target_field": 0.7,
+          "reasoning": 0.7,
+          "requires_transformation": 0.7,
+          "ram_gb": 0.7,
+          "hostname": 0.7,
+          "cpu_cores": 0.7,
+          "ip_address": 0.7,
+          "os_version": 0.7,
+          "application": 0.7,
+          "environment": 0.7,
+          "server_name": 0.7,
+          "business_unit": 0.7,
+          "skipped_fields": 0.7,
+          "synthesis_required": 0.7
+        },
+        "validation_results": {
+          "total_fields": 16,
+          "mapped_fields": 16,
+          "mapping_confidence": 0.6999999999999998,
+          "fallback_used": false
+        },
+        "crew_execution": true,
+        "execution_metadata": {
+          "timestamp": "2025-08-14T18:15:32.530518",
+          "method": "crewai_field_mapping"
+        }
+      }
+    },
+    "page": "flow_47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "47e96bc8-6426-4e3d-adf7-b34e329be25a",
+    "created_at": "2025-08-14T18:16:54.513644",
     "user_feedback": null,
     "is_validated": false
   }
