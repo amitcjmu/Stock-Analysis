@@ -3,20 +3,26 @@ External Tools Package for AI Agents
 Contains tools that agents can use to interact with external systems and learn from data.
 """
 
-from .base_tool import AsyncBaseDiscoveryTool, BaseDiscoveryTool
+# Import registry and categories first (no dependencies on tools)
+from .registry import ToolMetadata, tool_registry
 from .categories import TOOL_CATEGORIES, get_tools_for_phase
 from .factory import tool_factory
+
+# Import base tool classes after registry to avoid circular import
+from .base_tool import AsyncBaseDiscoveryTool, BaseDiscoveryTool
+
+# Import specific tools last
 from .field_mapping_tool import field_mapping_tool
-from .registry import ToolMetadata, tool_registry
 
 # Auto-discover tools on import
 # Note: Tools are auto-discovered and registered via registry
 # Individual tool imports removed to avoid unused import warnings
 try:
-    # Tools will be discovered automatically via registry
+    # Initialize the tool registry to discover tools
+    tool_registry.initialize()
+except Exception:
+    # Tools will be discovered later or on-demand
     pass
-except ImportError:
-    pass  # Tools will be discovered automatically
 
 __all__ = [
     "field_mapping_tool",
