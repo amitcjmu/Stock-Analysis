@@ -20,15 +20,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # Add the backend directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend"))
 
-from app.core.database import AsyncSessionLocal, engine
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.models.data_import.mapping import ImportFieldMapping as FieldMapping
-from app.models.discovery_flow import DiscoveryFlow
-from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
-from app.services.crewai_flows.unified_discovery_flow.flow_finalization import (
+# Application imports after path setup
+from app.core.database import AsyncSessionLocal, engine  # noqa: E402
+from app.models.crewai_flow_state_extensions import (
+    CrewAIFlowStateExtensions,
+)  # noqa: E402
+from app.models.data_import.mapping import (
+    ImportFieldMapping as FieldMapping,
+)  # noqa: E402
+from app.models.discovery_flow import DiscoveryFlow  # noqa: E402
+from app.models.unified_discovery_flow_state import (
+    UnifiedDiscoveryFlowState,
+)  # noqa: E402
+from app.services.crewai_flows.unified_discovery_flow.flow_finalization import (  # noqa: E402
     UnifiedDiscoveryFlowFinalizer,
 )
-from app.services.crewai_flows.unified_discovery_flow.flow_management import (
+from app.services.crewai_flows.unified_discovery_flow.flow_management import (  # noqa: E402
     UnifiedDiscoveryFlowManager,
 )
 

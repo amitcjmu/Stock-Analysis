@@ -287,7 +287,9 @@ class DataIntegrityValidator:
             )
 
             # Check for orphaned discovery flows
-            orphan_discovery_query = text(  # nosec B608 - scope_where is built from parameterized conditions and uses SQLAlchemy parameterized queries
+            # nosec B608 - scope_where is built from parameterized conditions
+            # and uses SQLAlchemy parameterized queries
+            orphan_discovery_query = text(
                 f"""
                 SELECT COUNT(*) as count
                 FROM discovery_flows df
@@ -303,7 +305,9 @@ class DataIntegrityValidator:
             orphaned_records["discovery_flows"] = orphaned_discovery_count
 
             # Check for orphaned data imports
-            orphan_import_query = text(  # nosec B608 - scope_where is built from parameterized conditions and uses SQLAlchemy parameterized queries
+            # nosec B608 - scope_where is built from parameterized conditions
+            # and uses SQLAlchemy parameterized queries
+            orphan_import_query = text(
                 f"""
                 SELECT COUNT(*) as count
                 FROM data_imports di
@@ -319,7 +323,9 @@ class DataIntegrityValidator:
             orphaned_records["data_imports"] = orphaned_import_count
 
             # Check for orphaned raw records
-            orphan_raw_query = text(  # nosec B608 - scope_where is built from parameterized conditions and uses SQLAlchemy parameterized queries
+            # nosec B608 - scope_where is built from parameterized conditions
+            # and uses SQLAlchemy parameterized queries
+            orphan_raw_query = text(
                 f"""
                 SELECT COUNT(*) as count
                 FROM raw_import_records rir
@@ -334,7 +340,9 @@ class DataIntegrityValidator:
             orphaned_records["raw_import_records"] = orphaned_raw_count
 
             # Check for orphaned assets
-            orphan_asset_query = text(  # nosec B608 - scope_where is built from parameterized conditions and uses SQLAlchemy parameterized queries
+            # nosec B608 - scope_where is built from parameterized conditions
+            # and uses SQLAlchemy parameterized queries
+            orphan_asset_query = text(
                 f"""
                 SELECT COUNT(*) as count
                 FROM assets a
@@ -438,7 +446,10 @@ class DataIntegrityValidator:
                             {
                                 "type": "incorrect_cascade_rule",
                                 "severity": "medium",
-                                "description": f"Unexpected cascade rule for {row.table_name}.{row.column_name}: {row.delete_rule}",
+                                "description": (
+                                    f"Unexpected cascade rule for {row.table_name}."
+                                    f"{row.column_name}: {row.delete_rule}"
+                                ),
                                 "table": row.table_name,
                                 "column": row.column_name,
                                 "current_rule": row.delete_rule,
@@ -596,13 +607,19 @@ class DataIntegrityValidator:
             )
 
             # Check for discovery flows without corresponding master flows
+            # nosec B608 - scope_where is built from parameterized conditions
+            # and uses SQLAlchemy parameterized queries
             consistency_query = text(
-                f"""  # nosec B608 - scope_where is built from parameterized conditions and uses SQLAlchemy parameterized queries
+                f"""
                 SELECT
-                    COUNT(CASE WHEN df.master_flow_id IS NOT NULL AND mf.flow_id IS NULL THEN 1 END) as orphaned_discovery_flows,
-                    COUNT(CASE WHEN di.master_flow_id IS NOT NULL AND mf2.flow_id IS NULL THEN 1 END) as orphaned_data_imports,
-                    COUNT(CASE WHEN df.data_import_id IS NOT NULL AND di2.id IS NULL THEN 1 END) as discovery_flows_missing_imports,
-                    COUNT(CASE WHEN rir.asset_id IS NOT NULL AND a.id IS NULL THEN 1 END) as raw_records_missing_assets
+                    COUNT(CASE WHEN df.master_flow_id IS NOT NULL
+                        AND mf.flow_id IS NULL THEN 1 END) as orphaned_discovery_flows,
+                    COUNT(CASE WHEN di.master_flow_id IS NOT NULL
+                        AND mf2.flow_id IS NULL THEN 1 END) as orphaned_data_imports,
+                    COUNT(CASE WHEN df.data_import_id IS NOT NULL
+                        AND di2.id IS NULL THEN 1 END) as discovery_flows_missing_imports,
+                    COUNT(CASE WHEN rir.asset_id IS NOT NULL
+                        AND a.id IS NULL THEN 1 END) as raw_records_missing_assets
                 FROM crewai_flow_state_extensions mf
                 FULL OUTER JOIN discovery_flows df ON df.master_flow_id = mf.flow_id
                 FULL OUTER JOIN crewai_flow_state_extensions mf2 ON mf2.flow_id = mf.flow_id
@@ -681,8 +698,10 @@ class DataIntegrityValidator:
             # Test 1: Master flow listing query
             start_time = datetime.now()
 
+            # nosec B608 - scope_where is built from parameterized conditions
+            # and uses SQLAlchemy parameterized queries
             master_flow_query = text(
-                f"""  # nosec B608 - scope_where is built from parameterized conditions and uses SQLAlchemy parameterized queries
+                f"""
                 SELECT COUNT(*) FROM crewai_flow_state_extensions
                 {scope_where}
             """
@@ -706,13 +725,20 @@ class DataIntegrityValidator:
             # Test 2: Discovery flow with joins query
             start_time = datetime.now()
 
+            # nosec B608 - scope_where is built from parameterized conditions
+            # and uses SQLAlchemy parameterized queries
             discovery_join_query = text(
-                f"""  # nosec B608 - scope_where is built from parameterized conditions and uses SQLAlchemy parameterized queries
+                f"""
                 SELECT df.flow_id, df.flow_name, di.import_name, di.status
                 FROM discovery_flows df
                 JOIN data_imports di ON df.data_import_id = di.id
                 JOIN crewai_flow_state_extensions mf ON df.master_flow_id = mf.flow_id
-                {scope_where.replace('client_account_id', 'df.client_account_id').replace('engagement_id', 'df.engagement_id') if scope_where else ''}
+                {(
+                    scope_where
+                    .replace('client_account_id', 'df.client_account_id')
+                    .replace('engagement_id', 'df.engagement_id')
+                    if scope_where else ''
+                )}
                 LIMIT 100
             """
             )
@@ -735,15 +761,23 @@ class DataIntegrityValidator:
             # Test 3: Asset aggregation query
             start_time = datetime.now()
 
+            # nosec B608 - scope_where is built from parameterized conditions
+            # and uses SQLAlchemy parameterized queries
             asset_aggregation_query = text(
-                f"""  # nosec B608 - scope_where is built from parameterized conditions and uses SQLAlchemy parameterized queries
+                f"""
                 SELECT
                     COUNT(*) as total_assets,
                     AVG(migration_readiness_score) as avg_readiness_score,
-                    COUNT(CASE WHEN migration_readiness_score >= 0.8 THEN 1 END) as high_readiness_count
+                    COUNT(CASE WHEN migration_readiness_score >= 0.8 THEN 1 END)
+                        as high_readiness_count
                 FROM assets a
                 JOIN discovery_flows df ON a.discovery_flow_id = df.flow_id
-                {scope_where.replace('client_account_id', 'a.client_account_id').replace('engagement_id', 'a.engagement_id') if scope_where else ''}
+                {(
+                    scope_where
+                    .replace('client_account_id', 'a.client_account_id')
+                    .replace('engagement_id', 'a.engagement_id')
+                    if scope_where else ''
+                )}
             """
             )
 
@@ -772,7 +806,11 @@ class DataIntegrityValidator:
                         {
                             "type": "performance_issue",
                             "severity": "medium",
-                            "description": f"Query {test['test']} took {test['execution_time_seconds']:.3f}s (threshold: {test['threshold_seconds']}s)",
+                            "description": (
+                                f"Query {test['test']} took "
+                                f"{test['execution_time_seconds']:.3f}s "
+                                f"(threshold: {test['threshold_seconds']}s)"
+                            ),
                             "test": test["test"],
                             "execution_time": test["execution_time_seconds"],
                             "threshold": test["threshold_seconds"],
@@ -881,9 +919,12 @@ class DataIntegrityValidator:
                 cross_tenant_query = text(
                     """
                     SELECT
-                        COUNT(CASE WHEN df.client_account_id != di.client_account_id THEN 1 END) as discovery_import_mismatch,
-                        COUNT(CASE WHEN a.client_account_id != df.client_account_id THEN 1 END) as asset_discovery_mismatch,
-                        COUNT(CASE WHEN rir.client_account_id != di.client_account_id THEN 1 END) as raw_import_mismatch
+                        COUNT(CASE WHEN df.client_account_id != di.client_account_id
+                            THEN 1 END) as discovery_import_mismatch,
+                        COUNT(CASE WHEN a.client_account_id != df.client_account_id
+                            THEN 1 END) as asset_discovery_mismatch,
+                        COUNT(CASE WHEN rir.client_account_id != di.client_account_id
+                            THEN 1 END) as raw_import_mismatch
                     FROM discovery_flows df
                     LEFT JOIN data_imports di ON df.data_import_id = di.id
                     LEFT JOIN assets a ON a.discovery_flow_id = df.flow_id
@@ -992,9 +1033,12 @@ class DataIntegrityValidator:
                     COUNT(DISTINCT di.id) as total_data_imports,
                     COUNT(DISTINCT rir.id) as total_raw_records,
                     COUNT(DISTINCT a.id) as total_assets,
-                    COUNT(DISTINCT CASE WHEN df.master_flow_id = mf.flow_id THEN df.flow_id END) as linked_discovery_flows,
-                    COUNT(DISTINCT CASE WHEN di.master_flow_id = mf.flow_id THEN di.id END) as linked_data_imports,
-                    COUNT(DISTINCT CASE WHEN a.master_flow_id = mf.flow_id THEN a.id END) as linked_assets
+                    COUNT(DISTINCT CASE WHEN df.master_flow_id = mf.flow_id
+                        THEN df.flow_id END) as linked_discovery_flows,
+                    COUNT(DISTINCT CASE WHEN di.master_flow_id = mf.flow_id
+                        THEN di.id END) as linked_data_imports,
+                    COUNT(DISTINCT CASE WHEN a.master_flow_id = mf.flow_id
+                        THEN a.id END) as linked_assets
                 FROM crewai_flow_state_extensions mf
                 FULL OUTER JOIN discovery_flows df ON df.master_flow_id = mf.flow_id
                 FULL OUTER JOIN data_imports di ON di.master_flow_id = mf.flow_id
