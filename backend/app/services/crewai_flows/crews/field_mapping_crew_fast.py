@@ -92,7 +92,9 @@ def create_fast_field_mapping_crew(
 
             CSV fields: {sample_fields}
 
-            Standard attributes: asset_name, asset_id, asset_type, hostname, ip_address, operating_system, cpu_cores, memory_gb, storage_gb, location, environment, criticality, application, owner, cost_center
+            Standard attributes: asset_name, asset_id, asset_type, hostname, ip_address,
+            operating_system, cpu_cores, memory_gb, storage_gb, location, environment,
+            criticality, application, owner, cost_center
 
             CRITICAL: Use the EXACT CSV field names as source fields in your mappings.
 
@@ -115,7 +117,6 @@ def create_fast_field_mapping_crew(
 
         # 🚀 OPTIMIZED CREW: Sequential process, minimal overhead
         # Enable memory with proper embedder configuration
-        from app.services.llm_config import get_crewai_embeddings
         from app.services.crewai_memory_patch import apply_memory_patch
         import os
 
@@ -138,7 +139,14 @@ def create_fast_field_mapping_crew(
                     "encoding_format": "float",
                 },
             }
-            logger.info(f"Using custom DeepInfra embedder: {custom_embedder}")
+            # Log embedder config without exposing the API key
+            embedder_info = {
+                "provider": custom_embedder["provider"],
+                "model": custom_embedder["config"]["model"],
+                "api_base": custom_embedder["config"]["api_base"],
+                "has_api_key": bool(custom_embedder["config"].get("api_key")),
+            }
+            logger.info(f"Using custom DeepInfra embedder: {embedder_info}")
 
             crew = Crew(
                 agents=[field_mapping_specialist],
