@@ -9,9 +9,6 @@ CC: Merge multiple heads to resolve alembic migration conflict
 
 from typing import Sequence, Union
 
-from alembic import op
-import sqlalchemy as sa
-
 # revision identifiers, used by Alembic.
 revision: str = "020_merge_heads"
 down_revision: Union[str, Sequence[str], None] = (

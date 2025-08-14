@@ -127,9 +127,9 @@ async def check_table_structure():
             ]
 
             if missing_columns:
-                logger.error(  # nosec B106
+                logger.error(
                     f"❌ Missing workflow_states columns: {mask_string(str(missing_columns))}"
-                )
+                )  # nosec B106
                 return False
             else:
                 logger.info("✅ workflow_states has all unified discovery flow columns")

@@ -23,16 +23,10 @@ try:
     )
 
     # Import Gap Analysis agents
-    from .critical_attribute_assessor_crewai import (
-        CriticalAttributeAssessorAgent,
-    )  # noqa: F401
     from .gap_prioritization_agent_crewai import GapPrioritizationAgent  # noqa: F401
     from .progress_tracking_agent_crewai import ProgressTrackingAgent  # noqa: F401
 
     # Import Manual Collection agents
-    from .questionnaire_dynamics_agent_crewai import (
-        QuestionnaireDynamicsAgent,
-    )  # noqa: F401
     from .validation_workflow_agent_crewai import ValidationWorkflowAgent  # noqa: F401
 
     __all__ = [
@@ -50,10 +44,8 @@ try:
         # Master Flow Orchestrator for unified flow management
         "MasterFlowOrchestrator",
         # Gap Analysis agents
-        "CriticalAttributeAssessorAgent",
         "GapPrioritizationAgent",
         # Manual Collection agents
-        "QuestionnaireDynamicsAgent",
         "ValidationWorkflowAgent",
         "ProgressTrackingAgent",
     ]

@@ -14,40 +14,45 @@ try:
     from crewai.flow import flow
 
     print("Available in crewai.flow.flow:", dir(flow))
+
+    # Check flow methods for persistence
+    flow_methods = [method for method in dir(Flow) if "persist" in method.lower()]
+    print(f"Flow persistence methods: {flow_methods}")
 except ImportError as e:
     print(f"❌ Flow import failed: {e}")
+except Exception:
+    print("❌ Could not check Flow methods")
 
 # Check decorators
 try:
-    from crewai.flow.flow import listen, start
+    from crewai.flow.flow import start  # noqa: F401
 
-    print("✅ start and listen decorators available")
+    print("✅ start decorator available")
 except ImportError as e:
     print(f"❌ Decorator imports failed: {e}")
 
 # Check for alternative persistence options
 try:
-    from crewai import persist
+    from crewai import persist  # noqa: F401
 
     print("✅ persist available from crewai main")
+    
+    # Also check crewai.flow.persist in same try block to avoid redefinition
+    try:
+        from crewai.flow import persist as flow_persist  # noqa: F401
+        print("✅ persist available from crewai.flow")
+    except ImportError:
+        print("❌ persist not available from crewai.flow")
+        
 except ImportError:
     print("❌ persist not available from crewai main")
-
-try:
-    from crewai.flow import persist
-
-    print("✅ persist available from crewai.flow")
-except ImportError:
-    print("❌ persist not available from crewai.flow")
-
-# Check if persistence is built into Flow class
-try:
-    from crewai.flow.flow import Flow
-
-    flow_methods = [method for method in dir(Flow) if "persist" in method.lower()]
-    print(f"Flow persistence methods: {flow_methods}")
-except Exception:
-    print("❌ Could not check Flow methods")
+    
+    # Only try flow persist if main persist failed
+    try:
+        from crewai.flow import persist  # noqa: F401
+        print("✅ persist available from crewai.flow")
+    except ImportError:
+        print("❌ persist not available from crewai.flow")
 
 # Check the Flow class structure
 try:

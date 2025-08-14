@@ -38,8 +38,8 @@ async def fix_admin_role():
                 return False
 
             logger.info(
-                f"Found user: {mask_email(user.email)} (ID: {mask_id(user.id)})"  # nosec B106
-            )
+                f"Found user: {mask_email(user.email)} (ID: {mask_id(user.id)})"
+            )  # nosec B106
 
             # Check current roles
             roles_result = await db.execute(

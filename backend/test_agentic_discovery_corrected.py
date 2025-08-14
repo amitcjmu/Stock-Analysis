@@ -94,9 +94,8 @@ async def test_database_integration():
 
         # Try to import discovery models
         try:
-            from app.models.unified_discovery_flow_state import (
-                UnifiedDiscoveryFlowState,
-            )
+            # Check if UnifiedDiscoveryFlowState model is available
+            import app.models.unified_discovery_flow_state  # noqa: F401
 
             print("✅ UnifiedDiscoveryFlowState model imported")
         except ImportError:
@@ -104,7 +103,7 @@ async def test_database_integration():
 
         # Try to import master flow
         try:
-            from app.models.master_flow import MasterFlow
+            from app.models.master_flow import MasterFlow  # noqa: F401
 
             print("✅ MasterFlow model imported")
         except ImportError:

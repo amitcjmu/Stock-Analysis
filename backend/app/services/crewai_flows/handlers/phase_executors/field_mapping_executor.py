@@ -471,7 +471,8 @@ class FieldMappingExecutor(BasePhaseExecutor):
 
                         await db.commit()
                         logger.info(
-                            f"✅ Updated {updated_count} field mappings in database (agent: {crew_execution}, fallback: {fallback_used})"
+                            f"✅ Updated {updated_count} field mappings in database "
+                            f"(agent: {crew_execution}, fallback: {fallback_used})"
                         )
 
                 except Exception as e:
@@ -487,9 +488,12 @@ class FieldMappingExecutor(BasePhaseExecutor):
         """Execute field mapping in suggestions-only mode - generates mappings and clarifications"""
         logger.info("🔍 Executing field mapping in suggestions-only mode")
         logger.info(f"🔍 DEBUG: Previous result: {previous_result}")
-        logger.info(
-            f"🔍 DEBUG: State raw_data: {len(self.state.raw_data) if hasattr(self.state, 'raw_data') and self.state.raw_data else 0} records"
+        raw_data_count = (
+            len(self.state.raw_data) 
+            if hasattr(self.state, 'raw_data') and self.state.raw_data 
+            else 0
         )
+        logger.info(f"🔍 DEBUG: State raw_data: {raw_data_count} records")
 
         # Update state
         self.state.current_phase = self.get_phase_name()
@@ -512,12 +516,12 @@ class FieldMappingExecutor(BasePhaseExecutor):
                         # Execute crew asynchronously
                         if hasattr(crew, "kickoff_async"):
                             logger.info(
-                                f"🚀 Executing crew asynchronously for mapping suggestions"
+                                "🚀 Executing crew asynchronously for mapping suggestions"
                             )
                             crew_result = await crew.kickoff_async(inputs=crew_input)
                         else:
                             logger.info(
-                                f"🔄 Executing crew via thread wrapper for mapping suggestions"
+                                "🔄 Executing crew via thread wrapper for mapping suggestions"
                             )
                             crew_result = await asyncio.to_thread(
                                 crew.kickoff, inputs=crew_input

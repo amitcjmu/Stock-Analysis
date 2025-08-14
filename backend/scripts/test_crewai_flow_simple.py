@@ -10,7 +10,7 @@ from unittest.mock import Mock
 def test_service_import():
     """Test that the service can be imported."""
     try:
-        from app.services.crewai_flow_service import CrewAIFlowService
+        from app.services.crewai_flow_service import CrewAIFlowService  # noqa: F401
 
         print("✅ CrewAI Flow Service import successful")
         return True
