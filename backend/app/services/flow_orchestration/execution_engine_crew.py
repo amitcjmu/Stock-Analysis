@@ -171,6 +171,18 @@ class FlowCrewExecutor:
         # ADR-015: Use ONLY persistent agents - no fallback to service pattern
         logger.info(f"🔄 Executing phase '{phase_config.name}' with persistent agents")
 
+        # Retrieve flow data from persistence to ensure raw_data is available
+        if master_flow.flow_persistence_data:
+            # Add raw_data from flow persistence if not already in phase_input
+            if (
+                "raw_data" not in phase_input
+                and "raw_data" in master_flow.flow_persistence_data
+            ):
+                phase_input["raw_data"] = master_flow.flow_persistence_data["raw_data"]
+                logger.info(
+                    f"📊 Retrieved {len(phase_input['raw_data'])} records from flow persistence for phase execution"
+                )
+
         try:
             # Initialize persistent agent pool
             agent_pool = await self._initialize_discovery_agent_pool(master_flow)

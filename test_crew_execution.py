@@ -15,15 +15,15 @@ from app.services.llm_config import get_crewai_llm
 
 async def test_crew_execution():
     """Test both sync and async crew execution"""
-    
+
     print("=" * 60)
     print("CREWAI EXECUTION TEST")
     print("=" * 60)
-    
+
     # Get LLM
     llm = get_crewai_llm()
     print(f"✅ LLM configured: {llm}")
-    
+
     # Create a simple test agent
     test_agent = Agent(
         role="Test Agent",
@@ -35,14 +35,14 @@ async def test_crew_execution():
         max_iter=1,
         max_execution_time=10
     )
-    
+
     # Create a simple task
     test_task = Task(
         description="Say 'CrewAI is working!' and return success",
         agent=test_agent,
         expected_output="A confirmation message"
     )
-    
+
     # Create crew
     crew = Crew(
         agents=[test_agent],
@@ -50,11 +50,11 @@ async def test_crew_execution():
         process=Process.sequential,
         verbose=True
     )
-    
+
     print("\n" + "=" * 60)
     print("TEST 1: Synchronous kickoff()")
     print("=" * 60)
-    
+
     try:
         result = crew.kickoff()
         print(f"✅ Sync execution successful!")
@@ -62,11 +62,11 @@ async def test_crew_execution():
         print(f"Result: {result}")
     except Exception as e:
         print(f"❌ Sync execution failed: {e}")
-    
+
     print("\n" + "=" * 60)
     print("TEST 2: Asynchronous kickoff_async()")
     print("=" * 60)
-    
+
     try:
         result = await crew.kickoff_async()
         print(f"✅ Async execution successful!")
@@ -74,11 +74,11 @@ async def test_crew_execution():
         print(f"Result: {result}")
     except Exception as e:
         print(f"❌ Async execution failed: {e}")
-    
+
     print("\n" + "=" * 60)
     print("TEST 3: asyncio.to_thread wrapper")
     print("=" * 60)
-    
+
     # Create new crew for fresh test
     crew2 = Crew(
         agents=[test_agent],
@@ -86,7 +86,7 @@ async def test_crew_execution():
         process=Process.sequential,
         verbose=False  # Less verbose for wrapper test
     )
-    
+
     try:
         result = await asyncio.to_thread(crew2.kickoff)
         print(f"✅ Thread wrapper execution successful!")

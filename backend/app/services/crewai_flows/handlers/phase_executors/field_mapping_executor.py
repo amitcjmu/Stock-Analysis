@@ -61,16 +61,23 @@ class FieldMappingExecutor(BasePhaseExecutor):
 
         # Execute crew asynchronously
         import asyncio
+
         try:
             # Use async execution if available
-            if hasattr(crew, 'kickoff_async'):
-                logger.info(f"🚀 Executing crew asynchronously for {self.get_phase_name()}")
+            if hasattr(crew, "kickoff_async"):
+                logger.info(
+                    f"🚀 Executing crew asynchronously for {self.get_phase_name()}"
+                )
                 crew_result = await crew.kickoff_async(inputs=crew_input)
             else:
-                logger.info(f"🔄 Executing crew via thread wrapper for {self.get_phase_name()}")
+                logger.info(
+                    f"🔄 Executing crew via thread wrapper for {self.get_phase_name()}"
+                )
                 crew_result = await asyncio.to_thread(crew.kickoff, inputs=crew_input)
-            
-            logger.info(f"✅ Field mapping crew completed successfully: {type(crew_result)}")
+
+            logger.info(
+                f"✅ Field mapping crew completed successfully: {type(crew_result)}"
+            )
         except Exception as e:
             logger.error(f"❌ Field mapping crew execution failed: {e}")
             raise RuntimeError(f"CrewAI execution failed in field mapping: {e}")
@@ -503,17 +510,25 @@ class FieldMappingExecutor(BasePhaseExecutor):
                     logger.info("🤖 Using CrewAI crew for mapping suggestions")
                     try:
                         # Execute crew asynchronously
-                        if hasattr(crew, 'kickoff_async'):
-                            logger.info(f"🚀 Executing crew asynchronously for mapping suggestions")
+                        if hasattr(crew, "kickoff_async"):
+                            logger.info(
+                                f"🚀 Executing crew asynchronously for mapping suggestions"
+                            )
                             crew_result = await crew.kickoff_async(inputs=crew_input)
                         else:
-                            logger.info(f"🔄 Executing crew via thread wrapper for mapping suggestions")
-                            crew_result = await asyncio.to_thread(crew.kickoff, inputs=crew_input)
-                        
+                            logger.info(
+                                f"🔄 Executing crew via thread wrapper for mapping suggestions"
+                            )
+                            crew_result = await asyncio.to_thread(
+                                crew.kickoff, inputs=crew_input
+                            )
+
                         results = self._process_mapping_suggestions(crew_result)
                     except Exception as crew_error:
                         logger.error(f"❌ Crew execution failed: {crew_error}")
-                        raise RuntimeError(f"CrewAI execution failed in mapping suggestions: {crew_error}")
+                        raise RuntimeError(
+                            f"CrewAI execution failed in mapping suggestions: {crew_error}"
+                        )
                         error_msg = str(crew_error)
                         # NO FALLBACK - Even for rate limits, we need to fix the root cause
                         logger.error(
