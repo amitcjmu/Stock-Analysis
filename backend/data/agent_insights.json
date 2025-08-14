@@ -5828,7 +5828,7 @@
     "actionable": true,
     "client_account_id": null,
     "engagement_id": null,
-    "flow_id": "test-flow-123",
+    "flow_id": null,
     "created_at": "2025-08-13T23:48:41.011795",
     "user_feedback": null,
     "is_validated": false
@@ -5851,8 +5851,1784 @@
     "actionable": true,
     "client_account_id": null,
     "engagement_id": null,
-    "flow_id": "test-flow-123",
+    "flow_id": null,
     "created_at": "2025-08-13T23:48:41.018783",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "bd02856c-b066-46a4-bf47-6ee72088faf8": {
+    "id": "bd02856c-b066-46a4-bf47-6ee72088faf8",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID 1681fa99-baa3-4b4c-8bd3-5bce018cfa83",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "1681fa99-baa3-4b4c-8bd3-5bce018cfa83"
+    },
+    "page": "flow_1681fa99-baa3-4b4c-8bd3-5bce018cfa83",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:29:51.336687",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "847d8894-7282-4469-84e0-7f8909232ac7": {
+    "id": "847d8894-7282-4469-84e0-7f8909232ac7",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_1681fa99-baa3-4b4c-8bd3-5bce018cfa83",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:29:51.462139",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "223e9888-be76-46f1-8e27-7546e6aed809": {
+    "id": "223e9888-be76-46f1-8e27-7546e6aed809",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "The data appears to be CMDB or asset inventory data. No PII or malicious content was detected based on the provided field names."
+    },
+    "page": "flow_1681fa99-baa3-4b4c-8bd3-5bce018cfa83",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:29:57.800617",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "2816d657-b28d-4d92-861a-266c88633c5b": {
+    "id": "2816d657-b28d-4d92-861a-266c88633c5b",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "1681fa99-baa3-4b4c-8bd3-5bce018cfa83",
+      "raw_result": "{\n                \"file_type\": \"CMDB\",\n                \"confidence\": 0.9,\n                \"recommended_agent\": \"CMDB_Data_Analyst_Agent\",\n                \"security_status\": \"clean\",\n                \"pii_found\": false,\n                \"threats_found\": false,\n                \"asset_inventory_suitable\": true,\n                \"summary\": \"The data appears to be CMDB or asset inventory data. No PII or malicious content was detected based on the provided field names.\",\n                \"user_approval_required\": true\n            }",
+      "processed": true,
+      "is_valid": true,
+      "file_analysis": {
+        "detected_type": "CMDB",
+        "confidence": 0.9,
+        "recommended_agent": "CMDB_Data_Analyst_Agent"
+      },
+      "security_status": "clean",
+      "pii_detected": false,
+      "asset_inventory_suitable": true,
+      "summary": "The data appears to be CMDB or asset inventory data. No PII or malicious content was detected based on the provided field names.",
+      "user_approval_required": true,
+      "quality_score": 0.9,
+      "total_records": 5,
+      "validated_data": [
+        {
+          "Status": "Active",
+          "Hostname": "web-server-01",
+          "RAM (GB)": "16",
+          "CPU Cores": "8",
+          "IP Address": "192.168.1.10",
+          "Environment": "Production",
+          "Operating System": "Ubuntu 20.04"
+        },
+        {
+          "Status": "Active",
+          "Hostname": "web-server-02",
+          "RAM (GB)": "16",
+          "CPU Cores": "8",
+          "IP Address": "192.168.1.11",
+          "Environment": "Production",
+          "Operating System": "Ubuntu 20.04"
+        },
+        {
+          "Status": "Active",
+          "Hostname": "db-server-01",
+          "RAM (GB)": "32",
+          "CPU Cores": "16",
+          "IP Address": "192.168.1.20",
+          "Environment": "Production",
+          "Operating System": "CentOS 7"
+        },
+        {
+          "Status": "Active",
+          "Hostname": "app-server-01",
+          "RAM (GB)": "24",
+          "CPU Cores": "12",
+          "IP Address": "192.168.1.30",
+          "Environment": "Production",
+          "Operating System": "Windows Server 2019"
+        },
+        {
+          "Status": "Active",
+          "Hostname": "dev-server-01",
+          "RAM (GB)": "8",
+          "CPU Cores": "4",
+          "IP Address": "192.168.2.10",
+          "Environment": "Development",
+          "Operating System": "Ubuntu 22.04"
+        }
+      ]
+    },
+    "page": "flow_1681fa99-baa3-4b4c-8bd3-5bce018cfa83",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:29:57.811120",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "a153c15b-ea12-4163-9dc9-2b66efe905d2": {
+    "id": "a153c15b-ea12-4163-9dc9-2b66efe905d2",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Attribute Mapping",
+    "description": "Beginning execution of attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "starting",
+      "progress": 16.7
+    },
+    "page": "flow_1681fa99-baa3-4b4c-8bd3-5bce018cfa83",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:29:57.846653",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "977c3779-0049-487a-b972-98f5efe74288": {
+    "id": "977c3779-0049-487a-b972-98f5efe74288",
+    "agent_id": "unified_discovery_field_mapping",
+    "agent_name": "Discovery Field Mapping Agent",
+    "insight_type": "phase_completion",
+    "title": "Field Mapping Suggestions Generated",
+    "description": "Field mapping suggestions have been generated and are ready for review",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "progress": 40,
+      "flow_id": "1681fa99-baa3-4b4c-8bd3-5bce018cfa83",
+      "error": "CrewAI failed to generate field mappings. This needs to be fixed.",
+      "status": "failed"
+    },
+    "page": "flow_1681fa99-baa3-4b4c-8bd3-5bce018cfa83",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:30:08.757260",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "750fc977-9bc6-47b4-b25d-ac9f0e61f7f3": {
+    "id": "750fc977-9bc6-47b4-b25d-ac9f0e61f7f3",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow 1681fa99-baa3-4b4c-8bd3-5bce018cfa83",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "1681fa99-baa3-4b4c-8bd3-5bce018cfa83",
+      "approval_data": {
+        "error": "CrewAI failed to generate field mappings. This needs to be fixed.",
+        "status": "failed",
+        "phase": "attribute_mapping"
+      }
+    },
+    "page": "flow_1681fa99-baa3-4b4c-8bd3-5bce018cfa83",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:30:08.774008",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "2d0a50b0-a447-4403-bb88-3f1d680997f5": {
+    "id": "2d0a50b0-a447-4403-bb88-3f1d680997f5",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID 1a7d5a17-b53d-4d5c-826c-9c4e29f580ee",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "1a7d5a17-b53d-4d5c-826c-9c4e29f580ee"
+    },
+    "page": "flow_1a7d5a17-b53d-4d5c-826c-9c4e29f580ee",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:38:06.039846",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "adcc754a-0a8a-4694-9a15-c4f1fc7ac9ee": {
+    "id": "adcc754a-0a8a-4694-9a15-c4f1fc7ac9ee",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_1a7d5a17-b53d-4d5c-826c-9c4e29f580ee",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:38:06.165494",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "beae3eb0-4566-4568-958a-a0d6c292a914": {
+    "id": "beae3eb0-4566-4568-958a-a0d6c292a914",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "The data appears to be CMDB related, is clean with no detected threats or PII, and is suitable for asset inventory creation."
+    },
+    "page": "flow_1a7d5a17-b53d-4d5c-826c-9c4e29f580ee",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:38:13.010883",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "ca7387fc-f858-4ab7-afdd-4588bb5a98a2": {
+    "id": "ca7387fc-f858-4ab7-afdd-4588bb5a98a2",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "1a7d5a17-b53d-4d5c-826c-9c4e29f580ee",
+      "raw_result": "{\n                \"file_type\": \"CMDB\",\n                \"confidence\": 0.9,\n                \"recommended_agent\": \"CMDB_Data_Analyst_Agent\",\n                \"security_status\": \"clean\",\n                \"pii_found\": false,\n                \"threats_found\": false,\n                \"asset_inventory_suitable\": true,\n                \"summary\": \"The data appears to be CMDB related, is clean with no detected threats or PII, and is suitable for asset inventory creation.\",\n                \"user_approval_required\": true\n            }",
+      "processed": true,
+      "is_valid": true,
+      "file_analysis": {
+        "detected_type": "CMDB",
+        "confidence": 0.9,
+        "recommended_agent": "CMDB_Data_Analyst_Agent"
+      },
+      "security_status": "clean",
+      "pii_detected": false,
+      "asset_inventory_suitable": true,
+      "summary": "The data appears to be CMDB related, is clean with no detected threats or PII, and is suitable for asset inventory creation.",
+      "user_approval_required": true,
+      "quality_score": 0.9,
+      "total_records": 5,
+      "validated_data": [
+        {
+          "Type": "Web Application",
+          "Owner": "Sales Team",
+          "Application": "CRM System",
+          "Criticality": "High",
+          "Environment": "Production"
+        },
+        {
+          "Type": "Web Application",
+          "Owner": "HR Department",
+          "Application": "HR Portal",
+          "Criticality": "Medium",
+          "Environment": "Production"
+        },
+        {
+          "Type": "Database",
+          "Owner": "Data Team",
+          "Application": "Analytics DB",
+          "Criticality": "High",
+          "Environment": "Production"
+        },
+        {
+          "Type": "Development Tool",
+          "Owner": "Engineering",
+          "Application": "Dev Tools",
+          "Criticality": "Low",
+          "Environment": "Development"
+        },
+        {
+          "Type": "Infrastructure",
+          "Owner": "IT Operations",
+          "Application": "Email Server",
+          "Criticality": "Critical",
+          "Environment": "Production"
+        }
+      ]
+    },
+    "page": "flow_1a7d5a17-b53d-4d5c-826c-9c4e29f580ee",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:38:13.021383",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "50cbabf2-1873-443b-974b-c5f55c95c478": {
+    "id": "50cbabf2-1873-443b-974b-c5f55c95c478",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Attribute Mapping",
+    "description": "Beginning execution of attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "starting",
+      "progress": 16.7
+    },
+    "page": "flow_1a7d5a17-b53d-4d5c-826c-9c4e29f580ee",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:38:13.057428",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "e85985ca-25ec-4477-a0eb-e36968e64128": {
+    "id": "e85985ca-25ec-4477-a0eb-e36968e64128",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Attribute Mapping",
+    "description": "Successfully completed attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_1a7d5a17-b53d-4d5c-826c-9c4e29f580ee",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:38:14.439453",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "2dadc67f-6cc0-4c7a-9ee4-b8c867792120": {
+    "id": "2dadc67f-6cc0-4c7a-9ee4-b8c867792120",
+    "agent_id": "unified_discovery_field_mapping",
+    "agent_name": "Discovery Field Mapping Agent",
+    "insight_type": "phase_completion",
+    "title": "Field Mapping Suggestions Generated",
+    "description": "Field mapping suggestions have been generated and are ready for review",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "field_mapping",
+      "progress": 40,
+      "flow_id": "1a7d5a17-b53d-4d5c-826c-9c4e29f580ee",
+      "mappings": {
+        "Status": "status"
+      },
+      "validation_results": {
+        "total_fields": 1,
+        "mapped_fields": 1,
+        "mapping_confidence": 0.8,
+        "fallback_used": false
+      },
+      "crew_execution": true,
+      "execution_metadata": {
+        "timestamp": "2025-08-14T02:38:13.010385",
+        "method": "crewai_field_mapping"
+      }
+    },
+    "page": "flow_1a7d5a17-b53d-4d5c-826c-9c4e29f580ee",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:38:14.456292",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "3c29ef06-425c-4f6a-992f-23121a0852cd": {
+    "id": "3c29ef06-425c-4f6a-992f-23121a0852cd",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow 1a7d5a17-b53d-4d5c-826c-9c4e29f580ee",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "1a7d5a17-b53d-4d5c-826c-9c4e29f580ee",
+      "approval_data": {
+        "mappings": {
+          "Status": "status"
+        },
+        "validation_results": {
+          "total_fields": 1,
+          "mapped_fields": 1,
+          "mapping_confidence": 0.8,
+          "fallback_used": false
+        },
+        "crew_execution": true,
+        "execution_metadata": {
+          "timestamp": "2025-08-14T02:38:13.010385",
+          "method": "crewai_field_mapping"
+        }
+      }
+    },
+    "page": "flow_1a7d5a17-b53d-4d5c-826c-9c4e29f580ee",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:38:14.467318",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "d6ea2096-6739-4d3d-8402-98b9dcbb7bfa": {
+    "id": "d6ea2096-6739-4d3d-8402-98b9dcbb7bfa",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID 6dee9828-83f3-462e-815c-31b4a7123055",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "6dee9828-83f3-462e-815c-31b4a7123055"
+    },
+    "page": "flow_6dee9828-83f3-462e-815c-31b4a7123055",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:58:20.744606",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "e34ffd5a-5d9f-4df8-90e4-a826343552aa": {
+    "id": "e34ffd5a-5d9f-4df8-90e4-a826343552aa",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_6dee9828-83f3-462e-815c-31b4a7123055",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:58:20.884042",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "fa4693b1-527b-4d62-a39b-db0693f9c1fd": {
+    "id": "fa4693b1-527b-4d62-a39b-db0693f9c1fd",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Validation completed by CrewAI"
+    },
+    "page": "flow_6dee9828-83f3-462e-815c-31b4a7123055",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:58:27.501167",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "ad8f274e-2160-46ba-bb4c-bd3f1ab36fda": {
+    "id": "ad8f274e-2160-46ba-bb4c-bd3f1ab36fda",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "6dee9828-83f3-462e-815c-31b4a7123055",
+      "raw_result": "```json\n{\n    \"file_type\": \"CMDB\",\n    \"confidence\": 0.8,\n    \"recommended_agent\": \"CMDB_Data_Analyst_Agent\",\n    \"security_status\": \"clean\",\n    \"pii_found\": false,\n    \"threats_found\": false,\n    \"asset_inventory_suitable\": true,\n    \"summary\": \"The data appears to be CMDB related, is likely clean, and suitable for asset inventory creation.\",\n    \"user_approval_required\": true\n}\n```",
+      "processed": true,
+      "is_valid": true,
+      "summary": "Validation completed by CrewAI",
+      "validated_data": [
+        {
+          "Type": "Web Application",
+          "Owner": "Sales Team",
+          "Application": "CRM System",
+          "Criticality": "High",
+          "Environment": "Production"
+        },
+        {
+          "Type": "Web Application",
+          "Owner": "HR Department",
+          "Application": "HR Portal",
+          "Criticality": "Medium",
+          "Environment": "Production"
+        },
+        {
+          "Type": "Database",
+          "Owner": "Data Team",
+          "Application": "Analytics DB",
+          "Criticality": "High",
+          "Environment": "Production"
+        },
+        {
+          "Type": "Development Tool",
+          "Owner": "Engineering",
+          "Application": "Dev Tools",
+          "Criticality": "Low",
+          "Environment": "Development"
+        },
+        {
+          "Type": "Infrastructure",
+          "Owner": "IT Operations",
+          "Application": "Email Server",
+          "Criticality": "Critical",
+          "Environment": "Production"
+        }
+      ]
+    },
+    "page": "flow_6dee9828-83f3-462e-815c-31b4a7123055",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:58:27.509993",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "426a928b-a4b4-46aa-80c0-924d1598183d": {
+    "id": "426a928b-a4b4-46aa-80c0-924d1598183d",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Attribute Mapping",
+    "description": "Beginning execution of attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "starting",
+      "progress": 16.7
+    },
+    "page": "flow_6dee9828-83f3-462e-815c-31b4a7123055",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:58:27.553286",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "973bbb0a-1db1-4e9b-9e4e-5b31e08db05d": {
+    "id": "973bbb0a-1db1-4e9b-9e4e-5b31e08db05d",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Attribute Mapping",
+    "description": "Successfully completed attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_6dee9828-83f3-462e-815c-31b4a7123055",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:58:28.439059",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "1863da48-c81c-46b6-a7ff-2ce96aa28053": {
+    "id": "1863da48-c81c-46b6-a7ff-2ce96aa28053",
+    "agent_id": "unified_discovery_field_mapping",
+    "agent_name": "Discovery Field Mapping Agent",
+    "insight_type": "phase_completion",
+    "title": "Field Mapping Suggestions Generated",
+    "description": "Field mapping suggestions have been generated and are ready for review",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "field_mapping",
+      "progress": 40,
+      "flow_id": "6dee9828-83f3-462e-815c-31b4a7123055",
+      "mappings": {
+        "Status": "status"
+      },
+      "validation_results": {
+        "total_fields": 1,
+        "mapped_fields": 1,
+        "mapping_confidence": 0.8,
+        "fallback_used": false
+      },
+      "crew_execution": true,
+      "execution_metadata": {
+        "timestamp": "2025-08-14T02:58:27.500985",
+        "method": "crewai_field_mapping"
+      }
+    },
+    "page": "flow_6dee9828-83f3-462e-815c-31b4a7123055",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:58:28.468251",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "80166307-21c1-4b84-8b7c-ef50c2beb243": {
+    "id": "80166307-21c1-4b84-8b7c-ef50c2beb243",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow 6dee9828-83f3-462e-815c-31b4a7123055",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "6dee9828-83f3-462e-815c-31b4a7123055",
+      "approval_data": {
+        "mappings": {
+          "Status": "status"
+        },
+        "validation_results": {
+          "total_fields": 1,
+          "mapped_fields": 1,
+          "mapping_confidence": 0.8,
+          "fallback_used": false
+        },
+        "crew_execution": true,
+        "execution_metadata": {
+          "timestamp": "2025-08-14T02:58:27.500985",
+          "method": "crewai_field_mapping"
+        }
+      }
+    },
+    "page": "flow_6dee9828-83f3-462e-815c-31b4a7123055",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T02:58:28.477760",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "e60807d0-77a3-43bc-a24a-7c4e2af6a2d6": {
+    "id": "e60807d0-77a3-43bc-a24a-7c4e2af6a2d6",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID 42f463c1-2370-4cba-9f6e-420e198e8c14",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "42f463c1-2370-4cba-9f6e-420e198e8c14"
+    },
+    "page": "flow_42f463c1-2370-4cba-9f6e-420e198e8c14",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T03:00:23.088574",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "5ff04f59-6209-45d2-af7b-30df40203f69": {
+    "id": "5ff04f59-6209-45d2-af7b-30df40203f69",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_42f463c1-2370-4cba-9f6e-420e198e8c14",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T03:00:23.244351",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "eab2e219-b585-4bdd-a90f-346e91c1a5bd": {
+    "id": "eab2e219-b585-4bdd-a90f-346e91c1a5bd",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Validation completed by CrewAI"
+    },
+    "page": "flow_42f463c1-2370-4cba-9f6e-420e198e8c14",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T03:00:33.489292",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "3b903fd8-d946-4f6a-b62c-f90f8a0106a6": {
+    "id": "3b903fd8-d946-4f6a-b62c-f90f8a0106a6",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "42f463c1-2370-4cba-9f6e-420e198e8c14",
+      "raw_result": "```json\n{\n    \"file_type\": \"CMDB\",\n    \"confidence\": 0.8,\n    \"recommended_agent\": \"CMDB_Data_Analyst_Agent\",\n    \"security_status\": \"clean\",\n    \"pii_found\": false,\n    \"threats_found\": false,\n    \"asset_inventory_suitable\": true,\n    \"summary\": \"The data appears to be CMDB-related, is suitable for asset inventory creation, and upon initial assessment, does not contain obvious PII or threats.\",\n    \"user_approval_required\": true\n}\n```",
+      "processed": true,
+      "is_valid": true,
+      "summary": "Validation completed by CrewAI",
+      "validated_data": [
+        {
+          "Type": "Web Application",
+          "Owner": "Sales Team",
+          "Application": "CRM System",
+          "Criticality": "High",
+          "Environment": "Production"
+        },
+        {
+          "Type": "Web Application",
+          "Owner": "HR Department",
+          "Application": "HR Portal",
+          "Criticality": "Medium",
+          "Environment": "Production"
+        },
+        {
+          "Type": "Database",
+          "Owner": "Data Team",
+          "Application": "Analytics DB",
+          "Criticality": "High",
+          "Environment": "Production"
+        },
+        {
+          "Type": "Development Tool",
+          "Owner": "Engineering",
+          "Application": "Dev Tools",
+          "Criticality": "Low",
+          "Environment": "Development"
+        },
+        {
+          "Type": "Infrastructure",
+          "Owner": "IT Operations",
+          "Application": "Email Server",
+          "Criticality": "Critical",
+          "Environment": "Production"
+        }
+      ]
+    },
+    "page": "flow_42f463c1-2370-4cba-9f6e-420e198e8c14",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T03:00:33.500139",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "0441467a-7830-436b-a67a-68cd86892994": {
+    "id": "0441467a-7830-436b-a67a-68cd86892994",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Attribute Mapping",
+    "description": "Beginning execution of attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "starting",
+      "progress": 16.7
+    },
+    "page": "flow_42f463c1-2370-4cba-9f6e-420e198e8c14",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T03:00:33.535052",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "12ac8e57-a584-401a-b4eb-82dea6a2e779": {
+    "id": "12ac8e57-a584-401a-b4eb-82dea6a2e779",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Attribute Mapping",
+    "description": "Successfully completed attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_42f463c1-2370-4cba-9f6e-420e198e8c14",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T03:00:35.416978",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "38829c8a-db80-46ed-98f8-8b32efcc4a29": {
+    "id": "38829c8a-db80-46ed-98f8-8b32efcc4a29",
+    "agent_id": "unified_discovery_field_mapping",
+    "agent_name": "Discovery Field Mapping Agent",
+    "insight_type": "phase_completion",
+    "title": "Field Mapping Suggestions Generated",
+    "description": "Field mapping suggestions have been generated and are ready for review",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "field_mapping",
+      "progress": 40,
+      "flow_id": "42f463c1-2370-4cba-9f6e-420e198e8c14",
+      "mappings": {
+        "Status": "status"
+      },
+      "validation_results": {
+        "total_fields": 1,
+        "mapped_fields": 1,
+        "mapping_confidence": 0.8,
+        "fallback_used": false
+      },
+      "crew_execution": true,
+      "execution_metadata": {
+        "timestamp": "2025-08-14T03:00:33.489002",
+        "method": "crewai_field_mapping"
+      }
+    },
+    "page": "flow_42f463c1-2370-4cba-9f6e-420e198e8c14",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T03:00:35.432392",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "ccc5db2b-3590-489c-b18e-b58d1ae60a93": {
+    "id": "ccc5db2b-3590-489c-b18e-b58d1ae60a93",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow 42f463c1-2370-4cba-9f6e-420e198e8c14",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "42f463c1-2370-4cba-9f6e-420e198e8c14",
+      "approval_data": {
+        "mappings": {
+          "Status": "status"
+        },
+        "validation_results": {
+          "total_fields": 1,
+          "mapped_fields": 1,
+          "mapping_confidence": 0.8,
+          "fallback_used": false
+        },
+        "crew_execution": true,
+        "execution_metadata": {
+          "timestamp": "2025-08-14T03:00:33.489002",
+          "method": "crewai_field_mapping"
+        }
+      }
+    },
+    "page": "flow_42f463c1-2370-4cba-9f6e-420e198e8c14",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T03:00:35.444336",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "85972d11-3b97-4e53-a7ca-0ff2e8cc42bc": {
+    "id": "85972d11-3b97-4e53-a7ca-0ff2e8cc42bc",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID 4c79f65a-d30f-4c11-a4f1-5e7ca251740c",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "4c79f65a-d30f-4c11-a4f1-5e7ca251740c"
+    },
+    "page": "flow_4c79f65a-d30f-4c11-a4f1-5e7ca251740c",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T03:20:13.431957",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "cfca5c1e-19da-4bed-bb6b-9a5aae3dffd4": {
+    "id": "cfca5c1e-19da-4bed-bb6b-9a5aae3dffd4",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_4c79f65a-d30f-4c11-a4f1-5e7ca251740c",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T03:20:13.590224",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "05c2f6af-a7e7-4d60-a939-44ec3f7d68fd": {
+    "id": "05c2f6af-a7e7-4d60-a939-44ec3f7d68fd",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "The data appears to be CMDB related, is clean, and suitable for asset inventory creation."
+    },
+    "page": "flow_4c79f65a-d30f-4c11-a4f1-5e7ca251740c",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T03:20:19.890606",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "310d983d-686d-4bdc-a71e-b3649feb7354": {
+    "id": "310d983d-686d-4bdc-a71e-b3649feb7354",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "4c79f65a-d30f-4c11-a4f1-5e7ca251740c",
+      "raw_result": "{\n                \"file_type\": \"CMDB\",\n                \"confidence\": 0.8,\n                \"recommended_agent\": \"CMDB_Data_Analyst_Agent\",\n                \"security_status\": \"clean\",\n                \"pii_found\": false,\n                \"threats_found\": false,\n                \"asset_inventory_suitable\": true,\n                \"summary\": \"The data appears to be CMDB related, is clean, and suitable for asset inventory creation.\",\n                \"user_approval_required\": true\n            }",
+      "processed": true,
+      "is_valid": true,
+      "file_analysis": {
+        "detected_type": "CMDB",
+        "confidence": 0.8,
+        "recommended_agent": "CMDB_Data_Analyst_Agent"
+      },
+      "security_status": "clean",
+      "pii_detected": false,
+      "asset_inventory_suitable": true,
+      "summary": "The data appears to be CMDB related, is clean, and suitable for asset inventory creation.",
+      "user_approval_required": true,
+      "quality_score": 0.8,
+      "total_records": 5,
+      "validated_data": [
+        {
+          "Type": "Web Application",
+          "Owner": "Sales Team",
+          "Application": "CRM System",
+          "Criticality": "High",
+          "Environment": "Production"
+        },
+        {
+          "Type": "Web Application",
+          "Owner": "HR Department",
+          "Application": "HR Portal",
+          "Criticality": "Medium",
+          "Environment": "Production"
+        },
+        {
+          "Type": "Database",
+          "Owner": "Data Team",
+          "Application": "Analytics DB",
+          "Criticality": "High",
+          "Environment": "Production"
+        },
+        {
+          "Type": "Development Tool",
+          "Owner": "Engineering",
+          "Application": "Dev Tools",
+          "Criticality": "Low",
+          "Environment": "Development"
+        },
+        {
+          "Type": "Infrastructure",
+          "Owner": "IT Operations",
+          "Application": "Email Server",
+          "Criticality": "Critical",
+          "Environment": "Production"
+        }
+      ]
+    },
+    "page": "flow_4c79f65a-d30f-4c11-a4f1-5e7ca251740c",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T03:20:19.901051",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "19046a9c-900f-4d6e-a593-a9685bda11b6": {
+    "id": "19046a9c-900f-4d6e-a593-a9685bda11b6",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Attribute Mapping",
+    "description": "Beginning execution of attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "starting",
+      "progress": 16.7
+    },
+    "page": "flow_4c79f65a-d30f-4c11-a4f1-5e7ca251740c",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T03:20:19.935696",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "d6f61d54-388b-46ad-8b39-560e37170e73": {
+    "id": "d6f61d54-388b-46ad-8b39-560e37170e73",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Attribute Mapping",
+    "description": "Successfully completed attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_4c79f65a-d30f-4c11-a4f1-5e7ca251740c",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T03:20:24.778707",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "01d00cef-b3b2-4ab3-b57d-b83312ac5295": {
+    "id": "01d00cef-b3b2-4ab3-b57d-b83312ac5295",
+    "agent_id": "unified_discovery_field_mapping",
+    "agent_name": "Discovery Field Mapping Agent",
+    "insight_type": "phase_completion",
+    "title": "Field Mapping Suggestions Generated",
+    "description": "Field mapping suggestions have been generated and are ready for review",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "field_mapping",
+      "progress": 40,
+      "flow_id": "4c79f65a-d30f-4c11-a4f1-5e7ca251740c",
+      "mappings": {
+        "Application": "application",
+        "Owner": "owner",
+        "Type": "asset_type",
+        "Environment": "environment",
+        "Criticality": "criticality",
+        "Asset Name": "asset_name",
+        "Asset ID": "asset_id",
+        "Host Name": "hostname",
+        "IP Address": "ip_address",
+        "Operating System": "operating_system",
+        "CPU Cores": "cpu_cores",
+        "Memory (GB)": "memory_gb",
+        "Storage (GB)": "storage_gb",
+        "Location": "location",
+        "Cost Center": "cost_center"
+      },
+      "validation_results": {
+        "total_fields": 15,
+        "mapped_fields": 15,
+        "mapping_confidence": 0.8,
+        "fallback_used": false
+      },
+      "crew_execution": true,
+      "execution_metadata": {
+        "timestamp": "2025-08-14T03:20:19.890306",
+        "method": "crewai_field_mapping"
+      }
+    },
+    "page": "flow_4c79f65a-d30f-4c11-a4f1-5e7ca251740c",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T03:20:24.791104",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "10bfb3b2-97bf-4c29-9c9d-56161f4c3d66": {
+    "id": "10bfb3b2-97bf-4c29-9c9d-56161f4c3d66",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow 4c79f65a-d30f-4c11-a4f1-5e7ca251740c",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "4c79f65a-d30f-4c11-a4f1-5e7ca251740c",
+      "approval_data": {
+        "mappings": {
+          "Application": "application",
+          "Owner": "owner",
+          "Type": "asset_type",
+          "Environment": "environment",
+          "Criticality": "criticality",
+          "Asset Name": "asset_name",
+          "Asset ID": "asset_id",
+          "Host Name": "hostname",
+          "IP Address": "ip_address",
+          "Operating System": "operating_system",
+          "CPU Cores": "cpu_cores",
+          "Memory (GB)": "memory_gb",
+          "Storage (GB)": "storage_gb",
+          "Location": "location",
+          "Cost Center": "cost_center"
+        },
+        "validation_results": {
+          "total_fields": 15,
+          "mapped_fields": 15,
+          "mapping_confidence": 0.8,
+          "fallback_used": false
+        },
+        "crew_execution": true,
+        "execution_metadata": {
+          "timestamp": "2025-08-14T03:20:19.890306",
+          "method": "crewai_field_mapping"
+        }
+      }
+    },
+    "page": "flow_4c79f65a-d30f-4c11-a4f1-5e7ca251740c",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T03:20:24.798544",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "1a13cc38-4757-4014-b55a-3e997f994353": {
+    "id": "1a13cc38-4757-4014-b55a-3e997f994353",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID 2a37e993-1c12-472c-b329-28863f67bd2b",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "2a37e993-1c12-472c-b329-28863f67bd2b"
+    },
+    "page": "flow_2a37e993-1c12-472c-b329-28863f67bd2b",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "2a37e993-1c12-472c-b329-28863f67bd2b",
+    "created_at": "2025-08-14T03:38:33.974954",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "47ee632e-3f79-44a8-a155-2862ba9376ee": {
+    "id": "47ee632e-3f79-44a8-a155-2862ba9376ee",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_2a37e993-1c12-472c-b329-28863f67bd2b",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "2a37e993-1c12-472c-b329-28863f67bd2b",
+    "created_at": "2025-08-14T03:38:34.114464",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "6f4839f4-12c3-44bd-aae1-311404660866": {
+    "id": "6f4839f4-12c3-44bd-aae1-311404660866",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Validation completed by CrewAI"
+    },
+    "page": "flow_2a37e993-1c12-472c-b329-28863f67bd2b",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "2a37e993-1c12-472c-b329-28863f67bd2b",
+    "created_at": "2025-08-14T03:38:40.378358",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "3645c9ed-90cd-43c7-9a14-9a08e40ffe78": {
+    "id": "3645c9ed-90cd-43c7-9a14-9a08e40ffe78",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "2a37e993-1c12-472c-b329-28863f67bd2b",
+      "raw_result": "```json\n{\n    \"file_type\": \"CMDB\",\n    \"confidence\": 0.9,\n    \"recommended_agent\": \"CMDB_Data_Analyst_Agent\",\n    \"security_status\": \"clean\",\n    \"pii_found\": false,\n    \"threats_found\": false,\n    \"asset_inventory_suitable\": true,\n    \"summary\": \"The data appears to be CMDB data, is clean, and suitable for asset inventory creation.\",\n    \"user_approval_required\": true\n}\n```",
+      "processed": true,
+      "is_valid": true,
+      "summary": "Validation completed by CrewAI",
+      "validated_data": [
+        {
+          "OS": "Linux",
+          "Type": "Application",
+          "Owner": "John Smith",
+          "Status": "Active",
+          "Location": "DataCenter1",
+          "CPU Cores": "8",
+          "Memory GB": "16",
+          "IP Address": "10.0.1.10",
+          "Storage GB": "500",
+          "Application": "WebPortal",
+          "Criticality": "High",
+          "Environment": "Production"
+        },
+        {
+          "OS": "Linux",
+          "Type": "Database",
+          "Owner": "Jane Doe",
+          "Status": "Active",
+          "Location": "DataCenter1",
+          "CPU Cores": "16",
+          "Memory GB": "64",
+          "IP Address": "10.0.1.20",
+          "Storage GB": "2000",
+          "Application": "Database1",
+          "Criticality": "Critical",
+          "Environment": "Production"
+        },
+        {
+          "OS": "Windows",
+          "Type": "Server",
+          "Owner": "Bob Johnson",
+          "Status": "Active",
+          "Location": "DataCenter2",
+          "CPU Cores": "4",
+          "Memory GB": "8",
+          "IP Address": "10.0.2.10",
+          "Storage GB": "250",
+          "Application": "AppServer1",
+          "Criticality": "Medium",
+          "Environment": "Development"
+        },
+        {
+          "OS": "Linux",
+          "Type": "Network",
+          "Owner": "Alice Brown",
+          "Status": "Active",
+          "Location": "DataCenter1",
+          "CPU Cores": "2",
+          "Memory GB": "4",
+          "IP Address": "10.0.1.5",
+          "Storage GB": "100",
+          "Application": "LoadBalancer",
+          "Criticality": "High",
+          "Environment": "Production"
+        },
+        {
+          "OS": "Linux",
+          "Type": "Application",
+          "Owner": "Charlie Wilson",
+          "Status": "Active",
+          "Location": "DataCenter1",
+          "CPU Cores": "4",
+          "Memory GB": "16",
+          "IP Address": "10.0.1.30",
+          "Storage GB": "200",
+          "Application": "CacheServer",
+          "Criticality": "Medium",
+          "Environment": "Production"
+        }
+      ]
+    },
+    "page": "flow_2a37e993-1c12-472c-b329-28863f67bd2b",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "2a37e993-1c12-472c-b329-28863f67bd2b",
+    "created_at": "2025-08-14T03:38:40.387102",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "a7b36ec9-ae81-414e-8b81-fd7784b86c5d": {
+    "id": "a7b36ec9-ae81-414e-8b81-fd7784b86c5d",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Attribute Mapping",
+    "description": "Beginning execution of attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "starting",
+      "progress": 16.7
+    },
+    "page": "flow_2a37e993-1c12-472c-b329-28863f67bd2b",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "2a37e993-1c12-472c-b329-28863f67bd2b",
+    "created_at": "2025-08-14T03:38:40.418510",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "7873ad28-dc65-4599-bbc0-5f23033b3dc0": {
+    "id": "7873ad28-dc65-4599-bbc0-5f23033b3dc0",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Attribute Mapping",
+    "description": "Successfully completed attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_2a37e993-1c12-472c-b329-28863f67bd2b",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "2a37e993-1c12-472c-b329-28863f67bd2b",
+    "created_at": "2025-08-14T03:38:53.905803",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "57f63d65-4d92-4bf9-94c8-f446754b122d": {
+    "id": "57f63d65-4d92-4bf9-94c8-f446754b122d",
+    "agent_id": "unified_discovery_field_mapping",
+    "agent_name": "Discovery Field Mapping Agent",
+    "insight_type": "phase_completion",
+    "title": "Field Mapping Suggestions Generated",
+    "description": "Field mapping suggestions have been generated and are ready for review",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "field_mapping",
+      "progress": 40,
+      "flow_id": "2a37e993-1c12-472c-b329-28863f67bd2b",
+      "mappings": {
+        "Asset Name": "asset_name",
+        "Asset ID": "asset_id",
+        "Type": "asset_type",
+        "Hostname": "hostname",
+        "IP Address": "ip_address",
+        "Operating System": "operating_system",
+        "CPU Cores": "cpu_cores",
+        "Memory (GB)": "memory_gb",
+        "Storage (GB)": "storage_gb",
+        "Location": "location",
+        "Environment": "environment",
+        "Criticality": "criticality",
+        "Application": "application",
+        "Owner": "owner",
+        "Cost Center": "cost_center"
+      },
+      "mapping_details": {
+        "Asset Name": {
+          "target": "asset_name",
+          "confidence": 0.95,
+          "reasoning": "Mapped with 95% confidence"
+        },
+        "Asset ID": {
+          "target": "asset_id",
+          "confidence": 0.95,
+          "reasoning": "Mapped with 95% confidence"
+        },
+        "Type": {
+          "target": "asset_type",
+          "confidence": 0.95,
+          "reasoning": "Mapped with 95% confidence"
+        },
+        "Hostname": {
+          "target": "hostname",
+          "confidence": 0.95,
+          "reasoning": "Mapped with 95% confidence"
+        },
+        "IP Address": {
+          "target": "ip_address",
+          "confidence": 0.95,
+          "reasoning": "Mapped with 95% confidence"
+        },
+        "Operating System": {
+          "target": "operating_system",
+          "confidence": 0.95,
+          "reasoning": "Mapped with 95% confidence"
+        },
+        "CPU Cores": {
+          "target": "cpu_cores",
+          "confidence": 0.95,
+          "reasoning": "Mapped with 95% confidence"
+        },
+        "Memory (GB)": {
+          "target": "memory_gb",
+          "confidence": 0.95,
+          "reasoning": "Mapped with 95% confidence"
+        },
+        "Storage (GB)": {
+          "target": "storage_gb",
+          "confidence": 0.95,
+          "reasoning": "Mapped with 95% confidence"
+        },
+        "Location": {
+          "target": "location",
+          "confidence": 0.95,
+          "reasoning": "Mapped with 95% confidence"
+        },
+        "Environment": {
+          "target": "environment",
+          "confidence": 0.95,
+          "reasoning": "Mapped with 95% confidence"
+        },
+        "Criticality": {
+          "target": "criticality",
+          "confidence": 0.95,
+          "reasoning": "Mapped with 95% confidence"
+        },
+        "Application": {
+          "target": "application",
+          "confidence": 0.95,
+          "reasoning": "Mapped with 95% confidence"
+        },
+        "Owner": {
+          "target": "owner",
+          "confidence": 0.95,
+          "reasoning": "Mapped with 95% confidence"
+        },
+        "Cost Center": {
+          "target": "cost_center",
+          "confidence": 0.95,
+          "reasoning": "Mapped with 95% confidence"
+        }
+      },
+      "confidence_scores": {
+        "Asset Name": 0.95,
+        "Asset ID": 0.95,
+        "Type": 0.95,
+        "Hostname": 0.95,
+        "IP Address": 0.95,
+        "Operating System": 0.95,
+        "CPU Cores": 0.95,
+        "Memory (GB)": 0.95,
+        "Storage (GB)": 0.95,
+        "Location": 0.95,
+        "Environment": 0.95,
+        "Criticality": 0.95,
+        "Application": 0.95,
+        "Owner": 0.95,
+        "Cost Center": 0.95
+      },
+      "validation_results": {
+        "total_fields": 15,
+        "mapped_fields": 15,
+        "mapping_confidence": 0.9499999999999997,
+        "fallback_used": false
+      },
+      "crew_execution": true,
+      "execution_metadata": {
+        "timestamp": "2025-08-14T03:38:40.378103",
+        "method": "crewai_field_mapping"
+      }
+    },
+    "page": "flow_2a37e993-1c12-472c-b329-28863f67bd2b",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "2a37e993-1c12-472c-b329-28863f67bd2b",
+    "created_at": "2025-08-14T03:38:53.917120",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "e3dbb412-7f25-42c8-a82d-41308c5eb1a2": {
+    "id": "e3dbb412-7f25-42c8-a82d-41308c5eb1a2",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow 2a37e993-1c12-472c-b329-28863f67bd2b",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "2a37e993-1c12-472c-b329-28863f67bd2b",
+      "approval_data": {
+        "mappings": {
+          "Asset Name": "asset_name",
+          "Asset ID": "asset_id",
+          "Type": "asset_type",
+          "Hostname": "hostname",
+          "IP Address": "ip_address",
+          "Operating System": "operating_system",
+          "CPU Cores": "cpu_cores",
+          "Memory (GB)": "memory_gb",
+          "Storage (GB)": "storage_gb",
+          "Location": "location",
+          "Environment": "environment",
+          "Criticality": "criticality",
+          "Application": "application",
+          "Owner": "owner",
+          "Cost Center": "cost_center"
+        },
+        "mapping_details": {
+          "Asset Name": {
+            "target": "asset_name",
+            "confidence": 0.95,
+            "reasoning": "Mapped with 95% confidence"
+          },
+          "Asset ID": {
+            "target": "asset_id",
+            "confidence": 0.95,
+            "reasoning": "Mapped with 95% confidence"
+          },
+          "Type": {
+            "target": "asset_type",
+            "confidence": 0.95,
+            "reasoning": "Mapped with 95% confidence"
+          },
+          "Hostname": {
+            "target": "hostname",
+            "confidence": 0.95,
+            "reasoning": "Mapped with 95% confidence"
+          },
+          "IP Address": {
+            "target": "ip_address",
+            "confidence": 0.95,
+            "reasoning": "Mapped with 95% confidence"
+          },
+          "Operating System": {
+            "target": "operating_system",
+            "confidence": 0.95,
+            "reasoning": "Mapped with 95% confidence"
+          },
+          "CPU Cores": {
+            "target": "cpu_cores",
+            "confidence": 0.95,
+            "reasoning": "Mapped with 95% confidence"
+          },
+          "Memory (GB)": {
+            "target": "memory_gb",
+            "confidence": 0.95,
+            "reasoning": "Mapped with 95% confidence"
+          },
+          "Storage (GB)": {
+            "target": "storage_gb",
+            "confidence": 0.95,
+            "reasoning": "Mapped with 95% confidence"
+          },
+          "Location": {
+            "target": "location",
+            "confidence": 0.95,
+            "reasoning": "Mapped with 95% confidence"
+          },
+          "Environment": {
+            "target": "environment",
+            "confidence": 0.95,
+            "reasoning": "Mapped with 95% confidence"
+          },
+          "Criticality": {
+            "target": "criticality",
+            "confidence": 0.95,
+            "reasoning": "Mapped with 95% confidence"
+          },
+          "Application": {
+            "target": "application",
+            "confidence": 0.95,
+            "reasoning": "Mapped with 95% confidence"
+          },
+          "Owner": {
+            "target": "owner",
+            "confidence": 0.95,
+            "reasoning": "Mapped with 95% confidence"
+          },
+          "Cost Center": {
+            "target": "cost_center",
+            "confidence": 0.95,
+            "reasoning": "Mapped with 95% confidence"
+          }
+        },
+        "confidence_scores": {
+          "Asset Name": 0.95,
+          "Asset ID": 0.95,
+          "Type": 0.95,
+          "Hostname": 0.95,
+          "IP Address": 0.95,
+          "Operating System": 0.95,
+          "CPU Cores": 0.95,
+          "Memory (GB)": 0.95,
+          "Storage (GB)": 0.95,
+          "Location": 0.95,
+          "Environment": 0.95,
+          "Criticality": 0.95,
+          "Application": 0.95,
+          "Owner": 0.95,
+          "Cost Center": 0.95
+        },
+        "validation_results": {
+          "total_fields": 15,
+          "mapped_fields": 15,
+          "mapping_confidence": 0.9499999999999997,
+          "fallback_used": false
+        },
+        "crew_execution": true,
+        "execution_metadata": {
+          "timestamp": "2025-08-14T03:38:40.378103",
+          "method": "crewai_field_mapping"
+        }
+      }
+    },
+    "page": "flow_2a37e993-1c12-472c-b329-28863f67bd2b",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "2a37e993-1c12-472c-b329-28863f67bd2b",
+    "created_at": "2025-08-14T03:38:53.926343",
     "user_feedback": null,
     "is_validated": false
   }

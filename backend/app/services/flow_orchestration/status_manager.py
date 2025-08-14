@@ -298,8 +298,13 @@ class FlowStatusManager:
                     "flow_status": flow.flow_status,
                     "status": flow.flow_status,  # Alias for compatibility
                     "flow_name": flow.flow_name,
-                    "current_phase": flow.current_phase,
-                    "progress_percentage": flow.progress_percentage or 0.0,
+                    "current_phase": (
+                        flow.get_current_phase()
+                        if hasattr(flow, "get_current_phase")
+                        else None
+                    ),
+                    "progress_percentage": getattr(flow, "progress_percentage", 0.0)
+                    or 0.0,
                     "created_at": flow.created_at,
                     "updated_at": flow.updated_at,
                     "created_by": str(flow.user_id) if flow.user_id else "system",
@@ -349,8 +354,13 @@ class FlowStatusManager:
                     "flow_status": flow.flow_status,
                     "status": flow.flow_status,  # Alias for compatibility
                     "flow_name": flow.flow_name,
-                    "current_phase": flow.current_phase,
-                    "progress_percentage": flow.progress_percentage or 0.0,
+                    "current_phase": (
+                        flow.get_current_phase()
+                        if hasattr(flow, "get_current_phase")
+                        else None
+                    ),
+                    "progress_percentage": getattr(flow, "progress_percentage", 0.0)
+                    or 0.0,
                     "created_at": flow.created_at,
                     "updated_at": flow.updated_at,
                     "created_by": str(flow.user_id) if flow.user_id else "system",

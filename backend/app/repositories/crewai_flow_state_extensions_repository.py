@@ -480,8 +480,15 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
     ) -> List[CrewAIFlowStateExtensions]:
         """Get all active master flows for the current client/engagement"""
         try:
+            # Check if required context values are present
+            if not self.client_account_id:
+                logger.warning(
+                    f"Missing required context for get_active_flows: "
+                    f"client_account_id={self.client_account_id}"
+                )
+                return []
+
             client_uuid = uuid.UUID(self.client_account_id)
-            engagement_uuid = uuid.UUID(self.engagement_id)
 
             active_statuses = [
                 "initialized",
@@ -494,9 +501,15 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             # Build query conditions
             conditions = [
                 CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
                 CrewAIFlowStateExtensions.flow_status.in_(active_statuses),
             ]
+
+            # Only filter by engagement_id if it's provided
+            if self.engagement_id:
+                engagement_uuid = uuid.UUID(self.engagement_id)
+                conditions.append(
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid
+                )
 
             # Add flow type filter if specified
             if flow_type:

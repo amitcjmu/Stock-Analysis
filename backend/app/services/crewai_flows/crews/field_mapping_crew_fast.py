@@ -82,64 +82,66 @@ def create_fast_field_mapping_crew(
             allow_delegation=False,  # CRITICAL: Prevent agent delegation
             llm=llm_model,
             max_iter=1,  # Single iteration for speed
-            max_execution_time=300,  # 300 second timeout for reliable completion
+            max_execution_time=300,  # 300 second timeout for agent
         )
 
         # 🎯 SINGLE OPTIMIZED TASK: Direct field mapping
         mapping_task = Task(
             description=f"""
-            Map these {len(sample_fields)} CSV fields to standard migration attributes:
+            Map these CSV fields to standard attributes:
 
-            CSV Fields Found: {sample_fields}
+            CSV fields: {sample_fields}
 
-            Standard Target Attributes:
-            - asset_name, asset_id, asset_type
-            - hostname, ip_address, operating_system
-            - cpu_cores, memory_gb, storage_gb
-            - location, environment, criticality
-            - application, owner, cost_center
+            Standard attributes: asset_name, asset_id, asset_type, hostname, ip_address, operating_system, cpu_cores, memory_gb, storage_gb, location, environment, criticality, application, owner, cost_center
 
-            REQUIRED OUTPUT FORMAT - You must provide each mapping on a separate line:
-            Asset_ID -> asset_id
-            Asset_Name -> asset_name
-            Asset_Type -> asset_type
-            IP_Address -> ip_address
-            Operating_System -> operating_system
-            CPU_Cores -> cpu_cores
-            RAM_GB -> memory_gb
-            Storage_GB -> storage_gb
-            Location_DataCenter -> location
-            Application_Service -> application
-            Application_Owner -> owner
+            OUTPUT EXACTLY IN THIS FORMAT:
+            Application -> application
+            Owner -> owner
+            Type -> asset_type
+            Environment -> environment
+            Criticality -> criticality
 
-            Then add:
-            Confidence score: [0-100]
+            Confidence score: 95
             Status: COMPLETE
-
-            CRITICAL: Each mapping must be in exact format "source_field -> target_attribute" on separate lines.
             """,
             agent=field_mapping_specialist,
-            expected_output=(
-                "Field mappings in format 'source -> target', one per line, "
-                "followed by confidence score and status"
-            ),
-            max_execution_time=300,  # 300 second timeout for reliability
+            expected_output="Field mappings in format: source -> target",
+            max_execution_time=300,  # Task-level timeout - 300 seconds
         )
 
         # 🚀 OPTIMIZED CREW: Sequential process, minimal overhead
-        from app.core.env_flags import is_truthy_env
+        # Enable memory with proper embedder configuration
+        from app.services.llm_config import get_crewai_embeddings
 
-        enable_memory = is_truthy_env("CREWAI_ENABLE_MEMORY", default=False)
+        try:
+            # Get embedder configuration
+            embedder_config = get_crewai_embeddings()
+            logger.info(f"Using embedder config: {embedder_config}")
 
-        crew = Crew(
-            agents=[field_mapping_specialist],
-            tasks=[mapping_task],
-            process=Process.sequential,  # CRITICAL: No hierarchical overhead
-            verbose=False,  # Reduce logging
-            max_execution_time=300,  # 300 second timeout for completion
-            memory=enable_memory,  # Enable via flag when stable
-            embedder=None,  # Disable embedding overhead
-        )
+            crew = Crew(
+                agents=[field_mapping_specialist],
+                tasks=[mapping_task],
+                process=Process.sequential,  # CRITICAL: No hierarchical overhead
+                verbose=False,  # Reduce logging
+                max_execution_time=300,  # Crew-level timeout - 300 seconds
+                memory=True,  # ENABLED: Using proper embedder config
+                embedder=embedder_config,  # Use DeepInfra embeddings
+            )
+            logger.info("✅ CrewAI memory enabled with DeepInfra embeddings")
+
+        except Exception as mem_error:
+            logger.warning(f"⚠️ Could not enable memory: {mem_error}")
+            # Fallback without memory if embedder fails
+            crew = Crew(
+                agents=[field_mapping_specialist],
+                tasks=[mapping_task],
+                process=Process.sequential,
+                verbose=False,
+                max_execution_time=300,
+                memory=False,
+                embedder=None,
+            )
+            logger.info("⚠️ CrewAI memory disabled due to embedder error")
 
         logger.info("✅ FAST Field Mapping Crew created - single agent, 20s timeout")
         return crew

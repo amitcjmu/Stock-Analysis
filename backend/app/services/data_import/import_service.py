@@ -179,6 +179,20 @@ class DataImportService:
             # not the in-memory object, so we need to set it here for the response
             data_import.master_flow_id = master_flow_id
 
+            # Start the flow execution in the background
+            logger.info(f"🚀 Starting background flow execution for {master_flow_id}")
+            from app.services.data_import import BackgroundExecutionService
+
+            background_service = BackgroundExecutionService(
+                self.db, self.context.client_account_id
+            )
+            await background_service.start_background_flow_execution(
+                flow_id=str(master_flow_id),
+                file_data=file_data["data"],  # Pass the parsed data
+                context=self.context,
+            )
+            logger.info(f"✅ Background flow execution started for {master_flow_id}")
+
             # The transaction will be committed by the calling service (e.g., in transaction_manager)
 
             return data_import

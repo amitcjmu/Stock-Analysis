@@ -116,9 +116,13 @@ class BackgroundExecutionService:
             file_data: Raw import data for the flow
             context: Request context for the flow
         """
+        logger.info("=" * 80)
+        logger.info("=" * 80)
         logger.info(
-            f"🎯 Background CrewAI Discovery Flow execution starting for {flow_id}"
+            f"🔥🔥🔥 CREWAI DISCOVERY FLOW INITIALIZATION - FLOW ID: {flow_id} 🔥🔥🔥"
         )
+        logger.info("=" * 80)
+        logger.info("=" * 80)
         logger.info(f"📊 Processing {len(file_data)} records")
 
         discovery_flow = None
@@ -175,9 +179,11 @@ class BackgroundExecutionService:
                 )
 
             # Use new phase controller instead of flow.kickoff() to prevent automatic execution
+            logger.info("-" * 80)
             logger.info(
-                f"🚀 Starting controlled phase-by-phase execution for {flow_id}"
+                f"🚀🚀🚀 STARTING CONTROLLED PHASE-BY-PHASE EXECUTION FOR FLOW: {flow_id}"
             )
+            logger.info("-" * 80)
             from app.services.crewai_flows.unified_discovery_flow.phase_controller import (
                 PhaseController,
             )

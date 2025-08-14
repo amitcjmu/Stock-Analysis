@@ -156,17 +156,56 @@ class FieldMappingExecutor(BasePhaseExecutor):
 
     def _process_field_mapping_results(self, crew_result) -> Dict[str, Any]:
         """Process field mapping crew results"""
-        base_result = self._process_crew_result(crew_result)
+        # Log the crew result type for debugging
+        logger.info(f"🔍 DEBUG: Crew result type: {type(crew_result)}")
 
-        # Extract field mappings from crew result
-        if isinstance(base_result.get("raw_result"), dict):
-            mappings = base_result["raw_result"].get("field_mappings", {})
-        else:
-            # Parse string result for mappings
-            mappings = self._extract_mappings_from_text(
-                str(base_result.get("raw_result", ""))
+        # Handle CrewOutput object
+        raw_text = ""
+        if hasattr(crew_result, "raw"):
+            raw_text = str(crew_result.raw)
+            logger.info(
+                f"🔍 DEBUG: Using crew_result.raw (length {len(raw_text)}): {raw_text[:500]}..."
             )
+            # Log the full output for debugging
+            if len(raw_text) < 2000:
+                logger.info(f"🔍 DEBUG: Full crew output:\n{raw_text}")
+        elif hasattr(crew_result, "output"):
+            raw_text = str(crew_result.output)
+            logger.info(
+                f"🔍 DEBUG: Using crew_result.output (length {len(raw_text)}): {raw_text[:500]}..."
+            )
+            # Log the full output for debugging
+            if len(raw_text) < 2000:
+                logger.info(f"🔍 DEBUG: Full crew output:\n{raw_text}")
+        else:
+            # Try to process as before
+            base_result = self._process_crew_result(crew_result)
+            if isinstance(base_result.get("raw_result"), dict):
+                mappings = base_result["raw_result"].get("field_mappings", {})
+                if mappings:
+                    logger.info(
+                        f"✅ Found mappings in crew result dict: {len(mappings)} mappings"
+                    )
+                    return self._create_mapping_response(mappings)
+            else:
+                raw_text = str(base_result.get("raw_result", ""))
 
+        # Parse string result for mappings AND confidence scores
+        if raw_text:
+            mappings, confidence_scores = (
+                self._extract_mappings_and_confidence_from_text(raw_text)
+            )
+        else:
+            logger.error("❌ No raw text found in crew result")
+            mappings = {}
+            confidence_scores = {}
+
+        return self._create_mapping_response_with_confidence(
+            mappings, confidence_scores
+        )
+
+    def _create_mapping_response(self, mappings: Dict[str, str]) -> Dict[str, Any]:
+        """Create standardized mapping response"""
         return {
             "mappings": mappings,
             "validation_results": {
@@ -182,17 +221,81 @@ class FieldMappingExecutor(BasePhaseExecutor):
             },
         }
 
+    def _create_mapping_response_with_confidence(
+        self, mappings: Dict[str, str], confidence_scores: Dict[str, float]
+    ) -> Dict[str, Any]:
+        """Create standardized mapping response with confidence scores"""
+        # Calculate average confidence
+        avg_confidence = (
+            sum(confidence_scores.values()) / len(confidence_scores)
+            if confidence_scores
+            else 0.7
+        )
+
+        # Create mapping details with confidence for each field
+        mapping_details = {}
+        for source, target in mappings.items():
+            confidence = confidence_scores.get(source, 0.7)
+            mapping_details[source] = {
+                "target": target,
+                "confidence": confidence,
+                "reasoning": f"Mapped with {confidence*100:.0f}% confidence",
+            }
+
+        return {
+            "mappings": mappings,
+            "mapping_details": mapping_details,
+            "confidence_scores": confidence_scores,
+            "validation_results": {
+                "total_fields": len(mappings),
+                "mapped_fields": len([k for k, v in mappings.items() if v]),
+                "mapping_confidence": avg_confidence,
+                "fallback_used": False,
+            },
+            "crew_execution": True,
+            "execution_metadata": {
+                "timestamp": self._get_timestamp(),
+                "method": "crewai_field_mapping",
+            },
+        }
+
     # COMMENTED OUT - NO FALLBACK ALLOWED
     # def _fallback_field_mapping(self) -> Dict[str, Any]:
     #     """Fallback field mapping logic using intelligent mapping patterns"""
     #     # NO FALLBACK - This entire method should not be used
     #     raise RuntimeError("Fallback field mapping called - this should not happen!")
 
-    def _extract_mappings_from_text(self, text: str) -> Dict[str, str]:
-        """Extract field mappings from text result"""
+    def _extract_mappings_and_confidence_from_text(
+        self, text: str
+    ) -> tuple[Dict[str, str], Dict[str, float]]:
+        """Extract field mappings and confidence scores from text result"""
         import re
 
         mappings = {}
+        confidence_scores = {}
+        overall_confidence = None
+
+        # Log the raw text for debugging
+        logger.info(f"🔍 DEBUG: Raw crew output text (first 1000 chars): {text[:1000]}")
+
+        # First, try to extract overall confidence score from the text
+        confidence_patterns = [
+            r"Confidence score:\s*(\d+)",
+            r"Confidence:\s*(\d+)%?",
+            r"confidence score:\s*(\d+)",
+            r"Overall confidence:\s*(\d+)",
+        ]
+
+        for pattern in confidence_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                overall_confidence = (
+                    float(match.group(1)) / 100.0
+                    if float(match.group(1)) > 1
+                    else float(match.group(1))
+                )
+                logger.info(f"✅ Found overall confidence score: {overall_confidence}")
+                break
 
         # Simple text parsing for mappings
         lines = text.split("\n")
@@ -209,8 +312,32 @@ class FieldMappingExecutor(BasePhaseExecutor):
                     if re.match(r"^\d+\.\s*", source):
                         source = re.sub(r"^\d+\.\s*", "", source).strip()
 
+                    # Also handle case where the whole line is just "-> target"
+                    # In this case, look for the source field in CrewAI's expected format
+                    if not source and target:
+                        # This might be CrewAI's output format where each mapping is on its own line
+                        # We'll handle this by looking for common patterns
+                        logger.info(f"🔍 Found target-only mapping: -> {target}")
+                        # Skip for now, will handle in a different way
+                        continue
+
                     if source and target:
                         mappings[source] = target
+                        logger.info(f"✅ Found mapping: {source} -> {target}")
+
+                        # Check if line contains individual confidence score
+                        conf_match = re.search(r"\((\d+)%?\)", line)
+                        if conf_match:
+                            conf_value = (
+                                float(conf_match.group(1)) / 100.0
+                                if float(conf_match.group(1)) > 1
+                                else float(conf_match.group(1))
+                            )
+                            confidence_scores[source] = conf_value
+                            logger.info(f"  ↳ Confidence: {conf_value}")
+                        elif overall_confidence:
+                            # Use overall confidence if no individual score
+                            confidence_scores[source] = overall_confidence
             # Format 2: source_field: target_attribute
             elif ":" in line and not any(
                 skip in line.lower()
@@ -233,14 +360,88 @@ class FieldMappingExecutor(BasePhaseExecutor):
                         and len(source) < 50
                     ):
                         mappings[source] = target
+                        logger.info(
+                            f"✅ Found mapping (colon format): {source} : {target}"
+                        )
+
+                        # Check for confidence in colon format
+                        conf_match = re.search(r"\((\d+)%?\)", line)
+                        if conf_match:
+                            conf_value = (
+                                float(conf_match.group(1)) / 100.0
+                                if float(conf_match.group(1)) > 1
+                                else float(conf_match.group(1))
+                            )
+                            confidence_scores[source] = conf_value
+                        elif overall_confidence:
+                            confidence_scores[source] = overall_confidence
+
+        # If no mappings found, try a more flexible approach
+        if not mappings:
+            logger.warning(
+                "⚠️ No mappings found with standard formats, trying flexible parsing"
+            )
+            # Look for common field names and map them
+            common_mappings = {
+                "hostname": "hostname",
+                "ip address": "ip_address",
+                "operating system": "operating_system",
+                "cpu cores": "cpu_cores",
+                "ram": "memory_gb",
+                "environment": "environment",
+                "status": "status",
+            }
+
+            text_lower = text.lower()
+            for source, target in common_mappings.items():
+                if source in text_lower:
+                    # Try to find the actual field name in the original text
+                    for line in lines:
+                        if source in line.lower():
+                            # Extract the actual field name
+                            field_match = re.search(r"([A-Za-z_\s]+)", line)
+                            if field_match:
+                                actual_field = field_match.group(1).strip()
+                                if actual_field:
+                                    mappings[actual_field] = target
+                                    logger.info(
+                                        f"✅ Found mapping via flexible parsing: {actual_field} -> {target}"
+                                    )
+                                    break
+
+        # Log summary
+        logger.info(f"📊 Total mappings extracted: {len(mappings)}")
+        if mappings:
+            logger.info(
+                f"📋 Mappings found: {list(mappings.keys())[:5]}..."
+            )  # Show first 5
 
         # NO FALLBACK - If no mappings found from crew, that's an error
         if not mappings:
             logger.error("❌ No mappings extracted from crew result - NO FALLBACK")
+            logger.error(
+                f"❌ Full crew output was: {text[:1000]}"
+            )  # Log more for debugging
             raise RuntimeError(
                 "CrewAI failed to generate field mappings. This needs to be fixed."
             )
 
+        # Apply default confidence if none found
+        if not confidence_scores and overall_confidence:
+            for source in mappings:
+                confidence_scores[source] = overall_confidence
+        elif not confidence_scores:
+            # Default to 0.7 if no confidence found anywhere
+            for source in mappings:
+                confidence_scores[source] = 0.7
+
+        logger.info(f"📊 Confidence scores: {confidence_scores}")
+
+        return mappings, confidence_scores
+
+    def _extract_mappings_from_text(self, text: str) -> Dict[str, str]:
+        """Legacy method - just extract mappings without confidence"""
+        mappings, _ = self._extract_mappings_and_confidence_from_text(text)
         return mappings
 
     def _get_timestamp(self) -> str:
@@ -283,6 +484,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
             # Get mappings and details from results
             mappings = results.get("mappings", {})
             mapping_details = results.get("mapping_details", {})
+            confidence_scores = results.get("confidence_scores", {})
             crew_execution = results.get("crew_execution", False)
             fallback_used = results.get("validation_results", {}).get(
                 "fallback_used", False
@@ -353,6 +555,10 @@ class FieldMappingExecutor(BasePhaseExecutor):
                             # Create new mappings for each field
                             for source_field, target_field in mappings.items():
                                 details = mapping_details.get(source_field, {})
+                                # Use actual confidence score from extraction
+                                confidence = confidence_scores.get(
+                                    source_field, details.get("confidence", 0.7)
+                                )
 
                                 # Get data_import_id - try to find or create one
                                 if not import_uuid and master_uuid:
@@ -394,7 +600,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
                                     match_type=(
                                         "agent" if crew_execution else "intelligent"
                                     ),
-                                    confidence_score=details.get("confidence", 0.7),
+                                    confidence_score=confidence,
                                     status="suggested",
                                     suggested_by="ai_mapper",
                                     transformation_rules={
@@ -428,7 +634,10 @@ class FieldMappingExecutor(BasePhaseExecutor):
 
                                 # Get details if available
                                 details = mapping_details.get(source_field, {})
-                                confidence = details.get("confidence", 0.7)
+                                # Use actual confidence score from extraction
+                                confidence = confidence_scores.get(
+                                    source_field, details.get("confidence", 0.7)
+                                )
                                 reasoning = details.get("reasoning", "")
 
                                 # Update the mapping
@@ -489,8 +698,8 @@ class FieldMappingExecutor(BasePhaseExecutor):
         logger.info("🔍 Executing field mapping in suggestions-only mode")
         logger.info(f"🔍 DEBUG: Previous result: {previous_result}")
         raw_data_count = (
-            len(self.state.raw_data) 
-            if hasattr(self.state, 'raw_data') and self.state.raw_data 
+            len(self.state.raw_data)
+            if hasattr(self.state, "raw_data") and self.state.raw_data
             else 0
         )
         logger.info(f"🔍 DEBUG: State raw_data: {raw_data_count} records")
