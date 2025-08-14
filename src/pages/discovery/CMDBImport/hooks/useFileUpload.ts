@@ -105,15 +105,20 @@ export const useFileUpload = (): JSX.Element => {
         console.log('✅ Full response data:', response);
 
         // Make sure we're returning the correct flow_id
-        const flowId = response.flow_id || response.crewai_flow_id || response.discovery_flow_id;
+        // Backend returns crew_flow_id (which may be null) and import_flow_id (which is the actual flow ID)
+        // Use import_flow_id as the primary flow identifier when crew_flow_id is null
+        const flowId = response.crew_flow_id || response.flow_id || response.crewai_flow_id || response.discovery_flow_id || response.import_flow_id;
         console.log('🎯 Using flow ID:', flowId);
         console.log('📡 Full backend response for flow tracking:', {
           import_flow_id: response.import_flow_id,
+          crew_flow_id: response.crew_flow_id,
           flow_id: flowId,
           all_flow_fields: {
             flow_id: response.flow_id,
+            crew_flow_id: response.crew_flow_id,
             crewai_flow_id: response.crewai_flow_id,
-            discovery_flow_id: response.discovery_flow_id
+            discovery_flow_id: response.discovery_flow_id,
+            import_flow_id: response.import_flow_id
           }
         });
 
