@@ -179,7 +179,7 @@ pydantic_core==2.33.2
 Pygments==2.19.2
 PyJWT==2.10.1
 pymdown-extensions==10.16
-pypdf==5.7.0
+pypdf==6.0.0  # Updated from 5.7.0 - fixes CVE-2025-3429 RAM exhaustion vulnerability
 pypdfium2==4.30.1
 PyPika==0.48.9
 pyproject_hooks==1.2.0

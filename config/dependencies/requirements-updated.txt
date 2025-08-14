@@ -30,7 +30,7 @@ pandas==2.3.0  # Updated from >=2.1.0
 numpy==2.3.1  # Updated from >=1.24.0, fixes security issues
 scikit-learn==1.7.0  # Pinned to latest stable
 openpyxl==3.1.5
-pypdf==5.7.0
+pypdf==6.0.0  # Updated from 5.7.0 - fixes CVE-2025-3429 RAM exhaustion vulnerability
 
 # HTTP and requests - UPDATED FOR SECURITY
 aiohttp==3.12.14  # Updated from >=3.9.0, fixes CVE-2025-53643 HTTP Request/Response Smuggling
