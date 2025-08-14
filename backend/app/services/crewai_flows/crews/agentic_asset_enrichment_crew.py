@@ -105,7 +105,7 @@ class AgenticAssetEnrichmentCrew:
             verbose=True,
             allow_delegation=False,
             max_iter=3,
-            max_execution_time=120,
+            max_execution_time=300,
         )
 
         # Pattern Discovery Agent - Identifies new patterns for future learning
@@ -121,7 +121,7 @@ class AgenticAssetEnrichmentCrew:
             verbose=True,
             allow_delegation=False,
             max_iter=2,
-            max_execution_time=90,
+            max_execution_time=300,
         )
 
         return [asset_intelligence_agent, pattern_discovery_agent]
@@ -189,7 +189,7 @@ class AgenticAssetEnrichmentCrew:
             5. New patterns identified during analysis
             6. Confidence levels and validation recommendations""",
             agent=asset_intelligence_agent,
-            max_execution_time=180,
+            max_execution_time=300,
         )
 
         # Task 2: Pattern Discovery and Learning
@@ -224,7 +224,7 @@ class AgenticAssetEnrichmentCrew:
             4. Suggestions for improving future enrichment processes
             5. Insights about asset portfolio characteristics""",
             agent=pattern_discovery_agent,
-            max_execution_time=120,
+            max_execution_time=300,
         )
 
         return [enrichment_task, pattern_discovery_task]
@@ -249,7 +249,7 @@ class AgenticAssetEnrichmentCrew:
             "process": Process.sequential,
             "memory": True,  # Enable crew-level memory
             "verbose": True,
-            "max_execution_time": 360,  # 6 minutes total
+            "max_execution_time": 300,  # 5 minutes total
         }
 
         # Add manager LLM if hierarchical process is needed

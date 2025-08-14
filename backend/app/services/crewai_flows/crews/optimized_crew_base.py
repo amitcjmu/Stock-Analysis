@@ -116,7 +116,7 @@ class OptimizedCrewBase:
             "tools": tools or [],
             "verbose": True,
             "max_iter": 3,  # Limit iterations for performance
-            "max_execution_time": 60,  # 1 minute timeout
+            "max_execution_time": 300,  # 5 minute timeout
             "allow_delegation": kwargs.get("allow_delegation", False),
             "system_template": kwargs.get("system_template", None),
             "prompt_template": kwargs.get("prompt_template", None),
@@ -179,7 +179,7 @@ class OptimizedCrewBase:
             "description": description,
             "agent": agent,
             "expected_output": expected_output,
-            "max_execution_time": kwargs.get("max_execution_time", 60),
+            "max_execution_time": kwargs.get("max_execution_time", 300),
             "max_retry": kwargs.get("max_retry", 2),
             "human_input": kwargs.get("human_input", False),
             "async_execution": self.enable_parallel

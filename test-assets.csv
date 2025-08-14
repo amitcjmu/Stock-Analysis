@@ -1,0 +1,6 @@
+Asset_ID,Asset_Name,Asset_Type,IP_Address,Operating_System,CPU_Cores,RAM_GB,Storage_GB,Location,Environment,Application,Owner,Status
+SRV001,WebServer-01,Server,192.168.1.10,Ubuntu 20.04,8,16,500,DC-East,Production,E-Commerce,IT-WebTeam,Active
+SRV002,DatabaseServer-01,Server,192.168.1.20,Red Hat 8,16,64,2000,DC-East,Production,E-Commerce,IT-DBTeam,Active
+SRV003,AppServer-01,Server,192.168.1.30,Windows Server 2019,12,32,1000,DC-East,Production,HR-System,IT-AppTeam,Active
+SRV004,CacheServer-01,Server,192.168.1.40,Ubuntu 22.04,4,8,200,DC-West,Production,E-Commerce,IT-WebTeam,Active
+SRV005,LoadBalancer-01,Server,192.168.1.50,CentOS 7,4,8,100,DC-East,Production,E-Commerce,IT-NetTeam,Active

@@ -21,7 +21,7 @@ DEFAULT_AGENT_CONFIG = {
 PERFORMANCE_CONFIG = {
     "use_fast_mode": True,  # Use optimized single agents where possible
     "enable_delegation": False,  # Disable delegation for all tasks
-    "max_crew_execution_time": 15,  # 15 seconds max
+    "max_crew_execution_time": 300,  # 300 seconds max
     "single_pass_only": True,  # No iterations
 }
 

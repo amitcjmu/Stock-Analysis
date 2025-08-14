@@ -82,7 +82,7 @@ def create_fast_field_mapping_crew(
             allow_delegation=False,  # CRITICAL: Prevent agent delegation
             llm=llm_model,
             max_iter=1,  # Single iteration for speed
-            max_execution_time=15,  # 15 second timeout
+            max_execution_time=300,  # 300 second timeout for reliable completion
         )
 
         # 🎯 SINGLE OPTIMIZED TASK: Direct field mapping
@@ -123,7 +123,7 @@ def create_fast_field_mapping_crew(
                 "Field mappings in format 'source -> target', one per line, "
                 "followed by confidence score and status"
             ),
-            max_execution_time=12,  # Task-level timeout
+            max_execution_time=300,  # 300 second timeout for reliability
         )
 
         # 🚀 OPTIMIZED CREW: Sequential process, minimal overhead
@@ -136,7 +136,7 @@ def create_fast_field_mapping_crew(
             tasks=[mapping_task],
             process=Process.sequential,  # CRITICAL: No hierarchical overhead
             verbose=False,  # Reduce logging
-            max_execution_time=20,  # Crew-level timeout
+            max_execution_time=300,  # 300 second timeout for completion
             memory=enable_memory,  # Enable via flag when stable
             embedder=None,  # Disable embedding overhead
         )
