@@ -106,8 +106,8 @@ export const useFieldMappings = (
       try {
         // Use new API client if custom cache is disabled, otherwise use legacy
         const mappings = isCacheFeatureEnabled('DISABLE_CUSTOM_CACHE')
-          ? await apiClient.get(`/data-import/field-mapping/imports/${importId}/field-mappings`)
-          : await apiCall(`/api/v1/data-import/field-mapping/imports/${importId}/field-mappings`, {
+          ? await apiClient.get(`/data-import/field-mapping/field-mappings/imports/${importId}/mappings`)
+          : await apiCall(`/api/v1/data-import/field-mapping/field-mappings/imports/${importId}/mappings`, {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',

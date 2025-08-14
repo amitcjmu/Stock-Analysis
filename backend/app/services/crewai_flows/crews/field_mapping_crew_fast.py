@@ -88,35 +88,57 @@ def create_fast_field_mapping_crew(
         # 🎯 SINGLE OPTIMIZED TASK: Direct field mapping
         mapping_task = Task(
             description=f"""
-            Map these CSV fields to standard attributes:
+            Map these EXACT CSV fields to standard attributes:
 
             CSV fields: {sample_fields}
 
             Standard attributes: asset_name, asset_id, asset_type, hostname, ip_address, operating_system, cpu_cores, memory_gb, storage_gb, location, environment, criticality, application, owner, cost_center
 
-            OUTPUT EXACTLY IN THIS FORMAT:
-            Application -> application
-            Owner -> owner
-            Type -> asset_type
-            Environment -> environment
-            Criticality -> criticality
+            CRITICAL: Use the EXACT CSV field names as source fields in your mappings.
+
+            OUTPUT EXACTLY IN THIS FORMAT (using the actual CSV field names):
+            Device_ID -> asset_id
+            Device_Name -> asset_name
+            Device_Type -> asset_type
+            IP_Address -> ip_address
+            Location -> location
+
+            DO NOT normalize or change the CSV field names. Use them exactly as provided.
 
             Confidence score: 95
             Status: COMPLETE
             """,
             agent=field_mapping_specialist,
-            expected_output="Field mappings in format: source -> target",
+            expected_output="Field mappings in format: exact_csv_field -> target_attribute",
             max_execution_time=300,  # Task-level timeout - 300 seconds
         )
 
         # 🚀 OPTIMIZED CREW: Sequential process, minimal overhead
         # Enable memory with proper embedder configuration
         from app.services.llm_config import get_crewai_embeddings
+        from app.services.crewai_memory_patch import apply_memory_patch
+        import os
 
         try:
-            # Get embedder configuration
-            embedder_config = get_crewai_embeddings()
-            logger.info(f"Using embedder config: {embedder_config}")
+            # Apply the memory patch for DeepInfra compatibility
+            patch_success = apply_memory_patch()
+            if not patch_success:
+                logger.warning(
+                    "⚠️ Memory patch not fully applied, memory may have issues"
+                )
+
+            # Create custom embedder configuration for DeepInfra
+            # This overrides CrewAI's default OpenAI embeddings with DeepInfra
+            custom_embedder = {
+                "provider": "openai",
+                "config": {
+                    "model": "thenlper/gte-large",  # DeepInfra embedding model
+                    "api_key": os.getenv("DEEPINFRA_API_KEY"),
+                    "api_base": "https://api.deepinfra.com/v1/openai",
+                    "encoding_format": "float",
+                },
+            }
+            logger.info(f"Using custom DeepInfra embedder: {custom_embedder}")
 
             crew = Crew(
                 agents=[field_mapping_specialist],
@@ -124,10 +146,10 @@ def create_fast_field_mapping_crew(
                 process=Process.sequential,  # CRITICAL: No hierarchical overhead
                 verbose=False,  # Reduce logging
                 max_execution_time=300,  # Crew-level timeout - 300 seconds
-                memory=True,  # ENABLED: Using proper embedder config
-                embedder=embedder_config,  # Use DeepInfra embeddings
+                memory=True,  # RE-ENABLED: Using custom DeepInfra embeddings
+                embedder=custom_embedder,  # Custom DeepInfra embedder config
             )
-            logger.info("✅ CrewAI memory enabled with DeepInfra embeddings")
+            logger.info("✅ CrewAI memory enabled with custom DeepInfra embeddings")
 
         except Exception as mem_error:
             logger.warning(f"⚠️ Could not enable memory: {mem_error}")

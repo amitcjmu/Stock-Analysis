@@ -111,7 +111,7 @@ class DataImportService:
                 "import_timestamp": datetime.utcnow().isoformat(),
             }
             initial_state = {
-                "raw_data": file_data,
+                "raw_data": parsed_data,  # ✅ Pass actual CSV data, not metadata wrapper
                 "data_import_id": str(data_import.id),
             }
 

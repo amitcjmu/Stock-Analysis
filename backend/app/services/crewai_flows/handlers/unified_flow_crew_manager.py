@@ -61,13 +61,25 @@ class UnifiedFlowCrewManager:
             _ = get_crewai_llm()
             logger.info("✅ LLM configuration initialized for CrewAI")
 
-            # 🚀 PERFORMANCE OPTIMIZATION: Always use optimized crews
-            from app.services.crewai_flows.crews.field_mapping_crew_fast import (
-                create_fast_field_mapping_crew,
-            )
+            # Use PERSISTENT field mapper for dramatic performance improvement
+            # This uses a single persistent agent instead of creating 3 new agents
+            try:
+                from app.services.crewai_flows.crews.persistent_field_mapping import (
+                    create_persistent_field_mapper,
+                )
 
-            field_mapping_factory = create_fast_field_mapping_crew
-            logger.info("✅ Using OPTIMIZED field mapping crew for performance")
+                field_mapping_factory = create_persistent_field_mapper
+                logger.info(
+                    "✅ Using PERSISTENT field mapper agent for optimal performance"
+                )
+            except ImportError:
+                # Fallback to standard crew if persistent mapper not available
+                from app.services.crewai_flows.crews.field_mapping_crew import (
+                    create_field_mapping_crew,
+                )
+
+                field_mapping_factory = create_field_mapping_crew
+                logger.info("⚠️ Falling back to STANDARD field mapping crew")
             from app.services.crewai_flows.crews.data_cleansing_crew import (
                 create_data_cleansing_crew,
             )
@@ -122,8 +134,35 @@ class UnifiedFlowCrewManager:
                     callback_handler=self.callback_handler,
                 )
             elif crew_type == "attribute_mapping":
-                # 🚀 OPTIMIZED: Use state-based crew creation
-                crew = factory(self.crewai_service, self.state)
+                # Use standard crew with raw_data parameter
+                # Try multiple sources for raw data
+                raw_data = getattr(self.state, "raw_data", [])
+                if not raw_data and hasattr(self.state, "phase_data"):
+                    # Try to get from phase_data
+                    phase_data = getattr(self.state, "phase_data", {})
+                    if "data_import" in phase_data:
+                        import_data = phase_data["data_import"]
+                        if isinstance(import_data, dict):
+                            raw_data = (
+                                import_data.get("validated_data")
+                                or import_data.get("raw_data")
+                                or import_data.get("records", [])
+                            )
+
+                # Also check kwargs for sample_data
+                if not raw_data:
+                    raw_data = kwargs.get("sample_data", [])
+
+                logger.info(
+                    f"🔍 DEBUG: attribute_mapping crew - found {len(raw_data)} records for field mapping"
+                )
+
+                crew = factory(
+                    self.crewai_service,
+                    raw_data,
+                    kwargs.get("shared_memory"),
+                    kwargs.get("knowledge_base"),
+                )
             elif crew_type == "data_cleansing":
                 # 🚀 OPTIMIZED: Use state-based crew creation
                 crew = factory(self.crewai_service, self.state)

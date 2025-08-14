@@ -4,11 +4,13 @@
  * Card component for displaying auto-mapped field mappings with agent reasoning and confidence.
  */
 
-import React from 'react';
-import { CheckCircle, XCircle, ArrowRight, Zap } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { CheckCircle, XCircle, ArrowRight, Zap, Edit2 } from 'lucide-react';
 import type { CardProps } from './types';
 import { getAgentReasoningForMapping, getAgentTypeForMapping, getConfidenceDisplay } from './agentHelpers';
 import { formatFieldValue, formatTargetAttribute } from './mappingUtils';
+import { EnhancedFieldDropdown } from '../EnhancedFieldDropdown';
+import type { TargetField } from '../../types';
 
 interface AutoMappedCardProps extends CardProps {
   onApprove: (mappingId: string) => void;
@@ -16,6 +18,8 @@ interface AutoMappedCardProps extends CardProps {
   isProcessing: boolean;
   expandedReasonings: Set<string>;
   onToggleReasoning: (mappingId: string) => void;
+  availableFields?: TargetField[];
+  onMappingChange?: (mappingId: string, newTarget: string) => void;
 }
 
 const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
@@ -24,13 +28,38 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
   onReject,
   isProcessing,
   expandedReasonings,
-  onToggleReasoning
+  onToggleReasoning,
+  availableFields,
+  onMappingChange
 }) => {
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedTarget, setSelectedTarget] = useState(mapping.targetAttribute || '');
   const isPlaceholder = mapping.is_placeholder || mapping.is_fallback;
   const agentType = getAgentTypeForMapping(mapping);
   const confidence = getConfidenceDisplay(mapping.confidence || 0);
   const reasoning = getAgentReasoningForMapping(mapping);
   const isExpanded = expandedReasonings.has(mapping.id);
+
+  const handleEditClick = useCallback(() => {
+    setIsEditMode(true);
+    setSelectedTarget(mapping.targetAttribute || '');
+  }, [mapping.targetAttribute]);
+
+  const handleSaveEdit = useCallback(() => {
+    if (onMappingChange && selectedTarget !== mapping.targetAttribute) {
+      onMappingChange(mapping.id, selectedTarget);
+    }
+    setIsEditMode(false);
+  }, [mapping.id, mapping.targetAttribute, onMappingChange, selectedTarget]);
+
+  const handleCancelEdit = useCallback(() => {
+    setIsEditMode(false);
+    setSelectedTarget(mapping.targetAttribute || '');
+  }, [mapping.targetAttribute]);
+
+  const handleFieldChange = useCallback((newValue: string) => {
+    setSelectedTarget(newValue);
+  }, []);
 
   return (
     <div className={`p-4 border rounded-lg transition-all duration-200 hover:shadow-md ${isPlaceholder ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-gray-200'}`}>
@@ -39,10 +68,46 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
           {formatFieldValue(mapping.sourceField)}
         </span>
         <ArrowRight className="h-4 w-4 text-gray-400" />
-        <span className={`font-medium ${isPlaceholder ? 'text-yellow-600' : 'text-blue-600'}`}>
-          {formatTargetAttribute(mapping.targetAttribute)}
-        </span>
-        {isPlaceholder && (
+        {isEditMode && availableFields ? (
+          <div className="flex items-center gap-2 flex-1">
+            <EnhancedFieldDropdown
+              value={selectedTarget}
+              onChange={handleFieldChange}
+              availableFields={availableFields}
+              placeholder="Select target field"
+            />
+            <button
+              onClick={handleSaveEdit}
+              className="text-green-600 hover:text-green-700"
+              title="Save changes"
+            >
+              <CheckCircle className="h-4 w-4" />
+            </button>
+            <button
+              onClick={handleCancelEdit}
+              className="text-red-600 hover:text-red-700"
+              title="Cancel edit"
+            >
+              <XCircle className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <>
+            <span className={`font-medium ${isPlaceholder ? 'text-yellow-600' : 'text-blue-600'}`}>
+              {formatTargetAttribute(mapping.targetAttribute)}
+            </span>
+            {availableFields && onMappingChange && (
+              <button
+                onClick={handleEditClick}
+                className="text-gray-500 hover:text-gray-700 ml-1"
+                title="Edit mapping"
+              >
+                <Edit2 className="h-3 w-3" />
+              </button>
+            )}
+          </>
+        )}
+        {isPlaceholder && !isEditMode && (
           <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full">
             Needs Configuration
           </span>

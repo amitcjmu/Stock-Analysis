@@ -7,7 +7,7 @@ Split from unified_flow_phase_executor.py for better modularity.
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .base_phase_executor import BasePhaseExecutor
 
@@ -38,6 +38,10 @@ class FieldMappingExecutor(BasePhaseExecutor):
     def get_progress_percentage(self) -> float:
         """Get the progress percentage when this phase completes"""
         return 16.7  # 1/6 phases
+
+    def _get_phase_timeout(self) -> Optional[int]:
+        """Override timeout for field mapping - needs more time for LLM processing"""
+        return 300  # 5 minutes for standard crew with multiple agents
 
     async def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
         """Execute field mapping using CrewAI crew - now properly async"""
@@ -270,6 +274,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
     ) -> tuple[Dict[str, str], Dict[str, float]]:
         """Extract field mappings and confidence scores from text result"""
         import re
+        import json
 
         mappings = {}
         confidence_scores = {}
@@ -277,6 +282,42 @@ class FieldMappingExecutor(BasePhaseExecutor):
 
         # Log the raw text for debugging
         logger.info(f"🔍 DEBUG: Raw crew output text (first 1000 chars): {text[:1000]}")
+
+        # First, try to parse as JSON if it looks like JSON
+        if text.strip().startswith("{") and text.strip().endswith("}"):
+            try:
+                json_data = json.loads(text)
+                logger.info("✅ Successfully parsed crew output as JSON")
+
+                # Extract mappings from JSON structure
+                if "mappings" in json_data and isinstance(json_data["mappings"], dict):
+                    for source_field, mapping_info in json_data["mappings"].items():
+                        if isinstance(mapping_info, dict):
+                            target_field = mapping_info.get("target_field", "")
+                            confidence = mapping_info.get("confidence", 0.7)
+                            if target_field:
+                                mappings[source_field] = target_field
+                                confidence_scores[source_field] = confidence
+                                logger.info(
+                                    f"✅ JSON mapping: {source_field} -> {target_field} (confidence: {confidence})"
+                                )
+                        elif isinstance(mapping_info, str):
+                            # Simple string mapping
+                            mappings[source_field] = mapping_info
+                            confidence_scores[source_field] = 0.7
+                            logger.info(
+                                f"✅ JSON mapping: {source_field} -> {mapping_info}"
+                            )
+
+                    # Early return if we got JSON mappings
+                    if mappings:
+                        logger.info(
+                            f"📊 Total JSON mappings extracted: {len(mappings)}"
+                        )
+                        return mappings, confidence_scores
+
+            except json.JSONDecodeError as e:
+                logger.info(f"⚠️ JSON parsing failed, falling back to text parsing: {e}")
 
         # First, try to extract overall confidence score from the text
         confidence_patterns = [

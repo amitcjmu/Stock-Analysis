@@ -303,6 +303,9 @@ class FieldMappingCrew:
         data_analyst, schema_expert, synthesis_specialist = agents
 
         headers = list(raw_data[0].keys()) if raw_data else []
+        logger.info(
+            f"🔍 DEBUG: Standard crew received {len(raw_data)} records with headers: {headers}"
+        )
         # Use minimal data sample to avoid rate limits - just headers and one sample value per field
         sample_values = {}
         if raw_data:
@@ -354,28 +357,35 @@ class FieldMappingCrew:
 
             Source Headers (Limited): {list(sample_values.keys())}
 
-            CONCISE INSTRUCTIONS (to avoid rate limits):
-            1. Map each header to the most appropriate Asset model field
-            2. Skip obvious metadata fields (row_index, etc.)
-            3. Focus on standard mappings first
-            4. Be brief in explanations
+            CRITICAL INSTRUCTIONS:
+            1. Use the EXACT CSV field names as source fields in your mappings
+            2. DO NOT normalize or change the CSV field names (e.g., keep "Device_ID" not "device_id")
+            3. Map each header to the most appropriate Asset model field
+            4. Skip obvious metadata fields (row_index, etc.)
+            5. Focus on standard mappings first
             6. Assign accurate confidence scores based on:
                - 0.9+: Perfect semantic match with clear data patterns
                - 0.7-0.89: Good match with some uncertainty
                - 0.5-0.69: Possible match but needs review
                - Below 0.5: Weak match, likely needs human input
 
-            OUTPUT FORMAT:
+            EXAMPLE OUTPUT (preserving exact field names):
             {{
                 "mappings": {{
-                    "source_field": {{
-                        "target_field": "asset_field_name",
-                        "confidence": 0.85,
-                        "reasoning": "Detailed explanation",
+                    "Device_ID": {{
+                        "target_field": "asset_id",
+                        "confidence": 0.95,
+                        "reasoning": "Clear identifier field",
+                        "requires_transformation": false
+                    }},
+                    "Device_Name": {{
+                        "target_field": "asset_name",
+                        "confidence": 0.95,
+                        "reasoning": "Name field for assets",
                         "requires_transformation": false
                     }}
                 }},
-                "skipped_fields": ["metadata_field1", "metadata_field2"],
+                "skipped_fields": [],
                 "synthesis_required": []
             }}
             """,
@@ -387,47 +397,12 @@ class FieldMappingCrew:
             """,
         )
 
-        # Task 3: Design Complex Transformations
-        synthesis_task = Task(
-            description="""
-            Design transformation rules for any complex mappings identified.
+        # Task 3: Design Complex Transformations (commented out to reduce LLM calls)
+        # synthesis_task = Task(...)
+        # Synthesis task was removed to reduce LLM calls and prevent output override
 
-            Based on the mapping analysis, create specific transformation rules for:
-            1. Multi-field synthesis (combining multiple source fields)
-            2. Field extraction (extracting part of a field)
-            3. Data transformation (format changes, calculations, etc.)
-
-            Ensure that when multiple fields map to the same target, they enhance rather than overwrite.
-
-            For each transformation, specify:
-            - Source fields involved
-            - Target field
-            - Transformation logic
-            - Order of operations (if multiple sources)
-            - Conflict resolution strategy
-
-            OUTPUT FORMAT:
-            {
-                "transformations": [
-                    {
-                        "source_fields": ["field1", "field2"],
-                        "target_field": "asset_field",
-                        "transformation_type": "synthesis",
-                        "logic": "Detailed transformation logic",
-                        "conflict_resolution": "How to handle conflicts"
-                    }
-                ]
-            }
-            """,
-            agent=synthesis_specialist,
-            context=[data_analysis_task, mapping_task],
-            expected_output="""
-            Complete transformation specifications for any complex mappings,
-            ensuring no data loss and proper synthesis of information.
-            """,
-        )
-
-        return [data_analysis_task, mapping_task, synthesis_task]
+        # Return only mapping task - synthesis task output was overriding the actual mappings
+        return [data_analysis_task, mapping_task]
 
     def create_crew(self, raw_data: List[Dict[str, Any]]):
         """Create full agentic crew with collaboration"""
