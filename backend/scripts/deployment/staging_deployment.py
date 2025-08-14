@@ -213,9 +213,9 @@ class StagingDeployment:
                 missing_vars.append(var)
 
         if missing_vars:
-            logger.error(  # nosec B106
+            logger.error(
                 f"❌ Missing {len(missing_vars)} required environment variables"
-            )
+            )  # nosec B106
             return False
 
         logger.info("✅ Environment variables validated")

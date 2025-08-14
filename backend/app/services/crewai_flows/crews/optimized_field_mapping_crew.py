@@ -118,7 +118,7 @@ WORK EFFICIENTLY:
 - Complete mapping in under 45 seconds
 - Focus on accuracy through learning, not speed alone
 """,
-            max_execution_time=60,
+            max_execution_time=300,
             allow_delegation=False,
             tools=[],
         )
@@ -210,7 +210,7 @@ QUALITY REQUIREMENTS:
 """,
             agent=field_mapper,
             expected_output="JSON field mapping result with memory-enhanced confidence scoring and learning identification",
-            max_execution_time=60,
+            max_execution_time=300,
             human_input=False,
         )
 

@@ -188,7 +188,10 @@ class AssetAnalysisHandler:
                                     "currentValue": memory_str,
                                     "suggestedValue": suggested_value,
                                     "confidence": 0.90,
-                                    "reasoning": "Memory should be numeric only. Remove units suffix for standardization.",
+                                    "reasoning": (
+                                        "Memory should be numeric only. Remove units "
+                                        "suffix for standardization."
+                                    ),
                                 }
                             )
                             format_issues_count += 1
@@ -256,7 +259,11 @@ class AssetAnalysisHandler:
                                 "currentValue": "<empty>",
                                 "suggestedValue": suggested_value,
                                 "confidence": 0.85,
-                                "reasoning": f"Missing {field.replace('_', ' ')} data. AI suggests '{suggested_value}' based on asset patterns.",
+                                "reasoning": (
+                                    f"Missing {field.replace('_', ' ')} data. "
+                                    f"AI suggests '{suggested_value}' based on "
+                                    "asset patterns."
+                                ),
                             }
                         )
                         missing_data_count += 1
@@ -350,9 +357,18 @@ class AssetAnalysisHandler:
                     {
                         "category": "missing_data",
                         "title": "Critical Migration Fields Missing",
-                        "description": f"{missing_data_count} assets are missing essential data for migration planning. Fields like environment, department, asset_type are critical for proper categorization and wave planning.",
+                        "description": (
+                            f"{missing_data_count} assets are missing essential data "
+                            "for migration planning. Fields like environment, department, "
+                            "asset_type are critical for proper categorization and wave "
+                            "planning."
+                        ),
                         "affected_count": missing_data_count,
-                        "recommendation": "Review and populate missing fields using AI suggestions based on hostname patterns and asset context. This will improve migration accuracy by 40-60%.",
+                        "recommendation": (
+                            "Review and populate missing fields using AI suggestions "
+                            "based on hostname patterns and asset context. This will "
+                            "improve migration accuracy by 40-60%."
+                        ),
                         "confidence": 0.85,
                     }
                 )
@@ -362,9 +378,17 @@ class AssetAnalysisHandler:
                     {
                         "category": "format_issues",
                         "title": "Inconsistent Data Formats Detected",
-                        "description": f"{format_issues_count} assets have format inconsistencies like abbreviated values (DB, SRV) and mixed capitalization that will impact migration tools and reporting.",
+                        "description": (
+                            f"{format_issues_count} assets have format inconsistencies "
+                            "like abbreviated values (DB, SRV) and mixed capitalization "
+                            "that will impact migration tools and reporting."
+                        ),
                         "affected_count": format_issues_count,
-                        "recommendation": "Standardize formats to ensure compatibility with cloud migration tools. Automated expansion and capitalization fixes available.",
+                        "recommendation": (
+                            "Standardize formats to ensure compatibility with cloud "
+                            "migration tools. Automated expansion and capitalization "
+                            "fixes available."
+                        ),
                         "confidence": 0.90,
                     }
                 )
@@ -374,9 +398,17 @@ class AssetAnalysisHandler:
                     {
                         "category": "duplicates",
                         "title": "Duplicate Assets Requiring Resolution",
-                        "description": f"{duplicates_count} duplicate assets detected with identical information across all key fields. These can be safely deleted to prevent migration confusion.",
+                        "description": (
+                            f"{duplicates_count} duplicate assets detected with "
+                            "identical information across all key fields. These can "
+                            "be safely deleted to prevent migration confusion."
+                        ),
                         "affected_count": duplicates_count,
-                        "recommendation": "Review duplicate assets marked for deletion. These have identical hostname, IP, type, environment, and department values.",
+                        "recommendation": (
+                            "Review duplicate assets marked for deletion. These have "
+                            "identical hostname, IP, type, environment, and department "
+                            "values."
+                        ),
                         "confidence": 0.95,
                     }
                 )
@@ -494,7 +526,8 @@ class AssetAnalysisHandler:
 
             if not all_assets:
                 logger.warning(
-                    f"No assets found for client {client_account_id}, engagement {engagement_id}. Returning default metrics."
+                    f"No assets found for client {client_account_id}, "
+                    f"engagement {engagement_id}. Returning default metrics."
                 )
                 return self._fallback_get_discovery_metrics()
 
@@ -580,7 +613,9 @@ class AssetAnalysisHandler:
 
             if not all_assets:
                 logger.warning(
-                    f"No assets found for client {client_account_id}, engagement {engagement_id}. Returning default application landscape."
+                    f"No assets found for client {client_account_id}, "
+                    f"engagement {engagement_id}. Returning default application "
+                    "landscape."
                 )
                 return self._fallback_get_application_landscape()
 
@@ -673,7 +708,9 @@ class AssetAnalysisHandler:
 
             if not all_assets:
                 logger.warning(
-                    f"No assets found for client {client_account_id}, engagement {engagement_id}. Returning default infrastructure landscape."
+                    f"No assets found for client {client_account_id}, "
+                    f"engagement {engagement_id}. Returning default infrastructure "
+                    "landscape."
                 )
                 return self._fallback_get_infrastructure_landscape()
 

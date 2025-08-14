@@ -246,6 +246,8 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
                 isProcessing={processingMappings.has(mapping.id)}
                 expandedReasonings={expandedReasonings}
                 onToggleReasoning={toggleReasoningExpansion}
+                availableFields={availableFields}
+                onMappingChange={onMappingChange}
               />
             ))}
             {filteredBuckets.autoMapped.length === 0 && (

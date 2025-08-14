@@ -3,13 +3,16 @@ Base tool classes for CrewAI integration
 """
 
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from pydantic import Field
 
 from app.core.context_aware import ContextAwareTool
 from app.core.security.cache_encryption import secure_setattr
-from app.services.tools.registry import ToolMetadata
+
+# Import ToolMetadata only for type checking to avoid circular imports
+if TYPE_CHECKING:
+    from app.services.tools.registry import ToolMetadata
 
 # Optional CrewAI import
 try:
@@ -47,7 +50,7 @@ class BaseDiscoveryTool(BaseTool, ContextAwareTool):
         ContextAwareTool.__init__(self, **kwargs)
 
     @classmethod
-    def tool_metadata(cls) -> ToolMetadata:
+    def tool_metadata(cls) -> "ToolMetadata":
         """Return metadata for tool registration - override in subclasses"""
         raise NotImplementedError("Each tool must define its metadata")
 

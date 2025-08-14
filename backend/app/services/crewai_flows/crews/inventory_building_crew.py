@@ -104,7 +104,10 @@ class InventoryBuildingCrew:
         # Manager Agent for multi-domain coordination with enhanced role boundaries
         inventory_manager = Agent(
             role="IT Asset Inventory Coordination Manager",
-            goal="Coordinate comprehensive IT asset inventory building across servers, applications, and devices with cross-domain validation",
+            goal=(
+                "Coordinate comprehensive IT asset inventory building across "
+                "servers, applications, and devices with cross-domain validation"
+            ),
             backstory="""You are a senior enterprise architect with specialized expertise in IT asset inventory
             management and CMDB classification for large-scale migration projects. Your specific role and boundaries:
 
@@ -164,7 +167,10 @@ class InventoryBuildingCrew:
         # Server Classification Expert - infrastructure domain specialist
         server_expert = Agent(
             role="Enterprise Server & Infrastructure Classification Expert",
-            goal="Classify server and infrastructure assets with detailed technical specifications and hosting capacity analysis",
+            goal=(
+                "Classify server and infrastructure assets with detailed "
+                "technical specifications and hosting capacity analysis"
+            ),
             backstory="""You are a specialized infrastructure expert with deep knowledge of enterprise server
             environments, virtualization platforms, and cloud infrastructure. Your domain expertise includes:
 
@@ -272,41 +278,69 @@ class InventoryBuildingCrew:
         # Step 1: The Triage Task
         # A single, fast task for the manager to sort assets into domains.
         triage_task = Task(
-            description="Triage the entire list of assets. Your job is to sort each asset into one of three lists: 'servers', 'applications', or 'devices' based on its name and type. Do NOT perform a deep classification. Your output must be a JSON object with these three keys.",
-            expected_output="A JSON object with three keys: 'server_assets', 'application_assets', and 'device_assets'. Each key should contain a list of the corresponding asset records.",
+            description=(
+                "Triage the entire list of assets. Your job is to sort each asset "
+                "into one of three lists: 'servers', 'applications', or 'devices' "
+                "based on its name and type. Do NOT perform a deep classification. "
+                "Your output must be a JSON object with these three keys."
+            ),
+            expected_output=(
+                "A JSON object with three keys: 'server_assets', "
+                "'application_assets', and 'device_assets'. Each key should "
+                "contain a list of the corresponding asset records."
+            ),
             agent=manager,
         )
 
         # Step 2: Parallel Classification Tasks
         # These tasks depend on the triage_task and run in parallel.
         server_classification_task = Task(
-            description="""Perform a detailed classification of the server assets provided. Identify OS, function, and virtual/physical status.
-
-            CRITICAL: Each asset in your output MUST have an 'asset_type' field set to exactly 'server'.
-            Add this field to each asset record if it doesn't exist.""",
-            expected_output="A JSON list of fully classified server assets with detailed attributes. Each asset MUST have asset_type: 'server'.",
+            description=(
+                "Perform a detailed classification of the server assets provided. "
+                "Identify OS, function, and virtual/physical status.\n\n"
+                "CRITICAL: Each asset in your output MUST have an 'asset_type' "
+                "field set to exactly 'server'. Add this field to each asset "
+                "record if it doesn't exist."
+            ),
+            expected_output=(
+                "A JSON list of fully classified server assets with detailed "
+                "attributes. Each asset MUST have asset_type: 'server'."
+            ),
             agent=server_expert,
             context=[triage_task],  # Depends on the output of the triage task
             async_execution=True,
         )
 
         app_classification_task = Task(
-            description="""Perform a detailed classification of the application assets provided. Identify version, type, and business context.
-
-            CRITICAL: Each asset in your output MUST have an 'asset_type' field set to exactly 'application'.
-            Add this field to each asset record if it doesn't exist.""",
-            expected_output="A JSON list of fully classified application assets with detailed attributes. Each asset MUST have asset_type: 'application'.",
+            description=(
+                "Perform a detailed classification of the application assets "
+                "provided. Identify version, type, and business context.\n\n"
+                "CRITICAL: Each asset in your output MUST have an 'asset_type' "
+                "field set to exactly 'application'. Add this field to each "
+                "asset record if it doesn't exist."
+            ),
+            expected_output=(
+                "A JSON list of fully classified application assets with "
+                "detailed attributes. Each asset MUST have asset_type: "
+                "'application'."
+            ),
             agent=app_expert,
             context=[triage_task],
             async_execution=True,
         )
 
         device_classification_task = Task(
-            description="""Perform a detailed classification of the device assets provided. Identify device type and network role.
-
-            CRITICAL: Each asset in your output MUST have an 'asset_type' field set to exactly 'device'.
-            Add this field to each asset record if it doesn't exist.""",
-            expected_output="A JSON list of fully classified device assets with detailed attributes. Each asset MUST have asset_type: 'device'.",
+            description=(
+                "Perform a detailed classification of the device assets "
+                "provided. Identify device type and network role.\n\n"
+                "CRITICAL: Each asset in your output MUST have an 'asset_type' "
+                "field set to exactly 'device'. Add this field to each asset "
+                "record if it doesn't exist."
+            ),
+            expected_output=(
+                "A JSON list of fully classified device assets with detailed "
+                "attributes. Each asset MUST have asset_type: 'device'."
+            ),
             agent=device_expert,
             context=[triage_task],
             async_execution=True,
@@ -315,16 +349,26 @@ class InventoryBuildingCrew:
         # Step 3: Final Consolidation and Relationship Mapping
         # This task runs last, after all experts have finished.
         consolidation_task = Task(
-            description="""Consolidate the outputs from the server, application, and device experts into a single, unified asset inventory.
-
-            CRITICAL DEDUPLICATION STEP:
-            1. BEFORE finalizing the inventory, you MUST use the asset_deduplication_checker tool
-            2. Pass ALL assets from all categories (servers, applications, devices) to the tool
-            3. The tool will return only the unique assets that don't already exist in the database
-            4. Only include the assets returned by the deduplication tool in your final output
-
-            After deduplication, analyze the consolidated data to map relationships between the assets.""",
-            expected_output="A final JSON object containing three lists: 'servers', 'applications', and 'devices' (only unique assets), and a fourth list 'relationships' detailing all identified connections.",
+            description=(
+                "Consolidate the outputs from the server, application, and device "
+                "experts into a single, unified asset inventory.\n\n"
+                "CRITICAL DEDUPLICATION STEP:\n"
+                "1. BEFORE finalizing the inventory, you MUST use the "
+                "asset_deduplication_checker tool\n"
+                "2. Pass ALL assets from all categories (servers, applications, "
+                "devices) to the tool\n"
+                "3. The tool will return only the unique assets that don't "
+                "already exist in the database\n"
+                "4. Only include the assets returned by the deduplication tool "
+                "in your final output\n\n"
+                "After deduplication, analyze the consolidated data to map "
+                "relationships between the assets."
+            ),
+            expected_output=(
+                "A final JSON object containing three lists: 'servers', "
+                "'applications', and 'devices' (only unique assets), and a "
+                "fourth list 'relationships' detailing all identified connections."
+            ),
             agent=manager,
             context=[
                 server_classification_task,
@@ -401,9 +445,8 @@ class InventoryBuildingCrew:
                 else "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
             )
 
-        logger.info(
-            f"Creating Inventory Building Crew with {process.name if hasattr(process, 'name') else 'sequential'} process"
-        )
+        process_name = process.name if hasattr(process, "name") else "sequential"
+        logger.info(f"Creating Inventory Building Crew with {process_name} process")
         logger.info(
             f"Using LLM: {self.llm_model if isinstance(self.llm_model, str) else 'Unknown'}"
         )

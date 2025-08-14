@@ -57,8 +57,8 @@ async def run_simple_validation() -> Dict[str, Any]:
                 continue
             # Safe: table name validated against allowlist
             result = await session.execute(
-                text(f"SELECT COUNT(*) FROM migration.{table}")  # nosec B608
-            )
+                text(f"SELECT COUNT(*) FROM migration.{table}")
+            )  # nosec B608
             count = result.scalar()
             counts[table] = count
             print(f"  {table}: {count}")

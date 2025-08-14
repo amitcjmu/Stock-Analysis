@@ -19,6 +19,17 @@ from .field_mapping.routes.validation_routes import router as validation_router
 # Import service dependencies
 from .field_mapping.services.mapping_service import MappingService
 
+# Legacy compatibility imports
+from .field_mapping.routes.mapping_routes import (
+    create_field_mapping_latest as legacy_create_latest,
+    generate_field_mappings as legacy_generate,
+    get_field_mappings as legacy_get_mappings,
+)
+from .field_mapping.routes.suggestion_routes import (
+    get_available_target_fields as legacy_get_available_fields,
+    get_field_mapping_suggestions as legacy_get_suggestions,
+)
+
 
 def get_mapping_service(
     db: AsyncSession = Depends(get_db),
@@ -38,21 +49,6 @@ router.include_router(validation_router)
 router.include_router(approval_router)
 
 # Legacy compatibility routes - these delegate to the new modular structure
-from .field_mapping.routes.mapping_routes import (
-    create_field_mapping_latest as legacy_create_latest,
-)
-from .field_mapping.routes.mapping_routes import (
-    generate_field_mappings as legacy_generate,
-)
-from .field_mapping.routes.mapping_routes import (
-    get_field_mappings as legacy_get_mappings,
-)
-from .field_mapping.routes.suggestion_routes import (
-    get_available_target_fields as legacy_get_available_fields,
-)
-from .field_mapping.routes.suggestion_routes import (
-    get_field_mapping_suggestions as legacy_get_suggestions,
-)
 
 
 # Add legacy routes for backward compatibility

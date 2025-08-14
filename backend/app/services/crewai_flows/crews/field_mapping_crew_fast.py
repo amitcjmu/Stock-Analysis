@@ -82,64 +82,96 @@ def create_fast_field_mapping_crew(
             allow_delegation=False,  # CRITICAL: Prevent agent delegation
             llm=llm_model,
             max_iter=1,  # Single iteration for speed
-            max_execution_time=15,  # 15 second timeout
+            max_execution_time=300,  # 300 second timeout for agent
         )
 
         # 🎯 SINGLE OPTIMIZED TASK: Direct field mapping
         mapping_task = Task(
             description=f"""
-            Map these {len(sample_fields)} CSV fields to standard migration attributes:
+            Map these EXACT CSV fields to standard attributes:
 
-            CSV Fields Found: {sample_fields}
+            CSV fields: {sample_fields}
 
-            Standard Target Attributes:
-            - asset_name, asset_id, asset_type
-            - hostname, ip_address, operating_system
-            - cpu_cores, memory_gb, storage_gb
-            - location, environment, criticality
-            - application, owner, cost_center
+            Standard attributes: asset_name, asset_id, asset_type, hostname, ip_address,
+            operating_system, cpu_cores, memory_gb, storage_gb, location, environment,
+            criticality, application, owner, cost_center
 
-            REQUIRED OUTPUT FORMAT - You must provide each mapping on a separate line:
-            Asset_ID -> asset_id
-            Asset_Name -> asset_name
-            Asset_Type -> asset_type
+            CRITICAL: Use the EXACT CSV field names as source fields in your mappings.
+
+            OUTPUT EXACTLY IN THIS FORMAT (using the actual CSV field names):
+            Device_ID -> asset_id
+            Device_Name -> asset_name
+            Device_Type -> asset_type
             IP_Address -> ip_address
-            Operating_System -> operating_system
-            CPU_Cores -> cpu_cores
-            RAM_GB -> memory_gb
-            Storage_GB -> storage_gb
-            Location_DataCenter -> location
-            Application_Service -> application
-            Application_Owner -> owner
+            Location -> location
 
-            Then add:
-            Confidence score: [0-100]
+            DO NOT normalize or change the CSV field names. Use them exactly as provided.
+
+            Confidence score: 95
             Status: COMPLETE
-
-            CRITICAL: Each mapping must be in exact format "source_field -> target_attribute" on separate lines.
             """,
             agent=field_mapping_specialist,
-            expected_output=(
-                "Field mappings in format 'source -> target', one per line, "
-                "followed by confidence score and status"
-            ),
-            max_execution_time=12,  # Task-level timeout
+            expected_output="Field mappings in format: exact_csv_field -> target_attribute",
+            max_execution_time=300,  # Task-level timeout - 300 seconds
         )
 
         # 🚀 OPTIMIZED CREW: Sequential process, minimal overhead
-        from app.core.env_flags import is_truthy_env
+        # Enable memory with proper embedder configuration
+        from app.services.crewai_memory_patch import apply_memory_patch
+        import os
 
-        enable_memory = is_truthy_env("CREWAI_ENABLE_MEMORY", default=False)
+        try:
+            # Apply the memory patch for DeepInfra compatibility
+            patch_success = apply_memory_patch()
+            if not patch_success:
+                logger.warning(
+                    "⚠️ Memory patch not fully applied, memory may have issues"
+                )
 
-        crew = Crew(
-            agents=[field_mapping_specialist],
-            tasks=[mapping_task],
-            process=Process.sequential,  # CRITICAL: No hierarchical overhead
-            verbose=False,  # Reduce logging
-            max_execution_time=20,  # Crew-level timeout
-            memory=enable_memory,  # Enable via flag when stable
-            embedder=None,  # Disable embedding overhead
-        )
+            # Create custom embedder configuration for DeepInfra
+            # This overrides CrewAI's default OpenAI embeddings with DeepInfra
+            custom_embedder = {
+                "provider": "openai",
+                "config": {
+                    "model": "thenlper/gte-large",  # DeepInfra embedding model
+                    "api_key": os.getenv("DEEPINFRA_API_KEY"),
+                    "api_base": "https://api.deepinfra.com/v1/openai",
+                    "encoding_format": "float",
+                },
+            }
+            # Log embedder config without exposing the API key
+            embedder_info = {
+                "provider": custom_embedder["provider"],
+                "model": custom_embedder["config"]["model"],
+                "api_base": custom_embedder["config"]["api_base"],
+                "has_api_key": bool(custom_embedder["config"].get("api_key")),
+            }
+            logger.info(f"Using custom DeepInfra embedder: {embedder_info}")
+
+            crew = Crew(
+                agents=[field_mapping_specialist],
+                tasks=[mapping_task],
+                process=Process.sequential,  # CRITICAL: No hierarchical overhead
+                verbose=False,  # Reduce logging
+                max_execution_time=300,  # Crew-level timeout - 300 seconds
+                memory=True,  # RE-ENABLED: Using custom DeepInfra embeddings
+                embedder=custom_embedder,  # Custom DeepInfra embedder config
+            )
+            logger.info("✅ CrewAI memory enabled with custom DeepInfra embeddings")
+
+        except Exception as mem_error:
+            logger.warning(f"⚠️ Could not enable memory: {mem_error}")
+            # Fallback without memory if embedder fails
+            crew = Crew(
+                agents=[field_mapping_specialist],
+                tasks=[mapping_task],
+                process=Process.sequential,
+                verbose=False,
+                max_execution_time=300,
+                memory=False,
+                embedder=None,
+            )
+            logger.info("⚠️ CrewAI memory disabled due to embedder error")
 
         logger.info("✅ FAST Field Mapping Crew created - single agent, 20s timeout")
         return crew

@@ -1,0 +1,6 @@
+Device_ID,Device_Name,Device_Type,IP_Address,Status_Code,Last_Health_Check,Uptime_Hours,Location,Managed_By
+DEV-001,Server-Prod01,Server,192.168.1.10,UP,2025-06-25 13:00:00,120,Data Center,IT Ops
+DEV-002,DB-Primary,Database,192.168.1.11,UP,2025-06-25 13:01:00,95,Data Center,DBA Team
+DEV-003,Web-Frontend,Web Server,192.168.1.20,DOWN,2025-06-25 12:45:00,0,DMZ,Web Team
+DEV-004,Storage-NAS01,Storage,192.168.1.30,UP,2025-06-25 13:02:00,240,Data Center,Storage Team
+DEV-005,Firewall-Main,Network,192.168.1.1,UP,2025-06-25 13:00:30,720,Data Center,Security Team

@@ -120,6 +120,7 @@ class FlowTypeConfig:
     error_handler: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
     tags: List[str] = field(default_factory=list)
+    child_flow_service: Optional[Type] = None  # Service class for child flow operations
 
     def get_phase_config(self, phase_name: str) -> Optional[PhaseConfig]:
         """Get configuration for a specific phase"""

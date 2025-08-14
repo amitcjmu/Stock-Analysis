@@ -53,6 +53,20 @@ export const useImportData = (finalFlowId: string | null): ImportDataResult => {
             importMetadata.import_id = importMetadata.data_import_id;
           }
 
+          // FALLBACK: Extract import ID from flow name if not in metadata
+          // Flow names follow pattern: "Discovery Import {import_id}"
+          if (!importMetadata.import_id && flowResponse.flow_name) {
+            const flowNameMatch = flowResponse.flow_name.match(/Discovery Import (.+)$/);
+            if (flowNameMatch && flowNameMatch[1]) {
+              const extractedImportId = flowNameMatch[1].trim();
+              console.log('🔧 Extracted import ID from flow name:', {
+                flow_name: flowResponse.flow_name,
+                extracted_import_id: extractedImportId
+              });
+              importMetadata.import_id = extractedImportId;
+            }
+          }
+
           const importData = {
             import_metadata: importMetadata,
             raw_data: flowResponse.raw_data?.[0] || {},

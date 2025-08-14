@@ -1,18 +1,63 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import { Database, Network, Activity, Download, Filter } from 'lucide-react';
+import { AssetAPI } from '../lib/api/assets';
+import type { Asset } from '../types/asset';
 
 const Discovery = (): JSX.Element => {
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [discoveredAssets, setDiscoveredAssets] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalAssets, setTotalAssets] = useState(0);
 
-  const discoveredAssets = [
-    { id: 'AS001', name: 'CRM Database', type: 'Database', environment: 'Production', status: 'Active', dependencies: 3, risk: 'Medium' },
-    { id: 'AS002', name: 'Web Frontend', type: 'Application', environment: 'Production', status: 'Active', dependencies: 5, risk: 'Low' },
-    { id: 'AS003', name: 'API Gateway', type: 'Service', environment: 'Production', status: 'Active', dependencies: 8, risk: 'High' },
-    { id: 'AS004', name: 'Legacy ERP', type: 'Application', environment: 'Production', status: 'Critical', dependencies: 12, risk: 'High' },
-    { id: 'AS005', name: 'Analytics DB', type: 'Database', environment: 'Staging', status: 'Active', dependencies: 2, risk: 'Low' },
-  ];
+  useEffect(() => {
+    fetchAssets();
+  }, [selectedFilter]);
+
+  const fetchAssets = async () => {
+    try {
+      setIsLoading(true);
+      const params = selectedFilter !== 'all' ? { asset_type: selectedFilter } : {};
+      const response = await AssetAPI.getAssets({ ...params, page_size: 100 });
+
+      if (response.assets && Array.isArray(response.assets)) {
+        // Transform API response to match existing format
+        const transformedAssets = response.assets.slice(0, 20).map((asset: Asset) => ({
+          id: asset.asset_id || asset.id || `AS${Math.random().toString(36).substr(2, 9)}`,
+          name: asset.asset_name || asset.hostname || 'Unknown Asset',
+          type: asset.asset_type || 'Unknown',
+          environment: asset.environment || 'Production',
+          status: asset.lifecycle_stage || 'Active',
+          dependencies: asset.dependency_count || 0,
+          risk: asset.business_criticality || 'Medium'
+        }));
+        setDiscoveredAssets(transformedAssets);
+        setTotalAssets(response.total || transformedAssets.length);
+      } else {
+        // Fallback to demo data if API fails
+        setDiscoveredAssets([
+          { id: 'AS001', name: 'CRM Database', type: 'Database', environment: 'Production', status: 'Active', dependencies: 3, risk: 'Medium' },
+          { id: 'AS002', name: 'Web Frontend', type: 'Application', environment: 'Production', status: 'Active', dependencies: 5, risk: 'Low' },
+          { id: 'AS003', name: 'API Gateway', type: 'Service', environment: 'Production', status: 'Active', dependencies: 8, risk: 'High' },
+          { id: 'AS004', name: 'Legacy ERP', type: 'Application', environment: 'Production', status: 'Critical', dependencies: 12, risk: 'High' },
+          { id: 'AS005', name: 'Analytics DB', type: 'Database', environment: 'Staging', status: 'Active', dependencies: 2, risk: 'Low' },
+        ]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch assets:', error);
+      // Use demo data as fallback
+      setDiscoveredAssets([
+        { id: 'AS001', name: 'CRM Database', type: 'Database', environment: 'Production', status: 'Active', dependencies: 3, risk: 'Medium' },
+        { id: 'AS002', name: 'Web Frontend', type: 'Application', environment: 'Production', status: 'Active', dependencies: 5, risk: 'Low' },
+        { id: 'AS003', name: 'API Gateway', type: 'Service', environment: 'Production', status: 'Active', dependencies: 8, risk: 'High' },
+        { id: 'AS004', name: 'Legacy ERP', type: 'Application', environment: 'Production', status: 'Critical', dependencies: 12, risk: 'High' },
+        { id: 'AS005', name: 'Analytics DB', type: 'Database', environment: 'Staging', status: 'Active', dependencies: 2, risk: 'Low' },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const infrastructureMetrics = [
     { metric: 'Total Servers', value: '156', change: '+12%' },

@@ -236,9 +236,9 @@ class MigrationStateFixer:
         """Validate that core tables exist"""
         missing_tables = EXPECTED_CORE_TABLES - set(existing_tables)
         if missing_tables:
-            logger.warning(  # nosec B106
+            logger.warning(
                 f"Missing core tables: {mask_string(str(missing_tables))}"
-            )
+            )  # nosec B106
             return False
 
         logger.info("✅ All core tables present")
@@ -272,7 +272,6 @@ class MigrationStateFixer:
     async def check_for_multiple_heads(self) -> Optional[List[str]]:
         """Check if there are multiple migration heads using alembic"""
         try:
-            from alembic import command
             from alembic.config import Config
             from alembic.script import ScriptDirectory
 
@@ -394,9 +393,9 @@ class MigrationStateFixer:
 
         elif has_core_tables and current_version and not migration_files_exist:
             # Case 2: Tables exist, version recorded, but migration files missing
-            logger.info(  # nosec B106
+            logger.info(
                 "🔧 Fix Strategy: Migration files missing but database has tables"
-            )
+            )  # nosec B106
             await self.set_migration_version(EXPECTED_MIGRATION_VERSION)
             logger.info(
                 "✅ Migration state fixed by resetting to current schema version"

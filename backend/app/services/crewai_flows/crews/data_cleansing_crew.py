@@ -109,7 +109,7 @@ class DataCleansingCrew:
             verbose=True,
             allow_delegation=False,  # DISABLE DELEGATION - Prevents agent conversations
             max_iter=1,  # LIMIT ITERATIONS - Prevents infinite loops
-            max_execution_time=30,  # 30 SECOND TIMEOUT
+            max_execution_time=300,  # 300 SECOND TIMEOUT
         )
 
         return [data_quality_manager]  # SINGLE AGENT PATTERN
@@ -271,7 +271,7 @@ def create_data_cleansing_crew(
             allow_delegation=False,  # Direct orchestration without delegation
             llm=llm,
             max_iter=1,  # Single comprehensive analysis
-            max_execution_time=120,  # Allow time for agent orchestration
+            max_execution_time=300,  # Allow time for agent orchestration
         )
 
         # 🧠 AGENTIC INTELLIGENCE TASK: Complete asset enrichment
@@ -330,7 +330,7 @@ def create_data_cleansing_crew(
             - Overall intelligence quality score (0-100)
             - Migration planning insights and recommendations
             """,
-            max_execution_time=100,  # Allow time for comprehensive analysis
+            max_execution_time=300,  # Allow time for comprehensive analysis
         )
 
         # Get embeddings configuration from llm_config
@@ -348,7 +348,7 @@ def create_data_cleansing_crew(
             "tasks": [enrichment_task],
             "process": Process.sequential,
             "verbose": True,  # Enable detailed intelligence logging
-            "max_execution_time": 180,  # Extended time for comprehensive analysis
+            "max_execution_time": 300,  # Extended time for comprehensive analysis
             "memory": True,  # Re-enabled with DeepInfra embeddings
         }
 

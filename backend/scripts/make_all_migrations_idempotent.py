@@ -90,7 +90,6 @@ def make_migration_idempotent(filepath: Path) -> bool:
 
     try:
         content = filepath.read_text()
-        original_content = content
         modified = False
 
         # Check if already has idempotent checks
@@ -106,7 +105,7 @@ def make_migration_idempotent(filepath: Path) -> bool:
                     for imp in config["needs_import"]:
                         if (
                             f"import {imp}" not in content
-                            and f"from sqlalchemy import" not in content
+                            and "from sqlalchemy import" not in content
                         ):
                             # Add import after alembic import
                             content = re.sub(

@@ -41,7 +41,7 @@ try:
 
         # Set timeout if not specified
         if "max_execution_time" not in kwargs:
-            kwargs["max_execution_time"] = 15
+            kwargs["max_execution_time"] = 300
 
         # Call original constructor
         _original_crew_init(self, *args, **kwargs)

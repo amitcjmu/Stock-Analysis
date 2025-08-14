@@ -57,7 +57,8 @@ export const useAttributeMappingActions = (
   } | null,
   fieldMappings: FieldMapping[],
   refresh: () => Promise<void>,
-  refetchFieldMappings: () => Promise<FieldMapping[]>
+  refetchFieldMappings: () => Promise<FieldMapping[]>,
+  onMappingChange?: (mappingId: string, newTarget: string) => void
 ): AttributeMappingActionsResult => {
   const navigate = useNavigate();
   const { user, getAuthHeaders } = useAuth();
@@ -204,21 +205,50 @@ export const useAttributeMappingActions = (
 
   const handleRejectMapping = useCallback(async (mappingId: string, rejectionReason?: string) => {
     try {
-      console.log(`❌ Rejecting mapping: ${mappingId}`);
+      console.log(`❌ Rejecting mapping: ${mappingId} with reason: ${rejectionReason || 'No reason provided'}`);
 
-      // For discovery flow field mappings, we don't reject individual mappings
-      // The user should edit the mapping instead
-      console.log('ℹ️ To change a field mapping, please edit it directly');
+      // Find the mapping to reject
+      const mapping = fieldMappings.find((m) => m.id === mappingId);
+      if (!mapping) {
+        console.error('❌ Mapping not found:', mappingId);
+        return;
+      }
 
-      // Show info message
-      if (typeof window !== 'undefined' && (window as Window & { showInfoToast?: (message: string) => void }).showInfoToast) {
-        (window as Window & { showInfoToast?: (message: string) => void }).showInfoToast('To change a field mapping, please edit it directly in the dropdown.');
+      // For discovery flow, we can remove the mapping or mark it as rejected
+      // Option 1: Remove the mapping from the list (clear the target field)
+      if (onMappingChange) {
+        // Clear the target field to mark as unmapped
+        onMappingChange(mappingId, '');
+        console.log('✅ Mapping rejected - target field cleared');
+
+        // Show success message
+        if (typeof window !== 'undefined' && (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast) {
+          (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast(`Mapping rejected: ${mapping.sourceField}`);
+        }
+      } else {
+        // Fallback: Just log the rejection
+        console.log('⚠️ No onMappingChange handler available to clear mapping');
+
+        // Show warning message
+        if (typeof window !== 'undefined' && (window as Window & { showWarningToast?: (message: string) => void }).showWarningToast) {
+          (window as Window & { showWarningToast?: (message: string) => void }).showWarningToast('Mapping marked for rejection. Please update manually.');
+        }
+      }
+
+      // Trigger a refresh to update the UI
+      if (refetchFieldMappings) {
+        await refetchFieldMappings();
       }
 
     } catch (error) {
       console.error('❌ Error in reject handler:', error);
+
+      // Show error toast if available
+      if (typeof window !== 'undefined' && (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast) {
+        (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast('Failed to reject mapping. Please try again.');
+      }
     }
-  }, []);
+  }, [fieldMappings, onMappingChange, refetchFieldMappings]);
 
   const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
     try {

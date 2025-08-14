@@ -112,8 +112,8 @@ async def test_rls_isolation():
                 try:
                     # Safe: table name validated against allowlist above
                     result = await session.execute(
-                        text(f"SELECT COUNT(*) FROM migration.{table}")  # nosec B608
-                    )
+                        text(f"SELECT COUNT(*) FROM migration.{table}")
+                    )  # nosec B608
                     count = result.scalar()
                     print(f"   ✅ {table}: {count} records visible")
                 except Exception as e:

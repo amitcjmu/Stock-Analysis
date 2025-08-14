@@ -82,8 +82,8 @@ async def fix_alembic_version():
                     # Safe: schema name validated against allowlist
                     result = await conn.execute(
                         text(
-                            f"SELECT version_num FROM {schema}.alembic_version LIMIT 1;"  # nosec B608
-                        )
+                            f"SELECT version_num FROM {schema}.alembic_version LIMIT 1;"
+                        )  # nosec B608
                     )
                     current_version = result.scalar()
                     if current_version:
@@ -114,7 +114,9 @@ async def fix_alembic_version():
             for schema in ["migration", "public"]:
                 try:
                     result = await conn.execute(
-                        text(f"SELECT version_num FROM {schema}.alembic_version;")
+                        text(
+                            f"SELECT version_num FROM {schema}.alembic_version;"
+                        )  # nosec B608
                     )
                     version = result.scalar()
                     if version:

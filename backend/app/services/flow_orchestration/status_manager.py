@@ -16,6 +16,7 @@ from app.repositories.crewai_flow_state_extensions_repository import (
 )
 from app.services.agent_ui_bridge import AgentUIBridge
 from app.services.flow_type_registry import FlowTypeRegistry
+from app.services.service_registry import ServiceRegistry
 
 logger = get_logger(__name__)
 
@@ -32,6 +33,7 @@ class FlowStatusManager:
         context: RequestContext,
         master_repo: CrewAIFlowStateExtensionsRepository,
         flow_registry: FlowTypeRegistry,
+        service_registry: Optional[ServiceRegistry] = None,
     ):
         """
         Initialize the Flow Status Manager
@@ -41,11 +43,13 @@ class FlowStatusManager:
             context: Request context
             master_repo: Repository for master flow operations
             flow_registry: Registry for flow type configurations
+            service_registry: Optional service registry for child flow services
         """
         self.db = db
         self.context = context
         self.master_repo = master_repo
         self.flow_registry = flow_registry
+        self.service_registry = service_registry
 
         logger.info(
             f"✅ Flow Status Manager initialized for client {context.client_account_id}"
@@ -132,25 +136,22 @@ class FlowStatusManager:
             Child flow status or None
         """
         flow_config = self.flow_registry.get_flow_config(flow_type)
-        if not flow_config or not flow_config.repository_class:
+        if not flow_config:
+            return None
+
+        # Check if child_flow_service is configured and service registry is available
+        if not flow_config.child_flow_service or not self.service_registry:
+            logger.debug(f"No child flow service configured for flow type: {flow_type}")
             return None
 
         try:
-            # Get repository
-            repo = flow_config.repository_class(self.db, self.context)
+            # Get child flow service from registry
+            service = self.service_registry.get_service(flow_config.child_flow_service)
 
-            # Get child flow
-            child_flow = await repo.get_by_flow_id(flow_id)
-            if not child_flow:
-                return None
+            # Get child flow status through the service
+            child_status = await service.get_child_status(flow_id)
 
-            # Build child status
-            return {
-                "status": getattr(child_flow, "status", None),
-                "current_phase": getattr(child_flow, "current_phase", None),
-                "progress_percentage": getattr(child_flow, "progress_percentage", 0.0),
-                "metadata": getattr(child_flow, "metadata", {}),
-            }
+            return child_status
 
         except Exception as e:
             logger.warning(f"Failed to get child flow status: {e}")
@@ -270,3 +271,107 @@ class FlowStatusManager:
         except Exception as e:
             logger.error(f"Failed to update flow status for {flow_id}: {e}")
             return False
+
+    async def get_active_flows(
+        self, flow_type: Optional[str] = None, limit: int = 10
+    ) -> List[Dict[str, Any]]:
+        """
+        Get list of active flows
+
+        Args:
+            flow_type: Optional flow type filter
+            limit: Maximum number of flows to return
+
+        Returns:
+            List of flow summaries
+        """
+        try:
+            # Get active master flows from repository
+            master_flows = await self.master_repo.get_active_flows(limit, flow_type)
+
+            # Build summaries
+            summaries = []
+            for flow in master_flows:
+                summary = {
+                    "flow_id": str(flow.flow_id),
+                    "flow_type": flow.flow_type,
+                    "flow_status": flow.flow_status,
+                    "status": flow.flow_status,  # Alias for compatibility
+                    "flow_name": flow.flow_name,
+                    "current_phase": (
+                        flow.get_current_phase()
+                        if hasattr(flow, "get_current_phase")
+                        else None
+                    ),
+                    "progress_percentage": getattr(flow, "progress_percentage", 0.0)
+                    or 0.0,
+                    "created_at": flow.created_at,
+                    "updated_at": flow.updated_at,
+                    "created_by": str(flow.user_id) if flow.user_id else "system",
+                    "flow_configuration": flow.flow_configuration or {},
+                    "metadata": flow.flow_persistence_data or {},
+                }
+                summaries.append(summary)
+
+            logger.info(
+                f"Found {len(summaries)} active flows (filtered by flow_type: {flow_type})"
+            )
+            return summaries
+
+        except Exception as e:
+            logger.error(f"Failed to get active flows: {e}")
+            return []
+
+    async def list_flows_by_engagement(
+        self, engagement_id: str, flow_type: Optional[str] = None, limit: int = 50
+    ) -> List[Dict[str, Any]]:
+        """
+        List flows for a specific engagement
+
+        Args:
+            engagement_id: Engagement identifier
+            flow_type: Optional flow type filter
+            limit: Maximum number of flows to return
+
+        Returns:
+            List of flow summaries
+        """
+        try:
+            # Build filters
+            filters = {"engagement_id": engagement_id}
+            if flow_type:
+                filters["flow_type"] = flow_type
+
+            # Get flows from repository
+            master_flows = await self.master_repo.get_all(**filters)
+
+            # Build summaries
+            summaries = []
+            for flow in master_flows[:limit]:  # Apply limit
+                summary = {
+                    "flow_id": str(flow.flow_id),
+                    "flow_type": flow.flow_type,
+                    "flow_status": flow.flow_status,
+                    "status": flow.flow_status,  # Alias for compatibility
+                    "flow_name": flow.flow_name,
+                    "current_phase": (
+                        flow.get_current_phase()
+                        if hasattr(flow, "get_current_phase")
+                        else None
+                    ),
+                    "progress_percentage": getattr(flow, "progress_percentage", 0.0)
+                    or 0.0,
+                    "created_at": flow.created_at,
+                    "updated_at": flow.updated_at,
+                    "created_by": str(flow.user_id) if flow.user_id else "system",
+                    "flow_configuration": flow.flow_configuration or {},
+                    "metadata": flow.flow_persistence_data or {},
+                }
+                summaries.append(summary)
+
+            logger.info(f"Found {len(summaries)} flows for engagement {engagement_id}")
+            return summaries
+
+        except Exception as e:
+            logger.error(f"Failed to list flows by engagement {engagement_id}: {e}")
+            return []

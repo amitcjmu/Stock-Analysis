@@ -271,7 +271,11 @@ class ImportStorageHandler:
 
             return self.response_builder.success_response(
                 data_import_id=str(data_import.id),
-                flow_id=str(data_import.master_flow_id),
+                flow_id=(
+                    str(data_import.master_flow_id)
+                    if data_import.master_flow_id
+                    else None
+                ),
                 records_stored=data_import.total_records,
                 message="Data imported and discovery flow initiated successfully.",
             )

@@ -7,11 +7,12 @@ import asyncio
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from sqlalchemy import text
 
-from app.core.database import AsyncSessionLocal
+# Add backend directory to path for app imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from app.core.database import AsyncSessionLocal  # noqa: E402
 
 
 async def clean_all_demo_data():
@@ -22,35 +23,99 @@ async def clean_all_demo_data():
         # Execute cleanup in proper order to avoid FK constraints
         cleanup_queries = [
             # First clear references in dependent tables
-            "UPDATE users SET default_engagement_id = NULL, default_client_id = NULL WHERE email LIKE '%demo%' OR email LIKE '%@demo.%'",
+            (
+                "UPDATE users SET default_engagement_id = NULL, "
+                "default_client_id = NULL WHERE email LIKE '%demo%' "
+                "OR email LIKE '%@demo.%'"
+            ),
             # Delete associations and roles
-            "DELETE FROM user_account_associations WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%demo%' OR email LIKE '%@demo.%')",
-            "DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%demo%' OR email LIKE '%@demo.%')",
-            "DELETE FROM user_profiles WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%demo%' OR email LIKE '%@demo.%')",
+            (
+                "DELETE FROM user_account_associations WHERE user_id IN "
+                "(SELECT id FROM users WHERE email LIKE '%demo%' "
+                "OR email LIKE '%@demo.%')"
+            ),
+            (
+                "DELETE FROM user_roles WHERE user_id IN "
+                "(SELECT id FROM users WHERE email LIKE '%demo%' "
+                "OR email LIKE '%@demo.%')"
+            ),
+            (
+                "DELETE FROM user_profiles WHERE user_id IN "
+                "(SELECT id FROM users WHERE email LIKE '%demo%' "
+                "OR email LIKE '%@demo.%')"
+            ),
             # Delete discovery flows and related data
-            "DELETE FROM import_field_mappings WHERE data_import_id IN (SELECT id FROM data_imports WHERE engagement_id IN (SELECT id FROM engagements WHERE client_account_id IN (SELECT id FROM client_accounts WHERE name LIKE 'Demo%' OR id = '11111111-1111-1111-1111-111111111111')))",
-            "DELETE FROM raw_import_records WHERE data_import_id IN (SELECT id FROM data_imports WHERE engagement_id IN (SELECT id FROM engagements WHERE client_account_id IN (SELECT id FROM client_accounts WHERE name LIKE 'Demo%' OR id = '11111111-1111-1111-1111-111111111111')))",
-            "DELETE FROM data_imports WHERE engagement_id IN (SELECT id FROM engagements WHERE client_account_id IN (SELECT id FROM client_accounts WHERE name LIKE 'Demo%' OR id = '11111111-1111-1111-1111-111111111111'))",
-            "DELETE FROM discovery_flows WHERE client_account_id IN (SELECT id FROM client_accounts WHERE name LIKE 'Demo%' OR id = '11111111-1111-1111-1111-111111111111')",
+            (
+                "DELETE FROM import_field_mappings WHERE data_import_id IN "
+                "(SELECT id FROM data_imports WHERE engagement_id IN "
+                "(SELECT id FROM engagements WHERE client_account_id IN "
+                "(SELECT id FROM client_accounts WHERE name LIKE 'Demo%' "
+                "OR id = '11111111-1111-1111-1111-111111111111')))"
+            ),
+            (
+                "DELETE FROM raw_import_records WHERE data_import_id IN "
+                "(SELECT id FROM data_imports WHERE engagement_id IN "
+                "(SELECT id FROM engagements WHERE client_account_id IN "
+                "(SELECT id FROM client_accounts WHERE name LIKE 'Demo%' "
+                "OR id = '11111111-1111-1111-1111-111111111111')))"
+            ),
+            (
+                "DELETE FROM data_imports WHERE engagement_id IN "
+                "(SELECT id FROM engagements WHERE client_account_id IN "
+                "(SELECT id FROM client_accounts WHERE name LIKE 'Demo%' "
+                "OR id = '11111111-1111-1111-1111-111111111111'))"
+            ),
+            (
+                "DELETE FROM discovery_flows WHERE client_account_id IN "
+                "(SELECT id FROM client_accounts WHERE name LIKE 'Demo%' "
+                "OR id = '11111111-1111-1111-1111-111111111111')"
+            ),
             # Delete assets and dependencies
-            "DELETE FROM asset_dependencies WHERE asset_id IN (SELECT id FROM assets WHERE client_account_id IN (SELECT id FROM client_accounts WHERE name LIKE 'Demo%' OR id = '11111111-1111-1111-1111-111111111111'))",
-            "DELETE FROM assets WHERE client_account_id IN (SELECT id FROM client_accounts WHERE name LIKE 'Demo%' OR id = '11111111-1111-1111-1111-111111111111')",
+            (
+                "DELETE FROM asset_dependencies WHERE asset_id IN "
+                "(SELECT id FROM assets WHERE client_account_id IN "
+                "(SELECT id FROM client_accounts WHERE name LIKE 'Demo%' "
+                "OR id = '11111111-1111-1111-1111-111111111111'))"
+            ),
+            (
+                "DELETE FROM assets WHERE client_account_id IN "
+                "(SELECT id FROM client_accounts WHERE name LIKE 'Demo%' "
+                "OR id = '11111111-1111-1111-1111-111111111111')"
+            ),
             # Delete migration waves
-            "DELETE FROM migration_waves WHERE client_account_id IN (SELECT id FROM client_accounts WHERE name LIKE 'Demo%' OR id = '11111111-1111-1111-1111-111111111111')",
+            (
+                "DELETE FROM migration_waves WHERE client_account_id IN "
+                "(SELECT id FROM client_accounts WHERE name LIKE 'Demo%' "
+                "OR id = '11111111-1111-1111-1111-111111111111')"
+            ),
             # Delete users
-            "DELETE FROM users WHERE email LIKE '%demo%' OR email LIKE '%@demo.%' OR email IN ('demo@democorp.com', 'analyst@democorp.com', 'viewer@democorp.com', 'client.admin@democorp.com')",
+            (
+                "DELETE FROM users WHERE email LIKE '%demo%' "
+                "OR email LIKE '%@demo.%' OR email IN "
+                "('demo@democorp.com', 'analyst@democorp.com', "
+                "'viewer@democorp.com', 'client.admin@democorp.com')"
+            ),
             # Delete engagements
-            "DELETE FROM engagements WHERE client_account_id IN (SELECT id FROM client_accounts WHERE name LIKE 'Demo%' OR id = '11111111-1111-1111-1111-111111111111')",
+            (
+                "DELETE FROM engagements WHERE client_account_id IN "
+                "(SELECT id FROM client_accounts WHERE name LIKE 'Demo%' "
+                "OR id = '11111111-1111-1111-1111-111111111111')"
+            ),
             # Finally delete client accounts
-            "DELETE FROM client_accounts WHERE name LIKE 'Demo%' OR id = '11111111-1111-1111-1111-111111111111'",
+            (
+                "DELETE FROM client_accounts WHERE name LIKE 'Demo%' "
+                "OR id = '11111111-1111-1111-1111-111111111111'"
+            ),
         ]
 
         for query in cleanup_queries:
             try:
                 result = await session.execute(text(query))
                 if result.rowcount > 0:
+                    query_parts = query.split(" ")[2:4]
                     print(
-                        f"   ✅ Cleaned {result.rowcount} records: {query.split(' ')[2]} {query.split(' ')[3]}"
+                        f"   ✅ Cleaned {result.rowcount} records: "
+                        f"{' '.join(query_parts)}"
                     )
             except Exception as e:
                 print(f"   ⚠️ Query failed: {query[:50]}... - {e}")

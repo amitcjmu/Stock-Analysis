@@ -9,7 +9,11 @@ import uuid
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from app.core.context import RequestContext
 
 from .agent_ui_bridge_handlers import (
     AnalysisHandler,
@@ -31,7 +35,22 @@ logger = logging.getLogger(__name__)
 class AgentUIBridge:
     """Manages communication between AI agents and the UI."""
 
-    def __init__(self, data_dir: str = "data"):
+    def __init__(
+        self,
+        db: Optional["AsyncSession"] = None,
+        context: Optional["RequestContext"] = None,
+        data_dir: str = "data",
+    ):
+        """
+        Initialize AgentUIBridge with optional database session and context.
+
+        Args:
+            db: Optional database session for persistence
+            context: Optional request context with tenant information
+            data_dir: Directory for local file storage (default: "data")
+        """
+        self.db = db
+        self.context = context
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(exist_ok=True)
 
@@ -344,7 +363,7 @@ class AgentUIBridge:
         insights = []
 
         # Get regular insights from handler
-        all_insights = self.insight_handler.insights
+        all_insights = self.insight_handler.agent_insights
         flow_insights = [
             insight for insight in all_insights.values() if insight.flow_id == flow_id
         ]
@@ -397,6 +416,26 @@ class AgentUIBridge:
         insights.sort(key=lambda x: x["created_at"], reverse=True)
 
         return insights
+
+    async def get_agent_insights(
+        self, flow_id: str, limit: int = 5
+    ) -> List[Dict[str, Any]]:
+        """
+        Get agent insights for a specific flow.
+        This is an async wrapper for compatibility with StatusManager.
+
+        Args:
+            flow_id: Flow identifier
+            limit: Maximum number of insights to return (default: 5)
+
+        Returns:
+            List of agent insights for the flow
+        """
+        # Get all insights for the flow
+        insights = self.get_flow_insights(flow_id)
+
+        # Return limited set of insights
+        return insights[:limit] if limit else insights
 
     def get_pending_messages(
         self, flow_id: str, since_version: int = 0

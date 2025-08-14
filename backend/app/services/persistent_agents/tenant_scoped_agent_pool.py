@@ -137,6 +137,47 @@ class TenantScopedAgentPool:
     _max_idle_hours: int = 24  # Remove agents idle for 24+ hours
 
     @classmethod
+    async def get_agent(
+        cls,
+        context: Any,  # RequestContext
+        agent_type: str,
+        force_recreate: bool = False,
+        service_registry: Optional["ServiceRegistry"] = None,
+    ) -> Agent:
+        """
+        Convenience method to get agent using RequestContext.
+
+        Args:
+            context: RequestContext with client_account_id and engagement_id
+            agent_type: Type of agent (data_analyst, field_mapper, etc.)
+            force_recreate: Force recreation of agent
+            service_registry: Optional service registry
+
+        Returns:
+            Persistent CrewAI agent instance
+        """
+        # Extract IDs from context
+        client_id = (
+            str(context.client_account_id)
+            if hasattr(context, "client_account_id")
+            else None
+        )
+        engagement_id = (
+            str(context.engagement_id) if hasattr(context, "engagement_id") else None
+        )
+
+        if not client_id or not engagement_id:
+            raise ValueError("Context must have client_account_id and engagement_id")
+
+        return await cls.get_or_create_agent(
+            client_id=client_id,
+            engagement_id=engagement_id,
+            agent_type=agent_type,
+            force_recreate=force_recreate,
+            service_registry=service_registry,
+        )
+
+    @classmethod
     async def get_or_create_agent(
         cls,
         client_id: str,

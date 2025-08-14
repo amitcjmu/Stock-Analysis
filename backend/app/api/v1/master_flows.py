@@ -135,13 +135,23 @@ async def get_active_master_flows(
         raise HTTPException(status_code=400, detail="Client account ID required")
 
     try:
+        import uuid
         from sqlalchemy import and_, select
 
         from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
+        # Convert client_account_id string to UUID for database comparison
+        try:
+            client_uuid = uuid.UUID(client_account_id)
+        except (ValueError, TypeError):
+            logger.error("Invalid client_account_id format received")
+            raise HTTPException(
+                status_code=400, detail="Invalid client account ID format"
+            )
+
         # Build query conditions
         conditions = [
-            CrewAIFlowStateExtensions.client_account_id == client_account_id,
+            CrewAIFlowStateExtensions.client_account_id == client_uuid,
             CrewAIFlowStateExtensions.flow_status.notin_(
                 [
                     "completed",

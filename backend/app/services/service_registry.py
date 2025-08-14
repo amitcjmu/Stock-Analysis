@@ -542,7 +542,7 @@ class ServiceRegistry:
         try:
             # Mark as closed first to prevent new metrics from being recorded during shutdown
             self._is_closed = True
-            
+
             # Flush any remaining metrics
             if self._metrics_buffer:
                 await self._flush_metrics()

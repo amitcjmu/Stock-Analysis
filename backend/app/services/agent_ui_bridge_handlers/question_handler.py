@@ -45,9 +45,8 @@ class QuestionHandler:
                 existing.page == page
                 and existing.agent_id == agent_id
                 and (existing.title == title or existing.question == question)
-                and
                 # Don't re-add if recently resolved (within last hour)
-                (
+                and (
                     not existing.is_resolved
                     or (
                         existing.answered_at

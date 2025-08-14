@@ -29,7 +29,10 @@ def generate_quality_insights(
             LearningInsight(
                 insight_id=f"quality_low_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 pattern_type=LearningPattern.RESPONSE_QUALITY,
-                description=f"Response quality is below target at {avg_quality:.2%}. Focus on question clarity and stakeholder guidance.",
+                description=(
+                    f"Response quality is below target at {avg_quality:.2%}. "
+                    "Focus on question clarity and stakeholder guidance."
+                ),
                 supporting_evidence={"average_quality": avg_quality, "target": 0.75},
                 business_impact="high",
                 actionability="immediate",
@@ -67,7 +70,10 @@ def generate_quality_insights(
             LearningInsight(
                 insight_id=f"role_performance_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 pattern_type=LearningPattern.RESPONSE_QUALITY,
-                description=f"Roles {', '.join(underperforming_roles)} show lower response quality. Needs targeted support.",
+                description=(
+                    f"Roles {', '.join(underperforming_roles)} show lower "
+                    "response quality. Needs targeted support."
+                ),
                 supporting_evidence={
                     "underperforming_roles": underperforming_roles,
                     "role_data": role_performance,
@@ -109,7 +115,10 @@ def generate_engagement_insights(
             LearningInsight(
                 insight_id=f"engagement_low_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 pattern_type=LearningPattern.STAKEHOLDER_ENGAGEMENT,
-                description=f"Stakeholder engagement is low at {avg_response_rate:.2%}. Needs improvement in targeting and communication.",
+                description=(
+                    f"Stakeholder engagement is low at {avg_response_rate:.2%}. "
+                    "Needs improvement in targeting and communication."
+                ),
                 supporting_evidence={"response_rate": avg_response_rate, "target": 0.8},
                 business_impact="high",
                 actionability="immediate",
@@ -147,7 +156,10 @@ def generate_engagement_insights(
             LearningInsight(
                 insight_id=f"temporal_optimization_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 pattern_type=LearningPattern.STAKEHOLDER_ENGAGEMENT,
-                description=f"Optimal engagement times identified: {', '.join(optimal_times)}. Schedule questionnaires accordingly.",
+                description=(
+                    f"Optimal engagement times identified: {', '.join(optimal_times)}. "
+                    "Schedule questionnaires accordingly."
+                ),
                 supporting_evidence={
                     "optimal_times": optimal_times,
                     "temporal_data": temporal_patterns,
@@ -193,7 +205,10 @@ def generate_effectiveness_insights(
             LearningInsight(
                 insight_id=f"effectiveness_low_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 pattern_type=LearningPattern.QUESTION_EFFECTIVENESS,
-                description=f"Questions need clarity improvement. Clarity: {avg_clarity:.2%}, Confusion: {avg_confusion:.2%}",
+                description=(
+                    f"Questions need clarity improvement. Clarity: {avg_clarity:.2%}, "
+                    f"Confusion: {avg_confusion:.2%}"
+                ),
                 supporting_evidence={
                     "clarity": avg_clarity,
                     "confusion": avg_confusion,
@@ -235,7 +250,10 @@ def generate_completion_insights(
             LearningInsight(
                 insight_id=f"completion_low_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 pattern_type=LearningPattern.COMPLETION_RATES,
-                description=f"Completion rate is below target at {avg_completion:.2%}. Focus on questionnaire length and complexity.",
+                description=(
+                    f"Completion rate is below target at {avg_completion:.2%}. "
+                    "Focus on questionnaire length and complexity."
+                ),
                 supporting_evidence={"completion_rate": avg_completion, "target": 0.75},
                 business_impact="high",
                 actionability="short_term",
@@ -274,7 +292,10 @@ def generate_completion_insights(
             LearningInsight(
                 insight_id=f"length_impact_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 pattern_type=LearningPattern.COMPLETION_RATES,
-                description=f"Long questionnaires show poor completion. Consider restructuring {', '.join(problematic_lengths)} questionnaires.",
+                description=(
+                    f"Long questionnaires show poor completion. Consider restructuring "
+                    f"{', '.join(problematic_lengths)} questionnaires."
+                ),
                 supporting_evidence={
                     "problematic_lengths": problematic_lengths,
                     "length_data": length_impact,
@@ -319,7 +340,10 @@ def generate_resolution_insights(
             LearningInsight(
                 insight_id=f"resolution_improvement_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 pattern_type=LearningPattern.GAP_RESOLUTION_SUCCESS,
-                description=f"Gap resolution rate at {avg_resolution:.2%} needs improvement. Focus on targeting and validation.",
+                description=(
+                    f"Gap resolution rate at {avg_resolution:.2%} needs improvement. "
+                    "Focus on targeting and validation."
+                ),
                 supporting_evidence={"resolution_rate": avg_resolution, "target": 0.8},
                 business_impact="high",
                 actionability="immediate",
@@ -407,7 +431,10 @@ def generate_temporal_insights(
             LearningInsight(
                 insight_id=f"optimal_timing_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 pattern_type=LearningPattern.TEMPORAL_OPTIMIZATION,
-                description=f"Best response times identified: {', '.join(optimal_hours)}:00. Schedule accordingly for maximum engagement.",
+                description=(
+                    f"Best response times identified: {', '.join(optimal_hours)}:00. "
+                    "Schedule accordingly for maximum engagement."
+                ),
                 supporting_evidence={
                     "optimal_hours": optimal_hours,
                     "hourly_data": hourly_optimization,
@@ -452,7 +479,10 @@ def generate_adaptation_insights(
             LearningInsight(
                 insight_id=f"adaptation_needed_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 pattern_type=LearningPattern.COMPLEXITY_ADAPTATION,
-                description=f"Complexity matching at {avg_match:.2%} shows need for better adaptation to stakeholder capabilities.",
+                description=(
+                    f"Complexity matching at {avg_match:.2%} shows need for better "
+                    "adaptation to stakeholder capabilities."
+                ),
                 supporting_evidence={"complexity_match": avg_match, "target": 0.7},
                 business_impact="medium",
                 actionability="short_term",

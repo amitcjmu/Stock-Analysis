@@ -22,16 +22,17 @@ async def determine_phase_to_execute(discovery_flow: DiscoveryFlow) -> str:
     current_phase = discovery_flow.current_phase
     status = discovery_flow.status
 
-    # Map the phase correctly to match PhaseController expectations
+    # Map the phase correctly to match Master Flow Orchestrator expectations
+    # MFO expects "field_mapping" not "field_mapping_suggestions"
     if status == "initialized" and not current_phase:
         # Flow is initialized but hasn't started any phase yet
-        return "field_mapping_suggestions"
+        return "field_mapping"
     elif status in ["failed", "error", "paused", "waiting_for_approval"]:
         # For failed/paused flows, restart from current phase or field mapping
-        return current_phase or "field_mapping_suggestions"
+        return current_phase or "field_mapping"
     elif status == "initialized":
         # Flow was initialized but needs to execute field mapping phase
-        return "field_mapping_suggestions"
+        return "field_mapping"
     elif current_phase:
         # Use the current phase from the flow
         return current_phase

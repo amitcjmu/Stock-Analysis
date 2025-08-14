@@ -305,6 +305,7 @@ def get_crewai_embeddings():
             "model": DEEPINFRA_EMBEDDINGS_MODEL,
             "api_key": api_key,
             "base_url": "https://api.deepinfra.com/v1/openai",
+            "encoding_format": "float",
         },
     }
 

@@ -12,12 +12,10 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 from alembic import op
-import sqlalchemy as sa
-import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "017_add_vector_search_to_agent_patterns"
-down_revision = "017_add_agent_execution_history"
+down_revision = "016_add_security_constraints"
 branch_labels = None
 depends_on = None
 
