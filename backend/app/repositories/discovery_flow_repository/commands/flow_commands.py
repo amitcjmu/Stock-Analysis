@@ -130,7 +130,7 @@ class FlowCommands:
         )
         return flow
 
-    async def update_phase_completion(
+    async def update_phase_completion(  # noqa: C901
         self,
         flow_id: str,
         phase: str,
@@ -218,6 +218,55 @@ class FlowCommands:
         updated_flow = await self.flow_queries.get_by_flow_id(flow_id)
         if updated_flow:
             await self._invalidate_flow_cache(updated_flow)
+
+        # CC: Add enrichment calls to master flow record after phase completion
+        if completed and updated_flow:
+            try:
+                from app.repositories.crewai_flow_state_extensions_repository import (
+                    CrewAIFlowStateExtensionsRepository,
+                )
+
+                master_repo = CrewAIFlowStateExtensionsRepository(
+                    db=self.db,
+                    client_account_id=self.client_account_id,
+                    engagement_id=self.engagement_id,
+                    user_id=None,  # No user context available in repository
+                )
+
+                # Add phase transition for completion
+                await master_repo.add_phase_transition(
+                    flow_id=flow_id,
+                    phase=phase,
+                    status="completed",
+                    metadata={
+                        "progress_percentage": progress,
+                        "records_processed": (
+                            data.get("records_processed") if data else None
+                        ),
+                        "has_agent_insights": bool(agent_insights),
+                    },
+                )
+
+                # Record agent collaboration if insights were provided
+                if agent_insights:
+                    for insight in agent_insights:
+                        await master_repo.append_agent_collaboration(
+                            {
+                                "phase": phase,
+                                "agent_insight": insight,
+                                "insight_type": insight.get("type", "phase_completion"),
+                            }
+                        )
+
+                logger.debug(
+                    f"✅ [ENRICHMENT] Added master flow enrichment for phase {phase} completion"
+                )
+
+            except Exception as enrichment_error:
+                logger.warning(
+                    f"⚠️ [ENRICHMENT] Failed to add master flow enrichment: {enrichment_error}"
+                )
+                # Don't fail the main operation if enrichment fails
 
         # 🔧 CC FIX: Check if all required phases are complete and auto-complete flow
         if updated_flow and completed:
