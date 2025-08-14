@@ -295,18 +295,41 @@ class PersistentFieldMappingCrew:
     def kickoff(self) -> Any:
         """Sync execution for compatibility"""
         import asyncio
+        import threading
 
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # If already in async context, schedule coroutine
-                import concurrent.futures
+            # Check if we're already in an event loop
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
 
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(asyncio.run, self.kickoff_async())
-                    return future.result()
+            if loop and loop.is_running():
+                # If we're in a running loop, use a separate thread with its own loop
+                result_container = {}
+                exc_container = {}
+
+                def _run():
+                    try:
+                        new_loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(new_loop)
+                        res = new_loop.run_until_complete(self.kickoff_async())
+                        result_container["res"] = res
+                    except Exception as ex:
+                        exc_container["ex"] = ex
+                    finally:
+                        new_loop.close()
+
+                t = threading.Thread(target=_run, daemon=True)
+                t.start()
+                t.join()
+
+                if "ex" in exc_container:
+                    raise exc_container["ex"]
+                return result_container.get("res")
             else:
-                return loop.run_until_complete(self.kickoff_async())
+                # No running loop, safe to use asyncio.run
+                return asyncio.run(self.kickoff_async())
         except Exception as e:
             logger.error(f"Failed to execute persistent field mapping: {e}")
             # Return fallback result

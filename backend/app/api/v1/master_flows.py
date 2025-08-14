@@ -144,7 +144,7 @@ async def get_active_master_flows(
         try:
             client_uuid = uuid.UUID(client_account_id)
         except (ValueError, TypeError):
-            logger.error(f"Invalid client_account_id format: {client_account_id}")
+            logger.error("Invalid client_account_id format received")
             raise HTTPException(
                 status_code=400, detail="Invalid client account ID format"
             )

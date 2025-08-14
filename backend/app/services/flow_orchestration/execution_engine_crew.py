@@ -178,9 +178,18 @@ class FlowCrewExecutor:
                 "raw_data" not in phase_input
                 and "raw_data" in master_flow.flow_persistence_data
             ):
-                phase_input["raw_data"] = master_flow.flow_persistence_data["raw_data"]
+                raw_data = master_flow.flow_persistence_data["raw_data"]
+                phase_input["raw_data"] = raw_data
+
+                # Safely get the count of records
+                try:
+                    record_count = len(raw_data) if raw_data is not None else 0
+                except (TypeError, AttributeError):
+                    # Handle cases where raw_data is not a sized iterable
+                    record_count = 1 if raw_data is not None else 0
+
                 logger.info(
-                    f"📊 Retrieved {len(phase_input['raw_data'])} records from flow persistence for phase execution"
+                    f"📊 Retrieved {record_count} records from flow persistence for phase execution"
                 )
 
         try:

@@ -72,12 +72,22 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 logger.info(
                     f"🚀 Executing crew asynchronously for {self.get_phase_name()}"
                 )
-                crew_result = await crew.kickoff_async(inputs=crew_input)
+                # Check if this is a PersistentFieldMappingCrew which doesn't need inputs
+                if crew.__class__.__name__ == "PersistentFieldMappingCrew":
+                    crew_result = await crew.kickoff_async()
+                else:
+                    crew_result = await crew.kickoff_async(inputs=crew_input)
             else:
                 logger.info(
                     f"🔄 Executing crew via thread wrapper for {self.get_phase_name()}"
                 )
-                crew_result = await asyncio.to_thread(crew.kickoff, inputs=crew_input)
+                # Check if this is a PersistentFieldMappingCrew which doesn't need inputs
+                if crew.__class__.__name__ == "PersistentFieldMappingCrew":
+                    crew_result = await asyncio.to_thread(crew.kickoff)
+                else:
+                    crew_result = await asyncio.to_thread(
+                        crew.kickoff, inputs=crew_input
+                    )
 
             logger.info(
                 f"✅ Field mapping crew completed successfully: {type(crew_result)}"
