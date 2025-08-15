@@ -69,7 +69,7 @@ class ImportResponseBuilder:
         return {
             "success": True,
             "data_import_id": data_import_id,
-            "import_flow_id": data_import_id,  # Frontend expects this field
+            "import_flow_id": flow_id,  # This should be the master flow ID, not the import ID
             "flow_id": flow_id,
             "message": message,
             "records_stored": records_stored,
