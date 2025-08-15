@@ -236,7 +236,20 @@ export const masterFlowService = {
         flowType
       });
 
-      const response = await apiClient.get<MasterFlowResponse[]>(
+      // Backend returns snake_case, so define the actual response type
+      interface BackendFlowResponse {
+        flow_id: string;
+        flow_type: string;
+        flow_name: string;
+        status: string;
+        phase?: string;
+        progress_percentage?: number;
+        created_at?: string;
+        updated_at?: string;
+        metadata?: Record<string, unknown>;
+      }
+
+      const response = await apiClient.get<BackendFlowResponse[]>(
         endpoint,
         {
           headers,
@@ -245,19 +258,19 @@ export const masterFlowService = {
 
       console.log('✅ MasterFlowService.getActiveFlows - Response received:', response);
 
-      // Transform MasterFlowResponse[] to ActiveFlowSummary[]
+      // Transform snake_case backend response to camelCase ActiveFlowSummary[]
       return response.map(flow => ({
-        flowId: flow.flowId,
-        flowType: flow.flowType,
-        flowName: flow.metadata?.flow_name || flow.flowType,
-        status: flow.status,
-        progress: flow.progress,
-        currentPhase: flow.currentPhase,
-        assignedAgents: 0, // Default values as these are not in MasterFlowResponse
+        flowId: flow.flow_id,
+        flowType: flow.flow_type,
+        flowName: flow.flow_name || flow.flow_type,
+        status: flow.status as FlowStatus,
+        progress: flow.progress_percentage || 0,
+        currentPhase: flow.phase || 'initialization',
+        assignedAgents: 0, // Default values as these are not in backend response
         activeCrews: 0,
         childFlows: 0,
         priority: 'normal',
-        startTime: flow.createdAt,
+        startTime: flow.created_at || new Date().toISOString(),
         estimatedCompletion: undefined,
         clientAccountId: clientAccountId,
         engagementId: engagementId || '',
