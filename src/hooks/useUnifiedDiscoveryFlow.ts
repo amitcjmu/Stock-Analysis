@@ -426,7 +426,9 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
   } = useQuery({
     queryKey: ['unifiedDiscoveryFlow', flowId, client?.id, engagement?.id],
     queryFn: () => flowId && unifiedDiscoveryAPI ? unifiedDiscoveryAPI.getFlowStatus(flowId) : null,
-    enabled: !!flowId && !!unifiedDiscoveryAPI && !!client?.id && !!engagement?.id && flowId !== 'none',
+    enabled: !!flowId && !!unifiedDiscoveryAPI && !!client?.id && !!engagement?.id && flowId !== 'none' &&
+             // Ensure flow ID is a valid UUID format (not an import ID)
+             /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(flowId),
     refetchInterval: (query) => {
       // Stop polling if disabled or max attempts reached
       if (!pollingEnabled || pollingAttempts >= MAX_POLLING_ATTEMPTS) {

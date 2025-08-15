@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAttributeMappingFlowDetection } from '../useDiscoveryFlowAutoDetection';
 import { useImportFlowResolver } from './useImportFlowResolver';
+import { useRecentFlowResolver } from './useRecentFlowResolver';
 
 export interface FlowDetectionResult {
   urlFlowId: string | null;
@@ -36,12 +37,23 @@ export const useFlowDetection = (): FlowDetectionResult => {
     hasEffectiveFlow: initialHasEffectiveFlow
   } = useAttributeMappingFlowDetection();
 
+  // Get the most recent flow if no URL flow ID is provided
+  const { recentFlowId, isResolving: isResolvingRecent } = useRecentFlowResolver();
+
   // Resolve import ID to flow ID if needed
   // The URL might contain a data import ID instead of a flow ID
-  const { resolvedFlowId, isResolving } = useImportFlowResolver(urlFlowId || undefined);
+  const { resolvedFlowId, isResolving: isResolvingImport } = useImportFlowResolver(urlFlowId || undefined);
 
-  // Use resolved flow ID if available, otherwise use the initial effective flow ID
-  const effectiveFlowId = resolvedFlowId || initialEffectiveFlowId;
+  // Priority order for flow ID selection:
+  // 1. Resolved import ID (if URL had an import ID)
+  // 2. URL flow ID (if it's a valid flow ID)
+  // 3. Auto-detected flow ID from flow list
+  // 4. Recent flow ID (when no URL params)
+  const effectiveFlowId = resolvedFlowId ||
+                         (urlFlowId && !isResolvingImport ? urlFlowId : null) ||
+                         initialEffectiveFlowId ||
+                         (!urlFlowId ? recentFlowId : null);
+
   const hasEffectiveFlow = Boolean(effectiveFlowId) || initialHasEffectiveFlow;
 
   // Emergency fallback: try to extract flow ID from tenant-scoped context only
@@ -124,7 +136,7 @@ export const useFlowDetection = (): FlowDetectionResult => {
     finalFlowId,
     hasEffectiveFlow,
     flowList,
-    isFlowListLoading: isFlowListLoading || isResolving,
+    isFlowListLoading: isFlowListLoading || isResolvingImport || isResolvingRecent,
     flowListError,
     pathname,
     navigate

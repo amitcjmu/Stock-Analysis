@@ -34,10 +34,19 @@ export function useImportFlowResolver(importId: string | undefined): UseImportFl
       return;
     }
 
-    // Check if this is already a flow ID (UUIDs are 36 chars)
-    // If it's a flow ID, it would be found by the flow detection hooks
-    // If it's not found, it might be an import ID that needs resolution
+    // Check if this is already a valid flow ID (UUID v4 format)
+    // If it's a flow ID, just pass it through without resolution
+    const isValidFlowId = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(importId);
 
+    if (isValidFlowId) {
+      // This is already a flow ID, no need to resolve
+      console.log(`✅ ${importId} is already a valid flow ID, no resolution needed`);
+      setResolvedFlowId(importId);
+      setIsResolving(false);
+      return;
+    }
+
+    // Otherwise, try to resolve it as an import ID
     const resolveImportToFlow = async () => {
       setIsResolving(true);
       setError(null);
