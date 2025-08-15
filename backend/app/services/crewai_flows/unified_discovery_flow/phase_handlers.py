@@ -106,16 +106,23 @@ class PhaseHandlers:
 
             # CC: Record phase failure and execution time
             execution_time_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
+            # Sanitize error message to prevent sensitive data leakage
+            sanitized_error = (str(e) or "error")[:500]
             await self._record_phase_execution_time(
                 "data_validation", execution_time_ms
             )
             await self._add_phase_transition(
                 "data_validation",
                 "failed",
-                {"execution_time_ms": execution_time_ms, "error_message": str(e)},
+                {
+                    "execution_time_ms": execution_time_ms,
+                    "error_message": sanitized_error,
+                },
             )
             await self._add_error_entry(
-                "data_validation", str(e), {"execution_time_ms": execution_time_ms}
+                "data_validation",
+                sanitized_error,
+                {"execution_time_ms": execution_time_ms},
             )
 
             await self._send_phase_error("data_validation", str(e))
@@ -203,14 +210,21 @@ class PhaseHandlers:
 
             # CC: Record phase failure and execution time
             execution_time_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
+            # Sanitize error message to prevent sensitive data leakage
+            sanitized_error = (str(e) or "error")[:500]
             await self._record_phase_execution_time("field_mapping", execution_time_ms)
             await self._add_phase_transition(
                 "field_mapping",
                 "failed",
-                {"execution_time_ms": execution_time_ms, "error_message": str(e)},
+                {
+                    "execution_time_ms": execution_time_ms,
+                    "error_message": sanitized_error,
+                },
             )
             await self._add_error_entry(
-                "field_mapping", str(e), {"execution_time_ms": execution_time_ms}
+                "field_mapping",
+                sanitized_error,
+                {"execution_time_ms": execution_time_ms},
             )
 
             await self._send_phase_error("field_mapping", str(e))

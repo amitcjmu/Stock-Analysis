@@ -726,7 +726,8 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
     # Analytics methods for Master Flow State Enrichment
     def _is_enrichment_enabled(self) -> bool:
         """Check if master state enrichment is enabled via feature flag."""
-        return os.getenv("MASTER_STATE_ENRICHMENT_ENABLED", "true").lower() == "true"
+        # Default to false for production safety - must be explicitly enabled
+        return os.getenv("MASTER_STATE_ENRICHMENT_ENABLED", "false").lower() == "true"
 
     async def add_phase_transition(
         self,

@@ -317,9 +317,13 @@ class FlowProgressTracker:
                     flow_id=self.flow_id,
                     status=progress_data.get("workflow_status", "processing"),
                     metadata={
-                        "last_progress_update": progress_data,
+                        "last_progress_update": {
+                            "phase": progress_data.get("phase"),
+                            "progress": progress_data.get("progress"),
+                            "status": progress_data.get("status"),
+                            "message": progress_data.get("message"),
+                        },
                         "last_update_timestamp": datetime.utcnow().isoformat(),
-                        "current_progress": progress_data,
                         "is_processing": progress_data.get("is_processing"),
                         "awaiting_user_approval": progress_data.get(
                             "awaiting_user_input"

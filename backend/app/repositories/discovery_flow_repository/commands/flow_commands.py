@@ -251,11 +251,12 @@ class FlowCommands:
                 if agent_insights:
                     for insight in agent_insights:
                         await master_repo.append_agent_collaboration(
-                            {
+                            flow_id=flow_id,
+                            entry={
                                 "phase": phase,
                                 "agent_insight": insight,
                                 "insight_type": insight.get("type", "phase_completion"),
-                            }
+                            },
                         )
 
                 logger.debug(

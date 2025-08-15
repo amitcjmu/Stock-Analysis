@@ -177,7 +177,7 @@ pydantic==2.11.7
 pydantic-settings==2.10.1
 pydantic_core==2.33.2
 Pygments==2.19.2
-PyJWT==2.10.1
+# Removed duplicate - using pyjwt[crypto] below
 pymdown-extensions==10.16
 pypdf==6.0.0  # Updated from 5.7.0 - fixes CVE-2025-3429 RAM exhaustion vulnerability
 pypdfium2==4.30.1
