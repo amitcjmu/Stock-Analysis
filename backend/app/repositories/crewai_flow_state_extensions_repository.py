@@ -283,103 +283,11 @@ class CrewAIFlowStateExtensionsRepository(BaseRepo):
             logger.error(f"❌ Database error in get_by_flow_id_global: {e}")
             return None
 
+    # Delegate JSON serialization to BaseRepo implementation
     def _ensure_json_serializable(
         self, obj: Any, _visited: Optional[set] = None, _depth: int = 0
     ) -> Any:
-        """
-        Recursively convert non-JSON serializable objects to serializable format.
-        Handles UUID, datetime, and other common non-serializable types.
-
-        This method is critical for preventing JSON serialization errors when storing
-        phase_data, collaboration_entry, or metadata that may contain UUID objects
-        from CrewAI flows or other sources.
-
-        Common sources of UUID objects:
-        - RequestContext fields (client_account_id, engagement_id)
-        - Flow IDs from CrewAI
-        - Database record IDs
-        - Nested data structures from phase results
-
-        Args:
-            obj: Object to serialize
-            _visited: Set of visited object IDs to prevent circular references
-            _depth: Current recursion depth to prevent excessive nesting
-        """
-        # Initialize visited set on first call
-        if _visited is None:
-            _visited = set()
-
-        # Prevent excessive recursion depth
-        MAX_DEPTH = 50
-        if _depth > MAX_DEPTH:
-            logger.warning(
-                f"Maximum serialization depth {MAX_DEPTH} reached, converting to string"
-            )
-            return str(obj)
-
-        try:
-            if isinstance(obj, dict):
-                # Check for circular reference
-                obj_id = id(obj)
-                if obj_id in _visited:
-                    return "<circular reference: dict>"
-                _visited.add(obj_id)
-
-                result = {}
-                for key, value in obj.items():
-                    result[key] = self._ensure_json_serializable(
-                        value, _visited, _depth + 1
-                    )
-                _visited.discard(obj_id)
-                return result
-
-            elif isinstance(obj, list):
-                # Check for circular reference
-                obj_id = id(obj)
-                if obj_id in _visited:
-                    return "<circular reference: list>"
-                _visited.add(obj_id)
-
-                result = [
-                    self._ensure_json_serializable(item, _visited, _depth + 1)
-                    for item in obj
-                ]
-                _visited.discard(obj_id)
-                return result
-
-            elif isinstance(obj, uuid.UUID):
-                return str(obj)
-            elif isinstance(obj, datetime):
-                return obj.isoformat()
-            elif isinstance(obj, (str, int, float, bool, type(None))):
-                # These types are already JSON serializable
-                return obj
-            elif hasattr(obj, "__dict__"):
-                # Check for circular reference
-                obj_id = id(obj)
-                if obj_id in _visited:
-                    return f"<circular reference: {type(obj).__name__}>"
-                _visited.add(obj_id)
-
-                # Handle custom objects by converting to dict
-                logger.debug(f"Converting object of type {type(obj).__name__} to dict")
-                result = self._ensure_json_serializable(
-                    obj.__dict__, _visited, _depth + 1
-                )
-                _visited.discard(obj_id)
-                return result
-            else:
-                # For any other type, convert to string
-                logger.warning(
-                    f"Converting unknown type {type(obj).__name__} to string: {obj}"
-                )
-                return str(obj)
-        except Exception as e:
-            logger.error(
-                f"Error in _ensure_json_serializable for object {type(obj).__name__}: {e}"
-            )
-            # As a last resort, convert to string
-            return str(obj)
+        return super()._ensure_json_serializable(obj, _visited, _depth)
 
     async def update_flow_status(
         self,
@@ -392,69 +300,49 @@ class CrewAIFlowStateExtensionsRepository(BaseRepo):
         """Update master flow status and state"""
 
         try:
-            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-            client_uuid = uuid.UUID(self.client_account_id)
-            engagement_uuid = uuid.UUID(self.engagement_id)
+            # validate UUID inputs early for clear error messages
+            _ = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            _ = uuid.UUID(self.client_account_id)
+            _ = uuid.UUID(self.engagement_id)
         except (ValueError, TypeError) as e:
             logger.error(f"❌ Invalid UUID format in update_flow_status: {e}")
             raise ValueError(f"Invalid UUID format: {e}")
 
-        # Build update values
-        update_values = {"flow_status": status, "updated_at": datetime.utcnow()}
-
-        # Get existing flow to merge data
-        existing_flow = await self.queries.get_by_flow_id(flow_id)
-        if existing_flow:
-            # Update persistence data - ensure JSON serializable
-            if phase_data:
-                persistence_data = existing_flow.flow_persistence_data or {}
-                # Ensure phase_data is JSON serializable before updating
-                logger.debug(
-                    f"🔍 Serializing phase_data for flow {flow_id} with keys: {list(phase_data.keys())}"
-                )
-                serializable_phase_data = self._ensure_json_serializable(phase_data)
-                persistence_data.update(serializable_phase_data)
-                update_values["flow_persistence_data"] = persistence_data
-                logger.debug(
-                    f"✅ Successfully serialized phase_data for flow {flow_id}"
-                )
-
-            # Update collaboration log - ensure JSON serializable
-            if collaboration_entry:
-                collaboration_log = existing_flow.agent_collaboration_log or []
-                # Ensure collaboration_entry is JSON serializable
-                serializable_entry = self._ensure_json_serializable(collaboration_entry)
-                collaboration_log.append(serializable_entry)
-                # Keep only last 100 entries to prevent bloat
-                if len(collaboration_log) > 100:
-                    collaboration_log = collaboration_log[-100:]
-                update_values["agent_collaboration_log"] = collaboration_log
-
-            # Update metadata (ADR-012 sync metadata) - ensure JSON serializable
-            if metadata:
-                flow_metadata = existing_flow.flow_metadata or {}
-                # Ensure metadata is JSON serializable
-                serializable_metadata = self._ensure_json_serializable(metadata)
-                flow_metadata.update(serializable_metadata)
-                update_values["flow_metadata"] = flow_metadata
-
-        # Execute update
-        stmt = (
-            update(CrewAIFlowStateExtensions)
-            .where(
-                and_(
-                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                )
-            )
-            .values(**update_values)
+        # Apply minimal, delegated updates
+        await self.enrich.update_flow_metadata(
+            flow_id, self._ensure_json_serializable(metadata or {})
         )
-
-        await self.db.execute(stmt)
-        await self.db.commit()
-
-        # Return updated flow
+        if collaboration_entry:
+            entry = dict(collaboration_entry)
+            if "timestamp" not in entry:
+                entry["timestamp"] = datetime.utcnow().isoformat()
+            await self.enrich.append_agent_collaboration(
+                flow_id, self._ensure_json_serializable(entry)
+            )
+        if phase_data:
+            await self.enrich.update_flow_metadata(
+                flow_id, self._ensure_json_serializable(phase_data)
+            )
+        # Finally, set the flow_status
+        flow = await self.queries.get_by_flow_id(flow_id)
+        if flow:
+            prev_updated_at = flow.updated_at
+            stmt_upd = (
+                update(CrewAIFlowStateExtensions)
+                .where(
+                    and_(
+                        CrewAIFlowStateExtensions.id == flow.id,
+                        CrewAIFlowStateExtensions.client_account_id
+                        == uuid.UUID(self.client_account_id),
+                        CrewAIFlowStateExtensions.engagement_id
+                        == uuid.UUID(self.engagement_id),
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
+                    )
+                )
+                .values(flow_status=status, updated_at=datetime.utcnow())
+            )
+            await self.db.execute(stmt_upd)
+            await self.db.commit()
         return await self.queries.get_by_flow_id(flow_id)
 
     async def get_flows_by_type(
