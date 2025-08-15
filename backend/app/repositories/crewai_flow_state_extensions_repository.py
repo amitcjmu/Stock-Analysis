@@ -934,9 +934,10 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 return
 
             log = list(flow.agent_collaboration_log or [])
-            serializable = self._ensure_json_serializable(
-                {**(entry or {}), "timestamp": datetime.utcnow().isoformat()}
-            )
+            entry_data: Dict[str, Any] = dict(entry or {})
+            if "timestamp" not in entry_data:
+                entry_data["timestamp"] = datetime.utcnow().isoformat()
+            serializable = self._ensure_json_serializable(entry_data)
             log.append(serializable)
             if len(log) > 100:
                 log = log[-100:]
@@ -1047,7 +1048,18 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 "latency_ms",
                 "token_usage",
             }
+            # Allow extension via env var PERF_METRICS_ALLOWED_KEYS=key1,key2
+            extra = os.getenv("PERF_METRICS_ALLOWED_KEYS", "").strip()
+            if extra:
+                for k in [x.strip() for x in extra.split(",") if x.strip()]:
+                    allowed_keys.add(k)
             filtered = {k: serializable[k] for k in serializable.keys() & allowed_keys}
+            # Log dropped keys at debug level for visibility without noise
+            dropped = set(serializable.keys()) - set(filtered.keys())
+            if dropped:
+                logger.debug(
+                    f"Performance metrics keys dropped for flow {flow_id}: {sorted(dropped)}"
+                )
             current.update(filtered)
 
             prev_updated_at = flow.updated_at
@@ -1178,8 +1190,5 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             else:
                 await self.db.rollback()
         except Exception as e:
-            logger.error(f"❌ Failed increment_retry_count for {flow_id}: {e}")
-            await self.db.rollback()
-
             logger.error(f"❌ Failed increment_retry_count for {flow_id}: {e}")
             await self.db.rollback()
