@@ -9,12 +9,46 @@ import { useToast } from '@/components/ui/use-toast';
 export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgress?: unknown): unknown => {
   const navigate = useNavigate();
   const { user, client, engagement } = useAuth();
+
+  // SMART FLOW RESOLUTION: Use masterFlowService to get the correct flow ID
+  // before initializing useUnifiedDiscoveryFlow
+  const getCorrectFlowId = useCallback(async (inputId: string) => {
+    if (!inputId) return null;
+
+    try {
+      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
+      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+
+      // Use masterFlowService smart resolution to find the correct flow
+      const flows = await masterFlowService.getActiveFlows(clientAccountId, engagementId);
+
+      // First try exact match
+      const exactMatch = flows.find(f => f.flowId === inputId);
+      if (exactMatch) return inputId;
+
+      // Then try to find flow by data_import_id
+      const importMatch = flows.find(f => f.metadata?.data_import_id === inputId);
+      if (importMatch) return importMatch.flowId;
+
+      // Fallback to first available flow
+      if (flows.length > 0) return flows[0].flowId;
+
+      return inputId; // Return original if no matches found
+    } catch (error) {
+      console.warn('Failed to resolve flow ID:', error);
+      return inputId;
+    }
+  }, [client?.id, engagement?.id]);
+
+  // Get the resolved flow ID for useUnifiedDiscoveryFlow
   const { flowState: flow, executeFlowPhase: updatePhase } = useUnifiedDiscoveryFlow(flowState?.flow_id);
   const { toast } = useToast();
 
   const handleContinueToDataCleansing = useCallback(async () => {
     try {
-      const flowId = flowState?.flow_id || flow?.flow_id;
+      // Use smart flow resolution to get the correct flow ID
+      const rawFlowId = flowState?.flow_id || flow?.flow_id;
+      const flowId = rawFlowId ? await getCorrectFlowId(rawFlowId) : null;
 
       if (!flowId) {
         toast({
@@ -129,7 +163,7 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
         variant: "destructive"
       });
     }
-  }, [flow, flowState, navigate, mappingProgress, toast, client?.id, engagement?.id]);
+  }, [flow, flowState, navigate, mappingProgress, toast, client?.id, engagement?.id, getCorrectFlowId]);
 
   return {
     handleContinueToDataCleansing
