@@ -87,6 +87,30 @@ class FlowProgressTracker:
             awaiting_user_input=False,
         )
 
+        # Persist phase transition (processing)
+        try:
+            from app.core.database import AsyncSessionLocal
+            from app.repositories.crewai_flow_state_extensions_repository import (
+                CrewAIFlowStateExtensionsRepository,
+            )
+
+            async with AsyncSessionLocal() as db:
+                repo = CrewAIFlowStateExtensionsRepository(
+                    db=db,
+                    client_account_id=self.context.client_account_id,
+                    engagement_id=self.context.engagement_id,
+                    user_id=self.context.user_id,
+                )
+                await repo.add_phase_transition(
+                    flow_id=self.flow_id,
+                    phase=phase.phase_name,
+                    status="processing",
+                    metadata={"message": message} if message else None,
+                )
+        except Exception:
+            # Transition enrichment is best-effort; avoid breaking primary flow
+            pass
+
     async def complete_phase(
         self,
         phase: FlowPhase,
@@ -137,6 +161,45 @@ class FlowProgressTracker:
                 is_processing=self.is_processing,
                 awaiting_user_input=self.awaiting_user_input,
             )
+
+            # Persist phase transition and timing
+            try:
+                from app.core.database import AsyncSessionLocal
+                from app.repositories.crewai_flow_state_extensions_repository import (
+                    CrewAIFlowStateExtensionsRepository,
+                )
+
+                async with AsyncSessionLocal() as db:
+                    repo = CrewAIFlowStateExtensionsRepository(
+                        db=db,
+                        client_account_id=self.context.client_account_id,
+                        engagement_id=self.context.engagement_id,
+                        user_id=self.context.user_id,
+                    )
+                    await repo.add_phase_transition(
+                        flow_id=self.flow_id,
+                        phase=phase.phase_name,
+                        status="completed",
+                        metadata={"message": message} if message else None,
+                    )
+
+                    if self.phase_start_time:
+                        duration_ms = (
+                            datetime.utcnow() - self.phase_start_time
+                        ).total_seconds() * 1000.0
+                        # Clamp to sane bounds
+                        if duration_ms < 0:
+                            duration_ms = 0.0
+                        elif duration_ms > 86_400_000.0:  # 24h in ms
+                            duration_ms = 86_400_000.0
+                        await repo.record_phase_execution_time(
+                            flow_id=self.flow_id,
+                            phase=phase.phase_name,
+                            execution_time_ms=duration_ms,
+                        )
+            except Exception:
+                # Enrichment is best-effort; avoid breaking primary flow
+                pass
 
             # Auto-transition to next phase if specified
             if next_phase and not self.awaiting_user_input:

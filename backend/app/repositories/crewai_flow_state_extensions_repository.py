@@ -78,6 +78,11 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
         self.client_account_id = str(parsed_client_id)
         self.engagement_id = str(parsed_engagement_id)
 
+        # Feature flag: master state enrichment can be toggled for safe rollouts
+        self._enrichment_enabled = os.getenv(
+            "MASTER_STATE_ENRICHMENT_ENABLED", "true"
+        ).lower() in ("1", "true", "yes")
+
     async def create_master_flow(
         self,
         flow_id: str,  # CrewAI generated flow ID
@@ -723,11 +728,66 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 "master_coordination_health": "error",
             }
 
-    # Analytics methods for Master Flow State Enrichment
-    def _is_enrichment_enabled(self) -> bool:
-        """Check if master state enrichment is enabled via feature flag."""
-        # Default to false for production safety - must be explicitly enabled
-        return os.getenv("MASTER_STATE_ENRICHMENT_ENABLED", "false").lower() == "true"
+    # =============================
+    # Enrichment helpers (JSONB)
+    # =============================
+
+    async def update_flow_metadata(
+        self, flow_id: str, metadata_updates: Dict[str, Any]
+    ) -> None:
+        """Merge arbitrary metadata into flow_metadata JSONB.
+
+        Lightweight summaries only. Honors feature flag.
+        """
+        if not self._enrichment_enabled:
+            return
+
+        try:
+            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            client_uuid = uuid.UUID(self.client_account_id)
+            engagement_uuid = uuid.UUID(self.engagement_id)
+
+            # Load existing
+            stmt = select(CrewAIFlowStateExtensions).where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                )
+            )
+            result = await self.db.execute(stmt)
+            flow = result.scalar_one_or_none()
+            if not flow:
+                return
+
+            metadata = flow.flow_metadata or {}
+            serializable_updates = self._ensure_json_serializable(metadata_updates)
+            if not isinstance(metadata, dict):
+                metadata = {}
+            metadata.update(serializable_updates)
+
+            prev_updated_at = flow.updated_at
+            stmt_upd = (
+                update(CrewAIFlowStateExtensions)
+                .where(
+                    and_(
+                        CrewAIFlowStateExtensions.id == flow.id,
+                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
+                    )
+                )
+                .values(flow_metadata=metadata, updated_at=datetime.utcnow())
+            )
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                await self.db.commit()
+            else:
+                # Concurrent modification detected; skip to avoid lost update
+                await self.db.rollback()
+        except Exception as e:
+            logger.error(f"❌ Failed update_flow_metadata for {flow_id}: {e}")
+            await self.db.rollback()
 
     async def add_phase_transition(
         self,
@@ -736,20 +796,10 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
         status: str,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
-        """Add a phase transition entry to the master flow record.
-
-        Appends to phase_transitions JSONB array, maintaining recent transitions.
-
-        Args:
-            flow_id: The flow ID
-            phase: Phase name (e.g., 'initialization', 'discovery', 'analysis')
-            status: Phase status (e.g., 'processing', 'completed', 'failed')
-            metadata: Optional additional metadata about the transition
+        """Append a phase transition record. Keeps last 200.
+        Honors feature flag.
         """
-        if not self._is_enrichment_enabled():
-            logger.debug(
-                f"Master state enrichment disabled, skipping phase transition for {flow_id}"
-            )
+        if not self._enrichment_enabled:
             return
 
         try:
@@ -757,72 +807,61 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             client_uuid = uuid.UUID(self.client_account_id)
             engagement_uuid = uuid.UUID(self.engagement_id)
 
-            # Get existing flow
-            existing_flow = await self.get_by_flow_id(flow_id)
-            if not existing_flow:
-                logger.warning(f"Flow {flow_id} not found for phase transition update")
+            stmt = select(CrewAIFlowStateExtensions).where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                )
+            )
+            result = await self.db.execute(stmt)
+            flow = result.scalar_one_or_none()
+            if not flow:
                 return
 
-            # Prepare transition entry
-            transition_entry = {
-                "phase": phase,
-                "status": status,
-                "timestamp": datetime.utcnow().isoformat(),
-                "metadata": (
-                    self._ensure_json_serializable(metadata) if metadata else {}
-                ),
-            }
+            transitions = list(flow.phase_transitions or [])
+            entry = self._ensure_json_serializable(
+                {
+                    "phase": phase,
+                    "status": status,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "metadata": self._ensure_json_serializable(metadata or {}),
+                }
+            )
+            transitions.append(entry)
+            # Cap size
+            if len(transitions) > 200:
+                transitions = transitions[-200:]
 
-            # Update phase transitions array
-            phase_transitions = existing_flow.phase_transitions or []
-            phase_transitions.append(self._ensure_json_serializable(transition_entry))
-
-            # Keep only the last 50 transitions to prevent unbounded growth
-            if len(phase_transitions) > 50:
-                phase_transitions = phase_transitions[-50:]
-
-            # Update the flow record
-            stmt = (
+            prev_updated_at = flow.updated_at
+            stmt_upd = (
                 update(CrewAIFlowStateExtensions)
                 .where(
                     and_(
-                        CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                        CrewAIFlowStateExtensions.id == flow.id,
                         CrewAIFlowStateExtensions.client_account_id == client_uuid,
                         CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
                     )
                 )
-                .values(
-                    phase_transitions=phase_transitions, updated_at=datetime.utcnow()
-                )
+                .values(phase_transitions=transitions, updated_at=datetime.utcnow())
             )
-
-            await self.db.execute(stmt)
-            await self.db.commit()
-
-            logger.debug(
-                f"✅ Added phase transition for flow {flow_id}: {phase} -> {status}"
-            )
-
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                await self.db.commit()
+            else:
+                await self.db.rollback()
         except Exception as e:
-            logger.error(f"❌ Failed to add phase transition for flow {flow_id}: {e}")
+            logger.error(f"❌ Failed add_phase_transition for {flow_id}: {e}")
             await self.db.rollback()
 
     async def record_phase_execution_time(
         self, flow_id: str, phase: str, execution_time_ms: float
     ) -> None:
-        """Record execution time for a phase in the master flow record.
-
-        Updates phase_execution_times JSONB with timing data.
-
-        Args:
-            flow_id: The flow ID
-            phase: Phase name
-            execution_time_ms: Execution time in milliseconds
+        """Record total execution time for a phase.
+        Lightweight data only. Honors feature flag.
         """
-        if not self._is_enrichment_enabled():
-            logger.debug(
-                f"Master state enrichment disabled, skipping execution time for {flow_id}"
-            )
+        if not self._enrichment_enabled:
             return
 
         try:
@@ -830,63 +869,51 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             client_uuid = uuid.UUID(self.client_account_id)
             engagement_uuid = uuid.UUID(self.engagement_id)
 
-            # Get existing flow
-            existing_flow = await self.get_by_flow_id(flow_id)
-            if not existing_flow:
-                logger.warning(f"Flow {flow_id} not found for execution time update")
+            stmt = select(CrewAIFlowStateExtensions).where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                )
+            )
+            result = await self.db.execute(stmt)
+            flow = result.scalar_one_or_none()
+            if not flow:
                 return
 
-            # Update phase execution times
-            phase_execution_times = existing_flow.phase_execution_times or {}
-            phase_execution_times[phase] = {
+            times = dict(flow.phase_execution_times or {})
+            times[phase] = {
                 "execution_time_ms": float(execution_time_ms),
-                "recorded_at": datetime.utcnow().isoformat(),
+                "completed_at": datetime.utcnow().isoformat(),
             }
 
-            # Update the flow record
-            stmt = (
+            prev_updated_at = flow.updated_at
+            stmt_upd = (
                 update(CrewAIFlowStateExtensions)
                 .where(
                     and_(
-                        CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                        CrewAIFlowStateExtensions.id == flow.id,
                         CrewAIFlowStateExtensions.client_account_id == client_uuid,
                         CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
                     )
                 )
-                .values(
-                    phase_execution_times=self._ensure_json_serializable(
-                        phase_execution_times
-                    ),
-                    updated_at=datetime.utcnow(),
-                )
+                .values(phase_execution_times=times, updated_at=datetime.utcnow())
             )
-
-            await self.db.execute(stmt)
-            await self.db.commit()
-
-            logger.debug(
-                f"✅ Recorded execution time for flow {flow_id}, phase {phase}: {execution_time_ms}ms"
-            )
-
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                await self.db.commit()
+            else:
+                await self.db.rollback()
         except Exception as e:
-            logger.error(f"❌ Failed to record execution time for flow {flow_id}: {e}")
+            logger.error(f"❌ Failed record_phase_execution_time for {flow_id}: {e}")
             await self.db.rollback()
 
     async def append_agent_collaboration(
         self, flow_id: str, entry: Dict[str, Any]
     ) -> None:
-        """Append agent collaboration entry to the master flow record.
-
-        Appends to agent_collaboration_log JSONB array, capped at 100 entries.
-
-        Args:
-            flow_id: The flow ID
-            entry: Collaboration entry with agent activity details
-        """
-        if not self._is_enrichment_enabled():
-            logger.debug(
-                f"Master state enrichment disabled, skipping collaboration log for {flow_id}"
-            )
+        """Append an agent collaboration entry. Keep last 100. Honors feature flag."""
+        if not self._enrichment_enabled:
             return
 
         try:
@@ -894,67 +921,54 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             client_uuid = uuid.UUID(self.client_account_id)
             engagement_uuid = uuid.UUID(self.engagement_id)
 
-            # Get existing flow
-            existing_flow = await self.get_by_flow_id(flow_id)
-            if not existing_flow:
-                logger.warning(f"Flow {flow_id} not found for collaboration log update")
+            stmt = select(CrewAIFlowStateExtensions).where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                )
+            )
+            result = await self.db.execute(stmt)
+            flow = result.scalar_one_or_none()
+            if not flow:
                 return
 
-            # Prepare collaboration entry
-            collaboration_entry = self._ensure_json_serializable(
-                {**entry, "timestamp": datetime.utcnow().isoformat()}
-            )
+            log = list(flow.agent_collaboration_log or [])
+            entry_data: Dict[str, Any] = dict(entry or {})
+            if "timestamp" not in entry_data:
+                entry_data["timestamp"] = datetime.utcnow().isoformat()
+            serializable = self._ensure_json_serializable(entry_data)
+            log.append(serializable)
+            if len(log) > 100:
+                log = log[-100:]
 
-            # Update collaboration log
-            collaboration_log = existing_flow.agent_collaboration_log or []
-            collaboration_log.append(collaboration_entry)
-
-            # Keep only the last 100 entries to prevent unbounded growth
-            if len(collaboration_log) > 100:
-                collaboration_log = collaboration_log[-100:]
-
-            # Update the flow record
-            stmt = (
+            prev_updated_at = flow.updated_at
+            stmt_upd = (
                 update(CrewAIFlowStateExtensions)
                 .where(
                     and_(
-                        CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                        CrewAIFlowStateExtensions.id == flow.id,
                         CrewAIFlowStateExtensions.client_account_id == client_uuid,
                         CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
                     )
                 )
-                .values(
-                    agent_collaboration_log=collaboration_log,
-                    updated_at=datetime.utcnow(),
-                )
+                .values(agent_collaboration_log=log, updated_at=datetime.utcnow())
             )
-
-            await self.db.execute(stmt)
-            await self.db.commit()
-
-            logger.debug(f"✅ Added collaboration entry for flow {flow_id}")
-
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                await self.db.commit()
+            else:
+                await self.db.rollback()
         except Exception as e:
-            logger.error(
-                f"❌ Failed to append collaboration entry for flow {flow_id}: {e}"
-            )
+            logger.error(f"❌ Failed append_agent_collaboration for {flow_id}: {e}")
             await self.db.rollback()
 
     async def update_memory_usage_metrics(
         self, flow_id: str, metrics: Dict[str, Any]
     ) -> None:
-        """Update memory usage metrics for the master flow record.
-
-        Updates memory_usage_metrics JSONB field.
-
-        Args:
-            flow_id: The flow ID
-            metrics: Memory usage metrics (memory_mb, peak_memory_mb, etc.)
-        """
-        if not self._is_enrichment_enabled():
-            logger.debug(
-                f"Master state enrichment disabled, skipping memory metrics for {flow_id}"
-            )
+        """Merge memory usage metrics. Honors feature flag."""
+        if not self._enrichment_enabled:
             return
 
         try:
@@ -962,59 +976,50 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             client_uuid = uuid.UUID(self.client_account_id)
             engagement_uuid = uuid.UUID(self.engagement_id)
 
-            # Get existing flow
-            existing_flow = await self.get_by_flow_id(flow_id)
-            if not existing_flow:
-                logger.warning(f"Flow {flow_id} not found for memory metrics update")
-                return
-
-            # Update memory usage metrics
-            memory_metrics = existing_flow.memory_usage_metrics or {}
-            memory_metrics.update(
-                self._ensure_json_serializable(
-                    {**metrics, "last_updated": datetime.utcnow().isoformat()}
+            stmt = select(CrewAIFlowStateExtensions).where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
                 )
             )
+            result = await self.db.execute(stmt)
+            flow = result.scalar_one_or_none()
+            if not flow:
+                return
 
-            # Update the flow record
-            stmt = (
+            current = dict(flow.memory_usage_metrics or {})
+            serializable = self._ensure_json_serializable(metrics)
+            current.update(serializable)
+            current["last_updated"] = datetime.utcnow().isoformat()
+
+            prev_updated_at = flow.updated_at
+            stmt_upd = (
                 update(CrewAIFlowStateExtensions)
                 .where(
                     and_(
-                        CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                        CrewAIFlowStateExtensions.id == flow.id,
                         CrewAIFlowStateExtensions.client_account_id == client_uuid,
                         CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
                     )
                 )
-                .values(
-                    memory_usage_metrics=memory_metrics, updated_at=datetime.utcnow()
-                )
+                .values(memory_usage_metrics=current, updated_at=datetime.utcnow())
             )
-
-            await self.db.execute(stmt)
-            await self.db.commit()
-
-            logger.debug(f"✅ Updated memory metrics for flow {flow_id}")
-
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                await self.db.commit()
+            else:
+                await self.db.rollback()
         except Exception as e:
-            logger.error(f"❌ Failed to update memory metrics for flow {flow_id}: {e}")
+            logger.error(f"❌ Failed update_memory_usage_metrics for {flow_id}: {e}")
             await self.db.rollback()
 
     async def update_agent_performance_metrics(
         self, flow_id: str, metrics: Dict[str, Any]
     ) -> None:
-        """Update agent performance metrics for the master flow record.
-
-        Updates agent_performance_metrics JSONB field.
-
-        Args:
-            flow_id: The flow ID
-            metrics: Agent performance metrics (response_time_ms, success_rate, etc.)
-        """
-        if not self._is_enrichment_enabled():
-            logger.debug(
-                f"Master state enrichment disabled, skipping performance metrics for {flow_id}"
-            )
+        """Merge agent performance metrics. Honors feature flag."""
+        if not self._enrichment_enabled:
             return
 
         try:
@@ -1022,46 +1027,62 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             client_uuid = uuid.UUID(self.client_account_id)
             engagement_uuid = uuid.UUID(self.engagement_id)
 
-            # Get existing flow
-            existing_flow = await self.get_by_flow_id(flow_id)
-            if not existing_flow:
-                logger.warning(
-                    f"Flow {flow_id} not found for performance metrics update"
-                )
-                return
-
-            # Update agent performance metrics
-            performance_metrics = existing_flow.agent_performance_metrics or {}
-            performance_metrics.update(
-                self._ensure_json_serializable(
-                    {**metrics, "last_updated": datetime.utcnow().isoformat()}
+            stmt = select(CrewAIFlowStateExtensions).where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
                 )
             )
+            result = await self.db.execute(stmt)
+            flow = result.scalar_one_or_none()
+            if not flow:
+                return
 
-            # Update the flow record
-            stmt = (
+            current = dict(flow.agent_performance_metrics or {})
+            serializable = self._ensure_json_serializable(metrics) or {}
+            allowed_keys = {
+                "response_time_ms",
+                "success_rate",
+                "throughput",
+                "latency_ms",
+                "token_usage",
+            }
+            # Allow extension via env var PERF_METRICS_ALLOWED_KEYS=key1,key2
+            extra = os.getenv("PERF_METRICS_ALLOWED_KEYS", "").strip()
+            if extra:
+                for k in [x.strip() for x in extra.split(",") if x.strip()]:
+                    allowed_keys.add(k)
+            filtered = {k: serializable[k] for k in serializable.keys() & allowed_keys}
+            # Log dropped keys at debug level for visibility without noise
+            dropped = set(serializable.keys()) - set(filtered.keys())
+            if dropped:
+                logger.debug(
+                    f"Performance metrics keys dropped for flow {flow_id}: {sorted(dropped)}"
+                )
+            current.update(filtered)
+
+            prev_updated_at = flow.updated_at
+            stmt_upd = (
                 update(CrewAIFlowStateExtensions)
                 .where(
                     and_(
-                        CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                        CrewAIFlowStateExtensions.id == flow.id,
                         CrewAIFlowStateExtensions.client_account_id == client_uuid,
                         CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
                     )
                 )
-                .values(
-                    agent_performance_metrics=performance_metrics,
-                    updated_at=datetime.utcnow(),
-                )
+                .values(agent_performance_metrics=current, updated_at=datetime.utcnow())
             )
-
-            await self.db.execute(stmt)
-            await self.db.commit()
-
-            logger.debug(f"✅ Updated performance metrics for flow {flow_id}")
-
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                await self.db.commit()
+            else:
+                await self.db.rollback()
         except Exception as e:
             logger.error(
-                f"❌ Failed to update performance metrics for flow {flow_id}: {e}"
+                f"❌ Failed update_agent_performance_metrics for {flow_id}: {e}"
             )
             await self.db.rollback()
 
@@ -1072,20 +1093,8 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
         error: str,
         details: Optional[Dict[str, Any]] = None,
     ) -> None:
-        """Add error entry to the master flow record.
-
-        Appends to error_history JSONB array, capped at 100 entries.
-
-        Args:
-            flow_id: The flow ID
-            phase: Phase where error occurred
-            error: Error message or type
-            details: Optional additional error details
-        """
-        if not self._is_enrichment_enabled():
-            logger.debug(
-                f"Master state enrichment disabled, skipping error entry for {flow_id}"
-            )
+        """Append an error entry. Keep last 100. Honors feature flag."""
+        if not self._enrichment_enabled:
             return
 
         try:
@@ -1093,64 +1102,55 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             client_uuid = uuid.UUID(self.client_account_id)
             engagement_uuid = uuid.UUID(self.engagement_id)
 
-            # Get existing flow
-            existing_flow = await self.get_by_flow_id(flow_id)
-            if not existing_flow:
-                logger.warning(f"Flow {flow_id} not found for error entry update")
+            stmt = select(CrewAIFlowStateExtensions).where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                )
+            )
+            result = await self.db.execute(stmt)
+            flow = result.scalar_one_or_none()
+            if not flow:
                 return
 
-            # Prepare error entry
-            error_entry = self._ensure_json_serializable(
-                {
-                    "phase": phase,
-                    "error": error,
-                    "details": details or {},
-                    "timestamp": datetime.utcnow().isoformat(),
-                }
-            )
+            history = list(flow.error_history or [])
+            entry = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "phase": phase,
+                "error": error,
+                "details": self._ensure_json_serializable(details or {}),
+                "retry_count": flow.retry_count or 0,
+            }
+            history.append(entry)
+            if len(history) > 100:
+                history = history[-100:]
 
-            # Update error history
-            error_history = existing_flow.error_history or []
-            error_history.append(error_entry)
-
-            # Keep only the last 100 entries to prevent unbounded growth
-            if len(error_history) > 100:
-                error_history = error_history[-100:]
-
-            # Update the flow record
-            stmt = (
+            prev_updated_at = flow.updated_at
+            stmt_upd = (
                 update(CrewAIFlowStateExtensions)
                 .where(
                     and_(
-                        CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                        CrewAIFlowStateExtensions.id == flow.id,
                         CrewAIFlowStateExtensions.client_account_id == client_uuid,
                         CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
                     )
                 )
-                .values(error_history=error_history, updated_at=datetime.utcnow())
+                .values(error_history=history, updated_at=datetime.utcnow())
             )
-
-            await self.db.execute(stmt)
-            await self.db.commit()
-
-            logger.debug(f"✅ Added error entry for flow {flow_id} in phase {phase}")
-
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                await self.db.commit()
+            else:
+                await self.db.rollback()
         except Exception as e:
-            logger.error(f"❌ Failed to add error entry for flow {flow_id}: {e}")
+            logger.error(f"❌ Failed add_error_entry for {flow_id}: {e}")
             await self.db.rollback()
 
     async def increment_retry_count(self, flow_id: str) -> None:
-        """Increment retry count for the master flow record.
-
-        Updates retry_count JSONB field.
-
-        Args:
-            flow_id: The flow ID
-        """
-        if not self._is_enrichment_enabled():
-            logger.debug(
-                f"Master state enrichment disabled, skipping retry count for {flow_id}"
-            )
+        """Increment retry_count. Honors feature flag."""
+        if not self._enrichment_enabled:
             return
 
         try:
@@ -1158,51 +1158,37 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             client_uuid = uuid.UUID(self.client_account_id)
             engagement_uuid = uuid.UUID(self.engagement_id)
 
-            # Get existing flow
-            existing_flow = await self.get_by_flow_id(flow_id)
-            if not existing_flow:
-                logger.warning(f"Flow {flow_id} not found for retry count update")
+            stmt = select(CrewAIFlowStateExtensions).where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                )
+            )
+            result = await self.db.execute(stmt)
+            flow = result.scalar_one_or_none()
+            if not flow:
                 return
 
-            # Update retry count
-            retry_count = existing_flow.retry_count or {"total_retries": 0}
-            if isinstance(retry_count, dict):
-                retry_count["total_retries"] = retry_count.get("total_retries", 0) + 1
-                retry_count["last_retry"] = datetime.utcnow().isoformat()
-            else:
-                # Handle legacy integer retry_count
-                retry_count = {
-                    "total_retries": (
-                        int(retry_count) + 1
-                        if isinstance(retry_count, (int, float))
-                        else 1
-                    ),
-                    "last_retry": datetime.utcnow().isoformat(),
-                }
-
-            # Update the flow record
-            stmt = (
+            new_retry = (flow.retry_count or 0) + 1
+            prev_updated_at = flow.updated_at
+            stmt_upd = (
                 update(CrewAIFlowStateExtensions)
                 .where(
                     and_(
-                        CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                        CrewAIFlowStateExtensions.id == flow.id,
                         CrewAIFlowStateExtensions.client_account_id == client_uuid,
                         CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
                     )
                 )
-                .values(
-                    retry_count=self._ensure_json_serializable(retry_count),
-                    updated_at=datetime.utcnow(),
-                )
+                .values(retry_count=new_retry, updated_at=datetime.utcnow())
             )
-
-            await self.db.execute(stmt)
-            await self.db.commit()
-
-            logger.debug(
-                f"✅ Incremented retry count for flow {flow_id}: {retry_count['total_retries']}"
-            )
-
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                await self.db.commit()
+            else:
+                await self.db.rollback()
         except Exception as e:
-            logger.error(f"❌ Failed to increment retry count for flow {flow_id}: {e}")
+            logger.error(f"❌ Failed increment_retry_count for {flow_id}: {e}")
             await self.db.rollback()
