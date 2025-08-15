@@ -25,11 +25,30 @@ export const categorizeMappings = (fieldMappings: FieldMapping[]): MappingBucket
     }))
   });
 
-  const autoMapped = fieldMappings.filter(m => m.status === 'pending' && m.confidence > 0.7);
-  const unmapped = fieldMappings.filter(m => {
-    return m.status === 'rejected' || (m.status === 'pending' && m.confidence <= 0.7) || m.mapping_type === 'unmapped';
-  });
+  // Improved categorization logic:
+  // 1. Approved mappings go to the approved column
+  // 2. High confidence pending mappings (AI suggested) go to autoMapped column
+  // 3. Unmapped, rejected, or no target mappings go to unmapped column
+  // 4. Low confidence pending mappings that still have a target go to autoMapped (as suggestions)
   const approved = fieldMappings.filter(m => m.status === 'approved');
+
+  const autoMapped = fieldMappings.filter(m => {
+    // Include pending mappings that have a target field and aren't explicitly unmapped
+    return m.status === 'pending' &&
+           m.targetAttribute &&
+           m.targetAttribute !== '' &&
+           m.targetAttribute !== 'unmapped' &&
+           m.mapping_type !== 'unmapped';
+  });
+
+  const unmapped = fieldMappings.filter(m => {
+    // Include rejected, explicitly unmapped, or fields without targets
+    return m.status === 'rejected' ||
+           m.mapping_type === 'unmapped' ||
+           !m.targetAttribute ||
+           m.targetAttribute === '' ||
+           m.targetAttribute === 'unmapped';
+  });
 
   console.log('🔍 ThreeColumnFieldMapper - Buckets:', {
     autoMapped: autoMapped.length,

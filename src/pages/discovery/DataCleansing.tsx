@@ -1,9 +1,10 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
+import { useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
-import { useDiscoveryFlowAutoDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
+import { usePhaseAwareFlowResolver } from '../../hooks/discovery/attribute-mapping/usePhaseAwareFlowResolver';
 import { useLatestImport, useAssets } from '../../hooks/discovery/useDataCleansingQueries';
 import { API_CONFIG } from '../../config/api'
 import { apiCall } from '../../config/api'
@@ -33,19 +34,18 @@ const DataCleansing: React.FC = () => {
   const { user, client, engagement, isLoading: isAuthLoading } = useAuth();
   const [pendingQuestions, setPendingQuestions] = useState(0);
 
-  // Use the auto-detection hook for consistent flow detection
+  // Get URL flow ID from params
+  const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
+
+  // Use phase-aware flow resolver for data cleansing phase
   const {
-    urlFlowId,
-    autoDetectedFlowId,
-    effectiveFlowId,
-    flowList,
-    isFlowListLoading,
-    hasEffectiveFlow
-  } = useDiscoveryFlowAutoDetection({
-    currentPhase: 'data_cleansing',
-    preferredStatuses: ['initialized', 'running', 'active', 'in_progress', 'processing', 'paused', 'waiting_for_user_approval', 'waiting_for_approval'],
-    fallbackToAnyRunning: true
-  });
+    resolvedFlowId: effectiveFlowId,
+    isResolving: isFlowListLoading,
+    error: flowResolutionError,
+    resolutionMethod
+  } = usePhaseAwareFlowResolver(urlFlowId, 'data_cleansing');
+
+  const hasEffectiveFlow = !!effectiveFlowId;
 
   // Unified Discovery flow hook with auto-detected flow ID
   const {
@@ -128,19 +128,9 @@ const DataCleansing: React.FC = () => {
     if (!effectiveFlowId) {
       SecureLogger.warn('No flow ID available for triggering analysis, attempting to refresh flow list');
 
-      // Try to refresh the flow and see if we can detect one
+      // Try to refresh the flow
       try {
         await refresh();
-        if (flowList && flowList.length > 0) {
-          SecureLogger.info('Found flows after refresh, redirecting to first available flow');
-          const firstFlow = flowList[0];
-          const flowId = firstFlow.flow_id || firstFlow.id;
-          if (flowId) {
-            // Secure redirect to data cleansing with specific flow ID
-            secureNavigation.navigateToDiscoveryPhase('data-cleansing', flowId);
-            return;
-          }
-        }
       } catch (refreshError) {
         SecureLogger.error('Failed to refresh flows', refreshError);
       }
@@ -257,7 +247,8 @@ const DataCleansing: React.FC = () => {
   );
 
   // Determine if we have enough data to show the data cleansing interface
-  const hasData = hasImportedData || hasCleansingResults || hasFlowProgression;
+  // Be more lenient - if we have an effective flow ID, we should show the interface
+  const hasData = hasImportedData || hasCleansingResults || hasFlowProgression || !!effectiveFlowId;
 
   const isAnalyzing = isUpdating;
 
@@ -314,9 +305,9 @@ const DataCleansing: React.FC = () => {
   // Secure debug logging for flow detection and data state
   SecureLogger.debug('DataCleansing flow detection summary', {
     hasUrlFlowId: !!urlFlowId,
-    hasAutoDetectedFlowId: !!autoDetectedFlowId,
     hasEffectiveFlowId: !!effectiveFlowId,
-    totalFlowsAvailable: flowList?.length || 0
+    resolutionMethod,
+    flowResolutionError: !!flowResolutionError
   });
 
   SecureLogger.debug('DataCleansing data state summary', {

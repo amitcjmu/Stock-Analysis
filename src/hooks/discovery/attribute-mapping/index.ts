@@ -12,6 +12,7 @@ export { useAttributeMappingState } from './useAttributeMappingState';
 
 // Smart flow resolver (replaces useImportFlowResolver and useRecentFlowResolver)
 export { useSmartFlowResolver } from './useSmartFlowResolver';
+export { usePhaseAwareFlowResolver } from './usePhaseAwareFlowResolver';
 
 // Types (re-export from centralized types file)
 export type * from './types';
