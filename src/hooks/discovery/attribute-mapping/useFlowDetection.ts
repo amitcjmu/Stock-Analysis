@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAttributeMappingFlowDetection } from '../useDiscoveryFlowAutoDetection';
+import { useImportFlowResolver } from './useImportFlowResolver';
 
 export interface FlowDetectionResult {
   urlFlowId: string | null;
@@ -18,23 +19,30 @@ export interface FlowDetectionResult {
 
 /**
  * Hook for flow detection and routing logic
- * Handles URL parsing, auto-detection, and emergency fallback mechanisms
+ * Handles URL parsing, auto-detection, import ID resolution, and emergency fallback mechanisms
  */
 export const useFlowDetection = (): FlowDetectionResult => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-
   // Use the new auto-detection hook for consistent flow detection
   const {
     urlFlowId,
     autoDetectedFlowId,
-    effectiveFlowId,
+    effectiveFlowId: initialEffectiveFlowId,
     flowList,
     isFlowListLoading,
     flowListError,
-    hasEffectiveFlow
+    hasEffectiveFlow: initialHasEffectiveFlow
   } = useAttributeMappingFlowDetection();
+
+  // Resolve import ID to flow ID if needed
+  // The URL might contain a data import ID instead of a flow ID
+  const { resolvedFlowId, isResolving } = useImportFlowResolver(urlFlowId || undefined);
+
+  // Use resolved flow ID if available, otherwise use the initial effective flow ID
+  const effectiveFlowId = resolvedFlowId || initialEffectiveFlowId;
+  const hasEffectiveFlow = Boolean(effectiveFlowId) || initialHasEffectiveFlow;
 
   // Emergency fallback: try to extract flow ID from tenant-scoped context only
   const emergencyFlowId = useMemo(() => {
@@ -116,7 +124,7 @@ export const useFlowDetection = (): FlowDetectionResult => {
     finalFlowId,
     hasEffectiveFlow,
     flowList,
-    isFlowListLoading,
+    isFlowListLoading: isFlowListLoading || isResolving,
     flowListError,
     pathname,
     navigate
