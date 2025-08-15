@@ -84,11 +84,18 @@ class FlowStatusManager:
                     f"No configuration found for flow type: {master_flow.flow_type}"
                 )
 
+            # Extract current phase from flow persistence data
+            current_phase = None
+            if master_flow.flow_persistence_data:
+                current_phase = master_flow.flow_persistence_data.get("current_phase")
+
             # Build status response
             status = {
                 "flow_id": flow_id,
                 "flow_type": master_flow.flow_type,
                 "flow_status": master_flow.flow_status,
+                "status": master_flow.flow_status,  # Also include as 'status' for compatibility
+                "current_phase": current_phase,
                 "created_at": master_flow.created_at.isoformat(),
                 "updated_at": master_flow.updated_at.isoformat(),
                 "user_id": master_flow.user_id,
@@ -105,16 +112,43 @@ class FlowStatusManager:
                 if child_status:
                     status["child_flow_status"] = child_status
 
+                    # For discovery flows, include the data fields from child flow
+                    if master_flow.flow_type == "discovery" and child_status:
+                        # Include raw_data, field_mappings, and import_metadata from child flow
+                        status["raw_data"] = child_status.get("raw_data", [])
+                        status["field_mappings"] = child_status.get(
+                            "field_mappings", []
+                        )
+                        status["import_metadata"] = child_status.get(
+                            "import_metadata", {}
+                        )
+                        status["data_cleansing_results"] = child_status.get(
+                            "data_cleansing_results", {}
+                        )
+                        status["data_cleansing"] = child_status.get(
+                            "data_cleansing", {}
+                        )
+
+                        # Also include phase_completion data if available
+                        if child_status.get("phase_completion"):
+                            status["phase_completion"] = child_status[
+                                "phase_completion"
+                            ]
+
                 # Get agent insights
                 agent_bridge = AgentUIBridge(self.db, self.context)
                 insights = await agent_bridge.get_agent_insights(flow_id, limit=5)
                 status["recent_insights"] = insights
+                status["agent_insights"] = (
+                    insights  # Also include as agent_insights for compatibility
+                )
 
                 # Calculate progress
                 progress = await self._calculate_flow_progress(
                     flow_id, master_flow.flow_type, child_status
                 )
                 status["progress"] = progress
+                status["progress_percentage"] = progress.get("progress_percentage", 0)
 
             return status
 

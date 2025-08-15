@@ -370,6 +370,56 @@ class DiscoveryFlowService:
             logger.error(f"❌ Failed to delete discovery flow {flow_id}: {e}")
             raise
 
+    async def get_child_status(self, flow_id: str) -> Dict[str, Any]:
+        """Get child flow status with all data for the status manager"""
+        try:
+            # Try to get discovery flow by master flow ID first
+            flow = await self.flow_repo.get_by_master_flow_id(flow_id)
+
+            # If not found, try by discovery flow ID
+            if not flow:
+                flow = await self.get_flow_by_id(flow_id)
+
+            if not flow:
+                logger.warning(f"Discovery flow not found for flow_id: {flow_id}")
+                return {}
+
+            # Build comprehensive status with all data fields
+            child_status = {
+                "flow_id": flow.flow_id,
+                "status": flow.status,
+                "current_phase": flow.current_phase,
+                "phase_completion": flow.phase_completion or {},
+                "raw_data": flow.raw_data or [],
+                "field_mappings": flow.field_mappings or [],
+                "import_metadata": {
+                    "record_count": len(flow.raw_data) if flow.raw_data else 0,
+                    "data_import_id": flow.data_import_id,
+                    "imported_at": (
+                        flow.created_at.isoformat() if flow.created_at else None
+                    ),
+                },
+                "data_cleansing_results": flow.data_cleansing_results or {},
+                "data_cleansing": flow.data_cleansing_results
+                or {},  # Alias for compatibility
+                "summary": flow.summary or {},
+                "asset_inventory": flow.asset_inventory or {},
+                "dependencies": flow.dependencies or {},
+                "technical_debt": flow.technical_debt or {},
+                "agent_insights": flow.agent_insights or [],
+                "progress_percentage": flow.progress_percentage or 0,
+                "errors": flow.errors or [],
+                "warnings": flow.warnings or [],
+                "created_at": flow.created_at.isoformat() if flow.created_at else None,
+                "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
+            }
+
+            return child_status
+
+        except Exception as e:
+            logger.error(f"Failed to get child status for flow {flow_id}: {e}")
+            return {}
+
     async def get_flow_summary(self, flow_id: str) -> Dict[str, Any]:
         """Get a comprehensive summary of the discovery flow"""
         try:

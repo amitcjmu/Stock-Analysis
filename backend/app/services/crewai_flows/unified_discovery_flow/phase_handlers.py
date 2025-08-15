@@ -28,6 +28,10 @@ class PhaseHandlers:
             f"🔍 [ECHO] Data validation phase triggered for flow {self.flow._flow_id}"
         )
 
+        # CC: Record phase start time and transition
+        start_time = datetime.utcnow()
+        await self._add_phase_transition("data_validation", "processing")
+
         try:
             # Update flow status and sync to state
             if hasattr(self.flow, "flow_bridge") and self.flow.flow_bridge:
@@ -79,10 +83,48 @@ class PhaseHandlers:
                 "validation_results", {}
             )
 
+            # CC: Record phase completion time and transition
+            execution_time_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
+            await self._record_phase_execution_time(
+                "data_validation", execution_time_ms
+            )
+            await self._add_phase_transition(
+                "data_validation",
+                "completed",
+                {
+                    "execution_time_ms": execution_time_ms,
+                    "results_count": len(
+                        validation_result.get("validation_results", {})
+                    ),
+                },
+            )
+
             return validation_result
 
         except Exception as e:
             self.logger.error(f"❌ Data validation phase failed: {e}")
+
+            # CC: Record phase failure and execution time
+            execution_time_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
+            # Sanitize error message to prevent sensitive data leakage
+            sanitized_error = (str(e) or "error")[:500]
+            await self._record_phase_execution_time(
+                "data_validation", execution_time_ms
+            )
+            await self._add_phase_transition(
+                "data_validation",
+                "failed",
+                {
+                    "execution_time_ms": execution_time_ms,
+                    "error_message": sanitized_error,
+                },
+            )
+            await self._add_error_entry(
+                "data_validation",
+                sanitized_error,
+                {"execution_time_ms": execution_time_ms},
+            )
+
             await self._send_phase_error("data_validation", str(e))
             raise
 
@@ -91,6 +133,29 @@ class PhaseHandlers:
         self.logger.info(
             f"🗺️ [ECHO] Field mapping phase triggered for flow {self.flow._flow_id}"
         )
+
+        # Check if field mapping has already been executed to prevent duplicates
+        if (
+            hasattr(self.flow.state, "field_mapping_executed")
+            and self.flow.state.field_mapping_executed
+        ):
+            self.logger.warning(
+                f"⚠️ Field mapping already executed for flow {self.flow._flow_id}, skipping duplicate execution"
+            )
+            # Return the existing field mappings
+            return {
+                "status": "already_completed",
+                "phase": "field_mapping",
+                "field_mappings": getattr(self.flow.state, "field_mappings", {}),
+                "message": "Field mapping already executed, returning existing results",
+            }
+
+        # Mark field mapping as executed to prevent duplicate runs
+        self.flow.state.field_mapping_executed = True
+
+        # CC: Record phase start time and transition
+        start_time = datetime.utcnow()
+        await self._add_phase_transition("field_mapping", "processing")
 
         try:
             # Update flow status
@@ -122,6 +187,18 @@ class PhaseHandlers:
 
             # Update state with mapping suggestions
             self.flow.state.field_mappings = mapping_result.get("field_mappings", {})
+
+            # CC: Record phase completion time and transition
+            execution_time_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
+            await self._record_phase_execution_time("field_mapping", execution_time_ms)
+            await self._add_phase_transition(
+                "field_mapping",
+                "completed",
+                {
+                    "execution_time_ms": execution_time_ms,
+                    "mappings_count": len(mapping_result.get("field_mappings", {})),
+                },
+            )
             # Use the approved field in the flow state instead of needs_approval
             self.flow.state.awaiting_user_approval = True
             self.flow.state.status = "waiting_for_user_approval"
@@ -130,6 +207,26 @@ class PhaseHandlers:
 
         except Exception as e:
             self.logger.error(f"❌ Field mapping phase failed: {e}")
+
+            # CC: Record phase failure and execution time
+            execution_time_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
+            # Sanitize error message to prevent sensitive data leakage
+            sanitized_error = (str(e) or "error")[:500]
+            await self._record_phase_execution_time("field_mapping", execution_time_ms)
+            await self._add_phase_transition(
+                "field_mapping",
+                "failed",
+                {
+                    "execution_time_ms": execution_time_ms,
+                    "error_message": sanitized_error,
+                },
+            )
+            await self._add_error_entry(
+                "field_mapping",
+                sanitized_error,
+                {"execution_time_ms": execution_time_ms},
+            )
+
             await self._send_phase_error("field_mapping", str(e))
             raise
 
@@ -438,3 +535,116 @@ class PhaseHandlers:
 
         except Exception as e:
             self.logger.warning(f"⚠️ [ECHO] Failed to send {phase} phase error: {e}")
+
+    # CC: Master Flow State Enrichment Helper Methods
+    async def _add_phase_transition(
+        self, phase: str, status: str, metadata: Dict[str, Any] = None
+    ):
+        """Add phase transition to master flow record for enrichment tracking."""
+        try:
+            if hasattr(self.flow, "flow_bridge") and self.flow.flow_bridge:
+                from app.core.database import AsyncSessionLocal
+                from app.repositories.crewai_flow_state_extensions_repository import (
+                    CrewAIFlowStateExtensionsRepository,
+                )
+
+                async with AsyncSessionLocal() as db:
+                    master_repo = CrewAIFlowStateExtensionsRepository(
+                        db=db,
+                        client_account_id=self.flow.context.client_account_id,
+                        engagement_id=self.flow.context.engagement_id,
+                        user_id=self.flow.context.user_id,
+                    )
+                    await master_repo.add_phase_transition(
+                        flow_id=self.flow._flow_id,
+                        phase=phase,
+                        status=status,
+                        metadata=metadata,
+                    )
+
+        except Exception as e:
+            self.logger.warning(
+                f"⚠️ [ENRICHMENT] Failed to add phase transition {phase}:{status}: {e}"
+            )
+
+    async def _record_phase_execution_time(self, phase: str, execution_time_ms: float):
+        """Record phase execution time in master flow record."""
+        try:
+            if hasattr(self.flow, "flow_bridge") and self.flow.flow_bridge:
+                from app.core.database import AsyncSessionLocal
+                from app.repositories.crewai_flow_state_extensions_repository import (
+                    CrewAIFlowStateExtensionsRepository,
+                )
+
+                async with AsyncSessionLocal() as db:
+                    master_repo = CrewAIFlowStateExtensionsRepository(
+                        db=db,
+                        client_account_id=self.flow.context.client_account_id,
+                        engagement_id=self.flow.context.engagement_id,
+                        user_id=self.flow.context.user_id,
+                    )
+                    await master_repo.record_phase_execution_time(
+                        flow_id=self.flow._flow_id,
+                        phase=phase,
+                        execution_time_ms=execution_time_ms,
+                    )
+
+        except Exception as e:
+            self.logger.warning(
+                f"⚠️ [ENRICHMENT] Failed to record execution time for {phase}: {e}"
+            )
+
+    async def _add_error_entry(
+        self, phase: str, error: str, details: Dict[str, Any] = None
+    ):
+        """Add error entry to master flow record."""
+        try:
+            if hasattr(self.flow, "flow_bridge") and self.flow.flow_bridge:
+                from app.core.database import AsyncSessionLocal
+                from app.repositories.crewai_flow_state_extensions_repository import (
+                    CrewAIFlowStateExtensionsRepository,
+                )
+
+                async with AsyncSessionLocal() as db:
+                    master_repo = CrewAIFlowStateExtensionsRepository(
+                        db=db,
+                        client_account_id=self.flow.context.client_account_id,
+                        engagement_id=self.flow.context.engagement_id,
+                        user_id=self.flow.context.user_id,
+                    )
+                    await master_repo.add_error_entry(
+                        flow_id=self.flow._flow_id,
+                        phase=phase,
+                        error=error,
+                        details=details,
+                    )
+
+        except Exception as e:
+            self.logger.warning(
+                f"⚠️ [ENRICHMENT] Failed to add error entry for {phase}: {e}"
+            )
+
+    async def _append_agent_collaboration(self, entry: Dict[str, Any]):
+        """Append agent collaboration entry to master flow record."""
+        try:
+            if hasattr(self.flow, "flow_bridge") and self.flow.flow_bridge:
+                from app.core.database import AsyncSessionLocal
+                from app.repositories.crewai_flow_state_extensions_repository import (
+                    CrewAIFlowStateExtensionsRepository,
+                )
+
+                async with AsyncSessionLocal() as db:
+                    master_repo = CrewAIFlowStateExtensionsRepository(
+                        db=db,
+                        client_account_id=self.flow.context.client_account_id,
+                        engagement_id=self.flow.context.engagement_id,
+                        user_id=self.flow.context.user_id,
+                    )
+                    await master_repo.append_agent_collaboration(
+                        flow_id=self.flow._flow_id, entry=entry
+                    )
+
+        except Exception as e:
+            self.logger.warning(
+                f"⚠️ [ENRICHMENT] Failed to append agent collaboration entry: {e}"
+            )

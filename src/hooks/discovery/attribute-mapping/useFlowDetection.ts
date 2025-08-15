@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAttributeMappingFlowDetection } from '../useDiscoveryFlowAutoDetection';
+import { useSmartFlowResolver } from './useSmartFlowResolver';
 
 export interface FlowDetectionResult {
   urlFlowId: string | null;
@@ -18,23 +19,34 @@ export interface FlowDetectionResult {
 
 /**
  * Hook for flow detection and routing logic
- * Handles URL parsing, auto-detection, and emergency fallback mechanisms
+ * Handles URL parsing, auto-detection, smart resolution (import ID or recent flow), and emergency fallback mechanisms
  */
 export const useFlowDetection = (): FlowDetectionResult => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-
   // Use the new auto-detection hook for consistent flow detection
   const {
     urlFlowId,
     autoDetectedFlowId,
-    effectiveFlowId,
+    effectiveFlowId: initialEffectiveFlowId,
     flowList,
     isFlowListLoading,
     flowListError,
-    hasEffectiveFlow
+    hasEffectiveFlow: initialHasEffectiveFlow
   } = useAttributeMappingFlowDetection();
+
+  // Smart resolver handles all cases:
+  // - If urlFlowId is a flow ID, returns it directly
+  // - If urlFlowId is an import ID, resolves it to flow ID
+  // - If no urlFlowId, finds the most recent appropriate flow
+  const { resolvedFlowId, isResolving, resolutionMethod } = useSmartFlowResolver(urlFlowId || undefined);
+
+  // IMPORTANT: Only use the resolved flow ID if resolution is complete
+  // This prevents using an import ID as a flow ID while resolution is in progress
+  const effectiveFlowId = !isResolving ? (resolvedFlowId || initialEffectiveFlowId) : initialEffectiveFlowId;
+
+  const hasEffectiveFlow = Boolean(effectiveFlowId) || initialHasEffectiveFlow;
 
   // Emergency fallback: try to extract flow ID from tenant-scoped context only
   const emergencyFlowId = useMemo(() => {
@@ -73,6 +85,7 @@ export const useFlowDetection = (): FlowDetectionResult => {
         effectiveFlowId,
         hasEffectiveFlow,
         flowListLength: flowList?.length,
+        resolutionMethod,
         pathname
       });
 
@@ -91,7 +104,14 @@ export const useFlowDetection = (): FlowDetectionResult => {
 
 
   // Use unified discovery flow with effective flow ID or emergency fallback
-  const finalFlowId = effectiveFlowId || emergencyFlowId;
+  // IMPORTANT: Validate that the ID is a proper UUID format before using it
+  const validateFlowId = (id: string | null): string | null => {
+    if (!id) return null;
+    const isValid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+    return isValid ? id : null;
+  };
+
+  const finalFlowId = validateFlowId(effectiveFlowId) || validateFlowId(emergencyFlowId);
 
   // Only log final flow resolution when it changes (prevent spam)
   const finalFlowIdRef = useRef<string | null>(null);
@@ -116,7 +136,7 @@ export const useFlowDetection = (): FlowDetectionResult => {
     finalFlowId,
     hasEffectiveFlow,
     flowList,
-    isFlowListLoading,
+    isFlowListLoading: isFlowListLoading || isResolving,
     flowListError,
     pathname,
     navigate

@@ -21,7 +21,10 @@ export const useImportData = (finalFlowId: string | null): ImportDataResult => {
   // Use the unified latest import hook for fallback data (prevents duplicate calls)
   const { data: latestImportData, isLoading: isLatestImportLoading } = useLatestImport(!!user?.id);
 
-  // Get flow-specific import data if we have a flow ID
+  // Validate that finalFlowId is a proper UUID format (not an import ID)
+  const isValidFlowId = finalFlowId ? /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(finalFlowId) : false;
+
+  // Get flow-specific import data if we have a valid flow ID
   const {
     data: flowImportData,
     isLoading: isFlowImportLoading,
@@ -30,8 +33,9 @@ export const useImportData = (finalFlowId: string | null): ImportDataResult => {
   } = useQuery({
     queryKey: ['flow-import-data', finalFlowId, user?.id],
     queryFn: async () => {
-      if (!finalFlowId) {
-        return null; // No flow ID, will use latest import fallback
+      if (!finalFlowId || !isValidFlowId) {
+        console.log('⚠️ Invalid or missing flow ID for import data:', finalFlowId);
+        return null; // No valid flow ID, will use latest import fallback
       }
 
       console.log('🔍 Fetching import data for flow:', finalFlowId);
@@ -86,7 +90,7 @@ export const useImportData = (finalFlowId: string | null): ImportDataResult => {
 
       return null; // Will fall back to latest import
     },
-    enabled: !!(finalFlowId && user?.id),
+    enabled: !!(finalFlowId && isValidFlowId && user?.id),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     cacheTime: 15 * 60 * 1000, // Keep in cache for 15 minutes
     retry: (failureCount, error) => {

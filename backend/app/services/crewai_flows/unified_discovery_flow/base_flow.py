@@ -403,6 +403,22 @@ class UnifiedDiscoveryFlow(Flow):
         """Generate field mapping suggestions"""
         logger.info(f"🗺️ [ECHO] Field mapping phase triggered for flow {self._flow_id}")
 
+        # Check if field mapping has already been executed to prevent duplicates
+        if (
+            hasattr(self.state, "field_mapping_executed")
+            and self.state.field_mapping_executed
+        ):
+            logger.warning(
+                f"⚠️ Field mapping already executed for flow {self._flow_id}, skipping duplicate execution"
+            )
+            # Return the existing field mappings
+            return {
+                "status": "already_completed",
+                "phase": "field_mapping",
+                "field_mappings": getattr(self.state, "field_mappings", {}),
+                "message": "Field mapping already executed, returning existing results",
+            }
+
         try:
             # Ensure state IDs are correct
             self._ensure_state_ids()

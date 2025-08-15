@@ -298,20 +298,36 @@ class FlowProgressTracker:
         """Persist progress data to database for HTTP polling."""
         try:
             from app.core.database import AsyncSessionLocal
-            from app.repositories.master_flow_repository import MasterFlowRepository
+            from app.repositories.crewai_flow_state_extensions_repository import (
+                CrewAIFlowStateExtensionsRepository,
+            )
             from app.services.crewai_flows.persistence.postgres_store import (
                 PostgresFlowStateStore,
             )
 
             async with AsyncSessionLocal() as db:
                 # Update master flow metadata for general status
-                repo = MasterFlowRepository(db, self.context)
-                await repo.update_flow_metadata(
+                repo = CrewAIFlowStateExtensionsRepository(
+                    db=db,
+                    client_account_id=self.context.client_account_id,
+                    engagement_id=self.context.engagement_id,
+                    user_id=self.context.user_id,
+                )
+                await repo.update_flow_status(
                     flow_id=self.flow_id,
-                    metadata_updates={
-                        "last_progress_update": progress_data,
+                    status=progress_data.get("workflow_status", "processing"),
+                    metadata={
+                        "last_progress_update": {
+                            "phase": progress_data.get("phase"),
+                            "progress": progress_data.get("progress"),
+                            "status": progress_data.get("status"),
+                            "message": progress_data.get("message"),
+                        },
                         "last_update_timestamp": datetime.utcnow().isoformat(),
-                        "current_progress": progress_data,
+                        "is_processing": progress_data.get("is_processing"),
+                        "awaiting_user_approval": progress_data.get(
+                            "awaiting_user_input"
+                        ),
                     },
                 )
 
@@ -320,14 +336,6 @@ class FlowProgressTracker:
                 await store.update_flow_status(
                     flow_id=self.flow_id,
                     status=progress_data.get("workflow_status", "processing"),
-                    current_phase=progress_data.get("phase"),
-                    metadata={
-                        "progress_data": progress_data,
-                        "is_processing": progress_data.get("is_processing"),
-                        "awaiting_user_approval": progress_data.get(
-                            "awaiting_user_input"
-                        ),
-                    },
                 )
 
                 await db.commit()

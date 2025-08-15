@@ -42,6 +42,9 @@ This document consolidates key learnings from troubleshooting and development se
     *   **Variable Definition Order Matters.** Avoid temporal dead zones by defining variables and state before they are referenced in hooks or JSX.
     *   Provide a unique `key` prop when rendering lists. Use a stable identifier from the data (like `flow.flow_id`) and provide a fallback (`flow-${index}`) only as a last resort.
 *   **API Interaction & State Management (React Query/TanStack Query):**
+    *   **HTTP Polling Strategy:** Use HTTP polling for Vercel/Railway (WebSocket-free). Active: 5s intervals, Waiting: 15s intervals, Stop when complete/failed.
+    *   **Field Name Priority:** Always check `master_flow_id` first from backend, then fallback to `flowId` or `flow_id`.
+    *   **Demo UUID Pattern:** Use `XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX` for fallback IDs to prevent accidental deletion.
     *   **Implement robust rate-limiting strategies:**
         *   **Debouncing:** For user-triggered actions like authentication (500ms-1s).
         *   **Exponential Backoff:** For handling `429 Too Many Requests` errors (e.g., retry after 2s, 4s, 8s).
@@ -51,6 +54,7 @@ This document consolidates key learnings from troubleshooting and development se
 *   **Component Design:**
     *   **Reuse components.** The `ThreeColumnFieldMapper` is a proven pattern; use it instead of creating new complex components for similar functionality.
     *   **Filter existing data** on the client-side rather than creating new API endpoints for slightly different views of the same data.
+    *   **Display Real Agent Insights:** Parse and display actual agent feedback from agent-ui-bridge instead of hard-coded analysis.
 *   **User Experience:**
     *   **Never delete user data without explicit confirmation.** Replace all automatic cleanup logic with user-initiated approval dialogs.
     *   Default to a working view. If one tab might be empty, make a functional tab the default.
@@ -67,16 +71,22 @@ This document consolidates key learnings from troubleshooting and development se
     *   Use environment variables for all secrets and configurations.
     *   The backend is configured to ignore `.env` files when a `RAILWAY_ENVIRONMENT` variable is present to prevent local settings from overriding production ones.
 *   **CI/CD:**
+    *   **GitHub Actions Optimization:** For free tier, disable heavy workflows and use lightweight alternatives (90% reduction in usage).
+    *   **Pre-commit Checks:** Always run pre-commit checks at least once before using `--no-verify`.
     *   Use `per-file-ignores` in `pyproject.toml` to manage legitimate linting exceptions without disabling rules globally.
     *   Automated security scans should generate reports but not necessarily fail the pipeline, allowing for gradual remediation.
+    *   **Qodo Bot Reviews:** Qodo Bot reviews ALL branch changes, not just recent commits - review comprehensively.
 
 ## 5. Agentic System (CrewAI)
 
 *   **Agent-First Principle:** **All** intelligence and business logic must come from CrewAI agents. Do not implement hardcoded rules, static logic, or pseudo-agents.
-*   **Use Existing Patterns:** The platform has an established 7-agent specialist model. Enhance these existing agents and crews rather than creating new ones.
+*   **Persistent Agents (ADR-015):** Use `TenantScopedAgentPool` for singleton agents per tenant. **NEVER** create new crews for each phase execution - this reduces performance by 94%.
+*   **ServiceRegistry Pattern:** Use centralized tool management via ServiceRegistry for better performance. Tools should be pre-loaded at module level to avoid per-call dynamic imports.
+*   **22 Critical Attributes for 6R Migration:** The system evaluates 22 critical attributes across 4 categories (Infrastructure-6, Application-8, Business Context-4, Technical Debt-4) for migration readiness.
 *   **Agent-UI-Bridge:** Use the `agent-ui-bridge` system as the primary mechanism for agents to communicate with the frontend, request user clarification (via the `AgentClarificationPanel`), and store insights.
 *   **Data for Agents:** Agents require operational data from **child flows**, not lifecycle data from master flows, to make accurate decisions.
 *   **Dynamic Thresholds:** Agents, not hardcoded values, should determine critical thresholds (e.g., field mapping approval percentages) based on data quality, complexity, and other contextual factors.
+*   **Memory is ENABLED:** Memory works with DeepInfra patch. The system is NOT memory-disabled.
 
 ## 6. Security
 
@@ -86,16 +96,42 @@ This document consolidates key learnings from troubleshooting and development se
 *   **Credentials:**
     *   **NEVER** hardcode credentials in any file (`.py`, `.yml`, `.env`). Use environment variables exclusively.
     *   **NEVER** expose credentials or sensitive user information in API responses.
+    *   **NEVER** log API keys or sensitive data. Remove sensitive data from error logs (e.g., client_account_id, API keys).
+*   **SQL Injection Prevention:**
+    *   **NEVER** use f-strings in `sa.text()` calls - use `.bindparams()` for dynamic SQL parameters.
+    *   Even migration files can contain SQL injection vulnerabilities - review all SQL carefully.
 *   **Multi-Tenancy:**
     *   This is an enterprise platform. **ALL** data access **MUST** be scoped by `client_account_id` and `engagement_id`.
     *   Use the `ContextAwareRepository` pattern for all database repositories.
     *   Every tenant-scoped API call must include `X-Client-Account-ID` and `X-Engagement-ID` headers. Use the `getAuthHeaders()` utility on the frontend.
 *   **CORS:** Do not use wildcard origins. Explicitly list all allowed domains.
+*   **Dependency Management:** Regularly audit and remove unused vulnerable dependencies. Prefer actively maintained packages (e.g., PyJWT over python-jose).
 
 ## 7. Debugging & Troubleshooting
 
 *   **Check the Database First:** Many UI issues that appear as "missing data" are rooted in the backend failing to retrieve data due to incorrect multi-tenant headers, faulty foreign key relationships, or transaction timing issues.
 *   **Trace the Data Flow:** Verify each step in a data chain (e.g., Flow -> Import -> Mappings). Use browser developer tools to inspect API calls and responses.
 *   **API Response Mismatches:** A common source of bugs is a mismatch between the field names the backend sends (e.g., `master_flow_id`) and what the frontend expects (e.g., `flowId`). Always verify the API contract.
+*   **Event Loop Handling:** Detect running event loops and handle appropriately - never use `asyncio.run()` inside running loops.
+*   **Transaction Management:** Use `await db.flush()` after creating master flow records before dependent foreign key operations.
+*   **Flow Status vs Data Availability:** A flow can be marked "completed" but still lack accessible data - verify actual data availability.
 *   **Look for Insights in Multiple Places:** Agent insights can be stored in `flow_persistence_data`, `agent_collaboration_log`, or the `agent-ui-bridge` files. If one source is empty, check the others.
 *   **Use the Provided Scripts:** The repository contains numerous validation and cleanup scripts (e.g., `cleanup_orphaned_flows_simple.py`). Use them to diagnose and fix data integrity issues.
+*   **Performance Monitoring:** Reduce polling frequency (60s for status) and increase cache times (5-10 min) to reduce backend load.
+
+## 8. User Preferences & Development Guidelines
+
+*   **Testing Environment:** Use Docker containers on localhost:8081 (NOT port 3000). Test with demo@demo-corp.com credentials.
+*   **Git Tools:** Use `/opt/homebrew/bin/gh` for Git CLI and `/opt/homebrew/bin/python3.11` for Python executions.
+*   **Code Philosophy:** 
+    *   Prioritize root cause fixes over band-aid solutions.
+    *   Modify existing code over adding new code to prevent sprawl.
+    *   Review ALL changes in a branch for PRs, not just recent commits.
+*   **Development Practices:**
+    *   Never bypass pre-commit checks without running them at least once.
+    *   Test issues locally before updating GitHub.
+    *   Document architectural decisions in ADRs (docs/adr/*.md).
+*   **Architecture Respect:**
+    *   The 7+ layer architecture is REQUIRED for enterprise multi-tenant systems - not over-engineering.
+    *   Placeholder implementations provide critical fallback resilience - don't remove them.
+    *   Feature flags are preferred over wholesale replacements.

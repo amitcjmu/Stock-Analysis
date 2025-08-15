@@ -102,6 +102,18 @@ class FlowInitializer:
                         },
                     )
 
+                    # CC: Add phase transition tracking for enrichment
+                    await self.master_repo.add_phase_transition(
+                        flow_id=flow_id,
+                        phase="initialization",
+                        status="completed",
+                        metadata={
+                            "flow_type": flow_type,
+                            "handler": flow_config.initialization_handler,
+                            "result_summary": self._create_result_summary(init_result),
+                        },
+                    )
+
                     return init_result
 
             # Handle specific flow types
@@ -159,6 +171,14 @@ class FlowInitializer:
                 metadata=flow_metadata,
                 crewai_service=crewai_service,
                 context=self.context,
+            )
+
+            # CC: Add phase transition for discovery flow start
+            await self.master_repo.add_phase_transition(
+                flow_id=flow_id,
+                phase="discovery_execution",
+                status="processing",
+                metadata={"raw_data_count": len(raw_data)},
             )
 
             # Start the discovery flow in background
@@ -327,11 +347,22 @@ class FlowInitializer:
         """Start discovery flow execution in background"""
 
         async def run_discovery_flow():
+            start_time = datetime.utcnow()
             try:
                 logger.info(f"🚀 Starting discovery flow execution: {flow_id}")
 
                 # Execute the flow (this will run the CrewAI flow)
                 flow_result = await discovery_flow.kickoff()
+
+                # CC: Record execution time for discovery phase
+                execution_time_ms = (
+                    datetime.utcnow() - start_time
+                ).total_seconds() * 1000
+                await self.master_repo.record_phase_execution_time(
+                    flow_id=flow_id,
+                    phase="discovery_execution",
+                    execution_time_ms=execution_time_ms,
+                )
 
                 # Update master flow status based on result
                 await self._update_discovery_flow_status_from_result(
@@ -342,6 +373,23 @@ class FlowInitializer:
 
             except Exception as e:
                 logger.error(f"❌ Discovery flow execution failed for {flow_id}: {e}")
+
+                # CC: Record error and execution time for failed discovery
+                execution_time_ms = (
+                    datetime.utcnow() - start_time
+                ).total_seconds() * 1000
+                await self.master_repo.record_phase_execution_time(
+                    flow_id=flow_id,
+                    phase="discovery_execution",
+                    execution_time_ms=execution_time_ms,
+                )
+                await self.master_repo.add_error_entry(
+                    flow_id=flow_id,
+                    phase="discovery_execution",
+                    error=str(e),
+                    details={"execution_time_ms": execution_time_ms},
+                )
+
                 await self._update_discovery_flow_status_failed(flow_id, str(e))
 
         # Start in background - don't await
@@ -375,6 +423,17 @@ class FlowInitializer:
                 flow_id=flow_id, status=status, phase_data=phase_data
             )
 
+            # CC: Add phase transition for flow completion
+            await self.master_repo.add_phase_transition(
+                flow_id=flow_id,
+                phase="discovery_execution",
+                status="completed" if status == "completed" else status,
+                metadata={
+                    "execution_method": "crewai_discovery_flow",
+                    "result_type": type(flow_result).__name__,
+                },
+            )
+
             logger.info(f"✅ Updated flow {flow_id} status to {status}")
 
         except Exception as e:
@@ -393,6 +452,17 @@ class FlowInitializer:
 
             await self.master_repo.update_flow_status(
                 flow_id=flow_id, status="failed", phase_data=phase_data
+            )
+
+            # CC: Add phase transition for flow failure
+            await self.master_repo.add_phase_transition(
+                flow_id=flow_id,
+                phase="discovery_execution",
+                status="failed",
+                metadata={
+                    "execution_method": "crewai_discovery_flow",
+                    "error_message": error_message,
+                },
             )
 
             logger.info(f"❌ Updated flow {flow_id} status to failed")
@@ -424,6 +494,39 @@ class FlowInitializer:
             # Convert unknown types to string
             return str(obj)
 
+    def _create_result_summary(self, result: Any) -> Dict[str, Any]:
+        """
+        Create a compact summary of initialization result for phase tracking.
+
+        Args:
+            result: The result object to summarize
+
+        Returns:
+            Dict with summary information
+        """
+        if not result:
+            return {"type": "empty", "size": 0}
+
+        if isinstance(result, dict):
+            return {
+                "type": "dict",
+                "keys": list(result.keys())[:5],  # First 5 keys only
+                "size": len(result),
+                "status": result.get("status", "unknown"),
+            }
+        elif isinstance(result, list):
+            return {
+                "type": "list",
+                "size": len(result),
+                "first_item_type": type(result[0]).__name__ if result else "empty",
+            }
+        else:
+            return {
+                "type": type(result).__name__,
+                "size": len(str(result)) if hasattr(result, "__len__") else 0,
+                "summary": str(result)[:100],  # First 100 chars
+            }
+
     async def _create_collection_flow_record(
         self, flow_id: str, initial_state: Optional[Dict[str, Any]] = None
     ):
@@ -444,11 +547,22 @@ class FlowInitializer:
         """Start collection flow execution in background"""
 
         async def run_collection_flow():
+            start_time = datetime.utcnow()
             try:
                 logger.info(f"🚀 Starting collection flow execution: {flow_id}")
 
                 # Execute the flow (this will run the CrewAI flow)
                 flow_result = await collection_flow.kickoff()
+
+                # CC: Record execution time for collection phase
+                execution_time_ms = (
+                    datetime.utcnow() - start_time
+                ).total_seconds() * 1000
+                await self.master_repo.record_phase_execution_time(
+                    flow_id=flow_id,
+                    phase="collection_execution",
+                    execution_time_ms=execution_time_ms,
+                )
 
                 # Update master flow status based on result
                 await self._update_collection_flow_status_from_result(
@@ -459,6 +573,23 @@ class FlowInitializer:
 
             except Exception as e:
                 logger.error(f"❌ Collection flow execution failed for {flow_id}: {e}")
+
+                # CC: Record error and execution time for failed collection
+                execution_time_ms = (
+                    datetime.utcnow() - start_time
+                ).total_seconds() * 1000
+                await self.master_repo.record_phase_execution_time(
+                    flow_id=flow_id,
+                    phase="collection_execution",
+                    execution_time_ms=execution_time_ms,
+                )
+                await self.master_repo.add_error_entry(
+                    flow_id=flow_id,
+                    phase="collection_execution",
+                    error=str(e),
+                    details={"execution_time_ms": execution_time_ms},
+                )
+
                 await self._update_collection_flow_status_failed(flow_id, str(e))
 
         # Start in background - don't await

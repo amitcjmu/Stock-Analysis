@@ -78,12 +78,19 @@ export const useDiscoveryFlowStatus = ({
     queryFn: async () => {
       if (!flowId) throw new Error('Flow ID is required');
 
+      // Validate that flowId is a proper UUID format (not an import ID)
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(flowId)) {
+        throw new Error(`Invalid flow ID format: ${flowId}`);
+      }
+
       const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
       const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
 
       return await masterFlowService.getFlowStatus(flowId, clientAccountId, engagementId);
     },
-    enabled: enabled && !!flowId,
+    enabled: enabled && !!flowId &&
+             // Ensure flow ID is a valid UUID format (not an import ID)
+             /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(flowId),
     refetchInterval: (data) => {
       const status = data as FlowStatusResponse | undefined;
 

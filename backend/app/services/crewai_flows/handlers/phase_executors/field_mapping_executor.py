@@ -239,6 +239,45 @@ class FieldMappingExecutor(BasePhaseExecutor):
         self, mappings: Dict[str, str], confidence_scores: Dict[str, float]
     ) -> Dict[str, Any]:
         """Create standardized mapping response with confidence scores"""
+        # Clean up any malformed mappings first
+        cleaned_mappings = {}
+        cleaned_confidence = {}
+
+        for source, target in mappings.items():
+            # Skip malformed mappings (e.g., fields mapped to "{" or other invalid values)
+            if isinstance(target, str) and target.strip() in [
+                "{",
+                "}",
+                "[",
+                "]",
+                "",
+                "null",
+                "undefined",
+            ]:
+                logger.warning(f"⚠️ Skipping malformed mapping: {source} -> '{target}'")
+                continue
+            # Also skip if target is None or not a string
+            if not target or not isinstance(target, str) or len(target.strip()) < 2:
+                logger.warning(
+                    f"⚠️ Skipping invalid mapping: {source} -> {repr(target)}"
+                )
+                continue
+
+            cleaned_mappings[source] = target
+            cleaned_confidence[source] = confidence_scores.get(source, 0.7)
+
+        # Use cleaned versions
+        mappings = cleaned_mappings
+        confidence_scores = cleaned_confidence
+
+        # If no valid mappings remain, use fallback
+        if not mappings:
+            logger.warning(
+                "⚠️ No valid mappings after cleanup - using intelligent fallback"
+            )
+            mappings = self._generate_fallback_mappings()
+            confidence_scores = {k: 0.7 for k in mappings.keys()}
+
         # Calculate average confidence
         avg_confidence = (
             sum(confidence_scores.values()) / len(confidence_scores)
@@ -328,6 +367,25 @@ class FieldMappingExecutor(BasePhaseExecutor):
 
             except json.JSONDecodeError as e:
                 logger.info(f"⚠️ JSON parsing failed, falling back to text parsing: {e}")
+                # Try to extract any JSON-like structures from the text
+                try:
+                    # Look for mapping patterns in the malformed JSON
+                    # Pattern to find field mappings like "field_name": "target_value"
+                    pattern = r'"([^"]+)"\s*:\s*"([^"]+)"'
+                    matches = re.findall(pattern, text)
+                    if matches:
+                        logger.info(
+                            f"✅ Extracted {len(matches)} mappings from malformed JSON"
+                        )
+                        for source_field, target_field in matches:
+                            # Skip malformed values
+                            if target_field not in ["{", "}", "[", "]", "", "null"]:
+                                mappings[source_field] = target_field
+                                confidence_scores[source_field] = 0.7
+                        if mappings:
+                            return mappings, confidence_scores
+                except Exception as ex:
+                    logger.warning(f"Failed to extract from malformed JSON: {ex}")
 
         # First, try to extract overall confidence score from the text
         confidence_patterns = [
