@@ -127,6 +127,25 @@ class PhaseHandlers:
             f"🗺️ [ECHO] Field mapping phase triggered for flow {self.flow._flow_id}"
         )
 
+        # Check if field mapping has already been executed to prevent duplicates
+        if (
+            hasattr(self.flow.state, "field_mapping_executed")
+            and self.flow.state.field_mapping_executed
+        ):
+            self.logger.warning(
+                f"⚠️ Field mapping already executed for flow {self.flow._flow_id}, skipping duplicate execution"
+            )
+            # Return the existing field mappings
+            return {
+                "status": "already_completed",
+                "phase": "field_mapping",
+                "field_mappings": getattr(self.flow.state, "field_mappings", {}),
+                "message": "Field mapping already executed, returning existing results",
+            }
+
+        # Mark field mapping as executed to prevent duplicate runs
+        self.flow.state.field_mapping_executed = True
+
         # CC: Record phase start time and transition
         start_time = datetime.utcnow()
         await self._add_phase_transition("field_mapping", "processing")

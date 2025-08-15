@@ -107,6 +107,18 @@ async def execute_field_mapping_phase(
     """Execute field mapping phase directly."""
     logger.info(f"🎯 Attempting direct field mapping execution for flow {flow_id}")
 
+    # Check if field mapping has already been completed to prevent duplicates
+    if discovery_flow.field_mapping_completed:
+        logger.warning(
+            f"⚠️ Field mapping already completed for flow {flow_id}, skipping duplicate execution"
+        )
+        return {
+            "success": True,
+            "status": "already_completed",
+            "phase": "field_mapping_suggestions",
+            "message": "Field mapping already completed, skipping duplicate execution",
+        }
+
     try:
         from app.services.crewai_flow_service import CrewAIFlowService
         from app.services.crewai_flows.unified_discovery_flow.unified_discovery_flow import (
