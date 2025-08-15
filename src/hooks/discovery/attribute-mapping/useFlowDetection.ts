@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAttributeMappingFlowDetection } from '../useDiscoveryFlowAutoDetection';
-import { useImportFlowResolver } from './useImportFlowResolver';
-import { useRecentFlowResolver } from './useRecentFlowResolver';
+import { useSmartFlowResolver } from './useSmartFlowResolver';
 
 export interface FlowDetectionResult {
   urlFlowId: string | null;
@@ -20,7 +19,7 @@ export interface FlowDetectionResult {
 
 /**
  * Hook for flow detection and routing logic
- * Handles URL parsing, auto-detection, import ID resolution, and emergency fallback mechanisms
+ * Handles URL parsing, auto-detection, smart resolution (import ID or recent flow), and emergency fallback mechanisms
  */
 export const useFlowDetection = (): FlowDetectionResult => {
   const { pathname } = useLocation();
@@ -37,22 +36,14 @@ export const useFlowDetection = (): FlowDetectionResult => {
     hasEffectiveFlow: initialHasEffectiveFlow
   } = useAttributeMappingFlowDetection();
 
-  // Get the most recent flow if no URL flow ID is provided
-  const { recentFlowId, isResolving: isResolvingRecent } = useRecentFlowResolver();
+  // Smart resolver handles all cases:
+  // - If urlFlowId is a flow ID, returns it directly
+  // - If urlFlowId is an import ID, resolves it to flow ID
+  // - If no urlFlowId, finds the most recent appropriate flow
+  const { resolvedFlowId, isResolving, resolutionMethod } = useSmartFlowResolver(urlFlowId || undefined);
 
-  // Resolve import ID to flow ID if needed
-  // The URL might contain a data import ID instead of a flow ID
-  const { resolvedFlowId, isResolving: isResolvingImport } = useImportFlowResolver(urlFlowId || undefined);
-
-  // Priority order for flow ID selection:
-  // 1. Resolved import ID (if URL had an import ID)
-  // 2. URL flow ID (if it's a valid flow ID)
-  // 3. Auto-detected flow ID from flow list
-  // 4. Recent flow ID (when no URL params)
-  const effectiveFlowId = resolvedFlowId ||
-                         (urlFlowId && !isResolvingImport ? urlFlowId : null) ||
-                         initialEffectiveFlowId ||
-                         (!urlFlowId ? recentFlowId : null);
+  // Use the resolved flow ID or fall back to auto-detected
+  const effectiveFlowId = resolvedFlowId || initialEffectiveFlowId;
 
   const hasEffectiveFlow = Boolean(effectiveFlowId) || initialHasEffectiveFlow;
 
@@ -93,6 +84,7 @@ export const useFlowDetection = (): FlowDetectionResult => {
         effectiveFlowId,
         hasEffectiveFlow,
         flowListLength: flowList?.length,
+        resolutionMethod,
         pathname
       });
 
@@ -136,7 +128,7 @@ export const useFlowDetection = (): FlowDetectionResult => {
     finalFlowId,
     hasEffectiveFlow,
     flowList,
-    isFlowListLoading: isFlowListLoading || isResolvingImport || isResolvingRecent,
+    isFlowListLoading: isFlowListLoading || isResolving,
     flowListError,
     pathname,
     navigate
