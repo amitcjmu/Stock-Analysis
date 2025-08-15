@@ -1,7 +1,10 @@
 """
-CrewAI Flow State Extensions Repository
-Repository for managing master flow records in crewai_flow_state_extensions table.
-This is the master table that coordinates all CrewAI flows (Discovery, Assessment, Planning, etc.)
+CrewAI Flow State Extensions Repository (modularized facade)
+
+This module now provides a thin facade over modular components:
+- base.py (BaseRepo with init, feature flags, serialization)
+- queries.py (read-only queries)
+- enrichment.py (JSONB enrichment helpers)
 """
 
 import logging
@@ -14,12 +17,16 @@ from sqlalchemy import and_, delete, desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.repositories.context_aware_repository import ContextAwareRepository
+from app.repositories.crewai_flow_state_extensions.base import BaseRepo
+from app.repositories.crewai_flow_state_extensions.queries import MasterFlowQueries
+from app.repositories.crewai_flow_state_extensions.enrichment import (
+    MasterFlowEnrichment,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
+class CrewAIFlowStateExtensionsRepository(BaseRepo):
     """
     Repository for master CrewAI flow state management.
     This is the central coordination table for all flow types.
@@ -68,20 +75,17 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             )
             parsed_engagement_id = demo_engagement_id
 
-        # Initialize parent with proper parameters
+        # Initialize base repo
         super().__init__(
             db=db,
-            model_class=CrewAIFlowStateExtensions,
             client_account_id=str(parsed_client_id),
             engagement_id=str(parsed_engagement_id),
+            user_id=user_id,
         )
-        self.client_account_id = str(parsed_client_id)
-        self.engagement_id = str(parsed_engagement_id)
-
-        # Feature flag: master state enrichment can be toggled for safe rollouts
-        self._enrichment_enabled = os.getenv(
-            "MASTER_STATE_ENRICHMENT_ENABLED", "true"
-        ).lower() in ("1", "true", "yes")
+        self.queries = MasterFlowQueries(db, self.client_account_id, self.engagement_id)
+        self.enrich = MasterFlowEnrichment(
+            db, self.client_account_id, self.engagement_id
+        )
 
     async def create_master_flow(
         self,
@@ -399,7 +403,7 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
         update_values = {"flow_status": status, "updated_at": datetime.utcnow()}
 
         # Get existing flow to merge data
-        existing_flow = await self.get_by_flow_id(flow_id)
+        existing_flow = await self.queries.get_by_flow_id(flow_id)
         if existing_flow:
             # Update persistence data - ensure JSON serializable
             if phase_data:
@@ -451,7 +455,7 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
         await self.db.commit()
 
         # Return updated flow
-        return await self.get_by_flow_id(flow_id)
+        return await self.queries.get_by_flow_id(flow_id)
 
     async def get_flows_by_type(
         self, flow_type: str, limit: int = 10
@@ -743,20 +747,8 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             return
 
         try:
-            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-            client_uuid = uuid.UUID(self.client_account_id)
-            engagement_uuid = uuid.UUID(self.engagement_id)
-
             # Load existing
-            stmt = select(CrewAIFlowStateExtensions).where(
-                and_(
-                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                )
-            )
-            result = await self.db.execute(stmt)
-            flow = result.scalar_one_or_none()
+            flow = await self.queries.get_by_flow_id(flow_id)
             if not flow:
                 return
 
@@ -766,25 +758,7 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 metadata = {}
             metadata.update(serializable_updates)
 
-            prev_updated_at = flow.updated_at
-            stmt_upd = (
-                update(CrewAIFlowStateExtensions)
-                .where(
-                    and_(
-                        CrewAIFlowStateExtensions.id == flow.id,
-                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
-                    )
-                )
-                .values(flow_metadata=metadata, updated_at=datetime.utcnow())
-            )
-            result_upd = await self.db.execute(stmt_upd)
-            if result_upd.rowcount:
-                await self.db.commit()
-            else:
-                # Concurrent modification detected; skip to avoid lost update
-                await self.db.rollback()
+            await self.enrich.update_flow_metadata(flow_id, metadata)
         except Exception as e:
             logger.error(f"❌ Failed update_flow_metadata for {flow_id}: {e}")
             await self.db.rollback()
@@ -803,19 +777,8 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             return
 
         try:
-            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-            client_uuid = uuid.UUID(self.client_account_id)
-            engagement_uuid = uuid.UUID(self.engagement_id)
-
-            stmt = select(CrewAIFlowStateExtensions).where(
-                and_(
-                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                )
-            )
-            result = await self.db.execute(stmt)
-            flow = result.scalar_one_or_none()
+            # Use modular query helper
+            flow = await self.queries.get_by_flow_id(flow_id)
             if not flow:
                 return
 
@@ -833,24 +796,7 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             if len(transitions) > 200:
                 transitions = transitions[-200:]
 
-            prev_updated_at = flow.updated_at
-            stmt_upd = (
-                update(CrewAIFlowStateExtensions)
-                .where(
-                    and_(
-                        CrewAIFlowStateExtensions.id == flow.id,
-                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
-                    )
-                )
-                .values(phase_transitions=transitions, updated_at=datetime.utcnow())
-            )
-            result_upd = await self.db.execute(stmt_upd)
-            if result_upd.rowcount:
-                await self.db.commit()
-            else:
-                await self.db.rollback()
+            await self.enrich.add_phase_transition(flow_id, phase, status, metadata)
         except Exception as e:
             logger.error(f"❌ Failed add_phase_transition for {flow_id}: {e}")
             await self.db.rollback()
@@ -865,19 +811,8 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             return
 
         try:
-            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-            client_uuid = uuid.UUID(self.client_account_id)
-            engagement_uuid = uuid.UUID(self.engagement_id)
-
-            stmt = select(CrewAIFlowStateExtensions).where(
-                and_(
-                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                )
-            )
-            result = await self.db.execute(stmt)
-            flow = result.scalar_one_or_none()
+            # Use modular query helper
+            flow = await self.queries.get_by_flow_id(flow_id)
             if not flow:
                 return
 
@@ -887,24 +822,9 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 "completed_at": datetime.utcnow().isoformat(),
             }
 
-            prev_updated_at = flow.updated_at
-            stmt_upd = (
-                update(CrewAIFlowStateExtensions)
-                .where(
-                    and_(
-                        CrewAIFlowStateExtensions.id == flow.id,
-                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
-                    )
-                )
-                .values(phase_execution_times=times, updated_at=datetime.utcnow())
+            await self.enrich.record_phase_execution_time(
+                flow_id, phase, execution_time_ms
             )
-            result_upd = await self.db.execute(stmt_upd)
-            if result_upd.rowcount:
-                await self.db.commit()
-            else:
-                await self.db.rollback()
         except Exception as e:
             logger.error(f"❌ Failed record_phase_execution_time for {flow_id}: {e}")
             await self.db.rollback()
@@ -917,19 +837,7 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             return
 
         try:
-            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-            client_uuid = uuid.UUID(self.client_account_id)
-            engagement_uuid = uuid.UUID(self.engagement_id)
-
-            stmt = select(CrewAIFlowStateExtensions).where(
-                and_(
-                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                )
-            )
-            result = await self.db.execute(stmt)
-            flow = result.scalar_one_or_none()
+            flow = await self.queries.get_by_flow_id(flow_id)
             if not flow:
                 return
 
@@ -948,8 +856,10 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 .where(
                     and_(
                         CrewAIFlowStateExtensions.id == flow.id,
-                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.client_account_id
+                        == uuid.UUID(self.client_account_id),
+                        CrewAIFlowStateExtensions.engagement_id
+                        == uuid.UUID(self.engagement_id),
                         CrewAIFlowStateExtensions.updated_at == prev_updated_at,
                     )
                 )
@@ -972,19 +882,7 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             return
 
         try:
-            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-            client_uuid = uuid.UUID(self.client_account_id)
-            engagement_uuid = uuid.UUID(self.engagement_id)
-
-            stmt = select(CrewAIFlowStateExtensions).where(
-                and_(
-                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                )
-            )
-            result = await self.db.execute(stmt)
-            flow = result.scalar_one_or_none()
+            flow = await self.queries.get_by_flow_id(flow_id)
             if not flow:
                 return
 
@@ -999,8 +897,10 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 .where(
                     and_(
                         CrewAIFlowStateExtensions.id == flow.id,
-                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.client_account_id
+                        == uuid.UUID(self.client_account_id),
+                        CrewAIFlowStateExtensions.engagement_id
+                        == uuid.UUID(self.engagement_id),
                         CrewAIFlowStateExtensions.updated_at == prev_updated_at,
                     )
                 )
@@ -1023,19 +923,7 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             return
 
         try:
-            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-            client_uuid = uuid.UUID(self.client_account_id)
-            engagement_uuid = uuid.UUID(self.engagement_id)
-
-            stmt = select(CrewAIFlowStateExtensions).where(
-                and_(
-                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                )
-            )
-            result = await self.db.execute(stmt)
-            flow = result.scalar_one_or_none()
+            flow = await self.queries.get_by_flow_id(flow_id)
             if not flow:
                 return
 
@@ -1068,8 +956,10 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 .where(
                     and_(
                         CrewAIFlowStateExtensions.id == flow.id,
-                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.client_account_id
+                        == uuid.UUID(self.client_account_id),
+                        CrewAIFlowStateExtensions.engagement_id
+                        == uuid.UUID(self.engagement_id),
                         CrewAIFlowStateExtensions.updated_at == prev_updated_at,
                     )
                 )
