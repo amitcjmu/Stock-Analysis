@@ -14475,9 +14475,9 @@
     },
     "page": "flow_3a04bd3b-e4b2-40c5-bfc6-8cc5cbef3698",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "3a04bd3b-e4b2-40c5-bfc6-8cc5cbef3698",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T20:33:53.559390",
     "user_feedback": null,
     "is_validated": false
@@ -14497,9 +14497,9 @@
     },
     "page": "flow_3a04bd3b-e4b2-40c5-bfc6-8cc5cbef3698",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "3a04bd3b-e4b2-40c5-bfc6-8cc5cbef3698",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T20:33:53.721303",
     "user_feedback": null,
     "is_validated": false
@@ -14520,9 +14520,9 @@
     },
     "page": "flow_3a04bd3b-e4b2-40c5-bfc6-8cc5cbef3698",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "3a04bd3b-e4b2-40c5-bfc6-8cc5cbef3698",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T20:34:01.539417",
     "user_feedback": null,
     "is_validated": false
@@ -14604,9 +14604,9 @@
     },
     "page": "flow_3a04bd3b-e4b2-40c5-bfc6-8cc5cbef3698",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "3a04bd3b-e4b2-40c5-bfc6-8cc5cbef3698",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T20:34:01.556673",
     "user_feedback": null,
     "is_validated": false
@@ -14626,9 +14626,9 @@
     },
     "page": "flow_3a04bd3b-e4b2-40c5-bfc6-8cc5cbef3698",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "3a04bd3b-e4b2-40c5-bfc6-8cc5cbef3698",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T20:34:01.651056",
     "user_feedback": null,
     "is_validated": false
@@ -14649,9 +14649,9 @@
     },
     "page": "flow_3a04bd3b-e4b2-40c5-bfc6-8cc5cbef3698",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "3a04bd3b-e4b2-40c5-bfc6-8cc5cbef3698",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T20:35:22.675820",
     "user_feedback": null,
     "is_validated": false
@@ -14737,9 +14737,9 @@
     },
     "page": "flow_3a04bd3b-e4b2-40c5-bfc6-8cc5cbef3698",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "3a04bd3b-e4b2-40c5-bfc6-8cc5cbef3698",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T20:35:22.710713",
     "user_feedback": null,
     "is_validated": false
@@ -14827,9 +14827,9 @@
     },
     "page": "flow_3a04bd3b-e4b2-40c5-bfc6-8cc5cbef3698",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "3a04bd3b-e4b2-40c5-bfc6-8cc5cbef3698",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T20:35:22.793789",
     "user_feedback": null,
     "is_validated": false
@@ -14850,9 +14850,9 @@
     },
     "page": "flow_6d096b24-dcde-455c-a506-dedd4a687679",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "6d096b24-dcde-455c-a506-dedd4a687679",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T23:24:23.816297",
     "user_feedback": null,
     "is_validated": false
@@ -14872,9 +14872,9 @@
     },
     "page": "flow_6d096b24-dcde-455c-a506-dedd4a687679",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "6d096b24-dcde-455c-a506-dedd4a687679",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T23:24:23.998200",
     "user_feedback": null,
     "is_validated": false
@@ -14895,9 +14895,9 @@
     },
     "page": "flow_6d096b24-dcde-455c-a506-dedd4a687679",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "6d096b24-dcde-455c-a506-dedd4a687679",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T23:24:30.477607",
     "user_feedback": null,
     "is_validated": false
@@ -15013,9 +15013,9 @@
     },
     "page": "flow_6d096b24-dcde-455c-a506-dedd4a687679",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "6d096b24-dcde-455c-a506-dedd4a687679",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T23:24:30.514297",
     "user_feedback": null,
     "is_validated": false
@@ -15035,9 +15035,9 @@
     },
     "page": "flow_6d096b24-dcde-455c-a506-dedd4a687679",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "6d096b24-dcde-455c-a506-dedd4a687679",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T23:24:30.628085",
     "user_feedback": null,
     "is_validated": false
@@ -15058,9 +15058,9 @@
     },
     "page": "flow_6d096b24-dcde-455c-a506-dedd4a687679",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "6d096b24-dcde-455c-a506-dedd4a687679",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T23:25:58.914944",
     "user_feedback": null,
     "is_validated": false
@@ -15181,9 +15181,9 @@
     },
     "page": "flow_6d096b24-dcde-455c-a506-dedd4a687679",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "6d096b24-dcde-455c-a506-dedd4a687679",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-08-14T23:25:58.943000",
     "user_feedback": null,
     "is_validated": false
@@ -15306,10 +15306,482 @@
     },
     "page": "flow_6d096b24-dcde-455c-a506-dedd4a687679",
     "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-08-14T23:25:59.023737",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "f4656696-05cf-4e73-8596-d057f3da4de2": {
+    "id": "f4656696-05cf-4e73-8596-d057f3da4de2",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "e4e80cc4-ac84-4757-8512-39dc796c1c33"
+    },
+    "page": "flow_e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "actionable": true,
     "client_account_id": "11111111-1111-1111-1111-111111111111",
     "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "6d096b24-dcde-455c-a506-dedd4a687679",
-    "created_at": "2025-08-14T23:25:59.023737",
+    "flow_id": "e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "created_at": "2025-08-14T23:58:24.577251",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "3d09ad4c-0c99-4b8a-9548-9f8cc33350e4": {
+    "id": "3d09ad4c-0c99-4b8a-9548-9f8cc33350e4",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "created_at": "2025-08-14T23:58:24.738160",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "c8c3aee8-eaf9-460d-85f7-44be7f8de978": {
+    "id": "c8c3aee8-eaf9-460d-85f7-44be7f8de978",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Validation completed by CrewAI"
+    },
+    "page": "flow_e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "created_at": "2025-08-14T23:58:32.296944",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "b815796b-dc95-4962-b51e-8564ffb9f591": {
+    "id": "b815796b-dc95-4962-b51e-8564ffb9f591",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "e4e80cc4-ac84-4757-8512-39dc796c1c33",
+      "raw_result": "```json\n{\n    \"file_type\": \"CMDB\",\n    \"confidence\": 0.9,\n    \"recommended_agent\": \"CMDB_Data_Analyst_Agent\",\n    \"security_status\": \"clean\",\n    \"pii_found\": false,\n    \"threats_found\": false,\n    \"asset_inventory_suitable\": true,\n    \"summary\": \"The data appears to be related to CMDB or asset inventory, is clean, and suitable for asset inventory creation.\",\n    \"user_approval_required\": true\n}\n```",
+      "processed": true,
+      "is_valid": true,
+      "summary": "Validation completed by CrewAI",
+      "validated_data": [
+        {
+          "App_ID": "APP-001",
+          "App_Name": "App1",
+          "Scan_Date": "Dev Team",
+          "Port_Usage": "Completed",
+          "App_Version": "1.2.3",
+          "Last_Update": "8080",
+          "Owner_Group": "LibB",
+          "Scan_Status": "2025-06-25 12:00:00",
+          "Dependency_List": "LibA"
+        },
+        {
+          "App_ID": "APP-002",
+          "App_Name": "App2",
+          "Scan_Date": "2025-06-24 11:30:00",
+          "Port_Usage": "80",
+          "App_Version": "2.1.0",
+          "Last_Update": "2025-06-19",
+          "Owner_Group": "Ops Team",
+          "Scan_Status": "Completed",
+          "Dependency_List": "LibC"
+        },
+        {
+          "App_ID": "APP-003",
+          "App_Name": "App3",
+          "Scan_Date": "Sec Team",
+          "Port_Usage": "Completed",
+          "App_Version": "3.0.0",
+          "Last_Update": "8443",
+          "Owner_Group": "LibE",
+          "Scan_Status": "2025-06-23 10:15:00",
+          "Dependency_List": "LibD"
+        },
+        {
+          "App_ID": "APP-004",
+          "App_Name": "App4",
+          "Scan_Date": "2025-06-22 09:45:00",
+          "Port_Usage": "8080",
+          "App_Version": "1.0.1",
+          "Last_Update": "2025-06-17",
+          "Owner_Group": "Dev Team",
+          "Scan_Status": "Completed",
+          "Dependency_List": "LibF"
+        },
+        {
+          "App_ID": "APP-005",
+          "App_Name": "App5",
+          "Scan_Date": "2025-06-21 08:30:00",
+          "Port_Usage": "443",
+          "App_Version": "2.5.0",
+          "Last_Update": "2025-06-16",
+          "Owner_Group": "Ops Team",
+          "Scan_Status": "Completed",
+          "Dependency_List": "LibG"
+        }
+      ]
+    },
+    "page": "flow_e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "created_at": "2025-08-14T23:58:32.323522",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "d87cf0b2-fd17-41b1-9456-e4d73d5076c3": {
+    "id": "d87cf0b2-fd17-41b1-9456-e4d73d5076c3",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Attribute Mapping",
+    "description": "Beginning execution of attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "starting",
+      "progress": 16.7
+    },
+    "page": "flow_e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "created_at": "2025-08-14T23:58:32.428949",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "70fca377-f78f-436d-a881-79f940e843f2": {
+    "id": "70fca377-f78f-436d-a881-79f940e843f2",
+    "agent_id": "attribute_mapping_executor",
+    "agent_name": "Attribute Mapping Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Attribute Mapping",
+    "description": "Successfully completed attribute mapping phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "created_at": "2025-08-14T23:59:47.752981",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "27b153a8-85f1-49ad-b305-01b5aaea8e99": {
+    "id": "27b153a8-85f1-49ad-b305-01b5aaea8e99",
+    "agent_id": "unified_discovery_field_mapping",
+    "agent_name": "Discovery Field Mapping Agent",
+    "insight_type": "phase_completion",
+    "title": "Field Mapping Suggestions Generated",
+    "description": "Field mapping suggestions have been generated and are ready for review",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "field_mapping",
+      "progress": 40,
+      "flow_id": "e4e80cc4-ac84-4757-8512-39dc796c1c33",
+      "mappings": {
+        "mappings": "{",
+        "App_ID": "{",
+        "target_field": "dependencies\",",
+        "reasoning": "Dependency information for the application\",",
+        "requires_transformation": "false",
+        "App_Name": "{",
+        "Scan_Date": "{",
+        "Port_Usage": "{",
+        "App_Version": "{",
+        "Last_Update": "{",
+        "Owner_Group": "{",
+        "Dependency_List": "{",
+        "skipped_fields": "[],",
+        "synthesis_required": "[\"Scan_Date\", \"Port_Usage\", \"Last_Update\"]"
+      },
+      "mapping_details": {
+        "mappings": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "App_ID": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "target_field": {
+          "target": "dependencies\",",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "reasoning": {
+          "target": "Dependency information for the application\",",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "requires_transformation": {
+          "target": "false",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "App_Name": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "Scan_Date": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "Port_Usage": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "App_Version": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "Last_Update": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "Owner_Group": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "Dependency_List": {
+          "target": "{",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "skipped_fields": {
+          "target": "[],",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        },
+        "synthesis_required": {
+          "target": "[\"Scan_Date\", \"Port_Usage\", \"Last_Update\"]",
+          "confidence": 0.7,
+          "reasoning": "Mapped with 70% confidence"
+        }
+      },
+      "confidence_scores": {
+        "mappings": 0.7,
+        "App_ID": 0.7,
+        "target_field": 0.7,
+        "reasoning": 0.7,
+        "requires_transformation": 0.7,
+        "App_Name": 0.7,
+        "Scan_Date": 0.7,
+        "Port_Usage": 0.7,
+        "App_Version": 0.7,
+        "Last_Update": 0.7,
+        "Owner_Group": 0.7,
+        "Dependency_List": 0.7,
+        "skipped_fields": 0.7,
+        "synthesis_required": 0.7
+      },
+      "validation_results": {
+        "total_fields": 14,
+        "mapped_fields": 14,
+        "mapping_confidence": 0.7,
+        "fallback_used": false
+      },
+      "crew_execution": true,
+      "execution_metadata": {
+        "timestamp": "2025-08-14T23:58:32.296495",
+        "method": "crewai_field_mapping"
+      }
+    },
+    "page": "flow_e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "created_at": "2025-08-14T23:59:47.785147",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "c7831fc7-8fd6-429f-b1fe-c25892ec7441": {
+    "id": "c7831fc7-8fd6-429f-b1fe-c25892ec7441",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "e4e80cc4-ac84-4757-8512-39dc796c1c33",
+      "approval_data": {
+        "mappings": {
+          "mappings": "{",
+          "App_ID": "{",
+          "target_field": "dependencies\",",
+          "reasoning": "Dependency information for the application\",",
+          "requires_transformation": "false",
+          "App_Name": "{",
+          "Scan_Date": "{",
+          "Port_Usage": "{",
+          "App_Version": "{",
+          "Last_Update": "{",
+          "Owner_Group": "{",
+          "Dependency_List": "{",
+          "skipped_fields": "[],",
+          "synthesis_required": "[\"Scan_Date\", \"Port_Usage\", \"Last_Update\"]"
+        },
+        "mapping_details": {
+          "mappings": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "App_ID": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "target_field": {
+            "target": "dependencies\",",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "reasoning": {
+            "target": "Dependency information for the application\",",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "requires_transformation": {
+            "target": "false",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "App_Name": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "Scan_Date": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "Port_Usage": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "App_Version": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "Last_Update": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "Owner_Group": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "Dependency_List": {
+            "target": "{",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "skipped_fields": {
+            "target": "[],",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          },
+          "synthesis_required": {
+            "target": "[\"Scan_Date\", \"Port_Usage\", \"Last_Update\"]",
+            "confidence": 0.7,
+            "reasoning": "Mapped with 70% confidence"
+          }
+        },
+        "confidence_scores": {
+          "mappings": 0.7,
+          "App_ID": 0.7,
+          "target_field": 0.7,
+          "reasoning": 0.7,
+          "requires_transformation": 0.7,
+          "App_Name": 0.7,
+          "Scan_Date": 0.7,
+          "Port_Usage": 0.7,
+          "App_Version": 0.7,
+          "Last_Update": 0.7,
+          "Owner_Group": 0.7,
+          "Dependency_List": 0.7,
+          "skipped_fields": 0.7,
+          "synthesis_required": 0.7
+        },
+        "validation_results": {
+          "total_fields": 14,
+          "mapped_fields": 14,
+          "mapping_confidence": 0.7,
+          "fallback_used": false
+        },
+        "crew_execution": true,
+        "execution_metadata": {
+          "timestamp": "2025-08-14T23:58:32.296495",
+          "method": "crewai_field_mapping"
+        }
+      }
+    },
+    "page": "flow_e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "e4e80cc4-ac84-4757-8512-39dc796c1c33",
+    "created_at": "2025-08-14T23:59:47.891151",
     "user_feedback": null,
     "is_validated": false
   }
