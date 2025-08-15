@@ -14,7 +14,9 @@ logger = logging.getLogger(__name__)
 class CrewResultParser:
     """Parser for crew execution results"""
 
-    def parse_field_mapping_results(self, crew_result, raw_data) -> Dict[str, Any]:
+    def parse_field_mapping_results(  # noqa: C901
+        self, crew_result, raw_data
+    ) -> Dict[str, Any]:
         """Parse results from Full Agentic Field Mapping Crew execution"""
         try:
             logger.info(f"🔍 Parsing crew result type: {type(crew_result)}")
@@ -49,57 +51,56 @@ class CrewResultParser:
                 # Extract JSON sections from the output
                 import re
 
-                # Look for mapping task output
-                mapping_match = re.search(
-                    r'\{[^{}]*"mappings"[^{}]*\}', raw_output, re.DOTALL
-                )
-                if mapping_match:
-                    try:
-                        mapping_data = json.loads(mapping_match.group())
-                        logger.info(
-                            f"✅ Found mapping data: {len(mapping_data.get('mappings', {}))} mappings"
-                        )
+                # FIXED: More robust JSON extraction using multiple strategies
+                mapping_data = self._extract_json_from_crew_output(raw_output)
 
-                        # Process each mapping
-                        for source_field, mapping_info in mapping_data.get(
-                            "mappings", {}
-                        ).items():
-                            if isinstance(mapping_info, dict):
-                                target_field = mapping_info.get(
-                                    "target_field", source_field
-                                )
-                                confidence = mapping_info.get("confidence", 0.7)
-                                reasoning = mapping_info.get(
-                                    "reasoning", "Agent analysis"
-                                )
+                if mapping_data and "mappings" in mapping_data:
+                    logger.info(
+                        f"✅ Found mapping data: {len(mapping_data.get('mappings', {}))} mappings"
+                    )
 
-                                parsed_result["mappings"][source_field] = target_field
-                                parsed_result["confidence_scores"][
-                                    source_field
-                                ] = confidence
-                                parsed_result["agent_reasoning"][source_field] = {
-                                    "reasoning": reasoning,
-                                    "requires_transformation": mapping_info.get(
-                                        "requires_transformation", False
-                                    ),
-                                    "data_patterns": mapping_info.get(
-                                        "data_patterns", {}
-                                    ),
-                                }
-                            else:
-                                # Simple mapping format
-                                parsed_result["mappings"][source_field] = mapping_info
-                                parsed_result["confidence_scores"][source_field] = 0.7
+                    # Process each mapping
+                    for source_field, mapping_info in mapping_data.get(
+                        "mappings", {}
+                    ).items():
+                        if isinstance(mapping_info, dict):
+                            target_field = mapping_info.get(
+                                "target_field", source_field
+                            )
+                            confidence = mapping_info.get("confidence", 0.7)
+                            reasoning = mapping_info.get("reasoning", "Agent analysis")
 
-                        # Extract skipped fields
-                        parsed_result["skipped_fields"] = mapping_data.get(
-                            "skipped_fields", []
-                        )
-                        parsed_result["synthesis_required"] = mapping_data.get(
-                            "synthesis_required", []
-                        )
-                    except json.JSONDecodeError as e:
-                        logger.warning(f"⚠️ Failed to parse mapping JSON: {e}")
+                            parsed_result["mappings"][source_field] = target_field
+                            parsed_result["confidence_scores"][
+                                source_field
+                            ] = confidence
+                            parsed_result["agent_reasoning"][source_field] = {
+                                "reasoning": reasoning,
+                                "requires_transformation": mapping_info.get(
+                                    "requires_transformation", False
+                                ),
+                                "data_patterns": mapping_info.get("data_patterns", {}),
+                            }
+                        else:
+                            # Simple mapping format
+                            parsed_result["mappings"][source_field] = mapping_info
+                            parsed_result["confidence_scores"][source_field] = 0.7
+
+                    # Extract skipped fields
+                    parsed_result["skipped_fields"] = mapping_data.get(
+                        "skipped_fields", []
+                    )
+                    parsed_result["synthesis_required"] = mapping_data.get(
+                        "synthesis_required", []
+                    )
+                else:
+                    # CRITICAL: If no valid JSON found, FAIL FAST instead of storing malformed data
+                    logger.error(
+                        f"❌ No valid JSON mappings found in crew output. Raw output preview: {raw_output[:500]}..."
+                    )
+                    raise ValueError(
+                        "CrewAI agent did not return valid JSON mapping structure"
+                    )
 
                 # Look for transformation task output
                 transform_match = re.search(
@@ -123,6 +124,13 @@ class CrewResultParser:
             elif isinstance(crew_result, str):
                 # Try to extract JSON from string
                 mappings = self._extract_mappings_from_text(crew_result)
+                if not mappings.get("mappings"):
+                    logger.error(
+                        f"❌ No valid mappings extracted from string result: {crew_result[:200]}..."
+                    )
+                    raise ValueError(
+                        "CrewAI agent returned string but no valid mappings found"
+                    )
                 parsed_result.update(mappings)
 
             # Calculate validation score
@@ -152,16 +160,93 @@ class CrewResultParser:
                 )
 
             logger.info(
-                f"✅ Parsed field mapping results: {mapped_fields} mapped, {len(parsed_result['skipped_fields'])} skipped, {len(parsed_result['unmapped_fields'])} unmapped"
+                f"✅ Parsed field mapping results: {mapped_fields} mapped, "
+                f"{len(parsed_result['skipped_fields'])} skipped, "
+                f"{len(parsed_result['unmapped_fields'])} unmapped"
             )
+
+            # Validate we have some mappings before proceeding
+            if not parsed_result["mappings"]:
+                logger.error(
+                    "❌ No field mappings were successfully parsed from crew result"
+                )
+                raise ValueError("CrewAI parsing resulted in zero field mappings")
 
             return parsed_result
 
         except Exception as e:
             logger.error(f"❌ Failed to parse crew results: {e}")
-            # DISABLED FALLBACK - Let the error propagate to see actual agent issues
-            # return self._intelligent_field_mapping_fallback(raw_data)
+            # FAIL FAST - Don't allow malformed data to be stored
             raise e
+
+    def _extract_json_from_crew_output(self, raw_output: str) -> Dict[str, Any]:
+        """
+        Robust JSON extraction from CrewAI agent output using multiple strategies
+        """
+        import re
+
+        # Strategy 1: Look for complete JSON objects with mappings key
+        # Handle nested objects better than the original regex
+        json_patterns = [
+            # Complete JSON block containing mappings (most common)
+            r'\{[^{}]*?"mappings"[^{}]*?\{.*?\}[^{}]*?\}',
+            # Simpler JSON objects
+            r'\{[^{}]*?"mappings"[^{}]*?\}',
+            # JSON that might span multiple lines
+            r'\{[\s\S]*?"mappings"[\s\S]*?\}',
+        ]
+
+        for pattern in json_patterns:
+            matches = re.findall(pattern, raw_output, re.DOTALL)
+            for match in matches:
+                try:
+                    # Try to parse the JSON
+                    parsed = json.loads(match)
+                    if isinstance(parsed, dict) and "mappings" in parsed:
+                        logger.info(
+                            f"✅ Successfully parsed JSON using pattern: {pattern[:50]}..."
+                        )
+                        return parsed
+                except json.JSONDecodeError:
+                    continue
+
+        # Strategy 2: Extract JSON blocks and try to complete them
+        json_blocks = re.findall(r"\{[^{}]*\}", raw_output)
+        for block in json_blocks:
+            try:
+                parsed = json.loads(block)
+                if isinstance(parsed, dict) and "mappings" in parsed:
+                    logger.info("✅ Successfully parsed simple JSON block")
+                    return parsed
+            except json.JSONDecodeError:
+                continue
+
+        # Strategy 3: Look for mappings data even if not in perfect JSON
+        # Extract key-value pairs from agent output
+        mappings = {}
+
+        # Look for explicit mapping statements
+        mapping_patterns = [
+            r'"([^"]+)":\s*\{\s*"target_field":\s*"([^"]+)"',  # Full format
+            r'"([^"]+)":\s*"([^"]+)"',  # Simple format
+            r"(\w+)\s*->\s*(\w+)",  # Arrow format
+        ]
+
+        for pattern in mapping_patterns:
+            matches = re.findall(pattern, raw_output)
+            for source, target in matches:
+                mappings[source] = target
+
+        if mappings:
+            logger.info(f"✅ Extracted {len(mappings)} mappings using pattern matching")
+            return {
+                "mappings": mappings,
+                "skipped_fields": [],
+                "synthesis_required": [],
+            }
+
+        logger.warning("❌ No valid JSON or mappings found in agent output")
+        return None
 
     def _extract_mappings_from_text(self, text: str) -> Dict[str, Any]:
         """Extract field mappings from crew text output"""

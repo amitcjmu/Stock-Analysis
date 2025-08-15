@@ -18,6 +18,16 @@ class SimpleFieldMapper:
 
     # Common field mappings based on patterns
     FIELD_MAPPINGS = {
+        # Exact matches for known CSV fields (case-insensitive)
+        r"^(?i)app_id$": "application_id",
+        r"^(?i)app_name$": "application_name",
+        r"^(?i)app_version$": "version",
+        r"^(?i)owner_group$": "owner",
+        r"^(?i)scan_date$": "scan_date",
+        r"^(?i)port_usage$": "port",
+        r"^(?i)last_update$": "last_modified",
+        r"^(?i)dependency_list$": "dependencies",
+        r"^(?i)scan_status$": "status",
         # Identity mappings
         r"(?i)(name|asset.*name|server.*name|hostname|host)": "asset_name",
         r"(?i)(id|asset.*id|server.*id)": "asset_id",
@@ -60,14 +70,17 @@ class SimpleFieldMapper:
     def map_fields(self, headers: List[str]) -> Dict[str, Any]:
         """
         Map source headers to Asset model fields using pattern matching.
+        Returns structure compatible with parse_field_mapping_results.
 
         Args:
             headers: List of source field headers
 
         Returns:
-            Dictionary of field mappings
+            Dictionary of field mappings in the correct structure
         """
         mappings = {}
+        confidence_scores = {}
+        agent_reasoning = {}
         skipped_fields = []
         unmapped_fields = []
 
@@ -87,11 +100,15 @@ class SimpleFieldMapper:
             mapped = False
             for pattern, target_field in self.FIELD_MAPPINGS.items():
                 if re.match(pattern, header):
-                    mappings[header] = {
-                        "target_field": target_field,
-                        "confidence": 0.8,  # Fixed confidence for rule-based mapping
+                    # Store in the format expected by parse_field_mapping_results
+                    mappings[header] = target_field
+                    confidence_scores[header] = (
+                        0.8  # Fixed confidence for rule-based mapping
+                    )
+                    agent_reasoning[header] = {
                         "reasoning": f"Pattern match: {header} matches {target_field} pattern",
                         "requires_transformation": False,
+                        "data_patterns": {"match_type": "pattern", "pattern": pattern},
                     }
                     mapped = True
                     break
@@ -100,14 +117,30 @@ class SimpleFieldMapper:
                 unmapped_fields.append(header)
 
         logger.info(
-            f"Simple field mapping complete: {len(mappings)} mapped, {len(skipped_fields)} skipped, {len(unmapped_fields)} unmapped"
+            f"Simple field mapping complete: {len(mappings)} mapped, "
+            f"{len(skipped_fields)} skipped, {len(unmapped_fields)} unmapped"
         )
 
         return {
             "mappings": mappings,
+            "confidence_scores": confidence_scores,
+            "agent_reasoning": agent_reasoning,
             "skipped_fields": skipped_fields,
             "unmapped_fields": unmapped_fields,
             "synthesis_required": [],  # No synthesis in simple mapper
+            "transformations": [],  # No transformations in simple mapper
+            "validation_results": {
+                "valid": len(mappings) > 0,
+                "score": len(mappings) / len(headers) if headers else 0.0,
+                "coverage": len(mappings) / len(headers) if headers else 0.0,
+                "avg_confidence": 0.8 if mappings else 0.0,
+            },
+            "agent_insights": {
+                "crew_execution": "Simple rule-based fallback mapper",
+                "source": "simple_field_mapper",
+                "agents": ["Pattern Matcher"],
+                "fallback_reason": "CrewAI unavailable or rate limited",
+            },
         }
 
 
