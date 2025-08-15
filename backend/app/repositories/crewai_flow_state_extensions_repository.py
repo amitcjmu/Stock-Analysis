@@ -766,6 +766,7 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 metadata = {}
             metadata.update(serializable_updates)
 
+            prev_updated_at = flow.updated_at
             stmt_upd = (
                 update(CrewAIFlowStateExtensions)
                 .where(
@@ -773,14 +774,20 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                         CrewAIFlowStateExtensions.id == flow.id,
                         CrewAIFlowStateExtensions.client_account_id == client_uuid,
                         CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
                     )
                 )
                 .values(flow_metadata=metadata, updated_at=datetime.utcnow())
             )
-            await self.db.execute(stmt_upd)
-            await self.db.commit()
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                await self.db.commit()
+            else:
+                # Concurrent modification detected; skip to avoid lost update
+                await self.db.rollback()
         except Exception as e:
             logger.error(f"❌ Failed update_flow_metadata for {flow_id}: {e}")
+            await self.db.rollback()
 
     async def add_phase_transition(
         self,
@@ -813,26 +820,40 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 return
 
             transitions = list(flow.phase_transitions or [])
-            entry = {
-                "phase": phase,
-                "status": status,
-                "timestamp": datetime.utcnow().isoformat(),
-                "metadata": self._ensure_json_serializable(metadata or {}),
-            }
+            entry = self._ensure_json_serializable(
+                {
+                    "phase": phase,
+                    "status": status,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "metadata": self._ensure_json_serializable(metadata or {}),
+                }
+            )
             transitions.append(entry)
             # Cap size
             if len(transitions) > 200:
                 transitions = transitions[-200:]
 
+            prev_updated_at = flow.updated_at
             stmt_upd = (
                 update(CrewAIFlowStateExtensions)
-                .where(CrewAIFlowStateExtensions.id == flow.id)
+                .where(
+                    and_(
+                        CrewAIFlowStateExtensions.id == flow.id,
+                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
+                    )
+                )
                 .values(phase_transitions=transitions, updated_at=datetime.utcnow())
             )
-            await self.db.execute(stmt_upd)
-            await self.db.commit()
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                await self.db.commit()
+            else:
+                await self.db.rollback()
         except Exception as e:
             logger.error(f"❌ Failed add_phase_transition for {flow_id}: {e}")
+            await self.db.rollback()
 
     async def record_phase_execution_time(
         self, flow_id: str, phase: str, execution_time_ms: float
@@ -866,15 +887,27 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 "completed_at": datetime.utcnow().isoformat(),
             }
 
+            prev_updated_at = flow.updated_at
             stmt_upd = (
                 update(CrewAIFlowStateExtensions)
-                .where(CrewAIFlowStateExtensions.id == flow.id)
+                .where(
+                    and_(
+                        CrewAIFlowStateExtensions.id == flow.id,
+                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
+                    )
+                )
                 .values(phase_execution_times=times, updated_at=datetime.utcnow())
             )
-            await self.db.execute(stmt_upd)
-            await self.db.commit()
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                await self.db.commit()
+            else:
+                await self.db.rollback()
         except Exception as e:
             logger.error(f"❌ Failed record_phase_execution_time for {flow_id}: {e}")
+            await self.db.rollback()
 
     async def append_agent_collaboration(
         self, flow_id: str, entry: Dict[str, Any]
@@ -901,20 +934,34 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 return
 
             log = list(flow.agent_collaboration_log or [])
-            serializable = self._ensure_json_serializable(entry)
+            serializable = self._ensure_json_serializable(
+                {**(entry or {}), "timestamp": datetime.utcnow().isoformat()}
+            )
             log.append(serializable)
             if len(log) > 100:
                 log = log[-100:]
 
+            prev_updated_at = flow.updated_at
             stmt_upd = (
                 update(CrewAIFlowStateExtensions)
-                .where(CrewAIFlowStateExtensions.id == flow.id)
+                .where(
+                    and_(
+                        CrewAIFlowStateExtensions.id == flow.id,
+                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
+                    )
+                )
                 .values(agent_collaboration_log=log, updated_at=datetime.utcnow())
             )
-            await self.db.execute(stmt_upd)
-            await self.db.commit()
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                await self.db.commit()
+            else:
+                await self.db.rollback()
         except Exception as e:
             logger.error(f"❌ Failed append_agent_collaboration for {flow_id}: {e}")
+            await self.db.rollback()
 
     async def update_memory_usage_metrics(
         self, flow_id: str, metrics: Dict[str, Any]
@@ -945,15 +992,27 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             current.update(serializable)
             current["last_updated"] = datetime.utcnow().isoformat()
 
+            prev_updated_at = flow.updated_at
             stmt_upd = (
                 update(CrewAIFlowStateExtensions)
-                .where(CrewAIFlowStateExtensions.id == flow.id)
+                .where(
+                    and_(
+                        CrewAIFlowStateExtensions.id == flow.id,
+                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
+                    )
+                )
                 .values(memory_usage_metrics=current, updated_at=datetime.utcnow())
             )
-            await self.db.execute(stmt_upd)
-            await self.db.commit()
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                await self.db.commit()
+            else:
+                await self.db.rollback()
         except Exception as e:
             logger.error(f"❌ Failed update_memory_usage_metrics for {flow_id}: {e}")
+            await self.db.rollback()
 
     async def update_agent_performance_metrics(
         self, flow_id: str, metrics: Dict[str, Any]
@@ -980,20 +1039,40 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 return
 
             current = dict(flow.agent_performance_metrics or {})
-            serializable = self._ensure_json_serializable(metrics)
-            current.update(serializable)
+            serializable = self._ensure_json_serializable(metrics) or {}
+            allowed_keys = {
+                "response_time_ms",
+                "success_rate",
+                "throughput",
+                "latency_ms",
+                "token_usage",
+            }
+            filtered = {k: serializable[k] for k in serializable.keys() & allowed_keys}
+            current.update(filtered)
 
+            prev_updated_at = flow.updated_at
             stmt_upd = (
                 update(CrewAIFlowStateExtensions)
-                .where(CrewAIFlowStateExtensions.id == flow.id)
+                .where(
+                    and_(
+                        CrewAIFlowStateExtensions.id == flow.id,
+                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
+                    )
+                )
                 .values(agent_performance_metrics=current, updated_at=datetime.utcnow())
             )
-            await self.db.execute(stmt_upd)
-            await self.db.commit()
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                await self.db.commit()
+            else:
+                await self.db.rollback()
         except Exception as e:
             logger.error(
                 f"❌ Failed update_agent_performance_metrics for {flow_id}: {e}"
             )
+            await self.db.rollback()
 
     async def add_error_entry(
         self,
@@ -1035,15 +1114,27 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             if len(history) > 100:
                 history = history[-100:]
 
+            prev_updated_at = flow.updated_at
             stmt_upd = (
                 update(CrewAIFlowStateExtensions)
-                .where(CrewAIFlowStateExtensions.id == flow.id)
+                .where(
+                    and_(
+                        CrewAIFlowStateExtensions.id == flow.id,
+                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
+                    )
+                )
                 .values(error_history=history, updated_at=datetime.utcnow())
             )
-            await self.db.execute(stmt_upd)
-            await self.db.commit()
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                await self.db.commit()
+            else:
+                await self.db.rollback()
         except Exception as e:
             logger.error(f"❌ Failed add_error_entry for {flow_id}: {e}")
+            await self.db.rollback()
 
     async def increment_retry_count(self, flow_id: str) -> None:
         """Increment retry_count. Honors feature flag."""
@@ -1068,12 +1159,27 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 return
 
             new_retry = (flow.retry_count or 0) + 1
+            prev_updated_at = flow.updated_at
             stmt_upd = (
                 update(CrewAIFlowStateExtensions)
-                .where(CrewAIFlowStateExtensions.id == flow.id)
+                .where(
+                    and_(
+                        CrewAIFlowStateExtensions.id == flow.id,
+                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
+                    )
+                )
                 .values(retry_count=new_retry, updated_at=datetime.utcnow())
             )
-            await self.db.execute(stmt_upd)
-            await self.db.commit()
+            result_upd = await self.db.execute(stmt_upd)
+            if result_upd.rowcount:
+                await self.db.commit()
+            else:
+                await self.db.rollback()
         except Exception as e:
             logger.error(f"❌ Failed increment_retry_count for {flow_id}: {e}")
+            await self.db.rollback()
+
+            logger.error(f"❌ Failed increment_retry_count for {flow_id}: {e}")
+            await self.db.rollback()

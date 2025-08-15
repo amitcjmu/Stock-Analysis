@@ -187,6 +187,11 @@ class FlowProgressTracker:
                         duration_ms = (
                             datetime.utcnow() - self.phase_start_time
                         ).total_seconds() * 1000.0
+                        # Clamp to sane bounds
+                        if duration_ms < 0:
+                            duration_ms = 0.0
+                        elif duration_ms > 86_400_000.0:  # 24h in ms
+                            duration_ms = 86_400_000.0
                         await repo.record_phase_execution_time(
                             flow_id=self.flow_id,
                             phase=phase.phase_name,
