@@ -42,8 +42,9 @@ export const useFlowDetection = (): FlowDetectionResult => {
   // - If no urlFlowId, finds the most recent appropriate flow
   const { resolvedFlowId, isResolving, resolutionMethod } = useSmartFlowResolver(urlFlowId || undefined);
 
-  // Use the resolved flow ID or fall back to auto-detected
-  const effectiveFlowId = resolvedFlowId || initialEffectiveFlowId;
+  // IMPORTANT: Only use the resolved flow ID if resolution is complete
+  // This prevents using an import ID as a flow ID while resolution is in progress
+  const effectiveFlowId = !isResolving ? (resolvedFlowId || initialEffectiveFlowId) : initialEffectiveFlowId;
 
   const hasEffectiveFlow = Boolean(effectiveFlowId) || initialHasEffectiveFlow;
 
@@ -103,7 +104,14 @@ export const useFlowDetection = (): FlowDetectionResult => {
 
 
   // Use unified discovery flow with effective flow ID or emergency fallback
-  const finalFlowId = effectiveFlowId || emergencyFlowId;
+  // IMPORTANT: Validate that the ID is a proper UUID format before using it
+  const validateFlowId = (id: string | null): string | null => {
+    if (!id) return null;
+    const isValid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+    return isValid ? id : null;
+  };
+
+  const finalFlowId = validateFlowId(effectiveFlowId) || validateFlowId(emergencyFlowId);
 
   // Only log final flow resolution when it changes (prevent spam)
   const finalFlowIdRef = useRef<string | null>(null);
