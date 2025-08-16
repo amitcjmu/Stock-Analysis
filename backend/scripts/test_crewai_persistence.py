@@ -36,20 +36,22 @@ try:
     from crewai import persist  # noqa: F401
 
     print("✅ persist available from crewai main")
-    
+
     # Also check crewai.flow.persist in same try block to avoid redefinition
     try:
         from crewai.flow import persist as flow_persist  # noqa: F401
+
         print("✅ persist available from crewai.flow")
     except ImportError:
         print("❌ persist not available from crewai.flow")
-        
+
 except ImportError:
     print("❌ persist not available from crewai main")
-    
+
     # Only try flow persist if main persist failed
     try:
         from crewai.flow import persist  # noqa: F401
+
         print("✅ persist available from crewai.flow")
     except ImportError:
         print("❌ persist not available from crewai.flow")

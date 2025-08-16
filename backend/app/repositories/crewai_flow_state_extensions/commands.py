@@ -53,7 +53,7 @@ class MasterFlowCommands(BaseRepo):
                 f"Invalid CrewAI Flow ID: {flow_id}. Must be a valid UUID."
             )
 
-        valid_flow_types = [
+        valid_flow_types = {
             "discovery",
             "assessment",
             "collection",
@@ -63,10 +63,11 @@ class MasterFlowCommands(BaseRepo):
             "finops",
             "observability",
             "decommission",
-        ]
-        if flow_type not in valid_flow_types:
+        }
+        normalized_flow_type = (flow_type or "").strip().lower()
+        if normalized_flow_type not in valid_flow_types:
             raise ValueError(
-                f"Invalid flow_type: {flow_type}. Must be one of: {valid_flow_types}"
+                f"Invalid flow_type: {flow_type}. Must be one of: {sorted(valid_flow_types)}"
             )
 
         if not flow_name:
@@ -135,51 +136,56 @@ class MasterFlowCommands(BaseRepo):
             logger.error("Invalid UUID format in update_flow_status: %s", e)
             raise ValueError(f"Invalid UUID format: {e}")
 
-        # Delegate deltas to enrichment
-        await self.enrich.update_flow_metadata(
-            flow_id, self._ensure_json_serializable(metadata or {})
-        )
-        if collaboration_entry:
-            entry = dict(collaboration_entry)
-            if "timestamp" not in entry:
-                entry["timestamp"] = datetime.utcnow().isoformat()
-            await self.enrich.append_agent_collaboration(
-                flow_id, self._ensure_json_serializable(entry)
-            )
-        if phase_data:
-            await self.enrich.update_flow_metadata(
-                flow_id, self._ensure_json_serializable(phase_data)
-            )
-
-        # OCC-guarded status update
-        flow = await self._get_flow_for_context(flow_id)
-        if flow:
-            prev_updated_at = flow.updated_at
-            stmt_upd = (
-                update(CrewAIFlowStateExtensions)
-                .where(
-                    and_(
-                        CrewAIFlowStateExtensions.id == flow.id,
-                        CrewAIFlowStateExtensions.client_account_id
-                        == uuid.UUID(self.client_account_id),
-                        CrewAIFlowStateExtensions.engagement_id
-                        == uuid.UUID(self.engagement_id),
-                        CrewAIFlowStateExtensions.updated_at == prev_updated_at,
+        try:
+            async with self.db.begin():
+                # Apply enrichment deltas
+                if metadata:
+                    await self.enrich.update_flow_metadata(
+                        flow_id, self._ensure_json_serializable(metadata)
                     )
-                )
-                .values(flow_status=status, updated_at=datetime.utcnow())
-            )
-            result = await self.db.execute(stmt_upd)
-            if result.rowcount:
-                await self.db.commit()
-            else:
-                await self.db.rollback()
-                logger.warning(
-                    "OCC conflict updating flow_status for flow_id=%s, client=%s, engagement=%s",
-                    flow_id,
-                    self.client_account_id,
-                    self.engagement_id,
-                )
+                if collaboration_entry:
+                    if isinstance(collaboration_entry, dict):
+                        entry = dict(collaboration_entry)
+                        if "timestamp" not in entry:
+                            entry["timestamp"] = datetime.utcnow().isoformat()
+                        await self.enrich.append_agent_collaboration(
+                            flow_id, self._ensure_json_serializable(entry)
+                        )
+                    else:
+                        logger.warning(
+                            "Invalid collaboration_entry type '%s' for flow_id=%s; skipping",
+                            type(collaboration_entry).__name__,
+                            flow_id,
+                        )
+                if phase_data:
+                    await self.enrich.update_flow_metadata(
+                        flow_id, self._ensure_json_serializable(phase_data)
+                    )
+
+                # OCC-guarded status update
+                flow = await self._get_flow_for_context(flow_id)
+                if flow:
+                    prev_updated_at = flow.updated_at
+                    stmt_upd = (
+                        update(CrewAIFlowStateExtensions)
+                        .where(
+                            and_(
+                                CrewAIFlowStateExtensions.id == flow.id,
+                                CrewAIFlowStateExtensions.client_account_id
+                                == uuid.UUID(self.client_account_id),
+                                CrewAIFlowStateExtensions.engagement_id
+                                == uuid.UUID(self.engagement_id),
+                                CrewAIFlowStateExtensions.updated_at == prev_updated_at,
+                            )
+                        )
+                        .values(flow_status=status, updated_at=datetime.utcnow())
+                    )
+                    result = await self.db.execute(stmt_upd)
+                    if not result.rowcount:
+                        raise RuntimeError("OCC conflict on flow_status update")
+        except Exception as e:
+            logger.error("Failed update_flow_status for flow_id=%s: %s", flow_id, e)
+            raise
         return await self._get_flow_for_context(flow_id)
 
     async def _get_flow_for_context(

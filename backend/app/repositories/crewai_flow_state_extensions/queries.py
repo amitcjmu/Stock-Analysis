@@ -16,9 +16,12 @@ class MasterFlowQueries:
         self.engagement_id = engagement_id
 
     async def get_by_flow_id(self, flow_id: str) -> Optional[CrewAIFlowStateExtensions]:
-        flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-        client_uuid = uuid.UUID(self.client_account_id)
-        engagement_uuid = uuid.UUID(self.engagement_id)
+        try:
+            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            client_uuid = uuid.UUID(self.client_account_id)
+            engagement_uuid = uuid.UUID(self.engagement_id)
+        except (ValueError, TypeError):
+            return None
         stmt = select(CrewAIFlowStateExtensions).where(
             and_(
                 CrewAIFlowStateExtensions.flow_id == flow_uuid,
