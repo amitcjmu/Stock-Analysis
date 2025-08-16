@@ -54,7 +54,10 @@ class MasterFlowQueries:
             client_uuid = uuid.UUID(self.client_account_id)
         except (ValueError, TypeError):
             return []
-        engagement_uuid = uuid.UUID(self.engagement_id)
+        try:
+            engagement_uuid = uuid.UUID(self.engagement_id)
+        except (ValueError, TypeError):
+            return []
         stmt = (
             select(CrewAIFlowStateExtensions)
             .where(

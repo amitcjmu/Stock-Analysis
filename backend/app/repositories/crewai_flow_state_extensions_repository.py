@@ -341,8 +341,17 @@ class CrewAIFlowStateExtensionsRepository(BaseRepo):
                 )
                 .values(flow_status=status, updated_at=datetime.utcnow())
             )
-            await self.db.execute(stmt_upd)
-            await self.db.commit()
+            result = await self.db.execute(stmt_upd)
+            if result.rowcount:
+                await self.db.commit()
+            else:
+                await self.db.rollback()
+                logger.warning(
+                    "OCC conflict updating flow_status for flow_id=%s, client=%s, engagement=%s",
+                    flow_id,
+                    self.client_account_id,
+                    self.engagement_id,
+                )
         return await self.queries.get_by_flow_id(flow_id)
 
     async def get_flows_by_type(

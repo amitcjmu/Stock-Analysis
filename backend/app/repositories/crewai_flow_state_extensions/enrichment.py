@@ -57,7 +57,20 @@ class MasterFlowEnrichment(BaseRepo):
         if not flow:
             return
         metadata = flow.flow_metadata or {}
-        metadata.update(self._ensure_json_serializable(metadata_updates))
+        if not isinstance(metadata, dict):
+            logger.warning(
+                "flow_metadata is not a dict; resetting to empty dict for flow_id=%s",
+                flow_id,
+            )
+            metadata = {}
+        serializable = self._ensure_json_serializable(metadata_updates)
+        if not isinstance(serializable, dict):
+            logger.warning(
+                "metadata_updates did not serialize to a dict; skipping merge for flow_id=%s",
+                flow_id,
+            )
+        else:
+            metadata.update(serializable)
         prev_updated_at = flow.updated_at
         stmt_upd = (
             update(CrewAIFlowStateExtensions)
