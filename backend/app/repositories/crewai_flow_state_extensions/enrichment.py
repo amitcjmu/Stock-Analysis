@@ -14,37 +14,43 @@ from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.repositories.crewai_flow_state_extensions.base import BaseRepo
 
 logger = logging.getLogger(__name__)
 
 
-class MasterFlowEnrichment:
-    def __init__(self, db: AsyncSession, client_account_id: str, engagement_id: str):
-        self.db = db
-        self.client_account_id = client_account_id
-        self.engagement_id = engagement_id
-        self._enrichment_enabled = os.getenv(
-            "MASTER_STATE_ENRICHMENT_ENABLED", "true"
-        ).lower() in (
-            "1",
-            "true",
-            "yes",
-        )
+class MasterFlowEnrichment(BaseRepo):
+    def __init__(
+        self,
+        db: AsyncSession,
+        client_account_id: str,
+        engagement_id: str,
+        user_id: Optional[str] = None,
+    ):
+        super().__init__(db, client_account_id, engagement_id, user_id)
 
     async def update_flow_metadata(
         self, flow_id: str, metadata_updates: Dict[str, Any]
     ) -> None:
         if not self._enrichment_enabled:
             return
-        flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-        client_uuid = uuid.UUID(self.client_account_id)
-        engagement_uuid = uuid.UUID(self.engagement_id)
-        stmt = select(CrewAIFlowStateExtensions).where(
-            and_(
-                CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+        try:
+            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            client_uuid = uuid.UUID(self.client_account_id)
+            engagement_uuid = uuid.UUID(self.engagement_id)
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid UUID in enrichment call for flow_id={flow_id}: {e}")
+            return
+        stmt = (
+            select(CrewAIFlowStateExtensions)
+            .where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                )
             )
+            .with_for_update()
         )
         result = await self.db.execute(stmt)
         flow = result.scalar_one_or_none()
@@ -70,6 +76,12 @@ class MasterFlowEnrichment:
             await self.db.commit()
         else:
             await self.db.rollback()
+            logger.warning(
+                "OCC conflict updating flow_metadata for flow_id=%s, client=%s, engagement=%s; update skipped.",
+                flow_id,
+                self.client_account_id,
+                self.engagement_id,
+            )
 
     async def add_phase_transition(
         self,
@@ -80,15 +92,23 @@ class MasterFlowEnrichment:
     ) -> None:
         if not self._enrichment_enabled:
             return
-        flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-        client_uuid = uuid.UUID(self.client_account_id)
-        engagement_uuid = uuid.UUID(self.engagement_id)
-        stmt = select(CrewAIFlowStateExtensions).where(
-            and_(
-                CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+        try:
+            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            client_uuid = uuid.UUID(self.client_account_id)
+            engagement_uuid = uuid.UUID(self.engagement_id)
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid UUID in enrichment call for flow_id={flow_id}: {e}")
+            return
+        stmt = (
+            select(CrewAIFlowStateExtensions)
+            .where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                )
             )
+            .with_for_update()
         )
         result = await self.db.execute(stmt)
         flow = result.scalar_one_or_none()
@@ -124,21 +144,35 @@ class MasterFlowEnrichment:
             await self.db.commit()
         else:
             await self.db.rollback()
+            logger.warning(
+                "OCC conflict updating phase_transitions for flow_id=%s, client=%s, engagement=%s",
+                flow_id,
+                self.client_account_id,
+                self.engagement_id,
+            )
 
     async def record_phase_execution_time(
         self, flow_id: str, phase: str, execution_time_ms: float
     ) -> None:
         if not self._enrichment_enabled:
             return
-        flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-        client_uuid = uuid.UUID(self.client_account_id)
-        engagement_uuid = uuid.UUID(self.engagement_id)
-        stmt = select(CrewAIFlowStateExtensions).where(
-            and_(
-                CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+        try:
+            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            client_uuid = uuid.UUID(self.client_account_id)
+            engagement_uuid = uuid.UUID(self.engagement_id)
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid UUID in enrichment call for flow_id={flow_id}: {e}")
+            return
+        stmt = (
+            select(CrewAIFlowStateExtensions)
+            .where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                )
             )
+            .with_for_update()
         )
         result = await self.db.execute(stmt)
         flow = result.scalar_one_or_none()
@@ -167,21 +201,35 @@ class MasterFlowEnrichment:
             await self.db.commit()
         else:
             await self.db.rollback()
+            logger.warning(
+                "OCC conflict updating phase_execution_times for flow_id=%s, client=%s, engagement=%s",
+                flow_id,
+                self.client_account_id,
+                self.engagement_id,
+            )
 
     async def append_agent_collaboration(
         self, flow_id: str, entry: Dict[str, Any]
     ) -> None:
         if not self._enrichment_enabled:
             return
-        flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-        client_uuid = uuid.UUID(self.client_account_id)
-        engagement_uuid = uuid.UUID(self.engagement_id)
-        stmt = select(CrewAIFlowStateExtensions).where(
-            and_(
-                CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+        try:
+            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            client_uuid = uuid.UUID(self.client_account_id)
+            engagement_uuid = uuid.UUID(self.engagement_id)
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid UUID in enrichment call for flow_id={flow_id}: {e}")
+            return
+        stmt = (
+            select(CrewAIFlowStateExtensions)
+            .where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                )
             )
+            .with_for_update()
         )
         result = await self.db.execute(stmt)
         flow = result.scalar_one_or_none()
@@ -209,21 +257,35 @@ class MasterFlowEnrichment:
             await self.db.commit()
         else:
             await self.db.rollback()
+            logger.warning(
+                "OCC conflict updating agent_collaboration_log for flow_id=%s, client=%s, engagement=%s",
+                flow_id,
+                self.client_account_id,
+                self.engagement_id,
+            )
 
     async def update_memory_usage_metrics(
         self, flow_id: str, metrics: Dict[str, Any]
     ) -> None:
         if not self._enrichment_enabled:
             return
-        flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-        client_uuid = uuid.UUID(self.client_account_id)
-        engagement_uuid = uuid.UUID(self.engagement_id)
-        stmt = select(CrewAIFlowStateExtensions).where(
-            and_(
-                CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+        try:
+            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            client_uuid = uuid.UUID(self.client_account_id)
+            engagement_uuid = uuid.UUID(self.engagement_id)
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid UUID in enrichment call for flow_id={flow_id}: {e}")
+            return
+        stmt = (
+            select(CrewAIFlowStateExtensions)
+            .where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                )
             )
+            .with_for_update()
         )
         result = await self.db.execute(stmt)
         flow = result.scalar_one_or_none()
@@ -250,21 +312,35 @@ class MasterFlowEnrichment:
             await self.db.commit()
         else:
             await self.db.rollback()
+            logger.warning(
+                "OCC conflict updating memory_usage_metrics for flow_id=%s, client=%s, engagement=%s",
+                flow_id,
+                self.client_account_id,
+                self.engagement_id,
+            )
 
     async def update_agent_performance_metrics(
         self, flow_id: str, metrics: Dict[str, Any]
     ) -> None:
         if not self._enrichment_enabled:
             return
-        flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-        client_uuid = uuid.UUID(self.client_account_id)
-        engagement_uuid = uuid.UUID(self.engagement_id)
-        stmt = select(CrewAIFlowStateExtensions).where(
-            and_(
-                CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+        try:
+            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            client_uuid = uuid.UUID(self.client_account_id)
+            engagement_uuid = uuid.UUID(self.engagement_id)
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid UUID in enrichment call for flow_id={flow_id}: {e}")
+            return
+        stmt = (
+            select(CrewAIFlowStateExtensions)
+            .where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                )
             )
+            .with_for_update()
         )
         result = await self.db.execute(stmt)
         flow = result.scalar_one_or_none()
@@ -303,6 +379,12 @@ class MasterFlowEnrichment:
             await self.db.commit()
         else:
             await self.db.rollback()
+            logger.warning(
+                "OCC conflict updating agent_performance_metrics for flow_id=%s, client=%s, engagement=%s",
+                flow_id,
+                self.client_account_id,
+                self.engagement_id,
+            )
 
     async def add_error_entry(
         self,
@@ -313,15 +395,23 @@ class MasterFlowEnrichment:
     ) -> None:
         if not self._enrichment_enabled:
             return
-        flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-        client_uuid = uuid.UUID(self.client_account_id)
-        engagement_uuid = uuid.UUID(self.engagement_id)
-        stmt = select(CrewAIFlowStateExtensions).where(
-            and_(
-                CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+        try:
+            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            client_uuid = uuid.UUID(self.client_account_id)
+            engagement_uuid = uuid.UUID(self.engagement_id)
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid UUID in enrichment call for flow_id={flow_id}: {e}")
+            return
+        stmt = (
+            select(CrewAIFlowStateExtensions)
+            .where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                )
             )
+            .with_for_update()
         )
         result = await self.db.execute(stmt)
         flow = result.scalar_one_or_none()
@@ -356,19 +446,33 @@ class MasterFlowEnrichment:
             await self.db.commit()
         else:
             await self.db.rollback()
+            logger.warning(
+                "OCC conflict updating error_history for flow_id=%s, client=%s, engagement=%s",
+                flow_id,
+                self.client_account_id,
+                self.engagement_id,
+            )
 
     async def increment_retry_count(self, flow_id: str) -> None:
         if not self._enrichment_enabled:
             return
-        flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-        client_uuid = uuid.UUID(self.client_account_id)
-        engagement_uuid = uuid.UUID(self.engagement_id)
-        stmt = select(CrewAIFlowStateExtensions).where(
-            and_(
-                CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+        try:
+            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            client_uuid = uuid.UUID(self.client_account_id)
+            engagement_uuid = uuid.UUID(self.engagement_id)
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid UUID in enrichment call for flow_id={flow_id}: {e}")
+            return
+        stmt = (
+            select(CrewAIFlowStateExtensions)
+            .where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                )
             )
+            .with_for_update()
         )
         result = await self.db.execute(stmt)
         flow = result.scalar_one_or_none()
@@ -393,15 +497,11 @@ class MasterFlowEnrichment:
             await self.db.commit()
         else:
             await self.db.rollback()
+            logger.warning(
+                "OCC conflict updating retry_count for flow_id=%s, client=%s, engagement=%s",
+                flow_id,
+                self.client_account_id,
+                self.engagement_id,
+            )
 
-    def _ensure_json_serializable(self, obj: Any) -> Any:
-        # Lightweight wrapper; reuse logic if needed
-        if isinstance(obj, uuid.UUID):
-            return str(obj)
-        if isinstance(obj, datetime):
-            return obj.isoformat()
-        if isinstance(obj, dict):
-            return {k: self._ensure_json_serializable(v) for k, v in obj.items()}
-        if isinstance(obj, list):
-            return [self._ensure_json_serializable(v) for v in obj]
-        return obj
+    # Serializer inherited from BaseRepo

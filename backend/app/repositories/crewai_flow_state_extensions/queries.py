@@ -32,22 +32,28 @@ class MasterFlowQueries:
     async def get_by_flow_id_global(
         self, flow_id: str
     ) -> Optional[CrewAIFlowStateExtensions]:
-        flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-        # Security gate: first ensure it belongs to tenant
-        tenant_check = select(CrewAIFlowStateExtensions).where(
+        # Tenant-scoped "global" lookup (explicitly not cross-tenant)
+        try:
+            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            client_uuid = uuid.UUID(self.client_account_id)
+        except (ValueError, TypeError):
+            return None
+        stmt = select(CrewAIFlowStateExtensions).where(
             and_(
                 CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                CrewAIFlowStateExtensions.client_account_id
-                == uuid.UUID(self.client_account_id),
+                CrewAIFlowStateExtensions.client_account_id == client_uuid,
             )
         )
-        result = await self.db.execute(tenant_check)
+        result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
     async def get_flows_by_type(
         self, flow_type: str, limit: int = 10
     ) -> List[CrewAIFlowStateExtensions]:
-        client_uuid = uuid.UUID(self.client_account_id)
+        try:
+            client_uuid = uuid.UUID(self.client_account_id)
+        except (ValueError, TypeError):
+            return []
         engagement_uuid = uuid.UUID(self.engagement_id)
         stmt = (
             select(CrewAIFlowStateExtensions)
@@ -78,10 +84,13 @@ class MasterFlowQueries:
         ]
         conditions.append(CrewAIFlowStateExtensions.flow_status.in_(active_statuses))
         if self.engagement_id:
-            engagement_uuid = uuid.UUID(self.engagement_id)
-            conditions.append(
-                CrewAIFlowStateExtensions.engagement_id == engagement_uuid
-            )
+            try:
+                engagement_uuid = uuid.UUID(self.engagement_id)
+                conditions.append(
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid
+                )
+            except (ValueError, TypeError):
+                return []
         if flow_type:
             conditions.append(CrewAIFlowStateExtensions.flow_type == flow_type)
         stmt = (
