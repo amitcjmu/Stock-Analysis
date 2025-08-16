@@ -22,7 +22,7 @@ def test_user_deactivation():
     # First get list of active users
     try:
         response = requests.get(
-            f"{BASE_URL}/api/v1/auth/active-users", headers=ADMIN_HEADERS
+            f"{BASE_URL}/api/v1/auth/active-users", headers=ADMIN_HEADERS, timeout=30
         )
         if response.status_code == 200:
             users_data = response.json()
@@ -44,6 +44,7 @@ def test_user_deactivation():
                     f"{BASE_URL}/api/v1/auth/deactivate-user",
                     headers=ADMIN_HEADERS,
                     json=deactivate_data,
+                    timeout=30,
                 )
 
                 if response.status_code == 200:
@@ -56,6 +57,7 @@ def test_user_deactivation():
                         f"{BASE_URL}/api/v1/auth/activate-user",
                         headers=ADMIN_HEADERS,
                         json=reactivate_data,
+                        timeout=30,
                     )
 
                     if response.status_code == 200:
@@ -92,7 +94,7 @@ def test_engagement_creation():
     try:
         # First get client accounts
         response = requests.get(
-            f"{BASE_URL}/api/v1/admin/clients/", headers=ADMIN_HEADERS
+            f"{BASE_URL}/api/v1/admin/clients/", headers=ADMIN_HEADERS, timeout=30
         )
 
         if response.status_code == 200:
@@ -125,6 +127,7 @@ def test_engagement_creation():
                     f"{BASE_URL}/api/v1/admin/engagements/",
                     headers=ADMIN_HEADERS,
                     json=engagement_data,
+                    timeout=30,
                 )
 
                 if response.status_code == 200:
@@ -158,6 +161,7 @@ def test_engagement_creation():
                     f"{BASE_URL}/api/v1/admin/clients/",
                     headers=ADMIN_HEADERS,
                     json=client_data,
+                    timeout=30,
                 )
 
                 if response.status_code == 200:
@@ -185,7 +189,7 @@ def test_api_health():
     print("🔍 Testing API Health...")
 
     try:
-        response = requests.get(f"{BASE_URL}/health")
+        response = requests.get(f"{BASE_URL}/health", timeout=30)
         if response.status_code == 200:
             print("   ✅ API Health check SUCCESS")
             return True

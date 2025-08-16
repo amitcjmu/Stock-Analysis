@@ -85,7 +85,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
 
         context["context_info"] = context_info
         logger.info(
-            f"🔧 Providing context for deduplication tools: client={context_info['client_account_id']}, engagement={context_info['engagement_id']}"
+            f"🔧 Providing context for deduplication tools: "
+            f"client={context_info['client_account_id']}, "
+            f"engagement={context_info['engagement_id']}"
         )
 
         return context
@@ -268,7 +270,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                     if self.flow_bridge and hasattr(self.flow_bridge, "context"):
                         context = self.flow_bridge.context
                         logger.info(
-                            f"🔄 Using context from flow_bridge: client={context.client_account_id}, engagement={context.engagement_id}"
+                            f"🔄 Using context from flow_bridge: "
+                            f"client={context.client_account_id}, "
+                            f"engagement={context.engagement_id}"
                         )
 
                 if not context:
@@ -321,7 +325,8 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 existing_ips = {row[2] for row in existing_assets if row[2]}
 
                 logger.info(
-                    f"📋 Found {len(existing_names)} existing asset names, {len(existing_hostnames)} hostnames, {len(existing_ips)} IPs in database"
+                    f"📋 Found {len(existing_names)} existing asset names, "
+                    f"{len(existing_hostnames)} hostnames, {len(existing_ips)} IPs in database"
                 )
 
                 # Prepare asset data for persistence using field mappings
@@ -353,7 +358,8 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                     if not asset_name:
                         asset_name = f"Asset-{idx + 1}"  # Simple numeric identifier
 
-                    # Ensure unique names by adding suffix if needed (check against both existing DB names and current batch)
+                    # Ensure unique names by adding suffix if needed
+                    # (check against both existing DB names and current batch)
                     original_name = asset_name
                     counter = 1
                     while asset_name in seen_names:
@@ -383,7 +389,8 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                         seen_ips.add(ip_address)
 
                     logger.debug(
-                        f"🏷️ Asset {idx + 1}: original_name='{original_name}', final_name='{asset_name}', hostname='{hostname}', ip='{ip_address}'"
+                        f"🏷️ Asset {idx + 1}: original_name='{original_name}', "
+                        f"final_name='{asset_name}', hostname='{hostname}', ip='{ip_address}'"
                     )
 
                     asset_data = {

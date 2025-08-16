@@ -198,7 +198,8 @@ class TierRoutingService:
                     "Selected tier differs from high-confidence recommendation"
                 )
                 recommendations.append(
-                    f"Recommended tier {tier_analysis.recommended_tier.value} has {tier_analysis.confidence_score:.2f} confidence"
+                    f"Recommended tier {tier_analysis.recommended_tier.value} has "
+                    f"{tier_analysis.confidence_score:.2f} confidence"
                 )
 
             # Risk assessment for selected tier

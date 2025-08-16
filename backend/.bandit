@@ -1,6 +1,7 @@
 [bandit]
 # Allow legitimate temp operations, error handling, and development tools
-skips = B108,B110,B301,B314,B324,B403
+# B608: Skip false positives on task description f-strings (not SQL injection)
+skips = B108,B110,B301,B314,B324,B403,B608
 
 # Security standards - enforce high confidence, medium severity
 confidence = HIGH

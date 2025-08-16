@@ -124,7 +124,8 @@ def upgrade() -> None:
 
                     -- Create new policy
                     EXECUTE format(
-                        'CREATE POLICY %I ON migration.%I FOR ALL TO application_role USING (client_account_id = current_setting(''app.client_id'', true)::uuid)',
+                        'CREATE POLICY %I ON migration.%I FOR ALL TO application_role ' ||
+                        'USING (client_account_id = current_setting(''app.client_id'', true)::uuid)',
                         v_policy_name, v_table_name
                     );
 

@@ -43,6 +43,7 @@ from typing import Any, Dict, List, Optional
 # Add the backend directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# flake8: noqa: E402
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -114,7 +115,9 @@ class DataIntegrityCleanupUtilities:
             # Count records with session references
             count_result = await session.execute(
                 text(
-                    f"SELECT COUNT(*) FROM migration.{table_name} WHERE {column_name} IS NOT NULL"  # nosec B608 - table_name and column_name from information_schema query, safe
+                    f"SELECT COUNT(*) FROM migration.{table_name} "
+                    f"WHERE {column_name} IS NOT NULL"
+                    # nosec B608 - table_name and column_name from information_schema query, safe
                 )
             )
             count = count_result.scalar()
@@ -126,7 +129,11 @@ class DataIntegrityCleanupUtilities:
                 )
 
                 # Create cleanup command
-                cleanup_sql = f"UPDATE migration.{table_name} SET {column_name} = NULL WHERE {column_name} IS NOT NULL"  # nosec B608 - table_name and column_name from information_schema query, safe
+                cleanup_sql = (
+                    f"UPDATE migration.{table_name} SET {column_name} = NULL "
+                    f"WHERE {column_name} IS NOT NULL"
+                    # nosec B608 - table_name and column_name from information_schema query, safe
+                )
                 cleanup_commands.append(cleanup_sql)
 
                 if not self.dry_run:
@@ -191,7 +198,11 @@ class DataIntegrityCleanupUtilities:
             affected_records=affected_count,
             description="Added missing tenant context from parent data imports",
             sql_command=missing_tenant_sql,
-            rollback_command="UPDATE migration.raw_import_records SET client_account_id = NULL, engagement_id = NULL WHERE updated_at > CURRENT_TIMESTAMP - INTERVAL '1 hour'",
+            rollback_command=(
+                "UPDATE migration.raw_import_records "
+                "SET client_account_id = NULL, engagement_id = NULL "
+                "WHERE updated_at > CURRENT_TIMESTAMP - INTERVAL '1 hour'"
+            ),
         )
 
         self.operations_log.append(operation)
@@ -384,7 +395,11 @@ class DataIntegrityCleanupUtilities:
                         else:
                             values.append(str(value))
 
-                    insert_sql = f"INSERT INTO migration.{table} ({', '.join(columns)}) VALUES ({', '.join(values)});"  # nosec B608 - table name from validated critical_tables list
+                    insert_sql = (
+                        f"INSERT INTO migration.{table} "
+                        f"({', '.join(columns)}) VALUES ({', '.join(values)});"
+                        # nosec B608 - table name from validated critical_tables list
+                    )
                     backup_commands.append(insert_sql)
 
                 backup_commands.append("")

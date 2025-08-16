@@ -11,11 +11,11 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from app.core.database import AsyncSessionLocal
-from app.models.discovery_flow import DiscoveryFlow
-from app.models.data_import import ImportFieldMapping, RawImportRecord
-from sqlalchemy import select
-from datetime import datetime
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.discovery_flow import DiscoveryFlow  # noqa: E402
+from app.models.data_import import ImportFieldMapping, RawImportRecord  # noqa: E402
+from sqlalchemy import select  # noqa: E402
+from datetime import datetime  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

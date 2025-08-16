@@ -54,7 +54,9 @@ def create_pattern_search_tool(client_account_id: uuid.UUID, engagement_id: uuid
         - min_confidence: minimum confidence threshold (0.0 to 1.0, default 0.6)
         - validated_only: whether to only search human-validated patterns (default false)
 
-        Example: '{"query": "database business value indicators", "pattern_types": ["business_value_indicator"], "min_confidence": 0.7}'
+        Example:
+            '{"query": "database business value indicators",
+             "pattern_types": ["business_value_indicator"], "min_confidence": 0.7}'
         """
         if not DATABASE_AVAILABLE:
             return "Pattern search not available - database not connected"
@@ -153,7 +155,9 @@ def create_asset_query_tool(client_account_id: uuid.UUID, engagement_id: uuid.UU
         - limit: maximum number of results (default 10)
         - include_fields: list of specific fields to include in results
 
-        Example: '{"asset_type": "database", "environment": "production", "limit": 5, "include_fields": ["name", "technology_stack", "business_criticality"]}'
+        Example:
+            '{"asset_type": "database", "environment": "production", "limit": 5,
+             "include_fields": ["name", "technology_stack", "business_criticality"]}'
         """
         if not DATABASE_AVAILABLE:
             return "Asset query not available - database not connected"

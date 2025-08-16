@@ -90,10 +90,12 @@ class MappingService:
 
             # Debug logging to identify the issue
             logger.info(
-                f"🔍 DEBUG: Field mapping - source_field type: {type(mapping.source_field)}, value: {mapping.source_field}"
+                f"🔍 DEBUG: Field mapping - source_field type: {type(mapping.source_field)}, "
+                f"value: {mapping.source_field}"
             )
             logger.info(
-                f"🔍 DEBUG: Field mapping - target_field type: {type(mapping.target_field)}, value: {mapping.target_field}"
+                f"🔍 DEBUG: Field mapping - target_field type: {type(mapping.target_field)}, "
+                f"value: {mapping.target_field}"
             )
 
             # Convert JSON transformation_rules to string, handle None values

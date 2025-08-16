@@ -199,7 +199,10 @@ class QualityRecommendationGenerator:
                 supporting_insights=[
                     RecommendationInsight(
                         insight_type="platform_diversity",
-                        description=f"Diverse platform landscape ({platform_count} platforms) requires adaptive strategies",
+                        description=(
+                            f"Diverse platform landscape ({platform_count} platforms) "
+                            f"requires adaptive strategies"
+                        ),
                         confidence=0.87,
                         supporting_data={
                             "platform_count": platform_count,

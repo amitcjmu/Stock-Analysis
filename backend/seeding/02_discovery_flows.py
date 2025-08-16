@@ -14,10 +14,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # Add backend to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from app.core.database import AsyncSessionLocal
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.models.discovery_flow import DiscoveryFlow
-from seeding.constants import (
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.crewai_flow_state_extensions import (
+    CrewAIFlowStateExtensions,
+)  # noqa: E402
+from app.models.discovery_flow import DiscoveryFlow  # noqa: E402
+from seeding.constants import (  # noqa: E402
     BASE_TIMESTAMP,
     DEMO_CLIENT_ID,
     DEMO_ENGAGEMENT_ID,

@@ -138,6 +138,180 @@ async def create_migration_waves(session: AsyncSession):
     return waves
 
 
+def _determine_strategy_for_network_asset(asset):
+    """Determine strategy for network and load balancer assets."""
+    return {
+        "strategy": "replace",
+        "wave": 1,
+        "readiness": "Ready",
+        "complexity": "High",
+        "priority": 9,
+    }
+
+
+def _determine_strategy_for_database_asset(asset):
+    """Determine strategy for database assets."""
+    database_type = str(asset.custom_attributes.get("database_type", ""))
+
+    if "Oracle" in database_type:
+        strategy = (
+            "replatform" if asset.business_criticality == "Critical" else "rehost"
+        )
+    elif "PostgreSQL" in database_type:
+        strategy = "rehost"
+    else:
+        strategy = "replatform"
+
+    return {
+        "strategy": strategy,
+        "wave": 2,
+        "readiness": "Ready" if strategy == SixRStrategy.REHOST else "Needs Analysis",
+        "complexity": "High" if strategy == SixRStrategy.REPLATFORM else "Medium",
+        "priority": 8,
+    }
+
+
+def _determine_strategy_for_application_asset(asset):
+    """Determine strategy for application assets."""
+    tech_stack = asset.technology_stack or ""
+
+    if "Java" in tech_stack or ".NET Core" in tech_stack:
+        strategy, readiness, complexity = "replatform", "Ready", "Medium"
+    elif "Legacy" in tech_stack or ".NET Framework" in tech_stack:
+        strategy, readiness, complexity = "refactor", "Business Review", "High"
+    elif "Python" in tech_stack or "Node.js" in tech_stack:
+        strategy, readiness, complexity = "rehost", "Ready", "Low"
+    else:
+        strategy, readiness, complexity = "replace", "Needs Analysis", "Medium"
+
+    return {
+        "strategy": strategy,
+        "wave": 3,
+        "readiness": readiness,
+        "complexity": complexity,
+        "priority": 7 if asset.business_criticality == "Critical" else 5,
+    }
+
+
+def _determine_strategy_for_server_asset(asset):
+    """Determine strategy for server assets."""
+    os = asset.operating_system or ""
+
+    if "Windows Server 2016" in os or "CentOS 7" in os:
+        return {
+            "strategy": "retire",
+            "wave": 4,
+            "readiness": "Business Review",
+            "complexity": "Low",
+            "priority": 3,
+        }
+    elif asset.has_dependencies:
+        return {
+            "strategy": "replatform",
+            "wave": 3,
+            "readiness": "Dependency Blocked",
+            "complexity": "Medium",
+            "priority": 6,
+        }
+    else:
+        return {
+            "strategy": "rehost",
+            "wave": 2,
+            "readiness": "Ready",
+            "complexity": "Low",
+            "priority": 4,
+        }
+
+
+def _get_migration_planning_for_asset(asset):
+    """Get migration planning details for an asset based on its type."""
+    if asset.asset_type in ["network", "load_balancer"]:
+        return _determine_strategy_for_network_asset(asset)
+    elif asset.asset_type == "database":
+        return _determine_strategy_for_database_asset(asset)
+    elif asset.asset_type == "application":
+        return _determine_strategy_for_application_asset(asset)
+    else:  # servers
+        return _determine_strategy_for_server_asset(asset)
+
+
+def _adjust_readiness_for_flow_state(asset, readiness, priority):
+    """Adjust readiness based on discovery flow state."""
+    if hasattr(asset, "discovery_flow") and asset.discovery_flow:
+        flow_state = getattr(asset.discovery_flow, "state", "unknown")
+        if flow_state == "failed":
+            return "Needs Analysis"
+        elif flow_state == "in_progress" and priority > 5:
+            return "Dependency Blocked"
+    return readiness
+
+
+def _build_risk_factors(asset):
+    """Build risk factors list for an asset."""
+    risk_factors = [
+        "Dependency complexity" if asset.has_dependencies else None,
+        "Legacy technology" if "Legacy" in (asset.technology_stack or "") else None,
+        (
+            "High availability requirements"
+            if asset.business_criticality == "Critical"
+            else None
+        ),
+        (
+            "Compliance requirements"
+            if asset.custom_attributes.get("compliance_scope", "None") != "None"
+            else None
+        ),
+    ]
+    return [rf for rf in risk_factors if rf is not None]
+
+
+def _update_asset_with_migration_plan(asset, planning_details, wave_status):
+    """Update asset with migration planning details."""
+    strategy = planning_details["strategy"]
+    wave = planning_details["wave"]
+    complexity = planning_details["complexity"]
+    readiness = planning_details["readiness"]
+    priority = planning_details["priority"]
+
+    # Adjust readiness for flow state
+    readiness = _adjust_readiness_for_flow_state(asset, readiness, priority)
+
+    # Update asset properties
+    asset.six_r_strategy = strategy
+    asset.migration_wave = wave
+    asset.migration_complexity = complexity
+    asset.migration_priority = priority
+    asset.sixr_ready = readiness
+
+    # Update migration status based on wave status
+    if wave_status == "completed":
+        asset.migration_status = "migrated"
+    elif wave_status == "in_progress":
+        asset.migration_status = "migrating"
+    else:
+        asset.migration_status = "planned"
+
+    # Update custom attributes
+    if not asset.custom_attributes:
+        asset.custom_attributes = {}
+
+    asset.custom_attributes.update(
+        {
+            "migration_strategy_rationale": STRATEGY_RULES.get(
+                asset.asset_type, {}
+            ).get("rationale", "Standard migration approach"),
+            "readiness_indicator": readiness,
+            "wave_assignment_reason": f"Asset assigned to wave {wave} based on type and dependencies",
+            "estimated_migration_duration_days": {
+                "Low": 5,
+                "Medium": 15,
+                "High": 30,
+            }.get(complexity, 10),
+            "risk_factors": _build_risk_factors(asset),
+        }
+    )
+
+
 async def assign_6r_strategies_and_waves(session: AsyncSession):
     """Assign 6R strategies and migration waves to assets based on rules."""
     print("  🎯 Assigning 6R strategies and migration waves...")
@@ -154,147 +328,24 @@ async def assign_6r_strategies_and_waves(session: AsyncSession):
     wave_assignments = {1: 0, 2: 0, 3: 0, 4: 0}
     readiness_counts = {}
 
-    for i, asset in enumerate(assets):
-        # Assign 6R strategy based on asset type and characteristics
-        if asset.asset_type in ["network", "load_balancer"]:
-            strategy = "replace"
-            wave = 1  # Network infrastructure first
-            readiness = "Ready"
-            complexity = "High"
-            priority = 9
-        elif asset.asset_type == "database":
-            # Database strategy based on technology and criticality
-            if "Oracle" in str(asset.custom_attributes.get("database_type", "")):
-                strategy = (
-                    "replatform"
-                    if asset.business_criticality == "Critical"
-                    else "rehost"
-                )
-            elif "PostgreSQL" in str(asset.custom_attributes.get("database_type", "")):
-                strategy = "rehost"  # Simpler migration for PostgreSQL
-            else:
-                strategy = "replatform"
+    for asset in assets:
+        # Get migration planning details
+        planning_details = _get_migration_planning_for_asset(asset)
 
-            wave = 2  # Databases in wave 2
-            readiness = "Ready" if strategy == SixRStrategy.REHOST else "Needs Analysis"
-            complexity = "High" if strategy == SixRStrategy.REPLATFORM else "Medium"
-            priority = 8
-        elif asset.asset_type == "application":
-            # Application strategy based on technology stack and criticality
-            tech_stack = asset.technology_stack or ""
-            if "Java" in tech_stack or ".NET Core" in tech_stack:
-                strategy = "replatform"
-                readiness = "Ready"
-                complexity = "Medium"
-            elif "Legacy" in tech_stack or ".NET Framework" in tech_stack:
-                strategy = "refactor"
-                readiness = "Business Review"
-                complexity = "High"
-            elif "Python" in tech_stack or "Node.js" in tech_stack:
-                strategy = "rehost"
-                readiness = "Ready"
-                complexity = "Low"
-            else:
-                strategy = "replace"
-                readiness = "Needs Analysis"
-                complexity = "Medium"
+        # Get wave status
+        wave_status = MIGRATION_WAVES[planning_details["wave"] - 1]["status"]
 
-            wave = 3  # Applications in wave 3
-            priority = 7 if asset.business_criticality == "Critical" else 5
-        else:  # servers
-            # Server strategy based on OS and dependencies
-            os = asset.operating_system or ""
-            if "Windows Server 2016" in os or "CentOS 7" in os:
-                strategy = "retire"  # Old OS versions
-                readiness = "Business Review"
-                complexity = "Low"
-                wave = 4
-                priority = 3
-            elif asset.has_dependencies:
-                strategy = "replatform"
-                readiness = "Dependency Blocked"
-                complexity = "Medium"
-                wave = 3
-                priority = 6
-            else:
-                strategy = "rehost"
-                readiness = "Ready"
-                complexity = "Low"
-                wave = 2
-                priority = 4
+        # Update asset with migration planning
+        _update_asset_with_migration_plan(asset, planning_details, wave_status)
 
-        # Special case: Some assets in failed/new flows have different readiness
-        if hasattr(asset, "discovery_flow") and asset.discovery_flow:
-            flow_state = getattr(asset.discovery_flow, "state", "unknown")
-            if flow_state == "failed":
-                readiness = "Needs Analysis"
-            elif flow_state == "in_progress" and priority > 5:
-                readiness = "Dependency Blocked"
-
-        # Update asset with migration planning data
-        asset.six_r_strategy = strategy
-        asset.migration_wave = wave
-        asset.migration_complexity = complexity
-        asset.migration_priority = priority
-        asset.sixr_ready = readiness
-
-        # Update migration status based on wave status
-        wave_status = MIGRATION_WAVES[wave - 1]["status"]
-        if wave_status == "completed":
-            asset.migration_status = "migrated"
-        elif wave_status == "in_progress":
-            asset.migration_status = "migrating"
-        else:
-            asset.migration_status = "planned"
-
-        # Add migration planning to custom attributes
-        if not asset.custom_attributes:
-            asset.custom_attributes = {}
-
-        asset.custom_attributes.update(
-            {
-                "migration_strategy_rationale": STRATEGY_RULES.get(
-                    asset.asset_type, {}
-                ).get("rationale", "Standard migration approach"),
-                "readiness_indicator": readiness,
-                "wave_assignment_reason": f"Asset assigned to wave {wave} based on type and dependencies",
-                "estimated_migration_duration_days": {
-                    "Low": 5,
-                    "Medium": 15,
-                    "High": 30,
-                }.get(complexity, 10),
-                "risk_factors": [
-                    "Dependency complexity" if asset.has_dependencies else None,
-                    (
-                        "Legacy technology"
-                        if "Legacy" in (asset.technology_stack or "")
-                        else None
-                    ),
-                    (
-                        "High availability requirements"
-                        if asset.business_criticality == "Critical"
-                        else None
-                    ),
-                    (
-                        "Compliance requirements"
-                        if asset.custom_attributes.get("compliance_scope", "None")
-                        != "None"
-                        else None
-                    ),
-                ],
-            }
+        # Update statistics
+        strategy_counts[planning_details["strategy"]] = (
+            strategy_counts.get(planning_details["strategy"], 0) + 1
         )
-
-        # Remove None values from risk factors
-        if asset.custom_attributes.get("risk_factors"):
-            asset.custom_attributes["risk_factors"] = [
-                rf for rf in asset.custom_attributes["risk_factors"] if rf is not None
-            ]
-
-        # Count statistics
-        strategy_counts[strategy] = strategy_counts.get(strategy, 0) + 1
-        wave_assignments[wave] += 1
-        readiness_counts[readiness] = readiness_counts.get(readiness, 0) + 1
+        wave_assignments[planning_details["wave"]] += 1
+        readiness_counts[asset.sixr_ready] = (
+            readiness_counts.get(asset.sixr_ready, 0) + 1
+        )
 
     return assets, strategy_counts, wave_assignments, readiness_counts
 

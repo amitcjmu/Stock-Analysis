@@ -645,5 +645,6 @@ def analyze_data_source(
         context=f"Analyze the data source with ID {data_source_id} and determine its type and quality.",
     )
 
-    # This is a placeholder implementation. In a real application, you would wait for the task to complete and return the result.
+    # This is a placeholder implementation. In a real application, you would wait for the task to
+    # complete and return the result.
     return {"status": "Analysis in progress"}

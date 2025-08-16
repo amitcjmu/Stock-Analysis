@@ -15,15 +15,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # Add backend to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from app.core.database import AsyncSessionLocal
-from app.models.client_account import (
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.client_account import (  # noqa: E402
     ClientAccount,
     Engagement,
     User,
     UserAccountAssociation,
 )
-from app.models.rbac import UserRole
-from seeding.constants import (
+from app.models.rbac import UserRole  # noqa: E402
+from seeding.constants import (  # noqa: E402
     BASE_TIMESTAMP,
     DEFAULT_PASSWORD,
     DEMO_CLIENT_ID,

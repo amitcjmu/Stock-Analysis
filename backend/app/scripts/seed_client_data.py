@@ -12,12 +12,12 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_path))
 
-import uuid
+import uuid  # noqa: E402
 
-from sqlalchemy import select, update
+from sqlalchemy import select, update  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
-from app.models.client_account import ClientAccount
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.client_account import ClientAccount  # noqa: E402
 
 
 async def seed_client_data():

@@ -14,9 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # Add backend to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from app.core.database import AsyncSessionLocal
-from app.models.data_import.core import DataImport
-from seeding.constants import (
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.data_import.core import DataImport  # noqa: E402
+from seeding.constants import (  # noqa: E402
     BASE_TIMESTAMP,
     DEMO_CLIENT_ID,
     DEMO_ENGAGEMENT_ID,
@@ -193,7 +193,8 @@ async def create_data_imports(db: AsyncSession) -> list[DataImport]:
         created_imports.append(data_import)
 
         print(
-            f"✓ Created import: {import_data['filename']} ({import_data['status']}, {import_data['processed_rows']}/{import_data['total_rows']} rows)"
+            f"✓ Created import: {import_data['filename']} ({import_data['status']}, "
+            f"{import_data['processed_rows']}/{import_data['total_rows']} rows)"
         )
 
     await db.commit()

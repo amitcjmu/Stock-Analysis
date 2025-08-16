@@ -33,8 +33,6 @@ except ImportError:
     StorageManagementClient = NetworkManagementClient = None
     ClientAuthenticationError = HttpResponseError = Exception
 
-logger = logging.getLogger(__name__)
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.collection_flow import AutomationTier
@@ -45,6 +43,8 @@ from app.services.collection_flow.adapters import (
     CollectionRequest,
     CollectionResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass

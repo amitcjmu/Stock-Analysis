@@ -158,7 +158,10 @@ class TierRecommendationGenerator:
         return {
             "upgrade_viable": upgrade_viable,
             "recommended_tier": recommended_tier,
-            "description": f"Upgrade from {current_tier.value} to {recommended_tier} to improve quality and performance based on environment complexity",
+            "description": (
+                f"Upgrade from {current_tier.value} to {recommended_tier} to improve quality "
+                f"and performance based on environment complexity"
+            ),
             "confidence": confidence,
             "expected_impact": {
                 "quality": 0.15 if upgrade_viable else 0.0,

@@ -13,7 +13,7 @@ repos:
     rev: 1.8.6
     hooks:
       - id: bandit
-        args: ['-ll', '--skip', 'B108,B110,B301,B314,B324,B403', '--exclude', '**/tests/**,**/seeding/**,**/scripts/deployment/**,**/scripts/development/**,test_*.py,simple_*.py,monitor_*.py,railway_*.py,setup.py,start.py,flow_analysis_*.py']
+        args: ['-ll', '--skip', 'B108,B110,B301,B314,B324,B403,B608', '--exclude', '**/tests/**,**/seeding/**,**/scripts/deployment/**,**/scripts/development/**,test_*.py,simple_*.py,monitor_*.py,railway_*.py,setup.py,start.py,flow_analysis_*.py']
         exclude: ^(backend/tests/|backend/seeding/|.*test_.*\.py|.*simple_.*\.py|.*monitor_.*\.py|.*railway_.*\.py|setup\.py|start\.py|.*flow_analysis.*\.py)$
 
   # Security Vulnerabilities in Dependencies

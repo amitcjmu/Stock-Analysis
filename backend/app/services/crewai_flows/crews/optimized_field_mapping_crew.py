@@ -9,6 +9,8 @@ Implements the enhanced memory and performance optimizations:
 
 import json
 import logging
+from collections import defaultdict
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from crewai import Agent, Process, Task
@@ -522,6 +524,4 @@ QUALITY REQUIREMENTS:
             return ["Unable to generate recommendations due to analysis error"]
 
 
-# Import required for collections
-from collections import defaultdict
-from datetime import datetime
+# collections and datetime imported at top

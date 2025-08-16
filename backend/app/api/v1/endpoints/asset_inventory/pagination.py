@@ -231,7 +231,8 @@ async def list_assets_paginated(
 
         if needs_classification and len(asset_dicts) > 0:
             logger.warning(
-                f"🚨 Assets need CrewAI classification: {unclassified_count} unclassified, types found: {asset_types_found}"
+                f"🚨 Assets need CrewAI classification: {unclassified_count} unclassified, "
+                f"types found: {asset_types_found}"
             )
             # Add a header to indicate assets need classification
             # Note: The actual classification will be triggered by the frontend refresh button

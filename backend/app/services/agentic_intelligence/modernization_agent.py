@@ -151,84 +151,77 @@ class ModernizationAgent:
         }
 
         # This is not SQL, it's a task description for an AI agent
-        task = Task(  # nosec B608
-            description=f"""  # nosec B608
-            Conduct a comprehensive modernization assessment for this asset using your cloud architecture intelligence and memory tools:
+        asset_details_json = json.dumps(asset_summary, indent=2)
+        task_description = (  # nosec B608
+            "Conduct a comprehensive modernization assessment for this asset using your cloud architecture intelligence and memory tools:\n\n"
+            "Asset Details:\n" + asset_details_json + "\n\n"  # nosec B608
+            "Complete Modernization Assessment Process:\n\n"
+            "1. SEARCH FOR MODERNIZATION PATTERNS:\n"
+            "   Use your pattern search tool to find relevant modernization patterns and successful\n"
+            "   migration strategies from previous projects.\n"
+            "   Search for: cloud migration strategies, containerization patterns, microservices\n"
+            "   transformation, database modernization.\n\n"
+            "2. TECHNOLOGY STACK ANALYSIS:\n"
+            "   Use your asset query tool to examine similar technology stacks and identify:\n"
+            "   - Cloud compatibility and native support for the technology stack\n"
+            "   - Containerization readiness and Docker/Kubernetes potential\n"
+            "   - Microservices decomposition opportunities for monolithic applications\n"
+            "   - Database modernization options (managed services, cloud-native databases)\n"
+            "   - Compare with other successfully modernized systems\n\n"
+            "3. CLOUD READINESS ASSESSMENT:\n"
+            "   Evaluate cloud readiness factors including:\n"
+            "   - Stateless vs. stateful architecture considerations\n"
+            "   - Configuration management and externalization readiness\n"
+            "   - Service discovery and load balancing requirements\n"
+            "   - Data persistence and storage optimization opportunities\n"
+            "   - Network and security architecture cloud compatibility\n\n"
+            "4. MODERNIZATION STRATEGY ANALYSIS:\n"
+            "   Assess different modernization approaches:\n"
+            "   - Lift-and-shift: Minimal changes, quick migration, cost analysis\n"
+            "   - Re-platform: Cloud-optimized deployment with managed services\n"
+            "   - Refactor: Containerization, microservices, cloud-native patterns\n"
+            "   - Rebuild: Complete redesign using cloud-native architecture\n"
+            "   - Migration complexity and effort estimation for each approach\n\n"
+            "5. CONTAINERIZATION POTENTIAL:\n"
+            "   Determine containerization readiness:\n"
+            "   - Application architecture suitability for containers\n"
+            "   - Dependency management and external service integration\n"
+            "   - Configuration and secret management requirements\n"
+            "   - Orchestration needs for Kubernetes deployment\n"
+            "   - CI/CD pipeline integration opportunities\n\n"
+            "6. MODERNIZATION SCORING:\n"
+            "   Provide a comprehensive modernization assessment:\n"
+            "   - Cloud Readiness Score (0-100): Current readiness for cloud deployment\n"
+            "   - Modernization Potential (Low/Medium/High): Overall modernization opportunity\n"
+            "   - Effort Estimation (Low/Medium/High): Resources required for modernization\n"
+            "   - Business Impact (Low/Medium/High): Expected benefits from modernization\n\n"
+            "7. PATTERN DISCOVERY:\n"
+            "   If you identify new modernization patterns or architectural insights, use your pattern recording tool\n"
+            "   to save them for future project intelligence.\n\n"
+            "8. ASSET ENRICHMENT:\n"
+            "   Use your asset enrichment tool to update the asset with:\n"
+            "   - Cloud readiness score and modernization potential assessment\n"
+            "   - Recommended modernization strategy and migration approach\n"
+            "   - Technical requirements and architecture recommendations\n"
+            "   - Effort estimation and timeline considerations\n\n"
+            "Provide your modernization assessment in this format:\n"
+            "Cloud Readiness Score: [0-100]\n"
+            "Modernization Potential: [Low/Medium/High]\n"
+            "Recommended Strategy: [Lift-and-shift/Re-platform/Refactor/Rebuild]\n"
+            "Migration Effort: [Low/Medium/High]\n"
+            "Technical Confidence: [High/Medium/Low]\n"
+            "Architecture Assessment: [Key architectural strengths and modernization opportunities]\n"
+            "Technology Compatibility: [Cloud service compatibility and optimization opportunities]\n"
+            "Containerization Readiness: [Container deployment feasibility and requirements]\n"
+            "Modernization Patterns Applied: [Patterns used from memory]\n"
+            "New Patterns Discovered: [New modernization patterns identified]\n"
+            "Immediate Modernization Steps: [Quick wins and initial modernization actions]\n"
+            "Long-term Migration Strategy: [Comprehensive modernization roadmap]\n"
+            "Expected Benefits: [Business and technical benefits from modernization]\n"
+        )
 
-            Asset Details:
-            {json.dumps(asset_summary, indent=2)}
-
-            Complete Modernization Assessment Process:
-
-            1. SEARCH FOR MODERNIZATION PATTERNS:
-               Use your pattern search tool to find relevant modernization patterns and successful migration strategies from previous projects.
-               Search for: cloud migration strategies, containerization patterns, microservices transformation, database modernization.
-
-            2. TECHNOLOGY STACK ANALYSIS:
-               Use your asset query tool to examine similar technology stacks and identify:
-               - Cloud compatibility and native support for the technology stack
-               - Containerization readiness and Docker/Kubernetes potential
-               - Microservices decomposition opportunities for monolithic applications
-               - Database modernization options (managed services, cloud-native databases)
-               - Compare with other successfully modernized systems
-
-            3. CLOUD READINESS ASSESSMENT:
-               Evaluate cloud readiness factors including:
-               - Stateless vs. stateful architecture considerations
-               - Configuration management and externalization readiness
-               - Service discovery and load balancing requirements
-               - Data persistence and storage optimization opportunities
-               - Network and security architecture cloud compatibility
-
-            4. MODERNIZATION STRATEGY ANALYSIS:
-               Assess different modernization approaches:
-               - Lift-and-shift: Minimal changes, quick migration, cost analysis
-               - Re-platform: Cloud-optimized deployment with managed services
-               - Refactor: Containerization, microservices, cloud-native patterns
-               - Rebuild: Complete redesign using cloud-native architecture
-               - Migration complexity and effort estimation for each approach
-
-            5. CONTAINERIZATION POTENTIAL:
-               Determine containerization readiness:
-               - Application architecture suitability for containers
-               - Dependency management and external service integration
-               - Configuration and secret management requirements
-               - Orchestration needs for Kubernetes deployment
-               - CI/CD pipeline integration opportunities
-
-            6. MODERNIZATION SCORING:
-               Provide a comprehensive modernization assessment:
-               - Cloud Readiness Score (0-100): Current readiness for cloud deployment
-               - Modernization Potential (Low/Medium/High): Overall modernization opportunity
-               - Effort Estimation (Low/Medium/High): Resources required for modernization
-               - Business Impact (Low/Medium/High): Expected benefits from modernization
-
-            7. PATTERN DISCOVERY:
-               If you identify new modernization patterns or architectural insights, use your pattern recording tool
-               to save them for future project intelligence.
-
-            8. ASSET ENRICHMENT:
-               Use your asset enrichment tool to update the asset with:
-               - Cloud readiness score and modernization potential assessment
-               - Recommended modernization strategy and migration approach
-               - Technical requirements and architecture recommendations
-               - Effort estimation and timeline considerations
-
-            Provide your modernization assessment in this format:
-            Cloud Readiness Score: [0-100]
-            Modernization Potential: [Low/Medium/High]
-            Recommended Strategy: [Lift-and-shift/Re-platform/Refactor/Rebuild]
-            Migration Effort: [Low/Medium/High]
-            Technical Confidence: [High/Medium/Low]
-            Architecture Assessment: [Key architectural strengths and modernization opportunities]
-            Technology Compatibility: [Cloud service compatibility and optimization opportunities]
-            Containerization Readiness: [Container deployment feasibility and requirements]
-            Modernization Patterns Applied: [Patterns used from memory]
-            New Patterns Discovered: [New modernization patterns identified]
-            Immediate Modernization Steps: [Quick wins and initial modernization actions]
-            Long-term Migration Strategy: [Comprehensive modernization roadmap]
-            Expected Benefits: [Business and technical benefits from modernization]
-            """,
+        task = Task(
+            description=task_description,
             expected_output="""
             Comprehensive Modernization Assessment Report with:
             - Cloud readiness score (0-100) with detailed technical analysis

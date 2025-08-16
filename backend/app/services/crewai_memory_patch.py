@@ -8,7 +8,8 @@ embedding calls and fixes the format.
 
 import logging
 import os
-from typing import Any, Dict, List, Union
+
+# Removed unused typing imports
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ def patch_crewai_memory_for_deepinfra():
 
     # Monkey patch the OpenAI embeddings create method
     try:
-        from openai import OpenAI
+        from openai import OpenAI  # noqa: F401
         from openai.resources.embeddings import Embeddings
 
         # Store the original create method

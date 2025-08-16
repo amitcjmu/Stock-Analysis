@@ -185,7 +185,8 @@ def create_manual_collection_crew(
         # Create response validation task
         # This is not SQL, it's a task description for an AI agent
         validation_task = Task(  # nosec B608
-            description=f"""Validate  # nosec B608 responses as they are submitted:
+            description=f"""
+            Validate responses as they are submitted:
 
             VALIDATION REQUIREMENTS:
             - Format validation (data types, patterns)

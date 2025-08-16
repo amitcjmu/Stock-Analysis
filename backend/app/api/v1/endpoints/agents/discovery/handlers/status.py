@@ -126,7 +126,10 @@ async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext)
                     "agent_name": "Field Mapping Expert",
                     "insight_type": "migration_readiness",
                     "title": "Field Mapping Progress",
-                    "description": f"{mapped_fields} of {total_fields} fields mapped ({mapping_percentage:.0f}% completion)",
+                    "description": (
+                        f"{mapped_fields} of {total_fields} fields mapped "
+                        f"({mapping_percentage:.0f}% completion)"
+                    ),
                     "confidence": confidence_level,
                     "supporting_data": {
                         "mapped_fields": mapped_fields,
@@ -138,7 +141,10 @@ async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext)
                     "created_at": datetime.utcnow().isoformat(),
                     # Keep original format for backward compatibility
                     "agent": "Field Mapping Expert",
-                    "insight": f"{mapped_fields} of {total_fields} fields mapped ({mapping_percentage:.0f}% completion)",
+                    "insight": (
+                        f"{mapped_fields} of {total_fields} fields mapped "
+                        f"({mapping_percentage:.0f}% completion)"
+                    ),
                     "priority": "high" if mapping_percentage < 50 else "medium",
                     "timestamp": datetime.utcnow().isoformat(),
                     "data_source": "actual_import_analysis",
@@ -162,7 +168,10 @@ async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext)
                 "agent_name": "Data Quality Analyst",
                 "insight_type": "quality_assessment",
                 "title": "Data Processing Quality",
-                "description": f"{latest_import.processed_records} of {latest_import.total_records} records processed successfully ({quality_score:.0f}% quality)",
+                "description": (
+                    f"{latest_import.processed_records} of {latest_import.total_records} "
+                    f"records processed successfully ({quality_score:.0f}% quality)"
+                ),
                 "confidence": quality_confidence,
                 "supporting_data": {
                     "processed_records": latest_import.processed_records,
@@ -174,7 +183,10 @@ async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext)
                 "created_at": datetime.utcnow().isoformat(),
                 # Keep original format for backward compatibility
                 "agent": "Data Quality Analyst",
-                "insight": f"{latest_import.processed_records} of {latest_import.total_records} records processed successfully ({quality_score:.0f}% quality)",
+                "insight": (
+                    f"{latest_import.processed_records} of {latest_import.total_records} "
+                    f"records processed successfully ({quality_score:.0f}% quality)"
+                ),
                 "priority": "high" if quality_score < 90 else "medium",
                 "timestamp": datetime.utcnow().isoformat(),
                 "data_source": "actual_import_quality",
@@ -190,7 +202,10 @@ async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext)
                     "agent_name": "Asset Classification Specialist",
                     "insight_type": "organizational_patterns",
                     "title": "Asset Classification Readiness",
-                    "description": f"Ready to classify {latest_import.total_records} assets from '{latest_import.import_name}'",
+                    "description": (
+                        f"Ready to classify {latest_import.total_records} assets "
+                        f"from '{latest_import.import_name}'"
+                    ),
                     "confidence": "high",
                     "supporting_data": {
                         "total_assets": latest_import.total_records,
@@ -202,7 +217,10 @@ async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext)
                     "created_at": datetime.utcnow().isoformat(),
                     # Keep original format for backward compatibility
                     "agent": "Asset Classification Specialist",
-                    "insight": f"Ready to classify {latest_import.total_records} assets from '{latest_import.import_name}'",
+                    "insight": (
+                        f"Ready to classify {latest_import.total_records} assets "
+                        f"from '{latest_import.import_name}'"
+                    ),
                     "priority": "medium",
                     "timestamp": datetime.utcnow().isoformat(),
                     "data_source": "import_readiness_analysis",
@@ -495,7 +513,10 @@ async def _get_data_classifications(db: AsyncSession, context: RequestContext):
                         "title": "High Quality Records",
                         "count": latest_import.processed_records,
                         "percentage": success_rate,
-                        "description": f"{latest_import.processed_records} records processed successfully with {success_rate:.0f}% quality",
+                        "description": (
+                            f"{latest_import.processed_records} records processed successfully "
+                            f"with {success_rate:.0f}% quality"
+                        ),
                         "confidence": "high",
                         "actionable": False,
                         "agent_name": "Data Quality Analyst",
@@ -509,7 +530,10 @@ async def _get_data_classifications(db: AsyncSession, context: RequestContext):
                         "title": "Acceptable Quality Records",
                         "count": latest_import.processed_records,
                         "percentage": success_rate,
-                        "description": f"{latest_import.processed_records} records with {success_rate:.0f}% quality - good for migration",
+                        "description": (
+                            f"{latest_import.processed_records} records with "
+                            f"{success_rate:.0f}% quality - good for migration"
+                        ),
                         "confidence": "medium",
                         "actionable": False,
                         "agent_name": "Data Quality Analyst",
@@ -562,7 +586,10 @@ async def _get_data_classifications(db: AsyncSession, context: RequestContext):
                         "title": "Low Quality Data",
                         "count": unusable_count,
                         "percentage": 10,
-                        "description": f"Approximately {unusable_count} records may be unusable due to low data quality",
+                        "description": (
+                            f"Approximately {unusable_count} records may be unusable "
+                            f"due to low data quality"
+                        ),
                         "confidence": "medium",
                         "actionable": True,
                         "agent_name": "Data Quality Analyst",

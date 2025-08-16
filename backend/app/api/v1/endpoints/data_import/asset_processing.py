@@ -76,13 +76,19 @@ async def process_raw_to_assets(
         if not approved_mappings:
             raise HTTPException(
                 status_code=400,
-                detail="No field mappings have been approved. Please review and approve field mappings before creating assets.",
+                detail=(
+                    "No field mappings have been approved. Please review and approve field mappings "
+                    "before creating assets."
+                ),
             )
 
         if pending_mappings:
             raise HTTPException(
                 status_code=400,
-                detail=f"{len(pending_mappings)} field mappings are still pending approval. Please approve or reject all mappings before proceeding.",
+                detail=(
+                    f"{len(pending_mappings)} field mappings are still pending approval. "
+                    f"Please approve or reject all mappings before proceeding."
+                ),
             )
 
         logger.info(
@@ -155,10 +161,19 @@ async def process_raw_to_assets(
 
                     user_message = "✨ Unified CrewAI intelligent processing completed successfully! "
                     if total_processed > 0:
-                        user_message += f"Processed {total_processed} assets with AI classification, workflow progression, and database integration using the unified modular service architecture. "
-                        user_message += "All assets have been enriched with AI insights and properly classified using agentic intelligence."
+                        user_message += (
+                            f"Processed {total_processed} assets with AI classification, workflow progression, "
+                            f"and database integration using the unified modular service architecture. "
+                        )
+                        user_message += (
+                            "All assets have been enriched with AI insights and properly classified "
+                            "using agentic intelligence."
+                        )
                     else:
-                        user_message += "Processing completed with unified workflow management. Check asset inventory for results."
+                        user_message += (
+                            "Processing completed with unified workflow management. "
+                            "Check asset inventory for results."
+                        )
 
                     return {
                         "status": "success",
@@ -428,7 +443,10 @@ async def _fallback_raw_to_assets_processing(
             record.asset_id = asset.id
             record.is_processed = True
             record.processed_at = datetime.utcnow()
-            record.processing_notes = f"Processed by fallback method (non-agentic) - CrewAI Flow was not available. Created basic asset with CITYPE: {raw_data.get('CITYPE', 'server')}"
+            record.processing_notes = (
+                f"Processed by fallback method (non-agentic) - CrewAI Flow was not available. "
+                f"Created basic asset with CITYPE: {raw_data.get('CITYPE', 'server')}"
+            )
 
             created_assets.append(str(asset.id))
             processed_count += 1
@@ -441,7 +459,10 @@ async def _fallback_raw_to_assets_processing(
 
         return {
             "status": "success",
-            "message": f"⚠️ Fallback processing completed. Created {processed_count} basic assets without AI intelligence. Consider enabling CrewAI Flow for enhanced classification.",
+            "message": (
+                f"⚠️ Fallback processing completed. Created {processed_count} basic assets without AI intelligence. "
+                f"Consider enabling CrewAI Flow for enhanced classification."
+            ),
             "processed_count": processed_count,
             "flow_id": "fallback_processing",
             "processing_status": "completed",

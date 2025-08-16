@@ -591,7 +591,10 @@ class SuggestionService:
                     source_field=source_field,
                     target_field=best_match,
                     confidence=confidence,
-                    reasoning=f"AI analysis using CrewAI: Semantic analysis suggests mapping '{source_field}' to '{best_match}'",
+                    reasoning=(
+                        f"AI analysis using CrewAI: Semantic analysis suggests mapping "
+                        f"'{source_field}' to '{best_match}'"
+                    ),
                     sample_values=[],  # Would be populated with actual sample data
                     mapping_type="ai_crewai",
                     crew_analysis=(
@@ -655,7 +658,10 @@ class SuggestionService:
                 source_field=source_field,
                 target_field=target_field,
                 confidence=confidence,
-                reasoning=f"Pattern-based mapping: '{source_field}' mapped to '{target_field}' based on field name similarity",
+                reasoning=(
+                    f"Pattern-based mapping: '{source_field}' mapped to '{target_field}' "
+                    f"based on field name similarity"
+                ),
                 sample_values=sample_values,
                 mapping_type="fallback_pattern",
                 ai_driven=False,
