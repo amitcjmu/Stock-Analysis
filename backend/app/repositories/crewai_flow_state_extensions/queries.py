@@ -3,7 +3,7 @@
 import uuid
 from typing import List, Optional
 
-from sqlalchemy import and_, delete, desc, select
+from sqlalchemy import and_, delete, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
@@ -124,6 +124,77 @@ class MasterFlowQueries:
         )
         result = await self.db.execute(stmt)
         return result.scalars().all()
+
+    async def get_master_flow_summary(self) -> dict:
+        try:
+            client_uuid = uuid.UUID(self.client_account_id)
+            engagement_uuid = uuid.UUID(self.engagement_id)
+        except (ValueError, TypeError):
+            return {
+                "total_master_flows": 0,
+                "unique_flow_types": 0,
+                "flow_type_distribution": {},
+                "flow_status_distribution": {},
+                "master_coordination_health": "error",
+            }
+
+        stmt = select(
+            func.count(CrewAIFlowStateExtensions.id).label("total_master_flows"),
+            func.count(func.distinct(CrewAIFlowStateExtensions.flow_type)).label(
+                "unique_flow_types"
+            ),
+        ).where(
+            and_(
+                CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+            )
+        )
+        result = await self.db.execute(stmt)
+        stats = result.first()
+
+        type_stmt = (
+            select(
+                CrewAIFlowStateExtensions.flow_type,
+                func.count(CrewAIFlowStateExtensions.id).label("count"),
+            )
+            .where(
+                and_(
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                )
+            )
+            .group_by(CrewAIFlowStateExtensions.flow_type)
+        )
+        type_result = await self.db.execute(type_stmt)
+        type_stats = {row.flow_type: row.count for row in type_result}
+
+        status_stmt = (
+            select(
+                CrewAIFlowStateExtensions.flow_status,
+                func.count(CrewAIFlowStateExtensions.id).label("count"),
+            )
+            .where(
+                and_(
+                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
+                )
+            )
+            .group_by(CrewAIFlowStateExtensions.flow_status)
+        )
+        status_result = await self.db.execute(status_stmt)
+        status_stats = {row.flow_status: row.count for row in status_result}
+
+        return {
+            "total_master_flows": stats.total_master_flows if stats else 0,
+            "unique_flow_types": stats.unique_flow_types if stats else 0,
+            "flow_type_distribution": type_stats,
+            "flow_status_distribution": status_stats,
+            "master_coordination_health": (
+                "healthy"
+                if (stats and stats.total_master_flows > 0)
+                else "missing_master_flows"
+            ),
+        }
 
     async def delete_master_flow(self, flow_id: str) -> bool:
         flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id

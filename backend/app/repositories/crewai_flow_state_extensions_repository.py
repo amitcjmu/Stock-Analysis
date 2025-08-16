@@ -13,7 +13,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, delete, desc, func, select, update
+from sqlalchemy import and_, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
@@ -22,6 +22,7 @@ from app.repositories.crewai_flow_state_extensions.queries import MasterFlowQuer
 from app.repositories.crewai_flow_state_extensions.enrichment import (
     MasterFlowEnrichment,
 )
+from app.repositories.crewai_flow_state_extensions.commands import MasterFlowCommands
 
 logger = logging.getLogger(__name__)
 
@@ -84,204 +85,39 @@ class CrewAIFlowStateExtensionsRepository(BaseRepo):
         )
         self.queries = MasterFlowQueries(db, self.client_account_id, self.engagement_id)
         self.enrich = MasterFlowEnrichment(
-            db, self.client_account_id, self.engagement_id
+            db, self.client_account_id, self.engagement_id, user_id
+        )
+        self.commands = MasterFlowCommands(
+            db, self.client_account_id, self.engagement_id, user_id
         )
 
     async def create_master_flow(
         self,
-        flow_id: str,  # CrewAI generated flow ID
-        flow_type: str,  # 'discovery', 'assessment', 'planning', 'execution'
+        flow_id: str,
+        flow_type: str,
         user_id: str = None,
         flow_name: str = None,
         flow_configuration: Dict[str, Any] = None,
         initial_state: Dict[str, Any] = None,
-        auto_commit: bool = True,  # Allow controlling transaction behavior
+        auto_commit: bool = True,
     ) -> CrewAIFlowStateExtensions:
-        """Create master flow record - this must be called before creating specific flow types"""
-
-        # Use demo constants as defaults
-        demo_client_id = uuid.UUID("11111111-1111-1111-1111-111111111111")
-        demo_engagement_id = uuid.UUID("22222222-2222-2222-2222-222222222222")
-        uuid.UUID("33333333-3333-3333-3333-333333333333")
-
-        # Validate and parse flow_id
-        try:
-            if isinstance(flow_id, uuid.UUID):
-                parsed_flow_id = flow_id
-            else:
-                parsed_flow_id = uuid.UUID(flow_id)
-        except (ValueError, TypeError) as e:
-            logger.error(f"❌ Invalid CrewAI Flow ID provided: {flow_id}, error: {e}")
-            raise ValueError(
-                f"Invalid CrewAI Flow ID: {flow_id}. Must be a valid UUID."
-            )
-
-        # Validate flow type
-        valid_flow_types = [
-            "discovery",
-            "assessment",
-            "collection",
-            "planning",
-            "execution",
-            "modernize",
-            "finops",
-            "observability",
-            "decommission",
-        ]
-        if flow_type not in valid_flow_types:
-            raise ValueError(
-                f"Invalid flow_type: {flow_type}. Must be one of: {valid_flow_types}"
-            )
-
-        # Generate flow name if not provided
-        if not flow_name:
-            flow_name = f"{flow_type.title()} Flow {str(flow_id)[:8]}"
-
-        # Safely handle user_id
-        safe_user_id = user_id or "test-user"  # Don't try to convert to UUID
-
-        master_flow = CrewAIFlowStateExtensions(
-            flow_id=parsed_flow_id,  # This is the master flow ID that other tables reference
-            client_account_id=(
-                uuid.UUID(self.client_account_id)
-                if self.client_account_id
-                else demo_client_id
-            ),
-            engagement_id=(
-                uuid.UUID(self.engagement_id)
-                if self.engagement_id
-                else demo_engagement_id
-            ),
-            user_id=safe_user_id,  # Store as string, not UUID
-            flow_type=flow_type,
-            flow_name=flow_name,
-            flow_status="initialized",
-            flow_configuration=flow_configuration or {},
-            flow_persistence_data=initial_state or {},
-            agent_collaboration_log=[],
-            phase_execution_times={},
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+        return await self.commands.create_master_flow(
+            flow_id,
+            flow_type,
+            user_id,
+            flow_name,
+            flow_configuration,
+            initial_state,
+            auto_commit,
         )
 
-        self.db.add(master_flow)
-
-        # FIX: Allow controlling transaction behavior for atomic operations
-        if auto_commit:
-            await self.db.commit()
-            await self.db.refresh(master_flow)
-            logger.info(
-                f"✅ Master flow created with commit: flow_id={flow_id}, type={flow_type}"
-            )
-        else:
-            await self.db.flush()
-            await self.db.refresh(master_flow)
-            logger.info(
-                f"✅ Master flow created with flush: flow_id={flow_id}, type={flow_type}"
-            )
-
-        return master_flow
-
     async def get_by_flow_id(self, flow_id: str) -> Optional[CrewAIFlowStateExtensions]:
-        """Get master flow by CrewAI Flow ID"""
-        try:
-            # Convert flow_id to UUID for database query
-            try:
-                flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-            except (ValueError, TypeError) as e:
-                logger.error(f"❌ Invalid flow_id UUID format: {flow_id}, error: {e}")
-                return None
-
-            # Convert context UUIDs
-            try:
-                client_uuid = uuid.UUID(self.client_account_id)
-                engagement_uuid = uuid.UUID(self.engagement_id)
-            except (ValueError, TypeError) as e:
-                logger.error(
-                    f"❌ Invalid context UUID - client: {self.client_account_id}, "
-                    f"engagement: {self.engagement_id}, error: {e}"
-                )
-                return None
-
-            stmt = select(CrewAIFlowStateExtensions).where(
-                and_(
-                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                )
-            )
-
-            result = await self.db.execute(stmt)
-            flow = result.scalar_one_or_none()
-
-            # Ensure flow has a valid status (fix for NULL status issue)
-            if flow and flow.flow_status is None:
-                logger.warning(
-                    f"⚠️ Flow {flow_id} has NULL status, setting to 'processing'"
-                )
-                flow.flow_status = "processing"
-                await self.db.commit()
-
-            return flow
-
-        except Exception as e:
-            logger.error(f"❌ Database error in get_by_flow_id: {e}")
-            return None
+        return await self.queries.get_by_flow_id(flow_id)
 
     async def get_by_flow_id_global(
         self, flow_id: str
     ) -> Optional[CrewAIFlowStateExtensions]:
-        """Get master flow by CrewAI Flow ID without tenant filtering (for duplicate checking)
-
-        SECURITY WARNING: This method bypasses tenant isolation and should only be used
-        for system-level operations like duplicate checking. Never expose this to user-facing APIs.
-        """
-        # Log security audit trail
-        logger.warning(
-            f"🔒 SECURITY AUDIT: Global query attempted for master flow_id={flow_id} by client={self.client_account_id}"
-        )
-
-        try:
-            # Convert flow_id to UUID for database query
-            try:
-                flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
-            except (ValueError, TypeError) as e:
-                logger.error(f"❌ Invalid flow_id UUID format: {flow_id}, error: {e}")
-                return None
-
-            # SECURITY: First check if the flow belongs to the current client
-            tenant_check = select(CrewAIFlowStateExtensions).where(
-                and_(
-                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
-                    CrewAIFlowStateExtensions.client_account_id
-                    == uuid.UUID(self.client_account_id),
-                )
-            )
-            result = await self.db.execute(tenant_check)
-            flow = result.scalar_one_or_none()
-
-            if flow:
-                # Flow belongs to current client, safe to return
-                # Ensure flow has a valid status (fix for NULL status issue)
-                if flow.flow_status is None:
-                    logger.warning(
-                        f"⚠️ Flow {flow_id} has NULL status, setting to 'processing'"
-                    )
-                    flow.flow_status = "processing"
-                    await self.db.commit()
-                return flow
-
-            # SECURITY: Only allow global query for system operations
-            # In production, this should check for system/admin privileges
-            logger.warning(
-                f"🔒 SECURITY: Denying global query for master flow {flow_id} - "
-                f"does not belong to client {self.client_account_id}"
-            )
-            return None
-
-        except Exception as e:
-            logger.error(f"❌ Database error in get_by_flow_id_global: {e}")
-            return None
+        return await self.queries.get_by_flow_id_global(flow_id)
 
     # Delegate JSON serialization to BaseRepo implementation
     def _ensure_json_serializable(
@@ -357,124 +193,19 @@ class CrewAIFlowStateExtensionsRepository(BaseRepo):
     async def get_flows_by_type(
         self, flow_type: str, limit: int = 10
     ) -> List[CrewAIFlowStateExtensions]:
-        """Get master flows by type for the current client/engagement"""
-        try:
-            client_uuid = uuid.UUID(self.client_account_id)
-            engagement_uuid = uuid.UUID(self.engagement_id)
-
-            stmt = (
-                select(CrewAIFlowStateExtensions)
-                .where(
-                    and_(
-                        CrewAIFlowStateExtensions.flow_type == flow_type,
-                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                    )
-                )
-                .order_by(desc(CrewAIFlowStateExtensions.created_at))
-                .limit(limit)
-            )
-
-            result = await self.db.execute(stmt)
-            return result.scalars().all()
-
-        except Exception as e:
-            logger.error(f"❌ Failed to get flows by type {flow_type}: {e}")
-            return []
+        return await self.queries.get_flows_by_type(flow_type, limit)
 
     async def get_active_flows(
         self, limit: int = 10, flow_type: Optional[str] = None
     ) -> List[CrewAIFlowStateExtensions]:
-        """Get all active master flows for the current client/engagement"""
-        try:
-            # Check if required context values are present
-            if not self.client_account_id:
-                logger.warning(
-                    f"Missing required context for get_active_flows: "
-                    f"client_account_id={self.client_account_id}"
-                )
-                return []
-
-            client_uuid = uuid.UUID(self.client_account_id)
-
-            active_statuses = [
-                "initialized",
-                "active",
-                "processing",
-                "paused",
-                "waiting_for_approval",
-            ]
-
-            # Build query conditions
-            conditions = [
-                CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                CrewAIFlowStateExtensions.flow_status.in_(active_statuses),
-            ]
-
-            # Only filter by engagement_id if it's provided
-            if self.engagement_id:
-                engagement_uuid = uuid.UUID(self.engagement_id)
-                conditions.append(
-                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid
-                )
-
-            # Add flow type filter if specified
-            if flow_type:
-                conditions.append(CrewAIFlowStateExtensions.flow_type == flow_type)
-
-            stmt = (
-                select(CrewAIFlowStateExtensions)
-                .where(and_(*conditions))
-                .order_by(desc(CrewAIFlowStateExtensions.created_at))
-                .limit(limit)
-            )
-
-            result = await self.db.execute(stmt)
-            flows = result.scalars().all()
-
-            logger.info(
-                f"Found {len(flows)} active flows (flow_type: {flow_type}, limit: {limit})"
-            )
-            return flows
-
-        except Exception as e:
-            logger.error(f"❌ Failed to get active flows: {e}")
-            return []
+        return await self.queries.get_active_flows(limit, flow_type)
 
     async def get_flows_by_engagement(
         self, engagement_id: str, flow_type: Optional[str] = None, limit: int = 50
     ) -> List[CrewAIFlowStateExtensions]:
-        """Get flows for a specific engagement"""
-        try:
-            client_uuid = uuid.UUID(self.client_account_id)
-            engagement_uuid = uuid.UUID(engagement_id)
-
-            # Build query conditions
-            conditions = [
-                CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-            ]
-
-            # Add flow type filter if specified
-            if flow_type:
-                conditions.append(CrewAIFlowStateExtensions.flow_type == flow_type)
-
-            stmt = (
-                select(CrewAIFlowStateExtensions)
-                .where(and_(*conditions))
-                .order_by(desc(CrewAIFlowStateExtensions.created_at))
-                .limit(limit)
-            )
-
-            result = await self.db.execute(stmt)
-            flows = result.scalars().all()
-
-            logger.info(f"Retrieved {len(flows)} flows for engagement {engagement_id}")
-            return flows
-
-        except Exception as e:
-            logger.error(f"❌ Failed to get flows by engagement {engagement_id}: {e}")
-            return []
+        return await self.queries.get_flows_by_engagement(
+            engagement_id, flow_type, limit
+        )
 
     async def delete_master_flow(self, flow_id: str) -> bool:
         """Delete master flow and all subordinate flows (cascade)"""
@@ -509,125 +240,10 @@ class CrewAIFlowStateExtensionsRepository(BaseRepo):
     async def get_master_flow_by_id(
         self, flow_id: str
     ) -> Optional[CrewAIFlowStateExtensions]:
-        """Get master flow by ID (with multi-tenant security)"""
-        try:
-            # Validate and parse flow_id
-            if isinstance(flow_id, uuid.UUID):
-                parsed_flow_id = flow_id
-            else:
-                parsed_flow_id = uuid.UUID(flow_id)
-
-            query = select(CrewAIFlowStateExtensions).where(
-                and_(
-                    CrewAIFlowStateExtensions.flow_id == parsed_flow_id,
-                    (
-                        CrewAIFlowStateExtensions.client_account_id
-                        == uuid.UUID(self.client_account_id)
-                        if self.client_account_id
-                        else None
-                    ),
-                    (
-                        CrewAIFlowStateExtensions.engagement_id
-                        == uuid.UUID(self.engagement_id)
-                        if self.engagement_id
-                        else None
-                    ),
-                )
-            )
-
-            result = await self.db.execute(query)
-            master_flow = result.scalar_one_or_none()
-
-            if master_flow:
-                logger.info(f"✅ Found master flow: {flow_id}")
-            else:
-                logger.warning(f"⚠️ Master flow not found: {flow_id}")
-
-            return master_flow
-
-        except Exception as e:
-            logger.error(f"❌ Error getting master flow by ID: {e}")
-            raise
+        return await self.queries.get_by_flow_id(flow_id)
 
     async def get_master_flow_summary(self) -> Dict[str, Any]:
-        """Get summary of master flow coordination status"""
-        try:
-            client_uuid = uuid.UUID(self.client_account_id)
-            engagement_uuid = uuid.UUID(self.engagement_id)
-
-            # Get master flow statistics
-            stmt = select(
-                func.count(CrewAIFlowStateExtensions.id).label("total_master_flows"),
-                func.count(func.distinct(CrewAIFlowStateExtensions.flow_type)).label(
-                    "unique_flow_types"
-                ),
-            ).where(
-                and_(
-                    CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                    CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                )
-            )
-
-            result = await self.db.execute(stmt)
-            stats = result.first()
-
-            # Get flow type distribution
-            type_stmt = (
-                select(
-                    CrewAIFlowStateExtensions.flow_type,
-                    func.count(CrewAIFlowStateExtensions.id).label("count"),
-                )
-                .where(
-                    and_(
-                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                    )
-                )
-                .group_by(CrewAIFlowStateExtensions.flow_type)
-            )
-
-            type_result = await self.db.execute(type_stmt)
-            type_stats = {row.flow_type: row.count for row in type_result}
-
-            # Get status distribution
-            status_stmt = (
-                select(
-                    CrewAIFlowStateExtensions.flow_status,
-                    func.count(CrewAIFlowStateExtensions.id).label("count"),
-                )
-                .where(
-                    and_(
-                        CrewAIFlowStateExtensions.client_account_id == client_uuid,
-                        CrewAIFlowStateExtensions.engagement_id == engagement_uuid,
-                    )
-                )
-                .group_by(CrewAIFlowStateExtensions.flow_status)
-            )
-
-            status_result = await self.db.execute(status_stmt)
-            status_stats = {row.flow_status: row.count for row in status_result}
-
-            return {
-                "total_master_flows": stats.total_master_flows,
-                "unique_flow_types": stats.unique_flow_types,
-                "flow_type_distribution": type_stats,
-                "flow_status_distribution": status_stats,
-                "master_coordination_health": (
-                    "healthy"
-                    if stats.total_master_flows > 0
-                    else "missing_master_flows"
-                ),
-            }
-
-        except Exception as e:
-            logger.error(f"Error in get_master_flow_summary: {e}")
-            return {
-                "total_master_flows": 0,
-                "unique_flow_types": 0,
-                "flow_type_distribution": {},
-                "flow_status_distribution": {},
-                "master_coordination_health": "error",
-            }
+        return await self.queries.get_master_flow_summary()
 
     # =============================
     # Enrichment helpers (JSONB)
