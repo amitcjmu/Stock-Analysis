@@ -137,52 +137,53 @@ class MasterFlowCommands(BaseRepo):
             raise ValueError(f"Invalid UUID format: {e}")
 
         try:
-            async with self.db.begin():
-                # Apply enrichment deltas
-                if metadata:
-                    await self.enrich.update_flow_metadata(
-                        flow_id, self._ensure_json_serializable(metadata)
+            # Apply enrichment deltas first; helpers manage their own OCC/commit
+            if metadata:
+                await self.enrich.update_flow_metadata(
+                    flow_id, self._ensure_json_serializable(metadata)
+                )
+            if collaboration_entry:
+                if isinstance(collaboration_entry, dict):
+                    entry = dict(collaboration_entry)
+                    if "timestamp" not in entry:
+                        entry["timestamp"] = datetime.utcnow().isoformat()
+                    await self.enrich.append_agent_collaboration(
+                        flow_id, self._ensure_json_serializable(entry)
                     )
-                if collaboration_entry:
-                    if isinstance(collaboration_entry, dict):
-                        entry = dict(collaboration_entry)
-                        if "timestamp" not in entry:
-                            entry["timestamp"] = datetime.utcnow().isoformat()
-                        await self.enrich.append_agent_collaboration(
-                            flow_id, self._ensure_json_serializable(entry)
-                        )
-                    else:
-                        logger.warning(
-                            "Invalid collaboration_entry type '%s' for flow_id=%s; skipping",
-                            type(collaboration_entry).__name__,
-                            flow_id,
-                        )
-                if phase_data:
-                    await self.enrich.update_flow_metadata(
-                        flow_id, self._ensure_json_serializable(phase_data)
+                else:
+                    logger.warning(
+                        "Invalid collaboration_entry type '%s' for flow_id=%s; skipping",
+                        type(collaboration_entry).__name__,
+                        flow_id,
                     )
+            if phase_data:
+                await self.enrich.update_flow_metadata(
+                    flow_id, self._ensure_json_serializable(phase_data)
+                )
 
-                # OCC-guarded status update
-                flow = await self._get_flow_for_context(flow_id)
-                if flow:
-                    prev_updated_at = flow.updated_at
-                    stmt_upd = (
-                        update(CrewAIFlowStateExtensions)
-                        .where(
-                            and_(
-                                CrewAIFlowStateExtensions.id == flow.id,
-                                CrewAIFlowStateExtensions.client_account_id
-                                == uuid.UUID(self.client_account_id),
-                                CrewAIFlowStateExtensions.engagement_id
-                                == uuid.UUID(self.engagement_id),
-                                CrewAIFlowStateExtensions.updated_at == prev_updated_at,
-                            )
+            # OCC-guarded status update committed here
+            flow = await self._get_flow_for_context(flow_id)
+            if flow:
+                prev_updated_at = flow.updated_at
+                stmt_upd = (
+                    update(CrewAIFlowStateExtensions)
+                    .where(
+                        and_(
+                            CrewAIFlowStateExtensions.id == flow.id,
+                            CrewAIFlowStateExtensions.client_account_id
+                            == uuid.UUID(self.client_account_id),
+                            CrewAIFlowStateExtensions.engagement_id
+                            == uuid.UUID(self.engagement_id),
+                            CrewAIFlowStateExtensions.updated_at == prev_updated_at,
                         )
-                        .values(flow_status=status, updated_at=datetime.utcnow())
                     )
-                    result = await self.db.execute(stmt_upd)
-                    if not result.rowcount:
-                        raise RuntimeError("OCC conflict on flow_status update")
+                    .values(flow_status=status, updated_at=datetime.utcnow())
+                )
+                result = await self.db.execute(stmt_upd)
+                if not result.rowcount:
+                    await self.db.rollback()
+                    raise RuntimeError("OCC conflict on flow_status update")
+                await self.db.commit()
         except Exception as e:
             logger.error("Failed update_flow_status for flow_id=%s: %s", flow_id, e)
             raise

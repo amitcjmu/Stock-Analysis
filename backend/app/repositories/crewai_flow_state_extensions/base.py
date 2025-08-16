@@ -71,7 +71,7 @@ class BaseRepo(ContextAwareRepository):
         self.engagement_id = str(parsed_engagement)
         self.user_id = user_id
 
-        flag = os.getenv("MASTER_STATE_ENRICHMENT_ENABLED", "true")
+        flag = os.getenv("MASTER_STATE_ENRICHMENT_ENABLED", "false")
         self._enrichment_enabled = flag.strip().lower() in ("1", "true", "yes")
 
     def _ensure_json_serializable(

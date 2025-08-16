@@ -61,13 +61,11 @@ class CollaborationEnrichmentMixin:
             .values(agent_collaboration_log=log, updated_at=datetime.utcnow())
         )
         result_upd = await self.db.execute(stmt_upd)
-        if result_upd.rowcount:
-            await self.db.commit()
-        else:
-            await self.db.rollback()
+        if not result_upd.rowcount:
             logger.warning(
                 "OCC conflict updating agent_collaboration_log for flow_id=%s, client=%s, engagement=%s",
                 flow_id,
                 self.client_account_id,
                 self.engagement_id,
             )
+            return
