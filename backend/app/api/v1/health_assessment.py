@@ -198,8 +198,8 @@ async def get_assessment_flow_metrics():
                     )
 
             except Exception:
-                # Table might not exist yet - that's ok
-                pass
+                # Table might not exist yet - that's ok during startup/migration
+                pass  # nosec B110 # Safe to ignore missing table during health check
 
     except Exception as e:
         logger.warning(f"Could not get assessment flow metrics: {str(e)}")

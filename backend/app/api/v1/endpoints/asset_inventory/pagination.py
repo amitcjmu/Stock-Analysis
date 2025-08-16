@@ -65,11 +65,46 @@ async def list_assets_paginated_fallback(
                     "migration_impact": "none",
                 },
             }
-    except Exception:
-        pass  # fallback to main implementation below
+    except Exception as e:
+        logger.error(f"Error in paginated fallback endpoint: {e}")
+        # Continue to fallback response below
 
-    # Ensure we always return something
-    return None
+    # Ensure we always return something - fallback response
+    return {
+        "assets": [],
+        "pagination": {
+            "current_page": page,
+            "page_size": page_size,
+            "total_items": 0,
+            "total_pages": 0,
+            "has_next": False,
+            "has_previous": False,
+        },
+        "summary": {
+            "total": 0,
+            "filtered": 0,
+            "applications": 0,
+            "servers": 0,
+            "databases": 0,
+            "devices": 0,
+            "unknown": 0,
+            "discovered": 0,
+            "pending": 0,
+            "device_breakdown": {},
+        },
+        "last_updated": None,
+        "data_source": "fallback",
+        "suggested_headers": [],
+        "app_mappings": [],
+        "unlinked_assets": [],
+        "unlinked_summary": {
+            "total_unlinked": 0,
+            "by_type": {},
+            "by_environment": {},
+            "by_criticality": {},
+            "migration_impact": "none",
+        },
+    }
 
 
 @router.get("/list/paginated")

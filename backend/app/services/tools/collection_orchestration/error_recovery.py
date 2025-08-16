@@ -311,7 +311,9 @@ class ErrorRecoveryManager(AsyncBaseDiscoveryTool, BaseCollectionTool):
     def _simulate_retry_attempt(self, error_type: str) -> bool:
         """Simulate a retry attempt (for demonstration)"""
         success_probability = self.error_success_probabilities.get(error_type, 0.5)
-        return random.random() < success_probability
+        return (
+            random.random() < success_probability
+        )  # nosec B311 # Simulation, not cryptographic
 
     def _determine_intervention_priority(
         self, error_type: str, error_details: Dict[str, Any]

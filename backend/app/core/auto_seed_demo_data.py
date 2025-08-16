@@ -334,12 +334,22 @@ class DemoDataSeeder:
                 status="COMPLETED",
                 title=f"Technical Assessment - {asset.name}",
                 description=f"Automated technical assessment for {asset.name}",
-                overall_score=random.uniform(0.7, 0.95),
-                risk_level=random.choice(["low", "medium", "high"]),
-                confidence_level=random.uniform(0.8, 0.95),
+                overall_score=random.uniform(
+                    0.7, 0.95
+                ),  # nosec B311 # Demo data generation
+                risk_level=random.choice(
+                    ["low", "medium", "high"]
+                ),  # nosec B311 # Demo data generation
+                confidence_level=random.uniform(
+                    0.8, 0.95
+                ),  # nosec B311 # Demo data generation
                 recommended_strategy=asset.six_r_strategy,
-                technical_complexity=random.choice(["low", "medium", "high"]),
-                compatibility_score=random.uniform(0.7, 1.0),
+                technical_complexity=random.choice(
+                    ["low", "medium", "high"]
+                ),  # nosec B311 # Demo data generation
+                compatibility_score=random.uniform(
+                    0.7, 1.0
+                ),  # nosec B311 # Demo data generation
                 business_criticality=asset.criticality,
                 assessor="AI Assessment Engine",
                 assessment_date=datetime.now(timezone.utc),

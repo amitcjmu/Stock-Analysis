@@ -549,7 +549,7 @@ class EngagementCRUDHandler:
                         query_string = """
                             DELETE FROM {}
                             WHERE engagement_id = :engagement_id
-                        """.format(
+                        """.format(  # nosec B608 # Table names from hardcoded list above
                             table
                         )
 

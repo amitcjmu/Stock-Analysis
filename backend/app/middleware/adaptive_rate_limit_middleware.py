@@ -113,8 +113,8 @@ class AdaptiveRateLimitMiddleware(BaseHTTPMiddleware):
                 payload = jwt_service.verify_token(token)
                 user_id = payload.get("sub") if payload else None
             except Exception:
-                # Invalid token, treat as anonymous
-                pass
+                # Invalid token, treat as anonymous for rate limiting
+                pass  # nosec B110 # Safe to ignore invalid tokens in rate limiting
 
         if user_id:
             return f"user:{user_id}:{client_ip}"
@@ -164,7 +164,8 @@ class AdaptiveRateLimitMiddleware(BaseHTTPMiddleware):
                 payload = jwt_service.verify_token(token)
                 user_id = payload.get("sub") if payload else None
             except Exception:
-                pass
+                # Invalid token in endpoint detection, continue without user context
+                pass  # nosec B110 # Safe to ignore invalid tokens in endpoint detection
 
         # Detect testing/development environment
         host = headers.get("host", "").lower()

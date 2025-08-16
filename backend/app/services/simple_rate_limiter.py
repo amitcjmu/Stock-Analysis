@@ -72,7 +72,9 @@ class SimpleLLMRateLimiter:
 
             # Exponential backoff: 2^n seconds, max 60 seconds
             base_wait = min(60, 2**self.consecutive_429s)
-            jitter = random.uniform(0, 1)
+            jitter = random.uniform(
+                0, 1
+            )  # nosec B311 # Jitter for rate limiting, not cryptographic
             wait_time = base_wait + jitter
 
             # Deplete all tokens to prevent immediate retries

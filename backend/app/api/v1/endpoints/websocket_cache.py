@@ -119,7 +119,8 @@ async def websocket_cache_events(
         try:
             await websocket.close(code=1011, reason=f"Internal error: {str(e)}")
         except Exception:
-            pass
+            # Ignore errors during cleanup - websocket might already be closed
+            pass  # nosec B110 # Safe to ignore websocket cleanup errors
 
 
 @router.get("/connections/stats")

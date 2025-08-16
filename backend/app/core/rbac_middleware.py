@@ -162,8 +162,9 @@ class RBACMiddleware:
                         if last_dash_index > 0:
                             user_id_str = token_content[:last_dash_index]
                             return user_id_str
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(f"Failed to parse db-token in RBAC: {e}")
+                        # Continue to check other authentication methods
 
         # Check custom headers
         user_id = request.headers.get("X-User-ID")
@@ -174,8 +175,9 @@ class RBACMiddleware:
         try:
             context = get_current_context()
             return context.user_id
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"No context available for user ID extraction: {e}")
+            # Return None when no context is available
 
         # For development, allow demo user
         if request.headers.get("X-Demo-Mode") == "true":

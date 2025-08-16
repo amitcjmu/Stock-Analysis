@@ -93,8 +93,12 @@ class PlatformRequirements:
     @staticmethod
     def create_demo_uuid() -> uuid.UUID:
         """Create UUID with -def0-def0-def0- pattern for easy identification (DEFault/DEmo)"""
-        start = "".join(random.choices("0123456789abcdef", k=8))
-        end = "".join(random.choices("0123456789abcdef", k=12))
+        start = "".join(
+            random.choices("0123456789abcdef", k=8)
+        )  # nosec B311 # Demo UUID generation
+        end = "".join(
+            random.choices("0123456789abcdef", k=12)
+        )  # nosec B311 # Demo UUID generation
         uuid_string = f"{start}-def0-def0-def0-{end}"
         return uuid.UUID(uuid_string)
 
