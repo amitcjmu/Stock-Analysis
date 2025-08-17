@@ -22,8 +22,14 @@ def get_storage_manager():
     return StorageManager()
 
 
+def shutdown_storage_manager():
+    """Shutdown storage manager - placeholder implementation"""
+    pass
+
+
 # Re-export main classes
 __all__ = [
     "StorageManager",
     "get_storage_manager",
+    "shutdown_storage_manager",
 ]
