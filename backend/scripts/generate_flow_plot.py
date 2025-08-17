@@ -11,7 +11,7 @@ from pathlib import Path
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
-import logging
+import logging  # noqa: E402
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

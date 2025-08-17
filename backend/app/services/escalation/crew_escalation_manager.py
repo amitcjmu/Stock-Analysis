@@ -480,7 +480,10 @@ class CrewEscalationManager:
             escalation["crew_activity"].append(
                 {
                     "timestamp": datetime.utcnow().isoformat(),
-                    "activity": f"Initiating {pattern} with {primary_crew} and {len(additional_crews)} additional crews",
+                    "activity": (
+                        f"Initiating {pattern} with {primary_crew} and "
+                        f"{len(additional_crews)} additional crews"
+                    ),
                     "phase": "collaboration_setup",
                 }
             )
@@ -768,7 +771,10 @@ class CrewEscalationManager:
                         "type": "crew_execution_success",
                         "crew_type": crew_type,
                         "assets_analyzed": len(analysis_results),
-                        "insight": f"Strategic {crew_type} successfully analyzed {len(analysis_results)} assets with enhanced intelligence",
+                        "insight": (
+                            f"Strategic {crew_type} successfully analyzed {len(analysis_results)} assets "
+                            "with enhanced intelligence"
+                        ),
                         "confidence": 0.9,
                         "timestamp": datetime.utcnow().isoformat(),
                     }
@@ -899,7 +905,10 @@ class CrewEscalationManager:
                         "type": "cross_crew_analysis",
                         "asset_id": asset_id,
                         "crews_involved": list(crew_analyses.keys()),
-                        "insight": f"Multi-crew analysis completed for {asset_id} with {len(crew_analyses)} strategic perspectives",
+                        "insight": (
+                            f"Multi-crew analysis completed for {asset_id} with "
+                            f"{len(crew_analyses)} strategic perspectives"
+                        ),
                         "synthesis_confidence": 0.85,
                         "collaboration_pattern": collaboration_strategy["pattern"],
                     }
@@ -914,7 +923,10 @@ class CrewEscalationManager:
                     [r for r in crew_results.values() if r is not None]
                 ),
                 "total_crews": len(crew_results),
-                "insight": f"Strategic crew collaboration using {collaboration_strategy['pattern']} pattern completed successfully",
+                "insight": (
+                    f"Strategic crew collaboration using {collaboration_strategy['pattern']} pattern "
+                    "completed successfully"
+                ),
                 "collaboration_effectiveness": len(
                     [r for r in crew_results.values() if r is not None]
                 )

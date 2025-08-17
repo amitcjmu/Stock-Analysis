@@ -11,7 +11,7 @@ from pathlib import Path
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.middleware.adaptive_rate_limiter import AdaptiveRateLimiter
+from app.middleware.adaptive_rate_limiter import AdaptiveRateLimiter  # noqa: E402
 
 # Configure logging
 logging.basicConfig(

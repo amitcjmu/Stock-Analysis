@@ -47,7 +47,8 @@ class DataImportValidationExecutor(BasePhaseExecutor):
         logger.info("🔍 DEBUG: Storing data import validation results")
         logger.info(f"🔍 DEBUG: Results keys: {list(results.keys())}")
         logger.info(
-            f"🔍 DEBUG: Raw data in state: {len(self.state.raw_data) if hasattr(self.state, 'raw_data') and self.state.raw_data else 0} records"
+            f"🔍 DEBUG: Raw data in state: "
+            f"{len(self.state.raw_data) if hasattr(self.state, 'raw_data') and self.state.raw_data else 0} records"
         )
 
         # Store the phase results
@@ -84,7 +85,11 @@ class DataImportValidationExecutor(BasePhaseExecutor):
             # Add file type analysis insight
             file_analysis = results.get("file_analysis", {})
             if file_analysis:
-                insight = f"📊 Detected {file_analysis.get('detected_type', 'unknown')} data type with {file_analysis.get('confidence', 0):.0%} confidence. Recommended agent: {file_analysis.get('recommended_agent', 'CMDB_Data_Analyst_Agent')}"
+                insight = (
+                    f"📊 Detected {file_analysis.get('detected_type', 'unknown')} data type with "
+                    f"{file_analysis.get('confidence', 0):.0%} confidence. Recommended agent: "
+                    f"{file_analysis.get('recommended_agent', 'CMDB_Data_Analyst_Agent')}"
+                )
                 self.state.agent_insights.append(
                     {
                         "agent": "Data Import Agent",
@@ -115,7 +120,10 @@ class DataImportValidationExecutor(BasePhaseExecutor):
                     .get("security_analysis", {})
                     .get("pii_types", [])
                 )
-                insight = f"⚠️ PII detected in data: {', '.join(pii_types)}. Please ensure compliance with data privacy regulations."
+                insight = (
+                    f"⚠️ PII detected in data: {', '.join(pii_types)}. "
+                    "Please ensure compliance with data privacy regulations."
+                )
                 self.state.agent_insights.append(
                     {
                         "agent": "Data Import Agent",
@@ -264,7 +272,8 @@ class DataImportValidationExecutor(BasePhaseExecutor):
 
             # Debug: Check data availability
             logger.info(
-                f"🔍 DEBUG: Raw data available before validation: {len(self.state.raw_data) if hasattr(self.state, 'raw_data') and self.state.raw_data else 0} records"
+                f"🔍 DEBUG: Raw data available before validation: "
+                f"{len(self.state.raw_data) if hasattr(self.state, 'raw_data') and self.state.raw_data else 0} records"
             )
             if (
                 hasattr(self.state, "raw_data")
@@ -284,7 +293,8 @@ class DataImportValidationExecutor(BasePhaseExecutor):
 
             # Persist the validated data
             logger.info(
-                f"🔍 DEBUG: Validation results: is_valid={validation_results.get('is_valid')}, total_records={validation_results.get('total_records')}"
+                f"🔍 DEBUG: Validation results: is_valid={validation_results.get('is_valid')}, "
+                f"total_records={validation_results.get('total_records')}"
             )
 
             validation_time = time.time() - start_time
@@ -733,7 +743,8 @@ class DataImportValidationExecutor(BasePhaseExecutor):
                 }
 
             logger.info(
-                f"✅ DEBUG: Data structure is valid - {len(self.state.raw_data)} records, first record has {len(first_record.keys())} fields"
+                f"✅ DEBUG: Data structure is valid - {len(self.state.raw_data)} records, "
+                f"first record has {len(first_record.keys())} fields"
             )
             return {"valid": True, "reason": "Data structure is valid"}
 

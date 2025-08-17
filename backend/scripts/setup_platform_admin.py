@@ -27,9 +27,15 @@ from sqlalchemy import select
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.core.database import AsyncSessionLocal
-from app.models import ClientAccount, Engagement, User, UserAccountAssociation, UserRole
-from app.models.rbac import RoleType, UserProfile, UserStatus
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models import (
+    ClientAccount,
+    Engagement,
+    User,
+    UserAccountAssociation,
+    UserRole,
+)  # noqa: E402
+from app.models.rbac import RoleType, UserProfile, UserStatus  # noqa: E402
 
 
 def get_password_hash(password: str) -> str:

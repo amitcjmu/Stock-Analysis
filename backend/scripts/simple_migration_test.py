@@ -12,8 +12,8 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 
-from app.core.database import AsyncSessionLocal
-from app.models.asset import Asset, AssetStatus, AssetType, SixRStrategy
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.asset import Asset, AssetStatus, AssetType, SixRStrategy  # noqa: E402
 
 
 async def create_test_migration():

@@ -12,11 +12,13 @@ import sys
 # Add the backend directory to the Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from sqlalchemy import select
+from sqlalchemy import select  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
-from app.models.discovery_flow import DiscoveryFlow
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.discovery_flow import DiscoveryFlow  # noqa: E402
+from app.repositories.discovery_flow_repository import (
+    DiscoveryFlowRepository,
+)  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

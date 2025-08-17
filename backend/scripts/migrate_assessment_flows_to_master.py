@@ -12,12 +12,14 @@ from pathlib import Path
 # Add the backend directory to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sqlalchemy import select
+from sqlalchemy import select  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
-from app.models.assessment_flow import AssessmentFlow
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.repositories.crewai_flow_state_extensions_repository import (
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.assessment_flow import AssessmentFlow  # noqa: E402
+from app.models.crewai_flow_state_extensions import (
+    CrewAIFlowStateExtensions,
+)  # noqa: E402
+from app.repositories.crewai_flow_state_extensions_repository import (  # noqa: E402
     CrewAIFlowStateExtensionsRepository,
 )
 

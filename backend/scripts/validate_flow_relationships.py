@@ -37,10 +37,10 @@ from typing import Any, Dict, List, NamedTuple, Optional
 # Add the backend directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlalchemy import text  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
+from app.core.database import AsyncSessionLocal  # noqa: E402
 
 
 class ValidationResult(NamedTuple):

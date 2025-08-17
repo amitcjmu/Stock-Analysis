@@ -170,7 +170,8 @@ class AgentPerformanceMonitor:
             # Check for performance degradation
             if event.duration and event.duration > target_duration * 2:
                 logger.warning(
-                    f"🚨 Performance alert: {event.operation_type} took {event.duration:.2f}s (target: {target_duration}s)"
+                    f"🚨 Performance alert: {event.operation_type} took {event.duration:.2f}s "
+                    f"(target: {target_duration}s)"
                 )
 
                 # Store performance issue in memory for learning
@@ -355,7 +356,10 @@ class AgentPerformanceMonitor:
                 patterns.append(
                     {
                         "type": "frequent_outliers",
-                        "description": f"High frequency of performance outliers detected ({len(outliers)} out of {len(durations)})",
+                        "description": (
+                            f"High frequency of performance outliers detected "
+                            f"({len(outliers)} out of {len(durations)})"
+                        ),
                         "severity": "medium",
                     }
                 )

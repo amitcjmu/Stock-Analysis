@@ -383,7 +383,8 @@ class AgentAnalysisHandler:
         """Identify specific quality issues in an asset using actual field names."""
         issues = []
 
-        # Get asset identifier using EXACT same logic as frontend table: row.id || row.ID || row.asset_name || row.hostname || row.name || row.NAME || 'unknown'
+        # Get asset identifier using EXACT same logic as frontend table:
+        # row.id || row.ID || row.asset_name || row.hostname || row.name || row.NAME || 'unknown'
         asset_id = (
             asset.get("id")
             or asset.get("ID")

@@ -14,7 +14,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Now we can import our modules
-from seeding.deployment_seeding_script import DeploymentSeeder
+from seeding.deployment_seeding_script import DeploymentSeeder  # noqa: E402
 
 
 async def main():

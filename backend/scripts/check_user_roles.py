@@ -11,11 +11,11 @@ from pathlib import Path
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, select  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
-from app.core.logging import get_logger
-from app.models import User, UserRole
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.core.logging import get_logger  # noqa: E402
+from app.models import User, UserRole  # noqa: E402
 
 logger = get_logger(__name__)
 

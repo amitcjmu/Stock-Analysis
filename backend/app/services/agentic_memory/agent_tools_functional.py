@@ -243,7 +243,11 @@ def create_pattern_recording_tool(
         - confidence_score: your confidence in this pattern (0.0 to 1.0)
         - evidence_assets: list of asset IDs that support this pattern (optional)
 
-        Example: '{"pattern_type": "business_value_indicator", "pattern_name": "Production Database Critical Business Value", "pattern_description": "Production databases with high utilization indicate critical business value", "pattern_logic": {"environment": "production", "asset_type": "database", "cpu_utilization_percent": ">= 70"}, "confidence_score": 0.85}'
+        Example: '{"pattern_type": "business_value_indicator",
+        "pattern_name": "Production Database Critical Business Value",
+        "pattern_description": "Production databases with high utilization indicate critical business value",
+        "pattern_logic": {"environment": "production", "asset_type": "database", "cpu_utilization_percent": ">= 70"},
+        "confidence_score": 0.85}'
         """
         if not DATABASE_AVAILABLE:
             return "Pattern recording not available - database not connected"
@@ -347,7 +351,9 @@ def create_asset_enrichment_tool(
         - cloud_readiness_score: cloud readiness 0-100 (optional)
         - reasoning: detailed explanation of your analysis and conclusions
 
-        Example: '{"asset_id": "123e4567-e89b-12d3-a456-426614174000", "business_value_score": 8, "risk_assessment": "medium", "modernization_potential": "high", "reasoning": "Production database with high utilization serving critical customer applications"}'
+        Example: '{"asset_id": "123e4567-e89b-12d3-a456-426614174000", "business_value_score": 8,
+        "risk_assessment": "medium", "modernization_potential": "high",
+        "reasoning": "Production database with high utilization serving critical customer applications"}'
         """
         if not DATABASE_AVAILABLE:
             return "Asset enrichment not available - database not connected"

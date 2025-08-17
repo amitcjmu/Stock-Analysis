@@ -198,7 +198,10 @@ class UserProfile(Base):
     )
 
     def __repr__(self):
-        return f"<UserProfile(user_id={self.user_id}, status='{self.status}', access_level='{self.requested_access_level}')>"
+        return (
+            f"<UserProfile(user_id={self.user_id}, status='{self.status}', "
+            f"access_level='{self.requested_access_level}')>"
+        )
 
     @property
     def is_approved(self) -> bool:
@@ -364,7 +367,10 @@ class UserRole(Base):
     scope_engagement = relationship("Engagement")
 
     def __repr__(self):
-        return f"<UserRole(id={self.id}, user_id={self.user_id}, role_type='{self.role_type}', scope='{self.scope_type}')>"
+        return (
+            f"<UserRole(id={self.id}, user_id={self.user_id}, role_type='{self.role_type}', "
+            f"scope='{self.scope_type}')>"
+        )
 
     @property
     def is_global_admin(self) -> bool:
@@ -494,7 +500,10 @@ class ClientAccess(Base):
     granted_by_user = relationship("User")
 
     def __repr__(self):
-        return f"<ClientAccess(id={self.id}, user_id={self.user_profile_id}, client_id={self.client_account_id}, access_level='{self.access_level}')>"
+        return (
+            f"<ClientAccess(id={self.id}, user_id={self.user_profile_id}, "
+            f"client_id={self.client_account_id}, access_level='{self.access_level}')>"
+        )
 
     def record_access(self):
         """Record that user accessed this client."""
@@ -632,7 +641,10 @@ class EngagementAccess(Base):
     granted_by_user = relationship("User")
 
     def __repr__(self):
-        return f"<EngagementAccess(id={self.id}, user_id={self.user_profile_id}, engagement_id={self.engagement_id}, role='{self.engagement_role}')>"
+        return (
+            f"<EngagementAccess(id={self.id}, user_id={self.user_profile_id}, "
+            f"engagement_id={self.engagement_id}, role='{self.engagement_role}')>"
+        )
 
     def record_access(self):
         """Record that user accessed this engagement."""
@@ -735,7 +747,10 @@ class AccessAuditLog(Base):
     engagement = relationship("Engagement")
 
     def __repr__(self):
-        return f"<AccessAuditLog(id={self.id}, user_id={self.user_id}, action='{self.action_type}', result='{self.result}')>"
+        return (
+            f"<AccessAuditLog(id={self.id}, user_id={self.user_id}, action='{self.action_type}', "
+            f"result='{self.result}')>"
+        )
 
     @classmethod
     def log_access(cls, user_id: str, action_type: str, result: str, **kwargs):

@@ -10,11 +10,11 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sqlalchemy import select
+from sqlalchemy import select  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
-from app.models import User
-from app.models.rbac import UserProfile, UserStatus
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models import User  # noqa: E402
+from app.models.rbac import UserProfile, UserStatus  # noqa: E402
 
 
 async def create_active_profiles_for_demo_users():

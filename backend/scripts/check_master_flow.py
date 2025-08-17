@@ -15,11 +15,13 @@ from sqlalchemy import select, text
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.core.database import AsyncSessionLocal
-from app.models.asset import Asset
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.models.data_import.core import DataImport
-from app.models.discovery_flow import DiscoveryFlow
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.asset import Asset  # noqa: E402
+from app.models.crewai_flow_state_extensions import (
+    CrewAIFlowStateExtensions,
+)  # noqa: E402
+from app.models.data_import.core import DataImport  # noqa: E402
+from app.models.discovery_flow import DiscoveryFlow  # noqa: E402
 
 
 async def check_master_flow():

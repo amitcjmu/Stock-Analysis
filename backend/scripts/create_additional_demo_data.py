@@ -10,8 +10,8 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from app.core.database import AsyncSessionLocal
-from app.models.client_account import ClientAccount, Engagement
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.client_account import ClientAccount, Engagement  # noqa: E402
 
 
 async def create_additional_demo_data():

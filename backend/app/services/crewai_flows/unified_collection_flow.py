@@ -49,23 +49,23 @@ except ImportError as e:
     )
 
 # Import models and dependencies
-from app.core.context import RequestContext
-from app.models.collection_flow import (
+from app.core.context import RequestContext  # noqa: E402
+from app.models.collection_flow import (  # noqa: E402
     AutomationTier,
     CollectionFlowError,
     CollectionFlowState,
     CollectionPhase,
     CollectionStatus,
 )
-from app.services.crewai_flows.flow_state_manager import FlowStateManager
+from app.services.crewai_flows.flow_state_manager import FlowStateManager  # noqa: E402
 
 # Import handlers and utilities
-from app.services.crewai_flows.handlers.unified_flow_management import (
+from app.services.crewai_flows.handlers.unified_flow_management import (  # noqa: E402
     UnifiedFlowManagement,
 )
 
 # Import modularized components
-from app.services.crewai_flows.unified_collection_flow_modules import (  # Phase handlers
+from app.services.crewai_flows.unified_collection_flow_modules import (  # Phase handlers  # noqa: E402
     AutomatedCollectionHandler,
     FinalizationHandler,
     FlowContext,

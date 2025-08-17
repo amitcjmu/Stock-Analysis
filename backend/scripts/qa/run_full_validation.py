@@ -22,9 +22,9 @@ from typing import Any, Dict, List
 sys.path.append("/app")
 
 # Import validation modules
-from multi_tenant_isolation_tests import MultiTenantIsolationTester
-from performance_validation import PerformanceValidator
-from validate_seeding import DatabaseValidator
+from multi_tenant_isolation_tests import MultiTenantIsolationTester  # noqa: E402
+from performance_validation import PerformanceValidator  # noqa: E402
+from validate_seeding import DatabaseValidator  # noqa: E402
 
 
 class FullValidationSuite:

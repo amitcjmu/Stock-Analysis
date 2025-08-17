@@ -15,9 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 sys.path.append(str(Path(__file__).parent.parent))
 
 from app.core.database import AsyncSessionLocal  # noqa: E402
-from app.models.crewai_flow_state_extensions import (
+from app.models.crewai_flow_state_extensions import (  # noqa: E402
     CrewAIFlowStateExtensions,
-)  # noqa: E402
+)
 from app.models.discovery_flow import DiscoveryFlow  # noqa: E402
 from seeding.constants import (  # noqa: E402
     BASE_TIMESTAMP,

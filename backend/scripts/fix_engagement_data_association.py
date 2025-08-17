@@ -15,12 +15,12 @@ import sys
 # Add the backend directory to sys.path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-import uuid
+import uuid  # noqa: E402
 
-from sqlalchemy import select, update
+from sqlalchemy import select, update  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
-from app.models.data_import.core import DataImport, RawImportRecord
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.data_import.core import DataImport, RawImportRecord  # noqa: E402
 
 
 async def fix_engagement_data_association():

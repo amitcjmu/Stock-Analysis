@@ -313,7 +313,10 @@ class AzureAdapter(BaseAdapter):
                 error_message="Azure SDK is not installed. Please install azure-mgmt-* packages.",
                 collection_metadata={
                     "error": "Azure SDK not available",
-                    "suggestion": "Install required packages: pip install azure-mgmt-resource azure-mgmt-compute azure-mgmt-sql",
+                    "suggestion": (
+                        "Install required packages: pip install azure-mgmt-resource "
+                        "azure-mgmt-compute azure-mgmt-sql"
+                    ),
                 },
             )
 

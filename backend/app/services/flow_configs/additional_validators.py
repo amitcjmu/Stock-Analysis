@@ -1,6 +1,7 @@
 """
 Additional Flow Validators
-MFO-055: Implement flow-specific validators for Planning, Execution, Modernize, FinOps, Observability, and Decommission flows
+MFO-055: Implement flow-specific validators for Planning, Execution, Modernize,
+FinOps, Observability, and Decommission flows
 """
 
 import logging

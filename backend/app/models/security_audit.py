@@ -62,7 +62,10 @@ class SecurityAuditLog(Base):
     reviewed_by = Column(String(36), nullable=True)
 
     def __repr__(self):
-        return f"<SecurityAuditLog(event_type='{self.event_type}', actor='{self.actor_user_id}', severity='{self.severity}')>"
+        return (
+            f"<SecurityAuditLog(event_type='{self.event_type}', actor='{self.actor_user_id}', "
+            f"severity='{self.severity}')>"
+        )
 
     @classmethod
     def create_role_change_event(
@@ -170,4 +173,7 @@ class RoleChangeApproval(Base):
     expires_at = Column(DateTime(timezone=True), nullable=True)
 
     def __repr__(self):
-        return f"<RoleChangeApproval(target='{self.target_user_id}', role='{self.requested_role}', status='{self.status}')>"
+        return (
+            f"<RoleChangeApproval(target='{self.target_user_id}', role='{self.requested_role}', "
+            f"status='{self.status}')>"
+        )

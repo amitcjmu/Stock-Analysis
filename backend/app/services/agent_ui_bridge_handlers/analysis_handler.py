@@ -165,7 +165,8 @@ class AnalysisHandler:
             )
 
             logger.info(
-                f"Agent processing completed: {processing_result['processing_summary']['processed_successfully']}/{len(data_items)} items processed"
+                f"Agent processing completed: "
+                f"{processing_result['processing_summary']['processed_successfully']}/{len(data_items)} items processed"
             )
             return processing_result
 
@@ -229,7 +230,11 @@ class AnalysisHandler:
                 "id": f"quality_insight_{request.get('data_source', 'unknown')}",
                 "type": "data_quality",
                 "title": "Data Quality Assessment",
-                "description": f"Overall data quality score: {overall_quality:.1%}. {len(quality_analysis['classifications']['good_data'])} high-quality records, {len(quality_analysis['classifications']['needs_clarification'])} records need clarification.",
+                "description": (
+                    f"Overall data quality score: {overall_quality:.1%}. "
+                    f"{len(quality_analysis['classifications']['good_data'])} high-quality records, "
+                    f"{len(quality_analysis['classifications']['needs_clarification'])} records need clarification."
+                ),
                 "confidence_score": 0.8,
                 "actionable": True,
                 "supporting_data": {
@@ -270,7 +275,10 @@ class AnalysisHandler:
                     "id": f"source_insight_{data_source}",
                     "type": "data_source",
                     "title": "Data Source Analysis",
-                    "description": f"Analyzed {len(records)} records from {data_source}. Detected {len(field_analysis.get('common_fields', []))} common fields with varying completeness.",
+                    "description": (
+                        f"Analyzed {len(records)} records from {data_source}. "
+                        f"Detected {len(field_analysis.get('common_fields', []))} common fields with varying completeness."
+                    ),
                     "confidence_score": 0.7,
                     "actionable": True,
                     "supporting_data": field_analysis,
@@ -282,7 +290,10 @@ class AnalysisHandler:
                 source_analysis["recommendations"].append(
                     {
                         "type": "data_completion",
-                        "description": f"Consider data enhancement for incomplete fields: {', '.join(field_analysis['incomplete_fields'][:3])}",
+                        "description": (
+                            f"Consider data enhancement for incomplete fields: "
+                            f"{', '.join(field_analysis['incomplete_fields'][:3])}"
+                        ),
                         "priority": "medium",
                     }
                 )

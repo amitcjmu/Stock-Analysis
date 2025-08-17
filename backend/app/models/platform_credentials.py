@@ -158,7 +158,10 @@ class PlatformCredential(Base):
     )
 
     def __repr__(self):
-        return f"<PlatformCredential(name='{self.credential_name}', type='{self.credential_type}', status='{self.status}')>"
+        return (
+            f"<PlatformCredential(name='{self.credential_name}', type='{self.credential_type}', "
+            f"status='{self.status}')>"
+        )
 
     @property
     def is_active(self) -> bool:
@@ -229,7 +232,10 @@ class CredentialAccessLog(Base):
     credential = relationship("PlatformCredential", back_populates="access_logs")
 
     def __repr__(self):
-        return f"<CredentialAccessLog(credential_id='{self.credential_id}', type='{self.access_type}', success={self.success})>"
+        return (
+            f"<CredentialAccessLog(credential_id='{self.credential_id}', type='{self.access_type}', "
+            f"success={self.success})>"
+        )
 
 
 class CredentialRotationHistory(Base):
@@ -278,7 +284,10 @@ class CredentialRotationHistory(Base):
     credential = relationship("PlatformCredential", back_populates="rotation_history")
 
     def __repr__(self):
-        return f"<CredentialRotationHistory(credential_id='{self.credential_id}', type='{self.rotation_type}', success={self.success})>"
+        return (
+            f"<CredentialRotationHistory(credential_id='{self.credential_id}', "
+            f"type='{self.rotation_type}', success={self.success})>"
+        )
 
 
 class CredentialPermission(Base):

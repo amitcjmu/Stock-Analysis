@@ -10,7 +10,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-import os
+import os  # noqa: E402
 
 os.environ["DATABASE_URL"] = (
     "postgresql://postgres:password@localhost:5432/migration_db"

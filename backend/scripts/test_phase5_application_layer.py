@@ -95,7 +95,8 @@ async def test_asset_repository_master_flow_methods():
 
         analytics = await asset_repo.get_cross_phase_analytics()
         print(
-            f"      ✅ Cross-phase analytics: {len(analytics['master_flows'])} master flows, {len(analytics['phase_transitions'])} transitions"
+            f"      ✅ Cross-phase analytics: {len(analytics['master_flows'])} master flows, "
+            f"{len(analytics['phase_transitions'])} transitions"
         )
 
     return True
@@ -163,7 +164,8 @@ async def test_discovery_flow_repository_master_coordination():
 
         summary = await discovery_repo.get_master_flow_coordination_summary()
         print(
-            f"      ✅ Coordination summary: {summary['total_discovery_flows']} flows, {summary['coordination_percentage']:.1f}% coordinated"
+            f"      ✅ Coordination summary: {summary['total_discovery_flows']} flows, "
+            f"{summary['coordination_percentage']:.1f}% coordinated"
         )
 
         # Test 3: update_master_flow_reference
@@ -222,7 +224,8 @@ async def test_cross_table_relationships():
 
         for rel in relationships:
             print(
-                f"      ✅ Master Flow {str(rel.master_flow_id)[:8]}... -> Flow '{rel.flow_name}' -> {rel.asset_count} assets"
+                f"      ✅ Master Flow {str(rel.master_flow_id)[:8]}... -> Flow '{rel.flow_name}' -> "
+                f"{rel.asset_count} assets"
             )
 
         # Test 2: Phase progression integrity
@@ -426,7 +429,8 @@ async def test_performance_and_scalability():
 
             print(f"      ✅ Cross-phase analytics in {analytics_time:.3f}s")
             print(
-                f"      ✅ Found {len(analytics['master_flows'])} master flows, {len(analytics['phase_transitions'])} transitions"
+                f"      ✅ Found {len(analytics['master_flows'])} master flows, "
+                f"{len(analytics['phase_transitions'])} transitions"
             )
 
     return True

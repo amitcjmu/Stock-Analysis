@@ -20,11 +20,11 @@ from typing import Any, Dict, List, Optional, Tuple
 # Add app path
 sys.path.append("/app")
 
-from sqlalchemy import and_, distinct, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import and_, distinct, func, select  # noqa: E402
+from sqlalchemy.ext.asyncio import AsyncSession  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
-from app.models import (
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models import (  # noqa: E402
     Assessment,
     Asset,
     ClientAccount,

@@ -962,7 +962,10 @@ class FieldMappingExecutor(BasePhaseExecutor):
         # If not found, check phase_data for imported data
         elif hasattr(self.state, 'phase_data') and 'data_import' in self.state.phase_data:
             data_import_results = self.state.phase_data['data_import']
-            logger.info(f"🔍 DEBUG: Data import phase_data available: {list(data_import_results.keys()) if isinstance(data_import_results, dict) else 'Not a dict'}")
+            logger.info(
+                f"🔍 DEBUG: Data import phase_data available: "
+                f"{list(data_import_results.keys()) if isinstance(data_import_results, dict) else 'Not a dict'}"
+            )
 
             if isinstance(data_import_results, dict):
                 # Try validated_data first
@@ -995,7 +998,10 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 logger.error(f"⚠️ State attributes: {self.state.__dict__}")
 
             # Instead of returning a fallback, raise an error so the issue is visible
-            raise ValueError("No raw CSV data available for field mapping. The flow state is missing the imported data. This indicates a data linkage issue between the flow and data import.")
+            raise ValueError(
+                "No raw CSV data available for field mapping. The flow state is missing the imported data. "
+                "This indicates a data linkage issue between the flow and data import."
+            )
 
         # Get first record to analyze fields
         sample_record = raw_data[0]
@@ -1062,7 +1068,8 @@ class FieldMappingExecutor(BasePhaseExecutor):
         # Generate clarifications
         if unmapped_columns:
             clarifications.append(
-                f"Unable to automatically map {len(unmapped_columns)} fields: {', '.join(unmapped_columns[:5])}{'...' if len(unmapped_columns) > 5 else ''}. "
+                f"Unable to automatically map {len(unmapped_columns)} fields: "
+                f"{', '.join(unmapped_columns[:5])}{'...' if len(unmapped_columns) > 5 else ''}. "
                 "Please review these mappings carefully."
             )
 

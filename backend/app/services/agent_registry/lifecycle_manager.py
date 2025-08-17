@@ -65,7 +65,8 @@ class AgentLifecycleManager:
         agent.last_heartbeat = datetime.utcnow()
 
         logger.info(
-            f"Updated performance for agent {agent_id}: {agent.tasks_completed} tasks, {agent.success_rate:.2%} success rate"
+            f"Updated performance for agent {agent_id}: {agent.tasks_completed} tasks, "
+            f"{agent.success_rate:.2%} success rate"
         )
 
     def record_task_completion(

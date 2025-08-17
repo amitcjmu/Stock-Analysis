@@ -11,9 +11,9 @@ from typing import Any, Dict
 
 sys.path.append("/app")
 
-from sqlalchemy import text
+from sqlalchemy import text  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
+from app.core.database import AsyncSessionLocal  # noqa: E402
 
 
 async def run_simple_validation() -> Dict[str, Any]:

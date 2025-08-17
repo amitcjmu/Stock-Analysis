@@ -26,7 +26,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 # App imports
 sys.path.append("/app")
-from app.core.database import Base, get_database_url
+from app.core.database import Base, get_database_url  # noqa: E402
 
 # Import all models to ensure they're registered
 # Base is already imported from app.core.database above

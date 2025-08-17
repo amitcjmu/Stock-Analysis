@@ -95,7 +95,10 @@ class RiskAssessmentAgent:
 
         agent = Agent(
             role="Security and Risk Intelligence Analyst",
-            goal="Assess security, operational, and compliance risks using evidence-based analysis and learned threat patterns",
+            goal=(
+                "Assess security, operational, and compliance risks using evidence-based analysis "
+                "and learned threat patterns"
+            ),
             backstory="""You are a cybersecurity and risk assessment expert who specializes in
             evaluating IT asset risks through intelligent analysis rather than static checklists.
 
@@ -150,12 +153,15 @@ class RiskAssessmentAgent:
         # This is not SQL, it's a task description for an AI agent
         asset_details_json = json.dumps(asset_summary, indent=2)
         task_description = (  # nosec B608
-            "Conduct a comprehensive risk assessment for this asset using your security intelligence and memory tools:\n\n"
+            "Conduct a comprehensive risk assessment for this asset using your security "
+            "intelligence and memory tools:\n\n"
             "Asset Details:\n" + asset_details_json + "\n\n"  # nosec B608
             "Complete Risk Assessment Process:\n\n"
             "1. SEARCH FOR THREAT PATTERNS:\n"
-            "   Use your pattern search tool to find relevant risk patterns and threat indicators from previous assessments.\n"
-            "   Search for: security vulnerabilities, legacy technology risks, compliance violations, operational failures.\n\n"
+            "   Use your pattern search tool to find relevant risk patterns and threat indicators "
+            "from previous assessments.\n"
+            "   Search for: security vulnerabilities, legacy technology risks, compliance violations, "
+            "operational failures.\n\n"
             "2. TECHNOLOGY STACK ANALYSIS:\n"
             "   Use your asset query tool to examine similar technology stacks and identify:\n"
             "   - Known security vulnerabilities in the technology stack\n"
@@ -189,8 +195,8 @@ class RiskAssessmentAgent:
             "   - High Risk: Significant security gaps, legacy technology, or compliance violations\n"
             "   - Critical Risk: Immediate threats, end-of-life systems, or severe compliance failures\n\n"
             "7. PATTERN DISCOVERY:\n"
-            "   If you identify new risk patterns or threat indicators, use your pattern recording tool\n"
-            "   to save them for future threat intelligence.\n\n"
+            "   If you identify new risk patterns or threat indicators, use your pattern recording tool "
+            "to save them for future threat intelligence.\n\n"
             "8. ASSET ENRICHMENT:\n"
             "   Use your asset enrichment tool to update the asset with:\n"
             "   - Overall risk assessment level\n"

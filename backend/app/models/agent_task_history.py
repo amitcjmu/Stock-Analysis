@@ -186,7 +186,8 @@ class AgentTaskHistory(Base):
             "duration_seconds >= 0", name="chk_agent_task_history_duration_seconds"
         ),
         CheckConstraint(
-            "status IN ('pending', 'starting', 'running', 'thinking', 'waiting_llm', 'processing_response', 'completed', 'failed', 'timeout')",
+            "status IN ('pending', 'starting', 'running', 'thinking', 'waiting_llm', "
+            "'processing_response', 'completed', 'failed', 'timeout')",
             name="chk_agent_task_history_status",
         ),
         CheckConstraint(
@@ -250,8 +251,7 @@ class AgentTaskHistory(Base):
         self.token_usage = {
             "input_tokens": current_input + input_tokens,
             "output_tokens": current_output + output_tokens,
-            "total_tokens": current_input
-            + current_output
-            + input_tokens
-            + output_tokens,
+            "total_tokens": (
+                current_input + current_output + input_tokens + output_tokens
+            ),
         }

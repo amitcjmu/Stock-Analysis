@@ -420,12 +420,14 @@ class PerformanceMonitor:
             and metric.value < self.thresholds.min_throughput_ops_per_sec
         ):
             violations.append(
-                f"Low throughput: {metric.value:.1f} ops/sec below threshold {self.thresholds.min_throughput_ops_per_sec}"
+                f"Low throughput: {metric.value:.1f} ops/sec below threshold "
+                f"{self.thresholds.min_throughput_ops_per_sec}"
             )
 
         if violations:
             self.logger.warning(
-                f"Performance threshold violations for {metric.adapter_name}:{metric.platform} - {', '.join(violations)}"
+                f"Performance threshold violations for {metric.adapter_name}:{metric.platform} - "
+                f"{', '.join(violations)}"
             )
 
     async def analyze_performance_trends(
@@ -520,7 +522,10 @@ class PerformanceMonitor:
                     recommendation_id=f"latency_opt_{adapter_name}_{platform}_{int(time.time())}",
                     level=OptimizationLevel.HIGH,
                     title="Reduce API Call Latency",
-                    description=f"Average latency is {latency_trend['current_average']:.1f}ms, exceeding threshold. Consider implementing request batching, connection pooling, or caching.",
+                    description=(
+                        f"Average latency is {latency_trend['current_average']:.1f}ms, exceeding threshold. "
+                        "Consider implementing request batching, connection pooling, or caching."
+                    ),
                     expected_improvement="20-40% latency reduction",
                     implementation_complexity="Medium",
                     adapter_name=adapter_name,
@@ -548,7 +553,10 @@ class PerformanceMonitor:
                     recommendation_id=f"error_rate_opt_{adapter_name}_{platform}_{int(time.time())}",
                     level=OptimizationLevel.CRITICAL,
                     title="Improve Error Handling",
-                    description=f"Error rate is {error_rate_trend['current_average']:.1f}%, above acceptable threshold. Review retry strategies and error classification.",
+                    description=(
+                        f"Error rate is {error_rate_trend['current_average']:.1f}%, above acceptable threshold. "
+                        "Review retry strategies and error classification."
+                    ),
                     expected_improvement="50-70% error reduction",
                     implementation_complexity="Low",
                     adapter_name=adapter_name,
@@ -576,7 +584,10 @@ class PerformanceMonitor:
                     recommendation_id=f"throughput_opt_{adapter_name}_{platform}_{int(time.time())}",
                     level=OptimizationLevel.MEDIUM,
                     title="Increase Operation Throughput",
-                    description=f"Throughput is {throughput_trend['current_average']:.1f} ops/sec, below target. Consider parallel processing or async optimizations.",
+                    description=(
+                        f"Throughput is {throughput_trend['current_average']:.1f} ops/sec, below target. "
+                        "Consider parallel processing or async optimizations."
+                    ),
                     expected_improvement="2-3x throughput increase",
                     implementation_complexity="High",
                     adapter_name=adapter_name,
@@ -602,7 +613,10 @@ class PerformanceMonitor:
                     recommendation_id=f"p95_latency_opt_{adapter_name}_{platform}_{int(time.time())}",
                     level=OptimizationLevel.MEDIUM,
                     title="Address P95 Latency Outliers",
-                    description="P95 latency is significantly higher than average, indicating inconsistent performance. Investigate timeout handling and resource contention.",
+                    description=(
+                        "P95 latency is significantly higher than average, indicating inconsistent performance. "
+                        "Investigate timeout handling and resource contention."
+                    ),
                     expected_improvement="30-50% P95 latency reduction",
                     implementation_complexity="Medium",
                     adapter_name=adapter_name,

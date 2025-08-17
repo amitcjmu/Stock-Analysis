@@ -95,7 +95,10 @@ class ModernizationAgent:
 
         agent = Agent(
             role="Cloud Modernization and Architecture Specialist",
-            goal="Assess modernization potential and cloud readiness using evidence-based analysis and learned migration patterns",
+            goal=(
+                "Assess modernization potential and cloud readiness using evidence-based analysis "
+                "and learned migration patterns"
+            ),
             backstory="""You are a cloud architecture and modernization expert who specializes in
             evaluating IT assets for cloud migration and modernization opportunities through intelligent
             analysis rather than generic migration frameworks.
@@ -153,14 +156,15 @@ class ModernizationAgent:
         # This is not SQL, it's a task description for an AI agent
         asset_details_json = json.dumps(asset_summary, indent=2)
         task_description = (  # nosec B608
-            "Conduct a comprehensive modernization assessment for this asset using your cloud architecture intelligence and memory tools:\n\n"
+            "Conduct a comprehensive modernization assessment for this asset using your cloud "
+            "architecture intelligence and memory tools:\n\n"
             "Asset Details:\n" + asset_details_json + "\n\n"  # nosec B608
             "Complete Modernization Assessment Process:\n\n"
             "1. SEARCH FOR MODERNIZATION PATTERNS:\n"
-            "   Use your pattern search tool to find relevant modernization patterns and successful\n"
-            "   migration strategies from previous projects.\n"
-            "   Search for: cloud migration strategies, containerization patterns, microservices\n"
-            "   transformation, database modernization.\n\n"
+            "   Use your pattern search tool to find relevant modernization patterns and successful "
+            "migration strategies from previous projects.\n"
+            "   Search for: cloud migration strategies, containerization patterns, microservices "
+            "transformation, database modernization.\n\n"
             "2. TECHNOLOGY STACK ANALYSIS:\n"
             "   Use your asset query tool to examine similar technology stacks and identify:\n"
             "   - Cloud compatibility and native support for the technology stack\n"
@@ -196,8 +200,8 @@ class ModernizationAgent:
             "   - Effort Estimation (Low/Medium/High): Resources required for modernization\n"
             "   - Business Impact (Low/Medium/High): Expected benefits from modernization\n\n"
             "7. PATTERN DISCOVERY:\n"
-            "   If you identify new modernization patterns or architectural insights, use your pattern recording tool\n"
-            "   to save them for future project intelligence.\n\n"
+            "   If you identify new modernization patterns or architectural insights, use your pattern recording tool "
+            "to save them for future project intelligence.\n\n"
             "8. ASSET ENRICHMENT:\n"
             "   Use your asset enrichment tool to update the asset with:\n"
             "   - Cloud readiness score and modernization potential assessment\n"
@@ -282,7 +286,8 @@ class ModernizationAgent:
             parsed_result = self._parse_modernization_output(result, asset_data)
 
             logger.info(
-                f"✅ Modernization analysis completed - Cloud Readiness: {parsed_result.get('cloud_readiness_score')}/100"
+                f"✅ Modernization analysis completed - Cloud Readiness: "
+                f"{parsed_result.get('cloud_readiness_score')}/100"
             )
 
             return parsed_result
