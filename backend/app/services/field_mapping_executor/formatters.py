@@ -230,7 +230,7 @@ class ValidationResultsFormatter:
             mappings = validation_results["cleaned_mappings"]
             confidence_validation = validation_results.get("confidence_validation", {})
 
-            lines.append(f"\n📊 Mapping Metrics:")
+            lines.append("\n📊 Mapping Metrics:")
             lines.append(f"  • Total mappings: {len(mappings)}")
 
             if confidence_validation and "metrics" in confidence_validation:
@@ -272,7 +272,7 @@ class ValidationResultsFormatter:
 
         # Summary statistics
         scores = list(confidence_scores.values())
-        lines.append(f"\nSummary:")
+        lines.append("\nSummary:")
         lines.append(f"  • Average: {sum(scores) / len(scores):.2f}")
         lines.append(f"  • Minimum: {min(scores):.2f}")
         lines.append(f"  • Maximum: {max(scores):.2f}")
