@@ -7,7 +7,7 @@ modularized with placeholder implementations.
 Backward compatibility wrapper for the original rules_engine.py
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 # Lightweight shim - modularization complete
 
@@ -66,10 +66,56 @@ class ValidationRule:
         return True
 
 
+class RequiredFieldsRule(MappingRule):
+    """Required fields rule - placeholder implementation"""
+
+    def __init__(self, required_fields: Optional[List[str]] = None):
+        super().__init__("required_fields", "mapping")
+        self.required_fields = required_fields or []
+
+
+class UniqueTargetRule(MappingRule):
+    """Unique target rule - placeholder implementation"""
+
+    def __init__(self):
+        super().__init__("unique_target", "mapping")
+
+
+class MinimumConfidenceRule(MappingRule):
+    """Minimum confidence rule - placeholder implementation"""
+
+    def __init__(self, min_confidence: float = 0.7):
+        super().__init__("minimum_confidence", "mapping")
+        self.min_confidence = min_confidence
+
+
+class DataConsistencyRule(MappingRule):
+    """Data consistency rule - placeholder implementation"""
+
+    def __init__(self):
+        super().__init__("data_consistency", "mapping")
+
+
+class DefaultClarificationGenerator:
+    """Default clarification generator - placeholder implementation"""
+
+    def __init__(self):
+        self.clarifications = []
+
+    def generate_clarifications(self, mappings: Dict[str, str]) -> List[str]:
+        """Placeholder clarification generation"""
+        return []
+
+
 # Re-export main classes
 __all__ = [
     "RulesEngine",
     "MappingRulesEngine",
     "MappingRule",
     "ValidationRule",
+    "RequiredFieldsRule",
+    "UniqueTargetRule",
+    "MinimumConfidenceRule",
+    "DataConsistencyRule",
+    "DefaultClarificationGenerator",
 ]

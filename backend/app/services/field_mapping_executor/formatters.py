@@ -10,7 +10,47 @@ from typing import Dict, List, Optional, Any
 logger = logging.getLogger(__name__)
 
 
-class MappingResponseFormatter:
+class BaseFormatter:
+    """Base class for formatters"""
+
+    def format(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Format data for output
+
+        Args:
+            data: Data to format
+
+        Returns:
+            Formatted data
+        """
+        raise NotImplementedError
+
+
+class PlaceholderValidationResultsFormatter(BaseFormatter):
+    """Validation results formatter - placeholder implementation"""
+
+    def format_validation_results(self, results: Dict[str, Any]) -> Dict[str, Any]:
+        """Placeholder validation results formatting"""
+        return results
+
+
+class PlaceholderLoggingFormatter(BaseFormatter):
+    """Logging formatter - placeholder implementation"""
+
+    def format_log_entry(self, message: str, level: str = "INFO") -> str:
+        """Placeholder log formatting"""
+        return f"[{level}] {message}"
+
+
+class PlaceholderClarificationFormatter(BaseFormatter):
+    """Clarification formatter - placeholder implementation"""
+
+    def format_clarifications(self, clarifications: List[str]) -> Dict[str, Any]:
+        """Placeholder clarification formatting"""
+        return {"clarifications": clarifications}
+
+
+class MappingResponseFormatter(BaseFormatter):
     """Formats field mapping responses in standardized format"""
 
     def __init__(self):

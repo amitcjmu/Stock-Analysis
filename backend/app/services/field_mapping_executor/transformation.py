@@ -59,10 +59,34 @@ class DataTransformation:
         self.transformation_type = transformation_type
 
 
+class DataTransformer:
+    """Data transformer - placeholder implementation"""
+
+    def __init__(self):
+        self.transformations = {}
+
+    def transform_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Placeholder data transformation"""
+        return data
+
+
+class DatabaseUpdater:
+    """Database updater - placeholder implementation"""
+
+    def __init__(self):
+        self.updates = []
+
+    def update_database(self, data: Dict[str, Any]) -> bool:
+        """Placeholder database update"""
+        return True
+
+
 # Re-export main classes
 __all__ = [
     "TransformationEngine",
     "MappingTransformer",
     "FieldTransformer",
     "DataTransformation",
+    "DataTransformer",
+    "DatabaseUpdater",
 ]

@@ -11,7 +11,20 @@ from typing import Dict, List, Tuple, Optional, Any
 logger = logging.getLogger(__name__)
 
 
-class MappingValidator:
+class BaseValidator:
+    """Base class for validators"""
+
+    def validate(self, data: Dict[str, Any]) -> Tuple[bool, List[str]]:
+        """
+        Validate data and return result with any error messages
+
+        Returns:
+            Tuple of (is_valid, error_messages)
+        """
+        raise NotImplementedError
+
+
+class MappingValidator(BaseValidator):
     """Validates field mappings for correctness and completeness"""
 
     def __init__(self):

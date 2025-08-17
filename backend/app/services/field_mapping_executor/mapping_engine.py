@@ -57,10 +57,46 @@ class MappingContext:
         self.context_data = context_data or {}
 
 
+class FieldSimilarityCalculator:
+    """Field similarity calculator - placeholder implementation"""
+
+    def __init__(self):
+        self.similarity_cache = {}
+
+    def calculate_similarity(self, field1: str, field2: str) -> float:
+        """Placeholder similarity calculation"""
+        return 0.5
+
+
+class StandardFieldRegistry:
+    """Standard field registry - placeholder implementation"""
+
+    def __init__(self):
+        self.standard_fields = {}
+
+    def get_standard_field(self, field_name: str) -> Optional[str]:
+        """Placeholder standard field lookup"""
+        return None
+
+
+class FallbackMappingEngine(MappingEngine):
+    """Fallback mapping engine - placeholder implementation"""
+
+    def __init__(self):
+        super().__init__()
+
+    def fallback_mapping(self, fields: List[str]) -> Dict[str, str]:
+        """Placeholder fallback mapping"""
+        return {}
+
+
 # Re-export main classes
 __all__ = [
     "MappingEngine",
     "IntelligentMappingEngine",
     "FieldMappingRule",
     "MappingContext",
+    "FieldSimilarityCalculator",
+    "StandardFieldRegistry",
+    "FallbackMappingEngine",
 ]
