@@ -13,6 +13,12 @@ class FieldMappingError(Exception):
         self.context = kwargs
 
 
+class FieldMappingExecutorError(FieldMappingError):
+    """Main executor exception - alias for backward compatibility"""
+
+    pass
+
+
 class MappingParseError(FieldMappingError):
     """Exception raised when mapping parsing fails"""
 
@@ -27,6 +33,20 @@ class MappingValidationError(FieldMappingError):
     def __init__(self, message: str, mappings: dict = None, **kwargs):
         super().__init__(message, **kwargs)
         self.mappings = mappings or {}
+
+
+class ValidationError(MappingValidationError):
+    """Validation error - alias for backward compatibility"""
+
+    pass
+
+
+class TransformationError(FieldMappingError):
+    """Exception raised when transformation fails"""
+
+    def __init__(self, message: str, transformation_type: str = "", **kwargs):
+        super().__init__(message, **kwargs)
+        self.transformation_type = transformation_type
 
 
 class CrewExecutionError(FieldMappingError):
@@ -66,3 +86,27 @@ class TimeoutError(FieldMappingError):
     def __init__(self, message: str, timeout_seconds: int = 0, **kwargs):
         super().__init__(message, **kwargs)
         self.timeout_seconds = timeout_seconds
+
+
+class MappingEngineError(FieldMappingError):
+    """Exception raised when mapping engine operations fail"""
+
+    def __init__(self, message: str, engine_type: str = "", **kwargs):
+        super().__init__(message, **kwargs)
+        self.engine_type = engine_type
+
+
+class RulesEngineError(FieldMappingError):
+    """Exception raised when rules engine operations fail"""
+
+    def __init__(self, message: str, rule_name: str = "", **kwargs):
+        super().__init__(message, **kwargs)
+        self.rule_name = rule_name
+
+
+class FormattingError(FieldMappingError):
+    """Exception raised when formatting operations fail"""
+
+    def __init__(self, message: str, format_type: str = "", **kwargs):
+        super().__init__(message, **kwargs)
+        self.format_type = format_type

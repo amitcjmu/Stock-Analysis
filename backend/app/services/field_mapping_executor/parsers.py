@@ -26,6 +26,10 @@ class MappingParser:
         raise NotImplementedError
 
 
+# Alias for backward compatibility
+BaseMappingParser = MappingParser
+
+
 class JSONMappingParser(MappingParser):
     """Parser for JSON-formatted mapping results"""
 

@@ -15,8 +15,9 @@ import logging
 from typing import Dict, Any, List
 from datetime import datetime
 
-from app.services.crewai_flows.handlers.base_executor import BasePhaseExecutor
-from app.services.storage_manager import StorageManager
+# Temporarily commented out to avoid circular import during modularization testing
+# from app.services.crewai_flows.handlers.base_executor import BasePhaseExecutor
+from app.services.storage_manager.core import StorageManager
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
@@ -43,7 +44,7 @@ from .formatters import MappingResponseFormatter
 logger = logging.getLogger(__name__)
 
 
-class FieldMappingExecutor(BasePhaseExecutor):
+class FieldMappingExecutor:  # Temporarily removed BasePhaseExecutor inheritance to avoid circular import
     """
     Core executor for field mapping phase operations.
 
