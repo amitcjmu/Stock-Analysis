@@ -44,7 +44,8 @@ async def fix_stuck_flows():
                 logger.info(f"✅ Fixed {len(stuck_flows)} stuck discovery flows:")
                 for flow in stuck_flows:
                     logger.info(
-                        f"  - Flow {str(flow.flow_id)[:8]}... was stuck in {flow.current_phase} for {int(flow.seconds_stuck)}s"
+                        f"  - Flow {str(flow.flow_id)[:8]}... was stuck in {flow.current_phase} "
+                        f"for {int(flow.seconds_stuck)}s"
                     )
             else:
                 logger.info("No stuck discovery flows found")

@@ -784,7 +784,11 @@ async def main():
                     status_table.add_row(
                         phase.replace("_", " ").title(),
                         old_status,
-                        f"[{'green' if new_status != old_status else 'yellow'}]{new_status}[/{'green' if new_status != old_status else 'yellow'}]",
+                        (
+                            f"[{'green' if new_status != old_status else 'yellow'}]"
+                            f"{new_status}"
+                            f"[/{'green' if new_status != old_status else 'yellow'}]"
+                        ),
                     )
 
                 console.print(status_table)

@@ -28,7 +28,8 @@ def upgrade():
             IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'application_role') THEN
                 -- For production, this role should be created during database setup
                 -- This is a fallback for development environments
-                RAISE NOTICE 'Role application_role does not exist. RLS policies will be created for PUBLIC role instead.';
+                RAISE NOTICE 'Role application_role does not exist. '
+                    'RLS policies will be created for PUBLIC role instead.';
             END IF;
         END
         $$;
@@ -65,7 +66,7 @@ def upgrade():
             .execute(
                 sa.text(
                     f"SELECT EXISTS (SELECT 1 FROM information_schema.tables "
-                    f"WHERE table_name = '{table}')"  # nosec B608
+                    f"WHERE table_name = '{table}')"  # nosec B608 - table name from hardcoded migration list
                 )
             )
             .scalar()

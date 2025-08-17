@@ -152,9 +152,12 @@ class SmartWorkflowRecommendationEngine:
             recommendations.extend(quality_recommendations)
 
             # Performance optimization recommendations
-            performance_recommendations = await self.performance_generator.generate_performance_optimization_recommendations(
-                environment_analysis=environment_analysis,
-                historical_patterns=historical_patterns,
+            perf_gen = self.performance_generator
+            performance_recommendations = (
+                await perf_gen.generate_performance_optimization_recommendations(
+                    environment_analysis=environment_analysis,
+                    historical_patterns=historical_patterns,
+                )
             )
             recommendations.extend(performance_recommendations)
 

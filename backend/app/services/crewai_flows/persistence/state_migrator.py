@@ -100,8 +100,8 @@ class StateMigrator:
             # CrewAI default locations
             os.path.expanduser("~/.crewai"),
             os.path.expanduser("~/.crewai/flows"),
-            "/tmp/crewai",
-            "/var/tmp/crewai",
+            "/tmp/crewai",  # nosec B108 - searching existing databases, not creating files
+            "/var/tmp/crewai",  # nosec B108 - searching existing databases, not creating files
             # Application-specific locations
             "./crewai_flows",
             "./data/crewai",

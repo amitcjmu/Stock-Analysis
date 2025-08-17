@@ -35,7 +35,10 @@ def main():
     tests_to_run = [
         # Integration tests
         (
-            "pytest /app/tests/integration/test_smart_workflow_integration.py -v -k 'test_complete_smart_workflow or test_workflow_status_tracking' || true",
+            (
+                "pytest /app/tests/integration/test_smart_workflow_integration.py -v "
+                "-k 'test_complete_smart_workflow or test_workflow_status_tracking' || true"
+            ),
             "Smart Workflow Integration Tests (Basic)",
         ),
         # API tests
@@ -50,7 +53,10 @@ def main():
         ),
         # Services tests
         (
-            "pytest /app/tests/services/test_master_flow_orchestrator.py -v -k 'test_flow_registration' --tb=short || true",
+            (
+                "pytest /app/tests/services/test_master_flow_orchestrator.py -v "
+                "-k 'test_flow_registration' --tb=short || true"
+            ),
             "Master Flow Orchestrator Tests",
         ),
         # Memory tests

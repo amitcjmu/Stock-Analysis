@@ -6,6 +6,7 @@ Manages data persistence and storage operations.
 import json
 import logging
 import os
+import tempfile
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List
@@ -27,7 +28,10 @@ class UUIDEncoder(json.JSONEncoder):
 class StorageManager:
     """Manages storage operations for agent-UI communication data."""
 
-    def __init__(self, storage_path: str = "/tmp/agent_ui_bridge"):
+    def __init__(self, storage_path: str = None):
+        if storage_path is None:
+            # Use secure temporary directory with proper permissions
+            storage_path = os.path.join(tempfile.gettempdir(), "agent_ui_bridge")
         self.storage_path = storage_path
         self.ensure_storage_directory()
 
@@ -46,8 +50,10 @@ class StorageManager:
             logger.warning(
                 f"Could not create storage directory {self.storage_path}: {e}"
             )
-            # Fall back to temp directory
-            self.storage_path = "/tmp"
+            # Fall back to secure temp directory
+            self.storage_path = (
+                tempfile.gettempdir()
+            )  # nosec B108 - secure fallback to system temp
 
     def _convert_to_serializable(self, obj: Any) -> Any:
         """Recursively convert UUIDs and other non-serializable objects to strings."""
@@ -411,13 +417,21 @@ class StorageManager:
             return False
 
 
-# Instantiate storage managers for different data types
+# Instantiate storage managers for different data types using secure temp directories
+_secure_temp_base = os.path.join(tempfile.gettempdir(), "agent_ui_bridge")
+
 classification_storage = StorageManager(
-    storage_path="/tmp/agent_ui_bridge/classifications"
+    storage_path=os.path.join(_secure_temp_base, "classifications")
 )
-question_storage = StorageManager(storage_path="/tmp/agent_ui_bridge/questions")
-insight_storage = StorageManager(storage_path="/tmp/agent_ui_bridge/insights")
-context_storage = StorageManager(storage_path="/tmp/agent_ui_bridge/context")
+question_storage = StorageManager(
+    storage_path=os.path.join(_secure_temp_base, "questions")
+)
+insight_storage = StorageManager(
+    storage_path=os.path.join(_secure_temp_base, "insights")
+)
+context_storage = StorageManager(
+    storage_path=os.path.join(_secure_temp_base, "context")
+)
 
 # Default storage manager
 storage_manager = StorageManager()

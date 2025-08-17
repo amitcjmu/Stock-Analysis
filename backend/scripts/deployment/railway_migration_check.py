@@ -162,7 +162,8 @@ async def check_database_schema_state() -> Dict[str, Any]:
                     JOIN information_schema.constraint_column_usage AS ccu
                         ON ccu.constraint_name = tc.constraint_name
                     WHERE tc.constraint_type = 'FOREIGN KEY'
-                    AND (kcu.column_name = 'flow_id' OR tc.table_name IN ('crewai_flow_state_extensions', 'discovery_flows'))
+                    AND (kcu.column_name = 'flow_id'
+                         OR tc.table_name IN ('crewai_flow_state_extensions', 'discovery_flows'))
                     ORDER BY tc.table_name, tc.constraint_name
                 """
                     )

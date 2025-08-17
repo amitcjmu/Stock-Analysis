@@ -593,7 +593,10 @@ class DataIntegrityValidator:
                             self._add_issue(
                                 "master_flow_orchestrator",
                                 severity,
-                                f"{check['name']}: {missing_count} flows missing required Master Flow Orchestrator data",
+                                (
+                                    f"{check['name']}: {missing_count} flows missing required "
+                                    f"Master Flow Orchestrator data"
+                                ),
                                 {
                                     "check": check["name"],
                                     "missing_count": missing_count,
@@ -680,7 +683,10 @@ class DataIntegrityValidator:
                     self._add_issue(
                         "flow_relationships",
                         "critical",
-                        f"Discovery flow relationship mismatch: {missing_count} discovery flows missing master flow records",
+                        (
+                            f"Discovery flow relationship mismatch: {missing_count} discovery flows "
+                            f"missing master flow records"
+                        ),
                         {
                             "discovery_count": discovery_stats.discovery_count,
                             "master_count": discovery_stats.master_count,
@@ -712,7 +718,10 @@ class DataIntegrityValidator:
                     self._add_issue(
                         "flow_relationships",
                         "critical",
-                        f"Assessment flow relationship mismatch: {missing_count} assessment flows missing master flow records",
+                        (
+                            f"Assessment flow relationship mismatch: {missing_count} assessment flows "
+                            f"missing master flow records"
+                        ),
                         {
                             "assessment_count": assessment_stats.assessment_count,
                             "master_count": assessment_stats.master_count,
@@ -945,7 +954,10 @@ class DataIntegrityValidator:
                     self._add_issue(
                         "performance_metrics",
                         "info",
-                        f"Missing agent metrics: {missing_agent_metrics} completed flows missing agent performance data",
+                        (
+                            f"Missing agent metrics: {missing_agent_metrics} completed flows "
+                            f"missing agent performance data"
+                        ),
                         {"missing_count": missing_agent_metrics},
                     )
                 else:
@@ -1533,8 +1545,13 @@ class DataIntegrityValidator:
         category_recommendations = {
             "referential_integrity": "Fix foreign key constraints and ensure proper relationships between tables",
             "data_consistency": "Implement data validation rules and ensure consistent data formats",
-            "master_flow_orchestrator": "Complete Master Flow Orchestrator data migration and ensure all required fields are populated",
-            "flow_relationships": "Repair flow relationships and ensure proper linkage between flow types and master flows",
+            "master_flow_orchestrator": (
+                "Complete Master Flow Orchestrator data migration and ensure all required "
+                "fields are populated"
+            ),
+            "flow_relationships": (
+                "Repair flow relationships and ensure proper linkage between flow types and master flows"
+            ),
             "audit_trails": "Improve audit logging and ensure complete tracking of flow operations",
             "performance_metrics": "Implement comprehensive performance tracking for all flow operations",
             "orphaned_records": "Clean up orphaned records and implement proper cascade delete operations",

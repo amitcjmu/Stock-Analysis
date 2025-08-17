@@ -90,7 +90,8 @@ class FlowTypeConfigurator:
             results["verification"] = verification_result
 
             logger.info(
-                f"✅ Flow configuration complete: {results['successful_configurations']}/{results['total_flows']} flows configured"
+                f"✅ Flow configuration complete: {results['successful_configurations']}/"
+                f"{results['total_flows']} flows configured"
             )
             return results
 
@@ -997,9 +998,14 @@ async def run_flow_type_configuration():
                 for issue in verification["configuration_issues"]:
                     print(f"    ❌ {issue}")
 
-        print(
-            f"\n{'✅ CONFIGURATION COMPLETED SUCCESSFULLY' if results['successful_configurations'] == results['total_flows'] else '⚠️ CONFIGURATION COMPLETED WITH ISSUES'}"
+        success_message = "✅ CONFIGURATION COMPLETED SUCCESSFULLY"
+        warning_message = "⚠️ CONFIGURATION COMPLETED WITH ISSUES"
+        final_message = (
+            success_message
+            if results["successful_configurations"] == results["total_flows"]
+            else warning_message
         )
+        print(f"\n{final_message}")
         print("=" * 60)
 
         return results

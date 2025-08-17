@@ -58,10 +58,12 @@ async def check_imports_by_context():
         print()
         print("🔍 Specific Context Analysis:")
         print(
-            f"Demo context (bafd5b46...): {sum(1 for imp in imports if str(imp.client_account_id) == demo_client)} imports"
+            f"Demo context (bafd5b46...): "
+            f"{sum(1 for imp in imports if str(imp.client_account_id) == demo_client)} imports"
         )
         print(
-            f"Marathon context (73dee5f1...): {sum(1 for imp in imports if str(imp.client_account_id) == marathon_client)} imports"
+            f"Marathon context (73dee5f1...): "
+            f"{sum(1 for imp in imports if str(imp.client_account_id) == marathon_client)} imports"
         )
 
 

@@ -122,7 +122,8 @@ def upgrade():
             "notification_preferences",
             postgresql.JSONB(astext_type=sa.Text()),
             server_default=sa.text(
-                '\'{"email_notifications": true, "system_alerts": true, "learning_updates": false, "weekly_reports": true}\'::jsonb'
+                '\'{"email_notifications": true, "system_alerts": true, '
+                '"learning_updates": false, "weekly_reports": true}\'::jsonb'
             ),
             nullable=True,
         ),
@@ -171,7 +172,10 @@ def upgrade():
             "permissions",
             postgresql.JSONB(astext_type=sa.Text()),
             server_default=sa.text(
-                '\'{"can_create_clients": false, "can_manage_engagements": false, "can_import_data": true, "can_export_data": true, "can_view_analytics": true, "can_manage_users": false, "can_configure_agents": false, "can_access_admin_console": false}\'::jsonb'
+                '\'{"can_create_clients": false, "can_manage_engagements": false, '
+                '"can_import_data": true, "can_export_data": true, "can_view_analytics": true, '
+                '"can_manage_users": false, "can_configure_agents": false, '
+                '"can_access_admin_console": false}\'::jsonb'
             ),
             nullable=True,
         ),
@@ -312,7 +316,9 @@ def upgrade():
             "permissions",
             postgresql.JSONB(astext_type=sa.Text()),
             server_default=sa.text(
-                '\'{"can_view_data": true, "can_import_data": false, "can_export_data": false, "can_manage_engagements": false, "can_configure_client_settings": false, "can_manage_client_users": false}\'::jsonb'
+                '\'{"can_view_data": true, "can_import_data": false, "can_export_data": false, '
+                '"can_manage_engagements": false, "can_configure_client_settings": false, '
+                '"can_manage_client_users": false}\'::jsonb'
             ),
             nullable=True,
         ),
@@ -399,7 +405,9 @@ def upgrade():
             "permissions",
             postgresql.JSONB(astext_type=sa.Text()),
             server_default=sa.text(
-                '\'{"can_view_data": true, "can_import_data": false, "can_export_data": false, "can_manage_sessions": false, "can_configure_agents": false, "can_approve_migration_decisions": false, "can_access_sensitive_data": false}\'::jsonb'
+                '\'{"can_view_data": true, "can_import_data": false, "can_export_data": false, '
+                '"can_manage_sessions": false, "can_configure_agents": false, '
+                '"can_approve_migration_decisions": false, "can_access_sensitive_data": false}\'::jsonb'
             ),
             nullable=True,
         ),

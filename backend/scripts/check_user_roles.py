@@ -93,7 +93,8 @@ async def check_user_roles():
             if limited_role:
                 logger.info(f"  Role Type: {limited_role.role_type}")
                 logger.info(
-                    f"  This explains why the user is seen as: {'admin' if limited_role.role_type == 'platform_admin' else limited_role.role_type}"
+                    f"  This explains why the user is seen as: "
+                    f"{'admin' if limited_role.role_type == 'platform_admin' else limited_role.role_type}"
                 )
             else:
                 logger.info("  No active role found!")
