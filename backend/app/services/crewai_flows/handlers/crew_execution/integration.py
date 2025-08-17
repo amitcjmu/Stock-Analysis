@@ -199,6 +199,17 @@ class DiscoveryIntegrationExecutor(CrewExecutionBase):
                     logger.warning(
                         "⚠️ This indicates a flow creation order issue that needs to be fixed"
                     )
+
+                    # Commit what we have so far before returning
+                    try:
+                        await db_session.commit()
+                        logger.info(
+                            "✅ Committed partial data (import session and records)"
+                        )
+                    except Exception as e:
+                        await db_session.rollback()
+                        logger.error(f"❌ Failed to commit partial data: {e}")
+
                     return {
                         "status": "error",
                         "error": "missing_master_flow_id",

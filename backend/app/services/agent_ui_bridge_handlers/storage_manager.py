@@ -35,6 +35,12 @@ class StorageManager:
         self.storage_path = storage_path
         self.ensure_storage_directory()
 
+        # Enforce restrictive permissions on the directory
+        try:
+            os.chmod(self.storage_path, 0o700)  # Owner-only access
+        except Exception as e:
+            logger.warning(f"Could not set permissions on {self.storage_path}: {e}")
+
         # In-memory caches
         self._questions_cache = {}
         self._classifications_cache = {}
