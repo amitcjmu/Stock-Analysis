@@ -164,7 +164,10 @@ class AssetIntelligenceCrew:
         """Create the Asset Classification Expert agent"""
         return Agent(
             role="Asset Classification Expert",
-            goal="Provide precise and comprehensive asset classification using advanced pattern recognition and industry knowledge",
+            goal=(
+                "Provide precise and comprehensive asset classification using advanced "
+                "pattern recognition and industry knowledge"
+            ),
             backstory="""You are a senior asset classification specialist with deep expertise in
             enterprise IT infrastructure. You have classified thousands of assets across various
             industries and understand the nuances of different asset types, their characteristics,

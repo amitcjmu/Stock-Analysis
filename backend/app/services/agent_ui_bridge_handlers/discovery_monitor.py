@@ -83,7 +83,10 @@ class DiscoveryFlowMonitor:
                     agent_name="Field Mapping Analyst",
                     insight_type="field_mapping_quality",
                     title="Field Mapping Quality Assessment",
-                    description=f"Analyzed {total_mappings} field mappings with {high_confidence} high-confidence matches ({confidence_ratio:.1%} accuracy). "
+                    description=(
+                        f"Analyzed {total_mappings} field mappings with {high_confidence} "
+                        f"high-confidence matches ({confidence_ratio:.1%} accuracy). "
+                    )
                     + (
                         f"{len(low_confidence_mappings)} mappings need human review."
                         if low_confidence_mappings

@@ -279,7 +279,10 @@ class AuditLoggingService:
             event_type=AuditEventType.QUALITY_ASSESSED,
             severity=severity,
             flow_id=flow_id,
-            description=f"Quality assessment completed (Score: {quality_score:.1f}%, Confidence: {confidence_score:.1f}%)",
+            description=(
+                f"Quality assessment completed (Score: {quality_score:.1f}%, "
+                f"Confidence: {confidence_score:.1f}%)"
+            ),
             details=event_details,
             metadata={"category": "quality_assessment"},
         )

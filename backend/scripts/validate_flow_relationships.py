@@ -141,7 +141,10 @@ class FlowRelationshipValidator:
             text(
                 """
                 SELECT COUNT(*) FROM migration.crewai_flow_state_extensions
-                WHERE flow_type NOT IN ('discovery', 'assessment', 'planning', 'execution', 'modernize', 'finops', 'observability', 'decommission')
+                WHERE flow_type NOT IN (
+                    'discovery', 'assessment', 'planning', 'execution',
+                    'modernize', 'finops', 'observability', 'decommission'
+                )
             """
             )
         )

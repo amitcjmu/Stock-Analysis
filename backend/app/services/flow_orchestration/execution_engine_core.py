@@ -403,7 +403,8 @@ class FlowExecutionCore:
             )
 
             logger.info(
-                f"🤖 Agent Decision for {phase_name}: {decision.action.value} -> {decision.next_phase} (confidence: {decision.confidence:.2f})"
+                f"🤖 Agent Decision for {phase_name}: {decision.action.value} -> "
+                f"{decision.next_phase} (confidence: {decision.confidence:.2f})"
             )
 
         except Exception as e:
@@ -584,7 +585,8 @@ class FlowExecutionCore:
             # Log decision if it differs from default
             if decision.next_phase != self._get_default_next_phase(phase_name):
                 logger.info(
-                    f"🤖 Post-execution override: {phase_name} -> {decision.next_phase} (reasoning: {decision.reasoning})"
+                    f"🤖 Post-execution override: {phase_name} -> {decision.next_phase} "
+                    f"(reasoning: {decision.reasoning})"
                 )
 
             return decision

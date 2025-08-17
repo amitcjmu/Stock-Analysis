@@ -107,7 +107,8 @@ class AttributeMapperTool(AsyncBaseDiscoveryTool):
 
             self.log_with_context(
                 "info",
-                f"Mapped {mapped_count}/{total_attributes} attributes ({mapping_results['coverage_percentage']:.1f}% coverage)",
+                f"Mapped {mapped_count}/{total_attributes} attributes "
+                f"({mapping_results['coverage_percentage']:.1f}% coverage)",
             )
 
             return mapping_results

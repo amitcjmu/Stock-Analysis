@@ -64,7 +64,8 @@ def upgrade():
             op.get_bind()
             .execute(
                 sa.text(
-                    f"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = '{table}')"  # nosec B608
+                    f"SELECT EXISTS (SELECT 1 FROM information_schema.tables "
+                    f"WHERE table_name = '{table}')"  # nosec B608
                 )
             )
             .scalar()

@@ -79,7 +79,8 @@ class NavigationDecisionTool(BaseTool):
 
     name: str = "navigation_decision_maker"
     description: str = (
-        "Makes intelligent routing decisions based on flow analysis and validation results, providing specific actionable guidance"
+        "Makes intelligent routing decisions based on flow analysis and "
+        "validation results, providing specific actionable guidance"
     )
 
     def _run(self, flow_status: str, validation_results: str, flow_type: str) -> str:
@@ -129,7 +130,10 @@ class NavigationDecisionTool(BaseTool):
             if current_phase == "not_found" or status_data.get("status") == "not_found":
                 return {
                     "routing_decision": "/discovery/cmdb-import",
-                    "user_guidance": "The discovery flow was not found. Please start a new discovery flow by uploading your data.",
+                    "user_guidance": (
+                        "The discovery flow was not found. Please start a new "
+                        "discovery flow by uploading your data."
+                    ),
                     "action_type": "user_action",
                     "confidence": 1.0,
                     "next_actions": [
@@ -157,7 +161,11 @@ class NavigationDecisionTool(BaseTool):
 
                     return {
                         "routing_decision": navigation_path,
-                        "user_guidance": f"Phase '{current_phase}' completed successfully. Continue to {next_phase}: {user_actions[0] if user_actions else 'Review and proceed'}",
+                        "user_guidance": (
+                            f"Phase '{current_phase}' completed successfully. "
+                            f"Continue to {next_phase}: "
+                            f"{user_actions[0] if user_actions else 'Review and proceed'}"
+                        ),
                         "action_type": "user_action",
                         "confidence": 0.9,
                         "next_phase": next_phase,
@@ -167,7 +175,11 @@ class NavigationDecisionTool(BaseTool):
                     # Flow complete
                     return {
                         "routing_decision": f"/{flow_type}/results?flow_id={flow_id}",
-                        "user_guidance": f"All phases of the {flow_type} flow have been completed successfully. Review the results and proceed to the next workflow.",
+                        "user_guidance": (
+                            f"All phases of the {flow_type} flow have been "
+                            f"completed successfully. Review the results and "
+                            f"proceed to the next workflow."
+                        ),
                         "action_type": "navigation",
                         "confidence": 0.95,
                         "completion_status": "flow_complete",

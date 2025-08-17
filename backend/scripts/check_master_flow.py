@@ -6,20 +6,19 @@ Check the master flow and its relationship to discovery flows.
 import asyncio
 import json
 import os
-
-# Add parent directory to Python path
 import sys
 from datetime import datetime
 
 from sqlalchemy import select, text
 
+# Add parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.core.database import AsyncSessionLocal  # noqa: E402
 from app.models.asset import Asset  # noqa: E402
-from app.models.crewai_flow_state_extensions import (
+from app.models.crewai_flow_state_extensions import (  # noqa: E402
     CrewAIFlowStateExtensions,
-)  # noqa: E402
+)
 from app.models.data_import.core import DataImport  # noqa: E402
 from app.models.discovery_flow import DiscoveryFlow  # noqa: E402
 

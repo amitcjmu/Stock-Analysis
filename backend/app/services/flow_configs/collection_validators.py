@@ -203,7 +203,8 @@ async def data_quality_validation(
                 return False, f"No resources or assets found for {platform_id}"
 
         logger.info(
-            f"✅ Data quality validation passed with average score: {sum(quality_scores.values())/len(quality_scores):.2f}"
+            f"✅ Data quality validation passed with average score: "
+            f"{sum(quality_scores.values())/len(quality_scores):.2f}"
         )
         return True, None
 

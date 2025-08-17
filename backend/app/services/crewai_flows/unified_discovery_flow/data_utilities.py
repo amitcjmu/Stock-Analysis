@@ -285,7 +285,8 @@ class DataUtilities:
             }
 
             self.logger.info(
-                f"✅ Transformed {len(transformed_data)} records with {transformation_stats['field_mappings_applied']} field mappings"
+                f"✅ Transformed {len(transformed_data)} records with "
+                f"{transformation_stats['field_mappings_applied']} field mappings"
             )
             return result
 

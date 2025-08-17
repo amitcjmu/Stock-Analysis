@@ -145,7 +145,8 @@ class FlowRepairService:
             repair_result.update(result)
 
             logger.info(
-                f"✅ Repair completed: {repair_result['items_repaired']}/{repair_result['items_processed']} items repaired"
+                f"✅ Repair completed: {repair_result['items_repaired']}/"
+                f"{repair_result['items_processed']} items repaired"
             )
             return repair_result
 

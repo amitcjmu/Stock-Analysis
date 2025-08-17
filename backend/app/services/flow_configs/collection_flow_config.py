@@ -410,7 +410,10 @@ def get_collection_flow_config() -> FlowTypeConfig:
     synthesis_phase = PhaseConfig(
         name="synthesis",
         display_name="Data Synthesis",
-        description="Synthesize and validate all collected data for completeness and quality using intelligent synthesis",
+        description=(
+            "Synthesize and validate all collected data for completeness and quality "
+            "using intelligent synthesis"
+        ),
         required_inputs=["all_collected_data", "validation_rules"],
         optional_inputs=[
             "synthesis_preferences",
@@ -523,7 +526,10 @@ def get_collection_flow_config() -> FlowTypeConfig:
     collection_config = FlowTypeConfig(
         name="collection",
         display_name="Data Collection Flow",
-        description="Automated Data Collection and Synthesis (ADCS) flow for comprehensive data gathering across multiple platforms and tiers",
+        description=(
+            "Automated Data Collection and Synthesis (ADCS) flow for comprehensive "
+            "data gathering across multiple platforms and tiers"
+        ),
         version="2.0.0",
         phases=[
             platform_detection_phase,

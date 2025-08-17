@@ -28,7 +28,10 @@ class ValidationWorkflowAgent(BaseCrewAIAgent):
 
         super().__init__(
             role="Validation Workflow Architect",
-            goal="Design comprehensive validation workflows that ensure manually collected data meets quality standards before migration",
+            goal=(
+                "Design comprehensive validation workflows that ensure "
+                "manually collected data meets quality standards before migration"
+            ),
             backstory="""You are an expert in data validation and workflow orchestration.
             You specialize in:
             - Building multi-tiered validation processes that catch errors early

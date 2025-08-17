@@ -20,7 +20,10 @@ class FieldMappingTool:
     def __init__(self):
         self.field_mapper = field_mapper
         self.tool_name = "field_mapping_tool"
-        self.description = "Tool for learning and querying field mappings between data columns and canonical field names"
+        self.description = (
+            "Tool for learning and querying field mappings between data columns and "
+            "canonical field names"
+        )
 
     def query_field_mapping(self, field_name: str) -> Dict[str, Any]:
         """

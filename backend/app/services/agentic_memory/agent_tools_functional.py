@@ -128,7 +128,10 @@ def create_pattern_search_tool(client_account_id: uuid.UUID, engagement_id: uuid
             response = {
                 "found_patterns": len(pattern_summaries),
                 "patterns": pattern_summaries[:5],  # Limit to top 5 for readability
-                "search_summary": f"Found {len(pattern_summaries)} patterns matching '{query_text}' with confidence >= {min_confidence}",
+                "search_summary": (
+                    f"Found {len(pattern_summaries)} patterns matching '{query_text}' "
+                    f"with confidence >= {min_confidence}"
+                ),
             }
 
             return json.dumps(response, indent=2)
@@ -271,7 +274,10 @@ def create_pattern_recording_tool(
             try:
                 pattern_type = PatternType(pattern_type_str)
             except ValueError:
-                return f"Error: Unknown pattern type '{pattern_type_str}'. Valid types: {[pt.value for pt in PatternType]}"
+                return (
+                    f"Error: Unknown pattern type '{pattern_type_str}'. "
+                    f"Valid types: {[pt.value for pt in PatternType]}"
+                )
 
             # Convert evidence asset IDs
             evidence_assets = []

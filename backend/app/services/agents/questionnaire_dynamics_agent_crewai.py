@@ -28,7 +28,10 @@ class QuestionnaireDynamicsAgent(BaseCrewAIAgent):
 
         super().__init__(
             role="Questionnaire Dynamics Specialist",
-            goal="Create intelligent adaptive questionnaires that efficiently collect missing critical data through user-friendly forms",
+            goal=(
+                "Create intelligent adaptive questionnaires that efficiently "
+                "collect missing critical data through user-friendly forms"
+            ),
             backstory="""You are an expert in form design and user experience for data collection.
             You excel at:
             - Creating intuitive questionnaires that minimize user effort

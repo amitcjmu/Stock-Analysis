@@ -23,18 +23,18 @@ import sys
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import select
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from sqlalchemy import select  # noqa: E402
+
 from app.core.database import AsyncSessionLocal  # noqa: E402
-from app.models import (
+from app.models import (  # noqa: E402
     ClientAccount,
     Engagement,
     User,
     UserAccountAssociation,
     UserRole,
-)  # noqa: E402
+)
 from app.models.rbac import RoleType, UserProfile, UserStatus  # noqa: E402
 
 

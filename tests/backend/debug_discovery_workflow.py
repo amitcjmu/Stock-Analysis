@@ -466,13 +466,16 @@ class DiscoveryWorkflowDebugger:
 
                 print("📊 Database Changes:")
                 print(
-                    f"   Assets: {baseline['total_assets']} → {total_assets_after} (+{total_assets_after - baseline['total_assets']})"
+                    f"   Assets: {baseline['total_assets']} → {total_assets_after} "
+                    f"(+{total_assets_after - baseline['total_assets']})"
                 )
                 print(
-                    f"   Imports: {baseline['total_imports']} → {total_imports_after} (+{total_imports_after - baseline['total_imports']})"
+                    f"   Imports: {baseline['total_imports']} → {total_imports_after} "
+                    f"(+{total_imports_after - baseline['total_imports']})"
                 )
                 print(
-                    f"   Raw Records: {baseline['total_raw_records']} → {total_raw_after} (+{total_raw_after - baseline['total_raw_records']})"
+                    f"   Raw Records: {baseline['total_raw_records']} → {total_raw_after} "
+                    f"(+{total_raw_after - baseline['total_raw_records']})"
                 )
                 print(f"   New Assets (10min): {len(new_assets)}")
                 print(f"   Debug Test Assets: {len(debug_assets)}")
@@ -480,7 +483,8 @@ class DiscoveryWorkflowDebugger:
                 if debug_assets:
                     for asset in debug_assets:
                         print(
-                            f"   Debug Asset: {asset.name} ({asset.asset_type}) - {asset.discovery_method} - {asset.created_at}"
+                            f"   Debug Asset: {asset.name} ({asset.asset_type}) - "
+                            f"{asset.discovery_method} - {asset.created_at}"
                         )
 
         except Exception as e:
@@ -663,7 +667,10 @@ class DiscoveryWorkflowDebugger:
                 gaps.append(
                     {
                         "type": "API_TO_FRONTEND_GAP",
-                        "description": "API returns asset data but frontend may show zeros (requires frontend verification)",
+                        "description": (
+                            "API returns asset data but frontend may show zeros "
+                            "(requires frontend verification)"
+                        ),
                         "impact": "Backend data not reflected in user interface",
                         "recommendation": "Check frontend API calls, CORS, and response parsing",
                     }
@@ -753,7 +760,8 @@ class DiscoveryWorkflowDebugger:
                 and actual_assets_added == 0
             ):
                 print(
-                    f"   🚨 MOCK SUCCESS DETECTED: CrewAI claims {crewai_assets_claimed} assets created but 0 actually persisted"
+                    f"   🚨 MOCK SUCCESS DETECTED: CrewAI claims "
+                    f"{crewai_assets_claimed} assets created but 0 actually persisted"
                 )
                 print("      This confirms the user's suspicion of mock functionality!")
 

@@ -66,7 +66,10 @@ class SchemaAnalysisTool(BaseTool):
                 ),
             }
 
-            return f"Schema Analysis Complete: Found {len(fields_analysis)} fields with semantic insights: {semantic_analysis}"
+            return (
+                f"Schema Analysis Complete: Found {len(fields_analysis)} fields "
+                f"with semantic insights: {semantic_analysis}"
+            )
 
         except Exception as e:
             logger.error(f"Schema analysis failed: {e}")

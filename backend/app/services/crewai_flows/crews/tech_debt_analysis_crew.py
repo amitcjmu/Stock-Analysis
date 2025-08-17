@@ -475,7 +475,10 @@ class TechDebtAnalysisCrew:
         """Create the Legacy Systems Modernization Expert agent"""
         return Agent(
             role="Legacy Systems Modernization Expert",
-            goal="Analyze legacy systems and provide comprehensive modernization recommendations based on technical debt assessment",
+            goal=(
+                "Analyze legacy systems and provide comprehensive modernization recommendations "
+                "based on technical debt assessment"
+            ),
             backstory="""You are a legacy systems modernization expert with deep experience in
             transforming outdated technology stacks into modern, maintainable systems. You
             understand the challenges of legacy code, outdated architectures, and technical
@@ -491,7 +494,10 @@ class TechDebtAnalysisCrew:
         """Create the Cloud Migration Strategist agent"""
         return Agent(
             role="Cloud Migration Strategist",
-            goal="Develop optimal cloud migration strategies using 6R framework and provide strategic migration recommendations",
+            goal=(
+                "Develop optimal cloud migration strategies using 6R framework and provide "
+                "strategic migration recommendations"
+            ),
             backstory="""You are a cloud migration strategist with expertise in the 6R migration
             framework (Rehost, Replatform, Refactor, Rearchitect, Retire, Retain). You understand
             the trade-offs between different migration approaches and can recommend the optimal
@@ -507,7 +513,10 @@ class TechDebtAnalysisCrew:
         """Create the Risk Assessment Specialist agent"""
         return Agent(
             role="Risk Assessment Specialist",
-            goal="Assess migration risks and provide comprehensive risk mitigation strategies for tech debt remediation",
+            goal=(
+                "Assess migration risks and provide comprehensive risk mitigation strategies "
+                "for tech debt remediation"
+            ),
             backstory="""You are a risk assessment specialist focused on technology migration
             and modernization risks. You understand the potential pitfalls of legacy system
             migrations and can identify, quantify, and provide mitigation strategies for

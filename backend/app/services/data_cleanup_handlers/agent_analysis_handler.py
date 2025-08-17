@@ -406,7 +406,9 @@ class AgentAnalysisHandler:
 
         # Debug logging
         logger.info(
-            f"Asset {index} - ID logic: id={asset.get('id')}, ID={asset.get('ID')}, asset_name={asset.get('asset_name')}, hostname={asset.get('hostname')}, name={asset.get('name')}, NAME={asset.get('NAME')}"
+            f"Asset {index} - ID logic: id={asset.get('id')}, ID={asset.get('ID')}, "
+            f"asset_name={asset.get('asset_name')}, hostname={asset.get('hostname')}, "
+            f"name={asset.get('name')}, NAME={asset.get('NAME')}"
         )
         logger.info(
             f"Asset {index} - Final asset_id: {asset_id}, asset_name: {asset_name}"

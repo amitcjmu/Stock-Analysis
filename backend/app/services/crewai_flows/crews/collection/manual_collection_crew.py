@@ -103,11 +103,23 @@ def create_manual_collection_crew(
         user_preferences = context.get("user_preferences", {})
 
         # Create questionnaire generation task
+        # Prepare gaps summary for description
+        gaps_summary = []
+        for g in prioritized_gaps[:5]:
+            gaps_summary.append(
+                {
+                    "gap_id": g.get("gap_id"),
+                    "attribute": g.get("attribute"),
+                    "priority": g.get("priority"),
+                    "affected_assets": g.get("records_affected", 0),
+                }
+            )
+
         questionnaire_task = Task(
             description=f"""Generate targeted questionnaires for gap resolution:
 
             PRIORITIZED GAPS TO ADDRESS:
-            {[{'gap_id': g.get('gap_id'), 'attribute': g.get('attribute'), 'priority': g.get('priority'), 'affected_assets': g.get('records_affected', 0)} for g in prioritized_gaps[:5]]}
+            {gaps_summary}
 
             RESOLUTION PLAN:
             - Immediate actions: {resolution_plan.get('immediate_actions', [])}

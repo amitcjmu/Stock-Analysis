@@ -108,7 +108,8 @@ class ComplexityAssessor:
             }
 
             logger.info(
-                f"✅ Complexity assessment completed - Overall complexity: {complexity_assessment['overall_complexity_level']}"
+                f"✅ Complexity assessment completed - Overall complexity: "
+                f"{complexity_assessment['overall_complexity_level']}"
             )
             return complexity_assessment
 

@@ -43,8 +43,12 @@ def create_data_import_validation_crew(
         # Create focused data validation agent with NO delegation
         data_validation_agent = Agent(
             role="Data Import Validation Specialist",
-            goal="Quickly validate imported data for security, PII, file type, and relevance to asset inventory creation",
-            backstory="""You are a focused data validation specialist. Your job is to perform ONLY essential validation tasks:
+            goal=(
+                "Quickly validate imported data for security, PII, file type, and relevance "
+                "to asset inventory creation"
+            ),
+            backstory="""You are a focused data validation specialist. Your job is to perform
+            ONLY essential validation tasks:
             1. Determine file type (CMDB, logs, monitoring, etc.)
             2. Check for PII and sensitive data
             3. Scan for malicious content

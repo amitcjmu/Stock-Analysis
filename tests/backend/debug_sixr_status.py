@@ -18,7 +18,8 @@ async def check_sixr_status():
 
         for analysis in analyses:
             print(
-                f"  Analysis {analysis.id}: status={analysis.status}, apps={analysis.application_ids}, final_rec={analysis.final_recommendation}"
+                f"  Analysis {analysis.id}: status={analysis.status}, "
+                f"apps={analysis.application_ids}, final_rec={analysis.final_recommendation}"
             )
 
         # Check recommendations
@@ -28,7 +29,8 @@ async def check_sixr_status():
 
         for rec in recommendations:
             print(
-                f"  Recommendation {rec.id}: analysis_id={rec.analysis_id}, strategy={rec.recommended_strategy}, confidence={rec.confidence_score}"
+                f"  Recommendation {rec.id}: analysis_id={rec.analysis_id}, "
+                f"strategy={rec.recommended_strategy}, confidence={rec.confidence_score}"
             )
 
 

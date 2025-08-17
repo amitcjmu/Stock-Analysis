@@ -563,8 +563,11 @@ class PerformanceValidator:
                     a.current_monthly_cost,
                     a.estimated_cloud_cost,
                     AVG(a.current_monthly_cost) OVER (PARTITION BY a.asset_type) as avg_type_cost,
-                    RANK() OVER (PARTITION BY ca.id ORDER BY a.current_monthly_cost DESC) as cost_rank_in_client,
-                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY a.current_monthly_cost) OVER (PARTITION BY a.asset_type) as median_type_cost
+                    RANK() OVER (
+                        PARTITION BY ca.id ORDER BY a.current_monthly_cost DESC
+                    ) as cost_rank_in_client,
+                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY a.current_monthly_cost)
+                        OVER (PARTITION BY a.asset_type) as median_type_cost
                 FROM migration.assets a
                 JOIN migration.client_accounts ca ON a.client_account_id = ca.id
                 WHERE a.current_monthly_cost IS NOT NULL
@@ -881,7 +884,9 @@ def print_performance_report(report: Dict[str, Any]):
         for category, stats in report["category_performance"].items():
             pass_rate = (stats["passed_tests"] / stats["total_tests"]) * 100
             print(
-                f"{category.upper():12} | {pass_rate:5.1f}% | Avg: {stats['avg_execution_time']:6.3f}s | Max: {stats['max_execution_time']:6.3f}s"
+                f"{category.upper():12} | {pass_rate:5.1f}% | "
+                f"Avg: {stats['avg_execution_time']:6.3f}s | "
+                f"Max: {stats['max_execution_time']:6.3f}s"
             )
 
     # Failed tests

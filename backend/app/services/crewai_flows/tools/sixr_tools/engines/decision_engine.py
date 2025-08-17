@@ -334,10 +334,19 @@ class SixRDecisionEngine:
 
         # Strategy-specific explanation
         strategy_explanations = {
-            SixRStrategy.REWRITE: "Complete rewrite recommended due to significant technical debt and outdated technology stack",
-            SixRStrategy.REARCHITECT: "Re-architecture needed to address design issues and enable cloud-native capabilities",
+            SixRStrategy.REWRITE: (
+                "Complete rewrite recommended due to significant technical debt "
+                "and outdated technology stack"
+            ),
+            SixRStrategy.REARCHITECT: (
+                "Re-architecture needed to address design issues "
+                "and enable cloud-native capabilities"
+            ),
             SixRStrategy.REFACTOR: "Refactoring will modernize the codebase while preserving core functionality",
-            SixRStrategy.REPLATFORM: "Platform change recommended to leverage cloud capabilities with minimal code changes",
+            SixRStrategy.REPLATFORM: (
+                "Platform change recommended to leverage cloud capabilities "
+                "with minimal code changes"
+            ),
             SixRStrategy.REHOST: "Lift-and-shift migration is suitable given the application's current state",
             SixRStrategy.RETAIN: "Retention recommended as the application is modern and well-maintained",
             SixRStrategy.RETIRE: "Application should be retired and functionality replaced or eliminated",

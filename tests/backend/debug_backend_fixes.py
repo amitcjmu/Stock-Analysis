@@ -109,7 +109,10 @@ def test_engagement_creation():
                 engagement_data = {
                     "engagement_name": "Debug Test Engagement",
                     "client_account_id": test_client_id,
-                    "engagement_description": "This is a test engagement created by the debug script to validate backend functionality.",
+                    "engagement_description": (
+                        "This is a test engagement created by the debug script "
+                        "to validate backend functionality."
+                    ),
                     "migration_scope": "full_datacenter",  # Required enum
                     "target_cloud_provider": "aws",  # Required enum
                     "engagement_manager": "Debug Test Manager",

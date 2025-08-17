@@ -228,7 +228,8 @@ class AdminOperationsHandler(BaseRBACHandler):
                     )
                     self.db.add(default_engagement_access)
                     logger.info(
-                        f"Created EngagementAccess for user {user_id} to default engagement {user_data['default_engagement_id']}"
+                        f"Created EngagementAccess for user {user_id} to default engagement "
+                        f"{user_data['default_engagement_id']}"
                     )
                 except Exception as e:
                     logger.warning(f"Failed to create default engagement access: {e}")

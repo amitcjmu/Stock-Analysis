@@ -193,7 +193,8 @@ class DiscoveryIntegrationExecutor(CrewExecutionBase):
                 # If no master_flow_id, skip creating field mappings to avoid foreign key errors
                 if not master_flow_id:
                     logger.warning(
-                        "⚠️ No master_flow_id available - skipping field mapping creation to avoid foreign key constraint errors"
+                        "⚠️ No master_flow_id available - skipping field mapping creation to avoid "
+                        "foreign key constraint errors"
                     )
                     logger.warning(
                         "⚠️ This indicates a flow creation order issue that needs to be fixed"

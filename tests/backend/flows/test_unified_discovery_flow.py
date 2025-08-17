@@ -55,8 +55,12 @@ def mock_unified_flow(mock_flow_state):
     flow.execute_field_mapping_crew = AsyncMock(return_value={"phase": "field_mapping", "status": "completed"})
     flow.execute_data_cleansing_crew = AsyncMock(return_value={"phase": "data_cleansing", "status": "completed"})
     flow.execute_asset_inventory_crew = AsyncMock(return_value={"phase": "asset_inventory", "status": "completed"})
-    flow.execute_dependency_analysis_crew = AsyncMock(return_value={"phase": "dependency_analysis", "status": "completed"})
-    flow.execute_tech_debt_analysis_crew = AsyncMock(return_value={"phase": "tech_debt_analysis", "status": "completed"})
+    flow.execute_dependency_analysis_crew = AsyncMock(
+        return_value={"phase": "dependency_analysis", "status": "completed"}
+    )
+    flow.execute_tech_debt_analysis_crew = AsyncMock(
+        return_value={"phase": "tech_debt_analysis", "status": "completed"}
+    )
     flow.finalize_discovery = AsyncMock(return_value={"status": "completed", "summary": {"total_phases": 6}})
     return flow
 

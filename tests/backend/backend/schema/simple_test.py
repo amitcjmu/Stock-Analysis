@@ -31,7 +31,9 @@ async def main():
         # Check critical fields
         result = await session.execute(
             text(
-                "SELECT column_name FROM information_schema.columns WHERE table_name = 'assets' AND column_name IN ('flow_id', 'name', 'six_r_strategy')"
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'assets' AND column_name IN "
+                "('flow_id', 'name', 'six_r_strategy')"
             )
         )
         fields = result.fetchall()

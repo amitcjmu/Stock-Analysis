@@ -42,7 +42,10 @@ def create_automated_collection_crew(
         # Create collection orchestrator agent
         collection_orchestrator = Agent(
             role="Collection Orchestration Specialist",
-            goal="Orchestrate efficient and comprehensive automated data collection across all platforms while maintaining data quality",
+            goal=(
+                "Orchestrate efficient and comprehensive automated data collection across "
+                "all platforms while maintaining data quality"
+            ),
             backstory="""You are a master collection orchestrator with expertise in:
             - Multi-platform data collection strategies
             - Platform API optimization and rate limiting
@@ -76,7 +79,8 @@ def create_automated_collection_crew(
             - Detecting missing or incomplete data fields
             - Calculating quality scores for collected data
 
-            You ensure all collected data meets the quality standards required for accurate 6R strategy recommendations.""",
+            You ensure all collected data meets the quality standards required for
+            accurate 6R strategy recommendations.""",
             llm=llm,
             memory=shared_memory,
             **DEFAULT_AGENT_CONFIG,
@@ -107,11 +111,22 @@ def create_automated_collection_crew(
         quality_thresholds = context.get("quality_thresholds", {"minimum": 0.8})
 
         # Create collection orchestration task
+        # Prepare platform summary for description
+        platform_summary = []
+        for i, p in enumerate(platforms):
+            tier_list = tier_assessments.get("tier_assessments", [{}])
+            recommended_tier = (
+                tier_list[i].get("recommended_tier", 2) if i < len(tier_list) else 2
+            )
+            platform_summary.append(
+                {"name": p.get("name"), "type": p.get("type"), "tier": recommended_tier}
+            )
+
         orchestration_task = Task(
             description=f"""Orchestrate automated data collection across detected platforms:
 
             DETECTED PLATFORMS:
-            {[{'name': p.get('name'), 'type': p.get('type'), 'tier': tier_assessments.get('tier_assessments', [{}])[i].get('recommended_tier', 2) if i < len(tier_assessments.get('tier_assessments', [])) else 2} for i, p in enumerate(platforms)]}
+            {platform_summary}
 
             AVAILABLE ADAPTERS:
             {list(available_adapters.keys())}

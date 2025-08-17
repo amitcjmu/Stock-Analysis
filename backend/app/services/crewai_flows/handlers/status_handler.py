@@ -48,7 +48,9 @@ class StatusHandler:
 
     def _calculate_completion_percentage(self, state) -> float:
         """Calculate overall completion percentage"""
-        total_phases = 6  # field_mapping, data_cleansing, inventory_building, app_server_deps, app_app_deps, technical_debt
+        # Total phases: field_mapping, data_cleansing, inventory_building,
+        # app_server_deps, app_app_deps, technical_debt
+        total_phases = 6
         completed_phases = len(
             [
                 status

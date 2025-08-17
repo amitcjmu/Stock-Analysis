@@ -19,7 +19,8 @@ All existing imports and usage patterns remain unchanged for backward compatibil
 """
 
 # Re-export all public interfaces from the modularized package
-from .monitoring_service import (  # Component managers (available if needed); Data models; Types and enums; Main service class
+from .monitoring_service import (  # Component managers (available if needed);
+    # Data models; Types and enums; Main service class
     Alert,
     AlertDefinition,
     AlertManager,

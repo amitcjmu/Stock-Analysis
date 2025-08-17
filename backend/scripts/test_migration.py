@@ -52,7 +52,8 @@ async def test_migration():
             print(f"Found {len(constraints)} foreign key constraints:")
             for constraint in constraints:
                 print(
-                    f"  📋 {constraint.table_name}.{constraint.column_name} -> {constraint.foreign_table_name}.{constraint.foreign_column_name}"
+                    f"  📋 {constraint.table_name}.{constraint.column_name} -> "
+                    f"{constraint.foreign_table_name}.{constraint.foreign_column_name}"
                 )
                 print(f"     Constraint: {constraint.constraint_name}")
                 print(f"     Delete rule: {constraint.delete_rule}")

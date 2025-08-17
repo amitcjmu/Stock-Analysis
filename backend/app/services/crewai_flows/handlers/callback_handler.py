@@ -258,7 +258,8 @@ class CallbackHandler:
 
             # Log task completion
             logger.info(
-                f"Task Completion - {completion_entry['task_name']}: {completion_entry['status']} in {completion_entry['duration']}s"
+                f"Task Completion - {completion_entry['task_name']}: {completion_entry['status']} "
+                f"in {completion_entry['duration']}s"
             )
 
             # Record in agent registry for real performance tracking

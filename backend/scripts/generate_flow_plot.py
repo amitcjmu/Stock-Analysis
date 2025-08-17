@@ -30,8 +30,19 @@ def generate_flow_plot():
         <head>
             <title>AI Modernize Migration Platform - Discovery Flow</title>
             <style>
-                body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-                .flow-container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 20px;
+                    background: #f5f5f5;
+                }
+                .flow-container {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                }
                 .flow-title { text-align: center; color: #2c3e50; margin-bottom: 30px; }
                 .phase { margin: 20px 0; padding: 15px; border-radius: 8px; position: relative; }
                 .phase-start { background: #e8f5e8; border-left: 4px solid #27ae60; }

@@ -2057,7 +2057,8 @@ def upgrade() -> None:
         "data_import_sessions",
         type_="foreignkey",
     )
-    # op.drop_constraint(op.f('data_import_sessions_master_flow_id_fkey'), 'data_import_sessions', type_='foreignkey')  # Already dropped earlier
+    # op.drop_constraint(op.f('data_import_sessions_master_flow_id_fkey'),
+    # 'data_import_sessions', type_='foreignkey')  # Already dropped earlier
     op.drop_constraint(
         op.f("data_import_sessions_engagement_id_fkey"),
         "data_import_sessions",

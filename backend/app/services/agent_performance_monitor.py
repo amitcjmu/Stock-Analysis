@@ -429,7 +429,8 @@ class AgentPerformanceMonitor:
 
             if avg_recent > target_duration * 1.5:
                 recommendations.append(
-                    f"Consider enabling response caching - current avg ({avg_recent:.1f}s) significantly exceeds target ({target_duration}s)"
+                    f"Consider enabling response caching - current avg ({avg_recent:.1f}s) "
+                    f"significantly exceeds target ({target_duration}s)"
                 )
 
             if avg_recent > target_duration * 1.2:
@@ -474,7 +475,8 @@ class AgentPerformanceMonitor:
 
                         if improvement > 1.2:  # 20% improvement
                             recommendations.append(
-                                f"Consider re-applying {optimization_type} - previously achieved {improvement:.1f}x improvement"
+                                f"Consider re-applying {optimization_type} - "
+                                f"previously achieved {improvement:.1f}x improvement"
                             )
 
             # Cache-based recommendations

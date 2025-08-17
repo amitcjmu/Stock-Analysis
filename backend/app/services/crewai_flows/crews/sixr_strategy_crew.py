@@ -127,7 +127,10 @@ class SixRStrategyCrew:
 
         component_strategy_expert = Agent(
             role="Component Modernization Strategist",
-            goal="Determine optimal 6R strategy for each application component based on technical characteristics and business constraints",
+            goal=(
+                "Determine optimal 6R strategy for each application component based on "
+                "technical characteristics and business constraints"
+            ),
             backstory="""You are a cloud migration strategist with deep expertise in component-level
             modernization approaches developed over 15+ years of hands-on cloud transformation experience.
             You understand the nuances of different 6R strategies and can assess which approach is optimal

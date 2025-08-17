@@ -173,7 +173,10 @@ class AppServerDependencyCrew:
             5. Leverages inventory insights from shared memory
 
             Use your planning capabilities to coordinate comprehensive dependency mapping.""",
-            expected_output="Comprehensive dependency analysis execution plan with hosting discovery strategy and impact assessment approach",
+            expected_output=(
+                "Comprehensive dependency analysis execution plan with hosting discovery "
+                "strategy and impact assessment approach"
+            ),
             agent=manager,
             tools=[],
         )
@@ -274,7 +277,8 @@ class AppServerDependencyCrew:
             )
 
         logger.info(
-            f"Creating App-Server Dependency Crew with {process.name if hasattr(process, 'name') else 'sequential'} process"
+            f"Creating App-Server Dependency Crew with "
+            f"{process.name if hasattr(process, 'name') else 'sequential'} process"
         )
         logger.info(
             f"Using LLM: {self.llm_model if isinstance(self.llm_model, str) else 'Unknown'}"
@@ -407,7 +411,10 @@ def create_app_server_dependency_crew(
 
             COLLABORATION: Work with migration analyst to assess hosting complexity and migration impact.
             """,
-            expected_output="Comprehensive hosting relationship mapping with resource utilization and topology insights",
+            expected_output=(
+                "Comprehensive hosting relationship mapping with resource utilization "
+                "and topology insights"
+            ),
             agent=hosting_expert,
             context=[planning_task],
             collaboration=[migration_analyst],
@@ -480,7 +487,10 @@ def _create_hosting_analysis_tool(asset_inventory: Dict[str, Any]):
     # Placeholder for hosting analysis tool - will be implemented in Task 7
     class HostingAnalysisTool:
         def analyze_hosting_relationships(self, data):
-            return f"Hosting analysis for {len(asset_inventory.get('servers', []))} servers and {len(asset_inventory.get('applications', []))} applications"
+            return (
+                f"Hosting analysis for {len(asset_inventory.get('servers', []))} servers "
+                f"and {len(asset_inventory.get('applications', []))} applications"
+            )
 
     return HostingAnalysisTool()
 

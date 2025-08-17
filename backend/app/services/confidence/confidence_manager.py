@@ -171,7 +171,8 @@ class ConfidenceManager:
             if confidence < self.escalation_thresholds["low"]:
                 escalation_triggers["should_escalate"] = True
                 escalation_triggers["escalation_reasons"].append(
-                    f"{agent_id} confidence ({confidence:.1f}%) below threshold ({self.escalation_thresholds['low']:.1f}%)"
+                    f"{agent_id} confidence ({confidence:.1f}%) below threshold "
+                    f"({self.escalation_thresholds['low']:.1f}%)"
                 )
 
                 # Map agent to crew recommendations

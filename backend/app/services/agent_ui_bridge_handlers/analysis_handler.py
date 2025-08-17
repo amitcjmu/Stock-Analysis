@@ -277,7 +277,8 @@ class AnalysisHandler:
                     "title": "Data Source Analysis",
                     "description": (
                         f"Analyzed {len(records)} records from {data_source}. "
-                        f"Detected {len(field_analysis.get('common_fields', []))} common fields with varying completeness."
+                        f"Detected {len(field_analysis.get('common_fields', []))} common fields "
+                        f"with varying completeness."
                     ),
                     "confidence_score": 0.7,
                     "actionable": True,
