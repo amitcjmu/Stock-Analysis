@@ -8,14 +8,22 @@ High-performance storage abstraction layer with:
 - Thread-safe concurrent operations
 - Automatic retry with exponential backoff
 - Performance monitoring and metrics
+
+Note: This module now imports from the modular storage_manager package.
+For advanced features, import directly from app.services.storage_manager.
 """
 
-from .storage_manager import (
+# Import from the new modular storage_manager package
+from ..storage_manager import (
     Priority,
     StorageManager,
     StorageOperation,
     StorageType,
     get_storage_manager,
+    # Also re-export additional classes for convenience
+    BatchResult,
+    StorageStats,
+    InMemoryStorage,
 )
 
 __all__ = [
@@ -24,4 +32,7 @@ __all__ = [
     "StorageType",
     "Priority",
     "get_storage_manager",
+    "BatchResult",
+    "StorageStats",
+    "InMemoryStorage",
 ]
