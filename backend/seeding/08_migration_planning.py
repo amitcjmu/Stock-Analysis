@@ -165,8 +165,8 @@ def _determine_strategy_for_database_asset(asset):
     return {
         "strategy": strategy,
         "wave": 2,
-        "readiness": "Ready" if strategy == SixRStrategy.REHOST else "Needs Analysis",
-        "complexity": "High" if strategy == SixRStrategy.REPLATFORM else "Medium",
+        "readiness": "Ready" if strategy == "rehost" else "Needs Analysis",
+        "complexity": "High" if strategy == "replatform" else "Medium",
         "priority": 8,
     }
 

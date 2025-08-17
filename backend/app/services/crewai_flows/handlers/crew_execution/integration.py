@@ -199,7 +199,16 @@ class DiscoveryIntegrationExecutor(CrewExecutionBase):
                     logger.warning(
                         "⚠️ This indicates a flow creation order issue that needs to be fixed"
                     )
-                    return
+                    return {
+                        "status": "error",
+                        "error": "missing_master_flow_id",
+                        "message": "Cannot create field mappings without a master_flow_id",
+                        "assets_created": assets_created,
+                        "imports_created": imports_created,
+                        "records_created": records_created,
+                        "field_mappings_created": 0,
+                        "timestamp": datetime.utcnow().isoformat(),
+                    }
 
                 logger.info(
                     f"🔍 Creating {len(field_mappings)} field mappings for data_import_id: {import_session.id}"
