@@ -99,90 +99,107 @@ if CREWAI_TOOLS_AVAILABLE:
                     f"🔍 Agent requested deduplication check for {len(assets_to_check)} assets"
                 )
 
-                # Get database context
-                from app.core.database import AsyncSessionLocal
-
-                async with AsyncSessionLocal() as db:
-                    # Get context from stored context info
-                    context = self._context_info
-                    if (
-                        not context
-                        or not context.get("client_account_id")
-                        or not context.get("engagement_id")
-                    ):
-                        logger.warning(
-                            "⚠️ Missing context for deduplication - returning all assets"
-                        )
-                        return assets_to_check
-
-                    # Get existing assets
-                    from app.repositories.discovery_flow_repository.queries.asset_queries import (
-                        AssetQueries,
+                # Validate context first
+                if not self._is_valid_context():
+                    logger.warning(
+                        "⚠️ Missing context for deduplication - returning all assets"
                     )
+                    return assets_to_check
 
-                    asset_queries = AssetQueries(
-                        db, context["client_account_id"], context["engagement_id"]
-                    )
-                    existing_assets = (
-                        await asset_queries.get_assets_by_client_engagement()
-                    )
+                # Get existing assets from database
+                existing_assets = await self._get_existing_assets()
+                if existing_assets is None:
+                    return assets_to_check
 
-                    {
-                        asset.hostname.lower()
-                        for asset in existing_assets
-                        if asset.hostname
-                    }
-                    {asset.name.lower() for asset in existing_assets if asset.name}
+                # Filter out duplicates
+                unique_assets = self._filter_duplicate_assets(
+                    assets_to_check, existing_assets
+                )
 
-                    # Filter out duplicates - check all fields dynamically
-                    unique_assets = []
-                    for asset in assets_to_check:
-                        # Check if asset exists based on any unique identifier fields
-                        is_duplicate = False
-
-                        # Check all fields in the asset for potential matches
-                        for field, value in asset.items():
-                            if not value:
-                                continue
-
-                            # Convert to string for comparison
-                            value_str = str(value).lower()
-
-                            # Check against existing assets' fields
-                            for existing_asset in existing_assets:
-                                existing_value = getattr(existing_asset, field, None)
-                                if (
-                                    existing_value
-                                    and str(existing_value).lower() == value_str
-                                ):
-                                    # Check if it's a meaningful match (not just common values)
-                                    if field in [
-                                        "hostname",
-                                        "name",
-                                        "ip_address",
-                                        "asset_id",
-                                        "serial_number",
-                                    ]:
-                                        logger.debug(
-                                            f"⏭️ Asset with {field}='{value}' already exists - skipping"
-                                        )
-                                        is_duplicate = True
-                                        break
-
-                            if is_duplicate:
-                                break
-
-                        if not is_duplicate:
-                            unique_assets.append(asset)
-
-                    logger.info(
-                        f"✅ Deduplication complete: {len(assets_to_check)} → {len(unique_assets)} unique assets"
-                    )
-                    return unique_assets
+                logger.info(
+                    f"✅ Deduplication complete: {len(assets_to_check)} → {len(unique_assets)} unique assets"
+                )
+                return unique_assets
 
             except Exception as e:
                 logger.error(f"❌ Error in asset deduplication tool: {e}")
                 return assets_to_check  # Return all assets on error
+
+        def _is_valid_context(self) -> bool:
+            """Validate that required context is available"""
+            context = self._context_info
+            return (
+                context is not None
+                and context.get("client_account_id") is not None
+                and context.get("engagement_id") is not None
+            )
+
+        async def _get_existing_assets(self) -> List[Any]:
+            """Get existing assets from database"""
+            try:
+                from app.core.database import AsyncSessionLocal
+                from app.repositories.discovery_flow_repository.queries.asset_queries import (
+                    AssetQueries,
+                )
+
+                async with AsyncSessionLocal() as db:
+                    context = self._context_info
+                    asset_queries = AssetQueries(
+                        db, context["client_account_id"], context["engagement_id"]
+                    )
+                    return await asset_queries.get_assets_by_client_engagement()
+            except Exception as e:
+                logger.error(f"❌ Error getting existing assets: {e}")
+                return None
+
+        def _filter_duplicate_assets(
+            self, assets_to_check: List[Dict[str, Any]], existing_assets: List[Any]
+        ) -> List[Dict[str, Any]]:
+            """Filter out duplicate assets"""
+            unique_assets = []
+            for asset in assets_to_check:
+                if not self._is_duplicate_asset(asset, existing_assets):
+                    unique_assets.append(asset)
+            return unique_assets
+
+        def _is_duplicate_asset(
+            self, asset: Dict[str, Any], existing_assets: List[Any]
+        ) -> bool:
+            """Check if asset is a duplicate of any existing asset"""
+            for field, value in asset.items():
+                if not value:
+                    continue
+
+                if self._is_meaningful_field(field) and self._field_matches_existing(
+                    field, value, existing_assets
+                ):
+                    logger.debug(
+                        f"⏭️ Asset with {field}='{value}' already exists - skipping"
+                    )
+                    return True
+            return False
+
+        def _is_meaningful_field(self, field: str) -> bool:
+            """Check if field is meaningful for duplicate detection"""
+            meaningful_fields = {
+                "hostname",
+                "name",
+                "ip_address",
+                "asset_id",
+                "serial_number",
+            }
+            return field in meaningful_fields
+
+        def _field_matches_existing(
+            self, field: str, value: Any, existing_assets: List[Any]
+        ) -> bool:
+            """Check if field value matches any existing asset"""
+            value_str = str(value).lower()
+            for existing_asset in existing_assets:
+                existing_value = getattr(existing_asset, field, None)
+                if existing_value and str(existing_value).lower() == value_str:
+                    return True
+            return False
 
         def _run(self, assets_to_check: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             """Sync wrapper for async implementation"""

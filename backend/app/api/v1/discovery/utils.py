@@ -18,23 +18,14 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def standardize_asset_type(
-    asset_type: str, asset_name: str = "", asset_data: Dict[str, Any] = None
-) -> str:
-    """Standardize asset type names using comprehensive pattern matching."""
-    if not asset_type and not asset_name:
-        return "Unknown"
+def _check_patterns(combined_text: str, patterns: list) -> bool:
+    """Check if any pattern in the list matches the combined text."""
+    return any(pattern in combined_text for pattern in patterns)
 
-    # Combine type and name for better detection
-    combined_text = f"{asset_type or ''} {asset_name or ''}".lower()
 
-    # Enhanced rule-based detection with device classification
-
-    # 1. GRANULAR WORKLOAD TYPE DETECTION (highest priority for accurate classification)
-    # Check for specific workload type patterns first before generic patterns
-
-    # Database server types (specific patterns)
-    db_server_patterns = [
+def _get_db_server_patterns():
+    """Get database server specific patterns."""
+    return [
         "db server",
         "database server",
         "sql server",
@@ -45,11 +36,11 @@ def standardize_asset_type(
         "redis server",
         "cassandra server",
     ]
-    if any(pattern in combined_text for pattern in db_server_patterns):
-        return "Database"
 
-    # Application server types (specific patterns)
-    app_server_patterns = [
+
+def _get_app_server_patterns():
+    """Get application server specific patterns."""
+    return [
         "app server",
         "application server",
         "web server",
@@ -60,11 +51,11 @@ def standardize_asset_type(
         "nginx server",
         "iis server",
     ]
-    if any(pattern in combined_text for pattern in app_server_patterns):
-        return "Application"
 
-    # 2. Database detection (standalone databases)
-    database_patterns = [
+
+def _get_database_patterns():
+    """Get standalone database patterns."""
+    return [
         "database",
         "db-",
         "-db",
@@ -85,11 +76,11 @@ def standardize_asset_type(
         "couchdb",
         "neo4j",
     ]
-    if any(pattern in combined_text for pattern in database_patterns):
-        return "Database"
 
-    # 3. Security device detection (moved before network to catch firewall)
-    security_patterns = [
+
+def _get_security_patterns():
+    """Get security device patterns."""
+    return [
         "firewall",
         "fw-",
         "-fw",
@@ -105,11 +96,11 @@ def standardize_asset_type(
         "nessus",
         "security",
     ]
-    if any(pattern in combined_text for pattern in security_patterns):
-        return "Security Device"
 
-    # 4. Network device detection
-    network_patterns = [
+
+def _get_network_patterns():
+    """Get network device patterns."""
+    return [
         "switch",
         "router",
         "gateway",
@@ -129,11 +120,11 @@ def standardize_asset_type(
         "access-point",
         "ap-",
     ]
-    if any(pattern in combined_text for pattern in network_patterns):
-        return "Network Device"
 
-    # 5. Storage device detection
-    storage_patterns = [
+
+def _get_storage_patterns():
+    """Get storage device patterns."""
+    return [
         "san",
         "nas",
         "storage",
@@ -149,11 +140,11 @@ def standardize_asset_type(
         "unity",
         "powermax",
     ]
-    if any(pattern in combined_text for pattern in storage_patterns):
-        return "Storage Device"
 
-    # 6. Virtualization detection (before application/server to catch vmware, etc.)
-    virtualization_patterns = [
+
+def _get_virtualization_patterns():
+    """Get virtualization platform patterns."""
+    return [
         "vmware",
         "vcenter",
         "esxi",
@@ -166,11 +157,11 @@ def standardize_asset_type(
         "openshift",
         "vsphere",
     ]
-    if any(pattern in combined_text for pattern in virtualization_patterns):
-        return "Virtualization Platform"
 
-    # 7. Generic server detection (only for unclassified servers)
-    generic_server_patterns = [
+
+def _get_server_patterns():
+    """Get generic server patterns."""
+    return [
         "server",
         "srv-",
         "-srv",
@@ -185,12 +176,11 @@ def standardize_asset_type(
         "domain",
         "controller",
     ]
-    if any(pattern in combined_text for pattern in generic_server_patterns):
-        # Only classify as generic server if not already caught by specific patterns above
-        return "Server"
 
-    # 8. Application detection (standalone applications)
-    application_patterns = [
+
+def _get_application_patterns():
+    """Get standalone application patterns."""
+    return [
         "application",
         "app-",
         "-app",
@@ -203,11 +193,11 @@ def standardize_asset_type(
         "microservice",
         "webapp",
     ]
-    if any(pattern in combined_text for pattern in application_patterns):
-        return "Application"
 
-    # 9. Other infrastructure devices
-    infrastructure_patterns = [
+
+def _get_infrastructure_patterns():
+    """Get infrastructure device patterns."""
+    return [
         "ups",
         "power",
         "rack",
@@ -221,11 +211,43 @@ def standardize_asset_type(
         "camera",
         "sensor",
     ]
-    if any(pattern in combined_text for pattern in infrastructure_patterns):
-        return "Infrastructure Device"
 
-    # If no pattern matches, return Unknown
+
+def _classify_by_pattern_groups(combined_text: str) -> str:
+    """Classify asset type by checking pattern groups in priority order."""
+    # Check in priority order - highest priority first
+    pattern_checks = [
+        (_get_db_server_patterns(), "Database"),
+        (_get_app_server_patterns(), "Application"),
+        (_get_database_patterns(), "Database"),
+        (_get_security_patterns(), "Security Device"),
+        (_get_network_patterns(), "Network Device"),
+        (_get_storage_patterns(), "Storage Device"),
+        (_get_virtualization_patterns(), "Virtualization Platform"),
+        (_get_server_patterns(), "Server"),
+        (_get_application_patterns(), "Application"),
+        (_get_infrastructure_patterns(), "Infrastructure Device"),
+    ]
+
+    for patterns, asset_type in pattern_checks:
+        if _check_patterns(combined_text, patterns):
+            return asset_type
+
     return "Unknown"
+
+
+def standardize_asset_type(
+    asset_type: str, asset_name: str = "", asset_data: Dict[str, Any] = None
+) -> str:
+    """Standardize asset type names using comprehensive pattern matching."""
+    if not asset_type and not asset_name:
+        return "Unknown"
+
+    # Combine type and name for better detection
+    combined_text = f"{asset_type or ''} {asset_name or ''}".lower()
+
+    # Classify using pattern groups
+    return _classify_by_pattern_groups(combined_text)
 
 
 def get_field_value(asset: Dict[str, Any], field_names: List[str]) -> str:
