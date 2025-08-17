@@ -260,7 +260,8 @@ class ValidationHandler:
 
             if low_completeness_fields:
                 recommendations.append(
-                    f"Improve data collection for fields with low completeness: {', '.join(low_completeness_fields[:5])}"
+                    f"Improve data collection for fields with low completeness: "
+                    f"{', '.join(low_completeness_fields[:5])}"
                 )
 
             if overall_completeness < 0.7:

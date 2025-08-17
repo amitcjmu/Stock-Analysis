@@ -1783,7 +1783,9 @@ def upgrade() -> None:
         type_=sa.JSON(),
         existing_nullable=True,
         existing_server_default=sa.text(
-            '\'{"can_view_data": true, "can_export_data": false, "can_import_data": false, "can_manage_engagements": false, "can_manage_client_users": false, "can_configure_client_settings": false}\'::jsonb'
+            '\'{"can_view_data": true, "can_export_data": false, "can_import_data": false, '
+            '"can_manage_engagements": false, "can_manage_client_users": false, '
+            '"can_configure_client_settings": false}\'::jsonb'
         ),
     )
     op.alter_column(
@@ -2057,7 +2059,8 @@ def upgrade() -> None:
         "data_import_sessions",
         type_="foreignkey",
     )
-    # op.drop_constraint(op.f('data_import_sessions_master_flow_id_fkey'), 'data_import_sessions', type_='foreignkey')  # Already dropped earlier
+    # op.drop_constraint(op.f('data_import_sessions_master_flow_id_fkey'),
+    # 'data_import_sessions', type_='foreignkey')  # Already dropped earlier
     op.drop_constraint(
         op.f("data_import_sessions_engagement_id_fkey"),
         "data_import_sessions",
@@ -2295,7 +2298,9 @@ def upgrade() -> None:
         type_=sa.JSON(),
         existing_nullable=True,
         existing_server_default=sa.text(
-            '\'{"can_view_data": true, "can_export_data": false, "can_import_data": false, "can_manage_sessions": false, "can_configure_agents": false, "can_access_sensitive_data": false, "can_approve_migration_decisions": false}\'::jsonb'
+            '\'{"can_view_data": true, "can_export_data": false, "can_import_data": false, '
+            '"can_manage_sessions": false, "can_configure_agents": false, '
+            '"can_access_sensitive_data": false, "can_approve_migration_decisions": false}\'::jsonb'
         ),
     )
     op.alter_column(
@@ -2749,7 +2754,8 @@ def upgrade() -> None:
         type_=sa.JSON(),
         existing_nullable=True,
         existing_server_default=sa.text(
-            '\'{"system_alerts": true, "weekly_reports": true, "learning_updates": false, "email_notifications": true}\'::jsonb'
+            '\'{"system_alerts": true, "weekly_reports": true, '
+            '"learning_updates": false, "email_notifications": true}\'::jsonb'
         ),
     )
     op.alter_column(
@@ -2774,7 +2780,9 @@ def upgrade() -> None:
         type_=sa.JSON(),
         existing_nullable=True,
         existing_server_default=sa.text(
-            '\'{"can_export_data": true, "can_import_data": true, "can_manage_users": false, "can_create_clients": false, "can_view_analytics": true, "can_configure_agents": false, "can_manage_engagements": false, "can_access_admin_console": false}\'::jsonb'
+            '\'{"can_export_data": true, "can_import_data": true, "can_manage_users": false, '
+            '"can_create_clients": false, "can_view_analytics": true, "can_configure_agents": false, '
+            '"can_manage_engagements": false, "can_access_admin_console": false}\'::jsonb'
         ),
     )
     op.alter_column(
@@ -3007,7 +3015,9 @@ def downgrade() -> None:
         type_=postgresql.JSONB(astext_type=sa.Text()),
         existing_nullable=True,
         existing_server_default=sa.text(
-            '\'{"can_export_data": true, "can_import_data": true, "can_manage_users": false, "can_create_clients": false, "can_view_analytics": true, "can_configure_agents": false, "can_manage_engagements": false, "can_access_admin_console": false}\'::jsonb'
+            '\'{"can_export_data": true, "can_import_data": true, "can_manage_users": false, '
+            '"can_create_clients": false, "can_view_analytics": true, "can_configure_agents": false, '
+            '"can_manage_engagements": false, "can_access_admin_console": false}\'::jsonb'
         ),
     )
     op.create_index(
@@ -3037,7 +3047,8 @@ def downgrade() -> None:
         type_=postgresql.JSONB(astext_type=sa.Text()),
         existing_nullable=True,
         existing_server_default=sa.text(
-            '\'{"system_alerts": true, "weekly_reports": true, "learning_updates": false, "email_notifications": true}\'::jsonb'
+            '\'{"system_alerts": true, "weekly_reports": true, '
+            '"learning_updates": false, "email_notifications": true}\'::jsonb'
         ),
     )
     op.drop_constraint(
@@ -3432,7 +3443,9 @@ def downgrade() -> None:
         type_=postgresql.JSONB(astext_type=sa.Text()),
         existing_nullable=True,
         existing_server_default=sa.text(
-            '\'{"can_view_data": true, "can_export_data": false, "can_import_data": false, "can_manage_sessions": false, "can_configure_agents": false, "can_access_sensitive_data": false, "can_approve_migration_decisions": false}\'::jsonb'
+            '\'{"can_view_data": true, "can_export_data": false, "can_import_data": false, '
+            '"can_manage_sessions": false, "can_configure_agents": false, '
+            '"can_access_sensitive_data": false, "can_approve_migration_decisions": false}\'::jsonb'
         ),
     )
     op.add_column(
@@ -4150,7 +4163,9 @@ def downgrade() -> None:
         type_=postgresql.JSONB(astext_type=sa.Text()),
         existing_nullable=True,
         existing_server_default=sa.text(
-            '\'{"can_view_data": true, "can_export_data": false, "can_import_data": false, "can_manage_engagements": false, "can_manage_client_users": false, "can_configure_client_settings": false}\'::jsonb'
+            '\'{"can_view_data": true, "can_export_data": false, "can_import_data": false, '
+            '"can_manage_engagements": false, "can_manage_client_users": false, '
+            '"can_configure_client_settings": false}\'::jsonb'
         ),
     )
     op.add_column(

@@ -216,7 +216,10 @@ class AgentInterfaceHandler:
                     len(v) for v in learned_mappings.values()
                 ),
                 "learning_effectiveness": stats.get("learning_effectiveness", 0),
-                "context_message": f"Currently tracking {len(base_mappings)} base field types with {stats.get('learned_fields', 0)} learned fields",
+                "context_message": (
+                    f"Currently tracking {len(base_mappings)} base field types with "
+                    f"{stats.get('learned_fields', 0)} learned fields"
+                ),
                 "context_timestamp": datetime.utcnow().isoformat(),
             }
 
@@ -342,7 +345,10 @@ class AgentInterfaceHandler:
             patterns = []
 
             # Pattern 1: "field1 should be field2" or "map field1 to field2"
-            mapping_pattern = r"(?:map\s+|should\s+be\s+)?(\w+(?:_\w+)*)\s+(?:should\s+be\s+|to\s+|→\s+|maps?\s+to\s+)(\w+(?:_\w+)*|\w+(?:\s+\w+)*)"
+            mapping_pattern = (
+                r"(?:map\s+|should\s+be\s+)?(\w+(?:_\w+)*)\s+"
+                r"(?:should\s+be\s+|to\s+|→\s+|maps?\s+to\s+)(\w+(?:_\w+)*|\w+(?:\s+\w+)*)"
+            )
             matches = re.findall(mapping_pattern, text.lower(), re.IGNORECASE)
 
             for match in matches:
@@ -356,7 +362,10 @@ class AgentInterfaceHandler:
                     )
 
             # Pattern 2: "field1 is actually field2" or "field1 means field2"
-            equivalence_pattern = r"(\w+(?:_\w+)*)\s+(?:is\s+actually\s+|means\s+|equals\s+|=\s+)(\w+(?:_\w+)*|\w+(?:\s+\w+)*)"
+            equivalence_pattern = (
+                r"(\w+(?:_\w+)*)\s+(?:is\s+actually\s+|means\s+|equals\s+|=\s+)"
+                r"(\w+(?:_\w+)*|\w+(?:\s+\w+)*)"
+            )
             matches = re.findall(equivalence_pattern, text.lower(), re.IGNORECASE)
 
             for match in matches:

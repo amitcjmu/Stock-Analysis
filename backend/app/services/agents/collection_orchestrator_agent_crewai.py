@@ -38,7 +38,10 @@ class CollectionOrchestratorAgent(BaseCrewAIAgent):
 
         super().__init__(
             role="Collection Strategy Orchestrator",
-            goal="Coordinate and optimize automated data collection across all detected platforms while ensuring quality and completeness",
+            goal=(
+                "Coordinate and optimize automated data collection across all detected platforms "
+                "while ensuring quality and completeness"
+            ),
             backstory="""You are a master orchestrator specializing in automated data collection
             strategies for cloud migration projects. You excel at:
             - Designing optimal collection workflows based on automation tiers

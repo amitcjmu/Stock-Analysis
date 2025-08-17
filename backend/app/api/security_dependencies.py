@@ -172,7 +172,7 @@ async def verify_tenant_access(
         SELECT 1 FROM {}
         WHERE id = :resource_id
         AND {} = :client_id
-    """.format(
+    """.format(  # nosec B608 # Table names from validated resource_map dictionary
         table_name, tenant_field
     )
 

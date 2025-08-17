@@ -332,8 +332,9 @@ class ContextMiddleware(BaseHTTPMiddleware):
                         # Extract UUID part (everything before the last hyphen)
                         user_uuid = token_without_prefix[:last_hyphen]
                         return user_uuid
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Failed to parse db-token format: {e}")
+                    # Return None to continue with other token formats
 
         return None
 

@@ -9,6 +9,8 @@ Implements the enhanced memory and performance optimizations:
 
 import json
 import logging
+from collections import defaultdict
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from crewai import Agent, Process, Task
@@ -70,7 +72,8 @@ class OptimizedFieldMappingCrew(OptimizedCrewBase):
                 content = memory.content
                 if "source_field" in content and "target_field" in content:
                     experiences.append(
-                        f"- {content['source_field']} → {content['target_field']} (confidence: {memory.confidence_score:.2f})"
+                        f"- {content['source_field']} → {content['target_field']} "
+                        f"(confidence: {memory.confidence_score:.2f})"
                     )
 
             if experiences:
@@ -84,7 +87,8 @@ LEARNED MAPPING PATTERNS (from {len(experiences)} past experiences):
         field_mapper = self.create_optimized_agent(
             role="Enhanced CMDB Field Mapping Specialist",
             goal="Map source data fields to standard CMDB attributes using learned patterns and memory",
-            backstory=f"""You are an expert field mapping specialist with access to organizational memory and learned patterns.
+            backstory=f"""You are an expert field mapping specialist with access to
+organizational memory and learned patterns.
 
 YOUR ENHANCED CAPABILITIES:
 - Access to previous successful mapping patterns
@@ -209,7 +213,10 @@ QUALITY REQUIREMENTS:
 - Identify new patterns for future learning
 """,
             agent=field_mapper,
-            expected_output="JSON field mapping result with memory-enhanced confidence scoring and learning identification",
+            expected_output=(
+                "JSON field mapping result with memory-enhanced confidence scoring "
+                "and learning identification"
+            ),
             max_execution_time=300,
             human_input=False,
         )
@@ -522,6 +529,4 @@ QUALITY REQUIREMENTS:
             return ["Unable to generate recommendations due to analysis error"]
 
 
-# Import required for collections
-from collections import defaultdict
-from datetime import datetime
+# collections and datetime imported at top

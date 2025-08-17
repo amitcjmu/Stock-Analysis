@@ -436,7 +436,8 @@ class ComponentTreatment(Base):
     # Constraints
     __table_args__ = (
         CheckConstraint(
-            "recommended_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', 'repurchase', 'retire', 'retain')",
+            "recommended_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', "
+            "'repurchase', 'retire', 'retain')",
             name="valid_recommended_strategy",
         ),
         UniqueConstraint(
@@ -521,7 +522,8 @@ class SixRDecision(Base):
     # Constraints
     __table_args__ = (
         CheckConstraint(
-            "overall_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', 'repurchase', 'retire', 'retain')",
+            "overall_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', "
+            "'repurchase', 'retire', 'retain')",
             name="valid_overall_strategy",
         ),
         CheckConstraint(
@@ -540,7 +542,10 @@ class SixRDecision(Base):
     )
 
     def __repr__(self):
-        return f"<SixRDecision(app='{self.application_name}', strategy='{self.overall_strategy}', confidence={self.confidence_score})>"
+        return (
+            f"<SixRDecision(app='{self.application_name}', strategy='{self.overall_strategy}', "
+            f"confidence={self.confidence_score})>"
+        )
 
 
 class AssessmentLearningFeedback(Base):
@@ -588,11 +593,13 @@ class AssessmentLearningFeedback(Base):
     # Constraints
     __table_args__ = (
         CheckConstraint(
-            "original_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', 'repurchase', 'retire', 'retain')",
+            "original_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', "
+            "'repurchase', 'retire', 'retain')",
             name="valid_original_strategy",
         ),
         CheckConstraint(
-            "override_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', 'repurchase', 'retire', 'retain')",
+            "override_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', "
+            "'repurchase', 'retire', 'retain')",
             name="valid_override_strategy",
         ),
     )

@@ -12,11 +12,11 @@ from datetime import datetime
 # Add the backend directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from sqlalchemy import and_, select, update
+from sqlalchemy import and_, select, update  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
-from app.models.client_account import User
-from app.models.rbac import RoleType, UserProfile, UserRole
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.client_account import User  # noqa: E402
+from app.models.rbac import RoleType, UserProfile, UserRole  # noqa: E402
 
 
 async def fix_user_roles_and_security():

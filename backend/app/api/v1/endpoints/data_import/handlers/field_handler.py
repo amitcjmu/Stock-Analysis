@@ -592,7 +592,10 @@ async def get_available_target_fields(
             "category_count": len(categories),
             "source": "database_schema",
             "excluded_internal_fields": len(INTERNAL_SYSTEM_FIELDS),
-            "message": f"Retrieved {len(fields)} target fields from assets table schema across {len(categories)} categories",
+            "message": (
+                f"Retrieved {len(fields)} target fields from assets table schema "
+                f"across {len(categories)} categories"
+            ),
         }
 
     except Exception as e:

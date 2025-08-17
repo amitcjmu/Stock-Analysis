@@ -9,11 +9,11 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-from sqlalchemy import select, update
+from sqlalchemy import select, update  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
-from app.models import CrewAIFlowStateExtensions
-from app.models.discovery_flow import DiscoveryFlow
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models import CrewAIFlowStateExtensions  # noqa: E402
+from app.models.discovery_flow import DiscoveryFlow  # noqa: E402
 
 
 async def reset_flow():

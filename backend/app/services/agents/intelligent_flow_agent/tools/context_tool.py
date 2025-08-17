@@ -67,7 +67,9 @@ class FlowContextTool(BaseTool):
 
     name: str = "flow_context_analyzer"
     description: str = (
-        "Gets proper client, engagement, and user context for multi-tenant flow operations. Expects the actual flow_id UUID (e.g., '9a0cb58d-bad8-4fb7-a4b9-ee7e35df281b'), not placeholder strings."
+        "Gets proper client, engagement, and user context for multi-tenant "
+        "flow operations. Expects the actual flow_id UUID (e.g., "
+        "'9a0cb58d-bad8-4fb7-a4b9-ee7e35df281b'), not placeholder strings."
     )
 
     def _run(

@@ -53,7 +53,10 @@ class FieldMappingDecisionAgent(BaseDecisionAgent):
                 action=PhaseAction.PROCEED,
                 next_phase="data_cleansing",
                 confidence=mapping_analysis["confidence"],
-                reasoning=f"Field mappings meet confidence threshold ({mapping_analysis['confidence']:.1%} >= {threshold:.1%})",
+                reasoning=(
+                    f"Field mappings meet confidence threshold "
+                    f"({mapping_analysis['confidence']:.1%} >= {threshold:.1%})"
+                ),
                 metadata={
                     "threshold": threshold,
                     "critical_fields": critical_fields,

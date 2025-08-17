@@ -69,8 +69,13 @@ async def seed_questions(session, force: bool):
         await session.execute(
             text(
                 """
-                INSERT INTO sixr_questions (id, question_id, question_text, question_type, category, active, created_at)
-                VALUES (gen_random_uuid(), :question_id, :question_text, :question_type, :category, :active, :created_at)
+                INSERT INTO sixr_questions (
+                    id, question_id, question_text, question_type, category, active, created_at
+                )
+                VALUES (
+                    gen_random_uuid(), :question_id, :question_text, :question_type,
+                    :category, :active, :created_at
+                )
                 ON CONFLICT (question_id) DO NOTHING
                 """
             ),

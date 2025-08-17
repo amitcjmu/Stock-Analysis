@@ -22,16 +22,16 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "bac
 
 # Application imports after path setup
 from app.core.database import AsyncSessionLocal, engine  # noqa: E402
-from app.models.crewai_flow_state_extensions import (
+from app.models.crewai_flow_state_extensions import (  # noqa: E402
     CrewAIFlowStateExtensions,
-)  # noqa: E402
-from app.models.data_import.mapping import (
+)
+from app.models.data_import.mapping import (  # noqa: E402
     ImportFieldMapping as FieldMapping,
-)  # noqa: E402
+)
 from app.models.discovery_flow import DiscoveryFlow  # noqa: E402
-from app.models.unified_discovery_flow_state import (
+from app.models.unified_discovery_flow_state import (  # noqa: E402
     UnifiedDiscoveryFlowState,
-)  # noqa: E402
+)
 from app.services.crewai_flows.unified_discovery_flow.flow_finalization import (  # noqa: E402
     UnifiedDiscoveryFlowFinalizer,
 )
@@ -784,7 +784,11 @@ async def main():
                     status_table.add_row(
                         phase.replace("_", " ").title(),
                         old_status,
-                        f"[{'green' if new_status != old_status else 'yellow'}]{new_status}[/{'green' if new_status != old_status else 'yellow'}]",
+                        (
+                            f"[{'green' if new_status != old_status else 'yellow'}]"
+                            f"{new_status}"
+                            f"[/{'green' if new_status != old_status else 'yellow'}]"
+                        ),
                     )
 
                 console.print(status_table)

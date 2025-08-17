@@ -138,57 +138,50 @@ class BusinessValueAgent:
         }
 
         # This is not SQL - it's a task description for CrewAI agent
-        # nosec B608: This is a string template for task description, not SQL injection
+        asset_details_json = json.dumps(asset_summary, indent=2)
+        task_description = (  # nosec B608
+            "Analyze the business value of this asset using your agentic intelligence and memory tools:\n\n"
+            "Asset Details:\n" + asset_details_json + "\n\n"  # nosec B608
+            "Complete Analysis Process:\n\n"
+            "1. SEARCH FOR PATTERNS:\n"
+            "   Use your pattern search tool to find relevant business value patterns from previous analyses.\n"
+            "   Search for patterns related to: database business value, production systems, "
+            "technology stack analysis.\n\n"
+            "2. GATHER EVIDENCE:\n"
+            "   Use your asset query tool to examine similar assets and gather comparative evidence.\n"
+            "   Look for assets with similar characteristics to understand value patterns.\n\n"
+            "3. ANALYZE BUSINESS VALUE:\n"
+            "   Based on the evidence and patterns, analyze:\n"
+            "   - Business criticality indicators (production environment, high usage, etc.)\n"
+            "   - Technology value indicators (enterprise systems, databases, etc.)\n"
+            "   - Usage patterns that suggest business importance\n"
+            "   - Integration complexity that adds business value\n\n"
+            "4. CALCULATE SCORE:\n"
+            "   Provide a business value score from 1-10 where:\n"
+            "   - 1-3: Low business value (test systems, non-critical applications)\n"
+            "   - 4-6: Medium business value (important but replaceable systems)\n"
+            "   - 7-8: High business value (critical business operations)\n"
+            "   - 9-10: Very high business value (core business systems, revenue-generating)\n\n"
+            "5. DISCOVER NEW PATTERNS:\n"
+            "   If you identify a new business value pattern during your analysis, use your\n"
+            "   pattern recording tool to save it for future analyses.\n\n"
+            "6. ENRICH THE ASSET:\n"
+            "   Use your asset enrichment tool to update the asset with:\n"
+            "   - Your business value score\n"
+            "   - Your detailed reasoning\n"
+            "   - Confidence level in your analysis\n\n"
+            "Provide your final analysis in this format:\n"
+            "Business Value Score: [1-10]\n"
+            "Confidence Level: [High/Medium/Low]\n"
+            "Primary Reasoning: [Your main reasoning for the score]\n"
+            "Evidence Found: [Key evidence that supported your decision]\n"
+            "Patterns Applied: [Any patterns you used from memory]\n"
+            "New Patterns Discovered: [Any new patterns you identified]\n"
+            "Recommendations: [Specific recommendations based on the business value]\n"
+        )
+
         task = Task(
-            description=f"""
-            Analyze the business value of this asset using your agentic intelligence and memory tools:
-
-            Asset Details:
-            {json.dumps(asset_summary, indent=2)}
-
-            Complete Analysis Process:
-
-            1. SEARCH FOR PATTERNS:
-               Use your pattern search tool to find relevant business value patterns from previous analyses.
-               Search for patterns related to: database business value, production systems, technology stack analysis.
-
-            2. GATHER EVIDENCE:
-               Use your asset query tool to examine similar assets and gather comparative evidence.
-               Look for assets with similar characteristics to understand value patterns.
-
-            3. ANALYZE BUSINESS VALUE:
-               Based on the evidence and patterns, analyze:
-               - Business criticality indicators (production environment, high usage, etc.)
-               - Technology value indicators (enterprise systems, databases, etc.)
-               - Usage patterns that suggest business importance
-               - Integration complexity that adds business value
-
-            4. CALCULATE SCORE:
-               Provide a business value score from 1-10 where:
-               - 1-3: Low business value (test systems, non-critical applications)
-               - 4-6: Medium business value (important but replaceable systems)
-               - 7-8: High business value (critical business operations)
-               - 9-10: Very high business value (core business systems, revenue-generating)
-
-            5. DISCOVER NEW PATTERNS:
-               If you identify a new business value pattern during your analysis, use your
-               pattern recording tool to save it for future analyses.
-
-            6. ENRICH THE ASSET:
-               Use your asset enrichment tool to update the asset with:
-               - Your business value score
-               - Your detailed reasoning
-               - Confidence level in your analysis
-
-            Provide your final analysis in this format:
-            Business Value Score: [1-10]
-            Confidence Level: [High/Medium/Low]
-            Primary Reasoning: [Your main reasoning for the score]
-            Evidence Found: [Key evidence that supported your decision]
-            Patterns Applied: [Any patterns you used from memory]
-            New Patterns Discovered: [Any new patterns you identified]
-            Recommendations: [Specific recommendations based on the business value]
-            """,
+            description=task_description,
             expected_output="""
             Business Value Analysis Report with:
             - Business Value Score (1-10)

@@ -55,7 +55,8 @@ async def get_critical_attributes_status(
         )
 
         logger.info(
-            f"🔍 Searching for imports with client_id: {context.client_account_id}, engagement_id: {context.engagement_id}"
+            f"🔍 Searching for imports with client_id: {context.client_account_id}, "
+            f"engagement_id: {context.engagement_id}"
         )
 
         latest_import_result = await db.execute(latest_import_query)
@@ -79,8 +80,12 @@ async def get_critical_attributes_status(
                 },
                 "recommendations": {
                     "next_priority": "Import CMDB data to trigger agentic discovery flow",
-                    "assessment_readiness": "Discovery flow agents will analyze your data to determine critical attributes",
-                    "quality_improvement": "AI agents will learn from your data patterns to identify migration-critical fields",
+                    "assessment_readiness": (
+                        "Discovery flow agents will analyze your data to determine critical attributes"
+                    ),
+                    "quality_improvement": (
+                        "AI agents will learn from your data patterns to identify migration-critical fields"
+                    ),
                 },
                 "agent_status": {
                     "discovery_flow_active": False,
@@ -180,7 +185,8 @@ async def _get_agentic_critical_attributes(
         # If not found by data_import_id, try lookup through master flow relationship
         if not discovery_flow and data_import.master_flow_id:
             logger.info(
-                f"🔍 Discovery flow not found by data_import_id, trying master flow lookup for: {data_import.master_flow_id}"
+                f"🔍 Discovery flow not found by data_import_id, trying master flow lookup for: "
+                f"{data_import.master_flow_id}"
             )
 
             # Look for discovery flow with matching master_flow_id
@@ -199,7 +205,8 @@ async def _get_agentic_critical_attributes(
                     "🔍 No discovery flow found by master_flow_id, trying configuration-based lookup"
                 )
 
-                # Additional fallback: Look for discovery flows where the master flow configuration contains this data import ID
+                # Additional fallback: Look for discovery flows where the master flow configuration
+                # contains this data import ID
                 from sqlalchemy import text as sql_text
 
                 from app.models.crewai_flow_state_extensions import (
@@ -337,7 +344,9 @@ async def _get_agentic_critical_attributes(
                 },
                 "recommendations": {
                     "next_priority": "Review agent-identified critical attributes and proceed with assessment",
-                    "assessment_readiness": f"Agent analysis complete. {migration_critical_mapped} critical fields mapped.",
+                    "assessment_readiness": (
+                        f"Agent analysis complete. {migration_critical_mapped} critical fields mapped."
+                    ),
                     "quality_improvement": "AI agents have optimized field mappings based on learned patterns",
                 },
                 "agent_status": {
@@ -480,7 +489,8 @@ async def _trigger_field_mapping_reanalysis(
         # If not found by data_import_id, try lookup through master flow relationship
         if not discovery_flow and data_import.master_flow_id:
             logger.info(
-                f"🔍 Discovery flow not found by data_import_id for re-analysis, trying master flow lookup for: {data_import.master_flow_id}"
+                f"🔍 Discovery flow not found by data_import_id for re-analysis, trying master flow lookup for: "
+                f"{data_import.master_flow_id}"
             )
 
             # Look for discovery flow with matching master_flow_id
@@ -499,7 +509,8 @@ async def _trigger_field_mapping_reanalysis(
                     "🔍 No discovery flow found by master_flow_id for re-analysis, trying configuration-based lookup"
                 )
 
-                # Additional fallback: Look for discovery flows where the master flow configuration contains this data import ID
+                # Additional fallback: Look for discovery flows where the master flow configuration
+                # contains this data import ID
                 from sqlalchemy import text as sql_text
 
                 from app.models.crewai_flow_state_extensions import (
@@ -525,7 +536,8 @@ async def _trigger_field_mapping_reanalysis(
 
                     if discovery_flow:
                         logger.info(
-                            f"✅ Found discovery flow for re-analysis through configuration-based lookup: {discovery_flow.flow_id}"
+                            f"✅ Found discovery flow for re-analysis through configuration-based lookup: "
+                            f"{discovery_flow.flow_id}"
                         )
                         break
 

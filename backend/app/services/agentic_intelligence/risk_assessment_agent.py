@@ -95,7 +95,10 @@ class RiskAssessmentAgent:
 
         agent = Agent(
             role="Security and Risk Intelligence Analyst",
-            goal="Assess security, operational, and compliance risks using evidence-based analysis and learned threat patterns",
+            goal=(
+                "Assess security, operational, and compliance risks using evidence-based analysis "
+                "and learned threat patterns"
+            ),
             backstory="""You are a cybersecurity and risk assessment expert who specializes in
             evaluating IT asset risks through intelligent analysis rather than static checklists.
 
@@ -148,81 +151,75 @@ class RiskAssessmentAgent:
         }
 
         # This is not SQL, it's a task description for an AI agent
-        task = Task(  # nosec B608
-            description=f"""  # nosec B608
-            Conduct a comprehensive risk assessment for this asset using your security intelligence and memory tools:
+        asset_details_json = json.dumps(asset_summary, indent=2)
+        task_description = (  # nosec B608
+            "Conduct a comprehensive risk assessment for this asset using your security "
+            "intelligence and memory tools:\n\n"
+            "Asset Details:\n" + asset_details_json + "\n\n"  # nosec B608
+            "Complete Risk Assessment Process:\n\n"
+            "1. SEARCH FOR THREAT PATTERNS:\n"
+            "   Use your pattern search tool to find relevant risk patterns and threat indicators "
+            "from previous assessments.\n"
+            "   Search for: security vulnerabilities, legacy technology risks, compliance violations, "
+            "operational failures.\n\n"
+            "2. TECHNOLOGY STACK ANALYSIS:\n"
+            "   Use your asset query tool to examine similar technology stacks and identify:\n"
+            "   - Known security vulnerabilities in the technology stack\n"
+            "   - End-of-life or unsupported software versions\n"
+            "   - Configuration weaknesses and security gaps\n"
+            "   - Compare with other systems to identify risk patterns\n\n"
+            "3. SECURITY RISK ASSESSMENT:\n"
+            "   Evaluate security risks including:\n"
+            "   - Vulnerability exposure based on technology versions\n"
+            "   - Network security risks and exposure levels\n"
+            "   - Authentication and access control weaknesses\n"
+            "   - Data protection and encryption gaps\n"
+            "   - Supply chain and third-party risks\n\n"
+            "4. OPERATIONAL RISK ANALYSIS:\n"
+            "   Assess operational risks such as:\n"
+            "   - Single points of failure and availability risks\n"
+            "   - Backup and recovery capabilities\n"
+            "   - Monitoring and incident response readiness\n"
+            "   - Change management and update processes\n"
+            "   - Dependency risks and cascade failure potential\n\n"
+            "5. COMPLIANCE RISK EVALUATION:\n"
+            "   Determine compliance risks for:\n"
+            "   - Data privacy regulations (GDPR, CCPA, HIPAA)\n"
+            "   - Financial regulations (SOX, PCI-DSS)\n"
+            "   - Industry-specific compliance requirements\n"
+            "   - Audit trail and documentation requirements\n\n"
+            "6. RISK SCORING:\n"
+            "   Provide an overall risk assessment:\n"
+            "   - Low Risk: Well-secured, current technology, good operational practices\n"
+            "   - Medium Risk: Some vulnerabilities or operational concerns, manageable with controls\n"
+            "   - High Risk: Significant security gaps, legacy technology, or compliance violations\n"
+            "   - Critical Risk: Immediate threats, end-of-life systems, or severe compliance failures\n\n"
+            "7. PATTERN DISCOVERY:\n"
+            "   If you identify new risk patterns or threat indicators, use your pattern recording tool "
+            "to save them for future threat intelligence.\n\n"
+            "8. ASSET ENRICHMENT:\n"
+            "   Use your asset enrichment tool to update the asset with:\n"
+            "   - Overall risk assessment level\n"
+            "   - Specific risk categories and scores\n"
+            "   - Detailed threat analysis and reasoning\n"
+            "   - Mitigation recommendations and priority actions\n\n"
+            "Provide your risk assessment in this format:\n"
+            "Overall Risk Level: [Low/Medium/High/Critical]\n"
+            "Security Risk Score: [1-10]\n"
+            "Operational Risk Score: [1-10]\n"
+            "Compliance Risk Score: [1-10]\n"
+            "Confidence Level: [High/Medium/Low]\n"
+            "Primary Threats: [Key security and operational threats identified]\n"
+            "Vulnerability Summary: [Critical vulnerabilities and weaknesses]\n"
+            "Compliance Concerns: [Regulatory and compliance risk factors]\n"
+            "Risk Patterns Applied: [Patterns used from memory]\n"
+            "New Patterns Discovered: [New risk patterns identified]\n"
+            "Immediate Actions: [High-priority mitigation steps]\n"
+            "Long-term Recommendations: [Strategic risk reduction measures]\n"
+        )
 
-            Asset Details:
-            {json.dumps(asset_summary, indent=2)}
-
-            Complete Risk Assessment Process:
-
-            1. SEARCH FOR THREAT PATTERNS:
-               Use your pattern search tool to find relevant risk patterns and threat indicators from previous assessments.
-               Search for: security vulnerabilities, legacy technology risks, compliance violations, operational failures.
-
-            2. TECHNOLOGY STACK ANALYSIS:
-               Use your asset query tool to examine similar technology stacks and identify:
-               - Known security vulnerabilities in the technology stack
-               - End-of-life or unsupported software versions
-               - Configuration weaknesses and security gaps
-               - Compare with other systems to identify risk patterns
-
-            3. SECURITY RISK ASSESSMENT:
-               Evaluate security risks including:
-               - Vulnerability exposure based on technology versions
-               - Network security risks and exposure levels
-               - Authentication and access control weaknesses
-               - Data protection and encryption gaps
-               - Supply chain and third-party risks
-
-            4. OPERATIONAL RISK ANALYSIS:
-               Assess operational risks such as:
-               - Single points of failure and availability risks
-               - Backup and recovery capabilities
-               - Monitoring and incident response readiness
-               - Change management and update processes
-               - Dependency risks and cascade failure potential
-
-            5. COMPLIANCE RISK EVALUATION:
-               Determine compliance risks for:
-               - Data privacy regulations (GDPR, CCPA, HIPAA)
-               - Financial regulations (SOX, PCI-DSS)
-               - Industry-specific compliance requirements
-               - Audit trail and documentation requirements
-
-            6. RISK SCORING:
-               Provide an overall risk assessment:
-               - Low Risk: Well-secured, current technology, good operational practices
-               - Medium Risk: Some vulnerabilities or operational concerns, manageable with controls
-               - High Risk: Significant security gaps, legacy technology, or compliance violations
-               - Critical Risk: Immediate threats, end-of-life systems, or severe compliance failures
-
-            7. PATTERN DISCOVERY:
-               If you identify new risk patterns or threat indicators, use your pattern recording tool
-               to save them for future threat intelligence.
-
-            8. ASSET ENRICHMENT:
-               Use your asset enrichment tool to update the asset with:
-               - Overall risk assessment level
-               - Specific risk categories and scores
-               - Detailed threat analysis and reasoning
-               - Mitigation recommendations and priority actions
-
-            Provide your risk assessment in this format:
-            Overall Risk Level: [Low/Medium/High/Critical]
-            Security Risk Score: [1-10]
-            Operational Risk Score: [1-10]
-            Compliance Risk Score: [1-10]
-            Confidence Level: [High/Medium/Low]
-            Primary Threats: [Key security and operational threats identified]
-            Vulnerability Summary: [Critical vulnerabilities and weaknesses]
-            Compliance Concerns: [Regulatory and compliance risk factors]
-            Risk Patterns Applied: [Patterns used from memory]
-            New Patterns Discovered: [New risk patterns identified]
-            Immediate Actions: [High-priority mitigation steps]
-            Long-term Recommendations: [Strategic risk reduction measures]
-            """,
+        task = Task(
+            description=task_description,
             expected_output="""
             Comprehensive Risk Assessment Report with:
             - Overall risk level classification (Low/Medium/High/Critical)

@@ -253,7 +253,10 @@ class MultiModelService:
 
             # Add system message
             if system_message is None:
-                system_message = "You are a helpful AI assistant. Provide clear, concise, and friendly responses to user questions."
+                system_message = (
+                    "You are a helpful AI assistant. Provide clear, concise, "
+                    "and friendly responses to user questions."
+                )
 
             messages.append({"role": "system", "content": system_message})
             messages.append({"role": "user", "content": prompt})
@@ -404,7 +407,10 @@ class MultiModelService:
         try:
             # Prepare the full prompt for CrewAI
             if system_message is None:
-                system_message = "You are an expert AI assistant specialized in enterprise IT infrastructure analysis and migration planning. Provide detailed, accurate, and actionable insights."
+                system_message = (
+                    "You are an expert AI assistant specialized in enterprise IT infrastructure "
+                    "analysis and migration planning. Provide detailed, accurate, and actionable insights."
+                )
 
             full_prompt = f"System: {system_message}\n\nTask: {prompt}\n\nProvide a comprehensive response:"
 
@@ -537,7 +543,10 @@ class MultiModelService:
             task_type="chat",
             model_type=ModelType.GEMMA_3_4B,
             complexity=TaskComplexity.SIMPLE,
-            system_message="You are a knowledgeable assistant helping with IT infrastructure and migration questions. Be conversational and helpful.",
+            system_message=(
+                "You are a knowledgeable assistant helping with IT infrastructure "
+                "and migration questions. Be conversational and helpful."
+            ),
         )
 
     def get_model_info(self) -> Dict[str, Any]:

@@ -121,7 +121,10 @@ class AssetReasoningPatterns:
                 "cpu_utilization_percent": ">= 70",
             },
             "confidence_boost": 0.3,
-            "reasoning_template": "Production database with {cpu_utilization_percent}% CPU utilization suggests critical business usage and high value",
+            "reasoning_template": (
+                "Production database with {cpu_utilization_percent}% CPU utilization "
+                "suggests critical business usage and high value"
+            ),
         },
         "customer_facing_applications": {
             "description": "Customer-facing applications typically have high business value",
@@ -137,7 +140,10 @@ class AssetReasoningPatterns:
                 "environment": ["production", "prod"],
             },
             "confidence_boost": 0.25,
-            "reasoning_template": "Asset named '{name}' in {environment} environment suggests customer-facing functionality with high business impact",
+            "reasoning_template": (
+                "Asset named '{name}' in {environment} environment suggests "
+                "customer-facing functionality with high business impact"
+            ),
         },
         "financial_system_indicators": {
             "description": "Financial and transaction systems have inherently high business value",
@@ -153,7 +159,10 @@ class AssetReasoningPatterns:
                 "technology_stack": ["oracle", "sap", "peoplesoft"],
             },
             "confidence_boost": 0.4,
-            "reasoning_template": "Financial system '{name}' using {technology_stack} indicates critical business operations",
+            "reasoning_template": (
+                "Financial system '{name}' using {technology_stack} indicates "
+                "critical business operations"
+            ),
         },
     }
 
@@ -186,7 +195,10 @@ class AssetReasoningPatterns:
             },
             "risk_level": "high",
             "confidence_boost": 0.35,
-            "reasoning_template": "Unsupported platform {technology_stack} creates critical security and compliance risks",
+            "reasoning_template": (
+                "Unsupported platform {technology_stack} creates critical security "
+                "and compliance risks"
+            ),
         },
         "single_point_of_failure": {
             "description": "Systems without redundancy pose availability risks",
@@ -734,7 +746,10 @@ class AgentReasoningEngine:
             pattern = {
                 "pattern_type": "business_value_indicator",
                 "pattern_name": "High-Usage Production Database Pattern",
-                "pattern_description": "Production databases with high CPU utilization indicate critical business systems",
+                "pattern_description": (
+                    "Production databases with high CPU utilization indicate "
+                    "critical business systems"
+                ),
                 "pattern_logic": {
                     "environment": "production",
                     "asset_type": "database",
@@ -776,7 +791,10 @@ class AgentReasoningEngine:
             pattern = {
                 "pattern_type": "risk_factor",
                 "pattern_name": "Legacy Technology in Production Risk",
-                "pattern_description": "Legacy technologies in production environments pose significant operational risks",
+                "pattern_description": (
+                    "Legacy technologies in production environments pose "
+                    "significant operational risks"
+                ),
                 "pattern_logic": {
                     "environment": "production",
                     "technology_stack": {
@@ -809,7 +827,10 @@ class AgentReasoningEngine:
             pattern = {
                 "pattern_type": "modernization_opportunity",
                 "pattern_name": "Spring Boot API Modernization Ready",
-                "pattern_description": "Spring Boot APIs are excellent candidates for containerization and cloud migration",
+                "pattern_description": (
+                    "Spring Boot APIs are excellent candidates for containerization "
+                    "and cloud migration"
+                ),
                 "pattern_logic": {
                     "technology_stack": {"contains": "spring boot"},
                     "asset_type": {"contains": "api"},

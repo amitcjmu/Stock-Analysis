@@ -84,7 +84,10 @@ class CriticalAttributeAssessorAgent(BaseCrewAIAgent):
 
         super().__init__(
             role="Critical Attribute Assessment Specialist",
-            goal="Evaluate collected data against the 22 critical attributes framework to identify gaps and assess migration readiness",
+            goal=(
+                "Evaluate collected data against the 22 critical attributes "
+                "framework to identify gaps and assess migration readiness"
+            ),
             backstory="""You are an expert in migration data assessment with deep knowledge
             of the 22 critical attributes framework. Your expertise includes:
 

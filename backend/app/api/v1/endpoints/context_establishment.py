@@ -183,7 +183,8 @@ async def get_context_clients(
                 )
                 for access in debug_access:
                     logger.info(
-                        f"🔍 Debug: ClientAccess {access.id}, client_account_id: {access.client_account_id}, is_active: {access.is_active}"
+                        f"🔍 Debug: ClientAccess {access.id}, client_account_id: {access.client_account_id}, "
+                        f"is_active: {access.is_active}"
                     )
 
                 # Check if ClientAccount records exist
@@ -480,7 +481,8 @@ async def update_user_context(
     """
     try:
         logger.info(
-            f"🔄 Updating context for user {current_user.id}: client={request.client_id}, engagement={request.engagement_id}"
+            f"🔄 Updating context for user {current_user.id}: client={request.client_id}, "
+            f"engagement={request.engagement_id}"
         )
 
         # Verify client exists and user has access

@@ -157,7 +157,7 @@ class AgenticAssetEnrichmentCrew:
         # Task 1: Intelligent Asset Enrichment
         # This is not SQL, it's a task description for an AI agent
         enrichment_task = Task(  # nosec B608
-            description=f"""  # nosec B608
+            description=f"""
             Perform intelligent asset enrichment for {len(assets_data)} assets using pattern-based reasoning.
 
             Asset Overview:

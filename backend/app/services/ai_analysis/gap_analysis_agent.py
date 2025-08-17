@@ -113,7 +113,8 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                 Your deep understanding of the 22 critical attributes framework enables you to:
 
                 - Analyze collected asset data against the critical attributes framework
-                - Identify gaps that impact 6R strategy recommendations (Rehost, Replatform, Refactor, Repurchase, Retire, Retain)
+                - Identify gaps that impact 6R strategy recommendations (Rehost,
+                  Replatform, Refactor, Repurchase, Retire, Retain)
                 - Prioritize gaps based on business impact and migration strategy requirements
                 - Assess data quality and completeness for migration planning
                 - Recommend targeted data collection strategies to fill critical gaps
@@ -223,8 +224,10 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
             ANALYSIS OBJECTIVES:
 
             1. ATTRIBUTE COVERAGE ANALYSIS:
-               - Map collected data fields to the 22 critical attributes framework
-               - Identify missing primary attributes in each category (infrastructure, application, operational, dependencies)
+               - Map collected data fields to the 22 critical attributes
+                 framework
+               - Identify missing primary attributes in each category
+                 (infrastructure, application, operational, dependencies)
                - Calculate coverage percentage per category and overall
                - Assess data quality for available attributes
 

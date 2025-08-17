@@ -35,7 +35,8 @@ class FileMetadataRequest(BaseModel):
         ...,
         description="MIME type of the file",
         example="text/csv",
-        pattern="^(text/csv|application/vnd\\.ms-excel|application/vnd\\.openxmlformats-officedocument\\.spreadsheetml\\.sheet)$",
+        pattern="^(text/csv|application/vnd\\.ms-excel|"
+        "application/vnd\\.openxmlformats-officedocument\\.spreadsheetml\\.sheet)$",
     )
 
     model_config = ConfigDict(

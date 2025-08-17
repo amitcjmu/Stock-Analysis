@@ -331,7 +331,10 @@ class PlanningCoordinationHandler:
                 validation_result["recommendations"].append(
                     {
                         "type": "overall",
-                        "message": f"Phase {phase_name} requires improvement in {len(validation_result['recommendations'])} areas",
+                        "message": (
+                            f"Phase {phase_name} requires improvement in "
+                            f"{len(validation_result['recommendations'])} areas"
+                        ),
                         "priority": "medium",
                     }
                 )

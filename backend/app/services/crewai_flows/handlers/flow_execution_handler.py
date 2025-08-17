@@ -113,11 +113,15 @@ class FlowExecutionHandler:
                     "issue": "low_field_mapping_confidence",
                     "confidence": avg_confidence,
                     "threshold": confidence_threshold,
-                    "message": f"Field mapping confidence ({avg_confidence:.2f}) below threshold ({confidence_threshold}). Should we proceed with data cleansing?",
+                    "message": (
+                        f"Field mapping confidence ({avg_confidence:.2f}) below threshold "
+                        f"({confidence_threshold}). Should we proceed with data cleansing?"
+                    ),
                 }
 
                 logger.warning(
-                    f"⚠️ Data cleansing requires user clarification - confidence {avg_confidence:.2f} < {confidence_threshold}"
+                    f"⚠️ Data cleansing requires user clarification - confidence "
+                    f"{avg_confidence:.2f} < {confidence_threshold}"
                 )
                 return {
                     "status": "clarification_needed",

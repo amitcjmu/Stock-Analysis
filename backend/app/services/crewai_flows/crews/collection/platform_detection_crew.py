@@ -40,7 +40,10 @@ def create_platform_detection_crew(
         # Create platform detection specialist agent
         platform_detection_agent = Agent(
             role="Platform Detection Specialist",
-            goal="Identify and analyze all target platforms for migration, including cloud providers, on-premises systems, and hybrid environments",
+            goal=(
+                "Identify and analyze all target platforms for migration, including cloud "
+                "providers, on-premises systems, and hybrid environments"
+            ),
             backstory="""You are an expert platform detection specialist with deep knowledge of:
             - Cloud platforms (AWS, Azure, GCP, Oracle Cloud, IBM Cloud)
             - On-premises infrastructure (VMware, Hyper-V, physical servers)
@@ -64,7 +67,10 @@ def create_platform_detection_crew(
         # Create automation tier assessment agent
         tier_assessment_agent = Agent(
             role="Automation Tier Assessment Expert",
-            goal="Determine the optimal automation tier for each detected platform based on API availability, credentials, and complexity",
+            goal=(
+                "Determine the optimal automation tier for each detected platform based on "
+                "API availability, credentials, and complexity"
+            ),
             backstory="""You are an automation assessment expert who determines the best collection approach.
             You understand the four automation tiers:
 

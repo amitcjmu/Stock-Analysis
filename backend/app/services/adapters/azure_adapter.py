@@ -33,8 +33,6 @@ except ImportError:
     StorageManagementClient = NetworkManagementClient = None
     ClientAuthenticationError = HttpResponseError = Exception
 
-logger = logging.getLogger(__name__)
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.collection_flow import AutomationTier
@@ -45,6 +43,8 @@ from app.services.collection_flow.adapters import (
     CollectionRequest,
     CollectionResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -313,7 +313,10 @@ class AzureAdapter(BaseAdapter):
                 error_message="Azure SDK is not installed. Please install azure-mgmt-* packages.",
                 collection_metadata={
                     "error": "Azure SDK not available",
-                    "suggestion": "Install required packages: pip install azure-mgmt-resource azure-mgmt-compute azure-mgmt-sql",
+                    "suggestion": (
+                        "Install required packages: pip install azure-mgmt-resource "
+                        "azure-mgmt-compute azure-mgmt-sql"
+                    ),
                 },
             )
 

@@ -10,8 +10,8 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from app.core.database import AsyncSessionLocal
-from app.models.client_account import ClientAccount, Engagement
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.client_account import ClientAccount, Engagement  # noqa: E402
 
 
 async def create_additional_demo_data():
@@ -138,7 +138,10 @@ async def create_additional_demo_data():
                 engagement_data = {
                     "id": uuid.uuid4(),
                     "client_account_id": client.id,
-                    "name": f"{client.name} - {['Cloud Migration', 'Infrastructure Assessment', 'Cost Optimization'][j]}",
+                    "name": (
+                        f"{client.name} - "
+                        f"{['Cloud Migration', 'Infrastructure Assessment', 'Cost Optimization'][j]}"
+                    ),
                     "slug": f"{client.slug}-engagement-{j+1}",
                     "description": f"Engagement {j+1} for {client.name}",
                     "status": statuses[j % len(statuses)],

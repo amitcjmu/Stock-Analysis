@@ -556,7 +556,10 @@ class QuestionnaireValidationService:
                                 field_id=field.id,
                                 field_label=field.label,
                                 error_code="INSUFFICIENT_DETAIL",
-                                error_message=f'More detail recommended (at least {pattern_config["min_length"]} characters)',
+                                error_message=(
+                                    f"More detail recommended (at least "
+                                    f'{pattern_config["min_length"]} characters)'
+                                ),
                                 severity="warning",
                                 category=ValidationCategory.QUALITY,
                             )
@@ -576,7 +579,10 @@ class QuestionnaireValidationService:
                                 field_id=field.id,
                                 field_label=field.label,
                                 error_code="INCOMPLETE_STACK",
-                                error_message=f'Technology stack should include multiple components (found {components}, recommended {pattern_config["min_components"]}+)',
+                                error_message=(
+                                    f"Technology stack should include multiple components "
+                                    f'(found {components}, recommended {pattern_config["min_components"]}+)'
+                                ),
                                 severity="warning",
                                 category=ValidationCategory.QUALITY,
                             )

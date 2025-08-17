@@ -252,7 +252,10 @@ class CrewAIFlowStateExtensions(Base):
     )
 
     def __repr__(self):
-        return f"<CrewAIFlowStateExtensions(flow_id={self.flow_id}, flow_type={self.flow_type}, status={self.flow_status})>"
+        return (
+            f"<CrewAIFlowStateExtensions(flow_id={self.flow_id}, flow_type={self.flow_type}, "
+            f"status={self.flow_status})>"
+        )
 
     def to_dict(self):
         """Convert to dictionary for API responses"""

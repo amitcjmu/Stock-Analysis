@@ -925,7 +925,10 @@ class PerformanceMonitor:
                     "metric": "avg_query_time_ms",
                     "value": measurement["avg_query_time_ms"],
                     "threshold": self.alert_thresholds["query_execution_time_ms"],
-                    "message": f"Average query time {measurement['avg_query_time_ms']:.2f}ms exceeds threshold {self.alert_thresholds['query_execution_time_ms']}ms",
+                    "message": (
+                        f"Average query time {measurement['avg_query_time_ms']:.2f}ms exceeds "
+                        f"threshold {self.alert_thresholds['query_execution_time_ms']}ms"
+                    ),
                 }
             )
 
@@ -941,7 +944,10 @@ class PerformanceMonitor:
                     "metric": "join_query_time_ms",
                     "value": measurement["join_query_time_ms"],
                     "threshold": self.alert_thresholds["join_query_time_ms"],
-                    "message": f"Join query time {measurement['join_query_time_ms']:.2f}ms exceeds threshold {self.alert_thresholds['join_query_time_ms']}ms",
+                    "message": (
+                        f"Join query time {measurement['join_query_time_ms']:.2f}ms exceeds "
+                        f"threshold {self.alert_thresholds['join_query_time_ms']}ms"
+                    ),
                 }
             )
 
@@ -957,7 +963,10 @@ class PerformanceMonitor:
                     "metric": "active_connections",
                     "value": measurement["active_connections"],
                     "threshold": self.alert_thresholds["active_connections"],
-                    "message": f"Active connections {measurement['active_connections']} exceeds threshold {self.alert_thresholds['active_connections']}",
+                    "message": (
+                        f"Active connections {measurement['active_connections']} exceeds "
+                        f"threshold {self.alert_thresholds['active_connections']}"
+                    ),
                 }
             )
 

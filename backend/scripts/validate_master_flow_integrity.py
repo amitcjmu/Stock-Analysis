@@ -11,9 +11,9 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 
-from sqlalchemy import text
+from sqlalchemy import text  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
+from app.core.database import AsyncSessionLocal  # noqa: E402
 
 
 async def validate_master_flow_integrity():
@@ -131,7 +131,8 @@ async def validate_master_flow_integrity():
                 str(rel.discovery_flow_id)[:8] if rel.discovery_flow_id else "None"
             )
             print(
-                f"      {status} Flow {flow_id_str}... - {rel.asset_count} assets, {rel.matching_master_flows} with matching master flow"
+                f"      {status} Flow {flow_id_str}... - {rel.asset_count} assets, "
+                f"{rel.matching_master_flows} with matching master flow"
             )
             if rel.asset_count != rel.matching_master_flows:
                 integrity_issues += 1
@@ -161,7 +162,8 @@ async def validate_master_flow_integrity():
 
         for stat in progression_stats:
             print(
-                f"   ✅ {stat.current_phase} Phase: {stat.extension_count} extensions, {stat.with_progression} with progression data"
+                f"   ✅ {stat.current_phase} Phase: {stat.extension_count} extensions, "
+                f"{stat.with_progression} with progression data"
             )
 
         # 6. Verify Data Migration Success

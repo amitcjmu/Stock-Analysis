@@ -4,6 +4,7 @@ Performance tracking metrics for ADCS
 This module provides basic performance tracking functionality.
 """
 
+import asyncio
 import logging
 import time
 from functools import wraps
@@ -115,5 +116,4 @@ def track_execution_time(func: Callable) -> Callable:
         return sync_wrapper
 
 
-# Import asyncio for async detection
-import asyncio
+# asyncio imported at top for async detection

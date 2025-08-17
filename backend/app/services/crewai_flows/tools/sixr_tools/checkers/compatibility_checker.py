@@ -175,7 +175,8 @@ class CompatibilityChecker:
                         == SixRStrategy.RETAIN.value
                     ):
                         issues.append(
-                            f"Modernized component '{comp_name}' depends on retained component '{dep}' - interface compatibility required"
+                            f"Modernized component '{comp_name}' depends on retained "
+                            f"component '{dep}' - interface compatibility required"
                         )
 
         return issues

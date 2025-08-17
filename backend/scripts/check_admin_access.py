@@ -10,6 +10,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
+# flake8: noqa: E402
 from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal

@@ -18,10 +18,10 @@ from datetime import datetime
 # Add the backend directory to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text  # noqa: E402
+from sqlalchemy.ext.asyncio import AsyncSession  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
+from app.core.database import AsyncSessionLocal  # noqa: E402
 
 
 class CMDBToAssetsDataMigrator:
@@ -143,8 +143,14 @@ class CMDBToAssetsDataMigrator:
 
         backup_queries = [
             f"CREATE TABLE migration.cmdb_assets_backup_{timestamp} AS SELECT * FROM migration.cmdb_assets",
-            f"CREATE TABLE migration.raw_import_records_backup_{timestamp} AS SELECT * FROM migration.raw_import_records",
-            f"CREATE TABLE migration.cmdb_asset_embeddings_backup_{timestamp} AS SELECT * FROM migration.cmdb_asset_embeddings",
+            (
+                f"CREATE TABLE migration.raw_import_records_backup_{timestamp} AS "
+                "SELECT * FROM migration.raw_import_records"
+            ),
+            (
+                f"CREATE TABLE migration.cmdb_asset_embeddings_backup_{timestamp} AS "
+                "SELECT * FROM migration.cmdb_asset_embeddings"
+            ),
             f"CREATE TABLE migration.asset_tags_backup_{timestamp} AS SELECT * FROM migration.asset_tags",
         ]
 

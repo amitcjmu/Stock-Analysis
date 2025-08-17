@@ -22,7 +22,8 @@ This file now re-exports all public interfaces for backward compatibility.
 """
 
 # Re-export all public interfaces from the modularized structure
-from .recommendation_engine import (  # Core components (for advanced usage); Models; Enums; Main engine; Generators (for advanced usage)
+from .recommendation_engine import (  # Core components (for advanced usage);
+    # Models; Enums; Main engine; Generators (for advanced usage)
     ConfigRecommendationGenerator,
     LearningPattern,
     PerformanceRecommendationGenerator,

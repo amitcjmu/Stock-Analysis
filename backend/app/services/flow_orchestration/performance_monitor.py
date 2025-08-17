@@ -219,8 +219,10 @@ class FlowPerformanceMonitor:
                     "packets_sent": net_io.packets_sent,
                     "packets_recv": net_io.packets_recv,
                 }
-            except Exception:
-                pass
+            except Exception as e:
+                # Network I/O counters may not be available on all systems
+                logger.debug(f"Network I/O counters not available: {e}")
+                network_io = {}
 
             return {
                 "timestamp": datetime.utcnow().isoformat(),

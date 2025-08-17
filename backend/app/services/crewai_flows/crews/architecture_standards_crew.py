@@ -106,7 +106,10 @@ class ArchitectureStandardsCrew:
 
         architecture_standards_agent = Agent(
             role="Architecture Standards Specialist",
-            goal="Define and evaluate engagement-level architecture minimums based on industry best practices and client requirements",
+            goal=(
+                "Define and evaluate engagement-level architecture minimums based on "
+                "industry best practices and client requirements"
+            ),
             backstory="""You are an expert cloud architect with 15+ years of experience in enterprise
             architecture standards. You specialize in defining technology lifecycle policies, security
             requirements, and cloud-native architecture patterns. You understand the balance between
@@ -163,7 +166,10 @@ class ArchitectureStandardsCrew:
 
         exception_handler_agent = Agent(
             role="Business Constraint Analyst",
-            goal="Identify and document valid architecture exceptions based on business constraints and technical trade-offs",
+            goal=(
+                "Identify and document valid architecture exceptions based on "
+                "business constraints and technical trade-offs"
+            ),
             backstory="""You are a business-technology liaison with expertise in evaluating when
             architecture standards should have exceptions. You understand vendor relationships,
             licensing constraints, integration dependencies, and business continuity requirements.

@@ -122,7 +122,8 @@ class UserManagementHandler(BaseRBACHandler):
                 )
                 self.db.add(client_access)
                 logger.info(
-                    f"Created pending ClientAccess for user {user_data['user_id']} to client {user_data['default_client_id']}"
+                    f"Created pending ClientAccess for user {user_data['user_id']} to client "
+                    f"{user_data['default_client_id']}"
                 )
 
             # Create pending EngagementAccess if default_engagement_id is provided
@@ -142,7 +143,8 @@ class UserManagementHandler(BaseRBACHandler):
                 )
                 self.db.add(engagement_access)
                 logger.info(
-                    f"Created pending EngagementAccess for user {user_data['user_id']} to engagement {user_data['default_engagement_id']}"
+                    f"Created pending EngagementAccess for user {user_data['user_id']} to engagement "
+                    f"{user_data['default_engagement_id']}"
                 )
 
             await self.db.commit()

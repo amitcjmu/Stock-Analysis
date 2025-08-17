@@ -344,7 +344,10 @@ class LearningContextAgentManager(BasePhaseAgentManager):
                 phase=AgentPhase.LEARNING_CONTEXT,
                 status=AgentStatus.ACTIVE,
                 expertise="Pattern recognition, field mapping learning, performance tracking",
-                specialization="Field mapping pattern learning with fuzzy matching, data source pattern learning, quality assessment learning, user preference learning",
+                specialization=(
+                    "Field mapping pattern learning with fuzzy matching, data source pattern learning, "
+                    "quality assessment learning, user preference learning"
+                ),
                 key_skills=[
                     "Field mapping pattern learning",
                     "Data source pattern recognition",
@@ -367,7 +370,10 @@ class LearningContextAgentManager(BasePhaseAgentManager):
                     "/api/v1/agent-learning/learning/user-preferences",
                     "/api/v1/agent-learning/learning/statistics",
                 ],
-                description="Comprehensive learning infrastructure enabling all agents to learn from user feedback and improve over time.",
+                description=(
+                    "Comprehensive learning infrastructure enabling all agents to learn from user feedback "
+                    "and improve over time."
+                ),
                 learning_enabled=True,
                 cross_page_communication=True,
             )
@@ -382,7 +388,10 @@ class LearningContextAgentManager(BasePhaseAgentManager):
                 phase=AgentPhase.LEARNING_CONTEXT,
                 status=AgentStatus.ACTIVE,
                 expertise="Organizational pattern learning, engagement-specific preferences",
-                specialization="Client-specific organizational pattern learning, engagement-specific preferences and clarification history, migration preference learning and agent behavior adaptation",
+                specialization=(
+                    "Client-specific organizational pattern learning, engagement-specific preferences and "
+                    "clarification history, migration preference learning and agent behavior adaptation"
+                ),
                 key_skills=[
                     "Organizational pattern recognition",
                     "Engagement-specific context management",
@@ -403,7 +412,10 @@ class LearningContextAgentManager(BasePhaseAgentManager):
                     "/api/v1/agent-learning/context/organizational-pattern",
                     "/api/v1/agent-learning/context/combined/{engagement_id}",
                 ],
-                description="Client and engagement-specific context management enabling personalized agent behavior and organizational intelligence.",
+                description=(
+                    "Client and engagement-specific context management enabling personalized agent behavior "
+                    "and organizational intelligence."
+                ),
                 learning_enabled=True,
                 cross_page_communication=True,
             )
@@ -428,7 +440,10 @@ class ObservabilityAgentManager(BasePhaseAgentManager):
                 phase=AgentPhase.OBSERVABILITY,
                 status=AgentStatus.ACTIVE,
                 expertise="Advanced asset inventory management with AI intelligence",
-                specialization="Asset classification and categorization patterns using AI, content-based asset analysis using field mapping intelligence, intelligent bulk operations planning",
+                specialization=(
+                    "Asset classification and categorization patterns using AI, content-based asset analysis "
+                    "using field mapping intelligence, intelligent bulk operations planning"
+                ),
                 key_skills=[
                     "AI-powered asset classification",
                     "Content-based analysis",
@@ -450,7 +465,10 @@ class ObservabilityAgentManager(BasePhaseAgentManager):
                     "/api/v1/discovery/assets/intelligence-status",
                     "/api/v1/inventory/analyze",
                 ],
-                description="Revolutionary asset intelligence with AI-powered classification, bulk operations optimization, and continuous learning capabilities.",
+                description=(
+                    "Revolutionary asset intelligence with AI-powered classification, bulk operations "
+                    "optimization, and continuous learning capabilities."
+                ),
                 learning_enabled=True,
             )
         )

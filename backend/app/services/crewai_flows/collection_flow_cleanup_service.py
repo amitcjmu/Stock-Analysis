@@ -404,12 +404,14 @@ class CollectionFlowCleanupService:
                 > 0
             ):
                 recommendations["recommendations"].append(
-                    f"Review {recommendations['status_breakdown'][CollectionFlowStatus.FAILED.value]} failed flows for cleanup"
+                    f"Review {recommendations['status_breakdown'][CollectionFlowStatus.FAILED.value]} "
+                    f"failed flows for cleanup"
                 )
 
             if recommendations["age_analysis"]["older_than_90_days"] > 0:
                 recommendations["recommendations"].append(
-                    f"Consider archiving {recommendations['age_analysis']['older_than_90_days']} flows older than 90 days"
+                    f"Consider archiving {recommendations['age_analysis']['older_than_90_days']} "
+                    f"flows older than 90 days"
                 )
 
             return recommendations
@@ -511,7 +513,10 @@ class CollectionFlowCleanupService:
                     # Cancel the stuck flow
                     flow.status = CollectionFlowStatus.CANCELLED.value
                     flow.completed_at = datetime.utcnow()
-                    flow.error_message = f"Flow cancelled due to initialization timeout (stuck for {round(age_minutes, 1)} minutes)"
+                    flow.error_message = (
+                        f"Flow cancelled due to initialization timeout "
+                        f"(stuck for {round(age_minutes, 1)} minutes)"
+                    )
                     flow.error_details = {
                         "timeout_minutes": timeout_minutes,
                         "age_minutes": age_minutes,

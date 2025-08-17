@@ -126,7 +126,10 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
             # Business Context Specialist
             context_specialist = Agent(
                 role="Business Context Analysis Specialist",
-                goal="Ensure questionnaires are contextually relevant to the business environment and stakeholder roles",
+                goal=(
+                    "Ensure questionnaires are contextually relevant to the "
+                    "business environment and stakeholder roles"
+                ),
                 backstory="""You are a business analysis AI agent that ensures questionnaires
                 are properly contextualized for the specific business environment and stakeholder roles.
 
@@ -355,7 +358,10 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
             }}
             """,
             agent=self.agents[0],
-            expected_output="Comprehensive adaptive questionnaire specification with conditional logic and stakeholder targeting",
+            expected_output=(
+                "Comprehensive adaptive questionnaire specification with "
+                "conditional logic and stakeholder targeting"
+            ),
         )
         tasks.append(questionnaire_design_task)
 

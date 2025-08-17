@@ -130,7 +130,10 @@ class FlowValidationTool(BaseTool):
                         )
 
                 # Format comprehensive result with fail-fast approach
-                result = f"Flow {flow_id}: CurrentPhase={current_phase}, Status={status}, NextAction={next_action}, Route={route_to}"
+                result = (
+                    f"Flow {flow_id}: CurrentPhase={current_phase}, "
+                    f"Status={status}, NextAction={next_action}, Route={route_to}"
+                )
                 result += " | FailFast=True (stopped at first incomplete phase)"
 
                 if actionable_guidance:

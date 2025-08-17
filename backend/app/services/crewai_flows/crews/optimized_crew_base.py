@@ -56,7 +56,8 @@ class OptimizedCrewBase:
         }
 
         logger.info(
-            f"🚀 Optimized crew base initialized with memory={enable_memory}, caching={enable_caching}, parallel={enable_parallel}"
+            f"🚀 Optimized crew base initialized with memory={enable_memory}, "
+            f"caching={enable_caching}, parallel={enable_parallel}"
         )
 
     def _get_optimized_llm(self):

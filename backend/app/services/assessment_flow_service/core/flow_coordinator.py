@@ -89,7 +89,10 @@ class FlowCoordinator:
                 "readiness_validation": {
                     "status": "passed",
                     "score": readiness_result["readiness_score"],
-                    "summary": f"Flow ready with {readiness_result['asset_summary']['migration_ready']} migration-ready assets",
+                    "summary": (
+                        f"Flow ready with {readiness_result['asset_summary']['migration_ready']} "
+                        f"migration-ready assets"
+                    ),
                 },
                 "asset_processing": {
                     "total_assets": assets_result["total_assets"],

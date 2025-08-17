@@ -29,7 +29,8 @@ def upgrade() -> None:
 
     # Create custom enums first (in correct order to avoid duplicates)
     op.execute(
-        "CREATE TYPE migrationphase AS ENUM ('DISCOVERY', 'ASSESS', 'PLAN', 'EXECUTE', 'MODERNIZE', 'FINOPS', 'OBSERVABILITY', 'DECOMMISSION')"
+        "CREATE TYPE migrationphase AS ENUM ('DISCOVERY', 'ASSESS', 'PLAN', 'EXECUTE', "
+        "'MODERNIZE', 'FINOPS', 'OBSERVABILITY', 'DECOMMISSION')"
     )
     op.execute(
         "CREATE TYPE migrationstatus AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'DEFERRED')"
@@ -45,13 +46,16 @@ def upgrade() -> None:
         "CREATE TYPE accesslevel AS ENUM ('READ_ONLY', 'READ_WRITE', 'ADMIN', 'SUPER_ADMIN')"
     )
     op.execute(
-        "CREATE TYPE assettype AS ENUM ('SERVER', 'DATABASE', 'APPLICATION', 'NETWORK', 'LOAD_BALANCER', 'STORAGE', 'SECURITY_GROUP', 'VIRTUAL_MACHINE', 'CONTAINER', 'OTHER')"
+        "CREATE TYPE assettype AS ENUM ('SERVER', 'DATABASE', 'APPLICATION', 'NETWORK', "
+        "'LOAD_BALANCER', 'STORAGE', 'SECURITY_GROUP', 'VIRTUAL_MACHINE', 'CONTAINER', 'OTHER')"
     )
     op.execute(
-        "CREATE TYPE sixrstrategy AS ENUM ('REHOST', 'REPLATFORM', 'REFACTOR', 'REARCHITECT', 'REPLACE', 'REPURCHASE', 'RETIRE', 'RETAIN')"
+        "CREATE TYPE sixrstrategy AS ENUM ('REHOST', 'REPLATFORM', 'REFACTOR', "
+        "'REARCHITECT', 'REPLACE', 'REPURCHASE', 'RETIRE', 'RETAIN')"
     )
     op.execute(
-        "CREATE TYPE assetstatus AS ENUM ('DISCOVERED', 'ASSESSED', 'PLANNED', 'MIGRATING', 'MIGRATED', 'FAILED', 'EXCLUDED')"
+        "CREATE TYPE assetstatus AS ENUM ('DISCOVERED', 'ASSESSED', 'PLANNED', "
+        "'MIGRATING', 'MIGRATED', 'FAILED', 'EXCLUDED')"
     )
 
     # === CORE FOUNDATION TABLES (No dependencies) ===
@@ -275,12 +279,16 @@ def upgrade() -> None:
         sa.Column(
             "migration_scope",
             postgresql.JSON(astext_type=sa.Text()),
-            server_default='{"target_clouds": [], "migration_strategies": [], "excluded_systems": [], "included_environments": [], "business_units": [], "geographic_scope": [], "timeline_constraints": {}}',
+            server_default='{"target_clouds": [], "migration_strategies": [], '
+            '"excluded_systems": [], "included_environments": [], "business_units": [], '
+            '"geographic_scope": [], "timeline_constraints": {}}',
         ),
         sa.Column(
             "team_preferences",
             postgresql.JSON(astext_type=sa.Text()),
-            server_default='{"stakeholders": [], "decision_makers": [], "technical_leads": [], "communication_style": "formal", "reporting_frequency": "weekly", "preferred_meeting_times": [], "escalation_contacts": [], "project_methodology": "agile"}',
+            server_default='{"stakeholders": [], "decision_makers": [], "technical_leads": [], '
+            '"communication_style": "formal", "reporting_frequency": "weekly", '
+            '"preferred_meeting_times": [], "escalation_contacts": [], "project_methodology": "agile"}',
         ),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now()

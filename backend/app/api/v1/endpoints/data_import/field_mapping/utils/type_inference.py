@@ -103,7 +103,10 @@ def is_ip_address(value: str) -> bool:
 
 def is_hostname(value: str) -> bool:
     """Check if string looks like a hostname."""
-    hostname_pattern = r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$"
+    hostname_pattern = (
+        r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?"
+        r"(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$"
+    )
     return bool(re.match(hostname_pattern, value.strip())) and len(value.strip()) > 3
 
 

@@ -11,12 +11,12 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone  # noqa: E402
 
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select, text  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
-from app.models import (
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models import (  # noqa: E402
     Asset,
     ClientAccount,
     DataImport,
@@ -27,10 +27,10 @@ from app.models import (
     UserAccountAssociation,
     UserRole,
 )
-from seeding.constants import DEMO_USER_IDS
+from seeding.constants import DEMO_USER_IDS  # noqa: E402
 
 # Import the individual seeding modules
-from seeding.demo_multi_tenant_setup import (
+from seeding.demo_multi_tenant_setup import (  # noqa: E402
     clean_demo_data,
     create_demo_multi_tenant_data,
 )

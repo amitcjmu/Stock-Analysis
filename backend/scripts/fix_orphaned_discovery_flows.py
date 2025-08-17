@@ -25,9 +25,9 @@ from typing import List, Optional
 # Add the backend directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sqlalchemy import text
+from sqlalchemy import text  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
+from app.core.database import AsyncSessionLocal  # noqa: E402
 
 
 @dataclass

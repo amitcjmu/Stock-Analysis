@@ -9,15 +9,17 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from sqlalchemy import select
+
 # Add the backend directory to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sqlalchemy import select
-
-from app.core.database import AsyncSessionLocal
-from app.models.assessment_flow import AssessmentFlow
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.repositories.crewai_flow_state_extensions_repository import (
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.assessment_flow import AssessmentFlow  # noqa: E402
+from app.models.crewai_flow_state_extensions import (  # noqa: E402
+    CrewAIFlowStateExtensions,
+)
+from app.repositories.crewai_flow_state_extensions_repository import (  # noqa: E402
     CrewAIFlowStateExtensionsRepository,
 )
 
@@ -91,7 +93,10 @@ async def migrate_assessment_flows():
                         flow_id=flow_id,
                         flow_type="assessment",
                         user_id="migration-script",
-                        flow_name=f"Assessment Flow - {len(flow.selected_application_ids or [])} Applications (Migrated)",
+                        flow_name=(
+                            f"Assessment Flow - {len(flow.selected_application_ids or [])} "
+                            f"Applications (Migrated)"
+                        ),
                         flow_configuration={
                             "selected_applications": flow.selected_application_ids
                             or [],

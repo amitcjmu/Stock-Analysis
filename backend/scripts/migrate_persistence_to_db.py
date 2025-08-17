@@ -20,7 +20,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from app.core.database import AsyncSessionLocal
+from app.core.database import AsyncSessionLocal  # noqa: E402
 
 # Import models directly to avoid relationship issues
 try:

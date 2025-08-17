@@ -12,7 +12,7 @@ from sqlalchemy import text
 # Add the backend directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend"))
 
-from app.core.database import AsyncSessionLocal
+from app.core.database import AsyncSessionLocal  # noqa: E402
 
 
 async def analyze_flow():
@@ -218,9 +218,12 @@ async def analyze_flow():
         print(f"\n1. Flow exists in {len(tables_found)} tables")
         print("\n2. Data Status:")
         print(f"   - Raw data: {'✅ Available' if data_imports else '❌ Missing'}")
-        print(
-            f"   - Field mappings: {'✅ Available' if (discovery and discovery[8]) or (master and master[3]) else '❌ Missing'}"
+        field_mapping_status = (
+            "✅ Available"
+            if (discovery and discovery[8]) or (master and master[3])
+            else "❌ Missing"
         )
+        print(f"   - Field mappings: {field_mapping_status}")
         print(f"   - Current status: {discovery[1] if discovery else 'Unknown'}")
 
         print("\n3. Key Issues:")

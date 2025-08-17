@@ -742,7 +742,8 @@ async def main():
         # Print summary
         summary = results["summary"]
         logger.info(
-            f"📊 Test Summary: {summary.get('passed_test_suites', 0)}/{summary.get('total_test_suites', 0)} test suites passed"
+            f"📊 Test Summary: {summary.get('passed_test_suites', 0)}/"
+            f"{summary.get('total_test_suites', 0)} test suites passed"
         )
         logger.info(
             f"🎯 Overall Status: {summary.get('overall_status', 'unknown').upper()}"

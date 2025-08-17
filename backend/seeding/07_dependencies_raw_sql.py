@@ -396,7 +396,8 @@ async def create_dependencies_raw_sql():
         ]
 
         print(
-            f"  📊 Found assets: {len(applications)} apps, {len(servers)} servers, {len(databases)} databases, {len(network_devices)} network devices"
+            f"  📊 Found assets: {len(applications)} apps, {len(servers)} servers, "
+            f"{len(databases)} databases, {len(network_devices)} network devices"
         )
 
         all_dependencies = []

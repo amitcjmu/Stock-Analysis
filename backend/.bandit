@@ -1,6 +1,10 @@
 [bandit]
-# Allow legitimate temp operations, error handling, and development tools
-skips = B108,B110,B301,B314,B324,B403
+# Skipped checks with justification:
+# B110: Try/except/pass used for cleanup operations (legitimate patterns)
+# Note: B608 (SQL injection) removed - use specific nosec comments where needed
+# Note: B108 (temp file) - fixed with secure temp directories and specific nosec comments
+# Note: B301,B314,B324,B403 removed - no issues found in codebase
+skips = B110
 
 # Security standards - enforce high confidence, medium severity
 confidence = HIGH

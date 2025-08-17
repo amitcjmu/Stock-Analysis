@@ -105,7 +105,11 @@ class GCPMetricsCollector:
 
                             request = monitoring_v3.ListTimeSeriesRequest(
                                 name=f"projects/{self.auth_manager.project_id}",
-                                filter=f'metric.type="{metric_type}" AND resource.labels.instance_id="{instance_name}" AND resource.labels.zone="{zone}"',
+                                filter=(
+                                    f'metric.type="{metric_type}" AND '
+                                    f'resource.labels.instance_id="{instance_name}" AND '
+                                    f'resource.labels.zone="{zone}"'
+                                ),
                                 interval=interval,
                                 view=monitoring_v3.ListTimeSeriesRequest.TimeSeriesView.FULL,
                             )
@@ -192,7 +196,10 @@ class GCPMetricsCollector:
 
                         request = monitoring_v3.ListTimeSeriesRequest(
                             name=f"projects/{self.auth_manager.project_id}",
-                            filter=f'metric.type="{metric_type}" AND resource.labels.database_id="{self.auth_manager.project_id}:{instance_name}"',
+                            filter=(
+                                f'metric.type="{metric_type}" AND '
+                                f'resource.labels.database_id="{self.auth_manager.project_id}:{instance_name}"'
+                            ),
                             interval=interval,
                             view=monitoring_v3.ListTimeSeriesRequest.TimeSeriesView.FULL,
                         )

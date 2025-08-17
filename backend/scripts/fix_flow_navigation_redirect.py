@@ -52,7 +52,8 @@ async def analyze_and_fix_flow_navigation():
                     correct_phase = "field_mapping"
                     needs_correction = True
                     print(
-                        f"⚠️  ISSUE: Flow is awaiting field mapping approval but phase is {discovery_flow.current_phase}"
+                        f"⚠️  ISSUE: Flow is awaiting field mapping approval but phase is "
+                        f"{discovery_flow.current_phase}"
                     )
 
             # If in data_cleansing but no field mappings completed

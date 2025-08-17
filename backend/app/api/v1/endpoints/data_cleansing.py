@@ -554,7 +554,10 @@ async def _perform_data_cleansing_analysis(
                     severity="medium",
                     description=f"Field '{source_field}' has missing values in some records",
                     affected_records=max(1, int(total_records * 0.1)),
-                    recommendation=f"Consider filling missing values for '{source_field}' with default values or remove incomplete records",
+                    recommendation=(
+                        f"Consider filling missing values for '{source_field}' with default values "
+                        f"or remove incomplete records"
+                    ),
                     auto_fixable=True,
                 )
             )

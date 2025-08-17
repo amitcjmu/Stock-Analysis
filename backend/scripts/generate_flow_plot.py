@@ -11,7 +11,7 @@ from pathlib import Path
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
-import logging
+import logging  # noqa: E402
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -30,8 +30,19 @@ def generate_flow_plot():
         <head>
             <title>AI Modernize Migration Platform - Discovery Flow</title>
             <style>
-                body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-                .flow-container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 20px;
+                    background: #f5f5f5;
+                }
+                .flow-container {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                }
                 .flow-title { text-align: center; color: #2c3e50; margin-bottom: 30px; }
                 .phase { margin: 20px 0; padding: 15px; border-radius: 8px; position: relative; }
                 .phase-start { background: #e8f5e8; border-left: 4px solid #27ae60; }
@@ -46,9 +57,18 @@ def generate_flow_plot():
                 .phase-description { color: #666; margin-bottom: 10px; }
                 .phase-details { font-size: 0.9em; color: #777; }
                 .flow-arrow { text-align: center; font-size: 1.5em; color: #3498db; margin: 10px 0; }
-                .data-flow { background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 4px; border-left: 3px solid #6c757d; }
-                .crew-info { background: #e7f3ff; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 0.85em; }
-                .state-info { background: #f0f8f0; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 0.85em; }
+                .data-flow {
+                    background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 4px;
+                    border-left: 3px solid #6c757d;
+                }
+                .crew-info {
+                    background: #e7f3ff; padding: 8px; margin: 5px 0; border-radius: 4px;
+                    font-size: 0.85em;
+                }
+                .state-info {
+                    background: #f0f8f0; padding: 8px; margin: 5px 0; border-radius: 4px;
+                    font-size: 0.85em;
+                }
             </style>
         </head>
         <body>
@@ -62,7 +82,8 @@ def generate_flow_plot():
                     <div class="phase-title">🎯 1. Initialize Discovery (@start)</div>
                     <div class="phase-description">Set up flow state and validate input data</div>
                     <div class="state-info">
-                        <strong>State Updates:</strong> flow_id, session_id, client_account_id, engagement_id, user_id, raw_data, metadata
+                        <strong>State Updates:</strong> flow_id, session_id, client_account_id,
+                        engagement_id, user_id, raw_data, metadata
                     </div>
                     <div class="phase-details">
                         • PostgreSQL persistence initialization<br>
@@ -212,11 +233,13 @@ def generate_flow_plot():
                     <h3>🔧 Technical Architecture</h3>
                     <ul>
                         <li><strong>Flow Pattern:</strong> Event-driven with @start and @listen decorators</li>
-                        <li><strong>State Management:</strong> UnifiedDiscoveryFlowState with PostgreSQL persistence</li>
+                        <li><strong>State Management:</strong> UnifiedDiscoveryFlowState with
+                            PostgreSQL persistence</li>
                         <li><strong>Crew Integration:</strong> 6 specialized crews for different phases</li>
                         <li><strong>Async Execution:</strong> Non-blocking crew operations with asyncio.to_thread</li>
                         <li><strong>Error Handling:</strong> Comprehensive fallback mechanisms</li>
-                        <li><strong>Data Flow:</strong> raw_data → cleaned_data → asset_inventory → analysis results</li>
+                        <li><strong>Data Flow:</strong> raw_data → cleaned_data → asset_inventory →
+                            analysis results</li>
                     </ul>
                 </div>
 

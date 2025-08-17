@@ -50,7 +50,8 @@ async def get_field_mappings(
         if mappings:
             first_mapping = mappings[0]
             logger.info(
-                f"🔍 DEBUG: First mapping - source_field: {first_mapping.source_field} (type: {type(first_mapping.source_field)})"
+                f"🔍 DEBUG: First mapping - source_field: {first_mapping.source_field} "
+                f"(type: {type(first_mapping.source_field)})"
             )
             logger.info(
                 f"🔍 DEBUG: First mapping dict representation: {first_mapping.dict()}"

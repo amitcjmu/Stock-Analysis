@@ -11,7 +11,7 @@ from sqlalchemy import text
 # Add backend to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from app.core.database import AsyncSessionLocal
+from app.core.database import AsyncSessionLocal  # noqa: E402
 
 
 async def check_schema():

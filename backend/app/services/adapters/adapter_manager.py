@@ -411,7 +411,8 @@ class AdapterManager:
                 active_ops = health_data.get("active_operations", 0)
                 load_factor = max(0.1, 1.0 - (active_ops / 10))  # Normalize load
             except Exception:
-                pass
+                # Health status unavailable, keep default load_factor
+                pass  # nosec B110 - legitimate fallback for unavailable health status
 
             score = success_rate * load_factor
 

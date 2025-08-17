@@ -65,11 +65,46 @@ async def list_assets_paginated_fallback(
                     "migration_impact": "none",
                 },
             }
-    except Exception:
-        pass  # fallback to main implementation below
+    except Exception as e:
+        logger.error(f"Error in paginated fallback endpoint: {e}")
+        # Continue to fallback response below
 
-    # Ensure we always return something
-    return None
+    # Ensure we always return something - fallback response
+    return {
+        "assets": [],
+        "pagination": {
+            "current_page": page,
+            "page_size": page_size,
+            "total_items": 0,
+            "total_pages": 0,
+            "has_next": False,
+            "has_previous": False,
+        },
+        "summary": {
+            "total": 0,
+            "filtered": 0,
+            "applications": 0,
+            "servers": 0,
+            "databases": 0,
+            "devices": 0,
+            "unknown": 0,
+            "discovered": 0,
+            "pending": 0,
+            "device_breakdown": {},
+        },
+        "last_updated": None,
+        "data_source": "fallback",
+        "suggested_headers": [],
+        "app_mappings": [],
+        "unlinked_assets": [],
+        "unlinked_summary": {
+            "total_unlinked": 0,
+            "by_type": {},
+            "by_environment": {},
+            "by_criticality": {},
+            "migration_impact": "none",
+        },
+    }
 
 
 @router.get("/list/paginated")
@@ -196,7 +231,8 @@ async def list_assets_paginated(
 
         if needs_classification and len(asset_dicts) > 0:
             logger.warning(
-                f"🚨 Assets need CrewAI classification: {unclassified_count} unclassified, types found: {asset_types_found}"
+                f"🚨 Assets need CrewAI classification: {unclassified_count} unclassified, "
+                f"types found: {asset_types_found}"
             )
             # Add a header to indicate assets need classification
             # Note: The actual classification will be triggered by the frontend refresh button

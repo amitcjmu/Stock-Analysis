@@ -254,7 +254,10 @@ class DataIntegrityTester:
         self.test_result(
             "Master Flow Utilization",
             utilization_percentage >= 40,  # Reasonable utilization threshold
-            f"{utilized_count}/{total_count} master flows have children ({utilization_percentage:.1f}%), {orphaned_count} orphaned",
+            (
+                f"{utilized_count}/{total_count} master flows have children "
+                f"({utilization_percentage:.1f}%), {orphaned_count} orphaned"
+            ),
         )
 
     async def test_data_consistency(self, session):

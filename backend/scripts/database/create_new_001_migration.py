@@ -4,10 +4,10 @@ Script to regenerate migration 001 with ALL tables and fields correctly.
 This replaces the simplified version with a complete one.
 """
 
-print("Backing up current migration 001...")
+import os  # noqa: E402
+import shutil  # noqa: E402
 
-import os
-import shutil
+print("Backing up current migration 001...")
 
 # Backup the current migration
 backup_path = "/app/alembic/versions/001_complete_database_schema_backup.py"

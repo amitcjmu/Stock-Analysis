@@ -92,16 +92,18 @@ class NetworkScanner:
                     hostname = await self._resolve_hostname(ip, creds.timeout)
                     if hostname and hostname != ip:
                         host.hostname = hostname
-                except Exception:
-                    pass
+                except Exception as e:
+                    # Hostname resolution may fail, this is normal
+                    self.logger.debug(f"Could not resolve hostname for {ip}: {e}")
 
                 # Try to get MAC address (for local network)
                 try:
                     mac_address = await self._get_mac_address(ip)
                     if mac_address:
                         host.mac_address = mac_address
-                except Exception:
-                    pass
+                except Exception as e:
+                    # MAC address retrieval may fail, this is normal
+                    self.logger.debug(f"Could not get MAC address for {ip}: {e}")
 
                 return host
 

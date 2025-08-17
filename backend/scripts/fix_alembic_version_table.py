@@ -13,10 +13,10 @@ from pathlib import Path
 # Add the parent directory to sys.path to import app modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import text  # noqa: E402
+from sqlalchemy.ext.asyncio import create_async_engine  # noqa: E402
 
-from app.core.config import settings
+from app.core.config import settings  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

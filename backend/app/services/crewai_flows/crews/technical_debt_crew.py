@@ -100,7 +100,10 @@ class TechnicalDebtCrew:
         # Manager Agent for technical debt coordination with enhanced boundaries
         tech_debt_manager = Agent(
             role="Enterprise Technical Debt Assessment Manager",
-            goal="Coordinate comprehensive technical debt analysis and 6R migration strategy preparation across IT portfolio",
+            goal=(
+                "Coordinate comprehensive technical debt analysis and 6R migration "
+                "strategy preparation across IT portfolio"
+            ),
             backstory="""You are a senior enterprise architect with specialized expertise in technical debt analysis
             and cloud migration strategy for large-scale enterprise transformations. Your role and boundaries:
 
@@ -232,7 +235,10 @@ class TechnicalDebtCrew:
             5. Leverages dependency and inventory insights from shared memory
 
             Use your planning capabilities to coordinate comprehensive migration strategy preparation.""",
-            expected_output="Comprehensive technical debt analysis plan with 6R strategy approach and risk assessment methodology",
+            expected_output=(
+                "Comprehensive technical debt analysis plan with 6R strategy approach "
+                "and risk assessment methodology"
+            ),
             agent=manager,
             tools=[],
         )
@@ -256,7 +262,10 @@ class TechnicalDebtCrew:
             7. Store legacy insights in shared memory for modernization expert
 
             Collaborate with modernization expert to share legacy discoveries.""",
-            expected_output="Comprehensive legacy systems assessment with technical debt analysis and modernization priorities",
+            expected_output=(
+                "Comprehensive legacy systems assessment with technical debt analysis "
+                "and modernization priorities"
+            ),
             agent=legacy_analyst,
             context=[planning_task],
             tools=self._create_legacy_analysis_tools(),
@@ -284,7 +293,10 @@ class TechnicalDebtCrew:
             5. Use legacy analyst insights from shared memory
 
             Collaborate with risk specialist to validate strategy recommendations.""",
-            expected_output="Comprehensive 6R strategy recommendations with business justification and dependency considerations",
+            expected_output=(
+                "Comprehensive 6R strategy recommendations with business justification "
+                "and dependency considerations"
+            ),
             agent=modernization_expert,
             context=[legacy_analysis_task],
             tools=self._create_modernization_tools(),

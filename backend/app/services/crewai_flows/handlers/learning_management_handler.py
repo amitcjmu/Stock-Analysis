@@ -164,7 +164,8 @@ class LearningManagementHandler:
             )
 
             logger.info(
-                f"📖 Learning insights retrieved: {data_category} - Access granted: {result.get('access_granted', False)}"
+                f"📖 Learning insights retrieved: {data_category} - "
+                f"Access granted: {result.get('access_granted', False)}"
             )
             return result
 

@@ -11,11 +11,11 @@ from typing import Any, Dict, List
 
 sys.path.append("/app")
 
-from sqlalchemy import select
+from sqlalchemy import select  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
-from app.models.client_account import User
-from app.models.rbac import UserRole
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.client_account import User  # noqa: E402
+from app.models.rbac import UserRole  # noqa: E402
 
 # SECURITY: Whitelist of legitimate accounts
 LEGITIMATE_ACCOUNTS = {
@@ -236,7 +236,8 @@ async def auto_remediate_violations(violations: List[Dict]) -> Dict[str, Any]:
                             user.email = (
                                 f"DISABLED_{email}_{int(datetime.utcnow().timestamp())}"
                             )
-                            user.password_hash = "DISABLED_SECURITY_VIOLATION"  # nosec B105 - intentionally disabling demo account
+                            # nosec B105 - intentionally disabling demo account
+                            user.password_hash = "DISABLED_SECURITY_VIOLATION"
 
                             # Disable all roles
                             role_query = select(UserRole).where(

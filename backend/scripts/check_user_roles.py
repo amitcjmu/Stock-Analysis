@@ -11,11 +11,11 @@ from pathlib import Path
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, select  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
-from app.core.logging import get_logger
-from app.models import User, UserRole
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.core.logging import get_logger  # noqa: E402
+from app.models import User, UserRole  # noqa: E402
 
 logger = get_logger(__name__)
 
@@ -93,7 +93,8 @@ async def check_user_roles():
             if limited_role:
                 logger.info(f"  Role Type: {limited_role.role_type}")
                 logger.info(
-                    f"  This explains why the user is seen as: {'admin' if limited_role.role_type == 'platform_admin' else limited_role.role_type}"
+                    f"  This explains why the user is seen as: "
+                    f"{'admin' if limited_role.role_type == 'platform_admin' else limited_role.role_type}"
                 )
             else:
                 logger.info("  No active role found!")

@@ -148,7 +148,10 @@ class AgentPerformanceDaily(Base):
     )
 
     def __repr__(self):
-        return f"<AgentPerformanceDaily(agent={self.agent_name}, date={self.date_recorded}, success_rate={self.success_rate}%)>"
+        return (
+            f"<AgentPerformanceDaily(agent={self.agent_name}, "
+            f"date={self.date_recorded}, success_rate={self.success_rate}%)>"
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API responses"""

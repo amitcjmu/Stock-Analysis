@@ -123,7 +123,10 @@ class LLMUsageLog(Base):
     )
 
     def __repr__(self):
-        return f"<LLMUsageLog(id={self.id}, provider={self.llm_provider}, model={self.model_name}, cost={self.total_cost})>"
+        return (
+            f"<LLMUsageLog(id={self.id}, provider={self.llm_provider}, model={self.model_name}, "
+            f"cost={self.total_cost})>"
+        )
 
 
 class LLMModelPricing(Base):
@@ -178,7 +181,10 @@ class LLMModelPricing(Base):
     )
 
     def __repr__(self):
-        return f"<LLMModelPricing(provider={self.provider}, model={self.model_name}, input_cost={self.input_cost_per_1k_tokens})>"
+        return (
+            f"<LLMModelPricing(provider={self.provider}, model={self.model_name}, "
+            f"input_cost={self.input_cost_per_1k_tokens})>"
+        )
 
 
 class LLMUsageSummary(Base):

@@ -33,7 +33,10 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
 
         super().__init__(
             role="Data Gap Prioritization Strategist",
-            goal="Prioritize missing critical attributes by business impact to optimize migration data collection efforts",
+            goal=(
+                "Prioritize missing critical attributes by business impact "
+                "to optimize migration data collection efforts"
+            ),
             backstory="""You are a strategic analyst specializing in migration data gap prioritization.
             Your expertise includes:
 

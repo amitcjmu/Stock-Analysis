@@ -95,7 +95,9 @@ class FlowInitializer:
 
         # Log the initialized values
         logger.info(
-            f"🔍 State initialized with flow_id: {state.flow_id}, client: {state.client_account_id}, engagement: {state.engagement_id}, user: {state.user_id}"
+            f"🔍 State initialized with flow_id: {state.flow_id}, "
+            f"client: {state.client_account_id}, engagement: {state.engagement_id}, "
+            f"user: {state.user_id}"
         )
 
         # If we have raw data, it means data import is already complete

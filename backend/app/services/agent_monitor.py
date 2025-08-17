@@ -413,7 +413,8 @@ class AgentMonitor:
                     status_icon = "🚨" if task.is_hanging else "⏳"
                     print(f"  {status_icon} {task.agent_name}: {task.description}")
                     print(
-                        f"     Status: {task.status.value} | Elapsed: {task.elapsed_time:.1f}s | Since Activity: {task.time_since_activity:.1f}s"
+                        f"     Status: {task.status.value} | Elapsed: {task.elapsed_time:.1f}s | "
+                        f"Since Activity: {task.time_since_activity:.1f}s"
                     )
                     if task.is_hanging:
                         print(f"     🚨 HANGING: {task.hanging_reason}")

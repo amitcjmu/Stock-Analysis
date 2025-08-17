@@ -17,7 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext, get_current_context
 from app.core.security.secure_logging import safe_log_format
 from app.core.database import get_db
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.schemas.data_import_schemas import StoreImportRequest
+from app.services.discovery_flow_service import DiscoveryFlowService
 
 
 # V2 Discovery Flow schema for data cleaning
@@ -28,9 +30,6 @@ class DataCleaningRequest(BaseModel):
     cleaning_rules: Optional[List[str]] = []
     validation_level: Optional[str] = "standard"
 
-
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from app.services.discovery_flow_service import DiscoveryFlowService
 
 logger = logging.getLogger(__name__)
 

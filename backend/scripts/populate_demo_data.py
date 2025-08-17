@@ -9,6 +9,7 @@ import sys
 
 sys.path.append("/app")
 
+# flake8: noqa: E402
 import uuid
 from datetime import datetime
 

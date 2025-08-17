@@ -42,7 +42,10 @@ def create_gap_analysis_crew(
         # Create gap analysis specialist agent
         gap_specialist = Agent(
             role="Data Gap Analysis Specialist",
-            goal="Identify critical data gaps that impact 6R migration strategy accuracy and prioritize them for resolution",
+            goal=(
+                "Identify critical data gaps that impact 6R migration strategy accuracy "
+                "and prioritize them for resolution"
+            ),
             backstory="""You are an expert gap analysis specialist with deep understanding of:
             - The 22 critical attributes framework for migration
             - 6R strategy requirements (Rehost, Replatform, Refactor, Repurchase, Retire, Retain)

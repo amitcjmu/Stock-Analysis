@@ -249,12 +249,18 @@ class CollectionPlannerTool(AsyncBaseDiscoveryTool):
             "stakeholder_input": {
                 "description": "Collect via stakeholder interviews and surveys",
                 "tools": ["Survey platform", "Interview templates"],
-                "procedure": "1. Schedule stakeholder sessions\n2. Conduct interviews\n3. Validate responses\n4. Document findings",
+                "procedure": (
+                    "1. Schedule stakeholder sessions\n2. Conduct interviews\n"
+                    "3. Validate responses\n4. Document findings"
+                ),
             },
             "technical_interview": {
                 "description": "Technical deep-dive sessions with SMEs",
                 "tools": ["Technical questionnaire", "Architecture templates"],
-                "procedure": "1. Identify SMEs\n2. Prepare technical questions\n3. Conduct sessions\n4. Document architecture",
+                "procedure": (
+                    "1. Identify SMEs\n2. Prepare technical questions\n"
+                    "3. Conduct sessions\n4. Document architecture"
+                ),
             },
         }
 

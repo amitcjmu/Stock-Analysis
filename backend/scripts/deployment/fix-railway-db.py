@@ -29,8 +29,8 @@ from alembic.config import Config
 # Add the app directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from app.core.database import AsyncSessionLocal
-from app.core.database_initialization import initialize_database
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.core.database_initialization import initialize_database  # noqa: E402
 
 # Configure logging
 logging.basicConfig(

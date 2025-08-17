@@ -193,12 +193,33 @@ class DiscoveryIntegrationExecutor(CrewExecutionBase):
                 # If no master_flow_id, skip creating field mappings to avoid foreign key errors
                 if not master_flow_id:
                     logger.warning(
-                        "⚠️ No master_flow_id available - skipping field mapping creation to avoid foreign key constraint errors"
+                        "⚠️ No master_flow_id available - skipping field mapping creation to avoid "
+                        "foreign key constraint errors"
                     )
                     logger.warning(
                         "⚠️ This indicates a flow creation order issue that needs to be fixed"
                     )
-                    return
+
+                    # Commit what we have so far before returning
+                    try:
+                        await db_session.commit()
+                        logger.info(
+                            "✅ Committed partial data (import session and records)"
+                        )
+                    except Exception as e:
+                        await db_session.rollback()
+                        logger.error(f"❌ Failed to commit partial data: {e}")
+
+                    return {
+                        "status": "error",
+                        "error": "missing_master_flow_id",
+                        "message": "Cannot create field mappings without a master_flow_id",
+                        "assets_created": assets_created,
+                        "imports_created": imports_created,
+                        "records_created": records_created,
+                        "field_mappings_created": 0,
+                        "timestamp": datetime.utcnow().isoformat(),
+                    }
 
                 logger.info(
                     f"🔍 Creating {len(field_mappings)} field mappings for data_import_id: {import_session.id}"

@@ -73,7 +73,9 @@ class FlowStatusTool(BaseTool):
 
     name: str = "flow_status_analyzer"
     description: str = (
-        "Gets detailed flow status including current phase, progress, and data validation results. Pass the actual flow_id UUID and context_data as a JSON string."
+        "Gets detailed flow status including current phase, progress, and "
+        "data validation results. Pass the actual flow_id UUID and "
+        "context_data as a JSON string."
     )
 
     def _run(self, flow_id: str, context_data: str) -> str:
@@ -376,7 +378,11 @@ class FlowStatusTool(BaseTool):
                         "raw_data_count": 0,
                         "field_mapping": {},
                         "validation_results": {},
-                        "user_guidance": "FLOW_NOT_FOUND: This flow ID does not exist in the system. User needs to start a new discovery flow by uploading data.",
+                        "user_guidance": (
+                            "FLOW_NOT_FOUND: This flow ID does not exist in "
+                            "the system. User needs to start a new discovery "
+                            "flow by uploading data."
+                        ),
                     }
 
                 return {
@@ -406,5 +412,8 @@ class FlowStatusTool(BaseTool):
                 "raw_data_count": 0,
                 "field_mapping": {},
                 "validation_results": {},
-                "user_guidance": "FLOW_ERROR: Unable to access flow data. Flow may not exist or there may be a system issue.",
+                "user_guidance": (
+                    "FLOW_ERROR: Unable to access flow data. Flow may not "
+                    "exist or there may be a system issue."
+                ),
             }

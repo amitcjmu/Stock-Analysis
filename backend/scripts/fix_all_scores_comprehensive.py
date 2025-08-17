@@ -97,7 +97,8 @@ async def comprehensive_score_fix():
                 print("\n🧪 VERIFICATION TEST...")
                 test_result = await session.execute(
                     text(
-                        "SELECT id, strategy_scores FROM sixr_recommendations WHERE strategy_scores::text LIKE '%108.0%' LIMIT 5"
+                        "SELECT id, strategy_scores FROM sixr_recommendations "
+                        "WHERE strategy_scores::text LIKE '%108.0%' LIMIT 5"
                     )
                 )
                 remaining_issues = test_result.fetchall()

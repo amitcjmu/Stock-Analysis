@@ -98,7 +98,8 @@ class ImportFieldMapping(Base):
     transformation_rules = Column(
         JSON,
         nullable=True,
-        comment="A JSON blob defining any transformation logic to be applied to the data (e.g., data type casting, value replacements).",
+        comment="A JSON blob defining any transformation logic to be applied to the data "
+        "(e.g., data type casting, value replacements).",
     )
 
     # Timestamps

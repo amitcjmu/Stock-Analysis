@@ -472,7 +472,8 @@ async def create_assets():
             f"   🖥️ Servers: {servers} ({linux_server_count} Linux, {windows_server_count} Windows)"
         )
         print(
-            f"   🗄️ Databases: {databases} ({oracle_count} Oracle, {sqlserver_count} SQL Server, {postgres_count} PostgreSQL)"
+            f"   🗄️ Databases: {databases} ({oracle_count} Oracle, {sqlserver_count} SQL Server, "
+            f"{postgres_count} PostgreSQL)"
         )
         print(
             f"   🌐 Network Devices: {network} ({load_balancer_count} Load Balancers, {firewall_count} Firewalls)"

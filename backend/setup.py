@@ -14,7 +14,7 @@ from pathlib import Path
 backend_dir = Path(__file__).parent
 sys.path.insert(0, str(backend_dir))
 
-from app.core.database import init_db
+from app.core.database import init_db  # noqa: E402
 
 
 async def create_database_tables():

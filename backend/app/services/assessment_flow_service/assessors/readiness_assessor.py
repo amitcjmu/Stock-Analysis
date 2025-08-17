@@ -574,7 +574,10 @@ class ReadinessAssessor:
                 {
                     "type": "overall",
                     "category": "asset_readiness_threshold",
-                    "description": f"Only {asset_readiness['readiness_percentage']}% of assets are ready (minimum 80% required)",
+                    "description": (
+                        f"Only {asset_readiness['readiness_percentage']}% of assets are ready "
+                        f"(minimum 80% required)"
+                    ),
                     "severity": "high",
                     "affected_count": asset_readiness["total_assets"]
                     - asset_readiness["ready_assets"],

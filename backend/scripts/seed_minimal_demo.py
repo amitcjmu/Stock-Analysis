@@ -28,10 +28,10 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select  # noqa: E402
 
-from app.core.database import AsyncSessionLocal
-from app.models import (
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models import (  # noqa: E402
     ClientAccount,
     DiscoveryFlow,
     Engagement,
@@ -39,7 +39,7 @@ from app.models import (
     UserAccountAssociation,
     UserRole,
 )
-from app.models.rbac import UserProfile, UserStatus
+from app.models.rbac import UserProfile, UserStatus  # noqa: E402
 
 
 def get_password_hash(password: str) -> str:

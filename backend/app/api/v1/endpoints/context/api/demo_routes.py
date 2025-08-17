@@ -61,7 +61,10 @@ async def get_demo_context(
         # Find demo engagement for this client
         demo_engagement = None
         engagements = await db.execute(
-            "SELECT * FROM engagements WHERE client_account_id = :client_id AND id::text LIKE '%def0-def0-def0%' LIMIT 1",
+            (
+                "SELECT * FROM engagements WHERE client_account_id = :client_id "
+                "AND id::text LIKE '%def0-def0-def0%' LIMIT 1"
+            ),
             {"client_id": client_row.id},
         )
         engagement_row = engagements.fetchone()
@@ -102,7 +105,8 @@ async def get_demo_context(
             )
 
         logger.info(
-            f"Demo context fetched successfully: client={demo_client['name']}, engagement={demo_engagement['name']}, users={len(demo_users)}"
+            f"Demo context fetched successfully: client={demo_client['name']}, "
+            f"engagement={demo_engagement['name']}, users={len(demo_users)}"
         )
 
         return {

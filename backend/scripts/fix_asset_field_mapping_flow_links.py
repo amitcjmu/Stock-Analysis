@@ -195,11 +195,22 @@ async def validate_master_flow_links():
         invalid_links = result.fetchall()
 
         print("📊 Master Flow Linkage Validation Results:")
-        print(
-            f"   Assets: {asset_stats.linked_assets}/{asset_stats.total_assets} linked ({(asset_stats.linked_assets/asset_stats.total_assets*100) if asset_stats.total_assets > 0 else 0:.1f}%)"
+        assets_pct = (
+            (asset_stats.linked_assets / asset_stats.total_assets * 100)
+            if asset_stats.total_assets > 0
+            else 0
         )
         print(
-            f"   Field Mappings: {mapping_stats.linked_mappings}/{mapping_stats.total_mappings} linked ({(mapping_stats.linked_mappings/mapping_stats.total_mappings*100) if mapping_stats.total_mappings > 0 else 0:.1f}%)"
+            f"   Assets: {asset_stats.linked_assets}/{asset_stats.total_assets} linked ({assets_pct:.1f}%)"
+        )
+        mappings_pct = (
+            (mapping_stats.linked_mappings / mapping_stats.total_mappings * 100)
+            if mapping_stats.total_mappings > 0
+            else 0
+        )
+        print(
+            f"   Field Mappings: {mapping_stats.linked_mappings}/{mapping_stats.total_mappings} "
+            f"linked ({mappings_pct:.1f}%)"
         )
 
         for invalid_link in invalid_links:
