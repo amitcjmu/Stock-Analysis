@@ -16,6 +16,7 @@ from .cache import (
     CacheStrategy,
     CacheEvictionPolicy,
     MultiLevelCache,
+    create_multi_level_cache,
 )
 
 # Re-export for backward compatibility
@@ -26,4 +27,5 @@ __all__ = [
     "CachePerformanceMetrics",
     "CacheEvictionPolicy",
     "MultiLevelCache",
+    "create_multi_level_cache",
 ]
