@@ -3,11 +3,17 @@ Azure Platform Adapter for ADCS Implementation
 
 This adapter provides comprehensive Azure resource discovery and data collection
 using Azure Resource Graph for resource discovery and Azure Monitor for metrics.
+
+The adapter is modularized across multiple specialized modules:
+- azure_adapter_auth: Authentication and client management
+- azure_adapter_compute: Compute resource operations (VMs, Web Apps)
+- azure_adapter_storage: Storage resource operations (Storage Accounts)
+- azure_adapter_data: Data resource operations (SQL Databases)
+- azure_adapter_utils: Utility functions and helper operations
 """
 
 import logging
 import time
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Set
 
@@ -44,32 +50,14 @@ from app.services.collection_flow.adapters import (
     CollectionResponse,
 )
 
+# Import modularized components
+from .azure_adapter_auth import AzureAuthenticationManager, AzureCredentials
+from .azure_adapter_compute import AzureComputeOperations
+from .azure_adapter_storage import AzureStorageOperations
+from .azure_adapter_data import AzureDataOperations
+from .azure_adapter_utils import AzureUtilities
+
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class AzureCredentials:
-    """Azure credentials configuration"""
-
-    tenant_id: str
-    client_id: str
-    client_secret: str
-    subscription_id: str
-
-
-@dataclass
-class AzureResourceMetrics:
-    """Azure resource performance metrics"""
-
-    resource_id: str
-    resource_type: str
-    cpu_percentage: Optional[float] = None
-    memory_percentage: Optional[float] = None
-    network_in: Optional[float] = None
-    network_out: Optional[float] = None
-    disk_read_bytes: Optional[float] = None
-    disk_write_bytes: Optional[float] = None
-    timestamp: Optional[datetime] = None
 
 
 class AzureAdapter(BaseAdapter):
@@ -81,6 +69,13 @@ class AzureAdapter(BaseAdapter):
     - Azure Monitor for performance metrics
     - Resource Management APIs for detailed resource information
     - Support for VMs, databases, web apps, storage, and networking resources
+
+    The adapter uses dependency injection with specialized modules:
+    - AzureAuthenticationManager: Handles authentication and client management
+    - AzureComputeOperations: Manages compute resources (VMs, Web Apps)
+    - AzureStorageOperations: Manages storage resources (Storage Accounts)
+    - AzureDataOperations: Manages data resources (SQL Databases)
+    - AzureUtilities: Provides utility functions and helpers
     """
 
     def __init__(self, db: AsyncSession, metadata: AdapterMetadata):
@@ -90,16 +85,14 @@ class AzureAdapter(BaseAdapter):
             logger.warning(
                 "Azure SDK is not installed. Azure adapter functionality will be limited."
             )
-        self._credential = None
-        self._subscription_id = None
-        self._resource_client = None
-        self._resource_graph_client = None
-        self._monitor_client = None
-        self._compute_client = None
-        self._sql_client = None
-        self._web_client = None
-        self._storage_client = None
-        self._network_client = None
+
+        # Initialize modular components
+        self._auth_manager: Optional[AzureAuthenticationManager] = None
+        self._compute_ops: Optional[AzureComputeOperations] = None
+        self._storage_ops: Optional[AzureStorageOperations] = None
+        self._data_ops: Optional[AzureDataOperations] = None
+        self._utilities: Optional[AzureUtilities] = None
+
         self._supported_resource_types = {
             "Microsoft.Compute/virtualMachines",
             "Microsoft.Sql/servers",
@@ -115,28 +108,52 @@ class AzureAdapter(BaseAdapter):
             "Microsoft.Network/networkSecurityGroups",
         }
 
+    def _initialize_modules(
+        self, credential: ClientSecretCredential, subscription_id: str
+    ) -> None:
+        """
+        Initialize all modular components with Azure clients
+
+        Args:
+            credential: Azure credential for authentication
+            subscription_id: Azure subscription ID
+        """
+        # Initialize authentication manager
+        self._auth_manager = AzureAuthenticationManager()
+        self._auth_manager.init_clients(credential, subscription_id)
+
+        # Initialize compute operations
+        self._compute_ops = AzureComputeOperations(
+            compute_client=self._auth_manager.compute_client,
+            web_client=self._auth_manager.web_client,
+            monitor_client=self._auth_manager.monitor_client,
+        )
+
+        # Initialize storage operations
+        self._storage_ops = AzureStorageOperations(
+            storage_client=self._auth_manager.storage_client
+        )
+
+        # Initialize data operations
+        self._data_ops = AzureDataOperations(
+            sql_client=self._auth_manager.sql_client,
+            monitor_client=self._auth_manager.monitor_client,
+        )
+
+        # Initialize utilities
+        self._utilities = AzureUtilities(
+            network_client=self._auth_manager.network_client,
+            resource_graph_client=self._auth_manager.resource_graph_client,
+            subscription_id=subscription_id,
+        )
+
     def _get_azure_credential(
         self, credentials: AzureCredentials
     ) -> ClientSecretCredential:
         """Create Azure credential from provided credentials"""
-        return ClientSecretCredential(
-            tenant_id=credentials.tenant_id,
-            client_id=credentials.client_id,
-            client_secret=credentials.client_secret,
-        )
-
-    def _init_clients(self, credential: ClientSecretCredential, subscription_id: str):
-        """Initialize Azure service clients"""
-        self._credential = credential
-        self._subscription_id = subscription_id
-        self._resource_client = ResourceManagementClient(credential, subscription_id)
-        self._resource_graph_client = ResourceGraphClient(credential)
-        self._monitor_client = MonitorManagementClient(credential, subscription_id)
-        self._compute_client = ComputeManagementClient(credential, subscription_id)
-        self._sql_client = SqlManagementClient(credential, subscription_id)
-        self._web_client = WebSiteManagementClient(credential, subscription_id)
-        self._storage_client = StorageManagementClient(credential, subscription_id)
-        self._network_client = NetworkManagementClient(credential, subscription_id)
+        if not self._auth_manager:
+            self._auth_manager = AzureAuthenticationManager()
+        return self._auth_manager.get_azure_credential(credentials)
 
     async def validate_credentials(self, credentials: Dict[str, Any]) -> bool:
         """
@@ -149,45 +166,15 @@ class AzureAdapter(BaseAdapter):
             True if credentials are valid, False otherwise
         """
         if not AZURE_SDK_AVAILABLE:
-            logger.error("Azure SDK is not installed. Cannot validate credentials.")
-            return False
-
-        try:
-            # Parse credentials
-            azure_creds = AzureCredentials(
-                tenant_id=credentials.get("tenant_id", ""),
-                client_id=credentials.get("client_id", ""),
-                client_secret=credentials.get("client_secret", ""),
-                subscription_id=credentials.get("subscription_id", ""),
-            )
-
-            # Create credential and test with Resource Management
-            credential = self._get_azure_credential(azure_creds)
-            resource_client = ResourceManagementClient(
-                credential, azure_creds.subscription_id
-            )
-
-            # Test credentials by getting subscription info
-            subscription = resource_client.subscriptions.get(
-                azure_creds.subscription_id
-            )
-
-            self.logger.info(
-                f"Azure credentials validated for subscription: {subscription.display_name}"
-            )
-            return True
-
-        except ClientAuthenticationError as e:
-            self.logger.error(f"Azure authentication failed: {str(e)}")
-            return False
-        except HttpResponseError as e:
-            self.logger.error(f"Azure API error during credential validation: {str(e)}")
-            return False
-        except Exception as e:
             self.logger.error(
-                f"Unexpected error validating Azure credentials: {str(e)}"
+                "Azure SDK is not installed. Cannot validate credentials."
             )
             return False
+
+        if not self._auth_manager:
+            self._auth_manager = AzureAuthenticationManager()
+
+        return await self._auth_manager.validate_credentials(credentials)
 
     async def test_connectivity(self, configuration: Dict[str, Any]) -> bool:
         """
@@ -199,102 +186,10 @@ class AzureAdapter(BaseAdapter):
         Returns:
             True if connectivity successful, False otherwise
         """
-        try:
-            # Extract credentials
-            credentials = configuration.get("credentials", {})
+        if not self._auth_manager:
+            self._auth_manager = AzureAuthenticationManager()
 
-            azure_creds = AzureCredentials(
-                tenant_id=credentials.get("tenant_id", ""),
-                client_id=credentials.get("client_id", ""),
-                client_secret=credentials.get("client_secret", ""),
-                subscription_id=credentials.get("subscription_id", ""),
-            )
-
-            # Create credential and initialize clients
-            credential = self._get_azure_credential(azure_creds)
-            self._init_clients(credential, azure_creds.subscription_id)
-
-            # Test connectivity to core services
-            connectivity_tests = {
-                "ResourceManagement": self._test_resource_management_connectivity,
-                "ResourceGraph": self._test_resource_graph_connectivity,
-                "Monitor": self._test_monitor_connectivity,
-                "Compute": self._test_compute_connectivity,
-            }
-
-            results = {}
-            for service, test_func in connectivity_tests.items():
-                try:
-                    results[service] = await test_func()
-                except Exception as e:
-                    self.logger.warning(
-                        f"Connectivity test failed for {service}: {str(e)}"
-                    )
-                    results[service] = False
-
-            # Log results
-            successful_tests = sum(1 for result in results.values() if result)
-            total_tests = len(results)
-
-            self.logger.info(
-                f"Azure connectivity tests: {successful_tests}/{total_tests} successful"
-            )
-
-            # Consider connectivity successful if core services work
-            core_services = ["ResourceManagement", "ResourceGraph"]
-            core_success = all(results.get(service, False) for service in core_services)
-
-            return core_success
-
-        except Exception as e:
-            self.logger.error(f"Azure connectivity test failed: {str(e)}")
-            return False
-
-    async def _test_resource_management_connectivity(self) -> bool:
-        """Test Resource Management API connectivity"""
-        try:
-            # List resource groups (should work with basic permissions)
-            list(self._resource_client.resource_groups.list())
-            return True
-        except Exception:
-            return False
-
-    async def _test_resource_graph_connectivity(self) -> bool:
-        """Test Resource Graph API connectivity"""
-        try:
-            from azure.mgmt.resourcegraph.models import QueryRequest
-
-            # Simple query to test Resource Graph access
-            query = QueryRequest(
-                subscriptions=[self._subscription_id], query="Resources | take 1"
-            )
-            self._resource_graph_client.resources(query)
-            return True
-        except Exception:
-            return False
-
-    async def _test_monitor_connectivity(self) -> bool:
-        """Test Azure Monitor API connectivity"""
-        try:
-            # List metric definitions (basic monitor access)
-            # This requires a resource, so we'll try with the subscription scope
-            list(
-                self._monitor_client.metric_definitions.list(
-                    resource_uri=f"/subscriptions/{self._subscription_id}"
-                )
-            )
-            return True
-        except Exception:
-            return False
-
-    async def _test_compute_connectivity(self) -> bool:
-        """Test Compute API connectivity"""
-        try:
-            # List VM sizes in a region (basic compute access)
-            list(self._compute_client.virtual_machine_sizes.list("eastus"))
-            return True
-        except Exception:
-            return False
+        return await self._auth_manager.test_connectivity(configuration)
 
     async def collect_data(self, request: CollectionRequest) -> CollectionResponse:
         """
@@ -323,7 +218,7 @@ class AzureAdapter(BaseAdapter):
         start_time = time.time()
 
         try:
-            # Initialize Azure clients
+            # Initialize Azure clients and modules
             credentials = request.credentials
 
             azure_creds = AzureCredentials(
@@ -334,7 +229,7 @@ class AzureAdapter(BaseAdapter):
             )
 
             credential = self._get_azure_credential(azure_creds)
-            self._init_clients(credential, azure_creds.subscription_id)
+            self._initialize_modules(credential, azure_creds.subscription_id)
 
             # Collect data using Resource Graph for efficiency
             collected_data = {}
@@ -345,7 +240,7 @@ class AzureAdapter(BaseAdapter):
                 target_types = self._supported_resource_types
             else:
                 # Map request targets to Azure resource types
-                target_types = self._map_targets_to_resource_types(
+                target_types = self._utilities.map_targets_to_resource_types(
                     request.target_resources
                 )
 
@@ -429,31 +324,6 @@ class AzureAdapter(BaseAdapter):
                 },
             )
 
-    def _map_targets_to_resource_types(self, targets: List[str]) -> Set[str]:
-        """Map request targets to Azure resource types"""
-        target_mapping = {
-            "VirtualMachines": "Microsoft.Compute/virtualMachines",
-            "VM": "Microsoft.Compute/virtualMachines",
-            "Databases": "Microsoft.Sql/servers/databases",
-            "SQL": "Microsoft.Sql/servers/databases",
-            "WebApps": "Microsoft.Web/sites",
-            "Storage": "Microsoft.Storage/storageAccounts",
-            "LoadBalancers": "Microsoft.Network/loadBalancers",
-            "AKS": "Microsoft.ContainerService/managedClusters",
-            "Redis": "Microsoft.Cache/Redis",
-            "CosmosDB": "Microsoft.DocumentDB/databaseAccounts",
-            "Networks": "Microsoft.Network/virtualNetworks",
-        }
-
-        mapped_types = set()
-        for target in targets:
-            if target in target_mapping:
-                mapped_types.add(target_mapping[target])
-            elif target in self._supported_resource_types:
-                mapped_types.add(target)
-
-        return mapped_types or self._supported_resource_types
-
     async def _collect_resources_with_graph(
         self, resource_types: Set[str], config: Dict[str, Any]
     ) -> Dict[str, List[Dict]]:
@@ -474,10 +344,10 @@ class AzureAdapter(BaseAdapter):
 
             # Execute query
             query_request = QueryRequest(
-                subscriptions=[self._subscription_id], query=query
+                subscriptions=[self._auth_manager.subscription_id], query=query
             )
 
-            response = self._resource_graph_client.resources(query_request)
+            response = self._auth_manager.resource_graph_client.resources(query_request)
 
             # Group results by resource type
             for resource in response.data:
@@ -521,20 +391,24 @@ class AzureAdapter(BaseAdapter):
 
                 # Add detailed information based on resource type
                 if resource_type == "Microsoft.Compute/virtualMachines":
-                    enhanced_resource.update(await self._enhance_vm_data(resource))
+                    enhanced_resource.update(
+                        await self._compute_ops.enhance_vm_data(resource)
+                    )
                 elif resource_type == "Microsoft.Sql/servers/databases":
                     enhanced_resource.update(
-                        await self._enhance_sql_database_data(resource)
+                        await self._data_ops.enhance_sql_database_data(resource)
                     )
                 elif resource_type == "Microsoft.Web/sites":
-                    enhanced_resource.update(await self._enhance_web_app_data(resource))
+                    enhanced_resource.update(
+                        await self._compute_ops.enhance_web_app_data(resource)
+                    )
                 elif resource_type == "Microsoft.Storage/storageAccounts":
                     enhanced_resource.update(
-                        await self._enhance_storage_account_data(resource)
+                        await self._storage_ops.enhance_storage_account_data(resource)
                     )
                 elif resource_type == "Microsoft.Network/loadBalancers":
                     enhanced_resource.update(
-                        await self._enhance_load_balancer_data(resource)
+                        await self._utilities.enhance_load_balancer_data(resource)
                     )
 
                 enhanced_resources.append(enhanced_resource)
@@ -544,121 +418,6 @@ class AzureAdapter(BaseAdapter):
         except Exception as e:
             self.logger.warning(f"Failed to enhance {resource_type} data: {str(e)}")
             return resources  # Return basic data if enhancement fails
-
-    async def _enhance_vm_data(self, vm_resource: Dict[str, Any]) -> Dict[str, Any]:
-        """Enhance VM data with detailed compute information"""
-        try:
-            # Parse resource ID to get resource group and VM name
-            resource_id = vm_resource.get("id", "")
-            parts = resource_id.split("/")
-
-            if len(parts) >= 9:
-                resource_group = parts[4]
-                vm_name = parts[8]
-
-                # Get detailed VM information
-                vm = self._compute_client.virtual_machines.get(
-                    resource_group_name=resource_group,
-                    vm_name=vm_name,
-                    expand="instanceView",
-                )
-
-                return {
-                    "vm_size": (
-                        vm.hardware_profile.vm_size if vm.hardware_profile else None
-                    ),
-                    "os_type": (
-                        vm.storage_profile.os_disk.os_type
-                        if vm.storage_profile and vm.storage_profile.os_disk
-                        else None
-                    ),
-                    "os_disk_size": (
-                        vm.storage_profile.os_disk.disk_size_gb
-                        if vm.storage_profile and vm.storage_profile.os_disk
-                        else None
-                    ),
-                    "data_disks_count": (
-                        len(vm.storage_profile.data_disks)
-                        if vm.storage_profile and vm.storage_profile.data_disks
-                        else 0
-                    ),
-                    "network_interfaces": (
-                        [nic.id for nic in vm.network_profile.network_interfaces]
-                        if vm.network_profile and vm.network_profile.network_interfaces
-                        else []
-                    ),
-                    "provisioning_state": vm.provisioning_state,
-                    "power_state": (
-                        self._get_vm_power_state(vm.instance_view)
-                        if vm.instance_view
-                        else None
-                    ),
-                    "computer_name": (
-                        vm.os_profile.computer_name if vm.os_profile else None
-                    ),
-                    "admin_username": (
-                        vm.os_profile.admin_username if vm.os_profile else None
-                    ),
-                    "zones": vm.zones,
-                    "availability_set": (
-                        vm.availability_set.id if vm.availability_set else None
-                    ),
-                }
-
-        except Exception as e:
-            self.logger.warning(
-                f"Failed to enhance VM data for {vm_resource.get('name')}: {str(e)}"
-            )
-
-        return {}
-
-    async def _enhance_sql_database_data(
-        self, db_resource: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Enhance SQL database data with detailed information"""
-        try:
-            # Parse resource ID to get server and database info
-            resource_id = db_resource.get("id", "")
-            parts = resource_id.split("/")
-
-            if len(parts) >= 11:
-                resource_group = parts[4]
-                server_name = parts[8]
-                database_name = parts[10]
-
-                # Get detailed database information
-                database = self._sql_client.databases.get(
-                    resource_group_name=resource_group,
-                    server_name=server_name,
-                    database_name=database_name,
-                )
-
-                return {
-                    "sku": {
-                        "name": database.sku.name if database.sku else None,
-                        "tier": database.sku.tier if database.sku else None,
-                        "capacity": database.sku.capacity if database.sku else None,
-                    },
-                    "status": database.status,
-                    "creation_date": (
-                        database.creation_date.isoformat()
-                        if database.creation_date
-                        else None
-                    ),
-                    "collation": database.collation,
-                    "max_size_bytes": database.max_size_bytes,
-                    "current_backup_storage_redundancy": database.current_backup_storage_redundancy,
-                    "zone_redundant": database.zone_redundant,
-                    "read_scale": database.read_scale,
-                    "elastic_pool_id": database.elastic_pool_id,
-                }
-
-        except Exception as e:
-            self.logger.warning(
-                f"Failed to enhance SQL database data for {db_resource.get('name')}: {str(e)}"
-            )
-
-        return {}
 
     async def _enhance_web_app_data(
         self, app_resource: Dict[str, Any]
@@ -953,7 +712,7 @@ class AzureAdapter(BaseAdapter):
 
             # Collect metrics for Virtual Machines
             if "Microsoft.Compute/virtualMachines" in collected_data:
-                vm_metrics = await self._collect_vm_metrics(
+                vm_metrics = await self._compute_ops.collect_vm_metrics(
                     collected_data["Microsoft.Compute/virtualMachines"]["resources"],
                     start_time,
                     end_time,
@@ -962,7 +721,7 @@ class AzureAdapter(BaseAdapter):
 
             # Collect metrics for SQL Databases
             if "Microsoft.Sql/servers/databases" in collected_data:
-                sql_metrics = await self._collect_sql_metrics(
+                sql_metrics = await self._data_ops.collect_sql_metrics(
                     collected_data["Microsoft.Sql/servers/databases"]["resources"],
                     start_time,
                     end_time,
@@ -971,7 +730,7 @@ class AzureAdapter(BaseAdapter):
 
             # Collect metrics for Web Apps
             if "Microsoft.Web/sites" in collected_data:
-                web_metrics = await self._collect_web_app_metrics(
+                web_metrics = await self._compute_ops.collect_web_app_metrics(
                     collected_data["Microsoft.Web/sites"]["resources"],
                     start_time,
                     end_time,
@@ -983,11 +742,81 @@ class AzureAdapter(BaseAdapter):
         except Exception as e:
             raise Exception(f"Performance metrics collection failed: {str(e)}")
 
+    def _get_vm_metric_names(self) -> List[str]:
+        """Get list of VM metrics to collect"""
+        return [
+            "Percentage CPU",
+            "Network In Total",
+            "Network Out Total",
+            "Disk Read Bytes",
+            "Disk Write Bytes",
+        ]
+
+    def _create_vm_base_metrics(self, vm: Dict) -> Dict:
+        """Create base metrics structure for VM"""
+        return {
+            "resource_id": vm.get("id"),
+            "resource_type": "VirtualMachine",
+            "resource_name": vm.get("name"),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+    def _extract_metric_values(self, metric_data) -> List[float]:
+        """Extract metric values from Azure Monitor response"""
+        metric_values = []
+        if metric_data.value:
+            for metric in metric_data.value:
+                if metric.timeseries:
+                    for timeseries in metric.timeseries:
+                        if timeseries.data:
+                            metric_values.extend(
+                                [
+                                    data.average
+                                    for data in timeseries.data
+                                    if data.average is not None
+                                ]
+                            )
+        return metric_values
+
+    def _map_metric_to_field(self, metric_name: str, avg_value: float, vm_metrics: Dict) -> None:
+        """Map Azure metric name to standard field"""
+        metric_mapping = {
+            "Percentage CPU": "cpu_percentage",
+            "Network In Total": "network_in",
+            "Network Out Total": "network_out",
+            "Disk Read Bytes": "disk_read_bytes",
+            "Disk Write Bytes": "disk_write_bytes",
+        }
+        field_name = metric_mapping.get(metric_name)
+        if field_name:
+            vm_metrics[field_name] = avg_value
+
+    async def _collect_single_vm_metric(
+        self, resource_id: str, metric_name: str, start_time: datetime, end_time: datetime
+    ) -> Optional[float]:
+        """Collect a single metric for a VM"""
+        try:
+            metric_data = self._monitor_client.metrics.list(
+                resource_uri=resource_id,
+                timespan=f"{start_time.isoformat()}/{end_time.isoformat()}",
+                interval="PT1H",  # 1 hour intervals
+                metricnames=metric_name,
+                aggregation="Average",
+            )
+
+            metric_values = self._extract_metric_values(metric_data)
+            if metric_values:
+                return sum(metric_values) / len(metric_values)
+        except Exception as e:
+            self.logger.warning(f"Failed to collect {metric_name}: {str(e)}")
+        return None
+
     async def _collect_vm_metrics(
         self, vms: List[Dict], start_time: datetime, end_time: datetime
     ) -> List[Dict]:
         """Collect Azure Monitor metrics for Virtual Machines"""
         metrics = []
+        metric_names = self._get_vm_metric_names()
 
         for vm in vms:
             resource_id = vm.get("id")
@@ -995,66 +824,15 @@ class AzureAdapter(BaseAdapter):
                 continue
 
             try:
-                # Define metrics to collect
-                metric_names = [
-                    "Percentage CPU",
-                    "Network In Total",
-                    "Network Out Total",
-                    "Disk Read Bytes",
-                    "Disk Write Bytes",
-                ]
-
-                vm_metrics = {
-                    "resource_id": resource_id,
-                    "resource_type": "VirtualMachine",
-                    "resource_name": vm.get("name"),
-                    "timestamp": datetime.utcnow().isoformat(),
-                }
+                vm_metrics = self._create_vm_base_metrics(vm)
 
                 # Collect each metric
                 for metric_name in metric_names:
-                    try:
-                        metric_data = self._monitor_client.metrics.list(
-                            resource_uri=resource_id,
-                            timespan=f"{start_time.isoformat()}/{end_time.isoformat()}",
-                            interval="PT1H",  # 1 hour intervals
-                            metricnames=metric_name,
-                            aggregation="Average",
-                        )
-
-                        if metric_data.value:
-                            metric_values = []
-                            for metric in metric_data.value:
-                                if metric.timeseries:
-                                    for timeseries in metric.timeseries:
-                                        if timeseries.data:
-                                            metric_values.extend(
-                                                [
-                                                    data.average
-                                                    for data in timeseries.data
-                                                    if data.average is not None
-                                                ]
-                                            )
-
-                            if metric_values:
-                                avg_value = sum(metric_values) / len(metric_values)
-
-                                # Map metric names to standard fields
-                                if metric_name == "Percentage CPU":
-                                    vm_metrics["cpu_percentage"] = avg_value
-                                elif metric_name == "Network In Total":
-                                    vm_metrics["network_in"] = avg_value
-                                elif metric_name == "Network Out Total":
-                                    vm_metrics["network_out"] = avg_value
-                                elif metric_name == "Disk Read Bytes":
-                                    vm_metrics["disk_read_bytes"] = avg_value
-                                elif metric_name == "Disk Write Bytes":
-                                    vm_metrics["disk_write_bytes"] = avg_value
-
-                    except Exception as e:
-                        self.logger.warning(
-                            f"Failed to collect {metric_name} for VM {vm.get('name')}: {str(e)}"
-                        )
+                    avg_value = await self._collect_single_vm_metric(
+                        resource_id, metric_name, start_time, end_time
+                    )
+                    if avg_value is not None:
+                        self._map_metric_to_field(metric_name, avg_value, vm_metrics)
 
                 metrics.append(vm_metrics)
 
@@ -1280,8 +1058,10 @@ class AzureAdapter(BaseAdapter):
 
             for resource_type in self._supported_resource_types:
                 try:
-                    has_resources = await self._check_resource_type_has_resources(
-                        resource_type
+                    has_resources = (
+                        await self._utilities.check_resource_type_has_resources(
+                            resource_type
+                        )
                     )
                     if has_resources:
                         available_types.append(resource_type)
@@ -1348,7 +1128,7 @@ class AzureAdapter(BaseAdapter):
 
                 if "resources" in type_data:
                     for resource in type_data["resources"]:
-                        normalized_asset = self._transform_resource_to_asset(
+                        normalized_asset = self._utilities.transform_resource_to_asset(
                             resource_type, resource
                         )
                         if normalized_asset:
@@ -1356,8 +1136,8 @@ class AzureAdapter(BaseAdapter):
 
             # Transform performance metrics
             if "metrics" in raw_data:
-                normalized_data["performance_metrics"] = self._transform_metrics(
-                    raw_data["metrics"]
+                normalized_data["performance_metrics"] = (
+                    self._utilities.transform_metrics(raw_data["metrics"])
                 )
 
             self.logger.info(

@@ -1,12 +1,14 @@
 """
 Assessment Flow API endpoints for v1 API.
 Implements core flow management, architecture standards, component analysis, and 6R decisions.
+
+This module serves as the main router/facade for assessment flow operations,
+delegating to modular components while maintaining 100% backward compatibility.
 """
 
-import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,6 +37,12 @@ from app.schemas.assessment_flow import (
     TechDebtUpdates,
 )
 
+# Import all modular functions to maintain backward compatibility
+from app.api.v1.endpoints import assessment_flow_crud
+from app.api.v1.endpoints import assessment_flow_utils
+from app.api.v1.endpoints import assessment_flow_validators
+from app.api.v1.endpoints import assessment_flow_processors
+
 # Import integration services
 try:
     from app.services.integrations.discovery_integration import DiscoveryFlowIntegration
@@ -56,71 +64,26 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/assessment-flow", tags=["Assessment Flow"])
 
 
-# Helper Functions
+# Helper Functions - delegated to modular components
+# All functions maintain exact same signatures for backward compatibility
 
-
-async def verify_flow_access(
-    flow_id: str, db: AsyncSession, client_account_id: str
-) -> bool:
-    """Verify user has access to assessment flow."""
-    repository = AssessmentFlowRepository(db, client_account_id)
-    flow_state = await repository.get_assessment_flow_state(flow_id)
-    return flow_state is not None
-
-
-async def get_assessment_flow_context(
-    flow_id: str,
-    client_account_id: str,
-    engagement_id: str,
-    user_id: str,
-    db: AsyncSession,
-):
-    """Create flow context for assessment operations."""
-    # This would integrate with the actual flow context creation
-    # For now, return a simple dict
-    return {
-        "flow_id": flow_id,
-        "client_account_id": client_account_id,
-        "engagement_id": engagement_id,
-        "user_id": user_id,
-        "db_session": db,
-    }
-
-
-def get_next_phase_for_navigation(
-    current_phase: AssessmentPhase,
-) -> Optional[AssessmentPhase]:
-    """Determine next phase based on navigation."""
-    phase_sequence = [
-        AssessmentPhase.ARCHITECTURE_MINIMUMS,
-        AssessmentPhase.TECH_DEBT_ANALYSIS,
-        AssessmentPhase.COMPONENT_SIXR_STRATEGIES,
-        AssessmentPhase.APP_ON_PAGE_GENERATION,
-        AssessmentPhase.FINALIZATION,
-    ]
-
-    try:
-        current_index = phase_sequence.index(current_phase)
-        if current_index < len(phase_sequence) - 1:
-            return phase_sequence[current_index + 1]
-    except ValueError:
-        pass
-
-    return None
-
-
-def get_progress_for_phase(phase: AssessmentPhase) -> int:
-    """Get progress percentage for phase."""
-    progress_map = {
-        AssessmentPhase.INITIALIZATION: 10,
-        AssessmentPhase.ARCHITECTURE_MINIMUMS: 20,
-        AssessmentPhase.TECH_DEBT_ANALYSIS: 50,
-        AssessmentPhase.COMPONENT_SIXR_STRATEGIES: 75,
-        AssessmentPhase.APP_ON_PAGE_GENERATION: 90,
-        AssessmentPhase.FINALIZATION: 100,
-    }
-
-    return progress_map.get(phase, 0)
+# Backward compatibility aliases for any direct imports
+verify_flow_access = assessment_flow_crud.verify_flow_access
+get_assessment_flow_context = assessment_flow_crud.get_assessment_flow_context
+get_phase_specific_data = assessment_flow_crud.get_phase_specific_data
+validate_phase_user_input = assessment_flow_validators.validate_phase_user_input
+execute_assessment_flow_initialization = (
+    assessment_flow_processors.execute_assessment_flow_initialization
+)
+resume_assessment_flow_execution = (
+    assessment_flow_processors.resume_assessment_flow_execution
+)
+get_next_phase_for_navigation = assessment_flow_utils.get_next_phase_for_navigation
+get_progress_for_phase = assessment_flow_utils.get_progress_for_phase
+get_available_templates = assessment_flow_utils.get_available_templates
+calculate_overall_readiness_score = (
+    assessment_flow_utils.calculate_overall_readiness_score
+)
 
 
 # Core Assessment Flow Endpoints
@@ -170,7 +133,7 @@ async def initialize_assessment_flow(
         # Start flow execution in background
         if ASSESSMENT_FLOW_SERVICE_AVAILABLE:
             background_tasks.add_task(
-                execute_assessment_flow_initialization,
+                assessment_flow_processors.execute_assessment_flow_initialization,
                 flow_id,
                 client_account_id,
                 engagement_id,
@@ -225,7 +188,7 @@ async def get_assessment_flow_status(
             raise HTTPException(status_code=404, detail="Assessment flow not found")
 
         # Get phase-specific data based on current phase
-        phase_data = await get_phase_specific_data(
+        phase_data = await assessment_flow_crud.get_phase_specific_data(
             repository, flow_id, flow_state.current_phase
         )
 
@@ -283,7 +246,9 @@ async def resume_assessment_flow(
             raise HTTPException(status_code=400, detail="Flow is not in paused state")
 
         # Validate user input for current phase
-        await validate_phase_user_input(flow_state.current_phase, request.user_input)
+        await assessment_flow_validators.validate_phase_user_input(
+            flow_state.current_phase, request.user_input
+        )
 
         # Save user input
         await repository.add_user_input(
@@ -296,7 +261,7 @@ async def resume_assessment_flow(
         # Resume flow execution in background
         if ASSESSMENT_FLOW_SERVICE_AVAILABLE:
             background_tasks.add_task(
-                resume_assessment_flow_execution,
+                assessment_flow_processors.resume_assessment_flow_execution,
                 flow_id,
                 flow_state.current_phase,
                 request.user_input,
@@ -348,14 +313,14 @@ async def navigate_to_assessment_phase(
             raise HTTPException(status_code=404, detail="Assessment flow not found")
 
         # Determine next phase based on navigation
-        next_phase = get_next_phase_for_navigation(target_phase)
+        next_phase = assessment_flow_utils.get_next_phase_for_navigation(target_phase)
 
         # Update flow phase
         await repository.update_flow_phase(
             flow_id,
             target_phase.value,
             next_phase.value if next_phase else None,
-            get_progress_for_phase(target_phase),
+            assessment_flow_utils.get_progress_for_phase(target_phase),
         )
 
         return {
@@ -406,7 +371,7 @@ async def get_architecture_standards(
         return {
             "engagement_standards": engagement_standards,
             "application_overrides": app_overrides,
-            "templates_available": await get_available_templates(),
+            "templates_available": await assessment_flow_utils.get_available_templates(),
         }
 
     except HTTPException:
@@ -883,7 +848,9 @@ async def get_assessment_report(
             tech_debt_analysis_results=flow_state.tech_debt_analysis or {},
             sixr_decisions_summary=flow_state.sixr_decisions or {},
             apps_ready_for_planning=flow_state.apps_ready_for_planning or [],
-            overall_readiness_score=calculate_overall_readiness_score(flow_state),
+            overall_readiness_score=assessment_flow_utils.calculate_overall_readiness_score(
+                flow_state
+            ),
             report_generated_at=datetime.utcnow(),
         )
 
@@ -902,161 +869,8 @@ async def get_assessment_report(
         )
 
 
-# Background task functions
-
-
-async def execute_assessment_flow_initialization(
-    flow_id: str, client_account_id: str, engagement_id: str, user_id: str
-):
-    """Execute assessment flow initialization in background."""
-    try:
-        logger.info(
-            safe_log_format(
-                "Starting background initialization for assessment flow {flow_id}",
-                flow_id=flow_id,
-            )
-        )
-
-        # This would integrate with the actual UnifiedAssessmentFlow
-        # For now, simulate initialization
-        await asyncio.sleep(2)  # Simulate initialization work
-
-        logger.info(
-            safe_log_format(
-                "Assessment flow {flow_id} initialized successfully", flow_id=flow_id
-            )
-        )
-
-    except Exception as e:
-        logger.error(
-            safe_log_format(
-                "Assessment flow initialization failed: {str_e}", str_e=str(e)
-            )
-        )
-        # Update flow status to error state
-        # await update_flow_error_state(flow_id, str(e))
-
-
-async def resume_assessment_flow_execution(
-    flow_id: str,
-    phase: AssessmentPhase,
-    user_input: Dict[str, Any],
-    client_account_id: str,
-):
-    """Resume assessment flow execution from specific phase."""
-    try:
-        logger.info(
-            safe_log_format(
-                "Resuming assessment flow {flow_id} from phase {phase_value}",
-                flow_id=flow_id,
-                phase_value=phase.value,
-            )
-        )
-
-        # This would integrate with the actual UnifiedAssessmentFlow
-        # For now, simulate resume work
-        await asyncio.sleep(2)  # Simulate resume work
-
-        logger.info(
-            safe_log_format(
-                "Assessment flow {flow_id} resumed successfully", flow_id=flow_id
-            )
-        )
-
-    except Exception as e:
-        logger.error(
-            safe_log_format("Assessment flow resume failed: {str_e}", str_e=str(e))
-        )
-        # await update_flow_error_state(flow_id, str(e))
-
-
-# Helper functions
-
-
-async def get_phase_specific_data(
-    repository: AssessmentFlowRepository, flow_id: str, phase: AssessmentPhase
-) -> Dict[str, Any]:
-    """Get phase-specific data for status response."""
-    # Return relevant data for each phase
-    phase_data = {}
-
-    if phase == AssessmentPhase.ARCHITECTURE_MINIMUMS:
-        engagement_standards = await repository.get_engagement_standards(
-            repository.client_account_id  # This would need the actual engagement_id
-        )
-        app_overrides = await repository.get_application_overrides(flow_id)
-        phase_data = {
-            "engagement_standards_count": len(engagement_standards),
-            "application_overrides_count": len(app_overrides),
-        }
-
-    return phase_data
-
-
-async def validate_phase_user_input(phase: AssessmentPhase, user_input: Dict[str, Any]):
-    """Validate user input for specific phase."""
-    # Implementation for phase-specific input validation
-    if phase == AssessmentPhase.ARCHITECTURE_MINIMUMS:
-        if "standards_confirmed" not in user_input:
-            raise ValueError("Architecture standards confirmation required")
-
-    # Add more validation as needed
-
-
-# verify_standards_modification_permission is imported from context_helpers
-
-
-async def get_available_templates() -> List[Dict[str, Any]]:
-    """Get available architecture standards templates."""
-    # Implementation to return available templates
-    return [
-        {
-            "id": "cloud_native_template",
-            "name": "Cloud Native Architecture",
-            "domain": "infrastructure",
-            "description": "Standards for cloud-native applications",
-        },
-        {
-            "id": "security_template",
-            "name": "Security Standards",
-            "domain": "security",
-            "description": "Security and compliance requirements",
-        },
-    ]
-
-
-def calculate_overall_readiness_score(flow_state) -> float:
-    """Calculate overall readiness score based on assessment completion."""
-    score = 0.0
-
-    # Base score from progress
-    score += flow_state.progress * 0.4  # 40% weight for progress
-
-    # Architecture standards captured
-    if flow_state.architecture_captured:
-        score += 15.0  # 15 points
-
-    # Component analysis completion
-    if flow_state.identified_components:
-        component_count = len(
-            [app for app in flow_state.identified_components.values() if app]
-        )
-        total_apps = len(flow_state.selected_application_ids)
-        if total_apps > 0:
-            score += (component_count / total_apps) * 20.0  # 20 points max
-
-    # Tech debt analysis completion
-    if flow_state.tech_debt_analysis:
-        debt_count = len([app for app in flow_state.tech_debt_analysis.values() if app])
-        total_apps = len(flow_state.selected_application_ids)
-        if total_apps > 0:
-            score += (debt_count / total_apps) * 15.0  # 15 points max
-
-    # 6R decisions completion
-    if flow_state.sixr_decisions:
-        decision_count = len([app for app in flow_state.sixr_decisions.values() if app])
-        total_apps = len(flow_state.selected_application_ids)
-        if total_apps > 0:
-            score += (decision_count / total_apps) * 10.0  # 10 points max
-
-    return min(100.0, max(0.0, score))
+# All helper functions moved to modular components:
+# - assessment_flow_crud.py: Database operations and context creation
+# - assessment_flow_validators.py: Input validation logic
+# - assessment_flow_processors.py: Background task processing
+# - assessment_flow_utils.py: Utility functions and calculations
