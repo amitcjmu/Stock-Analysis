@@ -19,14 +19,22 @@ logger = logging.getLogger(__name__)
 
 
 def _check_patterns(combined_text: str, patterns: list) -> bool:
-    """Check if any pattern in the list matches the combined text with word boundaries."""
+    """Check if any pattern in the list matches the combined text with appropriate boundaries."""
     import re
 
     for pattern in patterns:
-        # Use word boundaries for more accurate matching
-        # This prevents false positives like "sql" matching in "mysql"
-        if re.search(r"\b" + re.escape(pattern) + r"\b", combined_text, re.IGNORECASE):
-            return True
+        pat = str(pattern)
+        # Check if pattern is purely alphanumeric (or has spaces between alphanumeric)
+        if pat.replace(" ", "").replace("_", "").isalnum():
+            # Use word boundaries for alphanumeric patterns
+            # This prevents false positives like "sql" matching in "mysql"
+            if re.search(r"\b" + re.escape(pat) + r"\b", combined_text, re.IGNORECASE):
+                return True
+        else:
+            # For patterns with special characters (like "db-", "fw-", etc.)
+            # use case-insensitive substring matching
+            if pat.lower() in combined_text.lower():
+                return True
     return False
 
 
@@ -150,7 +158,7 @@ def _get_storage_patterns():
 
 
 def _get_virtualization_patterns():
-    """Get virtualization platform patterns."""
+    """Get virtualization platform patterns (hypervisors only)."""
     return [
         "vmware",
         "vcenter",
@@ -159,10 +167,19 @@ def _get_virtualization_patterns():
         "citrix",
         "xen",
         "kvm",
+        "vsphere",
+    ]
+
+
+def _get_container_patterns():
+    """Get container and orchestration platform patterns."""
+    return [
         "docker",
         "kubernetes",
+        "k8s",
         "openshift",
-        "vsphere",
+        "podman",
+        "containerd",
     ]
 
 
@@ -231,6 +248,7 @@ def _classify_by_pattern_groups(combined_text: str) -> str:
         (_get_network_patterns(), "Network Device"),
         (_get_storage_patterns(), "Storage Device"),
         (_get_virtualization_patterns(), "Virtualization Platform"),
+        (_get_container_patterns(), "Container Platform"),
         (_get_server_patterns(), "Server"),
         (_get_application_patterns(), "Application"),
         (_get_infrastructure_patterns(), "Infrastructure Device"),

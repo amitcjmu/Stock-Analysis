@@ -233,6 +233,9 @@ async def flow_events(
                     break
 
                 try:
+                    # Track if we yielded any events in this iteration
+                    yielded_any = False
+
                     # Process flow state update
                     update_event, new_version = await _process_flow_state_update(
                         flow_id, store, last_version
@@ -240,6 +243,7 @@ async def flow_events(
 
                     if update_event:
                         yield update_event
+                        yielded_any = True
                         if new_version is None:  # Flow was deleted
                             break
                         if new_version is not None and new_version > last_version:
@@ -252,6 +256,11 @@ async def flow_events(
                     )
                     for message_event in agent_message_events:
                         yield message_event
+                        yielded_any = True
+
+                    # If no events were yielded, add a small sleep to prevent busy-looping
+                    if not yielded_any:
+                        await asyncio.sleep(0.5)
 
                 except Exception as e:
                     logger.error(f"Error in SSE stream for flow {flow_id}: {e}")

@@ -230,19 +230,21 @@ async def _update_user_references(db, engagement_id):
 
 
 async def _perform_cascade_deletion(db, engagement_id, engagement):
-    """Perform cascade deletion of engagement and all related records."""
-    # Delete dependent records first
-    await _delete_dependent_records(db, engagement_id)
+    """Perform cascade deletion of engagement and all related records atomically."""
+    # Use a transaction to ensure atomicity - if any step fails, all changes rollback
+    async with db.begin():
+        # Delete dependent records first
+        await _delete_dependent_records(db, engagement_id)
 
-    # Delete from engagement-related tables
-    await _delete_engagement_tables(db, engagement_id)
+        # Delete from engagement-related tables
+        await _delete_engagement_tables(db, engagement_id)
 
-    # Update user references
-    await _update_user_references(db, engagement_id)
+        # Update user references
+        await _update_user_references(db, engagement_id)
 
-    # Finally delete the engagement itself
-    await db.delete(engagement)
-    await db.commit()
+        # Finally delete the engagement itself
+        await db.delete(engagement)
+        # Note: No explicit commit needed - the context manager handles it
 
 
 async def _perform_soft_delete(db, engagement):

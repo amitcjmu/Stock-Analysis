@@ -238,9 +238,10 @@ if CREWAI_TOOLS_AVAILABLE:
 
         def _is_meaningful_field(self, field: str) -> bool:
             """Check if field is meaningful for duplicate detection"""
+            # Only use strong unique identifiers for deduplication
+            # "name" is excluded as it can cause false positives
             meaningful_fields = {
                 "hostname",
-                "name",
                 "ip_address",
                 "asset_id",
                 "serial_number",
@@ -250,13 +251,44 @@ if CREWAI_TOOLS_AVAILABLE:
         def _field_matches_existing(
             self, field: str, value: Any, existing_assets: List[Any]
         ) -> bool:
-            """Check if field value matches any existing asset"""
-            value_str = str(value).lower()
+            """Check if field value matches any existing asset with normalization"""
+            if not value:
+                return False
+
+            # Normalize the value
+            value_str = str(value).strip().lower()
+
+            # Special normalization for IP addresses
+            if field == "ip_address":
+                value_str = self._normalize_ip(value_str)
+
             for existing_asset in existing_assets:
                 existing_value = getattr(existing_asset, field, None)
-                if existing_value and str(existing_value).lower() == value_str:
+                if not existing_value:
+                    continue
+
+                existing_str = str(existing_value).strip().lower()
+
+                # Apply same normalization to existing value
+                if field == "ip_address":
+                    existing_str = self._normalize_ip(existing_str)
+
+                if existing_str == value_str:
                     return True
             return False
+
+        def _normalize_ip(self, ip_str: str) -> str:
+            """Normalize IP address by removing leading zeros"""
+            parts = ip_str.split(".")
+            if len(parts) == 4:
+                try:
+                    # Remove leading zeros from each octet
+                    normalized_parts = [str(int(p)) for p in parts if p.isdigit()]
+                    if len(normalized_parts) == 4:
+                        return ".".join(normalized_parts)
+                except (ValueError, TypeError):
+                    pass
+            return ip_str
 
         def _run(self, assets_to_check: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             """Sync wrapper for async implementation"""
