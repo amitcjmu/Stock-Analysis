@@ -1,5 +1,5 @@
 """
-CrewAI Flow Service - V2 Discovery Flow Integration
+CrewAI Flow Service - Backward Compatibility Shim
 
 This service bridges CrewAI flows with the V2 Discovery Flow architecture.
 Uses flow_id as single source of truth instead of session_id.
