@@ -149,47 +149,106 @@ def _determine_strategy_for_network_asset(asset):
     }
 
 
+def _get_database_strategy(database_type, business_criticality):
+    """Get database migration strategy based on type and criticality."""
+    if "Oracle" in database_type:
+        return "replatform" if business_criticality == "Critical" else "rehost"
+    elif "PostgreSQL" in database_type:
+        return "rehost"
+    else:
+        return "replatform"
+
+
+def _get_readiness_for_strategy(strategy):
+    """Get readiness status based on migration strategy."""
+    return "Ready" if strategy == "rehost" else "Needs Analysis"
+
+
+def _get_complexity_for_strategy(strategy):
+    """Get complexity level based on migration strategy."""
+    return "High" if strategy == "replatform" else "Medium"
+
+
 def _determine_strategy_for_database_asset(asset):
     """Determine strategy for database assets."""
     database_type = str(asset.custom_attributes.get("database_type", ""))
-
-    if "Oracle" in database_type:
-        strategy = (
-            "replatform" if asset.business_criticality == "Critical" else "rehost"
-        )
-    elif "PostgreSQL" in database_type:
-        strategy = "rehost"
-    else:
-        strategy = "replatform"
+    strategy = _get_database_strategy(database_type, asset.business_criticality)
 
     return {
         "strategy": strategy,
         "wave": 2,
-        "readiness": "Ready" if strategy == "rehost" else "Needs Analysis",
-        "complexity": "High" if strategy == "replatform" else "Medium",
+        "readiness": _get_readiness_for_strategy(strategy),
+        "complexity": _get_complexity_for_strategy(strategy),
         "priority": 8,
     }
+
+
+def _get_application_strategy_details(tech_stack):
+    """Get application strategy, readiness, and complexity based on tech stack."""
+    if "Java" in tech_stack or ".NET Core" in tech_stack:
+        return "replatform", "Ready", "Medium"
+    elif "Legacy" in tech_stack or ".NET Framework" in tech_stack:
+        return "refactor", "Business Review", "High"
+    elif "Python" in tech_stack or "Node.js" in tech_stack:
+        return "rehost", "Ready", "Low"
+    else:
+        return "replace", "Needs Analysis", "Medium"
+
+
+def _get_application_priority(business_criticality):
+    """Get application migration priority based on business criticality."""
+    return 7 if business_criticality == "Critical" else 5
 
 
 def _determine_strategy_for_application_asset(asset):
     """Determine strategy for application assets."""
     tech_stack = asset.technology_stack or ""
-
-    if "Java" in tech_stack or ".NET Core" in tech_stack:
-        strategy, readiness, complexity = "replatform", "Ready", "Medium"
-    elif "Legacy" in tech_stack or ".NET Framework" in tech_stack:
-        strategy, readiness, complexity = "refactor", "Business Review", "High"
-    elif "Python" in tech_stack or "Node.js" in tech_stack:
-        strategy, readiness, complexity = "rehost", "Ready", "Low"
-    else:
-        strategy, readiness, complexity = "replace", "Needs Analysis", "Medium"
+    strategy, readiness, complexity = _get_application_strategy_details(tech_stack)
 
     return {
         "strategy": strategy,
         "wave": 3,
         "readiness": readiness,
         "complexity": complexity,
-        "priority": 7 if asset.business_criticality == "Critical" else 5,
+        "priority": _get_application_priority(asset.business_criticality),
+    }
+
+
+def _is_legacy_os(operating_system):
+    """Check if the operating system is legacy and should be retired."""
+    return "Windows Server 2016" in operating_system or "CentOS 7" in operating_system
+
+
+def _get_server_strategy_for_legacy():
+    """Get strategy details for legacy servers."""
+    return {
+        "strategy": "retire",
+        "wave": 4,
+        "readiness": "Business Review",
+        "complexity": "Low",
+        "priority": 3,
+    }
+
+
+def _get_server_strategy_with_dependencies():
+    """Get strategy details for servers with dependencies."""
+    return {
+        "strategy": "replatform",
+        "wave": 3,
+        "readiness": "Dependency Blocked",
+        "complexity": "Medium",
+        "priority": 6,
+    }
+
+
+def _get_server_strategy_standard():
+    """Get strategy details for standard servers."""
+    return {
+        "strategy": "rehost",
+        "wave": 2,
+        "readiness": "Ready",
+        "complexity": "Low",
+        "priority": 4,
     }
 
 
@@ -197,30 +256,12 @@ def _determine_strategy_for_server_asset(asset):
     """Determine strategy for server assets."""
     os = asset.operating_system or ""
 
-    if "Windows Server 2016" in os or "CentOS 7" in os:
-        return {
-            "strategy": "retire",
-            "wave": 4,
-            "readiness": "Business Review",
-            "complexity": "Low",
-            "priority": 3,
-        }
+    if _is_legacy_os(os):
+        return _get_server_strategy_for_legacy()
     elif asset.has_dependencies:
-        return {
-            "strategy": "replatform",
-            "wave": 3,
-            "readiness": "Dependency Blocked",
-            "complexity": "Medium",
-            "priority": 6,
-        }
+        return _get_server_strategy_with_dependencies()
     else:
-        return {
-            "strategy": "rehost",
-            "wave": 2,
-            "readiness": "Ready",
-            "complexity": "Low",
-            "priority": 4,
-        }
+        return _get_server_strategy_standard()
 
 
 def _get_migration_planning_for_asset(asset):
@@ -265,50 +306,99 @@ def _build_risk_factors(asset):
     return [rf for rf in risk_factors if rf is not None]
 
 
-def _update_asset_with_migration_plan(asset, planning_details, wave_status):
-    """Update asset with migration planning details."""
-    strategy = planning_details["strategy"]
-    wave = planning_details["wave"]
-    complexity = planning_details["complexity"]
-    readiness = planning_details["readiness"]
-    priority = planning_details["priority"]
-
-    # Adjust readiness for flow state
-    readiness = _adjust_readiness_for_flow_state(asset, readiness, priority)
-
-    # Update asset properties
-    asset.six_r_strategy = strategy
-    asset.migration_wave = wave
-    asset.migration_complexity = complexity
-    asset.migration_priority = priority
+def _update_asset_basic_properties(asset, planning_details, readiness):
+    """Update basic asset migration properties."""
+    asset.six_r_strategy = planning_details["strategy"]
+    asset.migration_wave = planning_details["wave"]
+    asset.migration_complexity = planning_details["complexity"]
+    asset.migration_priority = planning_details["priority"]
     asset.sixr_ready = readiness
 
-    # Update migration status based on wave status
+
+def _get_migration_status_for_wave(wave_status):
+    """Get migration status based on wave status."""
     if wave_status == "completed":
-        asset.migration_status = "migrated"
+        return "migrated"
     elif wave_status == "in_progress":
-        asset.migration_status = "migrating"
+        return "migrating"
     else:
-        asset.migration_status = "planned"
+        return "planned"
+
+
+def _get_migration_duration_for_complexity(complexity):
+    """Get estimated migration duration based on complexity."""
+    duration_map = {"Low": 5, "Medium": 15, "High": 30}
+    return duration_map.get(complexity, 10)
+
+
+def _build_custom_attributes_update(asset, planning_details, readiness):
+    """Build custom attributes update dictionary."""
+    strategy_rationale = STRATEGY_RULES.get(asset.asset_type, {}).get(
+        "rationale", "Standard migration approach"
+    )
+
+    wave = planning_details["wave"]
+    complexity = planning_details["complexity"]
+
+    return {
+        "migration_strategy_rationale": strategy_rationale,
+        "readiness_indicator": readiness,
+        "wave_assignment_reason": f"Asset assigned to wave {wave} based on type and dependencies",
+        "estimated_migration_duration_days": _get_migration_duration_for_complexity(
+            complexity
+        ),
+        "risk_factors": _build_risk_factors(asset),
+    }
+
+
+def _update_asset_with_migration_plan(asset, planning_details, wave_status):
+    """Update asset with migration planning details."""
+    readiness = _adjust_readiness_for_flow_state(
+        asset, planning_details["readiness"], planning_details["priority"]
+    )
+
+    # Update asset properties
+    _update_asset_basic_properties(asset, planning_details, readiness)
+
+    # Update migration status
+    asset.migration_status = _get_migration_status_for_wave(wave_status)
 
     # Update custom attributes
     if not asset.custom_attributes:
         asset.custom_attributes = {}
 
-    asset.custom_attributes.update(
-        {
-            "migration_strategy_rationale": STRATEGY_RULES.get(
-                asset.asset_type, {}
-            ).get("rationale", "Standard migration approach"),
-            "readiness_indicator": readiness,
-            "wave_assignment_reason": f"Asset assigned to wave {wave} based on type and dependencies",
-            "estimated_migration_duration_days": {
-                "Low": 5,
-                "Medium": 15,
-                "High": 30,
-            }.get(complexity, 10),
-            "risk_factors": _build_risk_factors(asset),
-        }
+    custom_attributes_update = _build_custom_attributes_update(
+        asset, planning_details, readiness
+    )
+    asset.custom_attributes.update(custom_attributes_update)
+
+
+def _initialize_statistics_counters():
+    """Initialize statistics counters for tracking assignment results."""
+    return {}, {1: 0, 2: 0, 3: 0, 4: 0}, {}
+
+
+def _update_assignment_statistics(
+    planning_details, asset, strategy_counts, wave_assignments, readiness_counts
+):
+    """Update assignment statistics for an asset."""
+    strategy = planning_details["strategy"]
+    wave = planning_details["wave"]
+    readiness = asset.sixr_ready
+
+    strategy_counts[strategy] = strategy_counts.get(strategy, 0) + 1
+    wave_assignments[wave] += 1
+    readiness_counts[readiness] = readiness_counts.get(readiness, 0) + 1
+
+
+def _process_single_asset(asset, strategy_counts, wave_assignments, readiness_counts):
+    """Process a single asset for migration planning."""
+    planning_details = _get_migration_planning_for_asset(asset)
+    wave_status = MIGRATION_WAVES[planning_details["wave"] - 1]["status"]
+
+    _update_asset_with_migration_plan(asset, planning_details, wave_status)
+    _update_assignment_statistics(
+        planning_details, asset, strategy_counts, wave_assignments, readiness_counts
     )
 
 
@@ -324,27 +414,15 @@ async def assign_6r_strategies_and_waves(session: AsyncSession):
     )
     assets = result.scalars().all()
 
-    strategy_counts = {}
-    wave_assignments = {1: 0, 2: 0, 3: 0, 4: 0}
-    readiness_counts = {}
+    # Initialize statistics counters
+    strategy_counts, wave_assignments, readiness_counts = (
+        _initialize_statistics_counters()
+    )
 
+    # Process each asset
     for asset in assets:
-        # Get migration planning details
-        planning_details = _get_migration_planning_for_asset(asset)
-
-        # Get wave status
-        wave_status = MIGRATION_WAVES[planning_details["wave"] - 1]["status"]
-
-        # Update asset with migration planning
-        _update_asset_with_migration_plan(asset, planning_details, wave_status)
-
-        # Update statistics
-        strategy_counts[planning_details["strategy"]] = (
-            strategy_counts.get(planning_details["strategy"], 0) + 1
-        )
-        wave_assignments[planning_details["wave"]] += 1
-        readiness_counts[asset.sixr_ready] = (
-            readiness_counts.get(asset.sixr_ready, 0) + 1
+        _process_single_asset(
+            asset, strategy_counts, wave_assignments, readiness_counts
         )
 
     return assets, strategy_counts, wave_assignments, readiness_counts
@@ -374,6 +452,91 @@ async def update_wave_statistics(
             wave.failed_assets = 0
 
 
+def _print_strategy_distribution(strategy_counts, total_assets):
+    """Print 6R strategy distribution statistics."""
+    print("\n   🎯 6R Strategy Distribution:")
+    for strategy, count in sorted(strategy_counts.items()):
+        percentage = (count / total_assets) * 100
+        print(f"     {strategy.replace('_', ' ').title()}: {count} ({percentage:.1f}%)")
+
+
+def _print_wave_assignments(wave_assignments, total_assets):
+    """Print wave assignment statistics."""
+    print("\n   🌊 Wave Assignment:")
+    for wave_num, count in sorted(wave_assignments.items()):
+        wave_name = MIGRATION_WAVES[wave_num - 1]["name"]
+        wave_status = MIGRATION_WAVES[wave_num - 1]["status"]
+        percentage = (count / total_assets) * 100
+        print(
+            f"     Wave {wave_num} ({wave_name}): {count} assets ({percentage:.1f}%) - {wave_status.upper()}"
+        )
+
+
+def _print_readiness_status(readiness_counts, total_assets):
+    """Print readiness status statistics."""
+    print("\n   🚦 Readiness Status:")
+    for readiness, count in sorted(readiness_counts.items()):
+        percentage = (count / total_assets) * 100
+        print(f"     {readiness}: {count} ({percentage:.1f}%)")
+
+
+def _calculate_cost_totals():
+    """Calculate total estimated and actual costs."""
+    total_estimated = sum(wave["estimated_cost"] for wave in MIGRATION_WAVES)
+    total_actual = sum(
+        wave.get("actual_cost", 0)
+        for wave in MIGRATION_WAVES
+        if wave.get("actual_cost")
+    )
+    return total_estimated, total_actual
+
+
+def _calculate_effort_totals():
+    """Calculate total estimated and actual effort."""
+    total_effort = sum(wave["estimated_effort_hours"] for wave in MIGRATION_WAVES)
+    actual_effort = sum(
+        wave.get("actual_effort_hours", 0)
+        for wave in MIGRATION_WAVES
+        if wave.get("actual_effort_hours")
+    )
+    return total_effort, actual_effort
+
+
+def _print_cost_estimates():
+    """Print migration cost estimates."""
+    print("\n   💰 Migration Cost Estimates:")
+    total_estimated, total_actual = _calculate_cost_totals()
+    print(f"     Total Estimated: ${total_estimated:,}")
+    print(f"     Spent to Date: ${total_actual:,}")
+    print(f"     Remaining Budget: ${total_estimated - total_actual:,}")
+
+
+def _print_effort_estimates():
+    """Print effort estimates."""
+    print("\n   ⏱️ Effort Estimates:")
+    total_effort, actual_effort = _calculate_effort_totals()
+    print(f"     Total Estimated: {total_effort:,} hours")
+    print(f"     Effort to Date: {actual_effort:,} hours")
+    print(f"     Remaining Effort: {total_effort - actual_effort:,} hours")
+
+
+def _print_summary_statistics(
+    assets, waves, strategy_counts, wave_assignments, readiness_counts
+):
+    """Print comprehensive summary statistics."""
+    total_assets = len(assets)
+
+    print("\n✅ Migration planning created successfully!")
+    print(f"   📊 Total Assets: {total_assets}")
+    print(f"   🌊 Migration Waves: {len(waves)}")
+
+    _print_strategy_distribution(strategy_counts, total_assets)
+    _print_wave_assignments(wave_assignments, total_assets)
+    _print_readiness_status(readiness_counts, total_assets)
+    _print_cost_estimates()
+    _print_effort_estimates()
+
+
 async def create_migration_planning():
     """Create comprehensive migration planning data."""
     print("🎯 Creating migration planning...")
@@ -399,55 +562,10 @@ async def create_migration_planning():
         # Commit all changes
         await session.commit()
 
-        # Summary statistics
-        total_assets = len(assets)
-
-        print("\n✅ Migration planning created successfully!")
-        print(f"   📊 Total Assets: {total_assets}")
-        print(f"   🌊 Migration Waves: {len(waves)}")
-
-        print("\n   🎯 6R Strategy Distribution:")
-        for strategy, count in sorted(strategy_counts.items()):
-            percentage = (count / total_assets) * 100
-            print(
-                f"     {strategy.replace('_', ' ').title()}: {count} ({percentage:.1f}%)"
-            )
-
-        print("\n   🌊 Wave Assignment:")
-        for wave_num, count in sorted(wave_assignments.items()):
-            wave_name = MIGRATION_WAVES[wave_num - 1]["name"]
-            wave_status = MIGRATION_WAVES[wave_num - 1]["status"]
-            percentage = (count / total_assets) * 100
-            print(
-                f"     Wave {wave_num} ({wave_name}): {count} assets ({percentage:.1f}%) - {wave_status.upper()}"
-            )
-
-        print("\n   🚦 Readiness Status:")
-        for readiness, count in sorted(readiness_counts.items()):
-            percentage = (count / total_assets) * 100
-            print(f"     {readiness}: {count} ({percentage:.1f}%)")
-
-        print("\n   💰 Migration Cost Estimates:")
-        total_estimated = sum(wave["estimated_cost"] for wave in MIGRATION_WAVES)
-        total_actual = sum(
-            wave.get("actual_cost", 0)
-            for wave in MIGRATION_WAVES
-            if wave.get("actual_cost")
+        # Print summary statistics
+        _print_summary_statistics(
+            assets, waves, strategy_counts, wave_assignments, readiness_counts
         )
-        print(f"     Total Estimated: ${total_estimated:,}")
-        print(f"     Spent to Date: ${total_actual:,}")
-        print(f"     Remaining Budget: ${total_estimated - total_actual:,}")
-
-        print("\n   ⏱️ Effort Estimates:")
-        total_effort = sum(wave["estimated_effort_hours"] for wave in MIGRATION_WAVES)
-        actual_effort = sum(
-            wave.get("actual_effort_hours", 0)
-            for wave in MIGRATION_WAVES
-            if wave.get("actual_effort_hours")
-        )
-        print(f"     Total Estimated: {total_effort:,} hours")
-        print(f"     Effort to Date: {actual_effort:,} hours")
-        print(f"     Remaining Effort: {total_effort - actual_effort:,} hours")
 
 
 if __name__ == "__main__":

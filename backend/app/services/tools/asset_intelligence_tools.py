@@ -18,6 +18,31 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
+# Helper functions for tool creation
+def create_asset_analysis_tool(**kwargs):
+    """Create asset analysis tool if CrewAI is available."""
+    if not CREWAI_TOOLS_AVAILABLE:
+        return None
+    return AssetAnalysisTool(**kwargs)
+
+
+def create_bulk_operations_tool(**kwargs):
+    """Create bulk operations tool if CrewAI is available."""
+    if not CREWAI_TOOLS_AVAILABLE:
+        return None
+    return BulkOperationsTool(**kwargs)
+
+
+def create_data_quality_tool(**kwargs):
+    """Create data quality tool if CrewAI is available."""
+    if not CREWAI_TOOLS_AVAILABLE:
+        return None
+    # TODO: Implement DataQualityTool class
+    # return DataQualityTool(**kwargs)
+    return None  # DataQualityTool not yet implemented
+
+
 if CREWAI_TOOLS_AVAILABLE:
     # Input schemas for CrewAI tools
     class AssetAnalysisInput(BaseModel):

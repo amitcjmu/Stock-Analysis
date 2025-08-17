@@ -52,15 +52,15 @@ def create_task_completion_tools(context_info: Dict[str, Any]) -> List:
         tools = []
 
         # Asset deduplication tool
-        asset_dedup_tool = AssetDeduplicationTool(context_info)
+        asset_dedup_tool = _create_asset_deduplication_tool(context_info)
         tools.append(asset_dedup_tool)
 
         # Task completion checker tool
-        task_completion_tool = TaskCompletionCheckerTool(context_info)
+        task_completion_tool = _create_task_completion_tool(context_info)
         tools.append(task_completion_tool)
 
         # Asset enrichment tool
-        asset_enrichment_tool = AssetEnrichmentTool(context_info)
+        asset_enrichment_tool = _create_asset_enrichment_tool(context_info)
         tools.append(asset_enrichment_tool)
 
         logger.info(f"✅ Created {len(tools)} intelligent coordination tools")
@@ -68,6 +68,56 @@ def create_task_completion_tools(context_info: Dict[str, Any]) -> List:
     except Exception as e:
         logger.error(f"❌ Failed to create task completion tools: {e}")
         return []
+
+
+# Tool creation helper functions
+def _create_asset_deduplication_tool(context_info: Dict[str, Any]):
+    """Create asset deduplication tool if available."""
+    if not CREWAI_TOOLS_AVAILABLE:
+        return AssetDeduplicationToolDummy(context_info)
+    return AssetDeduplicationTool(context_info)
+
+
+def _create_task_completion_tool(context_info: Dict[str, Any]):
+    """Create task completion checker tool if available."""
+    if not CREWAI_TOOLS_AVAILABLE:
+        return TaskCompletionCheckerToolDummy(context_info)
+    return TaskCompletionCheckerTool(context_info)
+
+
+def _create_asset_enrichment_tool(context_info: Dict[str, Any]):
+    """Create asset enrichment tool if available."""
+    if not CREWAI_TOOLS_AVAILABLE:
+        return AssetEnrichmentToolDummy(context_info)
+    return AssetEnrichmentTool(context_info)
+
+
+def _create_execution_coordination_tool(context_info: Dict[str, Any]):
+    """Create execution coordination tool if available."""
+    if not CREWAI_TOOLS_AVAILABLE:
+        return ExecutionCoordinationToolDummy(context_info)
+    return ExecutionCoordinationTool(context_info)
+
+
+# Dummy tool classes for when CrewAI is not available
+class AssetDeduplicationToolDummy:
+    def __init__(self, context_info: Dict[str, Any]):
+        pass
+
+
+class TaskCompletionCheckerToolDummy:
+    def __init__(self, context_info: Dict[str, Any]):
+        pass
+
+
+class AssetEnrichmentToolDummy:
+    def __init__(self, context_info: Dict[str, Any]):
+        pass
+
+
+class ExecutionCoordinationToolDummy:
+    def __init__(self, context_info: Dict[str, Any]):
+        pass
 
 
 # Only define tool classes if CrewAI is available
@@ -99,90 +149,146 @@ if CREWAI_TOOLS_AVAILABLE:
                     f"🔍 Agent requested deduplication check for {len(assets_to_check)} assets"
                 )
 
-                # Get database context
-                from app.core.database import AsyncSessionLocal
-
-                async with AsyncSessionLocal() as db:
-                    # Get context from stored context info
-                    context = self._context_info
-                    if (
-                        not context
-                        or not context.get("client_account_id")
-                        or not context.get("engagement_id")
-                    ):
-                        logger.warning(
-                            "⚠️ Missing context for deduplication - returning all assets"
-                        )
-                        return assets_to_check
-
-                    # Get existing assets
-                    from app.repositories.discovery_flow_repository.queries.asset_queries import (
-                        AssetQueries,
+                # Validate context first
+                if not self._is_valid_context():
+                    logger.warning(
+                        "⚠️ Missing context for deduplication - returning all assets"
                     )
+                    return assets_to_check
 
-                    asset_queries = AssetQueries(
-                        db, context["client_account_id"], context["engagement_id"]
-                    )
-                    existing_assets = (
-                        await asset_queries.get_assets_by_client_engagement()
-                    )
+                # Get existing assets from database
+                existing_assets = await self._get_existing_assets()
 
-                    {
-                        asset.hostname.lower()
-                        for asset in existing_assets
-                        if asset.hostname
-                    }
-                    {asset.name.lower() for asset in existing_assets if asset.name}
+                # Filter out duplicates (existing_assets will be empty list on error)
+                unique_assets = self._filter_duplicate_assets(
+                    assets_to_check, existing_assets
+                )
 
-                    # Filter out duplicates - check all fields dynamically
-                    unique_assets = []
-                    for asset in assets_to_check:
-                        # Check if asset exists based on any unique identifier fields
-                        is_duplicate = False
-
-                        # Check all fields in the asset for potential matches
-                        for field, value in asset.items():
-                            if not value:
-                                continue
-
-                            # Convert to string for comparison
-                            value_str = str(value).lower()
-
-                            # Check against existing assets' fields
-                            for existing_asset in existing_assets:
-                                existing_value = getattr(existing_asset, field, None)
-                                if (
-                                    existing_value
-                                    and str(existing_value).lower() == value_str
-                                ):
-                                    # Check if it's a meaningful match (not just common values)
-                                    if field in [
-                                        "hostname",
-                                        "name",
-                                        "ip_address",
-                                        "asset_id",
-                                        "serial_number",
-                                    ]:
-                                        logger.debug(
-                                            f"⏭️ Asset with {field}='{value}' already exists - skipping"
-                                        )
-                                        is_duplicate = True
-                                        break
-
-                            if is_duplicate:
-                                break
-
-                        if not is_duplicate:
-                            unique_assets.append(asset)
-
-                    logger.info(
-                        f"✅ Deduplication complete: {len(assets_to_check)} → {len(unique_assets)} unique assets"
-                    )
-                    return unique_assets
+                logger.info(
+                    f"✅ Deduplication complete: {len(assets_to_check)} → {len(unique_assets)} unique assets"
+                )
+                return unique_assets
 
             except Exception as e:
                 logger.error(f"❌ Error in asset deduplication tool: {e}")
                 return assets_to_check  # Return all assets on error
+
+        def _is_valid_context(self) -> bool:
+            """Validate that required context is available"""
+            context = self._context_info
+            return (
+                context is not None
+                and context.get("client_account_id") is not None
+                and context.get("engagement_id") is not None
+            )
+
+        async def _get_existing_assets(self) -> List[Any]:
+            """Get existing assets from database. Returns empty list on error."""
+            try:
+                from app.core.database import AsyncSessionLocal
+                from app.repositories.discovery_flow_repository.queries.asset_queries import (
+                    AssetQueries,
+                )
+
+                async with AsyncSessionLocal() as db:
+                    context = self._context_info
+                    asset_queries = AssetQueries(
+                        db, context["client_account_id"], context["engagement_id"]
+                    )
+                    return await asset_queries.get_assets_by_client_engagement()
+            except Exception as e:
+                logger.error(f"❌ Error getting existing assets: {e}")
+                # Return empty list instead of None to match type hint
+                return []
+
+        def _filter_duplicate_assets(
+            self, assets_to_check: List[Dict[str, Any]], existing_assets: List[Any]
+        ) -> List[Dict[str, Any]]:
+            """Filter out duplicate assets"""
+            unique_assets = []
+            for asset in assets_to_check:
+                if not self._is_duplicate_asset(asset, existing_assets):
+                    unique_assets.append(asset)
+            return unique_assets
+
+        def _is_duplicate_asset(
+            self, asset: Dict[str, Any], existing_assets: List[Any]
+        ) -> bool:
+            """Check if asset is a duplicate of any existing asset"""
+            for field, value in asset.items():
+                if self._check_field_for_duplicate(field, value, existing_assets):
+                    return True
+            return False
+
+        def _check_field_for_duplicate(
+            self, field: str, value: Any, existing_assets: List[Any]
+        ) -> bool:
+            """Check if a single field indicates a duplicate."""
+            if not value:
+                return False
+
+            if self._is_meaningful_field(field) and self._field_matches_existing(
+                field, value, existing_assets
+            ):
+                logger.debug(
+                    f"⏭️ Asset with {field}='{value}' already exists - skipping"
+                )
+                return True
+            return False
+
+        def _is_meaningful_field(self, field: str) -> bool:
+            """Check if field is meaningful for duplicate detection"""
+            # Only use strong unique identifiers for deduplication
+            # "name" is excluded as it can cause false positives
+            meaningful_fields = {
+                "hostname",
+                "ip_address",
+                "asset_id",
+                "serial_number",
+            }
+            return field in meaningful_fields
+
+        def _field_matches_existing(
+            self, field: str, value: Any, existing_assets: List[Any]
+        ) -> bool:
+            """Check if field value matches any existing asset with normalization"""
+            if not value:
+                return False
+
+            # Normalize the value
+            value_str = str(value).strip().lower()
+
+            # Special normalization for IP addresses
+            if field == "ip_address":
+                value_str = self._normalize_ip(value_str)
+
+            for existing_asset in existing_assets:
+                existing_value = getattr(existing_asset, field, None)
+                if not existing_value:
+                    continue
+
+                existing_str = str(existing_value).strip().lower()
+
+                # Apply same normalization to existing value
+                if field == "ip_address":
+                    existing_str = self._normalize_ip(existing_str)
+
+                if existing_str == value_str:
+                    return True
+            return False
+
+        def _normalize_ip(self, ip_str: str) -> str:
+            """Normalize IP address by removing leading zeros"""
+            parts = ip_str.split(".")
+            if len(parts) == 4:
+                try:
+                    # Remove leading zeros from each octet
+                    normalized_parts = [str(int(p)) for p in parts if p.isdigit()]
+                    if len(normalized_parts) == 4:
+                        return ".".join(normalized_parts)
+                except (ValueError, TypeError):
+                    pass
+            return ip_str
 
         def _run(self, assets_to_check: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             """Sync wrapper for async implementation"""
@@ -327,50 +433,76 @@ if CREWAI_TOOLS_AVAILABLE:
             for field in text_fields:
                 value = asset_data.get(field, "")
                 if isinstance(value, str):
-                    value_lower = value.lower()
-
-                    # OS detection
-                    if any(
-                        os in value_lower
-                        for os in ["windows", "linux", "unix", "centos", "ubuntu"]
-                    ):
-                        tech_stack["operating_system"] = value
-
-                    # Database detection
-                    if any(
-                        db in value_lower
-                        for db in ["mysql", "postgresql", "oracle", "mongodb"]
-                    ):
-                        tech_stack["database_technology"] = value
-
-                    # Web technology detection
-                    if any(
-                        web in value_lower
-                        for web in ["apache", "nginx", "java", "python", "nodejs"]
-                    ):
-                        tech_stack["web_technology"] = value
+                    self._detect_tech_in_value(value, tech_stack)
 
             return tech_stack
 
+        def _detect_tech_in_value(self, value: str, tech_stack: Dict[str, Any]):
+            """Detect technology patterns in a single value."""
+            value_lower = value.lower()
+
+            # OS detection
+            if self._detect_os_pattern(value_lower):
+                tech_stack["operating_system"] = value
+
+            # Database detection
+            if self._detect_database_pattern(value_lower):
+                tech_stack["database_technology"] = value
+
+            # Web technology detection
+            if self._detect_web_pattern(value_lower):
+                tech_stack["web_technology"] = value
+
+        def _detect_os_pattern(self, value_lower: str) -> bool:
+            """Detect OS patterns."""
+            os_patterns = ["windows", "linux", "unix", "centos", "ubuntu"]
+            return any(os in value_lower for os in os_patterns)
+
+        def _detect_database_pattern(self, value_lower: str) -> bool:
+            """Detect database patterns."""
+            db_patterns = ["mysql", "postgresql", "oracle", "mongodb"]
+            return any(db in value_lower for db in db_patterns)
+
+        def _detect_web_pattern(self, value_lower: str) -> bool:
+            """Detect web technology patterns."""
+            web_patterns = ["apache", "nginx", "java", "python", "nodejs"]
+            return any(web in value_lower for web in web_patterns)
+
         def _classify_environment(self, asset_data: Dict[str, Any]) -> str:
             """Classify environment based on asset data"""
-            env_indicators = {
+            env_indicators = self._get_environment_indicators()
+
+            # Check hostname and name fields
+            check_fields = ["hostname", "Hostname", "name", "Asset_Name"]
+            for field in check_fields:
+                env_type = self._check_field_for_environment(
+                    asset_data.get(field, ""), env_indicators
+                )
+                if env_type != "unknown":
+                    return env_type
+
+            return "unknown"
+
+        def _get_environment_indicators(self) -> Dict[str, List[str]]:
+            """Get environment indicator patterns."""
+            return {
                 "production": ["prod", "production", "prd"],
                 "development": ["dev", "development", "devel"],
                 "testing": ["test", "testing", "qa", "uat"],
                 "staging": ["stage", "staging", "stg"],
             }
 
-            # Check hostname and name fields
-            check_fields = ["hostname", "Hostname", "name", "Asset_Name"]
-            for field in check_fields:
-                value = asset_data.get(field, "")
-                if isinstance(value, str):
-                    value_lower = value.lower()
-                    for env_type, indicators in env_indicators.items():
-                        if any(indicator in value_lower for indicator in indicators):
-                            return env_type
+        def _check_field_for_environment(
+            self, value: Any, env_indicators: Dict[str, List[str]]
+        ) -> str:
+            """Check a single field for environment indicators."""
+            if not isinstance(value, str):
+                return "unknown"
 
+            value_lower = value.lower()
+            for env_type, indicators in env_indicators.items():
+                if any(indicator in value_lower for indicator in indicators):
+                    return env_type
             return "unknown"
 
         def _assess_migration_complexity(self, asset_data: Dict[str, Any]) -> str:
@@ -470,21 +602,3 @@ if CREWAI_TOOLS_AVAILABLE:
                     "can_proceed": True,
                     "recommendations": ["Proceed with caution - coordination failed"],
                 }
-
-else:
-    # Create dummy classes if CrewAI is not available
-    class AssetDeduplicationTool:
-        def __init__(self, context_info: Dict[str, Any]):
-            pass
-
-    class TaskCompletionCheckerTool:
-        def __init__(self, context_info: Dict[str, Any]):
-            pass
-
-    class AssetEnrichmentTool:
-        def __init__(self, context_info: Dict[str, Any]):
-            pass
-
-    class ExecutionCoordinationTool:
-        def __init__(self, context_info: Dict[str, Any]):
-            pass

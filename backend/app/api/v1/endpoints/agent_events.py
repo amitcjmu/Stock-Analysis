@@ -26,6 +26,169 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/flows", tags=["Flow Events"])
 
 
+async def _check_flow_exists_and_permissions(flow_id, context, store):
+    """Check if flow exists and user has access permissions."""
+    flow_state = await store.get_flow_state(flow_id)
+
+    if not flow_state:
+        raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
+
+    # Verify tenant access
+    if hasattr(flow_state, "client_account_id"):
+        if str(flow_state.client_account_id) != str(context.client_account_id):
+            raise HTTPException(status_code=403, detail="Access denied to this flow")
+
+    return flow_state
+
+
+def _prepare_flow_update_data(flow_id, current_state, insights, current_version):
+    """Prepare flow update data for SSE event."""
+    return {
+        "flow_id": flow_id,
+        "status": (
+            current_state.flow_status
+            if hasattr(current_state, "flow_status")
+            else "unknown"
+        ),
+        "current_phase": (
+            current_state.current_phase
+            if hasattr(current_state, "current_phase")
+            else None
+        ),
+        "progress": (
+            current_state.progress_percentage
+            if hasattr(current_state, "progress_percentage")
+            else 0
+        ),
+        "agent_insights": insights,
+        "timestamp": datetime.utcnow().isoformat(),
+        "version": current_version,
+    }
+
+
+def _add_agent_decision_to_update(update_data, current_state):
+    """Add latest agent decision to update data if available."""
+    if hasattr(current_state, "agent_decisions") and current_state.agent_decisions:
+        latest_decision = current_state.agent_decisions[-1]
+        update_data["agent_decision"] = latest_decision
+
+
+async def _process_flow_state_update(flow_id, store, last_version):
+    """Process flow state update and return update data if changed."""
+    current_state = await store.get_flow_state(flow_id)
+
+    if not current_state:
+        logger.warning(f"Flow {flow_id} no longer exists")
+        return {
+            "event": "flow_deleted",
+            "data": json.dumps({"flow_id": flow_id}),
+            "id": str(last_version + 1),
+        }, None
+
+    # Check for state changes
+    current_version = (
+        current_state.version if hasattr(current_state, "version") else last_version + 1
+    )
+
+    if current_version > last_version:
+        # Get agent insights from agent-ui-bridge
+        insights = agent_ui_bridge.get_flow_insights(flow_id)
+
+        # Prepare update data
+        update_data = _prepare_flow_update_data(
+            flow_id, current_state, insights, current_version
+        )
+
+        # Check for agent decisions
+        _add_agent_decision_to_update(update_data, current_state)
+
+        # Send flow update event
+        return {
+            "event": "flow_update",
+            "data": json.dumps(update_data),
+            "id": str(current_version),
+        }, current_version
+
+    return None, last_version
+
+
+def _process_agent_messages(flow_id, last_version):
+    """Process and return agent messages as SSE events."""
+    messages = []
+    agent_messages = agent_ui_bridge.get_pending_messages(
+        flow_id, since_version=last_version
+    )
+
+    for message in agent_messages:
+        messages.append(
+            {
+                "event": message.get("type", "agent_message"),
+                "data": json.dumps(message),
+                "id": str(message.get("id", last_version + 1)),
+            }
+        )
+
+    return messages
+
+
+def _create_error_event(flow_id, last_version):
+    """Create error event for SSE stream."""
+    return {
+        "event": "error",
+        "data": json.dumps(
+            {
+                "error": "Stream error limit exceeded",
+                "flow_id": flow_id,
+            }
+        ),
+        "id": str(last_version + 1),
+    }
+
+
+def _prepare_status_response_data(flow_id, flow_state, insights):
+    """Prepare response data for flow status endpoint."""
+    response_data = {
+        "flow_id": flow_id,
+        "status": (
+            flow_state.flow_status if hasattr(flow_state, "flow_status") else "unknown"
+        ),
+        "current_phase": (
+            flow_state.current_phase if hasattr(flow_state, "current_phase") else None
+        ),
+        "progress": (
+            flow_state.progress_percentage
+            if hasattr(flow_state, "progress_percentage")
+            else 0
+        ),
+        "agent_insights": insights,
+        "updated_at": (
+            flow_state.updated_at.isoformat()
+            if hasattr(flow_state, "updated_at")
+            else datetime.utcnow().isoformat()
+        ),
+        "version": flow_state.version if hasattr(flow_state, "version") else 1,
+    }
+
+    # Check for agent decisions
+    if hasattr(flow_state, "agent_decisions") and flow_state.agent_decisions:
+        response_data["latest_agent_decision"] = flow_state.agent_decisions[-1]
+
+    return response_data
+
+
+def _generate_etag(response_data):
+    """Generate ETag from response data."""
+    state_json = json.dumps(response_data, sort_keys=True, default=str)
+    return f'"{hashlib.sha256(state_json.encode()).hexdigest()[:32]}"'
+
+
+def _set_status_response_headers(response, etag, response_data):
+    """Set response headers for status endpoint."""
+    response.headers["ETag"] = etag
+    response.headers["Cache-Control"] = "no-cache, must-revalidate"
+    response.headers["X-Flow-Version"] = str(response_data.get("version", 1))
+
+
 @router.get("/{flow_id}/events")
 async def flow_events(
     flow_id: str,
@@ -54,15 +217,7 @@ async def flow_events(
 
     # Verify flow exists and user has access
     store = PostgresFlowStateStore(db, context)
-    flow_state = await store.get_flow_state(flow_id)
-
-    if not flow_state:
-        raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
-
-    # Verify tenant access
-    if hasattr(flow_state, "client_account_id"):
-        if str(flow_state.client_account_id) != str(context.client_account_id):
-            raise HTTPException(status_code=403, detail="Access denied to this flow")
+    await _check_flow_exists_and_permissions(flow_id, context, store)
 
     async def event_generator() -> AsyncGenerator[Dict[str, Any], None]:
         """Generate SSE events for the flow"""
@@ -78,81 +233,34 @@ async def flow_events(
                     break
 
                 try:
-                    # Get latest flow state
-                    current_state = await store.get_flow_state(flow_id)
+                    # Track if we yielded any events in this iteration
+                    yielded_any = False
 
-                    if not current_state:
-                        logger.warning(f"Flow {flow_id} no longer exists")
-                        yield {
-                            "event": "flow_deleted",
-                            "data": json.dumps({"flow_id": flow_id}),
-                            "id": str(last_version + 1),
-                        }
-                        break
-
-                    # Check for state changes
-                    current_version = (
-                        current_state.version
-                        if hasattr(current_state, "version")
-                        else last_version + 1
+                    # Process flow state update
+                    update_event, new_version = await _process_flow_state_update(
+                        flow_id, store, last_version
                     )
 
-                    if current_version > last_version:
-                        # Get agent insights from agent-ui-bridge
-                        insights = agent_ui_bridge.get_flow_insights(flow_id)
+                    if update_event:
+                        yield update_event
+                        yielded_any = True
+                        if new_version is None:  # Flow was deleted
+                            break
+                        if new_version is not None and new_version > last_version:
+                            last_version = new_version
+                            error_count = 0  # Reset error count on success
 
-                        # Prepare update data
-                        update_data = {
-                            "flow_id": flow_id,
-                            "status": (
-                                current_state.flow_status
-                                if hasattr(current_state, "flow_status")
-                                else "unknown"
-                            ),
-                            "current_phase": (
-                                current_state.current_phase
-                                if hasattr(current_state, "current_phase")
-                                else None
-                            ),
-                            "progress": (
-                                current_state.progress_percentage
-                                if hasattr(current_state, "progress_percentage")
-                                else 0
-                            ),
-                            "agent_insights": insights,
-                            "timestamp": datetime.utcnow().isoformat(),
-                            "version": current_version,
-                        }
-
-                        # Check for agent decisions
-                        if (
-                            hasattr(current_state, "agent_decisions")
-                            and current_state.agent_decisions
-                        ):
-                            latest_decision = current_state.agent_decisions[-1]
-                            update_data["agent_decision"] = latest_decision
-
-                        # Send flow update event
-                        yield {
-                            "event": "flow_update",
-                            "data": json.dumps(update_data),
-                            "id": str(current_version),
-                        }
-
-                        last_version = current_version
-                        error_count = 0  # Reset error count on success
-
-                    # Also check for new agent communications
-                    agent_messages = agent_ui_bridge.get_pending_messages(
-                        flow_id, since_version=last_version
+                    # Process agent messages
+                    agent_message_events = _process_agent_messages(
+                        flow_id, last_version
                     )
+                    for message_event in agent_message_events:
+                        yield message_event
+                        yielded_any = True
 
-                    for message in agent_messages:
-                        yield {
-                            "event": message.get("type", "agent_message"),
-                            "data": json.dumps(message),
-                            "id": str(message.get("id", last_version + 1)),
-                        }
+                    # If no events were yielded, add a small sleep to prevent busy-looping
+                    if not yielded_any:
+                        await asyncio.sleep(0.5)
 
                 except Exception as e:
                     logger.error(f"Error in SSE stream for flow {flow_id}: {e}")
@@ -162,16 +270,7 @@ async def flow_events(
                         logger.error(
                             f"Too many errors in SSE stream for flow {flow_id}, closing connection"
                         )
-                        yield {
-                            "event": "error",
-                            "data": json.dumps(
-                                {
-                                    "error": "Stream error limit exceeded",
-                                    "flow_id": flow_id,
-                                }
-                            ),
-                            "id": str(last_version + 1),
-                        }
+                        yield _create_error_event(flow_id, last_version)
                         break
 
                     # Wait longer on errors
@@ -219,49 +318,16 @@ async def get_flow_status_with_etag(
 
     # Get flow state
     store = PostgresFlowStateStore(db, context)
-    flow_state = await store.get_flow_state(flow_id)
-
-    if not flow_state:
-        raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
-
-    # Verify tenant access
-    if hasattr(flow_state, "client_account_id"):
-        if str(flow_state.client_account_id) != str(context.client_account_id):
-            raise HTTPException(status_code=403, detail="Access denied to this flow")
+    flow_state = await _check_flow_exists_and_permissions(flow_id, context, store)
 
     # Get agent insights
     insights = agent_ui_bridge.get_flow_insights(flow_id)
 
     # Prepare response data
-    response_data = {
-        "flow_id": flow_id,
-        "status": (
-            flow_state.flow_status if hasattr(flow_state, "flow_status") else "unknown"
-        ),
-        "current_phase": (
-            flow_state.current_phase if hasattr(flow_state, "current_phase") else None
-        ),
-        "progress": (
-            flow_state.progress_percentage
-            if hasattr(flow_state, "progress_percentage")
-            else 0
-        ),
-        "agent_insights": insights,
-        "updated_at": (
-            flow_state.updated_at.isoformat()
-            if hasattr(flow_state, "updated_at")
-            else datetime.utcnow().isoformat()
-        ),
-        "version": flow_state.version if hasattr(flow_state, "version") else 1,
-    }
-
-    # Check for agent decisions
-    if hasattr(flow_state, "agent_decisions") and flow_state.agent_decisions:
-        response_data["latest_agent_decision"] = flow_state.agent_decisions[-1]
+    response_data = _prepare_status_response_data(flow_id, flow_state, insights)
 
     # Generate ETag from response data - using SHA-256 for security
-    state_json = json.dumps(response_data, sort_keys=True, default=str)
-    etag = f'"{hashlib.sha256(state_json.encode()).hexdigest()[:32]}"'
+    etag = _generate_etag(response_data)
 
     # Check if content has changed
     if if_none_match == etag:
@@ -269,9 +335,7 @@ async def get_flow_status_with_etag(
         return None
 
     # Set response headers
-    response.headers["ETag"] = etag
-    response.headers["Cache-Control"] = "no-cache, must-revalidate"
-    response.headers["X-Flow-Version"] = str(response_data.get("version", 1))
+    _set_status_response_headers(response, etag, response_data)
 
     return response_data
 
@@ -299,10 +363,7 @@ async def subscribe_to_flow_events(
 
     # Verify flow exists
     store = PostgresFlowStateStore(db, context)
-    flow_state = await store.get_flow_state(flow_id)
-
-    if not flow_state:
-        raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
+    await _check_flow_exists_and_permissions(flow_id, context, store)
 
     # Create subscription in agent-ui-bridge
     subscription_id = agent_ui_bridge.create_subscription(

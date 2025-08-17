@@ -21,84 +21,123 @@ class AssetUtilsHandler:
         """Check if the handler is properly initialized."""
         return True  # Always available
 
+    def _extract_core_identifiers(self, asset: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract core identifier fields for the asset."""
+        return {
+            "id": asset.get("id")
+            or asset.get("ci_id")
+            or asset.get("asset_id", "unknown"),
+            "name": asset.get("asset_name") or asset.get("hostname", "Unknown Asset"),
+            "hostname": asset.get("hostname", ""),
+            "ip_address": asset.get("ip_address", ""),
+        }
+
+    def _extract_basic_info(self, asset: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract basic asset information."""
+        return {
+            "type": asset.get("asset_type", "Unknown"),
+            "environment": asset.get("environment", "Unknown"),
+            "department": asset.get("department")
+            or asset.get("business_owner", "Unknown"),
+            "criticality": self.map_criticality(
+                asset.get("status") or asset.get("criticality", "Medium")
+            ),
+        }
+
+    def _extract_technical_details(self, asset: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract technical details from the asset."""
+        return {
+            "operating_system": asset.get("operating_system", ""),
+            "os_family": self.standardize_os_family(asset.get("operating_system", "")),
+            "cpu_cores": self.extract_numeric_value(asset.get("cpu_cores")),
+            "memory_gb": self.extract_numeric_value(asset.get("memory_gb")),
+            "storage_gb": self.extract_numeric_value(asset.get("storage_gb")),
+        }
+
+    def _extract_technology_info(self, asset: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract technology and complexity information."""
+        return {
+            "technology_stack": asset.get("technology_stack")
+            or self.build_tech_stack_from_asset(asset),
+            "complexity_score": asset.get("complexity_score", 5),
+            "business_value_score": asset.get("business_value_score", 5),
+        }
+
+    def _extract_assessment_fields(self, asset: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract assessment and compliance fields."""
+        return {
+            "data_sensitivity": asset.get("data_sensitivity", "Medium"),
+            "compliance_requirements": asset.get("compliance_requirements", []),
+            "technical_debt_level": asset.get("technical_debt_level", "Medium"),
+            "modernization_potential": asset.get("modernization_potential", "Medium"),
+            "cloud_readiness": asset.get("cloud_readiness", "Medium"),
+        }
+
+    def _extract_metadata(self, asset: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract metadata and timestamps."""
+        return {
+            "tags": asset.get("tags", []),
+            "dependencies": asset.get("dependencies", []),
+            "last_updated": asset.get("updated_timestamp")
+            or asset.get("reprocessed_timestamp", ""),
+            "created_timestamp": asset.get("created_timestamp", ""),
+        }
+
+    def _extract_additional_fields(self, asset: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract additional asset fields."""
+        return {
+            "location": asset.get("location", ""),
+            "owner": asset.get("owner", ""),
+            "vendor": asset.get("vendor", ""),
+            "model": asset.get("model", ""),
+            "serial_number": asset.get("serial_number", ""),
+            "warranty_date": asset.get("warranty_date", ""),
+            "maintenance_window": asset.get("maintenance_window", ""),
+        }
+
+    def _extract_discovery_metadata(self, asset: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract discovery-related metadata."""
+        return {
+            "discovery_source": asset.get("discovery_source", "manual"),
+            "discovery_timestamp": asset.get("discovery_timestamp", ""),
+            "confidence_score": asset.get("confidence_score", 0.8),
+        }
+
+    def _create_minimal_transformation(
+        self, asset: Dict[str, Any], error: str
+    ) -> Dict[str, Any]:
+        """Create minimal safe transformation on error."""
+        return {
+            "id": asset.get("id", "unknown"),
+            "name": asset.get("asset_name") or asset.get("hostname", "Unknown Asset"),
+            "type": asset.get("asset_type", "Unknown"),
+            "environment": asset.get("environment", "Unknown"),
+            "department": asset.get("department", "Unknown"),
+            "criticality": "Medium",
+            "error": f"Transformation error: {error}",
+        }
+
     def transform_asset_for_frontend(self, asset: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform asset data for frontend consumption.
         """
         try:
-            transformed = {
-                # Core identifiers
-                "id": asset.get("id")
-                or asset.get("ci_id")
-                or asset.get("asset_id", "unknown"),
-                "name": asset.get("asset_name")
-                or asset.get("hostname", "Unknown Asset"),
-                "hostname": asset.get("hostname", ""),
-                "ip_address": asset.get("ip_address", ""),
-                # Basic info
-                "type": asset.get("asset_type", "Unknown"),
-                "environment": asset.get("environment", "Unknown"),
-                "department": asset.get("department")
-                or asset.get("business_owner", "Unknown"),
-                "criticality": self.map_criticality(
-                    asset.get("status") or asset.get("criticality", "Medium")
-                ),
-                # Technical details
-                "operating_system": asset.get("operating_system", ""),
-                "os_family": self.standardize_os_family(
-                    asset.get("operating_system", "")
-                ),
-                "cpu_cores": self.extract_numeric_value(asset.get("cpu_cores")),
-                "memory_gb": self.extract_numeric_value(asset.get("memory_gb")),
-                "storage_gb": self.extract_numeric_value(asset.get("storage_gb")),
-                # Technology and complexity
-                "technology_stack": asset.get("technology_stack")
-                or self.build_tech_stack_from_asset(asset),
-                "complexity_score": asset.get("complexity_score", 5),
-                "business_value_score": asset.get("business_value_score", 5),
-                # Assessment fields
-                "data_sensitivity": asset.get("data_sensitivity", "Medium"),
-                "compliance_requirements": asset.get("compliance_requirements", []),
-                "technical_debt_level": asset.get("technical_debt_level", "Medium"),
-                "modernization_potential": asset.get(
-                    "modernization_potential", "Medium"
-                ),
-                "cloud_readiness": asset.get("cloud_readiness", "Medium"),
-                # Metadata
-                "tags": asset.get("tags", []),
-                "dependencies": asset.get("dependencies", []),
-                "last_updated": asset.get("updated_timestamp")
-                or asset.get("reprocessed_timestamp", ""),
-                "created_timestamp": asset.get("created_timestamp", ""),
-                # Additional fields that might be present
-                "location": asset.get("location", ""),
-                "owner": asset.get("owner", ""),
-                "vendor": asset.get("vendor", ""),
-                "model": asset.get("model", ""),
-                "serial_number": asset.get("serial_number", ""),
-                "warranty_date": asset.get("warranty_date", ""),
-                "maintenance_window": asset.get("maintenance_window", ""),
-                # Discovery metadata
-                "discovery_source": asset.get("discovery_source", "manual"),
-                "discovery_timestamp": asset.get("discovery_timestamp", ""),
-                "confidence_score": asset.get("confidence_score", 0.8),
-            }
+            # Build transformed asset by combining all field groups
+            transformed = {}
+            transformed.update(self._extract_core_identifiers(asset))
+            transformed.update(self._extract_basic_info(asset))
+            transformed.update(self._extract_technical_details(asset))
+            transformed.update(self._extract_technology_info(asset))
+            transformed.update(self._extract_assessment_fields(asset))
+            transformed.update(self._extract_metadata(asset))
+            transformed.update(self._extract_additional_fields(asset))
+            transformed.update(self._extract_discovery_metadata(asset))
 
             return transformed
 
         except Exception as e:
             logger.warning(f"Error transforming asset for frontend: {e}")
-            # Return minimal safe transformation
-            return {
-                "id": asset.get("id", "unknown"),
-                "name": asset.get("asset_name")
-                or asset.get("hostname", "Unknown Asset"),
-                "type": asset.get("asset_type", "Unknown"),
-                "environment": asset.get("environment", "Unknown"),
-                "department": asset.get("department", "Unknown"),
-                "criticality": "Medium",
-                "error": f"Transformation error: {str(e)}",
-            }
+            return self._create_minimal_transformation(asset, str(e))
 
     def build_tech_stack_from_asset(self, asset: Dict[str, Any]) -> str:
         """Build technology stack string from asset data."""
