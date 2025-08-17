@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.repositories.crewai_flow_state_extensions.base import BaseRepo
-from app.repositories.crewai_flow_state_extensions.enrichment import (
+from app.repositories.crewai_flow_state_extensions.master_enrichment import (
     MasterFlowEnrichment,
 )
 
