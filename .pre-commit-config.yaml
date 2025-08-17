@@ -153,6 +153,15 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
+      # File Length Check - Enforce modularization (400 line limit)
+      - id: check-file-length
+        name: Check Python file length (max 400 lines)
+        entry: /opt/homebrew/bin/python3.11 scripts/check-file-length.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+        types: [python]
+
 # Exclude patterns
 exclude: |
   (?x)^(
