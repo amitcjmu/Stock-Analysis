@@ -19,19 +19,26 @@ logger = logging.getLogger(__name__)
 
 
 def _update_basic_fields(engagement, field, value):
-    """Update basic engagement fields."""
+    """Update basic engagement fields. Returns True if field was handled."""
     if field == "engagement_name" and value:
         engagement.name = value
+        return True
     elif field == "engagement_description" and value:
         engagement.description = value
+        return True
     elif field == "target_cloud_provider" and value:
         engagement.engagement_type = value
+        return True
     elif field in ["migration_phase", "current_phase"] and value:
         engagement.status = value
+        return True
     elif field == "engagement_manager" and value:
         engagement.client_contact_name = value
+        return True
     elif field == "client_account_id" and value:
         engagement.client_account_id = value
+        return True
+    return False
 
 
 def _ensure_settings_dict(engagement):
@@ -93,7 +100,8 @@ def _process_field_updates(engagement, update_dict, parse_date_string):
     """Process all field updates for the engagement."""
     for field, value in update_dict.items():
         # Try updating basic fields
-        _update_basic_fields(engagement, field, value)
+        if _update_basic_fields(engagement, field, value):
+            continue
 
         # Try updating settings fields
         if _update_settings_fields(engagement, field, value):
@@ -145,34 +153,42 @@ async def _delete_dependent_records(db, engagement_id):
 
 async def _delete_engagement_tables(db, engagement_id):
     """Delete records from engagement-related tables."""
-    tables_to_clean = [
-        "access_audit_log",
-        "assessments",
-        "asset_embeddings",
-        "assets",
-        "cmdb_sixr_analyses",
-        "data_imports",
-        "engagement_access",
-        "feedback",
-        "feedback_summaries",
-        "llm_usage_logs",
-        "llm_usage_summary",
-        "mapping_learning_patterns",
-        "migration_waves",
-        "sixr_analyses",
-        "wave_plans",
-    ]
+    # Hardcoded list of allowed tables - prevents any external influence
+    ALLOWED_TABLES = frozenset(
+        [
+            "access_audit_log",
+            "assessments",
+            "asset_embeddings",
+            "assets",
+            "cmdb_sixr_analyses",
+            "data_imports",
+            "engagement_access",
+            "feedback",
+            "feedback_summaries",
+            "llm_usage_logs",
+            "llm_usage_summary",
+            "mapping_learning_patterns",
+            "migration_waves",
+            "sixr_analyses",
+            "wave_plans",
+        ]
+    )
 
-    for table in tables_to_clean:
+    for table in ALLOWED_TABLES:
         try:
-            # Use format() to avoid f-string SQL injection warnings
-            # Table names are from hardcoded list above, so this is safe
+            # Additional validation: ensure table name contains only alphanumeric and underscore
+            if not all(c.isalnum() or c == "_" for c in table):
+                logger.error(f"Invalid table name format: {table}")
+                continue
+
+            # Use format() with validated table name
+            # Table names are from hardcoded frozenset above, so this is safe
             query_string = """
                 DELETE FROM {}
                 WHERE engagement_id = :engagement_id
             """.format(
                 table
-            )  # nosec B608 # Table names from hardcoded list above
+            )  # nosec B608 # Table names from validated frozenset above
 
             await db.execute(
                 text(query_string),

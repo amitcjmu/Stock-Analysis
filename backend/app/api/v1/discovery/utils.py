@@ -19,8 +19,15 @@ logger = logging.getLogger(__name__)
 
 
 def _check_patterns(combined_text: str, patterns: list) -> bool:
-    """Check if any pattern in the list matches the combined text."""
-    return any(pattern in combined_text for pattern in patterns)
+    """Check if any pattern in the list matches the combined text with word boundaries."""
+    import re
+
+    for pattern in patterns:
+        # Use word boundaries for more accurate matching
+        # This prevents false positives like "sql" matching in "mysql"
+        if re.search(r"\b" + re.escape(pattern) + r"\b", combined_text, re.IGNORECASE):
+            return True
+    return False
 
 
 def _get_db_server_patterns():
