@@ -13,6 +13,7 @@ Backward compatibility wrapper for the original core.py
 
 class StorageManager:
     """Storage manager - placeholder implementation"""
+
     pass
 
 

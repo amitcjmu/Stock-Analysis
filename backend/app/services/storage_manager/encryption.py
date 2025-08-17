@@ -9,17 +9,24 @@ Backward compatibility wrapper for the original encryption.py
 
 # Lightweight shim - modularization complete
 
+
 class EncryptionManager:
     """Encryption manager - placeholder implementation"""
+
     pass
+
 
 class EncryptionKey:
     """Encryption key - placeholder implementation"""
+
     pass
+
 
 class EncryptionStrategy:
     """Encryption strategy - placeholder implementation"""
+
     pass
+
 
 # Re-export main classes
 __all__ = [

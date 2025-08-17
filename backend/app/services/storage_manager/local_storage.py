@@ -9,17 +9,24 @@ Backward compatibility wrapper for the original local_storage.py
 
 # Lightweight shim - modularization complete
 
+
 class LocalStorageBackend:
     """Local storage backend - placeholder implementation"""
+
     pass
+
 
 class FileSystemManager:
     """File system manager - placeholder implementation"""
+
     pass
+
 
 class LocalStorageConfig:
     """Local storage config - placeholder implementation"""
+
     pass
+
 
 # Re-export main classes
 __all__ = [

@@ -16,21 +16,27 @@ Backward compatibility wrapper for the original cloud_storage.py
 
 class RedisStorageBackend:
     """Redis storage backend - placeholder implementation"""
+
     pass
 
 
 class DatabaseStorageBackend:
     """Database storage backend - placeholder implementation"""
+
     pass
 
 
 class SessionStorageBackend:
     """Session storage backend - placeholder implementation"""
+
     pass
+
 
 class LocalStorageBackend:
     """Local storage backend - placeholder implementation"""
+
     pass
+
 
 # Re-export for backward compatibility
 __all__ = [
