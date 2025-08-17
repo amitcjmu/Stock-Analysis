@@ -16,6 +16,12 @@ from .cache_metrics import CachePerformanceMetrics
 from .cache_policies import CacheEvictionPolicy
 from .multi_level_cache import MultiLevelCache
 
+
+def create_multi_level_cache():
+    """Create multi-level cache - placeholder implementation"""
+    return MultiLevelCache()
+
+
 __all__ = [
     "CacheStrategy",
     "CacheLevel",
@@ -23,4 +29,5 @@ __all__ = [
     "CachePerformanceMetrics",
     "CacheEvictionPolicy",
     "MultiLevelCache",
+    "create_multi_level_cache",
 ]
