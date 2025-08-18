@@ -104,7 +104,7 @@ export const API_CONFIG = {
       PROCESS_CMDB: '/flows/execute', // Fixed: Use MFO endpoint for flow execution
       CMDB_TEMPLATES: '/unified-discovery/cmdb-templates',  // Updated to unified-discovery endpoint as part of API migration
       CMDB_FEEDBACK: '/unified-discovery/cmdb-feedback',  // Updated to unified-discovery endpoint as part of API migration
-      ASSETS: '/unified-discovery/assets',  // Updated to unified-discovery endpoint as part of API migration
+      ASSETS: '/auth/demo/assets',  // Working demo endpoint with filtering
       ASSETS_BULK: '/unified-discovery/assets/bulk',  // Updated to unified-discovery endpoint as part of API migration
       ASSETS_CLEANUP: '/unified-discovery/assets/cleanup-duplicates',  // Updated to unified-discovery endpoint as part of API migration
       APPLICATIONS: '/unified-discovery/applications',  // Updated to unified-discovery endpoint as part of API migration
