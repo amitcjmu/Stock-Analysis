@@ -331,7 +331,7 @@ def analyze_data(data):
 ## 🤝 Team Communication
 
 ### 📞 Getting Help
-- **Github Discussions**: #ai-force-migration (for team members)
+- **Github Discussions**: https://github.com/CryptoYogiLLC/migrate-ui-orchestrator/discussions (for team members)
 - **GitHub Issues**: For bugs and feature requests
 - **Direct Messages**: Your assigned buddy/mentor
 - **Team Meetings**: Daily standups and weekly demos
