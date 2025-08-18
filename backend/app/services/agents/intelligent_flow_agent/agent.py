@@ -403,7 +403,7 @@ class IntelligentFlowAgent:
                     flow_id=flow_id,
                     flow_type="discovery",
                     current_phase=current_phase,
-                    routing_decision=f"/discovery/attribute-mapping?flow_id={flow_id}",
+                    routing_decision=f"/discovery/attribute-mapping/{flow_id}",
                     user_guidance=(
                         "ATTRIBUTE MAPPING NEEDED: Review and configure how your data "
                         "fields map to standard asset attributes."

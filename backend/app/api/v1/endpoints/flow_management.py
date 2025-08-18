@@ -8,20 +8,126 @@ extracted from unified_discovery.py for better modularity.
 import logging
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.auth.auth_utils import get_current_user
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.core.security.secure_logging import safe_log_format
+from app.models.client_account import User
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.utils.flow_constants.flow_states import FlowStatus
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+@router.get("/{flow_id}")
+async def get_flow_status(
+    flow_id: str,
+    include_details: bool = Query(
+        True, description="Include detailed flow information"
+    ),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get comprehensive flow status and metadata.
+
+    This endpoint provides detailed information about a discovery flow,
+    including current status, phases, progress, and metadata.
+    """
+    try:
+        logger.info(safe_log_format("Getting flow status: {flow_id}", flow_id=flow_id))
+
+        # Get flow repository with proper context
+        flow_repo = DiscoveryFlowRepository(
+            db, context.client_account_id, context.engagement_id
+        )
+
+        # Verify flow exists and user has access
+        try:
+            flow = await flow_repo.get_by_flow_id(flow_id)
+            if not flow:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Flow {flow_id} not found",
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"❌ Failed to retrieve flow {flow_id}: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to access flow: {str(e)}",
+            )
+
+        # Build comprehensive flow status response
+        flow_status = {
+            "flow_id": flow.flow_id,
+            "status": flow.status,
+            "current_phase": flow.current_phase,
+            "next_phase": flow.next_phase,
+            "progress_percentage": flow.progress_percentage or 0,
+            "created_at": flow.created_at.isoformat() if flow.created_at else None,
+            "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
+            "client_account_id": flow.client_account_id,
+            "engagement_id": flow.engagement_id,
+        }
+
+        if include_details:
+            # Add detailed information
+            flow_status.update(
+                {
+                    "data_import_id": flow.data_import_id,
+                    "master_flow_id": flow.master_flow_id,
+                    "field_mappings": flow.field_mappings,
+                    "phases": flow.phases or {},
+                    "error_details": flow.error_details,
+                    "metadata": {
+                        "total_assets": getattr(flow, "total_assets", 0),
+                        "processed_assets": getattr(flow, "processed_assets", 0),
+                        "agent_status": getattr(flow, "agent_status", {}),
+                    },
+                }
+            )
+
+            # Get extended state information if available
+            try:
+                extended_state_query = select(CrewAIFlowStateExtensions).where(
+                    CrewAIFlowStateExtensions.flow_id == flow_id
+                )
+                extended_result = await db.execute(extended_state_query)
+                extended_state = extended_result.scalar_one_or_none()
+
+                if extended_state:
+                    flow_status["extended_state"] = {
+                        "flow_configuration": extended_state.flow_configuration,
+                        "execution_metadata": extended_state.execution_metadata,
+                        "current_state_data": extended_state.current_state_data,
+                        "agent_interactions": extended_state.agent_interactions,
+                        "checkpoint_data": extended_state.checkpoint_data,
+                    }
+            except Exception as e:
+                logger.warning(f"Failed to get extended state for flow {flow_id}: {e}")
+                flow_status["extended_state"] = None
+
+        logger.info(f"✅ Flow status retrieved for flow {flow_id}")
+        return flow_status
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(safe_log_format("Failed to get flow status: {e}", e=e))
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get flow status: {str(e)}"
+        )
 
 
 @router.post("/{flow_id}/pause")
@@ -29,6 +135,7 @@ async def pause_flow(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
 ):
     """Pause a running discovery flow."""
     try:
@@ -55,6 +162,7 @@ async def resume_flow(
     phase_input: Optional[Dict[str, Any]] = None,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
 ):
     """Resume a paused discovery flow."""
     try:
@@ -104,6 +212,7 @@ async def delete_flow(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
 ):
     """Delete a discovery flow."""
     try:
@@ -167,6 +276,7 @@ async def retry_flow(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
 ):
     """Retry a failed discovery flow phase."""
     try:

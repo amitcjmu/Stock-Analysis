@@ -75,6 +75,7 @@ class DataCleansingAnalysis(BaseModel):
     recommendations: List[DataCleansingRecommendation]
     field_quality_scores: Dict[str, float]
     processing_status: str
+    source: Optional[str] = None  # "agent", "fallback", "mock" to indicate data source
 
 
 class DataCleansingStats(BaseModel):
@@ -119,11 +120,20 @@ async def get_data_cleansing_analysis(
         )
 
         # Verify flow exists and user has access (READ-ONLY check)
-        flow = await flow_repo.get_by_flow_id(flow_id)
-        if not flow:
+        try:
+            flow = await flow_repo.get_by_flow_id(flow_id)
+            if not flow:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Flow {flow_id} not found",
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"❌ Failed to retrieve flow {flow_id}: {str(e)}")
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Flow {flow_id} not found",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to access flow: {str(e)}",
             )
 
         # Log current flow status for debugging
@@ -201,6 +211,7 @@ async def get_data_cleansing_analysis(
             data_imports=data_imports,
             field_mappings=field_mappings,
             include_details=include_details,
+            db_session=db,
         )
 
         logger.info(f"✅ Data cleansing analysis completed for flow {flow_id}")
@@ -239,11 +250,20 @@ async def get_data_cleansing_stats(
         )
 
         # Verify flow exists
-        flow = await flow_repo.get_by_flow_id(flow_id)
-        if not flow:
+        try:
+            flow = await flow_repo.get_by_flow_id(flow_id)
+            if not flow:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Flow {flow_id} not found",
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"❌ Failed to retrieve flow {flow_id}: {str(e)}")
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Flow {flow_id} not found",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to access flow: {str(e)}",
             )
 
         # Get data import for this flow using the same logic as import storage handler
@@ -299,8 +319,35 @@ async def get_data_cleansing_stats(
 
         # Calculate stats from first data import
         data_import = data_imports[0]
-        total_records = data_import.total_records if data_import.total_records else 0
-        # Use the total_records field which should be properly set during import
+
+        # Get actual count of raw import records from the database
+        from sqlalchemy import func
+        from app.models.data_import import RawImportRecord
+
+        total_records = 0
+        try:
+            count_query = select(func.count(RawImportRecord.id)).where(
+                RawImportRecord.data_import_id == data_import.id
+            )
+            count_result = await db.execute(count_query)
+            actual_count = count_result.scalar() or 0
+
+            # Use the actual count if available, otherwise fall back to total_records field
+            total_records = (
+                actual_count if actual_count > 0 else (data_import.total_records or 0)
+            )
+
+            logger.info(
+                f"📊 Stats - Data import {data_import.id}: actual_count={actual_count}, "
+                f"total_records field={data_import.total_records}, using={total_records}"
+            )
+        except Exception as e:
+            logger.warning(
+                f"Failed to get actual record count: {e}, using total_records field"
+            )
+            total_records = (
+                data_import.total_records if data_import.total_records else 0
+            )
 
         # For now, return basic calculated stats
         # TODO: Integrate with actual data cleansing crew results
@@ -332,6 +379,70 @@ async def get_data_cleansing_stats(
         )
 
 
+async def _validate_and_get_flow(
+    flow_id: str, flow_repo: DiscoveryFlowRepository
+) -> Any:
+    """Validate flow exists and user has access."""
+    try:
+        flow = await flow_repo.get_by_flow_id(flow_id)
+        if not flow:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Flow {flow_id} not found",
+            )
+        return flow
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to retrieve flow {flow_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to access flow: {str(e)}",
+        )
+
+
+async def _get_data_import_for_flow(flow_id: str, flow: Any, db: AsyncSession) -> Any:
+    """Get data import for the given flow."""
+    from sqlalchemy import select
+    from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+
+    # First try to get data import via discovery flow's data_import_id
+    data_import = None
+    if flow.data_import_id:
+        data_import_query = select(DataImport).where(
+            DataImport.id == flow.data_import_id
+        )
+        data_import_result = await db.execute(data_import_query)
+        data_import = data_import_result.scalar_one_or_none()
+
+    # If not found, try master flow ID lookup
+    if not data_import:
+        logger.info(
+            f"Flow {flow_id} has no data_import_id, trying master flow ID lookup"
+        )
+
+        # Get the database ID for this flow_id (FK references id, not flow_id)
+        db_id_query = select(CrewAIFlowStateExtensions.id).where(
+            CrewAIFlowStateExtensions.flow_id == flow_id
+        )
+        db_id_result = await db.execute(db_id_query)
+        flow_db_id = db_id_result.scalar_one_or_none()
+
+        if flow_db_id:
+            # Look for data imports with this master_flow_id
+            import_query = (
+                select(DataImport)
+                .where(DataImport.master_flow_id == flow_db_id)
+                .order_by(DataImport.created_at.desc())
+                .limit(1)
+            )
+
+            import_result = await db.execute(import_query)
+            data_import = import_result.scalar_one_or_none()
+
+    return data_import
+
+
 @router.post(
     "/flows/{flow_id}/data-cleansing/trigger",
     response_model=DataCleansingAnalysis,
@@ -359,12 +470,7 @@ async def trigger_data_cleansing_analysis(
         )
 
         # Verify flow exists and user has access
-        flow = await flow_repo.get_by_flow_id(flow_id)
-        if not flow:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Flow {flow_id} not found",
-            )
+        flow = await _validate_and_get_flow(flow_id, flow_repo)
 
         logger.info(f"🔍 Flow {flow_id} current status: {flow.status}")
 
@@ -392,46 +498,7 @@ async def trigger_data_cleansing_analysis(
 
             # If execution was successful, get the updated analysis
             if execution_result.get("status") == "success":
-                # Get data import for this flow to perform analysis
-                from sqlalchemy import select
-
-                from app.models.crewai_flow_state_extensions import (
-                    CrewAIFlowStateExtensions,
-                )
-
-                # First try to get data import via discovery flow's data_import_id
-                data_import = None
-                if flow.data_import_id:
-                    data_import_query = select(DataImport).where(
-                        DataImport.id == flow.data_import_id
-                    )
-                    data_import_result = await db.execute(data_import_query)
-                    data_import = data_import_result.scalar_one_or_none()
-
-                # If not found, try master flow ID lookup
-                if not data_import:
-                    logger.info(
-                        f"Flow {flow_id} has no data_import_id, trying master flow ID lookup"
-                    )
-
-                    # Get the database ID for this flow_id (FK references id, not flow_id)
-                    db_id_query = select(CrewAIFlowStateExtensions.id).where(
-                        CrewAIFlowStateExtensions.flow_id == flow_id
-                    )
-                    db_id_result = await db.execute(db_id_query)
-                    flow_db_id = db_id_result.scalar_one_or_none()
-
-                    if flow_db_id:
-                        # Look for data imports with this master_flow_id
-                        import_query = (
-                            select(DataImport)
-                            .where(DataImport.master_flow_id == flow_db_id)
-                            .order_by(DataImport.created_at.desc())
-                            .limit(1)
-                        )
-
-                        import_result = await db.execute(import_query)
-                        data_import = import_result.scalar_one_or_none()
+                data_import = await _get_data_import_for_flow(flow_id, flow, db)
 
                 if not data_import:
                     raise HTTPException(
@@ -455,6 +522,7 @@ async def trigger_data_cleansing_analysis(
                     field_mappings=field_mappings,
                     include_details=True,
                     execution_result=execution_result,
+                    db_session=db,
                 )
 
                 logger.info(
@@ -482,14 +550,55 @@ async def trigger_data_cleansing_analysis(
                     recommendations=[],
                     field_quality_scores={},
                     processing_status=f"failed: {execution_result.get('error', 'Unknown error')}",
+                    source="agent_failed",
                 )
 
         except ImportError as e:
             logger.error(f"❌ CrewAI service not available: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Data cleansing analysis service not available",
-            )
+
+            # Return analysis without agent execution instead of HTTP 503
+            from datetime import datetime
+
+            # Get data import for basic analysis
+            data_import = await _get_data_import_for_flow(flow_id, flow, db)
+
+            if data_import:
+                from sqlalchemy import select
+
+                data_imports = [data_import]
+                field_mapping_query = select(ImportFieldMapping).where(
+                    ImportFieldMapping.data_import_id == data_imports[0].id
+                )
+                field_mapping_result = await db.execute(field_mapping_query)
+                field_mappings = field_mapping_result.scalars().all()
+
+                # Perform basic analysis without agent execution
+                analysis_result = await _perform_data_cleansing_analysis(
+                    flow_id=flow_id,
+                    data_imports=data_imports,
+                    field_mappings=field_mappings,
+                    include_details=True,
+                    db_session=db,
+                )
+                analysis_result.processing_status = "completed_without_agents"
+                analysis_result.source = "fallback"
+                return analysis_result
+            else:
+                # Return basic analysis indicating service unavailable
+                return DataCleansingAnalysis(
+                    flow_id=flow_id,
+                    analysis_timestamp=datetime.utcnow().isoformat(),
+                    total_records=0,
+                    total_fields=0,
+                    quality_score=0.0,
+                    issues_count=0,
+                    recommendations_count=0,
+                    quality_issues=[],
+                    recommendations=[],
+                    field_quality_scores={},
+                    processing_status="service_unavailable: CrewAI orchestrator not available",
+                    source="service_unavailable",
+                )
         except Exception as e:
             logger.error(f"❌ Failed to execute data cleansing phase: {str(e)}")
             raise HTTPException(
@@ -515,6 +624,7 @@ async def _perform_data_cleansing_analysis(
     field_mappings: List[Any],
     include_details: bool = True,
     execution_result: Optional[Dict[str, Any]] = None,
+    db_session: Optional[AsyncSession] = None,
 ) -> DataCleansingAnalysis:
     """
     Perform data cleansing analysis on the imported data and field mappings.
@@ -524,14 +634,46 @@ async def _perform_data_cleansing_analysis(
     """
     import uuid
     from datetime import datetime
+    from sqlalchemy import select, func
+    from app.models.data_import import RawImportRecord
 
     # Get the first data import (primary)
     data_import = data_imports[0] if data_imports else None
 
-    # Get raw data from the data import (using the correct attribute)
-    total_records = data_import.total_records if data_import else 0
-    # Use the total_records field which should be properly set during import
-    # Avoid accessing lazy-loaded relationships in async context
+    # Get actual count of raw import records from the database
+    total_records = 0
+    if data_import:
+        try:
+            # Use existing session if provided, otherwise safely handle missing session
+            if db_session:
+                count_query = select(func.count(RawImportRecord.id)).where(
+                    RawImportRecord.data_import_id == data_import.id
+                )
+                count_result = await db_session.execute(count_query)
+                actual_count = count_result.scalar() or 0
+
+                # Use the actual count if available, otherwise fall back to total_records field
+                total_records = (
+                    actual_count
+                    if actual_count > 0
+                    else (data_import.total_records or 0)
+                )
+
+                logger.info(
+                    f"📊 Data import {data_import.id}: actual_count={actual_count}, "
+                    f"total_records field={data_import.total_records}, using={total_records}"
+                )
+            else:
+                # Fallback to total_records field if no session available
+                total_records = data_import.total_records or 0
+                logger.warning(
+                    f"No database session provided, using total_records field: {total_records}"
+                )
+        except Exception as e:
+            logger.warning(
+                f"Failed to get actual record count: {e}, using total_records field"
+            )
+            total_records = data_import.total_records if data_import else 0
 
     total_fields = len(field_mappings)
 
@@ -596,6 +738,14 @@ async def _perform_data_cleansing_analysis(
     if field_quality_scores:
         quality_score = sum(field_quality_scores.values()) / len(field_quality_scores)
 
+    # Determine source based on execution result
+    source = (
+        "agent"
+        if execution_result and execution_result.get("status") == "success"
+        else "fallback"
+    )
+    processing_status = "completed" if source == "agent" else "completed_without_agents"
+
     return DataCleansingAnalysis(
         flow_id=flow_id,
         analysis_timestamp=datetime.utcnow().isoformat(),
@@ -607,5 +757,6 @@ async def _perform_data_cleansing_analysis(
         quality_issues=quality_issues,
         recommendations=recommendations,
         field_quality_scores=field_quality_scores,
-        processing_status="completed",
+        processing_status=processing_status,
+        source=source,
     )

@@ -25,7 +25,146 @@ export interface QualityFixData {
 }
 
 /**
- * Fetches the latest import data for data cleansing
+ * Data cleansing statistics structure
+ */
+export interface DataCleansingStats {
+  total_records: number;
+  clean_records: number;
+  records_with_issues: number;
+  issues_by_severity: {
+    low: number;
+    medium: number;
+    high: number;
+    critical: number;
+  };
+  completion_percentage: number;
+}
+
+/**
+ * Data quality issue structure
+ */
+export interface DataQualityIssue {
+  id: string;
+  field_name: string;
+  issue_type: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  description: string;
+  affected_records: number;
+  recommendation: string;
+  auto_fixable: boolean;
+}
+
+/**
+ * Data cleansing recommendation structure
+ */
+export interface DataCleansingRecommendation {
+  id: string;
+  category: 'standardization' | 'validation' | 'enrichment' | 'deduplication';
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+  impact: string;
+  effort_estimate: string;
+  fields_affected: string[];
+  implementation_steps?: string[];
+}
+
+/**
+ * Data cleansing analysis structure
+ */
+export interface DataCleansingAnalysis {
+  flow_id: string;
+  analysis_timestamp: string;
+  total_records: number;
+  total_fields: number;
+  quality_score: number;
+  issues_count: number;
+  recommendations_count: number;
+  quality_issues: DataQualityIssue[];
+  recommendations: DataCleansingRecommendation[];
+  field_quality_scores: Record<string, number>;
+  processing_status: string;
+  source?: 'agent' | 'fallback' | 'mock' | 'agent_failed' | 'service_unavailable';
+}
+
+/**
+ * Trigger data cleansing analysis request
+ */
+export interface TriggerDataCleansingRequest {
+  force_refresh?: boolean;
+  include_agent_analysis?: boolean;
+}
+
+/**
+ * Fetches data cleansing statistics for a specific flow
+ */
+export const fetchDataCleansingStats = async (flowId: string): Promise<DataCleansingStats> => {
+  try {
+    const response = await apiCall(`/flows/${flowId}/data-cleansing/stats`, {
+      headers: getAuthHeaders()
+    });
+
+    if (!response?.total_records && response?.total_records !== 0) {
+      throw new Error('Invalid data cleansing stats response');
+    }
+
+    return response as DataCleansingStats;
+  } catch (error) {
+    console.error('Error fetching data cleansing stats:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches complete data cleansing analysis for a specific flow
+ */
+export const fetchDataCleansingAnalysis = async (flowId: string, includeDetails = true): Promise<DataCleansingAnalysis> => {
+  try {
+    const response = await apiCall(`/flows/${flowId}/data-cleansing?include_details=${includeDetails}`, {
+      headers: getAuthHeaders()
+    });
+
+    if (!response?.flow_id) {
+      throw new Error('Invalid data cleansing analysis response');
+    }
+
+    return response as DataCleansingAnalysis;
+  } catch (error) {
+    console.error('Error fetching data cleansing analysis:', error);
+    throw error;
+  }
+};
+
+/**
+ * Triggers data cleansing analysis for a specific flow
+ */
+export const triggerDataCleansingAnalysis = async (flowId: string, forceRefresh = false, includeAgentAnalysis = true): Promise<DataCleansingAnalysis> => {
+  try {
+    const response = await apiCall(`/flows/${flowId}/data-cleansing/trigger`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({
+        force_refresh: forceRefresh,
+        include_agent_analysis: includeAgentAnalysis
+      })
+    });
+
+    if (!response?.flow_id) {
+      throw new Error('Invalid data cleansing trigger response');
+    }
+
+    return response as DataCleansingAnalysis;
+  } catch (error) {
+    console.error('Error triggering data cleansing analysis:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches the latest import data for data cleansing (legacy)
  */
 export const fetchLatestImport = async (): Promise<AssetData[]> => {
   try {

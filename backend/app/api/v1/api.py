@@ -432,25 +432,22 @@ if LLM_HEALTH_AVAILABLE:
     logger.info("✅ LLM Health router included")
 
 # Data Cleansing endpoints
+# BREAKING CHANGE: /data-cleansing prefix removed - endpoints now directly under /api/v1/
+# Previous endpoints at /api/v1/data-cleansing/* are now at /api/v1/*
 if DATA_CLEANSING_AVAILABLE:
+    api_router.include_router(data_cleansing_router, tags=["Data Cleansing"])
+    logger.info("✅ Data Cleansing router included (prefix removed - breaking change)")
+    
+    # BACKWARD COMPATIBILITY: Add temporary compatibility routes for old /data-cleansing prefix
+    # TODO: Remove after frontend migration is complete
     api_router.include_router(
-        data_cleansing_router, prefix="/data-cleansing", tags=["Data Cleansing"]
+        data_cleansing_router, 
+        prefix="/data-cleansing", 
+        tags=["Data Cleansing - Legacy (Deprecated)"]
     )
-    logger.info("✅ Data Cleansing router included")
+    logger.info("✅ Data Cleansing legacy compatibility router included at /data-cleansing (temporary)")
 else:
     logger.warning("⚠️ Data Cleansing router not available")
-# Observability and System Control
-if OBSERVABILITY_AVAILABLE:
-    api_router.include_router(
-        observability_router, prefix="/observability", tags=["Observability"]
-    )
-    logger.info("✅ Observability router included")
-else:
-    logger.warning(
-        "⚠️ Observability router not available - polling control endpoints disabled"
-    )
-
-
 # Observability and System Control
 if OBSERVABILITY_AVAILABLE:
     api_router.include_router(
@@ -705,7 +702,7 @@ except ImportError as e:
 
 if SIMPLE_ADMIN_AVAILABLE:
     api_router.include_router(
-        simple_admin_router, prefix="/api/v1", tags=["Simple Admin"]
+        simple_admin_router, tags=["Simple Admin"]
     )
     logger.info("✅ Simple admin router included")
 else:

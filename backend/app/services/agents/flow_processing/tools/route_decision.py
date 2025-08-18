@@ -25,13 +25,13 @@ class RouteDecisionTool(BaseTool):
     # Route mapping for all flow types - ClassVar to avoid Pydantic field annotation requirement
     ROUTE_MAPPING: ClassVar[Dict[str, Dict[str, str]]] = {
         "discovery": {
-            "data_import": "/discovery/import",
-            "attribute_mapping": "/discovery/attribute-mapping",
-            "data_cleansing": "/discovery/data-cleansing",
-            "inventory": "/discovery/inventory",
-            "dependencies": "/discovery/dependencies",
-            "tech_debt": "/discovery/tech-debt",
-            "completed": "/discovery/tech-debt",
+            "data_import": "/discovery/cmdb-import",
+            "attribute_mapping": "/discovery/attribute-mapping/{flow_id}",
+            "data_cleansing": "/discovery/data-cleansing/{flow_id}",
+            "inventory": "/discovery/inventory/{flow_id}",
+            "dependencies": "/discovery/dependencies/{flow_id}",
+            "tech_debt": "/discovery/tech-debt/{flow_id}",
+            "completed": "/discovery/inventory/{flow_id}",
         },
         "assessment": {
             "migration_readiness": "/assess/migration-readiness",
@@ -114,11 +114,17 @@ class RouteDecisionTool(BaseTool):
                 if is_complete:
                     next_phase = self._get_next_phase(flow_type, current_phase)
                     target_page = routes.get(next_phase, routes.get("completed", "/"))
+                    # Substitute flow_id in template
+                    if "{flow_id}" in target_page and flow_id:
+                        target_page = target_page.format(flow_id=flow_id)
                     reasoning = (
                         f"Phase {current_phase} complete - advancing to {next_phase}"
                     )
                 else:
                     target_page = routes.get(current_phase, "/")
+                    # Substitute flow_id in template
+                    if "{flow_id}" in target_page and flow_id:
+                        target_page = target_page.format(flow_id=flow_id)
                     reasoning = (
                         f"Phase {current_phase} incomplete - staying in current phase"
                     )
@@ -151,14 +157,28 @@ class RouteDecisionTool(BaseTool):
 
         # Check if user needs to configure mappings
         if any("mapping" in action.lower() for action in user_actions):
-            return f"/discovery/attribute-mapping?flow_id={flow_id}"
+            return (
+                f"/discovery/attribute-mapping/{flow_id}"
+                if flow_id
+                else "/discovery/attribute-mapping"
+            )
 
         # Check if user needs to review something
         if any("review" in action.lower() for action in user_actions):
-            return f"/discovery/{current_phase.replace('_', '-')}?flow_id={flow_id}"
+            phase_route = f"/discovery/{current_phase.replace('_', '-')}"
+            return (
+                f"{phase_route}/{flow_id}"
+                if flow_id and current_phase != "data_import"
+                else phase_route
+            )
 
         # Default to current phase page
-        return f"/discovery/{current_phase.replace('_', '-')}?flow_id={flow_id}"
+        phase_route = f"/discovery/{current_phase.replace('_', '-')}"
+        return (
+            f"{phase_route}/{flow_id}"
+            if flow_id and current_phase != "data_import"
+            else phase_route
+        )
 
     def _determine_system_action_route(
         self, current_phase: str, system_actions: List[str], flow_id: str
@@ -169,14 +189,19 @@ class RouteDecisionTool(BaseTool):
             "trigger" in action.lower() or "process" in action.lower()
             for action in system_actions
         ):
-            return f"/discovery/enhanced-dashboard?flow_id={flow_id}&action=processing"
+            return "/discovery/enhanced-dashboard"
 
         # For navigation actions, go to the specified page
         if any("navigate" in action.lower() for action in system_actions):
-            return f"/discovery/{current_phase.replace('_', '-')}?flow_id={flow_id}"
+            phase_route = f"/discovery/{current_phase.replace('_', '-')}"
+            return (
+                f"{phase_route}/{flow_id}"
+                if flow_id and current_phase != "data_import"
+                else phase_route
+            )
 
         # Default to enhanced dashboard
-        return f"/discovery/enhanced-dashboard?flow_id={flow_id}"
+        return "/discovery/enhanced-dashboard"
 
     def _extract_flow_type(self, analysis: str) -> str:
         """Extract flow type from analysis"""

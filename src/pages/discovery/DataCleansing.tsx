@@ -5,7 +5,7 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 import { usePhaseAwareFlowResolver } from '../../hooks/discovery/attribute-mapping/usePhaseAwareFlowResolver';
-import { useLatestImport, useAssets } from '../../hooks/discovery/useDataCleansingQueries';
+import { useLatestImport, useAssets, useDataCleansingStats, useDataCleansingAnalysis, useTriggerDataCleansingAnalysis } from '../../hooks/discovery/useDataCleansingQueries';
 import { API_CONFIG } from '../../config/api'
 import { apiCall } from '../../config/api'
 import SecureLogger from '../../utils/secureLogger';
@@ -68,59 +68,82 @@ const DataCleansing: React.FC = () => {
       .map(([phase, _]) => phase) : [];
   const nextPhase = currentPhase === 'data_cleansing' ? 'inventory' : '';
 
-  // Use data cleansing hooks - fallback to simple approach since complex hooks aren't working
+  // Use new data cleansing hooks for proper API calls
+  const {
+    data: dataCleansingStats,
+    isLoading: isDataCleansingStatsLoading,
+    error: dataCleansingStatsError,
+    refetch: refetchStats
+  } = useDataCleansingStats(effectiveFlowId);
+
+  const {
+    data: dataCleansingAnalysis,
+    isLoading: isDataCleansingAnalysisLoading,
+    error: dataCleansingAnalysisError,
+    refetch: refetchAnalysis
+  } = useDataCleansingAnalysis(effectiveFlowId);
+
+  const triggerAnalysisMutation = useTriggerDataCleansingAnalysis();
+
+  // Use data cleansing hooks - fallback to simple approach since complex hooks aren't working (legacy)
   const {
     data: latestImportData,
     isLoading: isLatestImportLoading,
     error: latestImportError
   } = useLatestImport();
 
-  // Extract data cleansing results from flow state - fix data path
-  const flowDataCleansing = flow?.data_cleansing_results || flow?.data_cleansing || flow?.results?.data_cleansing || {};
-  const qualityIssues = flowDataCleansing?.quality_issues || [];
-  const agentRecommendations = flowDataCleansing?.recommendations || [];
-
-  // ADR-012: Extract data from discovery flow response (child flow)
-  // The data should be in the flow.raw_data and flow.field_mappings from the response mapper
-  // Backend FIXED: Response mapper now properly fetches import data
-  const totalRecords =
-    flow?.raw_data?.length ||
-    flowDataCleansing?.metadata?.original_records ||
-    flow?.import_metadata?.record_count ||
-    latestImportData?.data?.length || // Fallback to separate API call if needed
-    (flow?.field_mappings && Object.keys(flow.field_mappings).length > 0 ? 100 : 0) || // Fallback estimate if we have mappings
+  // Extract data cleansing results from API response or flow state as fallback
+  const totalRecords = dataCleansingStats?.total_records ??
+    dataCleansingAnalysis?.total_records ??
+    flow?.raw_data?.length ??
+    flow?.import_metadata?.record_count ??
+    latestImportData?.data?.length ??
     0;
 
-  const cleanedRecords = flowDataCleansing?.metadata?.cleaned_records || totalRecords;
-  const fieldsAnalyzed = Object.keys(flow?.field_mappings || {}).length;
-  const dataCompleteness = flowDataCleansing?.data_quality_metrics?.overall_improvement?.completeness_improvement ||
-                          (totalRecords > 0 ? Math.round((cleanedRecords / totalRecords) * 100) : 0);
+  const cleanedRecords = dataCleansingStats?.clean_records ??
+    dataCleansingAnalysis?.total_records ??
+    totalRecords;
+
+  const recordsWithIssues = dataCleansingStats?.records_with_issues ?? 0;
+
+  const fieldsAnalyzed = dataCleansingAnalysis?.total_fields ??
+    Object.keys(flow?.field_mappings || {}).length;
+
+  const qualityScore = dataCleansingAnalysis?.quality_score ?? 0;
+
+  const completionPercentage = dataCleansingStats?.completion_percentage ??
+    (totalRecords > 0 ? Math.round((cleanedRecords / totalRecords) * 100) : 0);
+
+  // Extract quality issues and recommendations from analysis
+  const qualityIssues = dataCleansingAnalysis?.quality_issues || [];
+  const agentRecommendations = dataCleansingAnalysis?.recommendations || [];
 
   const cleansingProgress = {
     total_records: totalRecords,
-    quality_score: flowDataCleansing?.data_quality_metrics?.overall_improvement?.quality_score ||
-                   (totalRecords > 0 ? 85 : 0), // Default to 85% if we have data
-    completion_percentage: dataCompleteness,
+    quality_score: qualityScore || (totalRecords > 0 ? 85 : 0), // Use API data or default
+    completion_percentage: completionPercentage,
     cleaned_records: cleanedRecords,
-    issues_resolved: qualityIssues.filter(issue => issue.status === 'resolved').length,
+    records_with_issues: recordsWithIssues,
+    issues_resolved: qualityIssues.filter((issue) => issue.auto_fixable).length,
     issues_found: qualityIssues.length,
-    crew_completion_status: flowDataCleansing?.crew_status?.status || 'unknown',
+    crew_completion_status: dataCleansingAnalysis?.processing_status || 'unknown',
     fields_analyzed: fieldsAnalyzed,
-    data_types_identified: flowDataCleansing?.metadata?.data_types_identified || fieldsAnalyzed,
-    validation_rules_applied: flowDataCleansing?.metadata?.validation_rules_applied || 0,
-    transformations_applied: flowDataCleansing?.metadata?.transformations_applied || 0
+    data_types_identified: fieldsAnalyzed,
+    validation_rules_applied: agentRecommendations.filter((r) => r.category === 'validation').length,
+    transformations_applied: agentRecommendations.filter((r) => r.category === 'standardization').length
   };
 
   // Secure debug logging - data availability check
   SecureLogger.debug('DataCleansing data availability check', {
     hasFlow: !!flow,
-    hasDataCleansingResults: !!flowDataCleansing,
+    hasDataCleansingResults: !!dataCleansingStats || !!dataCleansingAnalysis,
     qualityIssuesCount: qualityIssues.length,
     recommendationsCount: agentRecommendations.length,
     totalRecords,
     cleanedRecords,
     fieldsAnalyzed,
-    progressPercentage: flow?.progress_percentage || 0
+    progressPercentage: flow?.progress_percentage || 0,
+    usingApiData: !!dataCleansingStats
   });
 
   // Handle data cleansing execution - Now actually triggers analysis
@@ -142,24 +165,32 @@ const DataCleansing: React.FC = () => {
     try {
       SecureLogger.info('Triggering data cleansing analysis for flow');
 
-      // Call the new trigger analysis endpoint
-      const response = await apiCall(`/api/v1/data-cleansing/flows/${effectiveFlowId}/data-cleansing/trigger`, {
-        method: 'POST',
-        body: JSON.stringify({
-          force_refresh: true,
-          include_agent_analysis: true
-        })
+      // Use the new mutation hook
+      await triggerAnalysisMutation.mutateAsync({
+        flowId: effectiveFlowId,
+        force_refresh: true,
+        include_agent_analysis: true
       });
 
       SecureLogger.info('Data cleansing analysis triggered successfully');
 
-      // Refresh the flow data to get updated results
-      await refresh();
+      // Refresh the data to get updated results
+      await Promise.all([refetchStats(), refetchAnalysis(), refresh()]);
 
     } catch (error) {
       SecureLogger.error('Failed to trigger data cleansing analysis', error);
       // Still refresh to get any available data
-      await refresh();
+      await Promise.all([refetchStats(), refetchAnalysis(), refresh()]);
+    }
+  };
+
+  // Enhanced refresh handler that includes data cleansing endpoints
+  const handleRefresh = async (): Promise<void> => {
+    try {
+      SecureLogger.info('Refreshing data cleansing data');
+      await Promise.all([refetchStats(), refetchAnalysis(), refresh()]);
+    } catch (error) {
+      SecureLogger.error('Failed to refresh data cleansing data', error);
     }
   };
 
@@ -299,8 +330,8 @@ const DataCleansing: React.FC = () => {
   const canContinueToInventory = isDataCleansingComplete || (allQuestionsAnswered && hasMinimumProgress);
 
   // Enhanced data samples for display - extract from flow state with proper type casting
-  const rawDataSample = flowDataCleansing?.raw_data?.slice(0, 3) || [];
-  const cleanedDataSample = flowDataCleansing?.cleaned_data?.slice(0, 3) || [];
+  const rawDataSample = flow?.raw_data?.slice(0, 3) || [];
+  const cleanedDataSample = flow?.data_cleansing_results?.cleaned_data?.slice(0, 3) || [];
 
   // Secure debug logging for flow detection and data state
   SecureLogger.debug('DataCleansing flow detection summary', {
@@ -312,7 +343,7 @@ const DataCleansing: React.FC = () => {
 
   SecureLogger.debug('DataCleansing data state summary', {
     hasFlow: !!flow,
-    hasDataCleansingResults: !!flowDataCleansing,
+    hasDataCleansingResults: !!dataCleansingAnalysis,
     qualityIssuesCount: qualityIssues.length,
     recommendationsCount: agentRecommendations.length,
     hasRawData,
