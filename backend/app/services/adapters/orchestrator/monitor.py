@@ -49,21 +49,27 @@ class ResourceMonitor:
         try:
             import psutil
 
-            # Get process info
-            process = psutil.Process()
+            # Offload CPU measurement to thread to avoid blocking event loop
+            loop = asyncio.get_running_loop()
 
-            # CPU percent with interval for accurate measurement
-            # First call to cpu_percent() starts the measurement
-            process.cpu_percent()
-            # Wait a small interval for accurate measurement
-            await asyncio.sleep(0.1)
+            def _collect_metrics():
+                """Collect metrics in thread to avoid blocking"""
+                proc = psutil.Process()
+                # System-wide CPU over a short interval for stability
+                system_cpu = psutil.cpu_percent(interval=0.2)
+                # Process CPU percent (system interval already elapsed)
+                proc_cpu = proc.cpu_percent(interval=None)
+                return {
+                    "memory_usage_mb": proc.memory_info().rss / 1024 / 1024,
+                    "cpu_usage_percent": max(
+                        proc_cpu, system_cpu
+                    ),  # Use higher of process or system
+                    "available_disk_mb": psutil.disk_usage("/").free / 1024 / 1024,
+                    "timestamp": datetime.utcnow().isoformat(),
+                }
 
-            metrics = {
-                "memory_usage_mb": process.memory_info().rss / 1024 / 1024,
-                "cpu_usage_percent": process.cpu_percent(),  # Second call returns actual usage
-                "available_disk_mb": psutil.disk_usage("/").free / 1024 / 1024,
-                "timestamp": datetime.utcnow().isoformat(),
-            }
+            # Run metrics collection in thread executor
+            metrics = await loop.run_in_executor(None, _collect_metrics)
 
             if self._monitoring:
                 self._metrics_history.append(metrics)

@@ -100,6 +100,9 @@ class AdapterAggregator:
                 aggregated_data["assets"] = all_assets
                 aggregated_data["unique_resources"] = len(all_assets)
                 aggregated_data["duplicate_resources"] = 0
+                aggregated_data["duplicate_assets"] = (
+                    []
+                )  # Always include for consistency
 
             aggregated_data["dependencies"] = all_dependencies
             aggregated_data["performance_metrics"] = platform_metrics
