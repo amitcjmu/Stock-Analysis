@@ -395,14 +395,21 @@ class AdapterAggregator:
             return None
 
         # Try different IP address fields
-        return (
+        candidate_ip = (
             ip_addresses.get("primary")
             or ip_addresses.get("private")
             or ip_addresses.get("public")
-            or asset.get("unique_id")
-            if self.is_ip_address(asset.get("unique_id"))
-            else None
         )
+
+        if candidate_ip:
+            return candidate_ip
+
+        # Check if unique_id is an IP address
+        unique_id = asset.get("unique_id")
+        if unique_id and self.is_ip_address(unique_id):
+            return unique_id
+
+        return None
 
     def is_ip_address(self, value: str) -> bool:
         """Check if value is an IP address"""

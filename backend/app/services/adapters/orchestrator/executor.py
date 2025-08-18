@@ -130,9 +130,15 @@ class AdapterExecutor:
 
                 if response and response.success:
                     result.status = AdapterStatus.COMPLETED
+                    duration = getattr(response, "duration_seconds", None)
+                    duration_text = (
+                        f"{duration:.2f}s"
+                        if isinstance(duration, (int, float))
+                        else "unknown duration"
+                    )
                     self.logger.info(
                         f"Adapter {adapter.metadata.name} completed successfully: "
-                        f"{response.resource_count} resources in {response.duration_seconds:.2f}s"
+                        f"{response.resource_count} resources in {duration_text}"
                     )
                 else:
                     result.status = AdapterStatus.FAILED
