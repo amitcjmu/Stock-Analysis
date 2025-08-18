@@ -432,9 +432,11 @@ if LLM_HEALTH_AVAILABLE:
     logger.info("✅ LLM Health router included")
 
 # Data Cleansing endpoints
+# BREAKING CHANGE: /data-cleansing prefix removed - endpoints now directly under /api/v1/
+# Previous endpoints at /api/v1/data-cleansing/* are now at /api/v1/*
 if DATA_CLEANSING_AVAILABLE:
     api_router.include_router(data_cleansing_router, tags=["Data Cleansing"])
-    logger.info("✅ Data Cleansing router included")
+    logger.info("✅ Data Cleansing router included (prefix removed - breaking change)")
 else:
     logger.warning("⚠️ Data Cleansing router not available")
 # Observability and System Control
