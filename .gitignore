@@ -107,7 +107,9 @@ Thumbs.db
 .cursor/
 .windsurf/rules/migration.md
 .windsurf/rules/task-list.md
-.claude/
+# Claude configuration (allow commands folder)
+.claude/*
+!.claude/commands/
 .serena/
 CLAUDE.md
 
