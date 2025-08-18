@@ -451,18 +451,6 @@ else:
     )
 
 
-# Observability and System Control
-if OBSERVABILITY_AVAILABLE:
-    api_router.include_router(
-        observability_router, prefix="/observability", tags=["Observability"]
-    )
-    logger.info("✅ Observability router included")
-else:
-    logger.warning(
-        "⚠️ Observability router not available - polling control endpoints disabled"
-    )
-
-
 # Authentication and Context
 if AUTH_RBAC_AVAILABLE:
     api_router.include_router(auth_router, prefix="/auth", tags=["Authentication"])

@@ -1,5 +1,25 @@
 # AI Modernize Migration Platform - Changelog
 
+## [2025-01-18] - GPT5 PR Review Must-Fix Items
+### Breaking Changes
+- **BREAKING**: Removed /data-cleansing prefix from data cleansing endpoints
+  - Previous endpoints at `/api/v1/data-cleansing/*` are now at `/api/v1/*`
+  - This affects: GET `/flows/{flow_id}/data-cleansing`, GET `/flows/{flow_id}/data-cleansing/stats`, POST `/flows/{flow_id}/data-cleansing/trigger`
+
+### New Features
+- Added explicit agentic-first fallback signaling in data cleansing analysis
+  - New `source` field in DataCleansingAnalysis: "agent", "fallback", "mock", "agent_failed", "service_unavailable"
+  - Enhanced `processing_status` with "completed_without_agents" for fallback scenarios
+- Enhanced routing context preservation
+  - Fixed flow_id loss in overview/error navigation paths
+  - All phase pages (except data_import) now properly carry flow_id in URL path
+
+### Security & Consistency
+- Added authentication consistency across flow management endpoints
+  - All flow management endpoints now require `get_current_user` dependency
+  - Improved auditability and security for flow operations
+- Fixed duplicate observability router inclusion in API configuration
+
 ## [2025-08-09] - 776c2d8
 ### Sidebar and Dashboard Layout Reorganization
 - Move FinOps/Observability/Admin sections to bottom of sidebar

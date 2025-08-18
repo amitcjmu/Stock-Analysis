@@ -436,7 +436,8 @@ def get_navigation_path(
     phase_def = get_phase_definition(flow_type, phase_id)
 
     if not phase_def:
-        return f"/{flow_type.value}/overview"
+        # FIXED: Always include flow_id in overview paths to maintain routing context
+        return f"/{flow_type.value}/overview/{flow_id}"
 
     base_path = phase_def.get("navigation_path", f"/{flow_type.value}/{phase_id}")
 
@@ -445,10 +446,15 @@ def get_navigation_path(
         return base_path.format(flow_id=flow_id)
     else:
         # For paths that don't expect flow_id in path (like data import)
-        if "?" in base_path:
-            return f"{base_path}&flow_id={flow_id}"
+        # Only data_import phase should not have flow_id in path
+        if phase_id == "data_import":
+            if "?" in base_path:
+                return f"{base_path}&flow_id={flow_id}"
+            else:
+                return base_path
         else:
-            return base_path
+            # All other phases must carry flow_id in the path
+            return f"{base_path}/{flow_id}"
 
 
 def get_validation_services(flow_type: FlowType, phase_id: str) -> List[str]:

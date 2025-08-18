@@ -75,6 +75,7 @@ class DataCleansingAnalysis(BaseModel):
     recommendations: List[DataCleansingRecommendation]
     field_quality_scores: Dict[str, float]
     processing_status: str
+    source: Optional[str] = None  # "agent", "fallback", "mock" to indicate data source
 
 
 class DataCleansingStats(BaseModel):
@@ -549,6 +550,7 @@ async def trigger_data_cleansing_analysis(
                     recommendations=[],
                     field_quality_scores={},
                     processing_status=f"failed: {execution_result.get('error', 'Unknown error')}",
+                    source="agent_failed",
                 )
 
         except ImportError as e:
@@ -579,6 +581,7 @@ async def trigger_data_cleansing_analysis(
                     db_session=db,
                 )
                 analysis_result.processing_status = "completed_without_agents"
+                analysis_result.source = "fallback"
                 return analysis_result
             else:
                 # Return basic analysis indicating service unavailable
@@ -594,6 +597,7 @@ async def trigger_data_cleansing_analysis(
                     recommendations=[],
                     field_quality_scores={},
                     processing_status="service_unavailable: CrewAI orchestrator not available",
+                    source="service_unavailable",
                 )
         except Exception as e:
             logger.error(f"❌ Failed to execute data cleansing phase: {str(e)}")
@@ -734,6 +738,14 @@ async def _perform_data_cleansing_analysis(
     if field_quality_scores:
         quality_score = sum(field_quality_scores.values()) / len(field_quality_scores)
 
+    # Determine source based on execution result
+    source = (
+        "agent"
+        if execution_result and execution_result.get("status") == "success"
+        else "fallback"
+    )
+    processing_status = "completed" if source == "agent" else "completed_without_agents"
+
     return DataCleansingAnalysis(
         flow_id=flow_id,
         analysis_timestamp=datetime.utcnow().isoformat(),
@@ -745,5 +757,6 @@ async def _perform_data_cleansing_analysis(
         quality_issues=quality_issues,
         recommendations=recommendations,
         field_quality_scores=field_quality_scores,
-        processing_status="completed",
+        processing_status=processing_status,
+        source=source,
     )

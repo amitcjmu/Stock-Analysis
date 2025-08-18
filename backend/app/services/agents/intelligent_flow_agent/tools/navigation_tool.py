@@ -107,9 +107,19 @@ class NavigationDecisionTool(BaseTool):
 
         except Exception as e:
             logger.error(f"Navigation decision failed: {e}")
+            # Extract flow_id from status_data if available for error routing
+            flow_id = (
+                status_data.get("flow_id") if isinstance(status_data, dict) else None
+            )
+            error_route = (
+                f"/{flow_type}/overview/{flow_id}"
+                if flow_id
+                else f"/{flow_type}/overview"
+            )
+
             return json.dumps(
                 {
-                    "routing_decision": "/discovery/overview",
+                    "routing_decision": error_route,
                     "user_guidance": f"Navigation error: {str(e)}",
                     "action_type": "error",
                     "confidence": 0.0,
@@ -209,8 +219,14 @@ class NavigationDecisionTool(BaseTool):
 
         except Exception as e:
             logger.error(f"Routing decision failed: {e}")
+            # FIXED: Include flow_id in error routing for consistency
+            error_route = (
+                f"/{flow_type}/overview/{flow_id}"
+                if flow_id
+                else f"/{flow_type}/overview"
+            )
             return {
-                "routing_decision": f"/{flow_type}/overview",
+                "routing_decision": error_route,
                 "user_guidance": f"Unable to determine next steps: {str(e)}",
                 "action_type": "error",
                 "confidence": 0.0,

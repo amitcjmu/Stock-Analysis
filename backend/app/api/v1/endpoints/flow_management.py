@@ -12,9 +12,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.auth.auth_utils import get_current_user
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.core.security.secure_logging import safe_log_format
+from app.models.client_account import User
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
@@ -33,6 +35,7 @@ async def get_flow_status(
     ),
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get comprehensive flow status and metadata.
@@ -132,6 +135,7 @@ async def pause_flow(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
 ):
     """Pause a running discovery flow."""
     try:
@@ -158,6 +162,7 @@ async def resume_flow(
     phase_input: Optional[Dict[str, Any]] = None,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
 ):
     """Resume a paused discovery flow."""
     try:
@@ -207,6 +212,7 @@ async def delete_flow(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
 ):
     """Delete a discovery flow."""
     try:
@@ -270,6 +276,7 @@ async def retry_flow(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
 ):
     """Retry a failed discovery flow phase."""
     try:
