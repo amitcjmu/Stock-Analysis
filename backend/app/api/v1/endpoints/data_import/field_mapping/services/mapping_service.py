@@ -124,8 +124,10 @@ class MappingService:
                         mapping.target_field
                     ),  # Keep as string, frontend handles "UNMAPPED"
                     transformation_rule=transformation_rule_str,
-                    # Using transformation_rules for now
-                    validation_rule=transformation_rule_str,
+                    # Note: validation_rule is separate from transformation_rule in schema
+                    # but database only stores transformation_rules - validation is handled
+                    # by mapping validators during processing
+                    validation_rule=None,  # Database doesn't store validation rules separately
                     is_required=getattr(mapping, "is_required", False),
                     is_approved=mapping.status == "approved",
                     confidence=(
@@ -210,7 +212,7 @@ class MappingService:
             source_field=mapping.source_field,
             target_field=mapping.target_field,
             transformation_rule=transformation_rule_str,
-            validation_rule=transformation_rule_str,
+            validation_rule=None,  # Database doesn't store validation rules separately
             is_required=False,
             is_approved=True,
             confidence=mapping.confidence_score or 0.7,
@@ -282,8 +284,10 @@ class MappingService:
             mapping.target_field = update_data.target_field
         if update_data.transformation_rule is not None:
             mapping.transformation_rules = update_data.transformation_rule
-        if update_data.validation_rule is not None:
-            mapping.transformation_rules = update_data.validation_rule
+        # Note: validation_rule is not stored in database - validation is handled
+        # by mapping validators during processing, not persisted as rules
+        # if update_data.validation_rule is not None:
+        #     mapping.transformation_rules = update_data.validation_rule
         # is_required field doesn't exist in ImportFieldMapping model
         # if update_data.is_required is not None:
         #     mapping.is_required = update_data.is_required
@@ -316,7 +320,7 @@ class MappingService:
             source_field=mapping.source_field,
             target_field=mapping.target_field,
             transformation_rule=transformation_rule_str,
-            validation_rule=transformation_rule_str,
+            validation_rule=None,  # Database doesn't store validation rules separately
             # is_required field doesn't exist in ImportFieldMapping model
             is_required=False,
             is_approved=mapping.status == "approved",

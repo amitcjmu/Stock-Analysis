@@ -70,6 +70,7 @@ export interface DataCleansingAnalysis {
     impact: string;
     effort_estimate: string;
     fields_affected: string[];
+    implementation_steps: string[];
   }>;
   field_quality_scores: Record<string, number>;
   processing_status: string;
