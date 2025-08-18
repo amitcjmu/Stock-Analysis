@@ -9,9 +9,56 @@ const queryKeys = {
   latestImport: ['dataCleansing', 'latestImport'],
   assets: (page: number, pageSize: number) => ['dataCleansing', 'assets', page, pageSize],
   agentAnalysis: (dataHash: string) => ['dataCleansing', 'agentAnalysis', dataHash],
+  dataCleansingStats: (flowId: string) => ['dataCleansing', 'stats', flowId],
+  dataCleansingAnalysis: (flowId: string) => ['dataCleansing', 'analysis', flowId],
 };
 
-// Custom hook to fetch the latest import data
+// Custom hook to fetch data cleansing statistics for a flow
+export const useDataCleansingStats = (flowId: string | undefined): unknown => {
+  const { isAuthenticated } = useAuth();
+
+  return useQuery({
+    queryKey: queryKeys.dataCleansingStats(flowId || ''),
+    queryFn: () => dataCleansingService.fetchDataCleansingStats(flowId!),
+    enabled: isAuthenticated && !!flowId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 2,
+  });
+};
+
+// Custom hook to fetch data cleansing analysis for a flow
+export const useDataCleansingAnalysis = (flowId: string | undefined, includeDetails = true): unknown => {
+  const { isAuthenticated } = useAuth();
+
+  return useQuery({
+    queryKey: queryKeys.dataCleansingAnalysis(flowId || ''),
+    queryFn: () => dataCleansingService.fetchDataCleansingAnalysis(flowId!, includeDetails),
+    enabled: isAuthenticated && !!flowId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+  });
+};
+
+// Custom hook to trigger data cleansing analysis
+export const useTriggerDataCleansingAnalysis = (): unknown => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ flowId, forceRefresh = false, includeAgentAnalysis = true }: {
+      flowId: string;
+      forceRefresh?: boolean;
+      includeAgentAnalysis?: boolean;
+    }) => dataCleansingService.triggerDataCleansingAnalysis(flowId, forceRefresh, includeAgentAnalysis),
+    onSuccess: (result, variables) => {
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: queryKeys.dataCleansingStats(variables.flowId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dataCleansingAnalysis(variables.flowId) });
+      return result;
+    },
+  });
+};
+
+// Custom hook to fetch the latest import data (legacy)
 export const useLatestImport = (): unknown => {
   const { isAuthenticated } = useAuth();
 

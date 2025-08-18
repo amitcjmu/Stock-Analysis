@@ -433,9 +433,7 @@ if LLM_HEALTH_AVAILABLE:
 
 # Data Cleansing endpoints
 if DATA_CLEANSING_AVAILABLE:
-    api_router.include_router(
-        data_cleansing_router, prefix="/data-cleansing", tags=["Data Cleansing"]
-    )
+    api_router.include_router(data_cleansing_router, tags=["Data Cleansing"])
     logger.info("✅ Data Cleansing router included")
 else:
     logger.warning("⚠️ Data Cleansing router not available")

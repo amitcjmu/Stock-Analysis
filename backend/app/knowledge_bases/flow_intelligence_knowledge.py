@@ -97,7 +97,7 @@ FLOW_DEFINITIONS = {
                     "field_mapper_service.calculate_coverage",
                     "critical_attributes_service.validate_mappings",
                 ],
-                "navigation_path": "/discovery/attribute-mapping",
+                "navigation_path": "/discovery/attribute-mapping/{flow_id}",
             },
             {
                 "id": "data_cleansing",
@@ -126,7 +126,7 @@ FLOW_DEFINITIONS = {
                     "data_cleansing_service.get_validation_results",
                     "duplicate_detection_service.get_duplicates",
                 ],
-                "navigation_path": "/discovery/data-cleansing",
+                "navigation_path": "/discovery/data-cleansing/{flow_id}",
             },
             {
                 "id": "inventory",
@@ -155,7 +155,7 @@ FLOW_DEFINITIONS = {
                     "asset_service.get_inventory_completeness",
                     "asset_service.get_categorization_results",
                 ],
-                "navigation_path": "/discovery/inventory",
+                "navigation_path": "/discovery/inventory/{flow_id}",
             },
             {
                 "id": "dependencies",
@@ -184,7 +184,7 @@ FLOW_DEFINITIONS = {
                     "dependency_service.get_dependency_count",
                     "dependency_service.get_critical_dependencies",
                 ],
-                "navigation_path": "/discovery/dependencies",
+                "navigation_path": "/discovery/dependencies/{flow_id}",
             },
             {
                 "id": "tech_debt",
@@ -213,7 +213,7 @@ FLOW_DEFINITIONS = {
                     "tech_debt_service.get_debt_score",
                     "tech_debt_service.get_recommendations",
                 ],
-                "navigation_path": "/discovery/tech-debt",
+                "navigation_path": "/discovery/tech-debt/{flow_id}",
             },
         ],
     },
@@ -248,7 +248,7 @@ FLOW_DEFINITIONS = {
                     "assessment_service.get_readiness_score",
                     "assessment_service.get_risk_factors",
                 ],
-                "navigation_path": "/assess/readiness",
+                "navigation_path": "/assess/readiness/{flow_id}",
             },
             {
                 "id": "impact_analysis",
@@ -277,7 +277,7 @@ FLOW_DEFINITIONS = {
                     "impact_service.get_business_impact",
                     "impact_service.get_operational_impact",
                 ],
-                "navigation_path": "/assess/impact",
+                "navigation_path": "/assess/impact/{flow_id}",
             },
         ],
     },
@@ -309,29 +309,29 @@ CONTEXT_SERVICES = {
 NAVIGATION_RULES = {
     "user_action_required": {
         "description": "User needs to perform an action to continue",
-        "routing_pattern": "/flow_type/phase_id?flow_id={flow_id}",
+        "routing_pattern": "/flow_type/phase_id/{flow_id}",
         "examples": [
-            "/discovery/data-import?flow_id=123",
-            "/discovery/attribute-mapping?flow_id=123",
+            "/discovery/cmdb-import",  # No flow_id for data import
+            "/discovery/attribute-mapping/123",
         ],
     },
     "system_processing": {
         "description": "System is processing, user should wait or check status",
-        "routing_pattern": "/flow_type/overview?flow_id={flow_id}",
-        "examples": ["/discovery/overview?flow_id=123", "/assess/overview?flow_id=123"],
+        "routing_pattern": "/flow_type/overview/{flow_id}",
+        "examples": ["/discovery/overview/123", "/assess/overview/123"],
     },
     "phase_complete": {
         "description": "Phase is complete, user can proceed to next phase",
-        "routing_pattern": "/flow_type/next_phase?flow_id={flow_id}",
+        "routing_pattern": "/flow_type/next_phase/{flow_id}",
         "examples": [
-            "/discovery/attribute-mapping?flow_id=123",
-            "/discovery/data-cleansing?flow_id=123",
+            "/discovery/attribute-mapping/123",
+            "/discovery/data-cleansing/123",
         ],
     },
     "flow_complete": {
         "description": "Entire flow is complete, user can view results or start next flow",
-        "routing_pattern": "/flow_type/results?flow_id={flow_id}",
-        "examples": ["/discovery/results?flow_id=123", "/assess/results?flow_id=123"],
+        "routing_pattern": "/flow_type/results/{flow_id}",
+        "examples": ["/discovery/results/123", "/assess/results/123"],
     },
 }
 
@@ -436,13 +436,19 @@ def get_navigation_path(
     phase_def = get_phase_definition(flow_type, phase_id)
 
     if not phase_def:
-        return f"/{flow_type.value}/overview?flow_id={flow_id}"
+        return f"/{flow_type.value}/overview"
 
     base_path = phase_def.get("navigation_path", f"/{flow_type.value}/{phase_id}")
 
-    # Add flow_id parameter
-    separator = "&" if "?" in base_path else "?"
-    return f"{base_path}{separator}flow_id={flow_id}"
+    # Substitute flow_id in path template or add as parameter for non-parametric paths
+    if "{flow_id}" in base_path:
+        return base_path.format(flow_id=flow_id)
+    else:
+        # For paths that don't expect flow_id in path (like data import)
+        if "?" in base_path:
+            return f"{base_path}&flow_id={flow_id}"
+        else:
+            return base_path
 
 
 def get_validation_services(flow_type: FlowType, phase_id: str) -> List[str]:

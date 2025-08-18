@@ -106,12 +106,12 @@ const CleansingRecommendationsPanel: React.FC<CleansingRecommendationsPanelProps
                     </div>
                     <p className="text-sm text-gray-700 mb-2">{rec.description}</p>
                     <div className="text-xs text-gray-600">
-                      <p><strong>Fields:</strong> {rec.fields.join(', ')}</p>
+                      <p><strong>Fields:</strong> {rec.fields_affected?.join(', ') || 'N/A'}</p>
                       <p><strong>Steps:</strong></p>
                       <ul className="list-disc list-inside ml-2 space-y-1">
-                        {rec.implementation_steps.map((step, idx) => (
+                        {rec.implementation_steps?.map((step, idx) => (
                           <li key={idx}>{step}</li>
-                        ))}
+                        )) || <li>No implementation steps available</li>}
                       </ul>
                     </div>
                     <p className="text-xs text-blue-600 mt-1">Source: {rec.agent_source}</p>

@@ -226,8 +226,49 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
 
     except Exception as e:
         logger.error(f"Error getting assets table fields: {e}")
-        # Fallback to standard fields if database query fails
-        return STANDARD_TARGET_FIELDS
+        # Fallback to minimal essential fields only if database query fails
+        # This prevents hardcoded fields from appearing when they don't
+        # exist in uploaded data
+        logger.warning(
+            "Using minimal fallback fields due to database error - "
+            "only essential fields included"
+        )
+        return [
+            # Only include the most essential identification fields
+            {
+                "name": "asset_name",
+                "type": "string",
+                "required": True,
+                "description": "Asset name or identifier",
+                "category": "identification",
+                "nullable": False,
+                "max_length": None,
+                "precision": None,
+                "scale": None,
+            },
+            {
+                "name": "hostname",
+                "type": "string",
+                "required": True,
+                "description": "Asset hostname",
+                "category": "identification",
+                "nullable": False,
+                "max_length": None,
+                "precision": None,
+                "scale": None,
+            },
+            {
+                "name": "ip_address",
+                "type": "string",
+                "required": True,
+                "description": "Primary IP address",
+                "category": "network",
+                "nullable": False,
+                "max_length": None,
+                "precision": None,
+                "scale": None,
+            },
+        ]
 
 
 def generate_field_description(field_name: str, field_type: str) -> str:
@@ -557,7 +598,8 @@ async def get_available_target_fields(
     """
     Get available target fields for field mapping.
 
-    Returns actual asset table fields from database schema, excluding internal system fields.
+    Returns actual asset table fields from database schema,
+    excluding internal system fields.
     """
     try:
         logger.info(
