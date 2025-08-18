@@ -143,33 +143,47 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 ## Core Services
 
-### 1. CrewAI Service (`crewai_service.py`)
+### 1. Master Flow Orchestrator (`master_flow_orchestrator/core.py`)
 
-The main orchestrator for AI-powered analysis and learning.
+The central orchestrator for all CrewAI flows with modular architecture.
 
 ```python
-class CrewAIService:
-    """Service for managing truly agentic CrewAI agents with memory and learning."""
+class MasterFlowOrchestrator:
+    """THE SINGLE ORCHESTRATOR - Refactored with modular components
+    
+    This orchestrator provides:
+    - Unified flow lifecycle management (via FlowLifecycleManager)
+    - Flow execution and monitoring
+    - State synchronization across flow types
+    - Error handling and recovery
+    """
     
     def __init__(self):
-        self.llm = None
-        self.memory = AgentMemory()
-        self.agent_manager = None
-        self.analyzer = IntelligentAnalyzer(self.memory)
-        self.feedback_processor = FeedbackProcessor(self.memory)
+        # Core orchestration components
+        self.flow_operations = FlowOperations()
+        self.status_operations = StatusOperations()
+        self.monitoring_operations = MonitoringOperations()
+        self.status_sync_operations = StatusSyncOperations()
         
-        # Initialize LLM and agents if available
-        if CREWAI_AVAILABLE and settings.DEEPINFRA_API_KEY:
-            self._initialize_llm()
-            self.agent_manager = AgentManager(self.llm)
+        # Flow management services
+        self.lifecycle_manager = FlowLifecycleManager()
+        self.execution_engine = FlowExecutionEngine()
+        self.status_manager = FlowStatusManager()
+        self.error_handler = FlowErrorHandler()
+        self.audit_logger = FlowAuditLogger()
+        
+        # Specialized services
+        self.repair_service = FlowRepairService()
+        self.smart_discovery = SmartDiscoveryService()
+        self.performance_monitor = MockFlowPerformanceMonitor()
     
-    async def analyze_cmdb_data(self, cmdb_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Analyze CMDB data using AI agents."""
-        # Implementation details...
+    async def create_flow(self, flow_type: str, config: dict, context: RequestContext) -> str:
+        """Create a new flow instance with full lifecycle management."""
+        return await self.flow_operations.create_flow(flow_type, config, context)
     
-    async def process_user_feedback(self, feedback_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Process user feedback for continuous learning."""
-        # Implementation details...
+    async def execute_flow(self, flow_id: str, phase_input: dict, context: RequestContext) -> dict:
+        """Execute flow phase with comprehensive monitoring."""
+        return await self.flow_operations.execute_flow(flow_id, phase_input, context)
 ```
 
 **Key Features:**
@@ -178,68 +192,90 @@ class CrewAIService:
 - **Memory System**: Persistent learning across sessions
 - **Fallback Logic**: Graceful degradation when AI is unavailable
 
-### 2. Agent Manager (`agents.py`)
+### 2. CrewAI Flow Service (`crewai_flow_service.py`)
 
-Manages the creation and lifecycle of specialized AI agents.
-
-```python
-class AgentManager:
-    """Manages creation and lifecycle of AI agents and crews."""
-    
-    def __init__(self, llm: Optional[Any] = None):
-        self.llm = llm
-        self.agents = {}
-        self.crews = {}
-        
-        if CREWAI_AVAILABLE and self.llm:
-            self._create_agents()
-            self._create_crews()
-    
-    def _create_agents(self):
-        """Create all specialized agents."""
-        
-        # CMDB Data Analyst Agent
-        self.agents['cmdb_analyst'] = Agent(
-            role='Senior CMDB Data Analyst',
-            goal='Analyze CMDB data with expert precision',
-            backstory="""Expert in enterprise asset management...""",
-            llm=self.llm,
-            memory=False  # Disable to avoid OpenAI API calls
-        )
-        
-        # Additional agents: learning_agent, pattern_agent, etc.
-```
-
-**Agent Types:**
-- **CMDB Analyst**: Analyzes infrastructure data
-- **Learning Specialist**: Processes feedback for improvement
-- **Pattern Recognition Expert**: Identifies data patterns
-- **Migration Strategist**: Recommends 6R strategies
-- **Risk Assessor**: Evaluates migration risks
-- **Wave Planner**: Optimizes migration sequencing
-
-### 3. Field Mapping System (`field_mapper.py`)
-
-Intelligent field mapping with AI learning capabilities.
+Bridges CrewAI flows with the Discovery Flow architecture.
 
 ```python
-class FieldMapper:
-    """Intelligent field mapping with AI learning capabilities."""
+class CrewAIFlowService:
+    """V2 CrewAI Flow Service - Bridges CrewAI flows with Discovery Flow architecture.
+    
+    Key Features:
+    - Uses flow_id as single source of truth instead of session_id
+    - Modular components for maintainability
+    - Backward compatibility with existing systems
+    """
     
     def __init__(self):
-        self.mappings_file = Path("data/field_mappings.json")
-        self.learned_mappings = self._load_learned_mappings()
-        self.base_mappings = self._get_base_mappings()
+        # Modular components
+        self.executor = CrewAIFlowExecutor()
+        self.lifecycle_manager = CrewAIFlowLifecycleManager()
+        self.monitoring = CrewAIFlowMonitoring()
+        self.state_manager = CrewAIFlowStateManager()
+        self.utils = CrewAIFlowUtils()
+        
+        # Integration services
+        self.discovery_flow_service = DiscoveryFlowService()
+        
+        # CrewAI Flow integration (conditional)
+        if CREWAI_FLOWS_AVAILABLE:
+            self.unified_discovery_flow = UnifiedDiscoveryFlow
     
-    def find_matching_fields(self, available_columns: List[str], 
-                           target_field: str) -> List[str]:
-        """Find columns that match a target field."""
-        # Implementation with fuzzy matching and learned patterns
+    async def create_flow(self, flow_config: dict, context: RequestContext) -> str:
+        """Create a new CrewAI flow instance."""
+        return await self.lifecycle_manager.create_flow(flow_config, context)
     
-    def learn_field_mapping(self, source_field: str, target_field: str, 
-                          source: str) -> Dict[str, Any]:
-        """Learn a new field mapping from user feedback or analysis."""
-        # Implementation for persistent learning
+    async def execute_phase(self, flow_id: str, phase_input: dict) -> dict:
+        """Execute a flow phase with CrewAI agents."""
+        return await self.executor.execute_phase(flow_id, phase_input)
+```
+
+**Service Types:**
+- **Flow Orchestration**: Central coordination of all workflow types
+- **Discovery Flow Service**: Specialized discovery workflow management
+- **Assessment Flow Service**: Assessment and analysis workflows
+- **Collection Flow Service**: Adaptive data collection workflows
+- **Agent Pool Management**: Tenant-scoped agent instance management
+- **Performance Monitoring**: Real-time agent and flow performance tracking
+
+### 3. Persistent Agent System (`persistent_agents/`)
+
+Tenant-scoped agent pools with memory and learning capabilities.
+
+```python
+class TenantScopedAgentPool:
+    """Manages isolated agent instances for each client account.
+    Provides persistent agents with tenant-specific memory and configuration."""
+    
+    def __init__(self, client_account_id: str, engagement_id: str):
+        self.client_account_id = client_account_id
+        self.engagement_id = engagement_id
+        self.agent_instances = {}
+        self.memory_manager = TenantMemoryManager(client_account_id)
+        self.performance_tracker = AgentPerformanceTracker()
+    
+    async def get_agent(self, agent_type: str, context: dict = None) -> Agent:
+        """Get or create a persistent agent for this tenant."""
+        agent_key = f"{agent_type}_{self.client_account_id}"
+        
+        if agent_key not in self.agent_instances:
+            agent = await self._create_agent(agent_type, context)
+            self.agent_instances[agent_key] = agent
+            
+        return self.agent_instances[agent_key]
+    
+    async def _create_agent(self, agent_type: str, context: dict) -> Agent:
+        """Create a new agent instance with tenant-specific configuration."""
+        config = await self._get_agent_config(agent_type)
+        memory = await self.memory_manager.get_agent_memory(agent_type)
+        
+        return AgentFactory.create_agent(
+            agent_type=agent_type,
+            config=config,
+            memory=memory,
+            context=context,
+            tenant_id=self.client_account_id
+        )
 ```
 
 **Key Features:**
@@ -248,27 +284,58 @@ class FieldMapper:
 - **Persistent Storage**: Saves learned mappings to JSON file
 - **Pattern Recognition**: Identifies common field naming patterns
 
-### 4. Agent Monitor (`agent_monitor.py`)
+### 4. Flow Orchestration Services (`flow_orchestration/`)
 
-Real-time monitoring of AI agent activities.
+Modular services for comprehensive flow management.
 
 ```python
-class AgentMonitor:
-    """Real-time monitoring of AI agent activities."""
+class FlowExecutionEngine:
+    """Core engine for executing flow phases with agent coordination."""
     
-    def __init__(self):
-        self.active_tasks = {}
-        self.task_history = []
-        self.monitoring_active = False
+    async def execute_phase(self, flow_id: str, phase_name: str, 
+                           phase_input: dict, context: RequestContext) -> dict:
+        """Execute a specific phase with appropriate agents and monitoring."""
+        
+        # Get flow configuration
+        flow_config = await self.get_flow_config(flow_id)
+        
+        # Initialize agent pool for tenant
+        agent_pool = await self.get_agent_pool(
+            context.client_account_id, 
+            context.engagement_id
+        )
+        
+        # Execute phase with monitoring
+        with self.performance_monitor.track_execution(flow_id, phase_name):
+            result = await self._execute_phase_with_agents(
+                flow_id, phase_name, phase_input, agent_pool
+            )
+        
+        return result
+
+class FlowStatusManager:
+    """Manages flow status and state transitions."""
     
-    def start_task(self, task_id: str, agent_name: str, 
-                   description: str) -> None:
-        """Start monitoring a new task."""
-        # Implementation for task tracking
-    
-    def complete_task(self, task_id: str, result: str) -> None:
-        """Mark a task as completed."""
-        # Implementation for task completion
+    async def update_flow_status(self, flow_id: str, new_status: str, 
+                               context: dict = None) -> bool:
+        """Update flow status with validation and audit logging."""
+        
+        # Validate status transition
+        if not await self._validate_status_transition(flow_id, new_status):
+            raise InvalidStatusTransitionError(f"Cannot transition to {new_status}")
+        
+        # Update master flow state
+        await self.master_flow_repository.update_status(flow_id, new_status)
+        
+        # Update child flow state
+        await self.child_flow_repository.update_status(flow_id, new_status)
+        
+        # Log status change
+        await self.audit_logger.log_status_change(
+            flow_id, new_status, context
+        )
+        
+        return True
 ```
 
 **Features:**
@@ -391,20 +458,32 @@ class Migration(Base):
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+# High-performance async configuration
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DATABASE_ECHO,
+    pool_size=20,
+    max_overflow=30,
+    pool_timeout=30,
+    pool_recycle=3600,
     future=True
 )
 
 AsyncSessionLocal = sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False
 )
 
 async def get_db() -> AsyncSession:
     async with AsyncSessionLocal() as session:
         try:
             yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
         finally:
             await session.close()
 ```
@@ -659,4 +738,73 @@ async def test_ai_learning_scenario():
     assert len(missing_after) < len(missing_before)
 ```
 
-This backend architecture provides a robust, scalable foundation for the AI Modernize Migration Platform with clear separation of concerns, comprehensive error handling, and extensive AI integration capabilities. 
+## Service Registry and Dynamic Configuration
+
+### Service Registry (`service_registry.py`)
+
+```python
+class ServiceRegistry:
+    """Dynamic service discovery and configuration management."""
+    
+    def __init__(self):
+        self.services = {}
+        self.configurations = {}
+        self.health_monitors = {}
+    
+    def register_service(self, service_name: str, service_instance: Any, 
+                        config: dict = None):
+        """Register a service with optional configuration."""
+        self.services[service_name] = service_instance
+        if config:
+            self.configurations[service_name] = config
+        
+        # Setup health monitoring
+        self.health_monitors[service_name] = ServiceHealthMonitor(service_instance)
+    
+    async def get_service(self, service_name: str) -> Any:
+        """Get a registered service instance."""
+        if service_name not in self.services:
+            raise ServiceNotFoundError(f"Service {service_name} not registered")
+        
+        # Check service health
+        if not await self.health_monitors[service_name].is_healthy():
+            raise ServiceUnavailableError(f"Service {service_name} is unhealthy")
+        
+        return self.services[service_name]
+```
+
+## Multi-Model Architecture
+
+The platform supports multiple LLM providers and models:
+
+```python
+class MultiModelService:
+    """Manages multiple LLM providers and models."""
+    
+    def __init__(self):
+        self.providers = {
+            "deepinfra": DeepInfraProvider(),
+            "openai": OpenAIProvider(),  # Optional
+            "anthropic": AnthropicProvider()  # Optional
+        }
+        self.default_provider = "deepinfra"
+    
+    async def get_completion(self, prompt: str, model_config: dict = None):
+        """Get completion from appropriate model provider."""
+        provider_name = model_config.get("provider", self.default_provider)
+        provider = self.providers[provider_name]
+        
+        return await provider.complete(prompt, model_config)
+```
+
+This backend architecture provides a robust, scalable foundation for the AI Modernize Migration Platform with:
+
+- **Modular Design**: Clear separation of concerns with composable services
+- **Multi-Tenant Architecture**: Complete isolation between client accounts
+- **Flow Orchestration**: Centralized coordination of complex workflows
+- **Persistent Agent System**: Tenant-scoped agents with memory and learning
+- **Comprehensive Monitoring**: Real-time performance tracking and health monitoring
+- **Error Handling**: Graceful degradation and recovery mechanisms
+- **Security**: RBAC and audit logging throughout the system
+
+Last Updated: 2025-01-18 

@@ -3,7 +3,7 @@
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Next.js Application Structure](#nextjs-application-structure)
+2. [Vite React Application Structure](#vite-react-application-structure)
 3. [Component Architecture](#component-architecture)
 4. [State Management](#state-management)
 5. [Routing and Navigation](#routing-and-navigation)
@@ -15,81 +15,107 @@
 
 ## Overview
 
-The frontend is built with Next.js 14 using the App Router, TypeScript for type safety, and Tailwind CSS for styling. The architecture emphasizes component reusability, type safety, and modern React patterns.
+The frontend is built with Vite + React 18, TypeScript for type safety, and Tailwind CSS for styling. The architecture emphasizes component reusability, type safety, modern React patterns, and advanced lazy loading for optimal performance.
 
 ### Key Technologies
-- **Next.js 14**: React framework with App Router
+- **Vite**: Fast build tool and development server
+- **React 18**: Modern React with concurrent features
 - **TypeScript**: Type-safe JavaScript development
+- **React Router DOM**: Client-side routing
 - **Tailwind CSS**: Utility-first CSS framework
-- **shadcn/ui**: Modern component library
-- **React Hooks**: State management and lifecycle
-- **WebSocket**: Real-time communication
+- **Radix UI**: Accessible component primitives
+- **shadcn/ui**: Modern component library built on Radix
+- **TanStack Query**: Server state management
+- **Zod**: Runtime type validation
+- **React Hook Form**: Form state management
 
-## Next.js Application Structure
+Last Updated: 2025-01-18
 
-### App Router Structure
+## Vite React Application Structure
+
+### Project Structure
 
 ```
 src/
-├── app/                    # Next.js App Router
-│   ├── layout.tsx         # Root layout
-│   ├── page.tsx           # Home page
-│   ├── globals.css        # Global styles
-│   └── (routes)/          # Route groups
-│       ├── discovery/     # Discovery phase routes
-│       ├── assess/        # Assessment phase routes
-│       ├── plan/          # Planning phase routes
-│       ├── execute/       # Execution phase routes
-│       ├── modernize/     # Modernization phase routes
-│       └── finops/        # FinOps phase routes
 ├── components/            # Reusable components
-│   ├── ui/               # Base UI components
-│   ├── discovery/        # Discovery-specific components
-│   ├── layout/           # Layout components
-│   └── common/           # Common components
+│   ├── ui/               # Base UI components (shadcn/ui)
+│   ├── admin/            # Admin-specific components
+│   ├── discovery/        # Discovery workflow components
+│   ├── collection/       # Collection workflow components
+│   ├── assessment/       # Assessment workflow components
+│   ├── plan/             # Planning workflow components
+│   ├── execute/          # Execution workflow components
+│   ├── modernize/        # Modernization workflow components
+│   ├── finops/           # FinOps workflow components
+│   ├── lazy/             # Lazy loading components and utilities
+│   └── shared/           # Shared/common components
+├── pages/                # Route components
+│   ├── collection/       # Collection workflow pages
+│   ├── assessment/       # Assessment workflow pages
+│   └── [other-routes]/   # Other route-specific pages
+├── contexts/             # React Context providers
+│   ├── AuthContext.tsx  # Authentication context
+│   ├── ClientContext.tsx # Client/tenant context
+│   ├── DialogContext.tsx # Dialog management
+│   └── [others].tsx     # Other context providers
 ├── hooks/                # Custom React hooks
-├── lib/                  # Utility libraries
+├── services/             # API clients and services
+├── utils/                # Utility functions
+├── lib/                  # External library configurations
+├── types/                # TypeScript type definitions
+├── constants/            # Application constants
 ├── config/               # Configuration files
-└── types/                # TypeScript type definitions
+└── __tests__/            # Test files
 ```
 
-### Root Layout (`app/layout.tsx`)
+### Root Application (`src/App.tsx`)
 
 ```tsx
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import { ThemeProvider } from '@/components/theme-provider'
-import { Toaster } from '@/components/ui/toaster'
+import { useState, useEffect } from 'react';
+import { Toaster } from '@/components/ui/toaster';
+import { Toaster as Sonner } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { Route, Routes } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ClientProvider } from './contexts/ClientContext';
+import { FieldOptionsProvider } from './contexts/FieldOptionsContext';
+import { DialogProvider } from './contexts/DialogContext';
+import { ChatFeedbackProvider } from './contexts/ChatFeedbackContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
-const inter = Inter({ subsets: ['latin'] })
+// Lazy Loading Infrastructure
+import { LazyLoadingProvider, LoadingPriority } from './components/lazy';
+import { routePreloader } from './utils/lazy/routePreloader';
 
-export const metadata: Metadata = {
-  title: 'AI Modernize Migration Platform',
-  description: 'Intelligent cloud migration orchestration platform',
-}
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-          <Toaster />
-        </ThemeProvider>
-      </body>
-    </html>
-  )
-}
+const App = (): JSX.Element => (
+  <ErrorBoundary>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <LazyLoadingProvider
+        globalOptions={{
+          priority: LoadingPriority.NORMAL,
+          timeout: 30000,
+          retryAttempts: 3,
+          cacheStrategy: 'memory',
+        }}
+      >
+        <AuthProvider>
+          <ClientProvider>
+            <FieldOptionsProvider>
+              <DialogProvider>
+                <ChatFeedbackProvider>
+                  <AuthenticatedApp />
+                  <GlobalChatFeedback />
+                </ChatFeedbackProvider>
+              </DialogProvider>
+            </FieldOptionsProvider>
+          </ClientProvider>
+        </AuthProvider>
+      </LazyLoadingProvider>
+    </TooltipProvider>
+  </ErrorBoundary>
+);
 ```
 
 ## Component Architecture
@@ -121,8 +147,6 @@ App
 
 ```tsx
 // components/discovery/CMDBUpload.tsx
-'use client'
-
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Button } from '@/components/ui/button'
@@ -373,45 +397,69 @@ export function useMigration() {
 
 ## Routing and Navigation
 
-### App Router Structure
+### React Router Implementation
+
+The application uses React Router DOM for client-side routing with intelligent lazy loading:
 
 ```tsx
-// app/(dashboard)/layout.tsx
-import { Sidebar } from '@/components/layout/Sidebar'
-import { Header } from '@/components/layout/Header'
+// Key features of the routing system:
+// 1. Route-based code splitting with lazy loading
+// 2. Priority-based preloading (Critical, High, Normal, Low)
+// 3. Hover and viewport-based preloading
+// 4. Authentication-aware routing
+// 5. Admin route protection
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+const AuthenticatedApp = (): JSX.Element => {
+  const { isLoading, isAuthenticated } = useAuth();
+  
+  // Setup intelligent route preloading
+  useEffect(() => {
+    if (isAuthenticated) {
+      routePreloader.registerRoute({
+        path: '/',
+        importFn: () => import('./pages/Index'),
+        priority: LoadingPriority.CRITICAL,
+      });
+      
+      routePreloader.setupHoverPreloading();
+      routePreloader.setupViewportPreloading();
+    }
+  }, [isAuthenticated]);
+  
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-auto p-6">
-          {children}
-        </main>
-      </div>
-    </div>
-  )
-}
+    <Routes>
+      {/* CRITICAL PRIORITY ROUTES */}
+      <Route path="/" element={<LazyIndex />} />
+      <Route path="/discovery" element={<LazyDiscovery />} />
+      
+      {/* Workflow routes with nested routing */}
+      <Route path="/collection/*" element={<CollectionRoutes />} />
+      <Route path="/assessment/*" element={<AssessmentRoutes />} />
+      
+      {/* Admin routes with protection */}
+      <Route path="/admin/*" element={
+        <AdminRoute>
+          <AdminLayout>
+            <AdminRoutes />
+          </AdminLayout>
+        </AdminRoute>
+      } />
+    </Routes>
+  );
+};
 ```
 
 ### Navigation Component
 
 ```tsx
-// components/layout/Sidebar.tsx
-'use client'
-
-import { usePathname } from 'next/navigation'
-import Link from 'next/link'
+// components/shared/Sidebar.tsx
+import { useLocation, Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
 const navigationItems = [
   { name: 'Discovery', href: '/discovery', icon: SearchIcon },
+  { name: 'Collection', href: '/collection', icon: DatabaseIcon },
   { name: 'Assessment', href: '/assess', icon: ClipboardIcon },
   { name: 'Planning', href: '/plan', icon: CalendarIcon },
   { name: 'Execution', href: '/execute', icon: PlayIcon },
@@ -420,7 +468,7 @@ const navigationItems = [
 ]
 
 export function Sidebar() {
-  const pathname = usePathname()
+  const location = useLocation()
 
   return (
     <div className="w-64 bg-card border-r">
@@ -429,9 +477,9 @@ export function Sidebar() {
       </div>
       <nav className="px-4 space-y-2">
         {navigationItems.map((item) => {
-          const isActive = pathname.startsWith(item.href)
+          const isActive = location.pathname.startsWith(item.href)
           return (
-            <Link key={item.name} href={item.href}>
+            <Link key={item.name} to={item.href}>
               <Button
                 variant={isActive ? 'default' : 'ghost'}
                 className={cn(
@@ -783,11 +831,71 @@ class ApiClient {
 export const apiClient = new ApiClient(API_BASE_URL)
 ```
 
+### Advanced Lazy Loading System
+
+The application implements a sophisticated lazy loading system with intelligent preloading:
+
+```tsx
+// utils/lazy/routePreloader.ts
+export enum LoadingPriority {
+  CRITICAL = 0,  // Load immediately
+  HIGH = 1,      // Preload on app init
+  NORMAL = 2,    // Load on hover/viewport
+  LOW = 3        // Load on demand only
+}
+
+class RoutePreloader {
+  private routes = new Map<string, RouteConfig>();
+  private loadedModules = new Map<string, any>();
+  
+  registerRoute(config: RouteConfig) {
+    this.routes.set(config.path, config);
+    
+    // Immediately preload critical routes
+    if (config.priority === LoadingPriority.CRITICAL) {
+      this.preloadRoute(config.path);
+    }
+  }
+  
+  setupHoverPreloading() {
+    // Preload routes when user hovers over navigation links
+    document.addEventListener('mouseover', (e) => {
+      const link = e.target.closest('a[href]');
+      if (link) {
+        const path = link.getAttribute('href');
+        this.preloadRoute(path);
+      }
+    });
+  }
+  
+  setupViewportPreloading() {
+    // Preload routes for visible navigation items
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const link = entry.target.querySelector('a[href]');
+          if (link) {
+            const path = link.getAttribute('href');
+            this.preloadRoute(path);
+          }
+        }
+      });
+    });
+    
+    // Observe navigation items
+    document.querySelectorAll('nav').forEach(nav => {
+      observer.observe(nav);
+    });
+  }
+}
+```
+
 ### Data Fetching Hooks
 
 ```tsx
 // hooks/useAnalysis.ts
 import { useState, useCallback } from 'react'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 
@@ -844,6 +952,39 @@ export function useAnalysis() {
 
 ## Styling and Theming
 
+### Vite Configuration
+
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react-swc'
+import path from 'path'
+
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
+          utils: ['clsx', 'tailwind-merge', 'class-variance-authority'],
+        },
+      },
+    },
+  },
+  server: {
+    port: 8081, // Docker development port
+    host: true,
+  },
+})
+```
+
 ### Tailwind Configuration
 
 ```js
@@ -853,9 +994,6 @@ import type { Config } from 'tailwindcss'
 const config: Config = {
   darkMode: ["class"],
   content: [
-    './pages/**/*.{ts,tsx}',
-    './components/**/*.{ts,tsx}',
-    './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
   ],
   theme: {
@@ -996,26 +1134,63 @@ export default config
 
 ## Performance Optimization
 
-### Code Splitting
+### Advanced Code Splitting with Lazy Loading
+
+The application uses a sophisticated lazy loading system with priority-based preloading:
 
 ```tsx
-// Dynamic imports for large components
-import dynamic from 'next/dynamic'
+// components/lazy/index.ts
+import { lazy } from 'react';
+import { withLazyLoading } from './LazyLoadingProvider';
 
-const DataVisualization = dynamic(
-  () => import('@/components/discovery/DataVisualization'),
-  {
-    loading: () => <div>Loading visualization...</div>,
-    ssr: false
-  }
-)
+// Critical priority - loaded immediately
+export const LazyIndex = withLazyLoading(
+  lazy(() => import('@/pages/Index')),
+  { priority: LoadingPriority.CRITICAL }
+);
 
-const AgentMonitor = dynamic(
-  () => import('@/components/monitoring/AgentMonitor'),
-  {
-    loading: () => <div>Loading agent monitor...</div>
+// High priority - preloaded on app init
+export const LazyDiscovery = withLazyLoading(
+  lazy(() => import('@/pages/Discovery')),
+  { priority: LoadingPriority.HIGH }
+);
+
+// Normal priority - loaded on hover/viewport
+export const LazyAssess = withLazyLoading(
+  lazy(() => import('@/pages/Assess')),
+  { priority: LoadingPriority.NORMAL }
+);
+
+// Low priority - loaded on demand only
+export const LazyFinOps = withLazyLoading(
+  lazy(() => import('@/pages/FinOps')),
+  { priority: LoadingPriority.LOW }
+);
+```
+
+### Intelligent Route Preloading
+
+```tsx
+// Features:
+// 1. Hover-based preloading
+// 2. Viewport-based preloading
+// 3. Priority-based loading
+// 4. Route dependency tracking
+// 5. Memory-based caching
+
+const routePreloader = {
+  setupHoverPreloading() {
+    // Preload routes when hovering over navigation
+  },
+  
+  setupViewportPreloading() {
+    // Preload visible route components
+  },
+  
+  preloadFromCurrentLocation(pathname: string) {
+    // Intelligently preload likely next routes
   }
-)
+};
 ```
 
 ### Memoization

@@ -20,7 +20,7 @@ This directory contains Architecture Decision Records for the AI Modernize Migra
 | [ADR-012](012-flow-status-management-separation.md) | Flow Status Management Separation | Accepted | 2025 |
 | [ADR-013](013-adaptive-data-collection-integration.md) | Adaptive Data Collection System Integration | Accepted | 2025-07-19 |
 | [ADR-014](014-on-premises-deployment-model.md) | On-Premises Deployment Model for Regulated Environments | Proposed | 2025-07-19 |
-| [ADR-015](015-security-precommit-compliance.md) | Security Pre-commit Compliance Framework | Accepted | 2025-08-08 |
+| [ADR-015](015-persistent-multi-tenant-agent-architecture.md) | Persistent Multi-Tenant Agent Architecture | Proposed | 2025-08-07 |
 | [ADR-016](016-collection-flow-intelligent-data-enrichment.md) | Collection Flow for Intelligent Data Enrichment | Accepted | 2025-08-08 |
 | [ADR-017](017-redis-backed-failure-journal-and-dlq.md) | Redis-Backed Failure Journal and DLQ | Accepted | 2025 |
 | [ADR-018](018-service-registry-for-crewai-tools.md) | Service Registry for CrewAI Tools | Proposed | 2025-01-13 |
