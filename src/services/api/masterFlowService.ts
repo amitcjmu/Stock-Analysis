@@ -9,6 +9,8 @@ import type { EnhancedApiError } from "../../config/api";
 import type { AuditableMetadata } from "../../types/shared/metadata-types";
 import type { BaseMetadata } from "../../types/shared/metadata-types";
 import type { ActiveFlowSummary } from "../../types/modules/flow-orchestration/model-types";
+import { createMultiTenantHeaders } from "../../utils/api/multiTenantHeaders";
+import type { MultiTenantContext } from "../../utils/api/apiTypes";
 
 const apiClient = ApiClient.getInstance();
 import type { AuthService } from "../../contexts/AuthContext/services/authService";
@@ -119,21 +121,27 @@ export interface FlowStatusResponse {
 }
 
 /**
- * Get multi-tenant headers for API requests
+ * Get multi-tenant headers for API requests using centralized utility
  */
 const getMultiTenantHeaders = (
   clientAccountId: string,
   engagementId?: string,
   userId?: string,
-): unknown => {
+): Record<string, string> => {
   const token = localStorage.getItem("auth_token");
-  return {
-    "X-Client-Account-Id": clientAccountId,
-    ...(engagementId && { "X-Engagement-ID": engagementId }),
-    ...(userId && { "X-User-ID": userId }),
+  const context: MultiTenantContext = {
+    clientAccountId,
+    engagementId,
+    userId,
+  };
+
+  const headers = {
+    ...createMultiTenantHeaders(context),
     "Content-Type": "application/json",
     ...(token && { Authorization: `Bearer ${token}` }),
   };
+
+  return headers;
 };
 
 /**
@@ -339,6 +347,18 @@ export const masterFlowService = {
       }
 
       // CC: Implement fallback to unified-discovery endpoint for issues #95 and #94
+      // Gate fallback behind feature flag to prevent dual reads and maintain single source of truth
+      if (!process.env.NEXT_PUBLIC_ENABLE_UNIFIED_DISCOVERY_FALLBACK) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn(
+            "❌ MasterFlowService.getActiveFlows - Fallback disabled by feature flag. Original error:",
+            error,
+          );
+        }
+        handleApiError(error, "getActiveFlows");
+        throw error;
+      }
+
       if (process.env.NODE_ENV !== 'production') {
         console.log(
           "🔄 MasterFlowService.getActiveFlows - Attempting fallback to unified-discovery endpoint...",
@@ -494,6 +514,18 @@ export const masterFlowService = {
       }
 
       // CC: Implement fallback to unified-discovery endpoint for consistent flow operations
+      // SECURITY WARNING: Gate fallback behind feature flag to prevent dual deletes and maintain single source of truth
+      if (!process.env.NEXT_PUBLIC_ENABLE_UNIFIED_DISCOVERY_FALLBACK) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn(
+            `❌ MasterFlowService.deleteFlow - Fallback disabled by feature flag for flow ${flowId}. Original error:`,
+            error,
+          );
+        }
+        handleApiError(error, "deleteFlow");
+        throw error;
+      }
+
       if (process.env.NODE_ENV !== 'production') {
         console.log(
           `🔄 MasterFlowService.deleteFlow - Attempting fallback deletion for flow ${flowId}...`,

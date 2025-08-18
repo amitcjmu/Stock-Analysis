@@ -544,6 +544,8 @@ export const apiCall = async (
         normalizedEndpoint.includes('/assets/list/paginated') ||
         normalizedEndpoint.includes('/flows/execute') ||  // Fixed: Use MFO endpoint for flow execution
         normalizedEndpoint.includes('/flow-processing/continue') ||
+        normalizedEndpoint.includes('/flows/') && normalizedEndpoint.includes('/resume') ||  // Long-running recovery operation
+        normalizedEndpoint.includes('/flows/') && normalizedEndpoint.includes('/retry') ||   // Long-running retry operation
         normalizedEndpoint.includes('/assets/analyze') ||
         normalizedEndpoint.includes('/asset_inventory') ||
         normalizedEndpoint.includes('/classification') ||

@@ -1,5 +1,41 @@
 # AI Modernize Migration Platform - Changelog
 
+## [2025-08-18] - Bug Fix Batch & Security Enhancements (PR #126)
+### Security Improvements
+- **SECURITY**: Prevented bearer token exposure in production logs
+  - Removed header logging from masterFlowService.ts
+  - Added NODE_ENV checks for all debug logging
+  - Centralized multi-tenant header creation using shared utility
+- **SECURITY**: Added feature flag for unified-discovery fallback operations
+  - New flag: `NEXT_PUBLIC_ENABLE_UNIFIED_DISCOVERY_FALLBACK`
+  - Prevents uncontrolled dual operations without explicit opt-in
+- **SECURITY**: Environment-gated demo endpoints
+  - Demo endpoints only accessible in non-production environments
+  - Production uses secure `/unified-discovery/assets` endpoint
+
+### Bug Fixes
+- **FIX**: View buttons now navigate to monitoring page instead of Data Import
+  - Added new route `/discovery/monitor/:flowId` for flow monitoring
+  - Updated routing configuration for initialization, error, and unknown states
+  - Fixed flowId context preservation across navigation
+- **FIX**: Flow Monitor no longer times out on long-running operations
+  - Added `/flow-processing/continue` to agentic activities (no timeout)
+  - Added `/flows/{id}/resume` and `/flows/{id}/retry` to agentic activities
+  - Long-running AI operations now complete successfully
+- **FIX**: Filters work correctly in Discovery/Collection page
+  - Updated to use working `/auth/demo/assets` endpoint (dev only)
+  - Production uses `/unified-discovery/assets` endpoint
+- **FIX**: MFO endpoint failures handled gracefully
+  - Added fallback to unified-discovery endpoints when MFO fails
+  - Comprehensive error handling for both flow listing and deletion
+  - Feature-flagged for controlled rollout
+
+### Technical Improvements
+- Added flowId validation to prevent malformed URLs
+- Centralized multi-tenant header management
+- Enhanced error handling and logging security
+- Improved resilience with MFO-first, unified-discovery fallback pattern
+
 ## [2025-01-18] - GPT5 PR Review Must-Fix Items
 ### Breaking Changes
 - **BREAKING**: Removed /data-cleansing prefix from data cleansing endpoints
