@@ -41,6 +41,35 @@ export interface DataCleansingStats {
 }
 
 /**
+ * Data quality issue structure
+ */
+export interface DataQualityIssue {
+  id: string;
+  field_name: string;
+  issue_type: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  description: string;
+  affected_records: number;
+  recommendation: string;
+  auto_fixable: boolean;
+}
+
+/**
+ * Data cleansing recommendation structure
+ */
+export interface DataCleansingRecommendation {
+  id: string;
+  category: 'standardization' | 'validation' | 'enrichment' | 'deduplication';
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+  impact: string;
+  effort_estimate: string;
+  fields_affected: string[];
+  implementation_steps?: string[];
+}
+
+/**
  * Data cleansing analysis structure
  */
 export interface DataCleansingAnalysis {
@@ -51,29 +80,19 @@ export interface DataCleansingAnalysis {
   quality_score: number;
   issues_count: number;
   recommendations_count: number;
-  quality_issues: Array<{
-    id: string;
-    field_name: string;
-    issue_type: string;
-    severity: string;
-    description: string;
-    affected_records: number;
-    recommendation: string;
-    auto_fixable: boolean;
-  }>;
-  recommendations: Array<{
-    id: string;
-    category: string;
-    title: string;
-    description: string;
-    priority: string;
-    impact: string;
-    effort_estimate: string;
-    fields_affected: string[];
-    implementation_steps: string[];
-  }>;
+  quality_issues: DataQualityIssue[];
+  recommendations: DataCleansingRecommendation[];
   field_quality_scores: Record<string, number>;
   processing_status: string;
+  source?: 'agent' | 'fallback' | 'mock' | 'agent_failed' | 'service_unavailable';
+}
+
+/**
+ * Trigger data cleansing analysis request
+ */
+export interface TriggerDataCleansingRequest {
+  force_refresh?: boolean;
+  include_agent_analysis?: boolean;
 }
 
 /**

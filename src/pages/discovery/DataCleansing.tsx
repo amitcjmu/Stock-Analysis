@@ -74,16 +74,16 @@ const DataCleansing: React.FC = () => {
     isLoading: isDataCleansingStatsLoading,
     error: dataCleansingStatsError,
     refetch: refetchStats
-  } = useDataCleansingStats(effectiveFlowId) as any;
+  } = useDataCleansingStats(effectiveFlowId);
 
   const {
     data: dataCleansingAnalysis,
     isLoading: isDataCleansingAnalysisLoading,
     error: dataCleansingAnalysisError,
     refetch: refetchAnalysis
-  } = useDataCleansingAnalysis(effectiveFlowId) as any;
+  } = useDataCleansingAnalysis(effectiveFlowId);
 
-  const triggerAnalysisMutation = useTriggerDataCleansingAnalysis() as any;
+  const triggerAnalysisMutation = useTriggerDataCleansingAnalysis();
 
   // Use data cleansing hooks - fallback to simple approach since complex hooks aren't working (legacy)
   const {
@@ -124,13 +124,13 @@ const DataCleansing: React.FC = () => {
     completion_percentage: completionPercentage,
     cleaned_records: cleanedRecords,
     records_with_issues: recordsWithIssues,
-    issues_resolved: qualityIssues.filter((issue: any) => issue.auto_fixable).length,
+    issues_resolved: qualityIssues.filter((issue) => issue.auto_fixable).length,
     issues_found: qualityIssues.length,
     crew_completion_status: dataCleansingAnalysis?.processing_status || 'unknown',
     fields_analyzed: fieldsAnalyzed,
     data_types_identified: fieldsAnalyzed,
-    validation_rules_applied: agentRecommendations.filter((r: any) => r.category === 'validation').length,
-    transformations_applied: agentRecommendations.filter((r: any) => r.category === 'standardization').length
+    validation_rules_applied: agentRecommendations.filter((r) => r.category === 'validation').length,
+    transformations_applied: agentRecommendations.filter((r) => r.category === 'standardization').length
   };
 
   // Secure debug logging - data availability check
@@ -168,8 +168,8 @@ const DataCleansing: React.FC = () => {
       // Use the new mutation hook
       await triggerAnalysisMutation.mutateAsync({
         flowId: effectiveFlowId,
-        forceRefresh: true,
-        includeAgentAnalysis: true
+        force_refresh: true,
+        include_agent_analysis: true
       });
 
       SecureLogger.info('Data cleansing analysis triggered successfully');
