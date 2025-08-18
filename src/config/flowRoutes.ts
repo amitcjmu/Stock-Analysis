@@ -12,8 +12,8 @@ export type FlowType = 'discovery' | 'assessment' | 'plan' | 'execute' | 'modern
  */
 export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string) => string>> = {
   discovery: {
-    // Initialization phases go to cmdb-import (no flowId in URL)
-    'initialization': () => '/discovery/cmdb-import',
+    // Initialization phases go to monitoring view
+    'initialization': (flowId: string) => `/discovery/monitor/${flowId}`,
     'data_import_validation': () => '/discovery/cmdb-import',
     'data_import': () => '/discovery/cmdb-import',
 
@@ -40,15 +40,15 @@ export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string)
     'paused': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
     'pending_approval': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
 
-    // Error states - go back to import
-    'failed': () => '/discovery/cmdb-import',
-    'error': () => '/discovery/cmdb-import',
-    'not_found': () => '/discovery/cmdb-import',
+    // Error states - route to monitoring for error details
+    'failed': (flowId: string) => `/discovery/monitor/${flowId}`,
+    'error': (flowId: string) => `/discovery/monitor/${flowId}`,
+    'not_found': (flowId: string) => `/discovery/monitor/${flowId}`,
 
-    // Unknown/undefined states - default to cmdb-import
-    'unknown': () => '/discovery/cmdb-import',
-    'undefined': () => '/discovery/cmdb-import',
-    'current': () => '/discovery/cmdb-import',
+    // Unknown/undefined states - route to monitoring
+    'unknown': (flowId: string) => `/discovery/monitor/${flowId}`,
+    'undefined': (flowId: string) => `/discovery/monitor/${flowId}`,
+    'current': (flowId: string) => `/discovery/monitor/${flowId}`,
   },
 
   assessment: {
@@ -203,15 +203,8 @@ export function getDiscoveryPhaseRoute(phase: string, flowId: string): string {
 export function phaseRequiresFlowId(flowType: FlowType, phase: string): boolean {
   const noFlowIdPhases: Record<FlowType, string[]> = {
     discovery: [
-      'initialization',
       'data_import_validation',
-      'data_import',
-      'failed',
-      'error',
-      'not_found',
-      'unknown',
-      'undefined',
-      'current'
+      'data_import'
     ],
     assessment: ['failed', 'error', 'unknown'],
     plan: ['failed', 'error', 'unknown'],

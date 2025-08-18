@@ -3,15 +3,15 @@
  * Replaces all legacy discovery, assessment, and other flow services
  */
 
-import { ApiClient } from '../ApiClient';
-import type { ApiResponse, ApiError } from '../../types/shared/api-types';
-import type { EnhancedApiError } from '../../config/api';
-import type { AuditableMetadata } from '../../types/shared/metadata-types'
-import type { BaseMetadata } from '../../types/shared/metadata-types'
-import type { ActiveFlowSummary } from '../../types/modules/flow-orchestration/model-types'
+import { ApiClient } from "../ApiClient";
+import type { ApiResponse, ApiError } from "../../types/shared/api-types";
+import type { EnhancedApiError } from "../../config/api";
+import type { AuditableMetadata } from "../../types/shared/metadata-types";
+import type { BaseMetadata } from "../../types/shared/metadata-types";
+import type { ActiveFlowSummary } from "../../types/modules/flow-orchestration/model-types";
 
 const apiClient = ApiClient.getInstance();
-import type { AuthService } from '../../contexts/AuthContext/services/authService';
+import type { AuthService } from "../../contexts/AuthContext/services/authService";
 
 export interface FlowConfiguration extends BaseMetadata {
   flow_name?: string;
@@ -29,24 +29,35 @@ export interface FlowMetrics {
   failed_flows: number;
   average_duration_minutes: number;
   success_rate: number;
-  phase_metrics: Record<string, {
-    total_executions: number;
-    average_duration: number;
-    success_rate: number;
-  }>;
+  phase_metrics: Record<
+    string,
+    {
+      total_executions: number;
+      average_duration: number;
+      success_rate: number;
+    }
+  >;
 }
 
 export interface MasterFlowRequest {
   clientAccountId: string;
   engagementId: string;
-  flowType: 'discovery' | 'assessment' | 'planning' | 'execution' | 'modernize' | 'finops' | 'observability' | 'decommission';
+  flowType:
+    | "discovery"
+    | "assessment"
+    | "planning"
+    | "execution"
+    | "modernize"
+    | "finops"
+    | "observability"
+    | "decommission";
   config?: FlowConfiguration;
   userId?: string;
 }
 
 export interface MasterFlowResponse {
   flowId: string;
-  status: 'initializing' | 'running' | 'completed' | 'failed' | 'paused';
+  status: "initializing" | "running" | "completed" | "failed" | "paused";
   flowType: string;
   progress: number;
   currentPhase: string;
@@ -113,22 +124,25 @@ export interface FlowStatusResponse {
 const getMultiTenantHeaders = (
   clientAccountId: string,
   engagementId?: string,
-  userId?: string
+  userId?: string,
 ): unknown => {
-  const token = localStorage.getItem('auth_token');
+  const token = localStorage.getItem("auth_token");
   return {
-    'X-Client-Account-Id': clientAccountId,
-    ...(engagementId && { 'X-Engagement-ID': engagementId }),
-    ...(userId && { 'X-User-ID': userId }),
-    'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` }),
+    "X-Client-Account-Id": clientAccountId,
+    ...(engagementId && { "X-Engagement-ID": engagementId }),
+    ...(userId && { "X-User-ID": userId }),
+    "Content-Type": "application/json",
+    ...(token && { Authorization: `Bearer ${token}` }),
   };
 };
 
 /**
  * Handle API errors consistently
  */
-const handleApiError = (error: Error | { message?: string; code?: string }, operation: string): void => {
+const handleApiError = (
+  error: Error | { message?: string; code?: string },
+  operation: string,
+): void => {
   console.error(`MasterFlowService.${operation} failed:`, error);
   if (error instanceof Error) {
     throw new Error(`${operation} failed: ${error.message}`);
@@ -143,14 +157,16 @@ export const masterFlowService = {
   /**
    * Initialize any type of flow via master orchestrator
    */
-  async initializeFlow(request: MasterFlowRequest): Promise<MasterFlowResponse> {
+  async initializeFlow(
+    request: MasterFlowRequest,
+  ): Promise<MasterFlowResponse> {
     try {
       // Transform the request to match backend expectations
       const backendRequest = {
         flow_type: request.flowType,
         flow_name: request.config?.flow_name || `${request.flowType} Flow`,
         configuration: request.config || {},
-        initial_state: {}
+        initial_state: {},
       };
 
       const response = await apiClient.post<{
@@ -162,31 +178,37 @@ export const masterFlowService = {
         metadata: AuditableMetadata;
         created_at: string;
         updated_at: string;
-      }>(
-        '/flows/',
-        backendRequest,
-        {
-          headers: getMultiTenantHeaders(
-            request.clientAccountId,
-            request.engagementId,
-            request.userId
-          ),
-        }
-      );
+      }>("/flows/", backendRequest, {
+        headers: getMultiTenantHeaders(
+          request.clientAccountId,
+          request.engagementId,
+          request.userId,
+        ),
+      });
 
       // Transform backend response to match frontend expectations
       return {
         flowId: response.flow_id,
-        status: response.status as 'initializing' | 'running' | 'completed' | 'failed' | 'paused',
+        status: response.status as
+          | "initializing"
+          | "running"
+          | "completed"
+          | "failed"
+          | "paused",
         flowType: response.flow_type,
         progress: response.progress_percentage || 0,
-        currentPhase: response.phase || 'initialization',
-        metadata: response.metadata || { tags: {}, labels: {}, annotations: {}, customFields: {} },
+        currentPhase: response.phase || "initialization",
+        metadata: response.metadata || {
+          tags: {},
+          labels: {},
+          annotations: {},
+          customFields: {},
+        },
         createdAt: response.created_at,
-        updatedAt: response.updated_at
+        updatedAt: response.updated_at,
       };
     } catch (error) {
-      handleApiError(error, 'initializeFlow');
+      handleApiError(error, "initializeFlow");
       throw error;
     }
   },
@@ -197,18 +219,18 @@ export const masterFlowService = {
   async getFlowStatus(
     flowId: string,
     clientAccountId: string,
-    engagementId?: string
+    engagementId?: string,
   ): Promise<FlowStatusResponse> {
     try {
       const response = await apiClient.get<FlowStatusResponse>(
         `/flows/${flowId}/status`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
-        }
+        },
       );
       return response;
     } catch (error) {
-      handleApiError(error, 'getFlowStatus');
+      handleApiError(error, "getFlowStatus");
       throw error;
     }
   },
@@ -219,67 +241,208 @@ export const masterFlowService = {
   async getActiveFlows(
     clientAccountId: string,
     engagementId?: string,
-    flowType?: string
+    flowType?: string,
   ): Promise<ActiveFlowSummary[]> {
+    const params = new URLSearchParams();
+    if (flowType) params.append("flowType", flowType);
+
+    const endpoint = `/flows/active${params.toString() ? `?${params}` : ""}`; // Fixed: Use MFO endpoint
+    const headers = getMultiTenantHeaders(clientAccountId, engagementId);
+
+    console.log("🔍 MasterFlowService.getActiveFlows - Making API call:", {
+      endpoint,
+      headers,
+      clientAccountId,
+      engagementId,
+      flowType,
+    });
+
+    // Backend returns snake_case, so define the actual response type
+    interface BackendFlowResponse {
+      flow_id: string;
+      flow_type: string;
+      flow_name: string;
+      status: string;
+      phase?: string;
+      progress_percentage?: number;
+      created_at?: string;
+      updated_at?: string;
+      metadata?: Record<string, unknown>;
+    }
+
+    // Define unified-discovery response type for fallback
+    interface UnifiedDiscoveryFlowResponse {
+      flow_id?: string;
+      flowId?: string;
+      id?: string;
+      flow_type?: string;
+      flowType?: string;
+      type?: string;
+      flow_name?: string;
+      flowName?: string;
+      status: string;
+      phase?: string;
+      current_phase?: string;
+      currentPhase?: string;
+      progress_percentage?: number;
+      progress?: number;
+      created_at?: string;
+      start_time?: string;
+      startTime?: string;
+      updated_at?: string;
+      last_updated?: string;
+      metadata?: Record<string, unknown>;
+      engagement_id?: string;
+      engagementId?: string;
+      client_account_id?: string;
+      client_id?: string;
+      clientAccountId?: string;
+    }
+
     try {
-      const params = new URLSearchParams();
-      if (flowType) params.append('flowType', flowType);
-
-      const endpoint = `/flows/active${params.toString() ? `?${params}` : ''}`;  // Fixed: Use MFO endpoint
-      const headers = getMultiTenantHeaders(clientAccountId, engagementId);
-
-      console.log('🔍 MasterFlowService.getActiveFlows - Making API call:', {
-        endpoint,
+      const response = await apiClient.get<BackendFlowResponse[]>(endpoint, {
         headers,
-        clientAccountId,
-        engagementId,
-        flowType
       });
 
-      // Backend returns snake_case, so define the actual response type
-      interface BackendFlowResponse {
-        flow_id: string;
-        flow_type: string;
-        flow_name: string;
-        status: string;
-        phase?: string;
-        progress_percentage?: number;
-        created_at?: string;
-        updated_at?: string;
-        metadata?: Record<string, unknown>;
-      }
-
-      const response = await apiClient.get<BackendFlowResponse[]>(
-        endpoint,
-        {
-          headers,
-        }
+      console.log(
+        "✅ MasterFlowService.getActiveFlows - Response received:",
+        response,
       );
 
-      console.log('✅ MasterFlowService.getActiveFlows - Response received:', response);
-
       // Transform snake_case backend response to camelCase ActiveFlowSummary[]
-      return response.map(flow => ({
+      return response.map((flow) => ({
         flowId: flow.flow_id,
         flowType: flow.flow_type,
         flowName: flow.flow_name || flow.flow_type,
         status: flow.status as FlowStatus,
         progress: flow.progress_percentage || 0,
-        currentPhase: flow.phase || 'initialization',
+        currentPhase: flow.phase || "initialization",
         assignedAgents: 0, // Default values as these are not in backend response
         activeCrews: 0,
         childFlows: 0,
-        priority: 'normal',
+        priority: "normal",
         startTime: flow.created_at || new Date().toISOString(),
         estimatedCompletion: undefined,
         clientAccountId: clientAccountId,
-        engagementId: engagementId || '',
-        userId: ''
+        engagementId: engagementId || "",
+        userId: "",
       }));
     } catch (error) {
-      console.error('❌ MasterFlowService.getActiveFlows - API call failed:', error);
-      handleApiError(error, 'getActiveFlows');
-      throw error;
+      console.error(
+        "❌ MasterFlowService.getActiveFlows - MFO API call failed:",
+        error,
+      );
+
+      // CC: Implement fallback to unified-discovery endpoint for issues #95 and #94
+      console.log(
+        "🔄 MasterFlowService.getActiveFlows - Attempting fallback to unified-discovery endpoint...",
+      );
+
+      try {
+        // Try unified-discovery endpoint as fallback
+        const fallbackEndpoint = `/unified-discovery/flows/active${params.toString() ? `?${params}` : ""}`;
+
+        console.log(
+          "🔍 MasterFlowService.getActiveFlows - Fallback API call:",
+          {
+            fallbackEndpoint,
+            headers,
+            clientAccountId,
+            engagementId,
+            flowType,
+          },
+        );
+
+        const fallbackResponse = await apiClient.get<
+          | UnifiedDiscoveryFlowResponse[]
+          | { flows: UnifiedDiscoveryFlowResponse[] }
+        >(fallbackEndpoint, {
+          headers,
+        });
+
+        console.log(
+          "✅ MasterFlowService.getActiveFlows - Fallback response received:",
+          fallbackResponse,
+        );
+
+        // Handle both array response and object with flows array (based on existing pattern)
+        let flowsToProcess: UnifiedDiscoveryFlowResponse[] = [];
+
+        if (Array.isArray(fallbackResponse)) {
+          flowsToProcess = fallbackResponse;
+          console.log(
+            `🔄 Processing ${flowsToProcess.length} flows from unified-discovery API (array response)...`,
+          );
+        } else if (
+          fallbackResponse &&
+          typeof fallbackResponse === "object" &&
+          "flows" in fallbackResponse &&
+          Array.isArray(fallbackResponse.flows)
+        ) {
+          flowsToProcess = fallbackResponse.flows;
+          console.log(
+            `🔄 Processing ${flowsToProcess.length} flows from unified-discovery API (object.flows response)...`,
+          );
+        }
+
+        // Transform unified-discovery response to ActiveFlowSummary[] format
+        return flowsToProcess.map((flow) => {
+          // Extract flow ID with multiple field name support
+          const flowId = flow.flow_id || flow.flowId || flow.id || "";
+          const flowType =
+            flow.flow_type || flow.flowType || flow.type || "discovery";
+          const flowName = flow.flow_name || flow.flowName || flowType;
+          const currentPhase =
+            flow.phase ||
+            flow.current_phase ||
+            flow.currentPhase ||
+            "initialization";
+          const progress = flow.progress_percentage || flow.progress || 0;
+          const startTime =
+            flow.created_at ||
+            flow.start_time ||
+            flow.startTime ||
+            new Date().toISOString();
+          const engagementIdFromFlow =
+            flow.engagement_id || flow.engagementId || engagementId || "";
+          const clientAccountIdFromFlow =
+            flow.client_account_id ||
+            flow.client_id ||
+            flow.clientAccountId ||
+            clientAccountId;
+
+          return {
+            flowId,
+            flowType,
+            flowName,
+            status: flow.status as FlowStatus,
+            progress,
+            currentPhase,
+            assignedAgents: 0, // Default values - unified-discovery doesn't provide these
+            activeCrews: 0,
+            childFlows: 0,
+            priority: "normal",
+            startTime,
+            estimatedCompletion: undefined,
+            clientAccountId: clientAccountIdFromFlow,
+            engagementId: engagementIdFromFlow,
+            userId: "",
+          };
+        });
+      } catch (fallbackError) {
+        console.error(
+          "❌ MasterFlowService.getActiveFlows - Fallback to unified-discovery also failed:",
+          fallbackError,
+        );
+
+        // Log both errors for debugging
+        console.error("Original MFO error:", error);
+        console.error("Fallback unified-discovery error:", fallbackError);
+
+        // Handle the original error since both primary and fallback failed
+        handleApiError(error, "getActiveFlows");
+        throw error;
+      }
     }
   },
 
@@ -289,16 +452,66 @@ export const masterFlowService = {
   async deleteFlow(
     flowId: string,
     clientAccountId: string,
-    engagementId?: string
+    engagementId?: string,
   ): Promise<void> {
+    const headers = getMultiTenantHeaders(clientAccountId, engagementId);
+
     try {
       // Use proper MFO endpoint for flow deletion
-      await apiClient.delete(`/flows/${flowId}`, undefined, {  // Fixed: Use MFO endpoint
-        headers: getMultiTenantHeaders(clientAccountId, engagementId),
+      await apiClient.delete(`/flows/${flowId}`, undefined, {
+        // Fixed: Use MFO endpoint
+        headers,
       });
+      console.log(
+        `✅ MasterFlowService.deleteFlow - Successfully deleted flow ${flowId} via MFO endpoint`,
+      );
     } catch (error) {
-      handleApiError(error, 'deleteFlow');
-      throw error;
+      console.error(
+        `❌ MasterFlowService.deleteFlow - MFO deletion failed for flow ${flowId}:`,
+        error,
+      );
+
+      // CC: Implement fallback to unified-discovery endpoint for consistent flow operations
+      console.log(
+        `🔄 MasterFlowService.deleteFlow - Attempting fallback deletion for flow ${flowId}...`,
+      );
+
+      try {
+        // Try unified-discovery endpoint as fallback
+        const fallbackEndpoint = `/unified-discovery/flows/${flowId}`;
+
+        console.log("🔍 MasterFlowService.deleteFlow - Fallback deletion:", {
+          fallbackEndpoint,
+          headers,
+          flowId,
+          clientAccountId,
+          engagementId,
+        });
+
+        await apiClient.delete(fallbackEndpoint, undefined, {
+          headers,
+        });
+
+        console.log(
+          `✅ MasterFlowService.deleteFlow - Successfully deleted flow ${flowId} via unified-discovery fallback`,
+        );
+      } catch (fallbackError) {
+        console.error(
+          `❌ MasterFlowService.deleteFlow - Fallback deletion also failed for flow ${flowId}:`,
+          fallbackError,
+        );
+
+        // Log both errors for debugging
+        console.error("Original MFO deletion error:", error);
+        console.error(
+          "Fallback unified-discovery deletion error:",
+          fallbackError,
+        );
+
+        // Handle the original error since both primary and fallback failed
+        handleApiError(error, "deleteFlow");
+        throw error;
+      }
     }
   },
 
@@ -309,18 +522,14 @@ export const masterFlowService = {
     flowId: string,
     config: FlowConfiguration,
     clientAccountId: string,
-    engagementId?: string
+    engagementId?: string,
   ): Promise<void> {
     try {
-      await apiClient.put(
-        `/flows/${flowId}/config`,
-        config,
-        {
-          headers: getMultiTenantHeaders(clientAccountId, engagementId),
-        }
-      );
+      await apiClient.put(`/flows/${flowId}/config`, config, {
+        headers: getMultiTenantHeaders(clientAccountId, engagementId),
+      });
     } catch (error) {
-      handleApiError(error, 'updateFlowConfig');
+      handleApiError(error, "updateFlowConfig");
       throw error;
     }
   },
@@ -331,7 +540,7 @@ export const masterFlowService = {
   async pauseFlow(
     flowId: string,
     clientAccountId: string,
-    engagementId?: string
+    engagementId?: string,
   ): Promise<void> {
     try {
       await apiClient.post(
@@ -339,10 +548,10 @@ export const masterFlowService = {
         {},
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
-        }
+        },
       );
     } catch (error) {
-      handleApiError(error, 'pauseFlow');
+      handleApiError(error, "pauseFlow");
       throw error;
     }
   },
@@ -353,19 +562,21 @@ export const masterFlowService = {
   async resumeFlow(
     flowId: string,
     clientAccountId: string,
-    engagementId?: string
+    engagementId?: string,
   ): Promise<ApiResponse<{ success: boolean; message?: string }>> {
     try {
-      const response = await apiClient.post<ApiResponse<{ success: boolean; message?: string }>>(
+      const response = await apiClient.post<
+        ApiResponse<{ success: boolean; message?: string }>
+      >(
         `/flows/${flowId}/resume`,
         {},
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
-        }
+        },
       );
       return response;
     } catch (error) {
-      handleApiError(error, 'resumeFlow');
+      handleApiError(error, "resumeFlow");
       throw error;
     }
   },
@@ -376,19 +587,21 @@ export const masterFlowService = {
   async retryFlow(
     flowId: string,
     clientAccountId: string,
-    engagementId?: string
+    engagementId?: string,
   ): Promise<ApiResponse<{ success: boolean; message?: string }>> {
     try {
-      const response = await apiClient.post<ApiResponse<{ success: boolean; message?: string }>>(
+      const response = await apiClient.post<
+        ApiResponse<{ success: boolean; message?: string }>
+      >(
         `/flows/${flowId}/retry`,
         {},
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
-        }
+        },
       );
       return response;
     } catch (error) {
-      handleApiError(error, 'retryFlow');
+      handleApiError(error, "retryFlow");
       throw error;
     }
   },
@@ -401,23 +614,37 @@ export const masterFlowService = {
     phase: string,
     data: Record<string, unknown>,
     clientAccountId: string,
-    engagementId?: string
-  ): Promise<{ success: boolean; phase: string; status: string; message?: string; data?: Record<string, unknown>; errors?: string[] }> {
+    engagementId?: string,
+  ): Promise<{
+    success: boolean;
+    phase: string;
+    status: string;
+    message?: string;
+    data?: Record<string, unknown>;
+    errors?: string[];
+  }> {
     try {
-      const response = await apiClient.post<{ success: boolean; phase: string; status: string; message?: string; data?: Record<string, unknown>; errors?: string[] }>(
+      const response = await apiClient.post<{
+        success: boolean;
+        phase: string;
+        status: string;
+        message?: string;
+        data?: Record<string, unknown>;
+        errors?: string[];
+      }>(
         `/flows/${flowId}/execute`,
         {
           phase,
           phase_input: data,
-          force: false
+          force: false,
         },
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
-        }
+        },
       );
       return response;
     } catch (error) {
-      handleApiError(error, 'executePhase');
+      handleApiError(error, "executePhase");
       throw error;
     }
   },
@@ -428,21 +655,21 @@ export const masterFlowService = {
   async getFlowMetrics(
     clientAccountId: string,
     engagementId?: string,
-    flowType?: string
+    flowType?: string,
   ): Promise<FlowMetrics> {
     try {
       const params = new URLSearchParams();
-      if (flowType) params.append('flowType', flowType);
+      if (flowType) params.append("flowType", flowType);
 
       const response = await apiClient.get<FlowMetrics>(
-        `/flows/metrics${params.toString() ? `?${params}` : ''}`,
+        `/flows/metrics${params.toString() ? `?${params}` : ""}`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
-        }
+        },
       );
       return response;
     } catch (error) {
-      handleApiError(error, 'getFlowMetrics');
+      handleApiError(error, "getFlowMetrics");
       throw error;
     }
   },
@@ -455,12 +682,12 @@ export const masterFlowService = {
   async initializeDiscoveryFlow(
     clientAccountId: string,
     engagementId: string,
-    config?: FlowConfiguration
+    config?: FlowConfiguration,
   ): Promise<MasterFlowResponse> {
     return this.initializeFlow({
       clientAccountId,
       engagementId,
-      flowType: 'discovery',
+      flowType: "discovery",
       config,
     });
   },
@@ -471,7 +698,7 @@ export const masterFlowService = {
   async getDiscoveryFlowStatus(
     flowId: string,
     clientAccountId: string,
-    engagementId?: string
+    engagementId?: string,
   ): Promise<FlowStatusResponse> {
     return this.getFlowStatus(flowId, clientAccountId, engagementId);
   },
@@ -481,9 +708,9 @@ export const masterFlowService = {
    */
   async getActiveDiscoveryFlows(
     clientAccountId: string,
-    engagementId?: string
+    engagementId?: string,
   ): Promise<ActiveFlowSummary[]> {
-    return this.getActiveFlows(clientAccountId, engagementId, 'discovery');
+    return this.getActiveFlows(clientAccountId, engagementId, "discovery");
   },
 };
 
