@@ -541,6 +541,7 @@ export const apiCall = async (
       const isAgenticActivity = (
         normalizedEndpoint.includes('/assets/list/paginated') ||
         normalizedEndpoint.includes('/flows/execute') ||  // Fixed: Use MFO endpoint for flow execution
+        normalizedEndpoint.includes('/flow-processing/continue') ||
         normalizedEndpoint.includes('/assets/analyze') ||
         normalizedEndpoint.includes('/asset_inventory') ||
         normalizedEndpoint.includes('/classification') ||
