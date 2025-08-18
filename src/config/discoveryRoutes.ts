@@ -5,48 +5,48 @@
 
 export const DISCOVERY_PHASE_ROUTES: Record<string, (flowId: string) => string> = {
   // Initialization phases go to monitoring view
-  'initialization': (flowId: string) => `/discovery/monitor/${flowId}`,
+  'initialization': (flowId: string) => flowId ? `/discovery/monitor/${flowId}` : '/discovery/cmdb-import',
   'data_import_validation': () => '/discovery/cmdb-import',
   'data_import': () => '/discovery/cmdb-import',
 
   // Field mapping phases
-  'field_mapping': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
-  'attribute_mapping': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
+  'field_mapping': (flowId: string) => flowId ? `/discovery/attribute-mapping/${flowId}` : '/discovery/cmdb-import',
+  'attribute_mapping': (flowId: string) => flowId ? `/discovery/attribute-mapping/${flowId}` : '/discovery/cmdb-import',
 
   // Data cleansing phase
-  'data_cleansing': (flowId: string) => `/discovery/data-cleansing/${flowId}`,
+  'data_cleansing': (flowId: string) => flowId ? `/discovery/data-cleansing/${flowId}` : '/discovery/cmdb-import',
 
   // Asset inventory phases
-  'asset_inventory': (flowId: string) => `/discovery/inventory/${flowId}`,
-  'inventory': (flowId: string) => `/discovery/inventory/${flowId}`,
+  'asset_inventory': (flowId: string) => flowId ? `/discovery/inventory/${flowId}` : '/discovery/cmdb-import',
+  'inventory': (flowId: string) => flowId ? `/discovery/inventory/${flowId}` : '/discovery/cmdb-import',
 
   // Dependency analysis phases
-  'dependency_analysis': (flowId: string) => `/discovery/dependencies/${flowId}`,
-  'dependencies': (flowId: string) => `/discovery/dependencies/${flowId}`,
+  'dependency_analysis': (flowId: string) => flowId ? `/discovery/dependencies/${flowId}` : '/discovery/cmdb-import',
+  'dependencies': (flowId: string) => flowId ? `/discovery/dependencies/${flowId}` : '/discovery/cmdb-import',
 
   // Tech debt assessment phases
-  'tech_debt_assessment': (flowId: string) => `/discovery/tech-debt/${flowId}`,
-  'tech_debt_analysis': (flowId: string) => `/discovery/tech-debt/${flowId}`,
-  'tech_debt': (flowId: string) => `/discovery/tech-debt/${flowId}`,
-  'technical_debt': (flowId: string) => `/discovery/tech-debt/${flowId}`,
+  'tech_debt_assessment': (flowId: string) => flowId ? `/discovery/tech-debt/${flowId}` : '/discovery/cmdb-import',
+  'tech_debt_analysis': (flowId: string) => flowId ? `/discovery/tech-debt/${flowId}` : '/discovery/cmdb-import',
+  'tech_debt': (flowId: string) => flowId ? `/discovery/tech-debt/${flowId}` : '/discovery/cmdb-import',
+  'technical_debt': (flowId: string) => flowId ? `/discovery/tech-debt/${flowId}` : '/discovery/cmdb-import',
 
   // Completed flow - route to inventory
-  'completed': (flowId: string) => `/discovery/inventory/${flowId}`,
+  'completed': (flowId: string) => flowId ? `/discovery/inventory/${flowId}` : '/discovery/cmdb-import',
 
   // Status-based routing
-  'waiting_for_user_approval': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
-  'paused': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
-  'pending_approval': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
+  'waiting_for_user_approval': (flowId: string) => flowId ? `/discovery/attribute-mapping/${flowId}` : '/discovery/cmdb-import',
+  'paused': (flowId: string) => flowId ? `/discovery/attribute-mapping/${flowId}` : '/discovery/cmdb-import',
+  'pending_approval': (flowId: string) => flowId ? `/discovery/attribute-mapping/${flowId}` : '/discovery/cmdb-import',
 
   // Error states - route to monitoring for error details
-  'failed': (flowId: string) => `/discovery/monitor/${flowId}`,
-  'error': (flowId: string) => `/discovery/monitor/${flowId}`,
-  'not_found': (flowId: string) => `/discovery/monitor/${flowId}`,
+  'failed': (flowId: string) => flowId ? `/discovery/monitor/${flowId}` : '/discovery/cmdb-import',
+  'error': (flowId: string) => flowId ? `/discovery/monitor/${flowId}` : '/discovery/cmdb-import',
+  'not_found': (flowId: string) => flowId ? `/discovery/monitor/${flowId}` : '/discovery/cmdb-import',
 
   // Unknown/undefined states - route to monitoring
-  'unknown': (flowId: string) => `/discovery/monitor/${flowId}`,
-  'undefined': (flowId: string) => `/discovery/monitor/${flowId}`,
-  'current': (flowId: string) => `/discovery/monitor/${flowId}`,
+  'unknown': (flowId: string) => flowId ? `/discovery/monitor/${flowId}` : '/discovery/cmdb-import',
+  'undefined': (flowId: string) => flowId ? `/discovery/monitor/${flowId}` : '/discovery/cmdb-import',
+  'current': (flowId: string) => flowId ? `/discovery/monitor/${flowId}` : '/discovery/cmdb-import',
 };
 
 /**

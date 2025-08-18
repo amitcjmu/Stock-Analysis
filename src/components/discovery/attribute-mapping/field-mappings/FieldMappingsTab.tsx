@@ -71,7 +71,9 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
         }
       }
 
-      console.log('🔧 Fetching available fields with headers:', authHeaders);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🔧 Fetching available fields');
+      }
 
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AVAILABLE_TARGET_FIELDS, {
         method: 'GET',

@@ -104,7 +104,7 @@ export const API_CONFIG = {
       PROCESS_CMDB: '/flows/execute', // Fixed: Use MFO endpoint for flow execution
       CMDB_TEMPLATES: '/unified-discovery/cmdb-templates',  // Updated to unified-discovery endpoint as part of API migration
       CMDB_FEEDBACK: '/unified-discovery/cmdb-feedback',  // Updated to unified-discovery endpoint as part of API migration
-      ASSETS: '/auth/demo/assets',  // Working demo endpoint with filtering
+      ASSETS: process.env.NODE_ENV !== 'production' ? '/auth/demo/assets' : '/unified-discovery/assets',  // Use demo endpoint only in development
       ASSETS_BULK: '/unified-discovery/assets/bulk',  // Updated to unified-discovery endpoint as part of API migration
       ASSETS_CLEANUP: '/unified-discovery/assets/cleanup-duplicates',  // Updated to unified-discovery endpoint as part of API migration
       APPLICATIONS: '/unified-discovery/applications',  // Updated to unified-discovery endpoint as part of API migration
@@ -529,8 +529,10 @@ export const apiCall = async (
         console.log(`🚫 API Call [${requestId}] - Context headers skipped (includeContext=false)`);
       }
 
-      // Log final headers being sent
-      console.log(`🔗 API Call [${requestId}] - Final headers:`, headers);
+      // Log final headers being sent (non-production only)
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`🔗 API Call [${requestId}] - Making request to: ${endpoint}`);
+      }
 
       // Create abort controller for timeout
       const controller = new AbortController();

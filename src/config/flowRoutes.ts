@@ -13,54 +13,54 @@ export type FlowType = 'discovery' | 'assessment' | 'plan' | 'execute' | 'modern
 export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string) => string>> = {
   discovery: {
     // Initialization phases go to monitoring view
-    'initialization': (flowId: string) => `/discovery/monitor/${flowId}`,
+    'initialization': (flowId: string) => flowId ? `/discovery/monitor/${flowId}` : '/discovery/cmdb-import',
     'data_import_validation': () => '/discovery/cmdb-import',
     'data_import': () => '/discovery/cmdb-import',
 
     // Field mapping phases
-    'field_mapping': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
-    'attribute_mapping': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
+    'field_mapping': (flowId: string) => flowId ? `/discovery/attribute-mapping/${flowId}` : '/discovery/cmdb-import',
+    'attribute_mapping': (flowId: string) => flowId ? `/discovery/attribute-mapping/${flowId}` : '/discovery/cmdb-import',
 
     // Data cleansing phase
-    'data_cleansing': (flowId: string) => `/discovery/data-cleansing/${flowId}`,
+    'data_cleansing': (flowId: string) => flowId ? `/discovery/data-cleansing/${flowId}` : '/discovery/cmdb-import',
 
     // Asset inventory phases
-    'asset_inventory': (flowId: string) => `/discovery/inventory/${flowId}`,
-    'inventory': (flowId: string) => `/discovery/inventory/${flowId}`,
+    'asset_inventory': (flowId: string) => flowId ? `/discovery/inventory/${flowId}` : '/discovery/cmdb-import',
+    'inventory': (flowId: string) => flowId ? `/discovery/inventory/${flowId}` : '/discovery/cmdb-import',
 
     // Dependency analysis phases
-    'dependency_analysis': (flowId: string) => `/discovery/dependencies/${flowId}`,
-    'dependencies': (flowId: string) => `/discovery/dependencies/${flowId}`,
+    'dependency_analysis': (flowId: string) => flowId ? `/discovery/dependencies/${flowId}` : '/discovery/cmdb-import',
+    'dependencies': (flowId: string) => flowId ? `/discovery/dependencies/${flowId}` : '/discovery/cmdb-import',
 
     // Completed flow - moved tech debt to assessment
-    'completed': (flowId: string) => `/discovery/inventory/${flowId}`,
+    'completed': (flowId: string) => flowId ? `/discovery/inventory/${flowId}` : '/discovery/cmdb-import',
 
     // Status-based routing
-    'waiting_for_user_approval': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
-    'paused': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
-    'pending_approval': (flowId: string) => `/discovery/attribute-mapping/${flowId}`,
+    'waiting_for_user_approval': (flowId: string) => flowId ? `/discovery/attribute-mapping/${flowId}` : '/discovery/cmdb-import',
+    'paused': (flowId: string) => flowId ? `/discovery/attribute-mapping/${flowId}` : '/discovery/cmdb-import',
+    'pending_approval': (flowId: string) => flowId ? `/discovery/attribute-mapping/${flowId}` : '/discovery/cmdb-import',
 
     // Error states - route to monitoring for error details
-    'failed': (flowId: string) => `/discovery/monitor/${flowId}`,
-    'error': (flowId: string) => `/discovery/monitor/${flowId}`,
-    'not_found': (flowId: string) => `/discovery/monitor/${flowId}`,
+    'failed': (flowId: string) => flowId ? `/discovery/monitor/${flowId}` : '/discovery/cmdb-import',
+    'error': (flowId: string) => flowId ? `/discovery/monitor/${flowId}` : '/discovery/cmdb-import',
+    'not_found': (flowId: string) => flowId ? `/discovery/monitor/${flowId}` : '/discovery/cmdb-import',
 
     // Unknown/undefined states - route to monitoring
-    'unknown': (flowId: string) => `/discovery/monitor/${flowId}`,
-    'undefined': (flowId: string) => `/discovery/monitor/${flowId}`,
-    'current': (flowId: string) => `/discovery/monitor/${flowId}`,
+    'unknown': (flowId: string) => flowId ? `/discovery/monitor/${flowId}` : '/discovery/cmdb-import',
+    'undefined': (flowId: string) => flowId ? `/discovery/monitor/${flowId}` : '/discovery/cmdb-import',
+    'current': (flowId: string) => flowId ? `/discovery/monitor/${flowId}` : '/discovery/cmdb-import',
   },
 
   assessment: {
-    'migration_readiness': (flowId: string) => `/assess/migration-readiness/${flowId}`,
-    'business_impact': (flowId: string) => `/assess/business-impact/${flowId}`,
-    'technical_assessment': (flowId: string) => `/assess/technical-assessment/${flowId}`,
+    'migration_readiness': (flowId: string) => flowId ? `/assess/migration-readiness/${flowId}` : '/assess',
+    'business_impact': (flowId: string) => flowId ? `/assess/business-impact/${flowId}` : '/assess',
+    'technical_assessment': (flowId: string) => flowId ? `/assess/technical-assessment/${flowId}` : '/assess',
     // Tech debt assessment phases (moved from discovery)
-    'tech_debt_assessment': (flowId: string) => `/assess/tech-debt/${flowId}`,
-    'tech_debt_analysis': (flowId: string) => `/assess/tech-debt/${flowId}`,
-    'tech_debt': (flowId: string) => `/assess/tech-debt/${flowId}`,
-    'technical_debt': (flowId: string) => `/assess/tech-debt/${flowId}`,
-    'completed': (flowId: string) => `/assess/summary/${flowId}`,
+    'tech_debt_assessment': (flowId: string) => flowId ? `/assess/tech-debt/${flowId}` : '/assess',
+    'tech_debt_analysis': (flowId: string) => flowId ? `/assess/tech-debt/${flowId}` : '/assess',
+    'tech_debt': (flowId: string) => flowId ? `/assess/tech-debt/${flowId}` : '/assess',
+    'technical_debt': (flowId: string) => flowId ? `/assess/tech-debt/${flowId}` : '/assess',
+    'completed': (flowId: string) => flowId ? `/assess/summary/${flowId}` : '/assess',
 
     // Error states
     'failed': () => '/assess',
@@ -69,12 +69,12 @@ export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string)
   },
 
   plan: {
-    'wave_planning': (flowId: string) => `/plan/waveplanning/${flowId}`,
-    'roadmap': (flowId: string) => `/plan/roadmap/${flowId}`,
-    'roadmap_planning': (flowId: string) => `/plan/roadmap/${flowId}`,
-    'runbook_creation': (flowId: string) => `/plan/runbook-creation/${flowId}`,
-    'resource_allocation': (flowId: string) => `/plan/resource-allocation/${flowId}`,
-    'completed': (flowId: string) => `/plan/summary/${flowId}`,
+    'wave_planning': (flowId: string) => flowId ? `/plan/waveplanning/${flowId}` : '/plan',
+    'roadmap': (flowId: string) => flowId ? `/plan/roadmap/${flowId}` : '/plan',
+    'roadmap_planning': (flowId: string) => flowId ? `/plan/roadmap/${flowId}` : '/plan',
+    'runbook_creation': (flowId: string) => flowId ? `/plan/runbook-creation/${flowId}` : '/plan',
+    'resource_allocation': (flowId: string) => flowId ? `/plan/resource-allocation/${flowId}` : '/plan',
+    'completed': (flowId: string) => flowId ? `/plan/summary/${flowId}` : '/plan',
 
     // Error states
     'failed': () => '/plan',
@@ -83,10 +83,10 @@ export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string)
   },
 
   execute: {
-    'pre_migration': (flowId: string) => `/execute/pre-migration/${flowId}`,
-    'migration_execution': (flowId: string) => `/execute/migration-execution/${flowId}`,
-    'post_migration': (flowId: string) => `/execute/post-migration/${flowId}`,
-    'completed': (flowId: string) => `/execute/summary/${flowId}`,
+    'pre_migration': (flowId: string) => flowId ? `/execute/pre-migration/${flowId}` : '/execute',
+    'migration_execution': (flowId: string) => flowId ? `/execute/migration-execution/${flowId}` : '/execute',
+    'post_migration': (flowId: string) => flowId ? `/execute/post-migration/${flowId}` : '/execute',
+    'completed': (flowId: string) => flowId ? `/execute/summary/${flowId}` : '/execute',
 
     // Error states
     'failed': () => '/execute',
@@ -95,10 +95,10 @@ export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string)
   },
 
   modernize: {
-    'modernization_assessment': (flowId: string) => `/modernize/assessment/${flowId}`,
-    'architecture_design': (flowId: string) => `/modernize/architecture-design/${flowId}`,
-    'implementation_planning': (flowId: string) => `/modernize/implementation-planning/${flowId}`,
-    'completed': (flowId: string) => `/modernize/summary/${flowId}`,
+    'modernization_assessment': (flowId: string) => flowId ? `/modernize/assessment/${flowId}` : '/modernize',
+    'architecture_design': (flowId: string) => flowId ? `/modernize/architecture-design/${flowId}` : '/modernize',
+    'implementation_planning': (flowId: string) => flowId ? `/modernize/implementation-planning/${flowId}` : '/modernize',
+    'completed': (flowId: string) => flowId ? `/modernize/summary/${flowId}` : '/modernize',
 
     // Error states
     'failed': () => '/modernize',
@@ -107,9 +107,9 @@ export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string)
   },
 
   finops: {
-    'cost_analysis': (flowId: string) => `/finops/cost-analysis/${flowId}`,
-    'budget_planning': (flowId: string) => `/finops/budget-planning/${flowId}`,
-    'completed': (flowId: string) => `/finops/summary/${flowId}`,
+    'cost_analysis': (flowId: string) => flowId ? `/finops/cost-analysis/${flowId}` : '/finops',
+    'budget_planning': (flowId: string) => flowId ? `/finops/budget-planning/${flowId}` : '/finops',
+    'completed': (flowId: string) => flowId ? `/finops/summary/${flowId}` : '/finops',
 
     // Error states
     'failed': () => '/finops',
@@ -118,9 +118,9 @@ export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string)
   },
 
   observability: {
-    'monitoring_setup': (flowId: string) => `/observability/monitoring-setup/${flowId}`,
-    'performance_optimization': (flowId: string) => `/observability/performance-optimization/${flowId}`,
-    'completed': (flowId: string) => `/observability/summary/${flowId}`,
+    'monitoring_setup': (flowId: string) => flowId ? `/observability/monitoring-setup/${flowId}` : '/observability',
+    'performance_optimization': (flowId: string) => flowId ? `/observability/performance-optimization/${flowId}` : '/observability',
+    'completed': (flowId: string) => flowId ? `/observability/summary/${flowId}` : '/observability',
 
     // Error states
     'failed': () => '/observability',
@@ -129,10 +129,10 @@ export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string)
   },
 
   decommission: {
-    'decommission_planning': (flowId: string) => `/decommission/planning/${flowId}`,
-    'data_migration': (flowId: string) => `/decommission/data-migration/${flowId}`,
-    'system_shutdown': (flowId: string) => `/decommission/system-shutdown/${flowId}`,
-    'completed': (flowId: string) => `/decommission/summary/${flowId}`,
+    'decommission_planning': (flowId: string) => flowId ? `/decommission/planning/${flowId}` : '/decommission',
+    'data_migration': (flowId: string) => flowId ? `/decommission/data-migration/${flowId}` : '/decommission',
+    'system_shutdown': (flowId: string) => flowId ? `/decommission/system-shutdown/${flowId}` : '/decommission',
+    'completed': (flowId: string) => flowId ? `/decommission/summary/${flowId}` : '/decommission',
 
     // Error states
     'failed': () => '/decommission',

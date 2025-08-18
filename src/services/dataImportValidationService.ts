@@ -78,7 +78,9 @@ export class DataImportValidationService {
         delete customHeaders['Content-Type'];
       }
 
-      console.log('🔍 Making file upload request to /data-import/upload with headers:', customHeaders);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🔍 Making file upload request to /data-import/upload');
+      }
 
       const response = await apiCall('/data-import/upload', {
         method: 'POST',

@@ -95,7 +95,9 @@ export class ApiClient {
       // Ignore localStorage errors
     }
 
-    console.log(`🔍 MasterFlowService.request - ${method} ${url}`, { headers });
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`🔍 MasterFlowService.request - ${method} ${url}`, { url: url, method: method });
+    }
 
     const requestOptions: RequestInit = {
       method,

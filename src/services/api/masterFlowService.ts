@@ -249,13 +249,14 @@ export const masterFlowService = {
     const endpoint = `/flows/active${params.toString() ? `?${params}` : ""}`; // Fixed: Use MFO endpoint
     const headers = getMultiTenantHeaders(clientAccountId, engagementId);
 
-    console.log("🔍 MasterFlowService.getActiveFlows - Making API call:", {
-      endpoint,
-      headers,
-      clientAccountId,
-      engagementId,
-      flowType,
-    });
+    if (process.env.NODE_ENV !== 'production') {
+      console.log("🔍 MasterFlowService.getActiveFlows - Making API call:", {
+        endpoint,
+        clientAccountId,
+        engagementId,
+        flowType,
+      });
+    }
 
     // Backend returns snake_case, so define the actual response type
     interface BackendFlowResponse {
@@ -304,10 +305,12 @@ export const masterFlowService = {
         headers,
       });
 
-      console.log(
-        "✅ MasterFlowService.getActiveFlows - Response received:",
-        response,
-      );
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(
+          "✅ MasterFlowService.getActiveFlows - Response received:",
+          response,
+        );
+      }
 
       // Transform snake_case backend response to camelCase ActiveFlowSummary[]
       return response.map((flow) => ({
@@ -328,30 +331,35 @@ export const masterFlowService = {
         userId: "",
       }));
     } catch (error) {
-      console.error(
-        "❌ MasterFlowService.getActiveFlows - MFO API call failed:",
-        error,
-      );
+      if (process.env.NODE_ENV !== 'production') {
+        console.error(
+          "❌ MasterFlowService.getActiveFlows - MFO API call failed:",
+          error,
+        );
+      }
 
       // CC: Implement fallback to unified-discovery endpoint for issues #95 and #94
-      console.log(
-        "🔄 MasterFlowService.getActiveFlows - Attempting fallback to unified-discovery endpoint...",
-      );
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(
+          "🔄 MasterFlowService.getActiveFlows - Attempting fallback to unified-discovery endpoint...",
+        );
+      }
 
       try {
         // Try unified-discovery endpoint as fallback
         const fallbackEndpoint = `/unified-discovery/flows/active${params.toString() ? `?${params}` : ""}`;
 
-        console.log(
-          "🔍 MasterFlowService.getActiveFlows - Fallback API call:",
-          {
-            fallbackEndpoint,
-            headers,
-            clientAccountId,
-            engagementId,
-            flowType,
-          },
-        );
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(
+            "🔍 MasterFlowService.getActiveFlows - Fallback API call:",
+            {
+              fallbackEndpoint,
+              clientAccountId,
+              engagementId,
+              flowType,
+            },
+          );
+        }
 
         const fallbackResponse = await apiClient.get<
           | UnifiedDiscoveryFlowResponse[]
@@ -360,19 +368,23 @@ export const masterFlowService = {
           headers,
         });
 
-        console.log(
-          "✅ MasterFlowService.getActiveFlows - Fallback response received:",
-          fallbackResponse,
-        );
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(
+            "✅ MasterFlowService.getActiveFlows - Fallback response received:",
+            fallbackResponse,
+          );
+        }
 
         // Handle both array response and object with flows array (based on existing pattern)
         let flowsToProcess: UnifiedDiscoveryFlowResponse[] = [];
 
         if (Array.isArray(fallbackResponse)) {
           flowsToProcess = fallbackResponse;
-          console.log(
-            `🔄 Processing ${flowsToProcess.length} flows from unified-discovery API (array response)...`,
-          );
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(
+              `🔄 Processing ${flowsToProcess.length} flows from unified-discovery API (array response)...`,
+            );
+          }
         } else if (
           fallbackResponse &&
           typeof fallbackResponse === "object" &&
@@ -380,9 +392,11 @@ export const masterFlowService = {
           Array.isArray(fallbackResponse.flows)
         ) {
           flowsToProcess = fallbackResponse.flows;
-          console.log(
-            `🔄 Processing ${flowsToProcess.length} flows from unified-discovery API (object.flows response)...`,
-          );
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(
+              `🔄 Processing ${flowsToProcess.length} flows from unified-discovery API (object.flows response)...`,
+            );
+          }
         }
 
         // Transform unified-discovery response to ActiveFlowSummary[] format
@@ -430,14 +444,18 @@ export const masterFlowService = {
           };
         });
       } catch (fallbackError) {
-        console.error(
-          "❌ MasterFlowService.getActiveFlows - Fallback to unified-discovery also failed:",
-          fallbackError,
-        );
+        if (process.env.NODE_ENV !== 'production') {
+          console.error(
+            "❌ MasterFlowService.getActiveFlows - Fallback to unified-discovery also failed:",
+            fallbackError,
+          );
+        }
 
-        // Log both errors for debugging
-        console.error("Original MFO error:", error);
-        console.error("Fallback unified-discovery error:", fallbackError);
+        // Log both errors for debugging in non-production
+        if (process.env.NODE_ENV !== 'production') {
+          console.error("Original MFO error:", error);
+          console.error("Fallback unified-discovery error:", fallbackError);
+        }
 
         // Handle the original error since both primary and fallback failed
         handleApiError(error, "getActiveFlows");
@@ -462,51 +480,64 @@ export const masterFlowService = {
         // Fixed: Use MFO endpoint
         headers,
       });
-      console.log(
-        `✅ MasterFlowService.deleteFlow - Successfully deleted flow ${flowId} via MFO endpoint`,
-      );
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(
+          `✅ MasterFlowService.deleteFlow - Successfully deleted flow ${flowId} via MFO endpoint`,
+        );
+      }
     } catch (error) {
-      console.error(
-        `❌ MasterFlowService.deleteFlow - MFO deletion failed for flow ${flowId}:`,
-        error,
-      );
+      if (process.env.NODE_ENV !== 'production') {
+        console.error(
+          `❌ MasterFlowService.deleteFlow - MFO deletion failed for flow ${flowId}:`,
+          error,
+        );
+      }
 
       // CC: Implement fallback to unified-discovery endpoint for consistent flow operations
-      console.log(
-        `🔄 MasterFlowService.deleteFlow - Attempting fallback deletion for flow ${flowId}...`,
-      );
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(
+          `🔄 MasterFlowService.deleteFlow - Attempting fallback deletion for flow ${flowId}...`,
+        );
+      }
 
       try {
         // Try unified-discovery endpoint as fallback
         const fallbackEndpoint = `/unified-discovery/flows/${flowId}`;
 
-        console.log("🔍 MasterFlowService.deleteFlow - Fallback deletion:", {
-          fallbackEndpoint,
-          headers,
-          flowId,
-          clientAccountId,
-          engagementId,
-        });
+        if (process.env.NODE_ENV !== 'production') {
+          console.log("🔍 MasterFlowService.deleteFlow - Fallback deletion:", {
+            fallbackEndpoint,
+            flowId,
+            clientAccountId,
+            engagementId,
+          });
+        }
 
         await apiClient.delete(fallbackEndpoint, undefined, {
           headers,
         });
 
-        console.log(
-          `✅ MasterFlowService.deleteFlow - Successfully deleted flow ${flowId} via unified-discovery fallback`,
-        );
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(
+            `✅ MasterFlowService.deleteFlow - Successfully deleted flow ${flowId} via unified-discovery fallback`,
+          );
+        }
       } catch (fallbackError) {
-        console.error(
-          `❌ MasterFlowService.deleteFlow - Fallback deletion also failed for flow ${flowId}:`,
-          fallbackError,
-        );
+        if (process.env.NODE_ENV !== 'production') {
+          console.error(
+            `❌ MasterFlowService.deleteFlow - Fallback deletion also failed for flow ${flowId}:`,
+            fallbackError,
+          );
+        }
 
-        // Log both errors for debugging
-        console.error("Original MFO deletion error:", error);
-        console.error(
-          "Fallback unified-discovery deletion error:",
-          fallbackError,
-        );
+        // Log both errors for debugging in non-production
+        if (process.env.NODE_ENV !== 'production') {
+          console.error("Original MFO deletion error:", error);
+          console.error(
+            "Fallback unified-discovery deletion error:",
+            fallbackError,
+          );
+        }
 
         // Handle the original error since both primary and fallback failed
         handleApiError(error, "deleteFlow");
