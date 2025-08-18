@@ -1,10 +1,10 @@
 ---
 allowed-tools: Bash(find:*), Bash(wc:*), Bash(git:*), Bash(rm:*), Task, Grep, Glob, LS, Read, Edit, MultiEdit, Write, TodoWrite
-description: Modularize files with proper cleanup and verification
+description: Modularize large files with complete cleanup and verification
 argument-hint: [target-lines] [min-lines]
 ---
 
-# Multi-Agent Modularization with Cleanup v2
+# Multi-Agent Modularization Orchestrator v3
 
 I'll orchestrate multiple specialized agents to modularize large files with PROPER CLEANUP - no orphaned files!
 

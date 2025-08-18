@@ -41,9 +41,7 @@ class GCPAuthManager:
         self._container_client = None
         self._functions_client = None
 
-    def get_gcp_credentials(
-        self, credentials: GCPCredentials
-    ) -> service_account.Credentials:
+    def get_gcp_credentials(self, credentials: GCPCredentials) -> Optional[Any]:
         """Create GCP credentials from service account key"""
         if not GCP_AVAILABLE:
             raise ImportError("Google Cloud SDK not installed")
@@ -51,25 +49,37 @@ class GCPAuthManager:
             credentials.service_account_key
         )
 
-    def init_clients(self, credentials: service_account.Credentials, project_id: str):
+    def init_clients(self, credentials: Any, project_id: str):
         """Initialize GCP service clients"""
+        if not GCP_AVAILABLE:
+            self.logger.warning("GCP SDK not available - clients not initialized")
+            return
+
         self._credentials = credentials
         self._project_id = project_id
-        self._asset_client = asset_v1.AssetServiceClient(credentials=credentials)
-        self._monitoring_client = monitoring_v3.MetricServiceClient(
-            credentials=credentials
-        )
-        self._compute_client = compute_v1.InstancesClient(credentials=credentials)
-        self._sql_client = sql_v1.SqlInstancesServiceClient(credentials=credentials)
-        self._storage_client = storage.Client(
-            credentials=credentials, project=project_id
-        )
-        self._container_client = container_v1.ClusterManagerClient(
-            credentials=credentials
-        )
-        self._functions_client = functions_v1.CloudFunctionsServiceClient(
-            credentials=credentials
-        )
+
+        if asset_v1:
+            self._asset_client = asset_v1.AssetServiceClient(credentials=credentials)
+        if monitoring_v3:
+            self._monitoring_client = monitoring_v3.MetricServiceClient(
+                credentials=credentials
+            )
+        if compute_v1:
+            self._compute_client = compute_v1.InstancesClient(credentials=credentials)
+        if sql_v1:
+            self._sql_client = sql_v1.SqlInstancesServiceClient(credentials=credentials)
+        if storage:
+            self._storage_client = storage.Client(
+                credentials=credentials, project=project_id
+            )
+        if container_v1:
+            self._container_client = container_v1.ClusterManagerClient(
+                credentials=credentials
+            )
+        if functions_v1:
+            self._functions_client = functions_v1.CloudFunctionsServiceClient(
+                credentials=credentials
+            )
 
     async def validate_credentials(self, credentials: Dict[str, Any]) -> bool:
         """
@@ -124,36 +134,36 @@ class GCPAuthManager:
         return self._project_id
 
     @property
-    def asset_client(self) -> Optional[asset_v1.AssetServiceClient]:
+    def asset_client(self) -> Optional[Any]:
         """Get the Asset Service client"""
         return self._asset_client
 
     @property
-    def monitoring_client(self) -> Optional[monitoring_v3.MetricServiceClient]:
+    def monitoring_client(self) -> Optional[Any]:
         """Get the Monitoring client"""
         return self._monitoring_client
 
     @property
-    def compute_client(self) -> Optional[compute_v1.InstancesClient]:
+    def compute_client(self) -> Optional[Any]:
         """Get the Compute Engine client"""
         return self._compute_client
 
     @property
-    def sql_client(self) -> Optional[sql_v1.SqlInstancesServiceClient]:
+    def sql_client(self) -> Optional[Any]:
         """Get the Cloud SQL client"""
         return self._sql_client
 
     @property
-    def storage_client(self) -> Optional[storage.Client]:
+    def storage_client(self) -> Optional[Any]:
         """Get the Cloud Storage client"""
         return self._storage_client
 
     @property
-    def container_client(self) -> Optional[container_v1.ClusterManagerClient]:
+    def container_client(self) -> Optional[Any]:
         """Get the Container (GKE) client"""
         return self._container_client
 
     @property
-    def functions_client(self) -> Optional[functions_v1.CloudFunctionsServiceClient]:
+    def functions_client(self) -> Optional[Any]:
         """Get the Cloud Functions client"""
         return self._functions_client
