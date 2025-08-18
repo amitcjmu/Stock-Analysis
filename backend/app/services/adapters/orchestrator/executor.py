@@ -179,13 +179,31 @@ class AdapterExecutor:
                 self.logger.warning("Memory limit exceeded, skipping adapter execution")
                 return False
 
-            # Check CPU limit
-            if (
-                current_metrics.get("cpu_usage_percent", 0)
-                > self.config.cpu_limit_percent
-            ):
-                self.logger.warning("CPU limit exceeded, waiting before execution")
-                await asyncio.sleep(5)  # Brief wait to allow CPU to settle
+            # Check CPU limit with retry loop
+            max_cpu_retries = 3
+            cpu_wait_time = 5
+            for retry in range(max_cpu_retries):
+                if (
+                    current_metrics.get("cpu_usage_percent", 0)
+                    <= self.config.cpu_limit_percent
+                ):
+                    break
+                self.logger.warning(
+                    f"CPU limit exceeded ({current_metrics.get('cpu_usage_percent', 0):.1f}% > "
+                    f"{self.config.cpu_limit_percent}%), waiting {cpu_wait_time}s "
+                    f"(attempt {retry + 1}/{max_cpu_retries})"
+                )
+                await asyncio.sleep(cpu_wait_time)
+                # Re-check metrics after wait
+                current_metrics = await self.resource_monitor.get_current_metrics()
+                cpu_wait_time = min(
+                    cpu_wait_time * 1.5, 30
+                )  # Exponential backoff up to 30s
+            else:
+                # Still over limit after retries
+                self.logger.warning(
+                    "CPU limit still exceeded after retries, proceeding with caution"
+                )
 
             # Check disk space
             if (

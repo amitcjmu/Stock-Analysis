@@ -1,5 +1,6 @@
 """Resource monitoring for adapter orchestration"""
 
+import asyncio
 import logging
 from datetime import datetime
 from typing import Any, Dict, List
@@ -51,9 +52,15 @@ class ResourceMonitor:
             # Get process info
             process = psutil.Process()
 
+            # CPU percent with interval for accurate measurement
+            # First call to cpu_percent() starts the measurement
+            process.cpu_percent()
+            # Wait a small interval for accurate measurement
+            await asyncio.sleep(0.1)
+
             metrics = {
                 "memory_usage_mb": process.memory_info().rss / 1024 / 1024,
-                "cpu_usage_percent": process.cpu_percent(),
+                "cpu_usage_percent": process.cpu_percent(),  # Second call returns actual usage
                 "available_disk_mb": psutil.disk_usage("/").free / 1024 / 1024,
                 "timestamp": datetime.utcnow().isoformat(),
             }

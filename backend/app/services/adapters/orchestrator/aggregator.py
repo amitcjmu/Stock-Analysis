@@ -242,7 +242,9 @@ class AdapterAggregator:
             merged_asset["merged_from_platforms"] = [
                 asset.get("platform") for asset in similar_assets
             ]
-            merged_asset["merge_confidence"] = len(similar_assets) / len(similar_assets)
+            # Calculate meaningful confidence based on matching criteria
+            # Higher confidence with more platforms reporting the same asset
+            merged_asset["merge_confidence"] = min(len(similar_assets) * 0.25, 1.0)
             merged_asset["original_asset_count"] = len(similar_assets)
 
             # Merge platform-specific data
