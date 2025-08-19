@@ -82,13 +82,50 @@ class MappingService:
         result = await self.db.execute(query)
         mappings = result.scalars().all()
 
-        # NO HARDCODED FILTERING - Let CrewAI agents determine what's valid
-        # The agents should have already made intelligent decisions about
-        # which fields to map
+        # CRITICAL SECURITY FIX: Prevent test data contamination
+        # Filter out any test data that should not appear in production
+        production_mappings = []
+        test_data_filtered = 0
 
-        # CrewAI agents determine valid mappings - no hardcoded validation
-        valid_mappings = []
         for mapping in mappings:
+            # Check for test data patterns that should never appear in production
+            is_test_data = mapping.source_field and (
+                "Device_" in str(mapping.source_field)
+                or str(mapping.source_field)
+                in [
+                    "Device_ID",
+                    "Device_Name",
+                    "Device_Type",
+                    "IP_Address",
+                    "Status_Code",
+                    "Location",
+                ]
+            )
+
+            if is_test_data:
+                logger.warning(
+                    f"🚫 Filtering out test data field mapping: {mapping.source_field} "
+                    f"(ID: {mapping.id}, Import: {import_id})"
+                )
+                test_data_filtered += 1
+                continue
+
+            production_mappings.append(mapping)
+
+        if test_data_filtered > 0:
+            logger.error(
+                f"❌ CRITICAL: Found {test_data_filtered} test data field mappings in production! "
+                f"Import ID: {import_id}. These have been filtered out."
+            )
+
+        logger.info(
+            f"🔍 Field mapping validation: {len(mappings)} total, "
+            f"{len(production_mappings)} production, {test_data_filtered} test data filtered"
+        )
+
+        # Process only production mappings
+        valid_mappings = []
+        for mapping in production_mappings:
             # Trust the agent decisions - no hardcoded filtering
 
             # Debug logging to identify the issue

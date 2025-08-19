@@ -121,6 +121,29 @@ export const useFieldMappings = (
           mappings_sample: Array.isArray(mappings) ? mappings.slice(0, 2) : mappings
         });
 
+        // CRITICAL FIX: Check for test data contamination
+        if (Array.isArray(mappings) && mappings.length > 0) {
+          const hasTestData = mappings.some(mapping =>
+            mapping.source_field && (
+              mapping.source_field.includes('Device_') ||
+              mapping.source_field === 'Device_ID' ||
+              mapping.source_field === 'Device_Name' ||
+              mapping.source_field === 'Device_Type'
+            )
+          );
+
+          if (hasTestData) {
+            console.error('❌ CRITICAL ERROR: Test data detected in production field mappings!', {
+              import_id: importId,
+              test_fields_found: mappings.filter(m => m.source_field && m.source_field.includes('Device_')).map(m => m.source_field),
+              all_source_fields: mappings.map(m => m.source_field)
+            });
+
+            // This is test data contamination - reject it and force regeneration
+            throw new Error(`Test data contamination detected: Found Device_* fields in production. Import ID: ${importId}`);
+          }
+        }
+
         // Now try to get the raw import data to see all original CSV fields
         try {
           const rawImportData = isCacheFeatureEnabled('DISABLE_CUSTOM_CACHE')
@@ -140,6 +163,30 @@ export const useFieldMappings = (
             total_records: rawImportData?.record_count,
             field_count: rawImportData?.field_count
           });
+
+          // CRITICAL FIX: Validate that the raw import data matches expected field names
+          if (rawImportData?.sample_record || rawImportData?.raw_data) {
+            const sampleRecord = rawImportData.sample_record || rawImportData.raw_data;
+            const actualCsvFields = Object.keys(sampleRecord);
+
+            // Check for test data contamination in the raw import data
+            const hasTestFieldsInRaw = actualCsvFields.some(field =>
+              field.includes('Device_') || field === 'Device_ID' || field === 'Device_Name' || field === 'Device_Type'
+            );
+
+            if (hasTestFieldsInRaw) {
+              console.error('❌ CRITICAL ERROR: Test data detected in raw import data!', {
+                import_id: importId,
+                raw_csv_fields: actualCsvFields
+              });
+              throw new Error(`Test data contamination in raw CSV: Found Device_* fields. Import ID: ${importId}`);
+            }
+
+            console.log('✅ Raw import data validation passed - no test data contamination detected:', {
+              actual_csv_fields: actualCsvFields,
+              field_count: actualCsvFields.length
+            });
+          }
 
           // If we have raw data, ensure all CSV fields are represented as mappings
           if (rawImportData?.sample_record || rawImportData?.raw_data) {
@@ -203,9 +250,35 @@ export const useFieldMappings = (
           console.warn('⚠️ Could not fetch raw import data:', rawDataError);
         }
 
-        // Return the raw mappings directly from the API
-        // The backend already provides the correct field names
-        console.log('✅ Returning raw field mappings from API:', {
+        // FINAL VALIDATION: Ensure no test data in final mappings
+        if (Array.isArray(mappings) && mappings.length > 0) {
+          const validMappings = mappings.filter(mapping => {
+            const isTestData = mapping.source_field && (
+              mapping.source_field.includes('Device_') ||
+              mapping.source_field === 'Device_ID' ||
+              mapping.source_field === 'Device_Name' ||
+              mapping.source_field === 'Device_Type'
+            );
+
+            if (isTestData) {
+              console.warn('⚠️ Filtering out test data mapping:', mapping.source_field);
+            }
+
+            return !isTestData;
+          });
+
+          console.log('✅ Returning validated field mappings from API:', {
+            original_count: mappings.length,
+            validated_count: validMappings.length,
+            filtered_out: mappings.length - validMappings.length,
+            sample_valid_mappings: validMappings.slice(0, 3)
+          });
+
+          return validMappings;
+        }
+
+        // Return the raw mappings directly from the API if no validation needed
+        console.log('✅ Returning raw field mappings from API (no validation needed):', {
           original_count: mappings?.length || 0,
           sample_mappings: mappings?.slice(0, 3)
         });
@@ -268,7 +341,28 @@ export const useFieldMappings = (
 
     // Use the API field mappings data
     if (realFieldMappings && Array.isArray(realFieldMappings)) {
-      const mappedData = realFieldMappings.map(mapping => {
+      // FINAL FRONTEND VALIDATION: Filter out any test data that might have slipped through
+      const productionMappings = realFieldMappings.filter(mapping => {
+        const sourceField = String(mapping.sourceField || mapping.source_field || '');
+        const isTestData = sourceField.includes('Device_') ||
+                          sourceField === 'Device_ID' ||
+                          sourceField === 'Device_Name' ||
+                          sourceField === 'Device_Type';
+
+        if (isTestData) {
+          console.warn('🚫 Frontend filter: Removing test data field mapping:', sourceField);
+        }
+
+        return !isTestData;
+      });
+
+      console.log('🔍 [DEBUG] Frontend validation completed:', {
+        original_count: realFieldMappings.length,
+        production_count: productionMappings.length,
+        filtered_test_data: realFieldMappings.length - productionMappings.length
+      });
+
+      const mappedData = productionMappings.map(mapping => {
         // Check if this is an unmapped field (handle both camelCase and snake_case)
         const targetField = mapping.targetAttribute || mapping.target_field;
         const isUnmapped = targetField === 'UNMAPPED' || targetField === null;

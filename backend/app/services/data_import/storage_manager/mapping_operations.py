@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Union
 from app.core.exceptions import DatabaseError
 from app.core.logging import get_logger
 from app.models.data_import import DataImport, ImportFieldMapping
+from sqlalchemy import and_, delete
 
 from .helpers import extract_records_from_data
 
@@ -70,16 +71,70 @@ class FieldMappingOperationsMixin:
                 logger.info(f"🔍 DEBUG: Sample record type: {type(sample_record)}")
 
                 for field_name in sample_record.keys():
-                    # NO HARDCODED SKIPPING - Let CrewAI agents decide what's metadata
-                    # The agents should determine which fields are metadata vs real data
+                    # CRITICAL SECURITY FIX: Filter out JSON artifacts and CrewAI metadata
+                    # These should never be treated as actual CSV field names
+
+                    # Define prohibited field names that indicate JSON artifacts
+                    json_artifacts = {
+                        "mappings",
+                        "skipped_fields",
+                        "synthesis_required",
+                        "confidence_scores",
+                        "agent_reasoning",
+                        "transformations",
+                        "validation_results",
+                        "agent_insights",
+                        "unmapped_fields",
+                        "clarifications",
+                        "next_phase",
+                        "timestamp",
+                        "execution_metadata",
+                        "raw_response",
+                        "success",
+                        "error",
+                        "phase_name",
+                        "{}",
+                        "[]",
+                        "null",
+                        "undefined",
+                        "true",
+                        "false",
+                    }
+
+                    # Convert field_name to string and check for artifacts
+                    field_name_str = str(field_name).strip()
+
+                    # Skip field names that are JSON artifacts or CrewAI metadata
+                    if field_name_str.lower() in json_artifacts or field_name_str in [
+                        "{",
+                        "}",
+                        "[",
+                        "]",
+                    ]:
+                        logger.warning(
+                            f"🚨 SECURITY FIX: Skipping JSON artifact field name: '{field_name_str}' "
+                            f"(This is metadata, not a real CSV column)"
+                        )
+                        continue
+
+                    # Skip field names that look like JSON structures
+                    if (
+                        any(char in field_name_str for char in ["{", "}", "[", "]"])
+                        and len(field_name_str) < 10
+                    ):
+                        logger.warning(
+                            f"🚨 SECURITY FIX: Skipping JSON-like field name: '{field_name_str}' "
+                            f"(Appears to be JSON structure, not CSV column)"
+                        )
+                        continue
 
                     logger.info(
-                        f"🔍 DEBUG: Processing field_name: {field_name} "
+                        f"🔍 DEBUG: Processing valid field_name: {field_name_str} "
                         f"(type: {type(field_name)})"
                     )
 
-                    # Use intelligent mapping to get suggested target
-                    suggested_target = intelligent_field_mapping(field_name)
+                    # Use intelligent mapping to get suggested target (using sanitized field name)
+                    suggested_target = intelligent_field_mapping(field_name_str)
 
                     # Calculate confidence if we have a mapping
                     confidence = 0.3  # Low confidence for unmapped fields
@@ -87,14 +142,14 @@ class FieldMappingOperationsMixin:
 
                     if suggested_target:
                         confidence = calculate_mapping_confidence(
-                            field_name, suggested_target
+                            field_name_str, suggested_target
                         )
                         match_type = "intelligent"
 
                     field_mapping = ImportFieldMapping(
                         data_import_id=data_import.id,
                         client_account_id=self.client_account_id,
-                        source_field=field_name,
+                        source_field=field_name_str,  # Use sanitized field name
                         target_field=suggested_target
                         or "UNMAPPED",  # Use UNMAPPED for fields without mapping
                         confidence_score=confidence,
@@ -115,3 +170,77 @@ class FieldMappingOperationsMixin:
         except Exception as e:
             logger.error(f"Failed to create field mappings: {e}")
             raise DatabaseError(f"Failed to create field mappings: {str(e)}")
+
+    async def cleanup_json_artifact_mappings(self, data_import: DataImport) -> int:
+        """
+        Clean up existing field mappings that contain JSON artifacts.
+
+        This method removes any field mappings where the source_field contains
+        JSON metadata keys like "mappings", "skipped_fields", etc.
+
+        Args:
+            data_import: The import record to clean up
+
+        Returns:
+            int: Number of artifact mappings removed
+        """
+        try:
+            # Define the same prohibited field names as in create_field_mappings
+            json_artifacts = {
+                "mappings",
+                "skipped_fields",
+                "synthesis_required",
+                "confidence_scores",
+                "agent_reasoning",
+                "transformations",
+                "validation_results",
+                "agent_insights",
+                "unmapped_fields",
+                "clarifications",
+                "next_phase",
+                "timestamp",
+                "execution_metadata",
+                "raw_response",
+                "success",
+                "error",
+                "phase_name",
+                "{}",
+                "[]",
+                "null",
+                "undefined",
+                "true",
+                "false",
+            }
+
+            # Convert to list for SQL IN clause
+            artifact_list = list(json_artifacts)
+
+            # Delete mappings with JSON artifact source fields
+            delete_query = delete(ImportFieldMapping).where(
+                and_(
+                    ImportFieldMapping.data_import_id == data_import.id,
+                    ImportFieldMapping.client_account_id == self.client_account_id,
+                    ImportFieldMapping.source_field.in_(artifact_list),
+                )
+            )
+
+            result = await self.db.execute(delete_query)
+            await self.db.commit()
+
+            removed_count = result.rowcount
+
+            if removed_count > 0:
+                logger.info(
+                    f"🧹 CLEANUP: Removed {removed_count} JSON artifact field mappings "
+                    f"from import {data_import.id}"
+                )
+            else:
+                logger.info(
+                    f"✅ CLEANUP: No JSON artifact field mappings found for import {data_import.id}"
+                )
+
+            return removed_count
+
+        except Exception as e:
+            logger.error(f"Failed to clean up JSON artifact mappings: {e}")
+            raise DatabaseError(f"Failed to clean up JSON artifact mappings: {str(e)}")

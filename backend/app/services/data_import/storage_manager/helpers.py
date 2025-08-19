@@ -43,10 +43,29 @@ def extract_records_from_data(data: Any) -> List[Dict[str, Any]]:
             "validation_results",
             "agent_insights",
             "unmapped_fields",
+            "clarifications",
+            "next_phase",
+            "timestamp",
+            "execution_metadata",
+            "raw_response",
+            "success",
+            "error",
+            "phase_name",
         }
 
         # Additional safety check for common JSON parsing artifacts
-        artifact_patterns = ["{", "}", "[", "]", "[]", "{}", "null"]
+        artifact_patterns = [
+            "{",
+            "}",
+            "[",
+            "]",
+            "[]",
+            "{}",
+            "null",
+            "undefined",
+            "true",
+            "false",
+        ]
 
         # If data is already a list, check each item for metadata contamination
         if isinstance(data, list):
