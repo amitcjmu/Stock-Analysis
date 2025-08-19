@@ -348,7 +348,7 @@ export const masterFlowService = {
 
       // CC: Implement fallback to unified-discovery endpoint for issues #95 and #94
       // Gate fallback behind feature flag to prevent dual reads and maintain single source of truth
-      if (!process.env.NEXT_PUBLIC_ENABLE_UNIFIED_DISCOVERY_FALLBACK) {
+      if (String(process.env.NEXT_PUBLIC_ENABLE_UNIFIED_DISCOVERY_FALLBACK || '').toLowerCase() !== 'true') {
         if (process.env.NODE_ENV !== 'production') {
           console.warn(
             "❌ MasterFlowService.getActiveFlows - Fallback disabled by feature flag. Original error:",
@@ -515,7 +515,7 @@ export const masterFlowService = {
 
       // CC: Implement fallback to unified-discovery endpoint for consistent flow operations
       // SECURITY WARNING: Gate fallback behind feature flag to prevent dual deletes and maintain single source of truth
-      if (!process.env.NEXT_PUBLIC_ENABLE_UNIFIED_DISCOVERY_FALLBACK) {
+      if (String(process.env.NEXT_PUBLIC_ENABLE_UNIFIED_DISCOVERY_FALLBACK || '').toLowerCase() !== 'true') {
         if (process.env.NODE_ENV !== 'production') {
           console.warn(
             `❌ MasterFlowService.deleteFlow - Fallback disabled by feature flag for flow ${flowId}. Original error:`,
