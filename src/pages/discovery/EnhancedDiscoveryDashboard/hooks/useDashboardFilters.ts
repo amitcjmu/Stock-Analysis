@@ -20,7 +20,7 @@ interface UseDashboardFiltersReturn {
 
 export const useDashboardFilters = (flows: FlowSummary[] | undefined): UseDashboardFiltersReturn => {
   const [filters, setFilters] = useState<DashboardFilters>({
-    timeRange: '24h',
+    timeRange: '7d', // Changed from '24h' to '7d' to be more inclusive
     status: [],
     flowType: [],
     searchQuery: ''
@@ -63,6 +63,14 @@ export const useDashboardFilters = (flows: FlowSummary[] | undefined): UseDashbo
       if (filters.timeRange !== 'all') {
         const now = new Date();
         const flowDate = new Date(flow.started_at);
+
+        // Check if date parsing was successful
+        if (isNaN(flowDate.getTime())) {
+          console.warn('Invalid started_at date for flow:', flow.flow_id, 'Date string:', flow.started_at);
+          // Allow flows with invalid dates to pass through for now
+          return true;
+        }
+
         const diffHours = (now.getTime() - flowDate.getTime()) / (1000 * 60 * 60);
 
         switch (filters.timeRange) {
@@ -96,7 +104,7 @@ export const useDashboardFilters = (flows: FlowSummary[] | undefined): UseDashbo
   // Reset filters
   const resetFilters = useCallback(() => {
     setFilters({
-      timeRange: '24h',
+      timeRange: '7d', // Changed from '24h' to '7d'
       status: [],
       flowType: [],
       searchQuery: ''
