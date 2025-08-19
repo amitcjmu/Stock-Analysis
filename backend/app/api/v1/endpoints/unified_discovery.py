@@ -309,22 +309,27 @@ async def get_field_mappings(
         if not flow:
             raise HTTPException(status_code=404, detail="Flow not found")
 
-        # Get field mappings from the database
-        mapping_stmt = select(ImportFieldMapping).where(
-            ImportFieldMapping.discovery_flow_id == flow_id
-        )
-        mapping_result = await db.execute(mapping_stmt)
-        mappings = mapping_result.scalars().all()
+        # Get field mappings from the database using data_import_id
+        # If flow has a data_import_id, use it to get mappings
+        if flow.data_import_id:
+            mapping_stmt = select(ImportFieldMapping).where(
+                ImportFieldMapping.data_import_id == flow.data_import_id
+            )
+            mapping_result = await db.execute(mapping_stmt)
+            mappings = mapping_result.scalars().all()
+        else:
+            # No data import, no mappings
+            mappings = []
 
         # Convert to response format
         field_mappings = [
             {
                 "source_field": m.source_field,
-                "target_attribute": m.target_attribute,
-                "confidence": m.confidence,
-                "mapping_type": m.mapping_type,
-                "transformation": m.transformation,
-                "validation_rules": m.validation_rules,
+                "target_attribute": m.target_field,  # Fixed: target_field not target_attribute
+                "confidence": m.confidence_score,  # Fixed: confidence_score not confidence
+                "mapping_type": getattr(m, "mapping_type", "auto"),
+                "transformation": getattr(m, "transformation_rule", None),
+                "validation_rules": getattr(m, "validation_rule", None),
             }
             for m in mappings
         ]

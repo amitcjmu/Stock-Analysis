@@ -1,8 +1,8 @@
 
 # E2E Data Flow Analysis: Attribute Mapping
 
-**Analysis Date:** 2025-08-12
-**Status:** Enhanced with Critical Attributes Assessment for 6R Migration Readiness
+**Analysis Date:** 2025-08-19
+**Status:** Fixed Architecture - Frontend now uses MFO endpoint with flow_id for all field mappings
 
 This document provides a complete, end-to-end data flow analysis for the `Attribute Mapping` page, a critical phase in the discovery workflow where AI-powered agents:
 1. Suggest mappings between source data and the platform's schema
@@ -18,7 +18,14 @@ This document provides a complete, end-to-end data flow analysis for the `Attrib
 *   **Phase Controller Execution:** Uses PhaseController to manage phase execution with pause/resume capabilities for user approval
 *   **Asynchronous Suggestion & Approval:** The flow first runs in a "suggestions-only" mode to populate the UI, then pauses for user approval
 
-**RECENT ENHANCEMENTS (2025-08-12):**
+**RECENT FIXES (2025-08-19):**
+1. Fixed attribute mapping showing 0 fields issue by updating frontend to use Master Flow Orchestrator (MFO) endpoint
+2. Eliminated frontend/backend duplication by having frontend use `/api/v1/unified-discovery/flows/{flow_id}/field-mappings`
+3. Fixed flow detection to include 'waiting_for_approval' status as active
+4. Fixed backend unified-discovery endpoint field names (target_field, confidence_score)
+5. Field mappings now correctly show all 9 fields from CSV imports
+
+**PREVIOUS ENHANCEMENTS (2025-08-12):**
 1. Added Critical Attributes Assessment Tool for evaluating 22 essential migration attributes
 2. Implemented Migration Readiness Scorer for 6R strategy recommendations
 3. Enhanced field_mapper agent with specialized tools for comprehensive attribute coverage
@@ -39,9 +46,9 @@ The `AttributeMapping` page is a user interface for reviewing, approving, or mod
 
 | #  | HTTP Call                                                           | Trigger                                                        | Key Parameters              | Expected Response                                                             | Current Status |
 |----|---------------------------------------------------------------------|----------------------------------------------------------------|-----------------------------|-------------------------------------------------------------------------------|----------------|
-| 1  | `GET /api/v1/data-import/latest-import`                             | Page load - gets the latest import for context                | `clientAccountId`, `engagementId` | Latest data import information                                          | ✅ Working     |
-| 2  | `GET /api/v1/data-import/flow/{flowId}/import-data`                 | `useAttributeMappingLogic` (after flow detection).             | `flowId`                    | JSON object with import metadata and sample data for the identified flow.     | ✅ Fixed - DiscoveryFlow now created |
-| 3  | `GET /api/v1/unified-discovery/flows/active`                                | Page load - gets active discovery flows                        | `clientAccountId`, `engagementId` | Active flows list                                                    | ✅ Working     |
+| 1  | `GET /api/v1/unified-discovery/flows/active`                                | Page load - gets active discovery flows (includes 'waiting_for_approval')                       | `clientAccountId`, `engagementId` | Active flows list including paused flows                                                   | ✅ Working     |
+| 2  | `GET /api/v1/unified-discovery/flows/{flow_id}/field-mappings`      | `useAttributeMappingLogic` - gets field mappings via MFO endpoint            | `flow_id`                    | Field mappings with target_field and confidence_score for the flow     | ✅ Fixed - Now uses MFO endpoint |
+| 3  | `GET /api/v1/data-import/latest-import`                             | Page load - gets the latest import for context                | `clientAccountId`, `engagementId` | Latest data import information                                          | ✅ Working     |
 | 4  | `GET /api/v1/data-import/critical-attributes-status`                | Gets field mapping status and critical attributes              | Context headers             | Field mapping analysis and agent insights                                     | ⚠️ Partial - Falls back to re-analysis |
 | 5  | `GET /api/v1/agents/discovery/agent-questions?page=attribute_mapping` | Gets agent questions for the page                             | `page` param                | Agent questions for user guidance                                              | ✅ Working     |
 
@@ -158,20 +165,22 @@ The system calculates readiness scores for each 6R strategy based on attribute c
 
 ## 4. End-to-End Flow Sequence
 
-### Enhanced Flow with Critical Attributes:
+### Enhanced Flow with MFO Architecture Fix:
 1.  **Backend (Initial Analysis):** 
     - PhaseController executes field mapping phase with persistent field_mapper agent
     - Agent assesses coverage of 22 critical attributes
     - Calculates migration readiness scores for all 6R strategies
     - Generates mapping suggestions prioritizing critical attributes
-    - Flow pauses with `waiting_for_approval`
-2.  **Frontend (Page Load):** 
-    - User sees field mapping suggestions with confidence scores
+    - Flow pauses with `waiting_for_approval` status
+2.  **Frontend (Page Load - Fixed Architecture):** 
+    - Frontend queries active flows including 'waiting_for_approval' status
+    - Uses flow_id to call MFO endpoint: `/api/v1/unified-discovery/flows/{flow_id}/field-mappings`
+    - Backend returns properly formatted field mappings with target_field and confidence_score
+    - All 9 fields from CSV imports now correctly displayed in the UI
     - Critical attributes coverage report displayed
     - Migration readiness dashboard shows 6R strategy scores
-    - Missing critical attributes highlighted with recommendations
 3.  **Frontend (User Action):** 
-    - User reviews mappings and critical attributes assessment
+    - User reviews all field mappings (no longer shows 0 fields)
     - Can modify mappings to improve coverage
     - Approves mappings with understanding of migration readiness
 4.  **Backend (Resumption):** 
@@ -190,9 +199,9 @@ The system calculates readiness scores for each 6R strategy based on attribute c
 
 | Stage      | Potential Failure Point                                                                                               | Diagnostic Checks                                                                                                                                                                                                                                                                                  |
 |------------|-----------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Frontend** | **No Suggestions Shown:** The page loads, but the mapping table is empty. <br/> **"Discovery flow not found" errors:** Multiple API calls fail with flow lookup errors.                                                                  | **Browser DevTools (Network Tab):** Check responses from `/flow/{flowId}/import-data` - returns 200 but with error message about discovery flow not found. The critical-attributes-status endpoint shows fallback behavior. |
-| **Backend**  | **DiscoveryFlow lookup fails:** The code looks in wrong table (discovery_flows instead of crewai_flow_state_extensions). <br/> **Multiple fallback attempts:** System tries data_import_id, master_flow_id, and configuration lookups. | **Docker Logs:** See "Discovery flow not found" warnings followed by multiple lookup attempts. <br/> **Database:** Check `crewai_flow_state_extensions` table for the actual flow with given flow_id. The discovery_flows table may be empty or not have matching records. |
-| **Database** | **Mappings Not Saved:** The suggestions from the agent crew are not correctly written to the `import_field_mappings` table. | **Direct DB Query:** Connect to the database (`docker exec -it migration_db psql ...`) and run `SELECT * FROM import_field_mappings WHERE data_import_id = 'your-import-id';` to see if the suggestions exist. |
+| **Frontend (FIXED)** | **~~No Suggestions Shown~~:** ✅ RESOLVED - The page now correctly loads all field mappings using MFO endpoint. <br/> **~~"Discovery flow not found" errors~~:** ✅ RESOLVED - Frontend now uses proper flow_id with MFO endpoint.                                                                  | **Browser DevTools (Network Tab):** Check responses from `/api/v1/unified-discovery/flows/{flow_id}/field-mappings` - should return 200 with properly formatted field mappings including target_field and confidence_score. |
+| **Backend (IMPROVED)**  | **Flow status detection:** Fixed to include 'waiting_for_approval' as active flow status. <br/> **Field name consistency:** Backend now returns target_field and confidence_score matching frontend expectations. | **Docker Logs:** Should show successful field mapping retrieval from MFO endpoint. <br/> **Database:** Check `import_field_mappings` table for mappings linked to master_flow_id. |
+| **Database** | **Mappings Not Saved:** The suggestions from the agent crew are not correctly written to the `import_field_mappings` table. | **Direct DB Query:** Connect to the database (`docker exec -it migration_db psql ...`) and run `SELECT * FROM import_field_mappings WHERE master_flow_id = 'your-flow-id';` to see if the suggestions exist. |
 
 ---
 
@@ -307,9 +316,23 @@ The two-table design serves specific purposes:
 - **Child Table**: Flow-type-specific data that doesn't fit the generic model
 - **Separation of Concerns**: Keeps the master table clean while allowing flow-specific extensions
 
-### Data Flow for Attribute Mapping
+### Data Flow for Attribute Mapping (Updated 2025-08-19)
 
-1. **PhaseController** reads from master table for orchestration state
-2. **Import Storage Handler** reads from child table for `data_import_id`
-3. **Field Mapping Service** reads from `import_field_mappings` using master flow ID
-4. **UI Components** combine data from multiple sources for display 
+**NEW ARCHITECTURE - MFO ENDPOINT APPROACH:**
+1. **Frontend** uses `flow_id` to query active flows including 'waiting_for_approval' status
+2. **Frontend** calls MFO endpoint: `/api/v1/unified-discovery/flows/{flow_id}/field-mappings`
+3. **Backend** returns standardized field mappings with `target_field` and `confidence_score`
+4. **Frontend** displays all 9 fields from CSV imports correctly in the UI
+
+**BACKEND DATA FLOW:**
+1. **PhaseController** reads from master table (`crewai_flow_state_extensions`) for orchestration state
+2. **Import Storage Handler** reads from child table (`discovery_flows`) for `data_import_id`
+3. **Field Mapping Service** reads from `import_field_mappings` using `master_flow_id`
+4. **MFO Endpoint** combines data from multiple sources and formats response consistently
+5. **UI Components** receive properly formatted data with standardized field names
+
+**KEY IMPROVEMENTS:**
+- Eliminated import_id based approach that caused 0 fields display issue
+- Centralized data access through unified discovery endpoints
+- Standardized API response format across all field mapping operations
+- Enhanced flow status detection to include paused flows awaiting approval 

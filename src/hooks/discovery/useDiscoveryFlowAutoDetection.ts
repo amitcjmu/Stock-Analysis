@@ -45,7 +45,7 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
 
   const {
     currentPhase,
-    preferredStatuses = ['initialized', 'running', 'active', 'in_progress'],
+    preferredStatuses = ['initialized', 'running', 'active', 'in_progress', 'waiting_for_approval'],
     fallbackToAnyRunning = true
   } = options;
 

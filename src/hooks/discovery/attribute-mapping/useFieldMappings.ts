@@ -80,21 +80,60 @@ export interface FieldMappingsResult {
  */
 export const useFieldMappings = (
   importData: ImportData | null,
-  fieldMappingData: FieldMappingData | null
+  fieldMappingData: FieldMappingData | null,
+  flowId?: string | null
 ): FieldMappingsResult => {
   const { getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
   const { subscribe } = useWebSocket();
 
-  // Get field mappings using the import ID
+  // Use provided flow ID or try to extract from data
+  const effectiveFlowId = flowId || fieldMappingData?.flow_id || importData?.flow_id;
+
   const {
     data: realFieldMappings,
     isLoading: isFieldMappingsLoading,
     error: fieldMappingsError,
     refetch: refetchFieldMappings
   } = useQuery({
-    queryKey: ['field-mappings', importData?.import_metadata?.import_id],
+    queryKey: ['field-mappings', effectiveFlowId || importData?.import_metadata?.import_id],
     queryFn: async () => {
+      // Try to use flow ID first (preferred - uses MFO)
+      if (effectiveFlowId) {
+        console.log('🔍 Fetching field mappings using flow ID:', effectiveFlowId);
+        try {
+          const response = await apiCall(`/api/v1/unified-discovery/flows/${effectiveFlowId}/field-mappings`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              ...getAuthHeaders()
+            }
+          });
+
+          if (response?.field_mappings) {
+            console.log('✅ Fetched field mappings from unified discovery:', {
+              flow_id: flowId,
+              count: response.field_mappings.length
+            });
+
+            // Convert unified discovery format to expected format
+            return response.field_mappings.map(m => ({
+              id: m.id || `${m.source_field}_${m.target_attribute}`,
+              source_field: m.source_field,
+              target_field: m.target_attribute,
+              confidence: m.confidence,
+              is_approved: m.is_approved || false,
+              status: m.status || 'suggested',
+              transformation_rule: m.transformation,
+              validation_rule: m.validation_rules
+            }));
+          }
+        } catch (error) {
+          console.warn('Failed to fetch from unified discovery, falling back to import ID', error);
+        }
+      }
+
+      // Fallback to import ID if flow ID doesn't work
       const importId = importData?.import_metadata?.import_id;
       if (!importId) {
         console.warn('⚠️ No import ID available for field mappings fetch');
