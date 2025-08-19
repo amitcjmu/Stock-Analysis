@@ -125,9 +125,9 @@ curl http://localhost:8081           # Frontend check
 4. **[docs/development/modularization/](./development/modularization/)** (15 min)
    - TypeScript module boundaries, lazy loading patterns
 
-### ⚙️ Backend Developer Path (60 minutes total)
+### ⚙️ Backend Developer Path (90 minutes total)
 
-#### **Start Here**
+#### **Start Here** 
 1. **[docs/BACKEND_ARCHITECTURE.md](./BACKEND_ARCHITECTURE.md)** (10 min)
    - Service architecture and patterns
 2. **[docs/DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)** - Backend sections (20 min)
@@ -135,8 +135,26 @@ curl http://localhost:8081           # Frontend check
 3. **[docs/CREWAI.md](./CREWAI.md)** (15 min)
    - AI agent development patterns
 
+#### **Database & Data Layer** ⭐ **ENHANCED**
+4. **[docs/architecture/database-design.md](./architecture/database-design.md)** (15 min)
+   - Complete database schema and multi-tenant architecture
+5. **[docs/implementation/postgresql-development-guide.md](./implementation/postgresql-development-guide.md)** (20 min)
+   - **Database schema visualization with Mermaid diagrams**
+   - **Local PostgreSQL connection setup (Docker)**
+   - **SQLAlchemy ORM patterns and best practices**
+   - **Repository pattern implementation**
+   - **Query optimization and performance**
+
+#### **Redis & Caching** ⭐ **NEW**
+6. **[docs/implementation/redis-development-guide.md](./implementation/redis-development-guide.md)** (15 min)
+   - **Redis key naming conventions and patterns**
+   - **Local Redis setup and CLI commands**
+   - **Caching strategies and TTL management**
+   - **Event bus and pub/sub patterns**
+   - **How to inspect Redis keys during development**
+
 #### **Deep Dive**
-4. **[docs/development/master_flow_orchestrator/](./development/master_flow_orchestrator/)** (15 min)
+7. **[docs/development/master_flow_orchestrator/](./development/master_flow_orchestrator/)** (15 min)
    - Flow orchestration patterns
 
 ### 🗄️ Database/DevOps Developer Path (45 minutes total)
@@ -342,11 +360,32 @@ def analyze_data(data):
 - **Share your screen** when asking for help
 - **Use @here sparingly** in Slack channels
 
+### 📋 GitHub Project Management ⭐ **REQUIRED**
+**All development activities must be tracked in our GitHub Projects board.**
+
+📊 **Main Project Board**: [https://github.com/users/CryptoYogiLLC/projects/2/views/3](https://github.com/users/CryptoYogiLLC/projects/2/views/3)
+
+#### Essential Project Management Rules:
+- **All work must be tracked** as either an issue or sub-issue
+- **Assign yourself** when starting work (move to "In Progress")
+- **Update status** as you progress through development
+- **Link PRs to issues** using "Closes #123" in PR descriptions
+- **Break down large tasks** into smaller sub-issues
+
+#### Quick Start with GitHub Projects:
+1. **Browse the board** to understand current work
+2. **Pick up Ready issues** that match your skills
+3. **Create issues** for new bugs or features you discover
+4. **Use proper labels** (frontend, backend, bug, enhancement)
+5. **Reference issues** in all commits and PRs
+
+📚 **Complete Guide**: [docs/workflow/github-project-management.md](./workflow/github-project-management.md)
+
 ### 📝 Development Process
-1. **Pick up issues** from the [AI Modernize Dev Board](https://github.com/users/CryptoYogiLLC/projects/3)
-2. **Create feature branches** following naming conventions
+1. **Pick up issues** from the [GitHub Projects Board](https://github.com/users/CryptoYogiLLC/projects/2/views/3)
+2. **Create feature branches** following naming conventions (`type/issue-number-description`)
 3. **Test thoroughly** in Docker containers
-4. **Submit pull requests** with clear descriptions
+4. **Submit pull requests** with clear descriptions and issue links
 5. **Participate in code reviews** - both giving and receiving feedback
 
 ---

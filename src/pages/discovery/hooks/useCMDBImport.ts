@@ -298,7 +298,9 @@ export const useAuthenticatedDiscoveryStatus = (flowId: string | null): JSX.Elem
           'X-Requested-With': 'XMLHttpRequest' // Helps identify AJAX requests
         };
 
-        console.log('Making authenticated status request with headers:', headers);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('Making authenticated status request for flow:', flowId);
+        }
 
         // Build query parameters
         const queryParams = new URLSearchParams({

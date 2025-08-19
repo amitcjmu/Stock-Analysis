@@ -203,6 +203,7 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route path="/discovery/overview" element={<LazyDiscoveryDashboard />} />
       <Route path="/discovery/dashboard" element={<LazyDiscoveryDashboard />} />
       <Route path="/discovery/enhanced-dashboard" element={<LazyDiscoveryDashboard />} />
+      <Route path="/discovery/monitor/:flowId" element={<LazyDiscoveryDashboard />} />
       <Route path="/discovery/cmdb-import" element={<LazyDataImport />} />
       <Route path="/discovery/data-import" element={<LazyDataImport />} />
       <Route path="/discovery/inventory" element={<LazyInventory />} />

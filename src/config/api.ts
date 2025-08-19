@@ -104,7 +104,7 @@ export const API_CONFIG = {
       PROCESS_CMDB: '/flows/execute', // Fixed: Use MFO endpoint for flow execution
       CMDB_TEMPLATES: '/unified-discovery/cmdb-templates',  // Updated to unified-discovery endpoint as part of API migration
       CMDB_FEEDBACK: '/unified-discovery/cmdb-feedback',  // Updated to unified-discovery endpoint as part of API migration
-      ASSETS: '/unified-discovery/assets',  // Updated to unified-discovery endpoint as part of API migration
+      ASSETS: process.env.NODE_ENV === 'development' && String(process.env.NEXT_PUBLIC_ENABLE_DEMO_ENDPOINT || '').toLowerCase() === 'true' ? '/auth/demo/assets' : '/unified-discovery/assets',  // Use demo endpoint only with explicit flag AND development mode
       ASSETS_BULK: '/unified-discovery/assets/bulk',  // Updated to unified-discovery endpoint as part of API migration
       ASSETS_CLEANUP: '/unified-discovery/assets/cleanup-duplicates',  // Updated to unified-discovery endpoint as part of API migration
       APPLICATIONS: '/unified-discovery/applications',  // Updated to unified-discovery endpoint as part of API migration
@@ -529,8 +529,10 @@ export const apiCall = async (
         console.log(`🚫 API Call [${requestId}] - Context headers skipped (includeContext=false)`);
       }
 
-      // Log final headers being sent
-      console.log(`🔗 API Call [${requestId}] - Final headers:`, headers);
+      // Log final headers being sent (non-production only)
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`🔗 API Call [${requestId}] - Making request to: ${endpoint}`);
+      }
 
       // Create abort controller for timeout
       const controller = new AbortController();
@@ -538,15 +540,19 @@ export const apiCall = async (
       // Determine timeout based on operation type
       // Agentic activities (classification, analysis, flow execution) have no timeout
       // UI interactions have reasonable timeouts
+      // Use regex patterns to match exact path boundaries and prevent false positives
       const isAgenticActivity = (
-        normalizedEndpoint.includes('/assets/list/paginated') ||
-        normalizedEndpoint.includes('/flows/execute') ||  // Fixed: Use MFO endpoint for flow execution
-        normalizedEndpoint.includes('/assets/analyze') ||
-        normalizedEndpoint.includes('/asset_inventory') ||
-        normalizedEndpoint.includes('/classification') ||
+        /\/assets\/list\/paginated(?:$|\?)/.test(normalizedEndpoint) ||
+        /\/flows\/execute(?:$|\?)/.test(normalizedEndpoint) ||  // Fixed: Use MFO endpoint for flow execution
+        /\/flow-processing\/continue(?:$|\?)/.test(normalizedEndpoint) ||
+        (/\/flows\/[^/]+\/resume(?:$|\?)/.test(normalizedEndpoint)) ||  // Long-running recovery operation
+        (/\/flows\/[^/]+\/retry(?:$|\?)/.test(normalizedEndpoint)) ||   // Long-running retry operation
+        /\/assets\/analyze(?:$|\?)/.test(normalizedEndpoint) ||
+        /\/asset_inventory(?:$|\?)/.test(normalizedEndpoint) ||
+        /\/classification(?:$|\?)/.test(normalizedEndpoint) ||
         // Treat data import storage as a long-running, agent-triggering operation (no timeout)
-        normalizedEndpoint.includes('/data-import/store-import') ||
-        normalizedEndpoint.includes('/data-import/store-import-temp')
+        /\/data-import\/store-import(?:$|\?)/.test(normalizedEndpoint) ||
+        /\/data-import\/store-import-temp(?:$|\?)/.test(normalizedEndpoint)
       );
 
       const timeoutMs = options.timeout || (
