@@ -335,7 +335,7 @@ export const useFieldMappings = (
         return [];
       }
     },
-    enabled: !!importData?.import_metadata?.import_id,
+    enabled: !!(effectiveFlowId || importData?.import_metadata?.import_id),
     staleTime: isCacheFeatureEnabled('REACT_QUERY_OPTIMIZATIONS') ? 2 * 60 * 1000 : 30 * 1000, // 2 minutes with optimizations, 30 seconds legacy
     cacheTime: isCacheFeatureEnabled('REACT_QUERY_OPTIMIZATIONS') ? 5 * 60 * 1000 : 2 * 60 * 1000, // 5 minutes with optimizations, 2 minutes legacy
     retry: (failureCount, error) => {

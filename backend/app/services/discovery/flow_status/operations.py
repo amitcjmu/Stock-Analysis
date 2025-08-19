@@ -252,6 +252,7 @@ async def get_active_flows(
                     "status": flow.status,
                     "current_phase": flow.current_phase,
                     "progress": flow.progress_percentage or 0,
+                    "data_import_id": flow.data_import_id,  # Include data_import_id
                     "created_at": (
                         flow.created_at.isoformat() if flow.created_at else None
                     ),

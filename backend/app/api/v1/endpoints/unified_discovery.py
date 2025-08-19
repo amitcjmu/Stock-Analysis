@@ -197,6 +197,9 @@ async def get_active_flows(
                         "status": flow["status"],
                         "progress": flow["progress"],
                         "currentPhase": flow["current_phase"],
+                        "dataImportId": flow.get(
+                            "data_import_id"
+                        ),  # Include data import ID
                         "createdAt": flow["created_at"],
                         "updatedAt": flow["updated_at"],
                         "source": flow.get("source", "discovery_flow"),
