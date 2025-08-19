@@ -723,12 +723,26 @@ async def _trigger_field_mapping_reanalysis(
         crewai_service = CrewAIFlowService()
         crew_manager = UnifiedFlowCrewManager(crewai_service, flow_state)
 
-        # Create and execute field mapping executor
-        executor = FieldMappingExecutor(flow_state, crew_manager)
+        # Create and execute field mapping executor with error handling
+        try:
+            executor = FieldMappingExecutor(flow_state, crew_manager)
+        except Exception as e:
+            logger.error(f"❌ Failed to create FieldMappingExecutor: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to initialize field mapping executor: {str(e)}"
+            )
 
         # Execute field mapping analysis
         logger.info("🤖 Executing field mapping re-analysis with CrewAI agents...")
-        result = await executor.execute_suggestions_only({})
+        try:
+            result = await executor.execute_suggestions_only({})
+        except Exception as e:
+            logger.error(f"❌ Field mapping re-analysis failed: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Field mapping re-analysis failed: {str(e)}"
+            )
 
         if result and result.get("mappings"):
             logger.info(
