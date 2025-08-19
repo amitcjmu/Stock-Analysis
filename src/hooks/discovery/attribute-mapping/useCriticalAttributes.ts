@@ -48,8 +48,13 @@ export const useCriticalAttributes = (
   } = useQuery({
     queryKey: ['critical-attributes', finalFlowId, user?.id],
     queryFn: async () => {
-      console.log('🔍 Fetching critical attributes from backend API');
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.CRITICAL_ATTRIBUTES_STATUS, {
+      console.log('🔍 Fetching critical attributes from backend API for flow:', finalFlowId);
+      // If we have a flow ID, append it as a query parameter
+      const endpoint = finalFlowId
+        ? `${API_CONFIG.ENDPOINTS.DISCOVERY.CRITICAL_ATTRIBUTES_STATUS}?flow_id=${finalFlowId}`
+        : API_CONFIG.ENDPOINTS.DISCOVERY.CRITICAL_ATTRIBUTES_STATUS;
+
+      const response = await apiCall(endpoint, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

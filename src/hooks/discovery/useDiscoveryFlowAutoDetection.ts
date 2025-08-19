@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { useDiscoveryFlowList } from './useDiscoveryFlowList';
 import SecureLogger from '../../utils/secureLogger';
 import SecureStorage from '../../utils/secureStorage';
@@ -40,7 +40,17 @@ interface FlowAutoDetectionResult {
 }
 
 export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions = {}): FlowAutoDetectionResult => {
-  const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
+  // First try route params (e.g., /path/:flowId)
+  const { flowId: routeFlowId } = useParams<{ flowId?: string }>();
+
+  // Also check query params (e.g., ?flow_id=...)
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const queryFlowId = queryParams.get('flow_id');
+
+  // Use route param first, then query param as fallback
+  const urlFlowId = routeFlowId || queryFlowId || undefined;
+
   const { data: flowList, isLoading: isFlowListLoading, error: flowListError } = useDiscoveryFlowList();
 
   const {

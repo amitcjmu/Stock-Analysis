@@ -117,16 +117,37 @@ export const useFieldMappings = (
             });
 
             // Convert unified discovery format to expected format
-            return response.field_mappings.map(m => ({
+            // IMPORTANT: Return data with BOTH camelCase and snake_case for compatibility
+            const transformedMappings = response.field_mappings.map(m => ({
               id: m.id || `${m.source_field}_${m.target_attribute}`,
-              source_field: m.source_field,
-              target_field: m.target_attribute,
-              confidence: m.confidence,
+              // CRITICAL: Include both camelCase and snake_case versions
+              sourceField: m.source_field,  // camelCase for ThreeColumnFieldMapper
+              source_field: m.source_field,  // snake_case for compatibility
+              targetAttribute: m.target_attribute,  // camelCase for ThreeColumnFieldMapper
+              target_field: m.target_attribute,  // snake_case for compatibility
+              target_attribute: m.target_attribute,  // Also include exact backend field name
+              confidence: m.confidence || 0.5,
               is_approved: m.is_approved || false,
-              status: m.status || 'suggested',
+              status: m.status || 'pending',  // Use 'pending' for unmapped fields
+              mapping_type: m.mapping_type || 'auto',
               transformation_rule: m.transformation,
-              validation_rule: m.validation_rules
+              validation_rule: m.validation_rules,
+              // Add extra fields that might be expected
+              sample_values: [],
+              ai_reasoning: '',
+              is_user_defined: false,
+              user_feedback: null,
+              validation_method: 'semantic_analysis',
+              is_validated: false
             }));
+
+            console.log('✅ Transformed unified discovery mappings:', {
+              original_count: response.field_mappings.length,
+              transformed_count: transformedMappings.length,
+              sample_transformed: transformedMappings.slice(0, 2)
+            });
+
+            return transformedMappings;
           }
         } catch (error) {
           console.warn('Failed to fetch from unified discovery, falling back to import ID', error);
@@ -403,22 +424,32 @@ export const useFieldMappings = (
 
       const mappedData = productionMappings.map(mapping => {
         // Check if this is an unmapped field (handle both camelCase and snake_case)
-        const targetField = mapping.targetAttribute || mapping.target_field;
-        const isUnmapped = targetField === 'UNMAPPED' || targetField === null;
+        const targetField = mapping.targetAttribute || mapping.target_field || mapping.target_attribute;
+        const isUnmapped = targetField === 'UNMAPPED' || targetField === null || targetField === undefined;
 
         // Ensure source field is always a string (handle both camelCase and snake_case)
         const sourceField = String(mapping.sourceField || mapping.source_field || 'Unknown Field');
 
+        // Determine status based on is_approved field and whether it's mapped
+        let finalStatus = mapping.status;
+        if (!finalStatus) {
+          if (isUnmapped) {
+            finalStatus = 'unmapped';
+          } else if (mapping.is_approved === true) {
+            finalStatus = 'approved';
+          } else {
+            finalStatus = 'pending';
+          }
+        }
+
         return {
-          id: mapping.id,
+          id: mapping.id || `${sourceField}_${targetField || 'unmapped'}`,
           sourceField: sourceField,
-          targetAttribute: isUnmapped ? null : targetField, // Show null for unmapped fields
+          targetAttribute: isUnmapped ? null : targetField,
           confidence: mapping.confidence || 0,
           mapping_type: mapping.mapping_type || (isUnmapped ? 'unmapped' : 'ai_suggested'),
           sample_values: mapping.sample_values || [],
-          // IMPORTANT: Always present as 'pending' until user explicitly approves
-          // Unmapped fields should show as 'unmapped' status
-          status: mapping.status || (isUnmapped ? 'unmapped' : (mapping.is_approved === true ? 'approved' : 'pending')),
+          status: finalStatus,
           ai_reasoning: mapping.ai_reasoning || (isUnmapped ? `Field "${sourceField}" needs mapping assignment` : `AI suggested mapping to ${targetField}`),
           is_user_defined: mapping.is_user_defined || false,
           user_feedback: mapping.user_feedback || null,
