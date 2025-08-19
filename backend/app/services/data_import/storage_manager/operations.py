@@ -1,18 +1,16 @@
 """
-Import Storage Manager Module
+Storage Manager Core Operations
 
-Handles all database storage operations including:
-- Database storage operations and CRUD
-- Data persistence and retrieval
-- Storage optimization and indexing
-- Raw record management
+Contains the main business logic operations for data import storage management.
+This module uses mixins to delegate specialized operations to dedicated modules.
 """
 
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,12 +19,20 @@ from app.core.exceptions import DatabaseError
 from app.core.logging import get_logger
 from app.models.data_import import DataImport, ImportFieldMapping, RawImportRecord
 
+from .helpers import extract_records_from_data
+from .mapping_operations import FieldMappingOperationsMixin
+from .record_operations import RawRecordOperationsMixin
+
 logger = get_logger(__name__)
 
 
-class ImportStorageManager:
+class ImportStorageOperations(RawRecordOperationsMixin, FieldMappingOperationsMixin):
     """
-    Manages database storage operations for data imports.
+    Core operations for import storage management.
+
+    This class inherits specialized operations from mixins:
+    - RawRecordOperationsMixin: For raw record management
+    - FieldMappingOperationsMixin: For field mapping operations
     """
 
     def __init__(self, db: AsyncSession, client_account_id: str):
@@ -52,13 +58,12 @@ class ImportStorageManager:
             file_content_type: MIME type of the file
             import_type: Type of import (e.g., 'cmdb')
             status: Initial status for the import
+            engagement_id: Optional engagement ID
+            imported_by: Optional user ID who imported
 
         Returns:
             DataImport: The created import record
         """
-        import uuid
-        import json
-
         try:
             # Generate new import ID
             import_id = uuid.uuid4()
@@ -81,18 +86,25 @@ class ImportStorageManager:
                 processed_records=0,
                 failed_records=0,
                 imported_by=imported_by
-                or "33333333-3333-3333-3333-333333333333",  # Use demo user UUID as fallback
+                or "33333333-3333-3333-3333-333333333333",  # Demo user fallback
             )
             self.db.add(data_import)
             await self.db.flush()  # Get the record in session
 
             # Parse and store the file data as raw records
-            file_data = json.loads(file_content.decode("utf-8"))
-            if file_data:
+            parsed_data = json.loads(file_content.decode("utf-8"))
+            if parsed_data:
+                # Extract actual records from potentially nested structure
+                extracted_records = extract_records_from_data(parsed_data)
+                logger.info(
+                    f"📊 Extracted {len(extracted_records)} records from JSON data "
+                    f"for import {data_import.id}"
+                )
+
                 # Store raw records
                 records_stored = await self.store_raw_records(
                     data_import=data_import,
-                    file_data=file_data,
+                    file_data=extracted_records,
                     engagement_id=engagement_id or "unknown",
                 )
 
@@ -145,7 +157,8 @@ class ImportStorageManager:
             if not data_import:
                 # Create new DataImport record since none exists
                 logger.info(
-                    f"No existing import record found. Creating new DataImport record with ID: {import_id}"
+                    f"No existing import record found. Creating new DataImport "
+                    f"record with ID: {import_id}"
                 )
                 data_import = DataImport(
                     id=import_id,
@@ -157,7 +170,7 @@ class ImportStorageManager:
                     filename=filename,
                     file_size=file_size,
                     mime_type=file_type,
-                    source_system=intended_type,  # Set source system based on intended type
+                    source_system=intended_type,  # Set source system based on type
                     status="pending",
                     progress_percentage=0.0,  # Initialize progress
                     total_records=0,  # Will be updated when records are stored
@@ -177,131 +190,6 @@ class ImportStorageManager:
             logger.error(f"Failed to find or create import record: {e}")
             raise DatabaseError(f"Failed to find or create import record: {str(e)}")
 
-    async def store_raw_records(
-        self,
-        data_import: DataImport,
-        file_data: List[Dict[str, Any]],
-        engagement_id: str,
-    ) -> int:
-        """
-        Store raw import records in the database.
-
-        Args:
-            data_import: The import record to associate with
-            file_data: List of raw data records
-            engagement_id: Engagement ID
-
-        Returns:
-            int: Number of records stored
-        """
-        try:
-            records_stored = 0
-
-            if file_data:
-                # Store the raw records from the CSV
-                for idx, record in enumerate(file_data):
-                    raw_record = RawImportRecord(
-                        data_import_id=data_import.id,
-                        client_account_id=self.client_account_id,
-                        engagement_id=engagement_id,
-                        row_number=idx + 1,
-                        raw_data=record,
-                        is_processed=False,
-                        is_valid=True,
-                    )
-                    self.db.add(raw_record)
-                    records_stored += 1
-
-                logger.info(
-                    f"✅ Stored {records_stored} raw records for import {data_import.id}"
-                )
-
-            return records_stored
-
-        except Exception as e:
-            logger.error(f"Failed to store raw records: {e}")
-            raise DatabaseError(f"Failed to store raw records: {str(e)}")
-
-    async def create_field_mappings(
-        self,
-        data_import: DataImport,
-        file_data: List[Dict[str, Any]],
-        master_flow_id: Optional[str] = None,
-    ) -> int:
-        """
-        Create basic field mappings for the import.
-
-        Args:
-            data_import: The import record
-            file_data: List of raw data records
-            master_flow_id: Optional master flow ID to link to
-
-        Returns:
-            int: Number of field mappings created
-        """
-        try:
-            mappings_created = 0
-
-            if file_data:
-                # Create basic field mappings for each column
-                sample_record = file_data[0]
-
-                # Import the intelligent mapping helper
-                from app.api.v1.endpoints.data_import.field_mapping.utils.mapping_helpers import (
-                    calculate_mapping_confidence,
-                    intelligent_field_mapping,
-                )
-
-                logger.info(
-                    f"🔍 DEBUG: Sample record keys: {list(sample_record.keys())}"
-                )
-                logger.info(f"🔍 DEBUG: Sample record type: {type(sample_record)}")
-
-                for field_name in sample_record.keys():
-                    # NO HARDCODED SKIPPING - Let CrewAI agents decide what's metadata
-                    # The agents should determine which fields are metadata vs real data
-
-                    logger.info(
-                        f"🔍 DEBUG: Processing field_name: {field_name} (type: {type(field_name)})"
-                    )
-
-                    # Use intelligent mapping to get suggested target
-                    suggested_target = intelligent_field_mapping(field_name)
-
-                    # Calculate confidence if we have a mapping
-                    confidence = 0.3  # Low confidence for unmapped fields
-                    match_type = "unmapped"
-
-                    if suggested_target:
-                        confidence = calculate_mapping_confidence(
-                            field_name, suggested_target
-                        )
-                        match_type = "intelligent"
-
-                    field_mapping = ImportFieldMapping(
-                        data_import_id=data_import.id,
-                        client_account_id=self.client_account_id,
-                        source_field=field_name,
-                        target_field=suggested_target
-                        or "UNMAPPED",  # Use UNMAPPED for fields without mapping
-                        confidence_score=confidence,
-                        match_type=match_type,
-                        status="suggested",
-                        master_flow_id=master_flow_id,
-                    )
-                    self.db.add(field_mapping)
-                    mappings_created += 1
-
-                logger.info(
-                    f"✅ Created {mappings_created} field mappings for import {data_import.id}"
-                )
-
-            return mappings_created
-
-        except Exception as e:
-            logger.error(f"Failed to create field mappings: {e}")
-            raise DatabaseError(f"Failed to create field mappings: {str(e)}")
-
     async def update_import_status(
         self,
         data_import: DataImport,
@@ -319,6 +207,8 @@ class ImportStorageManager:
             status: New status for the import
             total_records: Total number of records
             processed_records: Number of processed records
+            error_message: Optional error message
+            error_details: Optional error details
         """
         try:
             data_import.status = status
@@ -344,7 +234,8 @@ class ImportStorageManager:
                 # Keep existing progress percentage on failure
 
             logger.info(
-                f"✅ Updated import {data_import.id} status to {status} (progress: {data_import.progress_percentage}%)"
+                f"✅ Updated import {data_import.id} status to {status} "
+                f"(progress: {data_import.progress_percentage}%)"
             )
 
         except Exception as e:
@@ -435,109 +326,29 @@ class ImportStorageManager:
             logger.error(f"Failed to get import data: {e}")
             return None
 
-    async def get_raw_records(
-        self, data_import_id: uuid.UUID, limit: int = 1000
-    ) -> List[RawImportRecord]:
-        """
-        Get raw import records for a given import ID.
-
-        Args:
-            data_import_id: The ID of the import
-            limit: The maximum number of records to return
-
-        Returns:
-            List[RawImportRecord]: A list of raw import records
-        """
-        try:
-            logger.info(
-                f"Retrieving raw records for import {data_import_id} (limit: {limit})"
-            )
-
-            query = (
-                select(RawImportRecord)
-                .where(RawImportRecord.data_import_id == data_import_id)
-                .limit(limit)
-            )
-
-            result = await self.db.execute(query)
-            return result.scalars().all()
-
-        except Exception as e:
-            logger.error(f"Failed to get raw records: {e}")
-            return []
-
-    async def update_raw_records_with_cleansed_data(
-        self,
-        data_import_id: uuid.UUID,
-        cleansed_data: List[Dict[str, Any]],
-        validation_results: Optional[Dict[str, Any]] = None,
-    ) -> int:
-        """
-        Update raw records with cleansed data and validation results.
-
-        Args:
-            data_import_id: The ID of the import
-            cleansed_data: List of cleansed data records
-            validation_results: Validation results (optional)
-
-        Returns:
-            int: Number of records updated
-        """
-        try:
-            logger.info(
-                f"Updating raw records with cleansed data for import {data_import_id}"
-            )
-            records_updated = 0
-
-            for record in cleansed_data:
-                # Assuming 'id' in the cleansed data corresponds to RawImportRecord.id
-                record_id = record.get("id")
-                if not record_id:
-                    continue
-
-                update_stmt = (
-                    update(RawImportRecord)
-                    .where(
-                        RawImportRecord.id == record_id,
-                        RawImportRecord.data_import_id == data_import_id,
-                    )
-                    .values(
-                        cleansed_data=record,
-                        is_processed=True,
-                        is_valid=record.get("is_valid", True),
-                        validation_errors=record.get("validation_errors"),
-                    )
-                )
-                await self.db.execute(update_stmt)
-                records_updated += 1
-
-            logger.info(f"✅ Updated {records_updated} raw records with cleansed data.")
-            return records_updated
-
-        except Exception as e:
-            logger.error(f"Failed to update raw records with cleansed data: {e}")
-            return 0
-
     async def link_master_flow_to_import(
         self, data_import_id: uuid.UUID, master_flow_id: uuid.UUID
     ):
         """
         Links a master flow to all relevant records of a data import.
 
-        This function ensures that the DataImport, all its RawImportRecords, and its
-        ImportFieldMapping are all associated with a master_flow_id. This should be
-        called within an existing transaction to prevent race conditions.
+        This function ensures that the DataImport, all its RawImportRecords,
+        and its ImportFieldMapping are all associated with a master_flow_id.
+        This should be called within an existing transaction to prevent race
+        conditions.
 
         Args:
             data_import_id: The ID of the data import.
-            master_flow_id: The UUID of the master flow to link (this is the flow_id from CrewAI).
+            master_flow_id: The UUID of the master flow to link (this is the
+                           flow_id from CrewAI).
         """
         logger.info(
-            f"Linking master flow {master_flow_id} to data import {data_import_id} and all associated records."
+            f"Linking master flow {master_flow_id} to data import {data_import_id} "
+            f"and all associated records."
         )
         try:
             # First, get the database record ID for the CrewAI flow_id
-            # The foreign key constraint references crewai_flow_state_extensions.id, not flow_id
+            # Foreign key constraint references crewai_flow_state_extensions.id
             from sqlalchemy import select
 
             from app.models.crewai_flow_state_extensions import (
@@ -581,11 +392,13 @@ class ImportStorageManager:
             await self.db.execute(stmt_field_mapping)
 
             logger.info(
-                f"Successfully prepared linkage for master flow {master_flow_id} to data import {data_import_id}."
+                f"Successfully prepared linkage for master flow {master_flow_id} "
+                f"to data import {data_import_id}."
             )
         except Exception as e:
             logger.error(
-                f"Failed to link master flow {master_flow_id} to data import {data_import_id}. Error: {e}",
+                f"Failed to link master flow {master_flow_id} to data import "
+                f"{data_import_id}. Error: {e}",
                 exc_info=True,
             )
             # Re-raise the exception to be handled by the calling transaction manager

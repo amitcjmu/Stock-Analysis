@@ -47,6 +47,47 @@ class DataImportService:
         self.context = context
         self.storage_manager = ImportStorageManager(db, context.client_account_id)
 
+    def _calculate_record_count(self, data: Any) -> int:
+        """
+        Calculate the actual number of records in data, handling nested structures.
+
+        Args:
+            data: Parsed JSON data that could be a list or dict with nested data
+
+        Returns:
+            int: The actual number of records
+        """
+        try:
+            # If data is already a list, return its length
+            if isinstance(data, list):
+                return len(data)
+
+            # If data is a dict, check for common nested structures
+            if isinstance(data, dict):
+                # Check for {"data": [...]} structure
+                if "data" in data and isinstance(data["data"], list):
+                    return len(data["data"])
+
+                # Check for other possible keys that might contain the records
+                for key in ["records", "items", "results", "rows"]:
+                    if key in data and isinstance(data[key], list):
+                        return len(data[key])
+
+                # If it's a dict but no recognizable structure, treat as single record
+                return 1
+
+            # For any other type, count as 1 record if not None/empty
+            if data is not None and data != "":
+                return 1
+
+            # Empty or None data
+            return 0
+
+        except Exception as e:
+            logger.error(f"Error calculating record count: {e}")
+            # Fallback: assume no records
+            return 0
+
     async def process_import_and_trigger_flow(
         self,
         file_content: bytes,
@@ -87,13 +128,17 @@ class DataImportService:
 
             # Parse the JSON data directly since it's already available
             parsed_data = json.loads(file_content.decode("utf-8"))
+
+            # Calculate actual record count, handling nested structures
+            actual_record_count = self._calculate_record_count(parsed_data)
+
             file_data = {
                 "data": parsed_data,
                 "import_metadata": {
                     "import_id": str(data_import.id),
                     "filename": filename,
                     "import_type": import_type,
-                    "total_records": len(parsed_data),
+                    "total_records": actual_record_count,
                 },
                 "success": True,
             }
