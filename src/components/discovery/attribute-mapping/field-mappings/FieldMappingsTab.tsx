@@ -72,7 +72,10 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
       }
 
       if (process.env.NODE_ENV !== 'production') {
-        console.log('🔧 Fetching available fields');
+        console.log('🔧 Fetching available fields', {
+          endpoint: API_CONFIG.ENDPOINTS.DISCOVERY.AVAILABLE_TARGET_FIELDS,
+          method: 'GET'
+        });
       }
 
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AVAILABLE_TARGET_FIELDS, {

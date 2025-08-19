@@ -59,7 +59,10 @@ const AgentLearningInsights: React.FC = () => {
     try {
       const headers = getAuthHeaders();
       if (process.env.NODE_ENV !== 'production') {
-        console.log('🧠 Fetching agent learning data');
+        console.log('🧠 Fetching agent learning data', {
+          endpoint: API_CONFIG.ENDPOINTS.AGENT_LEARNING.LEARNING_STATISTICS,
+          method: 'GET'
+        });
       }
 
       const response = await apiCall(
