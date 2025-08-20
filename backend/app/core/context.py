@@ -15,6 +15,7 @@ from app.core.security.secure_logging import (
     sanitize_headers_for_logging,
     mask_id,
 )
+from app.core.context_legacy import get_client_account_id
 
 logger = logging.getLogger(__name__)
 
@@ -383,6 +384,7 @@ def clear_request_context() -> None:
 # Backward compatibility imports and wrapper functions
 # These functions delegate to the refactored modules but maintain the original interface
 
+
 def validate_context(
     context: RequestContext,
     require_client: bool = True,
@@ -393,7 +395,7 @@ def validate_context(
     Wrapper for backward compatibility.
     """
     from app.core.context_utils import validate_context as _validate
-    
+
     _validate(context, require_client, require_engagement)
 
 
@@ -401,19 +403,18 @@ def is_demo_client(client_account_id: Optional[str] = None) -> bool:
     """
     Check if the given client account ID matches our demo client.
     Wrapper for backward compatibility that doesn't require demo_client_config parameter.
-    
+
     Args:
         client_account_id: Client account ID to check, or None to use current context
-    
+
     Returns:
         True if this is the demo client
     """
     if client_account_id is None:
-        from app.core.context_legacy import get_client_account_id
         client_account_id = get_client_account_id()
-    
+
     from app.core.context_utils import is_demo_client as _is_demo_client
-    
+
     return _is_demo_client(client_account_id, DEMO_CLIENT_CONFIG)
 
 
@@ -423,7 +424,7 @@ def create_context_headers(context: RequestContext) -> Dict[str, str]:
     Wrapper for backward compatibility.
     """
     from app.core.context_utils import create_context_headers as _create_headers
-    
+
     return _create_headers(context)
 
 
@@ -433,14 +434,8 @@ async def resolve_demo_client_ids(db_session) -> None:
     Wrapper for backward compatibility.
     """
     from app.core.context_utils import resolve_demo_client_ids as _resolve_ids
-    
+
     await _resolve_ids(db_session, DEMO_CLIENT_CONFIG)
 
 
-# Import legacy getter functions for full backward compatibility
-from app.core.context_legacy import (
-    get_client_account_id,
-    get_engagement_id,
-    get_user_id,
-    get_flow_id,
-)
+# Legacy getter functions are now imported at the top for full backward compatibility

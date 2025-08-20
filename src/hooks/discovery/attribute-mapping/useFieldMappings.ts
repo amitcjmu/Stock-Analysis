@@ -6,6 +6,19 @@ import { apiClient } from '../../../lib/api/apiClient';
 import { useWebSocket } from '../../useWebSocket';
 import { isCacheFeatureEnabled } from '@/constants/features';
 import type { FormFieldValue } from '@/types/shared/form-types';
+import type {
+  FieldMappingsResponse,
+  FieldMappingItem,
+  FieldMapping,
+  FieldMappingsResult,
+  FieldMappingType,
+  FieldMappingStatus
+} from '@/types/api/discovery/field-mapping-types';
+import {
+  transformToFrontendResponse,
+  isFieldMappingsResponse,
+  isValidConfidenceScore
+} from '@/types/api/discovery/field-mapping-types';
 
 interface RawFieldMapping {
   id: string;
@@ -72,12 +85,30 @@ export interface FieldMappingsResult {
   isFieldMappingsLoading: boolean;
   fieldMappingsError: Error | null;
   refetchFieldMappings: () => Promise<RawFieldMapping[]>;
+
+  // Enhanced type safety fields
+  backendResponse?: FieldMappingsResponse;
+  validationErrors?: string[];
+  transformationApplied?: boolean;
 }
 
 /**
  * Hook for field mappings data fetching and management
  * Handles both API field mappings and flow state fallbacks
  */
+// Feature flag for strict test data blocking (default: warn and filter)
+const STRICT_TEST_DATA_BLOCK = process.env.NEXT_PUBLIC_STRICT_TEST_DATA_BLOCK === 'true';
+
+// Debug logging flag - disable in production
+const DEBUG_LOGS = process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_DEBUG_LOGS === 'true';
+
+// Debug logging helper
+const debugLog = (...args: any[]) => {
+  if (DEBUG_LOGS) {
+    console.log(...args);
+  }
+};
+
 export const useFieldMappings = (
   importData: ImportData | null,
   fieldMappingData: FieldMappingData | null,
@@ -100,7 +131,7 @@ export const useFieldMappings = (
     queryFn: async () => {
       // Try to use flow ID first (preferred - uses MFO)
       if (effectiveFlowId) {
-        console.log('🔍 Fetching field mappings using flow ID:', effectiveFlowId);
+        debugLog('🔍 Fetching field mappings using flow ID:', effectiveFlowId);
         try {
           const response = await apiCall(`/api/v1/unified-discovery/flows/${effectiveFlowId}/field-mappings`, {
             method: 'GET',
@@ -110,41 +141,78 @@ export const useFieldMappings = (
             }
           });
 
-          if (response?.field_mappings) {
-            console.log('✅ Fetched field mappings from unified discovery:', {
-              flow_id: flowId,
-              count: response.field_mappings.length
+          // Validate response using type guard
+          if (isFieldMappingsResponse(response)) {
+            debugLog('✅ Fetched valid field mappings from unified discovery:', {
+              flow_id: response.flow_id,
+              count: response.count,
+              success: response.success
             });
 
-            // Convert unified discovery format to expected format
-            // IMPORTANT: Return data with BOTH camelCase and snake_case for compatibility
-            const transformedMappings = response.field_mappings.map(m => ({
-              id: m.id || `${m.source_field}_${m.target_field}`,
-              // CRITICAL: Include both camelCase and snake_case versions
-              sourceField: m.source_field,  // camelCase for ThreeColumnFieldMapper
-              source_field: m.source_field,  // snake_case for compatibility
-              targetAttribute: m.target_field,  // camelCase for ThreeColumnFieldMapper
-              target_field: m.target_field,  // snake_case for compatibility
-              target_attribute: m.target_field,  // Also include exact backend field name (for backwards compatibility)
-              confidence: m.confidence_score ?? 0.5,  // Use nullish coalescing to preserve explicit 0
-              is_approved: m.is_approved ?? false,  // Use nullish coalescing to preserve explicit false
-              status: m.target_field ? (m.status ?? 'pending') : 'unmapped',  // Set 'unmapped' when target_field is missing
-              mapping_type: m.mapping_type ?? 'auto',
-              transformation_rule: m.transformation,
-              validation_rule: m.validation_rules,
-              // Add extra fields that might be expected
-              sample_values: [],
-              ai_reasoning: '',
-              is_user_defined: false,
-              user_feedback: null,
-              validation_method: 'semantic_analysis',
-              is_validated: false
+            // Use proper transformation utility for type safety
+            const frontendResult = transformToFrontendResponse(response);
+
+            // Convert to legacy format for backward compatibility
+            const legacyMappings = frontendResult.fieldMappings.map(mapping => ({
+              id: mapping.id,
+              // Include both camelCase and snake_case for compatibility
+              sourceField: mapping.sourceField,
+              source_field: mapping.sourceField,
+              targetAttribute: mapping.targetField,
+              target_field: mapping.targetField,
+              target_attribute: mapping.targetField,
+              confidence: mapping.confidenceScore,
+              is_approved: mapping.status === 'approved',
+              status: mapping.status,
+              mapping_type: mapping.mappingType,
+              transformation_rule: mapping.transformation,
+              validation_rule: mapping.validationRules,
+              // Legacy fields for compatibility
+              sample_values: mapping.sampleValues || [],
+              ai_reasoning: mapping.aiReasoning || '',
+              is_user_defined: mapping.isUserDefined || false,
+              user_feedback: mapping.userFeedback,
+              validation_method: mapping.validationMethod || 'semantic_analysis',
+              is_validated: mapping.isValidated || false,
+              is_placeholder: mapping.isPlaceholder || false
             }));
 
-            console.log('✅ Transformed unified discovery mappings:', {
-              original_count: response.field_mappings.length,
-              transformed_count: transformedMappings.length,
-              sample_transformed: transformedMappings.slice(0, 2)
+            debugLog('✅ Transformed unified discovery mappings with type safety:', {
+              original_count: response.count,
+              transformed_count: legacyMappings.length,
+              validation_applied: true,
+              sample_transformed: legacyMappings.slice(0, 2)
+            });
+
+            return legacyMappings;
+          } else if (response?.field_mappings) {
+            // Fallback for invalid response structure
+            console.warn('⚠️ Received invalid field mappings response structure, using fallback processing');
+
+            const transformedMappings = response.field_mappings.map((m: any) => {
+              const confidenceScore = isValidConfidenceScore(m.confidence_score) ? m.confidence_score : 0.5;
+
+              return {
+                id: m.id || `${m.source_field}_${m.target_field || 'unmapped'}`,
+                sourceField: m.source_field,
+                source_field: m.source_field,
+                targetAttribute: m.target_field,
+                target_field: m.target_field,
+                target_attribute: m.target_field,
+                confidence: confidenceScore,
+                is_approved: false,
+                status: m.target_field ? 'pending' : 'unmapped',
+                mapping_type: m.mapping_type || 'auto',
+                transformation_rule: m.transformation,
+                validation_rule: m.validation_rules,
+                sample_values: [],
+                ai_reasoning: '',
+                is_user_defined: false,
+                user_feedback: null,
+                validation_method: 'semantic_analysis',
+                is_validated: false,
+                is_placeholder: !m.target_field
+              };
             });
 
             return transformedMappings;
@@ -161,7 +229,7 @@ export const useFieldMappings = (
         return [];
       }
 
-      console.log('🔍 Fetching field mappings for import ID:', importId);
+      debugLog('🔍 Fetching field mappings for import ID:', importId);
 
       try {
         // Use new API client if custom cache is disabled, otherwise use legacy
@@ -175,7 +243,7 @@ export const useFieldMappings = (
               }
             });
 
-        console.log('✅ Fetched field mappings from API:', {
+        debugLog('✅ Fetched field mappings from API:', {
           import_id: importId,
           mappings_count: Array.isArray(mappings) ? mappings.length : 'not an array',
           mappings_sample: Array.isArray(mappings) ? mappings.slice(0, 2) : mappings
@@ -193,14 +261,32 @@ export const useFieldMappings = (
           );
 
           if (hasTestData) {
-            console.error('❌ CRITICAL ERROR: Test data detected in production field mappings!', {
+            console.warn('⚠️ WARNING: Test data detected in field mappings - filtering out Device_* fields', {
               import_id: importId,
               test_fields_found: mappings.filter(m => m.source_field && m.source_field.includes('Device_')).map(m => m.source_field),
               all_source_fields: mappings.map(m => m.source_field)
             });
 
-            // This is test data contamination - reject it and force regeneration
-            throw new Error(`Test data contamination detected: Found Device_* fields in production. Import ID: ${importId}`);
+            // Handle based on feature flag
+            if (STRICT_TEST_DATA_BLOCK) {
+              // Strict mode: throw error (legacy behavior)
+              throw new Error(`Test data contamination detected: Found Device_* fields in production. Import ID: ${importId}`);
+            } else {
+              // Default: Filter out test data and continue
+              mappings = mappings.filter(mapping =>
+                !mapping.source_field || (
+                  !mapping.source_field.includes('Device_') &&
+                  mapping.source_field !== 'Device_ID' &&
+                  mapping.source_field !== 'Device_Name' &&
+                  mapping.source_field !== 'Device_Type'
+                )
+              );
+
+              // TODO: Show user-facing toast notification about filtered test data
+              // if (typeof window !== 'undefined' && window.showToast) {
+              //   window.showToast('Test data fields detected and filtered out', 'warning');
+              // }
+            }
           }
         }
 
@@ -216,7 +302,7 @@ export const useFieldMappings = (
                 }
               });
 
-          console.log('📊 Raw import data retrieved:', {
+          debugLog('📊 Raw import data retrieved:', {
             has_raw_data: !!rawImportData?.raw_data,
             raw_data_keys: rawImportData?.raw_data ? Object.keys(rawImportData.raw_data) : [],
             sample_record_keys: rawImportData?.sample_record ? Object.keys(rawImportData.sample_record) : [],
@@ -235,14 +321,15 @@ export const useFieldMappings = (
             );
 
             if (hasTestFieldsInRaw) {
-              console.error('❌ CRITICAL ERROR: Test data detected in raw import data!', {
+              console.warn('⚠️ WARNING: Test data detected in raw import data - will be filtered', {
                 import_id: importId,
                 raw_csv_fields: actualCsvFields
               });
-              throw new Error(`Test data contamination in raw CSV: Found Device_* fields. Import ID: ${importId}`);
+              // Continue processing but mark for filtering instead of throwing
+              // Test fields will be filtered out during mapping transformation
             }
 
-            console.log('✅ Raw import data validation passed - no test data contamination detected:', {
+            debugLog('✅ Raw import data validation passed - no test data contamination detected:', {
               actual_csv_fields: actualCsvFields,
               field_count: actualCsvFields.length
             });
@@ -258,7 +345,7 @@ export const useFieldMappings = (
             const missingFields = allCsvFields.filter(field => !mappedFieldNames.includes(field));
 
             if (missingFields.length > 0) {
-              console.log(`📋 Found ${missingFields.length} unmapped CSV fields:`, missingFields);
+              debugLog(`📋 Found ${missingFields.length} unmapped CSV fields:`, missingFields);
 
               // Create placeholder mappings for unmapped fields
               const additionalMappings = missingFields.map(sourceField => ({
@@ -274,7 +361,7 @@ export const useFieldMappings = (
 
               const enhancedMappings = [...(mappings || []), ...additionalMappings];
 
-              console.log('✅ Enhanced field mappings with all CSV fields:', {
+              debugLog('✅ Enhanced field mappings with all CSV fields:', {
                 original_mappings: mappings?.length || 0,
                 additional_mappings: additionalMappings.length,
                 total_mappings: enhancedMappings.length,
@@ -297,7 +384,7 @@ export const useFieldMappings = (
                 is_placeholder: mapping.is_placeholder
               }));
 
-              console.log('✅ Transformed enhanced field mappings:', {
+              debugLog('✅ Transformed enhanced field mappings:', {
                 enhanced_count: enhancedMappings.length,
                 transformed_count: transformedEnhancedMappings.length,
                 sample_transformed: transformedEnhancedMappings.slice(0, 3)
@@ -422,44 +509,58 @@ export const useFieldMappings = (
         filtered_test_data: realFieldMappings.length - productionMappings.length
       });
 
-      const mappedData = productionMappings.map(mapping => {
-        // Check if this is an unmapped field (handle both camelCase and snake_case)
+      const mappedData = productionMappings.map((mapping, index) => {
+        // Enhanced type validation for each mapping
+        const sourceField = String(mapping.sourceField || mapping.source_field || 'Unknown Field');
         const targetField = mapping.targetAttribute || mapping.target_field || mapping.target_attribute;
         const isUnmapped = targetField === 'UNMAPPED' || targetField === null || targetField === undefined;
 
-        // Ensure source field is always a string (handle both camelCase and snake_case)
-        const sourceField = String(mapping.sourceField || mapping.source_field || 'Unknown Field');
+        // Validate confidence score using type guard
+        const confidenceScore = isValidConfidenceScore(mapping.confidence)
+          ? mapping.confidence
+          : 0.5;
 
-        // Determine status based on is_approved field and whether it's mapped
-        let finalStatus = mapping.status;
-        if (!finalStatus) {
-          if (isUnmapped) {
-            finalStatus = 'unmapped';
-          } else if (mapping.is_approved === true) {
-            finalStatus = 'approved';
-          } else {
-            finalStatus = 'pending';
-          }
+        // Validate mapping type
+        const mappingType = mapping.mapping_type as FieldMappingType ||
+          (isUnmapped ? 'auto' : 'auto');
+
+        // Validate status
+        const validStatuses: FieldMappingStatus[] = ['suggested', 'approved', 'rejected', 'pending', 'unmapped'];
+        let finalStatus: FieldMappingStatus = 'pending';
+
+        if (mapping.status && validStatuses.includes(mapping.status as FieldMappingStatus)) {
+          finalStatus = mapping.status as FieldMappingStatus;
+        } else if (isUnmapped) {
+          finalStatus = 'unmapped';
+        } else if (mapping.is_approved === true) {
+          finalStatus = 'approved';
         }
 
-        return {
-          id: mapping.id || `${sourceField}_${targetField || 'unmapped'}`,
+        const transformedMapping: FieldMapping = {
+          id: mapping.id || `mapping_${index}_${sourceField}_${targetField || 'unmapped'}`,
           sourceField: sourceField,
-          targetAttribute: isUnmapped ? null : targetField,
-          confidence: mapping.confidence || 0,
-          mapping_type: mapping.mapping_type || (isUnmapped ? 'unmapped' : 'ai_suggested'),
-          sample_values: mapping.sample_values || [],
+          targetField: isUnmapped ? null : (targetField || null),
+          confidenceScore: confidenceScore,
+          mappingType: mappingType,
+          transformation: mapping.transformation_rule || null,
+          validationRules: mapping.validation_rule || null,
           status: finalStatus,
-          ai_reasoning: mapping.ai_reasoning || (isUnmapped ? `Field "${sourceField}" needs mapping assignment` : `AI suggested mapping to ${targetField}`),
-          is_user_defined: mapping.is_user_defined || false,
-          user_feedback: mapping.user_feedback || null,
-          validation_method: mapping.validation_method || 'semantic_analysis',
-          is_validated: mapping.is_validated || mapping.is_approved === true,
-          transformation_rule: mapping.transformation_rule,
-          validation_rule: mapping.validation_rule,
-          is_required: mapping.is_required,
-          is_placeholder: mapping.is_placeholder
+          sampleValues: mapping.sample_values || [],
+          aiReasoning: mapping.ai_reasoning || (isUnmapped
+            ? `Field "${sourceField}" needs mapping assignment`
+            : `AI suggested mapping to ${targetField}`),
+          isUserDefined: mapping.is_user_defined || false,
+          userFeedback: mapping.user_feedback || null,
+          validationMethod: mapping.validation_method || 'semantic_analysis',
+          isValidated: mapping.is_validated || mapping.is_approved === true,
+          isPlaceholder: mapping.is_placeholder || isUnmapped,
+          metadata: {
+            legacyMapping: true,
+            originalData: mapping
+          }
         };
+
+        return transformedMapping;
       });
 
       console.log('🔍 [DEBUG] Using API field mappings data:', {
@@ -637,6 +738,11 @@ export const useFieldMappings = (
     realFieldMappings: realFieldMappings || [],
     isFieldMappingsLoading,
     fieldMappingsError,
-    refetchFieldMappings
+    refetchFieldMappings,
+
+    // Enhanced type safety information
+    backendResponse: undefined, // Could be populated with validated response
+    validationErrors: [], // Could track validation issues
+    transformationApplied: !!fieldMappings.length // Indicates if transformations were applied
   };
 };

@@ -28,6 +28,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
+from app.schemas.field_mapping_schemas import (
+    FieldMappingsResponse,
+    FieldMappingItem,
+    FieldMappingType,
+)
 from app.core.security.secure_logging import mask_id, safe_log_format
 from app.models.data_import.mapping import ImportFieldMapping
 from app.models.discovery_flow import DiscoveryFlow
@@ -324,25 +329,73 @@ async def get_field_mappings(
             # No data import, no mappings
             mappings = []
 
-        # Convert to response format
-        field_mappings = [
-            {
-                "source_field": m.source_field,
-                "target_field": m.target_field,  # Use target_field as specified
-                "confidence_score": m.confidence_score,  # Use confidence_score as specified
-                "mapping_type": getattr(m, "mapping_type", "auto"),
-                "transformation": getattr(m, "transformation_rule", None),
-                "validation_rules": getattr(m, "validation_rule", None),
-            }
-            for m in mappings
-        ]
+        # Convert SQLAlchemy models to Pydantic field mappings with proper type validation
+        field_mapping_items = []
+        for m in mappings:
+            try:
+                # Map SQLAlchemy model fields to Pydantic schema fields with proper validation
+                mapping_type = getattr(m, "match_type", "auto")
+                if mapping_type == "direct":
+                    mapping_type = FieldMappingType.DIRECT
+                elif mapping_type == "inferred":
+                    mapping_type = FieldMappingType.INFERRED
+                elif mapping_type == "manual":
+                    mapping_type = FieldMappingType.MANUAL
+                else:
+                    mapping_type = FieldMappingType.AUTO
 
-        return {
-            "success": True,
-            "flow_id": flow_id,
-            "field_mappings": field_mappings,
-            "count": len(field_mappings),
-        }
+                # Ensure confidence score is valid (SQLAlchemy model uses nullable float)
+                confidence_score = getattr(m, "confidence_score", None)
+                if confidence_score is None:
+                    confidence_score = 0.5
+
+                # Get transformation rules from SQLAlchemy JSON field
+                transformation_rules = getattr(m, "transformation_rules", None)
+                transformation = None
+                if transformation_rules and isinstance(transformation_rules, dict):
+                    # Extract transformation logic from JSON structure
+                    transformation = transformation_rules.get(
+                        "rule"
+                    ) or transformation_rules.get("logic")
+
+                field_mapping_item = FieldMappingItem(
+                    source_field=m.source_field,
+                    target_field=m.target_field,
+                    confidence_score=confidence_score,
+                    mapping_type=mapping_type,
+                    transformation=transformation,
+                    validation_rules=None,  # SQLAlchemy model doesn't have validation_rules field
+                )
+                field_mapping_items.append(field_mapping_item)
+
+            except ValueError as validation_error:
+                # Log validation errors but continue processing other mappings
+                logger.warning(
+                    safe_log_format(
+                        "Validation error for field mapping {source_field}: {error}",
+                        source_field=getattr(m, "source_field", "unknown"),
+                        error=str(validation_error),
+                    )
+                )
+                continue
+            except Exception as mapping_error:
+                # Log unexpected errors but continue processing
+                logger.error(
+                    safe_log_format(
+                        "Unexpected error processing field mapping {source_field}: {error}",
+                        source_field=getattr(m, "source_field", "unknown"),
+                        error=str(mapping_error),
+                    )
+                )
+                continue
+
+        # Return validated Pydantic response with enhanced type safety
+        return FieldMappingsResponse(
+            success=True,
+            flow_id=flow_id,
+            field_mappings=field_mapping_items,
+            count=len(field_mapping_items),
+        )
 
     except HTTPException:
         raise

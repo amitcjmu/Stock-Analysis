@@ -208,8 +208,31 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
     return null;
   }, [flowList, currentPhase, preferredStatuses, fallbackToAnyRunning]);
 
-  // Use URL flow ID if provided, otherwise use auto-detected flow ID
-  const effectiveFlowId = urlFlowId || autoDetectedFlowId;
+  // Validate that the resolved flow ID is in the user's visible flows
+  const validatedFlowId = useMemo(() => {
+    const candidateFlowId = urlFlowId || autoDetectedFlowId;
+
+    if (!candidateFlowId || !flowList) {
+      return candidateFlowId;
+    }
+
+    // Check if the flow ID exists in the user's flow list
+    const flowExists = flowList.some((flow: DiscoveryFlow) => {
+      const flowId = flow.flow_id || flow.id;
+      return flowId === candidateFlowId;
+    });
+
+    if (!flowExists) {
+      console.warn(`⚠️ Flow ID ${candidateFlowId} not found in user's active flows. Rejecting.`);
+      // Return null to trigger auto-detection fallback
+      return autoDetectedFlowId || null;
+    }
+
+    return candidateFlowId;
+  }, [urlFlowId, autoDetectedFlowId, flowList]);
+
+  // Use validated flow ID as the effective flow ID
+  const effectiveFlowId = validatedFlowId;
 
   // Flow detection completed
 
