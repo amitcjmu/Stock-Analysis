@@ -66,6 +66,11 @@ class APITags:
     SYSTEM_HEALTH = "System Health"
     EMERGENCY_CONTROL = "Emergency Control"
     WEBSOCKET_CACHE = "WebSocket Cache"
+    CACHED_CONTEXT = "Cached Context"
+
+    # Legacy/Migration
+    LEGACY_UPLOAD = "Legacy Upload"
+    QUALITY_ANALYSIS = "Quality Analysis"
 
     @classmethod
     def get_all_tags(cls) -> list[str]:

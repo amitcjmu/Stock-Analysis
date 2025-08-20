@@ -32,13 +32,20 @@ except ImportError:
 
 
 def find_router_with_tags(content: str) -> List[Tuple[int, str]]:
-    """Find all APIRouter instances with tags parameter."""
+    """Find all APIRouter instances with tags parameter (supports multi-line)."""
     violations = []
-    lines = content.split("\n")
 
-    for i, line in enumerate(lines, 1):
-        if "APIRouter" in line and "tags=" in line:
-            violations.append((i, line.strip()))
+    # Pattern to match APIRouter with tags, even across multiple lines
+    pattern = re.compile(
+        r"APIRouter\s*\([^)]*tags\s*=\s*\[[^\]]*\][^)]*\)", re.MULTILINE | re.DOTALL
+    )
+
+    for match in pattern.finditer(content):
+        # Get line number by counting newlines
+        line_no = content.count("\n", 0, match.start()) + 1
+        # Get first line of the match for display
+        snippet = match.group(0).split("\n")[0].strip()
+        violations.append((line_no, snippet))
 
     return violations
 

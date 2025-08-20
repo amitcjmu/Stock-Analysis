@@ -121,6 +121,15 @@ except ImportError:
     collection_router = None
 
 # Additional routers with availability flags
+# API Health router
+try:
+    from app.api.v1.endpoints.api_health import router as api_health_router
+
+    API_HEALTH_AVAILABLE = True
+except ImportError:
+    api_health_router = None
+    API_HEALTH_AVAILABLE = False
+
 routers_with_flags = {}
 
 # Migrations

@@ -4,7 +4,6 @@ Agent insights utilities for discovery status handlers.
 
 import logging
 from datetime import datetime
-from functools import lru_cache
 from typing import List, Dict, Any
 
 from sqlalchemy import and_, select
@@ -39,9 +38,11 @@ def _get_fallback_agent_insights() -> List[Dict[str, Any]]:
     ]
 
 
-@lru_cache(maxsize=1)
-def _get_cached_agent_insights():
-    """Get cached fallback insights."""
+def _get_cached_agent_insights(
+    client_account_id: str = None, engagement_id: str = None
+):
+    """Get cached fallback insights scoped by context."""
+    # Return fresh fallback per context to avoid cross-tenant leakage
     return _get_fallback_agent_insights()
 
 

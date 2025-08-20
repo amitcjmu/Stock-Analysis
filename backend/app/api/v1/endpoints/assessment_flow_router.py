@@ -9,6 +9,7 @@ delegating to modular components while maintaining 100% backward compatibility.
 import logging
 
 from fastapi import APIRouter
+from app.api.v1.api_tags import APITags
 
 # Import modularized routers
 from .assessment_flow.flow_management import router as flow_management_router
@@ -24,11 +25,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Include all modularized routers
-router.include_router(flow_management_router, tags=["Assessment Flow Management"])
-router.include_router(architecture_router, tags=["Architecture Standards"])
-router.include_router(component_router, tags=["Component Analysis"])
-router.include_router(tech_debt_router, tags=["Tech Debt Analysis"])
-router.include_router(sixr_router, tags=["6R Decisions"])
-router.include_router(finalization_router, tags=["Flow Finalization"])
+router.include_router(flow_management_router, tags=[APITags.ASSESSMENT_FLOW_MANAGEMENT])
+router.include_router(architecture_router, tags=[APITags.ARCHITECTURE_STANDARDS])
+router.include_router(component_router, tags=[APITags.COMPONENT_ANALYSIS])
+router.include_router(tech_debt_router, tags=[APITags.TECH_DEBT_ANALYSIS])
+router.include_router(sixr_router, tags=[APITags.SIXR_DECISIONS])
+router.include_router(finalization_router, tags=[APITags.FLOW_FINALIZATION])
 
 logger.info("Assessment Flow API endpoints initialized with modular architecture")

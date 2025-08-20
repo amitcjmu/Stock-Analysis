@@ -137,9 +137,18 @@ def register_conditional_routers(api_router: APIRouter):
 
 def register_utility_routers(api_router: APIRouter):
     """Register utility and system routers."""
-    from app.api.v1.router_imports import routers_with_flags
+    from app.api.v1.router_imports import (
+        routers_with_flags,
+        API_HEALTH_AVAILABLE,
+        api_health_router,
+    )
 
     logger.info("--- Registering Utility Routers ---")
+
+    # API Health endpoints
+    if API_HEALTH_AVAILABLE:
+        api_router.include_router(api_health_router, prefix="/api-health")
+        logger.info("✅ API Health router included")
 
     # Health endpoints
     if routers_with_flags.get("HEALTH", (False, None))[0]:

@@ -162,7 +162,10 @@ async def get_agent_monitor(
 
         return {
             "success": False,
-            "error": "Service degraded; returning fallback data",
+            "error": {
+                "code": "SERVICE_DEGRADED",
+                "message": "Service degraded; returning fallback data",
+            },
             "data": {
                 "agent_status": "degraded",
                 "last_activity": datetime.utcnow().isoformat(),

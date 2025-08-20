@@ -47,12 +47,8 @@ async def get_api_info(request: Request) -> Dict[str, Any]:
 
             total_routes += len(methods)
 
-            # Get tags from route
-            tags = []
-            if hasattr(route, "endpoint") and hasattr(route.endpoint, "tags"):
-                tags = route.endpoint.tags
-            elif hasattr(route, "tags"):
-                tags = route.tags
+            # Get tags from route (FastAPI standard)
+            tags = getattr(route, "tags", []) or []
 
             # Categorize route
             if tags:

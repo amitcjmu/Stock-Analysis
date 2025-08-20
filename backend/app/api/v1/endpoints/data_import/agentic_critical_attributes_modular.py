@@ -21,9 +21,7 @@ from .agentic_critical_attributes.routes.analysis_routes import (
 )
 
 # Create main router
-router = APIRouter(
-    prefix="/agentic-critical-attributes", tags=["agentic-critical-attributes"]
-)
+router = APIRouter(prefix="/agentic-critical-attributes")
 
 # Include all sub-routers
 router.include_router(analysis_router)

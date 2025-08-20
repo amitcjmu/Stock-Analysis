@@ -19,9 +19,7 @@ from .services.attribute_analyzer import AttributeAnalyzer
 from .services.learning_service import LearningService
 
 # Create main router for the package
-router = APIRouter(
-    prefix="/agentic-critical-attributes", tags=["Agentic Critical Attributes"]
-)
+router = APIRouter(prefix="/agentic-critical-attributes")
 
 # Include all sub-routers
 router.include_router(analysis_router, prefix="/analysis")
