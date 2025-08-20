@@ -40,12 +40,41 @@ export interface UseProgressMonitoringOptions {
   refreshInterval?: number;
 }
 
+/**
+ * Type guard to safely check if an object has a status property
+ */
+function hasStatus(obj: unknown): obj is { status: unknown } {
+  return typeof obj === 'object' && obj !== null && 'status' in obj;
+}
+
+/**
+ * Type guard to safely check if an object has a message property
+ */
+function hasMessage(obj: unknown): obj is { message: unknown } {
+  return typeof obj === 'object' && obj !== null && 'message' in obj;
+}
+
+/**
+ * Type guard to safely check if a value is a string
+ */
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+/**
+ * Type guard to safely check if a value is a number
+ */
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && !isNaN(value);
+}
+
 export interface ProgressMonitoringState {
   flows: CollectionFlow[];
   metrics: CollectionMetrics | null;
   selectedFlow: string | null;
   isLoading: boolean;
   error: Error | null;
+  readiness: ReadinessSummary | null;
 }
 
 export interface ReadinessSummary {
@@ -292,7 +321,8 @@ export const useProgressMonitoring = (
     metrics: null,
     selectedFlow: null,
     isLoading: true,
-    error: null
+    error: null,
+    readiness: null
   });
 
   const [autoRefresh, setAutoRefresh] = useState(initialAutoRefresh);
@@ -416,23 +446,81 @@ export const useProgressMonitoring = (
       }
     } catch (error: unknown) {
       console.error('Failed to load collection flow data:', error);
-      setState(prev => ({ ...prev, error, isLoading: false }));
 
-      // STOP INFINITE LOOPS: Handle 404 errors differently - don't retry for non-existent flows
-      if (error?.status === 404) {
-        console.warn('⚠️ Flow not found - stopping auto-refresh to prevent infinite 404 retries');
-        setAutoRefresh(false); // Stop auto-refresh for 404 errors
+      // Create a more descriptive error message based on the error type
+      let errorMessage: string;
+      let processedError: Error;
 
-        toast({
-          title: 'Collection Flow Not Found',
-          description: 'The requested collection flow no longer exists or has been deleted.',
-          variant: 'destructive'
-        });
+      if (hasStatus(error)) {
+        const statusCode = isNumber(error.status) ? error.status : 0;
+        if (statusCode === 404) {
+          errorMessage = flowId
+            ? `Collection flow '${flowId}' not found or has been deleted`
+            : 'No collection flows found or access denied';
+          processedError = new Error(errorMessage);
+        } else if (statusCode === 403) {
+          errorMessage = 'Access denied to collection flow data';
+          processedError = new Error(errorMessage);
+        } else if (statusCode >= 500) {
+          errorMessage = 'Server error occurred while loading collection data';
+          processedError = new Error(errorMessage);
+        } else {
+          errorMessage = `API error (${statusCode}): Unable to load collection data`;
+          processedError = new Error(errorMessage);
+        }
+      } else if (hasMessage(error)) {
+        const messageValue = isString(error.message) ? error.message : String(error.message || '');
+        if (messageValue.includes('Context extraction failed')) {
+          errorMessage = 'Context extraction failed - unable to process collection data';
+          processedError = new Error(errorMessage);
+        } else if (messageValue.includes('Network Error') || messageValue.includes('fetch')) {
+          errorMessage = 'Network connection error - please check your internet connection';
+          processedError = new Error(errorMessage);
+        } else {
+          errorMessage = messageValue || 'Unknown error occurred while loading data';
+          processedError = new Error(errorMessage);
+        }
+      } else if (isString(error)) {
+        if (error.includes('Context extraction failed')) {
+          errorMessage = 'Context extraction failed - unable to process collection data';
+          processedError = new Error(errorMessage);
+        } else {
+          errorMessage = error;
+          processedError = new Error(errorMessage);
+        }
       } else {
-        // Only show generic error toast for non-404 errors
+        errorMessage = 'Unable to load collection flow data';
+        processedError = new Error(errorMessage);
+      }
+
+      setState(prev => ({ ...prev, error: processedError, isLoading: false }));
+
+      // STOP INFINITE LOOPS: Handle 404/403 errors differently - don't retry for non-existent/unauthorized flows
+      if (hasStatus(error)) {
+        const statusCode = isNumber(error.status) ? error.status : 0;
+        if (statusCode === 404 || statusCode === 403) {
+          const reason = statusCode === 404 ? 'Flow not found' : 'Access denied';
+          console.warn(`⚠️ ${reason} - stopping auto-refresh to prevent infinite ${statusCode} retries`);
+          setAutoRefresh(false); // Stop auto-refresh for 404/403 errors
+
+          toast({
+            title: statusCode === 404 ? 'Collection Flow Not Found' : 'Access Denied',
+            description: errorMessage,
+            variant: 'destructive'
+          });
+        } else {
+          // Show descriptive error toast for other errors
+          toast({
+            title: 'Failed to load data',
+            description: errorMessage,
+            variant: 'destructive'
+          });
+        }
+      } else {
+        // Show error toast for non-status errors
         toast({
           title: 'Failed to load data',
-          description: 'Unable to load collection flow data. Please try again.',
+          description: errorMessage,
           variant: 'destructive'
         });
       }
@@ -556,7 +644,6 @@ export const useProgressMonitoring = (
     // State
     ...state,
     autoRefresh,
-    readiness,
 
     // Actions
     selectFlow,
