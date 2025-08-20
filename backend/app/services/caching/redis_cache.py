@@ -9,6 +9,7 @@ This service provides a unified interface for Redis caching with support for:
 """
 
 import asyncio
+import base64
 import json
 import uuid
 from datetime import datetime, date, time
@@ -29,17 +30,15 @@ def datetime_json_serializer(obj):
     Only handles explicitly supported types to maintain data integrity.
     """
     if isinstance(obj, datetime):
-        return obj.isoformat()
+        return {"_type": "datetime", "_data": obj.isoformat()}
     elif isinstance(obj, date):
-        return obj.isoformat()
+        return {"_type": "date", "_data": obj.isoformat()}
     elif isinstance(obj, time):
-        return obj.isoformat()
+        return {"_type": "time", "_data": obj.isoformat()}
     elif isinstance(obj, uuid.UUID):
-        return str(obj)
+        return {"_type": "uuid", "_data": str(obj)}
     elif isinstance(obj, (bytes, bytearray, memoryview)):
         # Handle binary types properly - base64 encode to avoid double-encoding
-        import base64
-
         if isinstance(obj, (bytearray, memoryview)):
             obj = bytes(obj)  # Convert to bytes first
         return {"_type": "binary", "_data": base64.b64encode(obj).decode("ascii")}
@@ -53,12 +52,40 @@ def datetime_json_serializer(obj):
 
 
 def datetime_json_deserializer(data):
-    """Custom JSON deserializer to reconstruct binary data from serialized format"""
-    if isinstance(data, dict) and data.get("_type") == "binary":
-        import base64
+    """Custom JSON deserializer to recursively reconstruct typed objects from serialized format
 
-        return base64.b64decode(data["_data"])
-    return data
+    Handles datetime, date, time, UUID, and binary types, and recursively processes
+    nested dictionaries and lists to restore all typed objects.
+    """
+
+    def _deserialize_recursive(obj):
+        """Recursively deserialize nested structures"""
+        if isinstance(obj, dict):
+            obj_type = obj.get("_type")
+            if obj_type and "_data" in obj:
+                # Handle typed objects
+                if obj_type == "datetime":
+                    return datetime.fromisoformat(obj["_data"])
+                elif obj_type == "date":
+                    return date.fromisoformat(obj["_data"])
+                elif obj_type == "time":
+                    return time.fromisoformat(obj["_data"])
+                elif obj_type == "uuid":
+                    return uuid.UUID(obj["_data"])
+                elif obj_type == "binary":
+                    return base64.b64decode(obj["_data"])
+            else:
+                # Recursively process dictionary values
+                return {
+                    key: _deserialize_recursive(value) for key, value in obj.items()
+                }
+        elif isinstance(obj, list):
+            # Recursively process list items
+            return [_deserialize_recursive(item) for item in obj]
+
+        return obj
+
+    return _deserialize_recursive(data)
 
 
 def redis_fallback(func):
@@ -190,24 +217,51 @@ class RedisCache:
 
     @redis_fallback
     async def get(self, key: str) -> Optional[Any]:
-        """Get value from cache"""
+        """Get value from cache with robust error handling"""
         try:
             if self.client_type == "upstash":
                 value = self.client.get(key)
             else:
                 value = await self.client.get(key)
 
-            if value:
-                if isinstance(value, str):
-                    parsed_value = json.loads(value)
-                    # Apply deserializer to reconstruct binary data if needed
-                    return datetime_json_deserializer(parsed_value)
-                else:
+            if value is None:
+                return None
+
+            # Handle bytes values explicitly before JSON parsing
+            if isinstance(value, (bytes, bytearray)):
+                try:
+                    # Attempt to decode as UTF-8
+                    value_str = value.decode("utf-8")
+                except UnicodeDecodeError:
+                    # If not valid UTF-8, return as raw bytes
+                    logger.warning(
+                        f"Non-UTF8 bytes found in cache key {key}, returning raw bytes"
+                    )
                     return value
-            return None
-        except json.JSONDecodeError:
-            # Return raw value if not JSON
-            return value
+            elif isinstance(value, str):
+                value_str = value
+            else:
+                # Non-string, non-bytes value - return as-is
+                return value
+
+            # Attempt JSON parsing with comprehensive error handling
+            try:
+                parsed_value = json.loads(value_str)
+                # Apply recursive deserializer to reconstruct typed objects
+                return datetime_json_deserializer(parsed_value)
+            except json.JSONDecodeError as e:
+                # Log JSON parse errors but return raw string value
+                logger.debug(
+                    f"JSON decode failed for key {key}: {str(e)}, returning raw string"
+                )
+                return value_str
+            except (TypeError, ValueError) as e:
+                # Handle other parsing errors
+                logger.warning(
+                    f"Value parsing error for key {key}: {str(e)}, returning raw value"
+                )
+                return value_str
+
         except Exception as e:
             logger.error(f"Redis get error for key {key}: {str(e)}")
             return None

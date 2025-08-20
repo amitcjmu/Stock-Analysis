@@ -40,12 +40,41 @@ export interface UseProgressMonitoringOptions {
   refreshInterval?: number;
 }
 
+/**
+ * Type guard to safely check if an object has a status property
+ */
+function hasStatus(obj: unknown): obj is { status: unknown } {
+  return typeof obj === 'object' && obj !== null && 'status' in obj;
+}
+
+/**
+ * Type guard to safely check if an object has a message property
+ */
+function hasMessage(obj: unknown): obj is { message: unknown } {
+  return typeof obj === 'object' && obj !== null && 'message' in obj;
+}
+
+/**
+ * Type guard to safely check if a value is a string
+ */
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+/**
+ * Type guard to safely check if a value is a number
+ */
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && !isNaN(value);
+}
+
 export interface ProgressMonitoringState {
   flows: CollectionFlow[];
   metrics: CollectionMetrics | null;
   selectedFlow: string | null;
   isLoading: boolean;
   error: Error | null;
+  readiness: ReadinessSummary | null;
 }
 
 export interface ReadinessSummary {
@@ -292,7 +321,8 @@ export const useProgressMonitoring = (
     metrics: null,
     selectedFlow: null,
     isLoading: true,
-    error: null
+    error: null,
+    readiness: null
   });
 
   const [autoRefresh, setAutoRefresh] = useState(initialAutoRefresh);
@@ -421,8 +451,8 @@ export const useProgressMonitoring = (
       let errorMessage: string;
       let processedError: Error;
 
-      if (error && typeof error === 'object' && 'status' in error) {
-        const statusCode = (error as any).status;
+      if (hasStatus(error)) {
+        const statusCode = isNumber(error.status) ? error.status : 0;
         if (statusCode === 404) {
           errorMessage = flowId
             ? `Collection flow '${flowId}' not found or has been deleted`
@@ -438,19 +468,19 @@ export const useProgressMonitoring = (
           errorMessage = `API error (${statusCode}): Unable to load collection data`;
           processedError = new Error(errorMessage);
         }
-      } else if (error && typeof error === 'object' && 'message' in error) {
-        const apiError = error as any;
-        if (apiError.message?.includes('Context extraction failed')) {
+      } else if (hasMessage(error)) {
+        const messageValue = isString(error.message) ? error.message : String(error.message || '');
+        if (messageValue.includes('Context extraction failed')) {
           errorMessage = 'Context extraction failed - unable to process collection data';
           processedError = new Error(errorMessage);
-        } else if (apiError.message?.includes('Network Error') || apiError.message?.includes('fetch')) {
+        } else if (messageValue.includes('Network Error') || messageValue.includes('fetch')) {
           errorMessage = 'Network connection error - please check your internet connection';
           processedError = new Error(errorMessage);
         } else {
-          errorMessage = apiError.message || 'Unknown error occurred while loading data';
+          errorMessage = messageValue || 'Unknown error occurred while loading data';
           processedError = new Error(errorMessage);
         }
-      } else if (typeof error === 'string') {
+      } else if (isString(error)) {
         if (error.includes('Context extraction failed')) {
           errorMessage = 'Context extraction failed - unable to process collection data';
           processedError = new Error(errorMessage);
@@ -466,8 +496,8 @@ export const useProgressMonitoring = (
       setState(prev => ({ ...prev, error: processedError, isLoading: false }));
 
       // STOP INFINITE LOOPS: Handle 404/403 errors differently - don't retry for non-existent/unauthorized flows
-      if (error && typeof error === 'object' && 'status' in error) {
-        const statusCode = (error as any).status;
+      if (hasStatus(error)) {
+        const statusCode = isNumber(error.status) ? error.status : 0;
         if (statusCode === 404 || statusCode === 403) {
           const reason = statusCode === 404 ? 'Flow not found' : 'Access denied';
           console.warn(`⚠️ ${reason} - stopping auto-refresh to prevent infinite ${statusCode} retries`);
@@ -486,6 +516,13 @@ export const useProgressMonitoring = (
             variant: 'destructive'
           });
         }
+      } else {
+        // Show error toast for non-status errors
+        toast({
+          title: 'Failed to load data',
+          description: errorMessage,
+          variant: 'destructive'
+        });
       }
     }
   }, [flowId, toast]);
@@ -607,7 +644,6 @@ export const useProgressMonitoring = (
     // State
     ...state,
     autoRefresh,
-    readiness,
 
     // Actions
     selectFlow,
