@@ -23,19 +23,42 @@ logger = get_logger(__name__)
 
 
 def datetime_json_serializer(obj):
-    """Custom JSON serializer for datetime objects and other complex types"""
+    """Custom JSON serializer for datetime objects and specific supported types
+
+    Raises TypeError for unsupported types to prevent lossy serialization.
+    Only handles explicitly supported types to maintain data integrity.
+    """
     if isinstance(obj, datetime):
         return obj.isoformat()
     elif isinstance(obj, date):
         return obj.isoformat()
     elif isinstance(obj, time):
         return obj.isoformat()
-    elif hasattr(obj, "__dict__"):
-        # Handle complex objects by converting to dict
+    elif isinstance(obj, uuid.UUID):
         return str(obj)
+    elif isinstance(obj, (bytes, bytearray, memoryview)):
+        # Handle binary types properly - base64 encode to avoid double-encoding
+        import base64
+
+        if isinstance(obj, (bytearray, memoryview)):
+            obj = bytes(obj)  # Convert to bytes first
+        return {"_type": "binary", "_data": base64.b64encode(obj).decode("ascii")}
     else:
-        # Fall back to string representation
-        return str(obj)
+        # Raise TypeError for unsupported types to prevent lossy serialization
+        raise TypeError(
+            f"Object of type '{type(obj).__name__}' is not JSON serializable. "
+            f"Supported types: datetime, date, time, UUID, bytes, bytearray, memoryview. "
+            f"To serialize this type, handle it explicitly in the calling code."
+        )
+
+
+def datetime_json_deserializer(data):
+    """Custom JSON deserializer to reconstruct binary data from serialized format"""
+    if isinstance(data, dict) and data.get("_type") == "binary":
+        import base64
+
+        return base64.b64decode(data["_data"])
+    return data
 
 
 def redis_fallback(func):
@@ -175,7 +198,12 @@ class RedisCache:
                 value = await self.client.get(key)
 
             if value:
-                return json.loads(value) if isinstance(value, str) else value
+                if isinstance(value, str):
+                    parsed_value = json.loads(value)
+                    # Apply deserializer to reconstruct binary data if needed
+                    return datetime_json_deserializer(parsed_value)
+                else:
+                    return value
             return None
         except json.JSONDecodeError:
             # Return raw value if not JSON

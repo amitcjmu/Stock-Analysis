@@ -43,6 +43,16 @@ class ExecutionEngineCollectionCrews:
             # Get or create crewai_service instance
             crewai_service = await self._get_crewai_service()
 
+            # Guard: Ensure crewai_service is not None before proceeding
+            if crewai_service is None:
+                error_msg = (
+                    "CrewAI service is not available - cannot execute collection phase"
+                )
+                logger.error(f"❌ {error_msg}")
+                return self.crew_utils.build_error_response(
+                    phase_config.name, error_msg, master_flow
+                )
+
             # Create UnifiedCollectionFlow instance with all required parameters
             collection_flow = UnifiedCollectionFlow(
                 crewai_service=crewai_service,

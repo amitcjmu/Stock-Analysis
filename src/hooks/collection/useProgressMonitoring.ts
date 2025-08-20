@@ -465,23 +465,27 @@ export const useProgressMonitoring = (
 
       setState(prev => ({ ...prev, error: processedError, isLoading: false }));
 
-      // STOP INFINITE LOOPS: Handle 404 errors differently - don't retry for non-existent flows
-      if (error && typeof error === 'object' && 'status' in error && (error as any).status === 404) {
-        console.warn('⚠️ Flow not found - stopping auto-refresh to prevent infinite 404 retries');
-        setAutoRefresh(false); // Stop auto-refresh for 404 errors
+      // STOP INFINITE LOOPS: Handle 404/403 errors differently - don't retry for non-existent/unauthorized flows
+      if (error && typeof error === 'object' && 'status' in error) {
+        const statusCode = (error as any).status;
+        if (statusCode === 404 || statusCode === 403) {
+          const reason = statusCode === 404 ? 'Flow not found' : 'Access denied';
+          console.warn(`⚠️ ${reason} - stopping auto-refresh to prevent infinite ${statusCode} retries`);
+          setAutoRefresh(false); // Stop auto-refresh for 404/403 errors
 
-        toast({
-          title: 'Collection Flow Not Found',
-          description: errorMessage,
-          variant: 'destructive'
-        });
-      } else {
-        // Show descriptive error toast for other errors
-        toast({
-          title: 'Failed to load data',
-          description: errorMessage,
-          variant: 'destructive'
-        });
+          toast({
+            title: statusCode === 404 ? 'Collection Flow Not Found' : 'Access Denied',
+            description: errorMessage,
+            variant: 'destructive'
+          });
+        } else {
+          // Show descriptive error toast for other errors
+          toast({
+            title: 'Failed to load data',
+            description: errorMessage,
+            variant: 'destructive'
+          });
+        }
       }
     }
   }, [flowId, toast]);
