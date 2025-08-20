@@ -9,6 +9,22 @@
   },
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://migrate-ui-orchestrator-production.up.railway.app/api/:path*"
+    },
+    {
+      "source": "/docs",
+      "destination": "https://migrate-ui-orchestrator-production.up.railway.app/docs"
+    },
+    {
+      "source": "/redoc",
+      "destination": "https://migrate-ui-orchestrator-production.up.railway.app/redoc"
+    },
+    {
+      "source": "/openapi.json",
+      "destination": "https://migrate-ui-orchestrator-production.up.railway.app/openapi.json"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

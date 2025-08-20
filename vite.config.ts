@@ -15,6 +15,21 @@ export default defineConfig(({ mode }) => ({
         secure: false,
         rewrite: (p) => p,
       },
+      '/docs': {
+        target: process.env.DOCKER_ENV === 'true' ? 'http://backend:8000' : 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/redoc': {
+        target: process.env.DOCKER_ENV === 'true' ? 'http://backend:8000' : 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/openapi.json': {
+        target: process.env.DOCKER_ENV === 'true' ? 'http://backend:8000' : 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   plugins: [react()],
