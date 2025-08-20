@@ -13,13 +13,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update && sudo apt-get install -y ripgrep
+
       - name: Block legacy discovery endpoint usage in app code
         run: |
           set -euo pipefail
-          if ! command -v rg >/dev/null 2>&1; then
-            echo "ripgrep (rg) is required for policy checks but not installed." >&2
-            exit 1
-          fi
           if rg -n "/api/v1/discovery" backend/app 2>/dev/null | grep -v README | grep -v tests | grep -v middleware/legacy_endpoint_guard.py; then
             echo "Legacy discovery endpoints found in application code. Use /api/v1/flows or /unified-discovery." >&2
             exit 1
@@ -28,10 +28,6 @@ jobs:
       - name: Block deprecated repository base imports
         run: |
           set -euo pipefail
-          if ! command -v rg >/dev/null 2>&1; then
-            echo "ripgrep (rg) is required for policy checks but not installed." >&2
-            exit 1
-          fi
           if rg -n "from app\.repositories\.base import ContextAwareRepository" backend 2>/dev/null | grep -v README; then
             echo "Deprecated ContextAwareRepository import detected. Use app.repositories.context_aware_repository." >&2
             exit 1
