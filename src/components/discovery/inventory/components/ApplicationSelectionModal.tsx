@@ -110,8 +110,14 @@ export const ApplicationSelectionModal: React.FC<ApplicationSelectionModalProps>
           })
         });
 
-        // Navigate to the existing Collection flow
-        navigate(`/collection?flowId=${existingCollectionFlowId}`);
+        // Validate response before navigation
+        if (response && (response.id || response.status === 'success')) {
+          console.log('✅ Collection flow updated successfully');
+          navigate(`/collection?flowId=${existingCollectionFlowId}`);
+          onClose();
+        } else {
+          throw new Error('Failed to update Collection flow - invalid response');
+        }
       } else {
         // Create new Collection flow from Discovery
         console.log('➕ Creating new Collection flow from Discovery');
@@ -130,19 +136,12 @@ export const ApplicationSelectionModal: React.FC<ApplicationSelectionModalProps>
         });
 
         if (response && response.id) {
-          // Navigate to the new Collection flow
+          console.log('✅ Collection flow created successfully');
           navigate(`/collection?flowId=${response.id}`);
+          onClose();
         } else {
-          throw new Error('Failed to create Collection flow');
+          throw new Error('Failed to create Collection flow - invalid response');
         }
-      }
-
-      if (response) {
-        console.log('✅ Collection flow updated/created successfully');
-        // Close the modal
-        onClose();
-      } else {
-        throw new Error('Failed to process Collection flow');
       }
     } catch (error) {
       console.error('❌ Error processing Collection flow:', error);

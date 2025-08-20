@@ -163,7 +163,7 @@ async def get_collection_gaps(
         # Get gap analyses
         gaps_result = await db.execute(
             select(CollectionGapAnalysis).where(
-                CollectionGapAnalysis.collection_flow_id == flow_id
+                CollectionGapAnalysis.collection_flow_id == collection_flow.id
             )
         )
         gaps = gaps_result.scalars().all()
@@ -233,7 +233,7 @@ async def get_adaptive_questionnaires(
         # Get questionnaires
         questionnaires_result = await db.execute(
             select(AdaptiveQuestionnaire).where(
-                AdaptiveQuestionnaire.collection_flow_id == flow_id
+                AdaptiveQuestionnaire.collection_flow_id == collection_flow.id
             )
         )
         questionnaires = questionnaires_result.scalars().all()
