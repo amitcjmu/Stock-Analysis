@@ -45,7 +45,7 @@ docstring_parser==0.16
 durationpy==0.10
 # Removed ecdsa==0.19.1 due to CVE-2024-23342 - timing attack vulnerability
 # Replaced with secure PyJWT for JWT functionality
-embedchain==0.1.128
+# Removed embedchain==0.1.128 - not used in codebase and conflicts with pypdf 6.0.0 security requirement
 et_xmlfile==2.0.0
 executing==2.2.0
 fastapi==0.116.1

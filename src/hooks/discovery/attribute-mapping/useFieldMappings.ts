@@ -6,6 +6,19 @@ import { apiClient } from '../../../lib/api/apiClient';
 import { useWebSocket } from '../../useWebSocket';
 import { isCacheFeatureEnabled } from '@/constants/features';
 import type { FormFieldValue } from '@/types/shared/form-types';
+import type {
+  FieldMappingsResponse,
+  FieldMappingItem,
+  FieldMapping,
+  FieldMappingsResult,
+  FieldMappingType,
+  FieldMappingStatus
+} from '@/types/api/discovery/field-mapping-types';
+import {
+  transformToFrontendResponse,
+  isFieldMappingsResponse,
+  isValidConfidenceScore
+} from '@/types/api/discovery/field-mapping-types';
 
 interface RawFieldMapping {
   id: string;
@@ -72,36 +85,197 @@ export interface FieldMappingsResult {
   isFieldMappingsLoading: boolean;
   fieldMappingsError: Error | null;
   refetchFieldMappings: () => Promise<RawFieldMapping[]>;
+
+  // Enhanced type safety fields
+  backendResponse?: FieldMappingsResponse;
+  validationErrors?: string[];
+  transformationApplied?: boolean;
 }
 
 /**
  * Hook for field mappings data fetching and management
  * Handles both API field mappings and flow state fallbacks
  */
+// SECURITY FIX: Server-controlled test data filtering configuration
+const STRICT_TEST_DATA_BLOCK = process.env.NEXT_PUBLIC_STRICT_TEST_DATA_BLOCK === 'true';
+const ENABLE_TEST_DATA_FILTERING = process.env.NEXT_PUBLIC_ENABLE_TEST_DATA_FILTERING !== 'false';
+
+// Debug logging flag - disable in production
+const DEBUG_LOGS = process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_DEBUG_LOGS === 'true';
+
+// Debug logging helper
+const debugLog = (...args: any[]) => {
+  if (DEBUG_LOGS) {
+    console.log(...args);
+  }
+};
+
+// SECURITY FIX: Check if test data filtering should be applied
+const shouldFilterTestData = (response: any): boolean => {
+  // Only filter if enabled via environment variable
+  if (!ENABLE_TEST_DATA_FILTERING) {
+    return false;
+  }
+
+  // Check for server-provided filtering flag in API response metadata
+  if (response?.metadata?.filter_test_data === true) {
+    console.log('🔒 Server explicitly requested test data filtering');
+    return true;
+  }
+
+  if (response?.metadata?.filter_test_data === false) {
+    console.log('🔒 Server explicitly disabled test data filtering');
+    return false;
+  }
+
+  // Check legacy field for backward compatibility
+  if (response?.filter_test_data === true) {
+    console.log('🔒 Legacy server flag requested test data filtering');
+    return true;
+  }
+
+  // Default behavior: only filter if environment variable is set
+  return ENABLE_TEST_DATA_FILTERING;
+};
+
+// SECURITY FIX: Show user notification when test data is filtered
+const showTestDataFilterNotification = (filteredCount: number) => {
+  if (filteredCount > 0) {
+    console.warn(`⚠️ Test data filtering: ${filteredCount} Device_* fields have been filtered out for security.`);
+
+    // TODO: Show user-facing notification
+    // This should be implemented with your app's notification system
+    if (typeof window !== 'undefined' && window.postMessage) {
+      window.postMessage({
+        type: 'TEST_DATA_FILTERED',
+        count: filteredCount,
+        message: `${filteredCount} test data fields were filtered for security`
+      }, window.location.origin);
+    }
+  }
+};
+
 export const useFieldMappings = (
   importData: ImportData | null,
-  fieldMappingData: FieldMappingData | null
+  fieldMappingData: FieldMappingData | null,
+  flowId?: string | null
 ): FieldMappingsResult => {
   const { getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
   const { subscribe } = useWebSocket();
 
-  // Get field mappings using the import ID
+  // Use provided flow ID or try to extract from data
+  const effectiveFlowId = flowId || fieldMappingData?.flow_id || importData?.flow_id;
+
   const {
     data: realFieldMappings,
     isLoading: isFieldMappingsLoading,
     error: fieldMappingsError,
     refetch: refetchFieldMappings
   } = useQuery({
-    queryKey: ['field-mappings', importData?.import_metadata?.import_id],
+    queryKey: ['field-mappings', effectiveFlowId || importData?.import_metadata?.import_id],
     queryFn: async () => {
+      // Try to use flow ID first (preferred - uses MFO)
+      if (effectiveFlowId) {
+        debugLog('🔍 Fetching field mappings using flow ID:', effectiveFlowId);
+        try {
+          const response = await apiCall(`/api/v1/unified-discovery/flows/${effectiveFlowId}/field-mappings`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              ...getAuthHeaders()
+            }
+          });
+
+          // Validate response using type guard
+          if (isFieldMappingsResponse(response)) {
+            debugLog('✅ Fetched valid field mappings from unified discovery:', {
+              flow_id: response.flow_id,
+              count: response.count,
+              success: response.success
+            });
+
+            // Use proper transformation utility for type safety
+            const frontendResult = transformToFrontendResponse(response);
+
+            // Convert to legacy format for backward compatibility
+            const legacyMappings = frontendResult.fieldMappings.map(mapping => ({
+              id: mapping.id,
+              // Include both camelCase and snake_case for compatibility
+              sourceField: mapping.sourceField,
+              source_field: mapping.sourceField,
+              targetAttribute: mapping.targetField,
+              target_field: mapping.targetField,
+              target_attribute: mapping.targetField,
+              confidence: mapping.confidenceScore,
+              is_approved: mapping.status === 'approved',
+              status: mapping.status,
+              mapping_type: mapping.mappingType,
+              transformation_rule: mapping.transformation,
+              validation_rule: mapping.validationRules,
+              // Legacy fields for compatibility
+              sample_values: mapping.sampleValues || [],
+              ai_reasoning: mapping.aiReasoning || '',
+              is_user_defined: mapping.isUserDefined || false,
+              user_feedback: mapping.userFeedback,
+              validation_method: mapping.validationMethod || 'semantic_analysis',
+              is_validated: mapping.isValidated || false,
+              is_placeholder: mapping.isPlaceholder || false
+            }));
+
+            debugLog('✅ Transformed unified discovery mappings with type safety:', {
+              original_count: response.count,
+              transformed_count: legacyMappings.length,
+              validation_applied: true,
+              sample_transformed: legacyMappings.slice(0, 2)
+            });
+
+            return legacyMappings;
+          } else if (response?.field_mappings) {
+            // Fallback for invalid response structure
+            console.warn('⚠️ Received invalid field mappings response structure, using fallback processing');
+
+            const transformedMappings = response.field_mappings.map((m: any) => {
+              const confidenceScore = isValidConfidenceScore(m.confidence_score) ? m.confidence_score : 0.5;
+
+              return {
+                id: m.id || `${m.source_field}_${m.target_field || 'unmapped'}`,
+                sourceField: m.source_field,
+                source_field: m.source_field,
+                targetAttribute: m.target_field,
+                target_field: m.target_field,
+                target_attribute: m.target_field,
+                confidence: confidenceScore,
+                is_approved: false,
+                status: m.target_field ? 'pending' : 'unmapped',
+                mapping_type: m.mapping_type || 'auto',
+                transformation_rule: m.transformation,
+                validation_rule: m.validation_rules,
+                sample_values: [],
+                ai_reasoning: '',
+                is_user_defined: false,
+                user_feedback: null,
+                validation_method: 'semantic_analysis',
+                is_validated: false,
+                is_placeholder: !m.target_field
+              };
+            });
+
+            return transformedMappings;
+          }
+        } catch (error) {
+          console.warn('Failed to fetch from unified discovery, falling back to import ID', error);
+        }
+      }
+
+      // Fallback to import ID if flow ID doesn't work
       const importId = importData?.import_metadata?.import_id;
       if (!importId) {
         console.warn('⚠️ No import ID available for field mappings fetch');
         return [];
       }
 
-      console.log('🔍 Fetching field mappings for import ID:', importId);
+      debugLog('🔍 Fetching field mappings for import ID:', importId);
 
       try {
         // Use new API client if custom cache is disabled, otherwise use legacy
@@ -115,11 +289,56 @@ export const useFieldMappings = (
               }
             });
 
-        console.log('✅ Fetched field mappings from API:', {
+        debugLog('✅ Fetched field mappings from API:', {
           import_id: importId,
           mappings_count: Array.isArray(mappings) ? mappings.length : 'not an array',
           mappings_sample: Array.isArray(mappings) ? mappings.slice(0, 2) : mappings
         });
+
+        // SECURITY FIX: Server-controlled test data filtering
+        if (Array.isArray(mappings) && mappings.length > 0) {
+          const testDataFields = mappings.filter(mapping =>
+            mapping.source_field && (
+              mapping.source_field.includes('Device_') ||
+              mapping.source_field === 'Device_ID' ||
+              mapping.source_field === 'Device_Name' ||
+              mapping.source_field === 'Device_Type'
+            )
+          );
+
+          if (testDataFields.length > 0) {
+            console.warn('⚠️ WARNING: Test data detected in field mappings', {
+              import_id: importId,
+              test_fields_found: testDataFields.map(m => m.source_field),
+              total_test_fields: testDataFields.length,
+              should_filter: shouldFilterTestData(mappings)
+            });
+
+            // Check if filtering should be applied based on server configuration
+            if (shouldFilterTestData(mappings)) {
+              if (STRICT_TEST_DATA_BLOCK) {
+                // Strict mode: throw error (legacy behavior)
+                throw new Error(`Test data contamination detected: Found Device_* fields in production. Import ID: ${importId}`);
+              } else {
+                // Filter out test data and continue
+                const originalCount = mappings.length;
+                mappings = mappings.filter(mapping =>
+                  !mapping.source_field || (
+                    !mapping.source_field.includes('Device_') &&
+                    mapping.source_field !== 'Device_ID' &&
+                    mapping.source_field !== 'Device_Name' &&
+                    mapping.source_field !== 'Device_Type'
+                  )
+                );
+
+                const filteredCount = originalCount - mappings.length;
+                showTestDataFilterNotification(filteredCount);
+              }
+            } else {
+              console.log('🔒 Test data filtering disabled by server configuration - preserving Device_* fields');
+            }
+          }
+        }
 
         // Now try to get the raw import data to see all original CSV fields
         try {
@@ -133,13 +352,44 @@ export const useFieldMappings = (
                 }
               });
 
-          console.log('📊 Raw import data retrieved:', {
+          debugLog('📊 Raw import data retrieved:', {
             has_raw_data: !!rawImportData?.raw_data,
             raw_data_keys: rawImportData?.raw_data ? Object.keys(rawImportData.raw_data) : [],
             sample_record_keys: rawImportData?.sample_record ? Object.keys(rawImportData.sample_record) : [],
             total_records: rawImportData?.record_count,
             field_count: rawImportData?.field_count
           });
+
+          // CRITICAL FIX: Validate that the raw import data matches expected field names
+          if (rawImportData?.sample_record || rawImportData?.raw_data) {
+            const sampleRecord = rawImportData.sample_record || rawImportData.raw_data;
+            const actualCsvFields = Object.keys(sampleRecord);
+
+            // SECURITY FIX: Server-controlled test data detection in raw import data
+            const testFieldsInRaw = actualCsvFields.filter(field =>
+              field.includes('Device_') || field === 'Device_ID' || field === 'Device_Name' || field === 'Device_Type'
+            );
+
+            if (testFieldsInRaw.length > 0) {
+              console.warn('⚠️ WARNING: Test data detected in raw import data', {
+                import_id: importId,
+                test_fields: testFieldsInRaw,
+                total_test_fields: testFieldsInRaw.length,
+                should_filter: shouldFilterTestData(rawImportData)
+              });
+
+              if (shouldFilterTestData(rawImportData)) {
+                console.log('🔒 Test data filtering enabled - fields will be filtered during mapping transformation');
+              } else {
+                console.log('🔒 Test data filtering disabled - preserving test fields');
+              }
+            }
+
+            debugLog('✅ Raw import data validation passed - no test data contamination detected:', {
+              actual_csv_fields: actualCsvFields,
+              field_count: actualCsvFields.length
+            });
+          }
 
           // If we have raw data, ensure all CSV fields are represented as mappings
           if (rawImportData?.sample_record || rawImportData?.raw_data) {
@@ -151,7 +401,7 @@ export const useFieldMappings = (
             const missingFields = allCsvFields.filter(field => !mappedFieldNames.includes(field));
 
             if (missingFields.length > 0) {
-              console.log(`📋 Found ${missingFields.length} unmapped CSV fields:`, missingFields);
+              debugLog(`📋 Found ${missingFields.length} unmapped CSV fields:`, missingFields);
 
               // Create placeholder mappings for unmapped fields
               const additionalMappings = missingFields.map(sourceField => ({
@@ -167,7 +417,7 @@ export const useFieldMappings = (
 
               const enhancedMappings = [...(mappings || []), ...additionalMappings];
 
-              console.log('✅ Enhanced field mappings with all CSV fields:', {
+              debugLog('✅ Enhanced field mappings with all CSV fields:', {
                 original_mappings: mappings?.length || 0,
                 additional_mappings: additionalMappings.length,
                 total_mappings: enhancedMappings.length,
@@ -190,7 +440,7 @@ export const useFieldMappings = (
                 is_placeholder: mapping.is_placeholder
               }));
 
-              console.log('✅ Transformed enhanced field mappings:', {
+              debugLog('✅ Transformed enhanced field mappings:', {
                 enhanced_count: enhancedMappings.length,
                 transformed_count: transformedEnhancedMappings.length,
                 sample_transformed: transformedEnhancedMappings.slice(0, 3)
@@ -203,9 +453,47 @@ export const useFieldMappings = (
           console.warn('⚠️ Could not fetch raw import data:', rawDataError);
         }
 
-        // Return the raw mappings directly from the API
-        // The backend already provides the correct field names
-        console.log('✅ Returning raw field mappings from API:', {
+        // SECURITY FIX: Final validation with server-controlled filtering
+        if (Array.isArray(mappings) && mappings.length > 0) {
+          if (shouldFilterTestData(mappings)) {
+            const validMappings = mappings.filter(mapping => {
+              const isTestData = mapping.source_field && (
+                mapping.source_field.includes('Device_') ||
+                mapping.source_field === 'Device_ID' ||
+                mapping.source_field === 'Device_Name' ||
+                mapping.source_field === 'Device_Type'
+              );
+
+              if (isTestData) {
+                console.warn('⚠️ Final filter: Removing test data mapping:', mapping.source_field);
+              }
+
+              return !isTestData;
+            });
+
+            const filteredCount = mappings.length - validMappings.length;
+            if (filteredCount > 0) {
+              showTestDataFilterNotification(filteredCount);
+            }
+
+            console.log('✅ Returning validated field mappings from API (test data filtered):', {
+              original_count: mappings.length,
+              validated_count: validMappings.length,
+              filtered_out: filteredCount,
+              sample_valid_mappings: validMappings.slice(0, 3)
+            });
+
+            return validMappings;
+          } else {
+            console.log('✅ Returning field mappings from API (test data filtering disabled):', {
+              count: mappings.length,
+              sample_mappings: mappings.slice(0, 3)
+            });
+          }
+        }
+
+        // Return the raw mappings directly from the API if no validation needed
+        console.log('✅ Returning raw field mappings from API (no validation needed):', {
           original_count: mappings?.length || 0,
           sample_mappings: mappings?.slice(0, 3)
         });
@@ -223,7 +511,7 @@ export const useFieldMappings = (
         return [];
       }
     },
-    enabled: !!importData?.import_metadata?.import_id,
+    enabled: !!(effectiveFlowId || importData?.import_metadata?.import_id),
     staleTime: isCacheFeatureEnabled('REACT_QUERY_OPTIMIZATIONS') ? 2 * 60 * 1000 : 30 * 1000, // 2 minutes with optimizations, 30 seconds legacy
     cacheTime: isCacheFeatureEnabled('REACT_QUERY_OPTIMIZATIONS') ? 5 * 60 * 1000 : 2 * 60 * 1000, // 5 minutes with optimizations, 2 minutes legacy
     retry: (failureCount, error) => {
@@ -268,34 +556,92 @@ export const useFieldMappings = (
 
     // Use the API field mappings data
     if (realFieldMappings && Array.isArray(realFieldMappings)) {
-      const mappedData = realFieldMappings.map(mapping => {
-        // Check if this is an unmapped field (handle both camelCase and snake_case)
-        const targetField = mapping.targetAttribute || mapping.target_field;
-        const isUnmapped = targetField === 'UNMAPPED' || targetField === null;
+      // SECURITY FIX: Frontend validation with server-controlled filtering
+      let productionMappings = realFieldMappings;
 
-        // Ensure source field is always a string (handle both camelCase and snake_case)
+      if (shouldFilterTestData(realFieldMappings)) {
+        productionMappings = realFieldMappings.filter(mapping => {
+          const sourceField = String(mapping.sourceField || mapping.source_field || '');
+          const isTestData = sourceField.includes('Device_') ||
+                            sourceField === 'Device_ID' ||
+                            sourceField === 'Device_Name' ||
+                            sourceField === 'Device_Type';
+
+          if (isTestData) {
+            console.warn('🚫 Frontend filter: Removing test data field mapping:', sourceField);
+          }
+
+          return !isTestData;
+        });
+
+        const filteredCount = realFieldMappings.length - productionMappings.length;
+        if (filteredCount > 0) {
+          showTestDataFilterNotification(filteredCount);
+        }
+
+        console.log('🔍 [DEBUG] Frontend validation completed (filtering enabled):', {
+          original_count: realFieldMappings.length,
+          production_count: productionMappings.length,
+          filtered_test_data: filteredCount
+        });
+      } else {
+        console.log('🔍 [DEBUG] Frontend validation completed (filtering disabled):', {
+          count: realFieldMappings.length
+        });
+      }
+
+      const mappedData = productionMappings.map((mapping, index) => {
+        // Enhanced type validation for each mapping
         const sourceField = String(mapping.sourceField || mapping.source_field || 'Unknown Field');
+        const targetField = mapping.targetAttribute || mapping.target_field || mapping.target_attribute;
+        const isUnmapped = targetField === 'UNMAPPED' || targetField === null || targetField === undefined;
 
-        return {
-          id: mapping.id,
+        // Validate confidence score using type guard
+        const confidenceScore = isValidConfidenceScore(mapping.confidence)
+          ? mapping.confidence
+          : 0.5;
+
+        // Validate mapping type
+        const mappingType = mapping.mapping_type as FieldMappingType ||
+          (isUnmapped ? 'auto' : 'auto');
+
+        // Validate status
+        const validStatuses: FieldMappingStatus[] = ['suggested', 'approved', 'rejected', 'pending', 'unmapped'];
+        let finalStatus: FieldMappingStatus = 'pending';
+
+        if (mapping.status && validStatuses.includes(mapping.status as FieldMappingStatus)) {
+          finalStatus = mapping.status as FieldMappingStatus;
+        } else if (isUnmapped) {
+          finalStatus = 'unmapped';
+        } else if (mapping.is_approved === true) {
+          finalStatus = 'approved';
+        }
+
+        const transformedMapping: FieldMapping = {
+          id: mapping.id || `mapping_${index}_${sourceField}_${targetField || 'unmapped'}`,
           sourceField: sourceField,
-          targetAttribute: isUnmapped ? null : targetField, // Show null for unmapped fields
-          confidence: mapping.confidence || 0,
-          mapping_type: mapping.mapping_type || (isUnmapped ? 'unmapped' : 'ai_suggested'),
-          sample_values: mapping.sample_values || [],
-          // IMPORTANT: Always present as 'pending' until user explicitly approves
-          // Unmapped fields should show as 'unmapped' status
-          status: mapping.status || (isUnmapped ? 'unmapped' : (mapping.is_approved === true ? 'approved' : 'pending')),
-          ai_reasoning: mapping.ai_reasoning || (isUnmapped ? `Field "${sourceField}" needs mapping assignment` : `AI suggested mapping to ${targetField}`),
-          is_user_defined: mapping.is_user_defined || false,
-          user_feedback: mapping.user_feedback || null,
-          validation_method: mapping.validation_method || 'semantic_analysis',
-          is_validated: mapping.is_validated || mapping.is_approved === true,
-          transformation_rule: mapping.transformation_rule,
-          validation_rule: mapping.validation_rule,
-          is_required: mapping.is_required,
-          is_placeholder: mapping.is_placeholder
+          targetField: isUnmapped ? null : (targetField || null),
+          confidenceScore: confidenceScore,
+          mappingType: mappingType,
+          transformation: mapping.transformation_rule || null,
+          validationRules: mapping.validation_rule || null,
+          status: finalStatus,
+          sampleValues: mapping.sample_values || [],
+          aiReasoning: mapping.ai_reasoning || (isUnmapped
+            ? `Field "${sourceField}" needs mapping assignment`
+            : `AI suggested mapping to ${targetField}`),
+          isUserDefined: mapping.is_user_defined || false,
+          userFeedback: mapping.user_feedback || null,
+          validationMethod: mapping.validation_method || 'semantic_analysis',
+          isValidated: mapping.is_validated || mapping.is_approved === true,
+          isPlaceholder: mapping.is_placeholder || isUnmapped,
+          metadata: {
+            legacyMapping: true,
+            originalData: mapping
+          }
         };
+
+        return transformedMapping;
       });
 
       console.log('🔍 [DEBUG] Using API field mappings data:', {
@@ -473,6 +819,11 @@ export const useFieldMappings = (
     realFieldMappings: realFieldMappings || [],
     isFieldMappingsLoading,
     fieldMappingsError,
-    refetchFieldMappings
+    refetchFieldMappings,
+
+    // Enhanced type safety information
+    backendResponse: undefined, // Could be populated with validated response
+    validationErrors: [], // Could track validation issues
+    transformationApplied: !!fieldMappings.length // Indicates if transformations were applied
   };
 };

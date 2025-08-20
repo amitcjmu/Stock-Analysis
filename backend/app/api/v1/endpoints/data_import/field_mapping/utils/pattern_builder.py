@@ -5,7 +5,11 @@ Now uses pluggable pattern providers for extensible field mapping strategies.
 
 from typing import Dict, List, Optional
 import logging
-from .pattern_provider import get_pattern_manager, configure_pattern_manager, FieldPatternProvider
+from .pattern_provider import (
+    get_pattern_manager,
+    configure_pattern_manager,
+    FieldPatternProvider,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -14,33 +18,36 @@ class FieldPatternBuilder:
     """Builder for creating field mapping patterns using pluggable providers."""
 
     @staticmethod
-    def build_field_patterns(target_field_names: List[str], 
-                           learned_patterns: Optional[Dict[str, List[str]]] = None,
-                           custom_providers: Optional[List[FieldPatternProvider]] = None) -> Dict[str, List[str]]:
+    def build_field_patterns(
+        target_field_names: List[str],
+        learned_patterns: Optional[Dict[str, List[str]]] = None,
+        custom_providers: Optional[List[FieldPatternProvider]] = None,
+    ) -> Dict[str, List[str]]:
         """
         Build field mapping patterns based on available target fields.
-        
+
         Args:
             target_field_names: List of target field names to generate patterns for
             learned_patterns: Optional dictionary of learned patterns from historical mappings
             custom_providers: Optional list of custom pattern providers
-            
+
         Returns:
             Dictionary mapping target field names to lists of possible source field patterns
         """
         # Configure pattern manager if custom settings provided
         if learned_patterns or custom_providers:
             configure_pattern_manager(
-                learned_patterns=learned_patterns,
-                custom_providers=custom_providers
+                learned_patterns=learned_patterns, custom_providers=custom_providers
             )
-        
+
         # Get the pattern manager and build patterns
         pattern_manager = get_pattern_manager()
-        
+
         try:
             patterns = pattern_manager.build_field_patterns(target_field_names)
-            logger.info(f"Generated patterns for {len(target_field_names)} target fields using pluggable providers")
+            logger.info(
+                f"Generated patterns for {len(target_field_names)} target fields using pluggable providers"
+            )
             return patterns
         except Exception as e:
             logger.error(f"Error building field patterns: {e}")
@@ -125,7 +132,7 @@ class FieldPatternBuilder:
     def add_learned_pattern(target_field: str, source_patterns: List[str]) -> None:
         """
         Add a learned pattern to the pattern manager.
-        
+
         Args:
             target_field: The target field name
             source_patterns: List of source field patterns that map to this target
@@ -133,7 +140,9 @@ class FieldPatternBuilder:
         try:
             pattern_manager = get_pattern_manager()
             pattern_manager.update_learned_patterns({target_field: source_patterns})
-            logger.info(f"Added learned patterns for field '{target_field}': {source_patterns}")
+            logger.info(
+                f"Added learned patterns for field '{target_field}': {source_patterns}"
+            )
         except Exception as e:
             logger.error(f"Error adding learned pattern for '{target_field}': {e}")
 
@@ -141,13 +150,15 @@ class FieldPatternBuilder:
     def register_custom_provider(provider: FieldPatternProvider) -> None:
         """
         Register a custom pattern provider.
-        
+
         Args:
             provider: Custom pattern provider to register
         """
         try:
             pattern_manager = get_pattern_manager()
             pattern_manager.register_provider(provider)
-            logger.info(f"Registered custom pattern provider: {provider.__class__.__name__}")
+            logger.info(
+                f"Registered custom pattern provider: {provider.__class__.__name__}"
+            )
         except Exception as e:
             logger.error(f"Error registering custom provider: {e}")

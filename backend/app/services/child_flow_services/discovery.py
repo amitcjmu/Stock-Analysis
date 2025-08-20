@@ -40,11 +40,32 @@ class DiscoveryChildFlowService(BaseChildFlowService):
             if not child_flow:
                 return None
 
+            # CRITICAL FIX: Include import_metadata with correct data_import_id
+            # This ensures field mappings are properly isolated by import
+            import_metadata = {}
+            if hasattr(child_flow, "data_import_id") and child_flow.data_import_id:
+                import_metadata = {
+                    "import_id": str(child_flow.data_import_id),
+                    "data_import_id": str(
+                        child_flow.data_import_id
+                    ),  # Both formats for compatibility
+                }
+                logger.info(
+                    f"🔍 Discovery flow {flow_id} linked to import {child_flow.data_import_id}"
+                )
+            else:
+                logger.warning(
+                    f"⚠️ Discovery flow {flow_id} has no data_import_id - field mappings may not work correctly"
+                )
+
             return {
                 "status": getattr(child_flow, "status", None),
                 "current_phase": getattr(child_flow, "current_phase", None),
                 "progress_percentage": getattr(child_flow, "progress_percentage", 0.0),
                 "metadata": getattr(child_flow, "metadata", {}),
+                "import_metadata": import_metadata,  # CRITICAL: Include import metadata with correct data_import_id
+                "raw_data": [],  # Placeholder - could be populated from data import if needed
+                "field_mappings": [],  # Placeholder - field mappings are retrieved via separate API
             }
         except Exception as e:
             logger.warning(f"Failed to get discovery child flow status: {e}")

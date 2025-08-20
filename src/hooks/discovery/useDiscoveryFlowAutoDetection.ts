@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { useDiscoveryFlowList } from './useDiscoveryFlowList';
 import SecureLogger from '../../utils/secureLogger';
 import SecureStorage from '../../utils/secureStorage';
@@ -40,12 +40,31 @@ interface FlowAutoDetectionResult {
 }
 
 export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions = {}): FlowAutoDetectionResult => {
-  const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
+  // First try route params (e.g., /path/:flowId)
+  const { flowId: routeFlowId } = useParams<{ flowId?: string }>();
+
+  // Also check query params (e.g., ?flow_id=...)
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const queryFlowId = queryParams.get('flow_id');
+
+  // Normalize and validate IDs before use (trim whitespace and validate format)
+  const normalizeFlowId = (id: string | null | undefined): string | undefined => {
+    if (!id) return undefined;
+    const trimmed = id.trim();
+    // Basic UUID format validation
+    const uuidPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
+    return trimmed && uuidPattern.test(trimmed) ? trimmed : undefined;
+  };
+
+  // Use route param first, then query param as fallback, both normalized
+  const urlFlowId = normalizeFlowId(routeFlowId) || normalizeFlowId(queryFlowId) || undefined;
+
   const { data: flowList, isLoading: isFlowListLoading, error: flowListError } = useDiscoveryFlowList();
 
   const {
     currentPhase,
-    preferredStatuses = ['initialized', 'running', 'active', 'in_progress'],
+    preferredStatuses = ['initialized', 'running', 'active', 'in_progress', 'waiting_for_approval'],
     fallbackToAnyRunning = true
   } = options;
 
@@ -189,8 +208,31 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
     return null;
   }, [flowList, currentPhase, preferredStatuses, fallbackToAnyRunning]);
 
-  // Use URL flow ID if provided, otherwise use auto-detected flow ID
-  const effectiveFlowId = urlFlowId || autoDetectedFlowId;
+  // Validate that the resolved flow ID is in the user's visible flows
+  const validatedFlowId = useMemo(() => {
+    const candidateFlowId = urlFlowId || autoDetectedFlowId;
+
+    if (!candidateFlowId || !flowList) {
+      return candidateFlowId;
+    }
+
+    // Check if the flow ID exists in the user's flow list
+    const flowExists = flowList.some((flow: DiscoveryFlow) => {
+      const flowId = flow.flow_id || flow.id;
+      return flowId === candidateFlowId;
+    });
+
+    if (!flowExists) {
+      console.warn(`⚠️ Flow ID ${candidateFlowId} not found in user's active flows. Rejecting.`);
+      // Return null to trigger auto-detection fallback
+      return autoDetectedFlowId || null;
+    }
+
+    return candidateFlowId;
+  }, [urlFlowId, autoDetectedFlowId, flowList]);
+
+  // Use validated flow ID as the effective flow ID
+  const effectiveFlowId = validatedFlowId;
 
   // Flow detection completed
 

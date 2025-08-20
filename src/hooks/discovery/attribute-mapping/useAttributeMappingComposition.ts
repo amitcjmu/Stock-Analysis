@@ -41,8 +41,8 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
   // Backend returns 'field_mappings' (with 's'), not 'field_mapping'
   const fieldMappingData = flow?.field_mappings || flow?.field_mapping;
 
-  // 4. Field Mappings
-  const fieldMappingsHook = useFieldMappings(importData, fieldMappingData);
+  // 4. Field Mappings - pass flow_id for proper MFO integration
+  const fieldMappingsHook = useFieldMappings(importData, fieldMappingData, finalFlowId);
   const { fieldMappings, realFieldMappings } = fieldMappingsHook;
 
   // 5. Critical Attributes

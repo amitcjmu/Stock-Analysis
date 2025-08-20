@@ -1,5 +1,27 @@
 # AI Modernize Migration Platform - Changelog
 
+## [2025-08-19] - Attribute Mapping Architecture Fix (PR #127)
+### Major Bug Fixes
+- **FIX**: Attribute mapping now correctly shows all 9 fields from CSV imports
+  - Fixed frontend to use Master Flow Orchestrator (MFO) endpoint instead of import_id approach
+  - Updated frontend to use `/api/v1/unified-discovery/flows/{flow_id}/field-mappings` endpoint
+  - Eliminated frontend/backend duplication by centralizing field mapping data through MFO
+- **FIX**: Flow detection now includes 'waiting_for_approval' status as active flow
+  - Enhanced flow status validation to recognize paused flows awaiting user input
+  - Improved flow state management for multi-phase discovery workflows
+- **FIX**: Backend unified-discovery endpoint field name consistency
+  - Corrected field names to use `target_field` and `confidence_score` matching frontend expectations
+  - Standardized API response format across all field mapping endpoints
+
+### Architectural Improvements
+- **ENHANCEMENT**: New data flow architecture for attribute mapping
+  - Frontend → flow_id → MFO endpoint → Backend returns data → Frontend displays
+  - Removed dependency on import_id based approach for cleaner data flow
+  - Centralized field mapping data access through unified discovery endpoints
+- **ENHANCEMENT**: Improved error handling for field mapping edge cases
+  - Better fallback mechanisms when flow data is not immediately available
+  - Enhanced debugging capabilities for attribute mapping troubleshooting
+
 ## [2025-08-18] - Bug Fix Batch & Security Enhancements (PR #126)
 ### Security Improvements
 - **SECURITY**: Prevented bearer token exposure in production logs

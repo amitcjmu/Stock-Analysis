@@ -723,12 +723,53 @@ async def _trigger_field_mapping_reanalysis(
         crewai_service = CrewAIFlowService()
         crew_manager = UnifiedFlowCrewManager(crewai_service, flow_state)
 
-        # Create and execute field mapping executor
-        executor = FieldMappingExecutor(flow_state, crew_manager)
+        # Create and execute field mapping executor with error handling
+        try:
+            executor = FieldMappingExecutor(flow_state, crew_manager)
+        except Exception as e:
+            logger.error(f"❌ Failed to create FieldMappingExecutor: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to initialize field mapping executor: {str(e)}",
+            )
+
+        # CRITICAL FIX: Clean up any existing JSON artifact mappings before re-analysis
+        logger.info("🧹 Cleaning up JSON artifacts before field mapping re-analysis...")
+        try:
+            from app.services.data_import.storage_manager.mapping_operations import (
+                FieldMappingOperationsMixin,
+            )
+
+            # Create cleanup service
+            class CleanupService(FieldMappingOperationsMixin):
+                def __init__(self, db_session, client_account_id):
+                    self.db = db_session
+                    self.client_account_id = client_account_id
+
+            cleanup_service = CleanupService(db, context.client_account_id)
+            removed_count = await cleanup_service.cleanup_json_artifact_mappings(
+                data_import
+            )
+
+            if removed_count > 0:
+                logger.info(
+                    f"🧹 Removed {removed_count} JSON artifact field mappings before re-analysis"
+                )
+
+        except Exception as cleanup_error:
+            logger.warning(
+                f"⚠️ JSON artifact cleanup failed but continuing: {cleanup_error}"
+            )
 
         # Execute field mapping analysis
         logger.info("🤖 Executing field mapping re-analysis with CrewAI agents...")
-        result = await executor.execute_suggestions_only({})
+        try:
+            result = await executor.execute_suggestions_only({})
+        except Exception as e:
+            logger.error(f"❌ Field mapping re-analysis failed: {str(e)}")
+            raise HTTPException(
+                status_code=500, detail=f"Field mapping re-analysis failed: {str(e)}"
+            )
 
         if result and result.get("mappings"):
             logger.info(

@@ -40,18 +40,23 @@ from app.services.field_mapping_executor import (
 # Import base executor for inheritance compatibility
 from .base_phase_executor import BasePhaseExecutor
 
-logger = logging.getLogger(__name__)
+# Import modularized utilities
+from .field_mapping_utils import (
+    CREWAI_FLOW_AVAILABLE,
+    get_supported_flow_types,
+    validate_input,
+    get_execution_context,
+    prepare_crew_input_from_state,
+    store_results_in_state,
+)
+from .field_mapping_converters import (
+    convert_crew_input_to_state,
+    convert_result_to_crew_format,
+    convert_flow_state_to_crew_input,
+)
+from .field_mapping_fallback import execute_with_crew_fallback
 
-# CrewAI Flow availability detection for compatibility
-CREWAI_FLOW_AVAILABLE = False
-try:
-    # Flow and LLM imports will be used when needed
-    CREWAI_FLOW_AVAILABLE = True
-    logger.info("✅ CrewAI Flow and LLM imports available")
-except ImportError as e:
-    logger.warning(f"CrewAI Flow not available: {e}")
-except Exception as e:
-    logger.warning(f"CrewAI imports failed: {e}")
+logger = logging.getLogger(__name__)
 
 
 class FieldMappingExecutor(BasePhaseExecutor):
@@ -74,20 +79,32 @@ class FieldMappingExecutor(BasePhaseExecutor):
     and improving maintainability.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, state, crew_manager, flow_bridge=None):
         """Initialize with backward compatibility support."""
-        super().__init__(*args, **kwargs)
+        super().__init__(state, crew_manager, flow_bridge)
 
-        # Initialize the modular executor
-        self._modular_executor = ModularFieldMappingExecutor(
-            storage_manager=self.storage_manager,
-            agent_pool=self.agent_pool,
-            client_account_id=self.client_account_id,
-            engagement_id=self.engagement_id,
-        )
+        # Extract context from state for modular executor
+        client_account_id = getattr(state, "client_account_id", None)
+        engagement_id = getattr(state, "engagement_id", None)
+
+        # Initialize the modular executor with proper error handling
+        # The modular executor will be used through our wrapper methods
+        try:
+            # Try to initialize with the fixed modular executor
+            self._modular_executor = ModularFieldMappingExecutor(
+                storage_manager=getattr(self, "storage_manager", None),
+                agent_pool=getattr(self, "agent_pool", None),
+                client_account_id=client_account_id or "unknown",
+                engagement_id=engagement_id or "unknown",
+            )
+            logger.info("Successfully initialized modular executor")
+        except Exception as e:
+            logger.error(f"Could not initialize modular executor: {e}", exc_info=True)
+            # Set to None and handle execution through fallback
+            self._modular_executor = None
 
         logger.info(
-            f"FieldMappingExecutor (compatibility wrapper) initialized for client {self.client_account_id}"
+            f"FieldMappingExecutor (compatibility wrapper) initialized for client {client_account_id}"
         )
 
     def get_phase_name(self) -> str:
@@ -114,28 +131,72 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 f"Executing field mapping with crew for engagement {self.engagement_id}"
             )
 
-            # Convert crew_input to state format expected by modular executor
-            from app.schemas.unified_discovery_flow_state import (
-                UnifiedDiscoveryFlowState,
-            )
-
             # Create a mock state object from crew_input
-            state = self._convert_crew_input_to_state(crew_input)
+            mock_state = convert_crew_input_to_state(crew_input, self.state)
 
-            # Get database session
+            # Get async database session with proper lifecycle management
             from app.db.session import get_db
 
-            db_session = next(get_db())
+            # SECURITY FIX: Proper async context management for database sessions
+            # Support both async and sync generators with defensive handling
+            db_session_generator = get_db()
+            db_session = None
 
             try:
-                # Execute using modular implementation
-                result = await self._modular_executor.execute_phase(state, db_session)
+                # Handle async generator
+                if hasattr(db_session_generator, "__anext__"):
+                    db_session = await db_session_generator.__anext__()
+                # Handle sync generator as fallback
+                elif hasattr(db_session_generator, "__next__"):
+                    db_session = next(db_session_generator)
+                else:
+                    raise RuntimeError(
+                        "Database session generator not properly configured"
+                    )
 
-                # Convert result back to expected format
-                return self._convert_result_to_crew_format(result)
+                # Execute using modular implementation if available
+                if self._modular_executor:
+                    result = await self._modular_executor.execute_phase(
+                        mock_state, db_session
+                    )
+                    # Convert result back to expected format
+                    return convert_result_to_crew_format(result, self.get_phase_name())
+                else:
+                    # Fallback execution when modular executor is not available
+                    logger.warning(
+                        "Modular executor not available, using direct crew execution"
+                    )
+                    result = await execute_with_crew_fallback(
+                        crew_input,
+                        self.crew_manager,
+                        self.get_phase_name(),
+                        self._get_phase_timeout(),
+                    )
+                    return result
 
             finally:
-                db_session.close()
+                # SECURITY FIX: Ensure generator is properly closed in finally block
+                if db_session:
+                    try:
+                        if hasattr(db_session, "close"):
+                            # Handle async session close
+                            if hasattr(db_session.close, "__await__"):
+                                await db_session.close()
+                            else:
+                                db_session.close()
+                    except Exception as close_error:
+                        logger.warning(f"Error closing database session: {close_error}")
+
+                # Close the generator to prevent connection leaks
+                try:
+                    if hasattr(db_session_generator, "aclose"):
+                        await db_session_generator.aclose()
+                    elif hasattr(db_session_generator, "close"):
+                        db_session_generator.close()
+                except Exception as gen_close_error:
+                    logger.warning(
+                        f"Error closing database generator: {gen_close_error}"
+                    )
 
         except Exception as e:
             logger.error(f"Field mapping execution failed: {str(e)}")
@@ -147,50 +208,6 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 "timestamp": datetime.utcnow().isoformat(),
             }
 
-    def _convert_crew_input_to_state(self, crew_input: Dict[str, Any]) -> Any:
-        """Convert legacy crew_input format to UnifiedDiscoveryFlowState."""
-        from app.schemas.unified_discovery_flow_state import UnifiedDiscoveryFlowState
-
-        # Extract data from crew_input
-        flow_id = crew_input.get("flow_id", f"compat_{self.engagement_id}")
-        discovery_data = crew_input.get("discovery_data", {})
-
-        # Ensure discovery_data has required fields
-        if "sample_data" not in discovery_data:
-            discovery_data["sample_data"] = crew_input.get("sample_data", [])
-        if "detected_columns" not in discovery_data:
-            discovery_data["detected_columns"] = crew_input.get("detected_columns", [])
-        if "data_source_info" not in discovery_data:
-            discovery_data["data_source_info"] = crew_input.get("data_source_info", {})
-
-        # Create state object
-        state = UnifiedDiscoveryFlowState(
-            flow_id=flow_id,
-            client_account_id=self.client_account_id,
-            engagement_id=self.engagement_id,
-            flow_type="unified_discovery",
-            current_phase="field_mapping",
-            discovery_data=discovery_data,
-            field_mappings=crew_input.get("previous_mappings", []),
-        )
-
-        return state
-
-    def _convert_result_to_crew_format(self, result: Dict[str, Any]) -> Dict[str, Any]:
-        """Convert modular execution result to legacy crew format."""
-        return {
-            "success": result.get("success", True),
-            "mappings": result.get("mappings", []),
-            "confidence_scores": result.get("confidence_scores", {}),
-            "clarifications": result.get("clarifications", []),
-            "validation_errors": result.get("validation_errors", []),
-            "phase_name": self.get_phase_name(),
-            "next_phase": result.get("next_phase", "data_transformation"),
-            "timestamp": result.get("timestamp", datetime.utcnow().isoformat()),
-            "execution_metadata": result.get("execution_metadata", {}),
-            "raw_response": result.get("raw_response", ""),
-        }
-
     async def execute_field_mapping(
         self, flow_state: Any, db_session: Any
     ) -> Dict[str, Any]:
@@ -199,16 +216,44 @@ class FieldMappingExecutor(BasePhaseExecutor):
 
         This method provides backward compatibility for code that calls
         execute_field_mapping directly instead of using the crew interface.
+
+        SECURITY FIX: Validates db_session before use to prevent errors.
         """
         try:
             logger.info(
                 f"Executing field mapping directly for flow {getattr(flow_state, 'flow_id', 'unknown')}"
             )
 
-            # Use modular executor directly
-            result = await self._modular_executor.execute_phase(flow_state, db_session)
+            # SECURITY FIX: Validate db_session before DB operations
+            if not db_session:
+                raise ValueError(
+                    "Database session is required for field mapping execution"
+                )
 
-            logger.info(f"Field mapping completed successfully")
+            # Check if session is still active
+            if hasattr(db_session, "is_active") and not db_session.is_active:
+                raise ValueError("Database session is not active")
+
+            # Use modular executor directly if available
+            if self._modular_executor:
+                result = await self._modular_executor.execute_phase(
+                    flow_state, db_session
+                )
+            else:
+                # Fallback to basic execution if modular executor not available
+                logger.warning(
+                    "Modular executor not available for direct execution, using basic execution"
+                )
+                # Convert flow_state to crew_input format and use fallback
+                crew_input = convert_flow_state_to_crew_input(flow_state)
+                result = await execute_with_crew_fallback(
+                    crew_input,
+                    self.crew_manager,
+                    self.get_phase_name(),
+                    self._get_phase_timeout(),
+                )
+
+            logger.info("Field mapping completed successfully")
             return result
 
         except Exception as e:
@@ -220,43 +265,67 @@ class FieldMappingExecutor(BasePhaseExecutor):
     # Additional compatibility methods
     def get_supported_flow_types(self) -> List[str]:
         """Return the flow types supported by this executor."""
-        return ["unified_discovery", "field_mapping", "data_mapping"]
+        return get_supported_flow_types()
 
     async def validate_input(self, input_data: Dict[str, Any]) -> bool:
         """Validate input data for field mapping."""
-        try:
-            required_fields = ["sample_data", "detected_columns"]
-
-            for field in required_fields:
-                if field not in input_data:
-                    logger.warning(f"Missing required field: {field}")
-                    return False
-
-            if not input_data.get("sample_data"):
-                logger.warning("Empty sample_data provided")
-                return False
-
-            if not input_data.get("detected_columns"):
-                logger.warning("Empty detected_columns provided")
-                return False
-
-            return True
-
-        except Exception as e:
-            logger.error(f"Input validation failed: {str(e)}")
-            return False
+        return await validate_input(input_data)
 
     def get_execution_context(self) -> Dict[str, Any]:
         """Get execution context for field mapping."""
-        return {
-            "phase_name": self.get_phase_name(),
-            "client_account_id": self.client_account_id,
-            "engagement_id": self.engagement_id,
-            "timeout": self._get_phase_timeout(),
-            "crewai_available": CREWAI_FLOW_AVAILABLE,
-            "modular_implementation": True,
-            "backward_compatible": True,
-        }
+        return get_execution_context(
+            self.get_phase_name(),
+            self.client_account_id,
+            self.engagement_id,
+            self._get_phase_timeout(),
+        )
+
+    def _prepare_crew_input(self) -> Dict[str, Any]:
+        """Prepare input data for crew execution - required by BasePhaseExecutor."""
+        return prepare_crew_input_from_state(self.state)
+
+    async def _store_results(self, results: Dict[str, Any]):
+        """Store execution results in state - required by BasePhaseExecutor."""
+        store_results_in_state(self.state, results)
+
+    async def execute_suggestions_only(
+        self, input_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Execute field mapping in suggestions-only mode for re-analysis."""
+        try:
+            logger.info("Executing field mapping in suggestions-only mode")
+
+            # Prepare crew input with current state data
+            crew_input = self._prepare_crew_input()
+
+            # Override with any provided input data
+            crew_input.update(input_data)
+
+            # Execute field mapping with crew
+            result = await self.execute_with_crew(crew_input)
+
+            if result and result.get("success", True):
+                logger.info("Field mapping suggestions generated successfully")
+                return result
+            else:
+                logger.error(
+                    f"Field mapping suggestions failed: {result.get('error', 'Unknown error')}"
+                )
+                return {
+                    "success": False,
+                    "error": result.get("error", "Field mapping suggestions failed"),
+                    "mappings": [],
+                    "clarifications": [],
+                }
+
+        except Exception as e:
+            logger.error(f"Field mapping suggestions execution failed: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "mappings": [],
+                "clarifications": [],
+            }
 
 
 # Export original class name for complete backward compatibility

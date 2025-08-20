@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAttributeMappingFlowDetection } from '../useDiscoveryFlowAutoDetection';
 import { useSmartFlowResolver } from './useSmartFlowResolver';
 
@@ -22,12 +22,20 @@ export interface FlowDetectionResult {
  * Handles URL parsing, auto-detection, smart resolution (import ID or recent flow), and emergency fallback mechanisms
  */
 export const useFlowDetection = (): FlowDetectionResult => {
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
   const navigate = useNavigate();
+
+  // Check for query parameter flow_id as well
+  const queryParams = new URLSearchParams(location.search);
+  const rawQueryFlowId = queryParams.get('flow_id');
+
+  // Normalize and validate ID from query parameter
+  const queryFlowId = rawQueryFlowId ? rawQueryFlowId.trim() : null;
 
   // Use the new auto-detection hook for consistent flow detection
   const {
-    urlFlowId,
+    urlFlowId: detectedUrlFlowId,
     autoDetectedFlowId,
     effectiveFlowId: initialEffectiveFlowId,
     flowList,
@@ -35,6 +43,9 @@ export const useFlowDetection = (): FlowDetectionResult => {
     flowListError,
     hasEffectiveFlow: initialHasEffectiveFlow
   } = useAttributeMappingFlowDetection();
+
+  // urlFlowId should include query param if detected (both already normalized)
+  const urlFlowId = detectedUrlFlowId || queryFlowId;
 
   // Smart resolver handles all cases:
   // - If urlFlowId is a flow ID, returns it directly
