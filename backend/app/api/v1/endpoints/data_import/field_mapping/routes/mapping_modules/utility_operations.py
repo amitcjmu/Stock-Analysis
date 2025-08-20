@@ -12,11 +12,11 @@ from app.core.context import RequestContext, get_current_context
 from app.core.security.secure_logging import safe_log_format
 from app.core.database import get_db
 
-from ..models.mapping_schemas import (
+from ...models.mapping_schemas import (
     MappingValidationRequest,
     MappingValidationResponse,
 )
-from ..services.mapping_service import MappingService
+from ...services.mapping_service import MappingService
 
 logger = logging.getLogger(__name__)
 

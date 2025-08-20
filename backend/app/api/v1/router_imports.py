@@ -165,7 +165,7 @@ except ImportError:
 
 # Authentication and RBAC
 try:
-    from app.api.v1.auth.auth_handlers import router as auth_router
+    from app.api.v1.auth import auth_router
 
     routers_with_flags["AUTH_RBAC"] = (True, auth_router)
 except ImportError:
