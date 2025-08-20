@@ -15,16 +15,18 @@ jobs:
 
       - name: Block legacy discovery endpoint usage in app code
         run: |
-          set -euo pipefail
-          if grep -r "/api/v1/discovery" backend/app/ --exclude-dir=__pycache__ --exclude-dir="discovery" | grep -v README | grep -v tests | grep -v middleware/legacy_endpoint_guard.py; then
-            echo "Legacy discovery endpoints found in application code. Use /api/v1/flows or /unified-discovery." >&2
+          echo "🔍 Checking for legacy discovery endpoints..."
+          if grep -r "/api/v1/discovery" backend/app/ --exclude-dir=__pycache__ --exclude-dir="discovery" 2>/dev/null | grep -v README | grep -v tests | grep -v middleware/legacy_endpoint_guard.py; then
+            echo "❌ Legacy discovery endpoints found in application code. Use /api/v1/flows or /unified-discovery." >&2
             exit 1
           fi
+          echo "✅ No legacy discovery endpoints found in application code"
 
       - name: Block deprecated repository base imports
         run: |
-          set -euo pipefail
-          if grep -r "from app\.repositories\.base import ContextAwareRepository" backend/ | grep -v README; then
-            echo "Deprecated ContextAwareRepository import detected. Use app.repositories.context_aware_repository." >&2
+          echo "🔍 Checking for deprecated repository imports..."
+          if grep -r "from app\.repositories\.base import ContextAwareRepository" backend/ 2>/dev/null | grep -v README; then
+            echo "❌ Deprecated ContextAwareRepository import detected. Use app.repositories.context_aware_repository." >&2
             exit 1
           fi
+          echo "✅ No deprecated repository imports found"
