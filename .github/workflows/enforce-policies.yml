@@ -20,7 +20,7 @@ jobs:
             echo "ripgrep (rg) is required for policy checks but not installed." >&2
             exit 1
           fi
-          if rg -n "/api/v1/discovery" backend/app backend/src | grep -v README | grep -v tests; then
+          if rg -n "/api/v1/discovery" backend/app backend/src | grep -v README | grep -v tests | grep -v middleware/legacy_endpoint_guard.py; then
             echo "Legacy discovery endpoints found in application code. Use /api/v1/flows or /unified-discovery." >&2
             exit 1
           fi

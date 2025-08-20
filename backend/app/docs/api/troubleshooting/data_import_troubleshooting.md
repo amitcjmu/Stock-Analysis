@@ -100,7 +100,7 @@ headers: {
 
 1. **Check flow status:**
 ```bash
-curl -X GET "https://api.yourdomain.com/api/v1/discovery/flows/active" \
+curl -X GET "https://api.yourdomain.com/api/v1/flows/active" \
   -H "Authorization: Bearer TOKEN" \
   -H "X-Client-Account-ID: 1" \
   -H "X-Engagement-ID: 1"
