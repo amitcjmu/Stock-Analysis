@@ -16,7 +16,7 @@ from app.schemas.asset_schemas import AssetCreate, AssetResponse, AssetUpdate
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(tags=["Asset CRUD"])
+router = APIRouter()
 
 
 @router.get("/")

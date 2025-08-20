@@ -40,7 +40,7 @@ def get_mapping_service(
 
 
 # Create main router
-router = APIRouter(prefix="/field-mapping", tags=["field-mapping"])
+router = APIRouter(prefix="/field-mapping")
 
 # Include all sub-routers
 router.include_router(mapping_router)

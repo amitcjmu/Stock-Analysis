@@ -15,7 +15,7 @@ from .engagement_routes import router as engagement_router
 from .user_routes import router as user_router
 
 # Create main router
-router = APIRouter(tags=["context"])
+router = APIRouter()
 
 # Include sub-routers
 router.include_router(client_router)

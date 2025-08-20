@@ -16,7 +16,7 @@ from app.repositories.asset_repository import AssetRepository
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(tags=["Asset Audit"])
+router = APIRouter()
 
 
 @router.get("/data-audit/{asset_id}")

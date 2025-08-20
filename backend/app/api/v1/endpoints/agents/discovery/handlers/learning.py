@@ -25,7 +25,7 @@ except ImportError as e:
     FIELD_MAPPING_AVAILABLE = False
     logger.warning(f"ImportFieldMapping not available: {e}")
 
-router = APIRouter(tags=["learning"])
+router = APIRouter()
 
 
 @router.get("/learning")

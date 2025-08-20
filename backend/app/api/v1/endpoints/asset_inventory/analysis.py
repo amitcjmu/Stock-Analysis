@@ -15,7 +15,7 @@ from app.repositories.asset_repository import AssetRepository
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(tags=["Asset Analysis"])
+router = APIRouter()
 
 
 @router.get("/analysis/overview", response_model=Dict[str, Any])

@@ -15,7 +15,7 @@ from .handlers.learning import router as learning_router
 from .handlers.status import router as status_router
 
 # Create the router
-router = APIRouter(tags=["discovery-agents"])
+router = APIRouter()
 
 # Include the sub-routers
 # Status endpoints are included directly (no prefix) so /agents/agent-status works

@@ -24,7 +24,7 @@ from ..services.attribute_analyzer import AttributeAnalyzer
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/analysis", tags=["agentic-analysis"])
+router = APIRouter(prefix="/analysis")
 
 
 def get_attribute_analyzer(

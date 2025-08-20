@@ -24,7 +24,7 @@ from .utils import get_asset_data
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(tags=["Asset Intelligence"])
+router = APIRouter()
 
 
 @router.get("/health")

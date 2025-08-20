@@ -15,7 +15,7 @@ from app.utils.circuit_breaker import circuit_breaker_manager
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/emergency", tags=["system", "emergency"])
+router = APIRouter(prefix="/emergency")
 
 
 @router.post("/circuit-breakers/reset")

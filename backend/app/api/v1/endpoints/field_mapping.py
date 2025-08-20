@@ -20,7 +20,7 @@ from app.core.database import get_db
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/field-mapping", tags=["field-mapping"])
+router = APIRouter(prefix="/field-mapping")
 
 
 def get_mapping_service(
