@@ -6,6 +6,8 @@ This module handles the registration of all routers to reduce complexity in the 
 import logging
 from fastapi import APIRouter
 
+# from app.api.v1.api_tags import APITags  # Will be used when updating tag assignments
+
 logger = logging.getLogger(__name__)
 
 

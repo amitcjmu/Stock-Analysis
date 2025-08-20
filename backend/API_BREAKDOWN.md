@@ -91,6 +91,54 @@ Business Logic:    19 endpoints (5%)
 Untagged:         194 endpoints (55%)
 ```
 
+## Route Migration Guide
+
+### Assessment Flow Routes
+The assessment flow endpoints have been reorganized for better modularity:
+
+| Old Route | New Route | Notes |
+|-----------|-----------|-------|
+| `/api/v1/assessment-flow/*` | Split into multiple endpoints | See below |
+| `/api/v1/assessment-flow/start` | `/api/v1/assessment-flow/flow-management/start` | Flow control |
+| `/api/v1/assessment-flow/navigate` | `/api/v1/assessment-flow/flow-management/navigate` | Phase navigation |
+| `/api/v1/assessment-flow/architecture` | `/api/v1/assessment-flow/architecture-standards/*` | Architecture endpoints |
+| `/api/v1/assessment-flow/components` | `/api/v1/assessment-flow/component-analysis/*` | Component analysis |
+| `/api/v1/assessment-flow/tech-debt` | `/api/v1/assessment-flow/tech-debt-analysis/*` | Tech debt endpoints |
+| `/api/v1/assessment-flow/sixr` | `/api/v1/assessment-flow/sixr-decisions/*` | 6R decision endpoints |
+| `/api/v1/assessment-flow/finalize` | `/api/v1/assessment-flow/finalization/*` | Finalization endpoints |
+
+### Discovery Routes
+Discovery endpoints have been unified under a single prefix:
+
+| Old Route | New Route | Notes |
+|-----------|-----------|-------|
+| `/api/v1/discovery/*` | `/api/v1/unified-discovery/*` | All discovery operations |
+| `/api/v1/agents/discovery/*` | `/api/v1/unified-discovery/agents/*` | Agent-specific operations |
+| `/api/v1/discovery-flow/*` | `/api/v1/unified-discovery/flow/*` | Flow management |
+
+### Deprecated Endpoints
+The following endpoints are deprecated and will be removed in v2:
+
+- `/api/v1/test-discovery/*` - Removed (was debug code with auth bypass)
+- `/api/v3/*` - Archived (legacy database abstraction layer)
+- WebSocket endpoints - Replaced with HTTP polling for Vercel/Railway compatibility
+
+## CSP Configuration Requirements
+
+For Swagger/ReDoc to work properly, ensure the Content Security Policy allows:
+
+```python
+# In security_headers middleware
+CSP_EXCEPTIONS = [
+    "/api/v1/docs",
+    "/api/v1/redoc",
+    "/api/v1/openapi.json",
+    "/docs",
+    "/redoc",
+    "/openapi.json"
+]
+```
+
 ## Next Steps
 
 1. Complete endpoint tagging for better organization
@@ -98,3 +146,5 @@ Untagged:         194 endpoints (55%)
 3. Implement API versioning strategy
 4. Add request/response examples to documentation
 5. Create interactive API playground
+6. Generate static ReDoc bundle for offline documentation
+7. Add CI checks to enforce tag usage only at router inclusion

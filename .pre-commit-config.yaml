@@ -131,6 +131,14 @@ repos:
   # Lightweight security checks (faster versions)
   - repo: local
     hooks:
+      # Check for API tag violations in endpoint files
+      - id: check-api-tags
+        name: Check API tag violations
+        entry: python backend/scripts/check_api_tags.py
+        language: python
+        files: '^backend/app/api/v1/.*\.py$'
+        pass_filenames: true
+        description: "Ensure APIRouter tags are only set at include_router level"
       # Only check staged files for credentials (expanded patterns)
       - id: check-credentials-staged
         name: Check for hardcoded credentials in staged files
