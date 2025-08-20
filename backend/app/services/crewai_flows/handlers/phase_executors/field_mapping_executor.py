@@ -79,22 +79,23 @@ class FieldMappingExecutor(BasePhaseExecutor):
         super().__init__(state, crew_manager, flow_bridge)
 
         # Extract context from state for modular executor
-        client_account_id = getattr(state, 'client_account_id', None)
-        engagement_id = getattr(state, 'engagement_id', None)
-        
-        # Initialize the modular executor with mock context since we don't have the required components
+        client_account_id = getattr(state, "client_account_id", None)
+        engagement_id = getattr(state, "engagement_id", None)
+
+        # Initialize the modular executor with proper error handling
         # The modular executor will be used through our wrapper methods
         try:
-            # Try to initialize with minimal components if available
+            # Try to initialize with the fixed modular executor
             self._modular_executor = ModularFieldMappingExecutor(
-                storage_manager=getattr(self, 'storage_manager', None),
-                agent_pool=getattr(self, 'agent_pool', None),
-                client_account_id=client_account_id or 'unknown',
-                engagement_id=engagement_id or 'unknown',
+                storage_manager=getattr(self, "storage_manager", None),
+                agent_pool=getattr(self, "agent_pool", None),
+                client_account_id=client_account_id or "unknown",
+                engagement_id=engagement_id or "unknown",
             )
+            logger.info("Successfully initialized modular executor")
         except Exception as e:
-            logger.warning(f"Could not initialize modular executor: {e}")
-            # Set to None and handle execution through alternative means
+            logger.error(f"Could not initialize modular executor: {e}", exc_info=True)
+            # Set to None and handle execution through fallback
             self._modular_executor = None
 
         logger.info(
@@ -125,33 +126,33 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 f"Executing field mapping with crew for engagement {self.engagement_id}"
             )
 
-            # Convert crew_input to state format expected by modular executor
-            from app.schemas.unified_discovery_flow_state import (
-                UnifiedDiscoveryFlowState,
-            )
-
             # Create a mock state object from crew_input
             mock_state = self._convert_crew_input_to_state(crew_input)
 
-            # Get database session
+            # Get async database session
             from app.db.session import get_db
 
-            db_session = next(get_db())
+            db_session_generator = get_db()
+            db_session = await db_session_generator.__anext__()
 
             try:
                 # Execute using modular implementation if available
                 if self._modular_executor:
-                    result = await self._modular_executor.execute_phase(mock_state, db_session)
+                    result = await self._modular_executor.execute_phase(
+                        mock_state, db_session
+                    )
                     # Convert result back to expected format
                     return self._convert_result_to_crew_format(result)
                 else:
                     # Fallback execution when modular executor is not available
-                    logger.warning("Modular executor not available, using direct crew execution")
+                    logger.warning(
+                        "Modular executor not available, using direct crew execution"
+                    )
                     result = await self._execute_with_crew_fallback(crew_input)
                     return result
 
             finally:
-                db_session.close()
+                await db_session.close()
 
         except Exception as e:
             logger.error(f"Field mapping execution failed: {str(e)}")
@@ -168,8 +169,8 @@ class FieldMappingExecutor(BasePhaseExecutor):
         from app.schemas.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 
         # Extract data from crew_input
-        engagement_id = getattr(self.state, 'engagement_id', 'unknown')
-        client_account_id = getattr(self.state, 'client_account_id', 'unknown')
+        engagement_id = getattr(self.state, "engagement_id", "unknown")
+        client_account_id = getattr(self.state, "client_account_id", "unknown")
         flow_id = crew_input.get("flow_id", f"compat_{engagement_id}")
         discovery_data = crew_input.get("discovery_data", {})
 
@@ -225,22 +226,32 @@ class FieldMappingExecutor(BasePhaseExecutor):
 
             # Use modular executor directly if available
             if self._modular_executor:
-                result = await self._modular_executor.execute_phase(flow_state, db_session)
+                result = await self._modular_executor.execute_phase(
+                    flow_state, db_session
+                )
             else:
                 # Fallback to basic execution if modular executor not available
-                logger.warning("Modular executor not available for direct execution, using basic execution")
+                logger.warning(
+                    "Modular executor not available for direct execution, using basic execution"
+                )
                 # Convert flow_state to crew_input format and use fallback
                 crew_input = {
-                    "flow_id": getattr(flow_state, 'flow_id', 'unknown'),
-                    "discovery_data": getattr(flow_state, 'discovery_data', {}),
-                    "sample_data": getattr(flow_state, 'discovery_data', {}).get('sample_data', []),
-                    "detected_columns": getattr(flow_state, 'discovery_data', {}).get('detected_columns', []),
-                    "data_source_info": getattr(flow_state, 'discovery_data', {}).get('data_source_info', {}),
-                    "previous_mappings": getattr(flow_state, 'field_mappings', []),
+                    "flow_id": getattr(flow_state, "flow_id", "unknown"),
+                    "discovery_data": getattr(flow_state, "discovery_data", {}),
+                    "sample_data": getattr(flow_state, "discovery_data", {}).get(
+                        "sample_data", []
+                    ),
+                    "detected_columns": getattr(flow_state, "discovery_data", {}).get(
+                        "detected_columns", []
+                    ),
+                    "data_source_info": getattr(flow_state, "discovery_data", {}).get(
+                        "data_source_info", {}
+                    ),
+                    "previous_mappings": getattr(flow_state, "field_mappings", []),
                 }
                 result = await self._execute_with_crew_fallback(crew_input)
 
-            logger.info(f"Field mapping completed successfully")
+            logger.info("Field mapping completed successfully")
             return result
 
         except Exception as e:
@@ -294,28 +305,30 @@ class FieldMappingExecutor(BasePhaseExecutor):
         """Prepare input data for crew execution - required by BasePhaseExecutor."""
         try:
             # Extract data from the current state
-            discovery_data = getattr(self.state, 'discovery_data', {})
-            field_mappings = getattr(self.state, 'field_mappings', [])
-            raw_data = getattr(self.state, 'raw_data', [])
-            
+            discovery_data = getattr(self.state, "discovery_data", {})
+            field_mappings = getattr(self.state, "field_mappings", [])
+            raw_data = getattr(self.state, "raw_data", [])
+
             crew_input = {
-                "flow_id": getattr(self.state, 'flow_id', None),
+                "flow_id": getattr(self.state, "flow_id", None),
                 "discovery_data": discovery_data,
-                "sample_data": discovery_data.get('sample_data', raw_data),
-                "detected_columns": discovery_data.get('detected_columns', []),
-                "data_source_info": discovery_data.get('data_source_info', {}),
+                "sample_data": discovery_data.get("sample_data", raw_data),
+                "detected_columns": discovery_data.get("detected_columns", []),
+                "data_source_info": discovery_data.get("data_source_info", {}),
                 "previous_mappings": field_mappings,
                 "mapping_type": "field_mapping",
             }
-            
-            logger.info(f"Prepared crew input with {len(crew_input.get('sample_data', []))} sample records")
+
+            logger.info(
+                f"Prepared crew input with {len(crew_input.get('sample_data', []))} sample records"
+            )
             return crew_input
-            
+
         except Exception as e:
             logger.error(f"Failed to prepare crew input: {str(e)}")
             # Return minimal valid input
             return {
-                "flow_id": getattr(self.state, 'flow_id', 'unknown'),
+                "flow_id": getattr(self.state, "flow_id", "unknown"),
                 "discovery_data": {},
                 "sample_data": [],
                 "detected_columns": [],
@@ -327,71 +340,83 @@ class FieldMappingExecutor(BasePhaseExecutor):
     async def _store_results(self, results: Dict[str, Any]):
         """Store execution results in state - required by BasePhaseExecutor."""
         try:
-            logger.info(f"Storing field mapping results with keys: {list(results.keys())}")
-            
+            logger.info(
+                f"Storing field mapping results with keys: {list(results.keys())}"
+            )
+
             # Store mappings in state
             if "mappings" in results:
                 self.state.field_mappings = results["mappings"]
                 logger.info(f"Stored {len(results['mappings'])} field mappings")
-            
+
             # Store confidence scores
             if "confidence_scores" in results:
-                if not hasattr(self.state, 'field_mapping_metadata'):
+                if not hasattr(self.state, "field_mapping_metadata"):
                     self.state.field_mapping_metadata = {}
-                self.state.field_mapping_metadata["confidence_scores"] = results["confidence_scores"]
-            
+                self.state.field_mapping_metadata["confidence_scores"] = results[
+                    "confidence_scores"
+                ]
+
             # Store clarifications
             if "clarifications" in results:
-                if not hasattr(self.state, 'field_mapping_metadata'):
+                if not hasattr(self.state, "field_mapping_metadata"):
                     self.state.field_mapping_metadata = {}
-                self.state.field_mapping_metadata["clarifications"] = results["clarifications"]
-            
+                self.state.field_mapping_metadata["clarifications"] = results[
+                    "clarifications"
+                ]
+
             # Store validation errors if any
             if "validation_errors" in results and results["validation_errors"]:
-                logger.warning(f"Field mapping validation errors: {results['validation_errors']}")
-                if not hasattr(self.state, 'validation_errors'):
+                logger.warning(
+                    f"Field mapping validation errors: {results['validation_errors']}"
+                )
+                if not hasattr(self.state, "validation_errors"):
                     self.state.validation_errors = []
                 self.state.validation_errors.extend(results["validation_errors"])
-            
+
             # Store execution metadata
             if "execution_metadata" in results:
-                if not hasattr(self.state, 'field_mapping_metadata'):
+                if not hasattr(self.state, "field_mapping_metadata"):
                     self.state.field_mapping_metadata = {}
                 self.state.field_mapping_metadata.update(results["execution_metadata"])
-            
+
             logger.info("Field mapping results stored successfully in state")
-            
+
         except Exception as e:
             logger.error(f"Failed to store field mapping results: {str(e)}")
             # Don't raise exception to avoid breaking the flow
             # Just log the error and continue
 
-    async def execute_suggestions_only(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_suggestions_only(
+        self, input_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute field mapping in suggestions-only mode for re-analysis."""
         try:
             logger.info("Executing field mapping in suggestions-only mode")
-            
+
             # Prepare crew input with current state data
             crew_input = self._prepare_crew_input()
-            
+
             # Override with any provided input data
             crew_input.update(input_data)
-            
+
             # Execute field mapping with crew
             result = await self.execute_with_crew(crew_input)
-            
+
             if result and result.get("success", True):
                 logger.info("Field mapping suggestions generated successfully")
                 return result
             else:
-                logger.error(f"Field mapping suggestions failed: {result.get('error', 'Unknown error')}")
+                logger.error(
+                    f"Field mapping suggestions failed: {result.get('error', 'Unknown error')}"
+                )
                 return {
                     "success": False,
-                    "error": result.get('error', 'Field mapping suggestions failed'),
+                    "error": result.get("error", "Field mapping suggestions failed"),
                     "mappings": [],
                     "clarifications": [],
                 }
-                
+
         except Exception as e:
             logger.error(f"Field mapping suggestions execution failed: {str(e)}")
             return {
@@ -401,38 +426,49 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 "clarifications": [],
             }
 
-    async def _execute_with_crew_fallback(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
+    async def _execute_with_crew_fallback(
+        self, crew_input: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Fallback execution when modular executor is not available."""
         try:
             logger.info("Executing field mapping fallback with direct crew manager")
-            
+
             # Use the crew manager to create and execute a field mapping crew
             phase_name = self.get_phase_name()
             crew = self.crew_manager.create_crew_on_demand(phase_name)
-            
+
             if not crew:
                 raise RuntimeError(f"Could not create crew for {phase_name}")
-            
+
             # Execute the crew with the input data
             # Note: This is a simplified fallback that may not have all the sophistication
             # of the modular executor, but it maintains basic functionality
+            # CRITICAL FIX: Pass the timeout to avoid 15-second global timeout
+            timeout = self._get_phase_timeout()
+            logger.info(f"Executing crew with timeout: {timeout} seconds")
+
+            # Set crew configuration with proper timeout
+            crew.max_time = timeout
             crew_result = await crew.kickoff_async(inputs=crew_input)
-            
+
             # Process the result into expected format
-            if hasattr(crew_result, 'raw') and crew_result.raw:
+            if hasattr(crew_result, "raw") and crew_result.raw:
                 # Try to parse structured response
                 import json
+
                 try:
-                    if '{' in crew_result.raw and '}' in crew_result.raw:
-                        start = crew_result.raw.find('{')
-                        end = crew_result.raw.rfind('}') + 1
+                    if "{" in crew_result.raw and "}" in crew_result.raw:
+                        start = crew_result.raw.find("{")
+                        end = crew_result.raw.rfind("}") + 1
                         json_str = crew_result.raw[start:end]
                         parsed_result = json.loads(json_str)
-                        
+
                         return {
                             "success": True,
                             "mappings": parsed_result.get("mappings", []),
-                            "confidence_scores": parsed_result.get("confidence_scores", {}),
+                            "confidence_scores": parsed_result.get(
+                                "confidence_scores", {}
+                            ),
                             "clarifications": parsed_result.get("clarifications", []),
                             "validation_errors": [],
                             "phase_name": phase_name,
@@ -443,21 +479,64 @@ class FieldMappingExecutor(BasePhaseExecutor):
                         }
                 except json.JSONDecodeError:
                     pass
-            
-            # If we can't parse JSON, return a basic success response
+
+            # If we can't parse JSON, try to extract mappings from raw text
+            logger.warning(
+                "Could not parse JSON from crew result, attempting text extraction"
+            )
+
+            # Extract field mappings from raw text if available
+            extracted_mappings = []
+            if hasattr(crew_result, "raw") and crew_result.raw:
+                # Look for patterns like "field_name -> target_field" or "field_name: target_field"
+                import re
+
+                lines = crew_result.raw.split("\n")
+                for line in lines:
+                    # Match patterns like "Device_ID -> asset_id" or "Device_ID: asset_id"
+                    match = re.search(r"(\w+)\s*(?:->|:|=>|maps to)\s*(\w+)", line)
+                    if match:
+                        source_field = match.group(1)
+                        target_field = match.group(2)
+                        extracted_mappings.append(
+                            {
+                                "source_field": source_field,
+                                "target_field": target_field,
+                                "confidence": 0.7,  # Default confidence for text-extracted mappings
+                                "status": "suggested",
+                            }
+                        )
+                        logger.info(
+                            f"Extracted mapping: {source_field} -> {target_field}"
+                        )
+
+            if extracted_mappings:
+                logger.info(
+                    f"Successfully extracted {len(extracted_mappings)} mappings from raw text"
+                )
+            else:
+                logger.error("No mappings could be extracted from crew result")
+
             return {
-                "success": True,
-                "mappings": [],
+                "success": True if extracted_mappings else False,
+                "mappings": extracted_mappings,
                 "confidence_scores": {},
                 "clarifications": [],
-                "validation_errors": [],
+                "validation_errors": (
+                    []
+                    if extracted_mappings
+                    else ["No mappings extracted from crew result"]
+                ),
                 "phase_name": phase_name,
                 "next_phase": "data_transformation",
                 "timestamp": datetime.utcnow().isoformat(),
-                "execution_metadata": {"fallback_used": True, "raw_result": str(crew_result)},
+                "execution_metadata": {
+                    "fallback_used": True,
+                    "raw_result": str(crew_result),
+                },
                 "raw_response": str(crew_result),
             }
-            
+
         except Exception as e:
             logger.error(f"Field mapping fallback execution failed: {str(e)}")
             return {

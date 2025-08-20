@@ -65,10 +65,10 @@ class FieldMappingOperationsMixin:
                 )
                 intelligent_field_mapping = mapping_helpers.intelligent_field_mapping
 
-                logger.info(
-                    f"🔍 DEBUG: Sample record keys: {list(sample_record.keys())}"
+                logger.debug(
+                    f"Processing field mapping - record field count: {len(sample_record.keys())}"
                 )
-                logger.info(f"🔍 DEBUG: Sample record type: {type(sample_record)}")
+                logger.debug(f"Sample record type: {type(sample_record)}")
 
                 for field_name in sample_record.keys():
                     # CRITICAL SECURITY FIX: Filter out JSON artifacts and CrewAI metadata
@@ -118,9 +118,11 @@ class FieldMappingOperationsMixin:
                         continue
 
                     # Skip field names that look like JSON structures
+                    # Only skip if string starts AND ends with brackets/braces (reduce false positives)
                     if (
-                        any(char in field_name_str for char in ["{", "}", "[", "]"])
-                        and len(field_name_str) < 10
+                        field_name_str.startswith("{") and field_name_str.endswith("}")
+                    ) or (
+                        field_name_str.startswith("[") and field_name_str.endswith("]")
                     ):
                         logger.warning(
                             f"🚨 SECURITY FIX: Skipping JSON-like field name: '{field_name_str}' "
@@ -128,8 +130,8 @@ class FieldMappingOperationsMixin:
                         )
                         continue
 
-                    logger.info(
-                        f"🔍 DEBUG: Processing valid field_name: {field_name_str} "
+                    logger.debug(
+                        f"Processing valid field_name: {field_name_str} "
                         f"(type: {type(field_name)})"
                     )
 

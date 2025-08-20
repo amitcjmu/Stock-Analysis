@@ -25,6 +25,21 @@ export const categorizeMappings = (fieldMappings: FieldMapping[]): MappingBucket
     }))
   });
 
+  // Log individual field values for debugging
+  fieldMappings.forEach((m, index) => {
+    console.log(`🔍 Mapping ${index}:`, {
+      sourceField: m.sourceField,
+      sourceField_undefined: m.sourceField === undefined,
+      targetAttribute: m.targetAttribute,
+      targetAttribute_undefined: m.targetAttribute === undefined,
+      status: m.status,
+      mapping_type: m.mapping_type,
+      has_source_field_property: 'sourceField' in m,
+      has_source_field_snake: 'source_field' in m,
+      keys: Object.keys(m)
+    });
+  });
+
   // Improved categorization logic:
   // 1. Approved mappings go to the approved column
   // 2. High confidence pending mappings (AI suggested) go to autoMapped column

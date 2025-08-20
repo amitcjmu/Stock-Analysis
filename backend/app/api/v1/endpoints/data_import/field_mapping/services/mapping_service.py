@@ -73,6 +73,8 @@ class MappingService:
             logger.error(f"❌ Invalid UUID format: {e}")
             raise ValueError(f"Invalid UUID format for import_id: {import_id}")
 
+        # CRITICAL FIX: Handle both direct import_id lookup AND discovery flow lookup
+        # First try direct import_id lookup
         query = select(ImportFieldMapping).where(
             and_(
                 ImportFieldMapping.data_import_id == import_uuid,
@@ -81,6 +83,91 @@ class MappingService:
         )
         result = await self.db.execute(query)
         mappings = result.scalars().all()
+
+        # If no mappings found, the import_id might be a flow_id - try discovery flow lookup
+        if not mappings:
+            logger.info(
+                f"🔍 No mappings found for direct import_id {import_id}, trying discovery flow lookup..."
+            )
+
+            from app.models.discovery_flow import DiscoveryFlow
+
+            # Look for discovery flow with this flow_id
+            flow_query = select(DiscoveryFlow).where(
+                and_(
+                    DiscoveryFlow.flow_id == import_uuid,
+                    DiscoveryFlow.client_account_id == client_account_uuid,
+                )
+            )
+            flow_result = await self.db.execute(flow_query)
+            discovery_flow = flow_result.scalar_one_or_none()
+
+            if discovery_flow and discovery_flow.data_import_id:
+                logger.info(
+                    f"✅ Found discovery flow, using data_import_id: {discovery_flow.data_import_id}"
+                )
+
+                # Try again with the actual data_import_id from discovery flow
+                query = select(ImportFieldMapping).where(
+                    and_(
+                        ImportFieldMapping.data_import_id
+                        == discovery_flow.data_import_id,
+                        ImportFieldMapping.client_account_id == client_account_uuid,
+                    )
+                )
+                result = await self.db.execute(query)
+                mappings = result.scalars().all()
+
+            # If still no mappings, try master_flow_id lookup as last resort
+            if not mappings and discovery_flow and discovery_flow.master_flow_id:
+                logger.info(
+                    f"🔍 Trying master_flow_id lookup: {discovery_flow.master_flow_id}"
+                )
+
+                from app.models.data_import import DataImport
+                from app.models.crewai_flow_state_extensions import (
+                    CrewAIFlowStateExtensions,
+                )
+
+                # Get the database ID for this master_flow_id (FK references id, not flow_id)
+                db_id_query = select(CrewAIFlowStateExtensions.id).where(
+                    CrewAIFlowStateExtensions.flow_id == discovery_flow.master_flow_id
+                )
+                db_id_result = await self.db.execute(db_id_query)
+                flow_db_id = db_id_result.scalar_one_or_none()
+
+                if flow_db_id:
+                    # Look for data imports with this master_flow_id
+                    import_query = (
+                        select(DataImport)
+                        .where(
+                            and_(
+                                DataImport.master_flow_id == flow_db_id,
+                                DataImport.client_account_id == client_account_uuid,
+                            )
+                        )
+                        .order_by(DataImport.created_at.desc())
+                        .limit(1)
+                    )
+
+                    import_result = await self.db.execute(import_query)
+                    data_import = import_result.scalar_one_or_none()
+
+                    if data_import:
+                        logger.info(
+                            f"✅ Found data import via master_flow_id: {data_import.id}"
+                        )
+
+                        # Final attempt with the found data import ID
+                        query = select(ImportFieldMapping).where(
+                            and_(
+                                ImportFieldMapping.data_import_id == data_import.id,
+                                ImportFieldMapping.client_account_id
+                                == client_account_uuid,
+                            )
+                        )
+                        result = await self.db.execute(query)
+                        mappings = result.scalars().all()
 
         # CRITICAL SECURITY FIX: Prevent test data contamination
         # Filter out any test data that should not appear in production

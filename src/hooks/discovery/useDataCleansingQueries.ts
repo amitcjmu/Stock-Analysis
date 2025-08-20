@@ -2,8 +2,8 @@ import { useQuery, useMutation, UseQueryResult, UseMutationResult } from '@tanst
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext';
 import * as dataCleansingService from '@/services/dataCleansingService';
-import type { 
-  DataCleansingStats, 
+import type {
+  DataCleansingStats,
   DataCleansingAnalysis,
   DataQualityIssue,
   DataCleansingRecommendation,
@@ -52,7 +52,7 @@ export const useTriggerDataCleansingAnalysis = (): UseMutationResult<DataCleansi
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ flowId, force_refresh = false, include_agent_analysis = true }: TriggerDataCleansingRequest & { flowId: string }) => 
+    mutationFn: ({ flowId, force_refresh = false, include_agent_analysis = true }: TriggerDataCleansingRequest & { flowId: string }) =>
       dataCleansingService.triggerDataCleansingAnalysis(flowId, force_refresh, include_agent_analysis),
     onSuccess: (result, variables) => {
       // Invalidate related queries

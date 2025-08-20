@@ -328,8 +328,8 @@ async def get_field_mappings(
         field_mappings = [
             {
                 "source_field": m.source_field,
-                "target_attribute": m.target_field,  # Fixed: target_field not target_attribute
-                "confidence": m.confidence_score,  # Fixed: confidence_score not confidence
+                "target_field": m.target_field,  # Use target_field as specified
+                "confidence_score": m.confidence_score,  # Use confidence_score as specified
                 "mapping_type": getattr(m, "mapping_type", "auto"),
                 "transformation": getattr(m, "transformation_rule", None),
                 "validation_rules": getattr(m, "validation_rule", None),

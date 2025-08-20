@@ -437,15 +437,17 @@ if LLM_HEALTH_AVAILABLE:
 if DATA_CLEANSING_AVAILABLE:
     api_router.include_router(data_cleansing_router, tags=["Data Cleansing"])
     logger.info("✅ Data Cleansing router included (prefix removed - breaking change)")
-    
+
     # BACKWARD COMPATIBILITY: Add temporary compatibility routes for old /data-cleansing prefix
     # TODO: Remove after frontend migration is complete
     api_router.include_router(
-        data_cleansing_router, 
-        prefix="/data-cleansing", 
-        tags=["Data Cleansing - Legacy (Deprecated)"]
+        data_cleansing_router,
+        prefix="/data-cleansing",
+        tags=["Data Cleansing - Legacy (Deprecated)"],
     )
-    logger.info("✅ Data Cleansing legacy compatibility router included at /data-cleansing (temporary)")
+    logger.info(
+        "✅ Data Cleansing legacy compatibility router included at /data-cleansing (temporary)"
+    )
 else:
     logger.warning("⚠️ Data Cleansing router not available")
 # Observability and System Control
@@ -701,9 +703,7 @@ except ImportError as e:
     logger.warning(f"⚠️ Admin rate limit router not available: {e}")
 
 if SIMPLE_ADMIN_AVAILABLE:
-    api_router.include_router(
-        simple_admin_router, tags=["Simple Admin"]
-    )
+    api_router.include_router(simple_admin_router, tags=["Simple Admin"])
     logger.info("✅ Simple admin router included")
 else:
     logger.warning("⚠️ Simple admin router not available")

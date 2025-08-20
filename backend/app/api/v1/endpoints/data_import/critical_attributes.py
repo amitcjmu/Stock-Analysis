@@ -730,7 +730,35 @@ async def _trigger_field_mapping_reanalysis(
             logger.error(f"❌ Failed to create FieldMappingExecutor: {str(e)}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to initialize field mapping executor: {str(e)}"
+                detail=f"Failed to initialize field mapping executor: {str(e)}",
+            )
+
+        # CRITICAL FIX: Clean up any existing JSON artifact mappings before re-analysis
+        logger.info("🧹 Cleaning up JSON artifacts before field mapping re-analysis...")
+        try:
+            from app.services.data_import.storage_manager.mapping_operations import (
+                FieldMappingOperationsMixin,
+            )
+
+            # Create cleanup service
+            class CleanupService(FieldMappingOperationsMixin):
+                def __init__(self, db_session, client_account_id):
+                    self.db = db_session
+                    self.client_account_id = client_account_id
+
+            cleanup_service = CleanupService(db, context.client_account_id)
+            removed_count = await cleanup_service.cleanup_json_artifact_mappings(
+                data_import
+            )
+
+            if removed_count > 0:
+                logger.info(
+                    f"🧹 Removed {removed_count} JSON artifact field mappings before re-analysis"
+                )
+
+        except Exception as cleanup_error:
+            logger.warning(
+                f"⚠️ JSON artifact cleanup failed but continuing: {cleanup_error}"
             )
 
         # Execute field mapping analysis
@@ -740,8 +768,7 @@ async def _trigger_field_mapping_reanalysis(
         except Exception as e:
             logger.error(f"❌ Field mapping re-analysis failed: {str(e)}")
             raise HTTPException(
-                status_code=500,
-                detail=f"Field mapping re-analysis failed: {str(e)}"
+                status_code=500, detail=f"Field mapping re-analysis failed: {str(e)}"
             )
 
         if result and result.get("mappings"):

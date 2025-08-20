@@ -48,8 +48,17 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
   const queryParams = new URLSearchParams(location.search);
   const queryFlowId = queryParams.get('flow_id');
 
-  // Use route param first, then query param as fallback
-  const urlFlowId = routeFlowId || queryFlowId || undefined;
+  // Normalize and validate IDs before use (trim whitespace and validate format)
+  const normalizeFlowId = (id: string | null | undefined): string | undefined => {
+    if (!id) return undefined;
+    const trimmed = id.trim();
+    // Basic UUID format validation
+    const uuidPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
+    return trimmed && uuidPattern.test(trimmed) ? trimmed : undefined;
+  };
+
+  // Use route param first, then query param as fallback, both normalized
+  const urlFlowId = normalizeFlowId(routeFlowId) || normalizeFlowId(queryFlowId) || undefined;
 
   const { data: flowList, isLoading: isFlowListLoading, error: flowListError } = useDiscoveryFlowList();
 

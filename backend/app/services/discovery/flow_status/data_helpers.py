@@ -178,12 +178,27 @@ def build_flow_status_response(
     summary: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Build the final flow status response"""
+
+    # Clamp progress values to 0-100 range and handle non-numeric values
+    def clamp_progress(value):
+        if value is None:
+            return 0
+        try:
+            # Convert to float first, then clamp
+            numeric_value = float(value)
+            return max(0, min(100, numeric_value))
+        except (ValueError, TypeError):
+            # Handle non-numeric values
+            return 0
+
+    clamped_progress = clamp_progress(discovery_flow.progress_percentage)
+
     return {
         "flow_id": flow_id,
         "status": discovery_flow.status,
         "current_phase": discovery_flow.current_phase,
-        "progress": discovery_flow.progress_percentage or 0,
-        "progress_percentage": discovery_flow.progress_percentage or 0,  # Alias
+        "progress": clamped_progress,
+        "progress_percentage": clamped_progress,  # Alias
         "phase_state": safe_phase_state,
         "metadata": safe_metadata,
         "last_activity": (

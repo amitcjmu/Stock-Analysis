@@ -28,7 +28,10 @@ export const useFlowDetection = (): FlowDetectionResult => {
 
   // Check for query parameter flow_id as well
   const queryParams = new URLSearchParams(location.search);
-  const queryFlowId = queryParams.get('flow_id');
+  const rawQueryFlowId = queryParams.get('flow_id');
+
+  // Normalize and validate ID from query parameter
+  const queryFlowId = rawQueryFlowId ? rawQueryFlowId.trim() : null;
 
   // Use the new auto-detection hook for consistent flow detection
   const {
@@ -41,7 +44,7 @@ export const useFlowDetection = (): FlowDetectionResult => {
     hasEffectiveFlow: initialHasEffectiveFlow
   } = useAttributeMappingFlowDetection();
 
-  // urlFlowId should include query param if detected
+  // urlFlowId should include query param if detected (both already normalized)
   const urlFlowId = detectedUrlFlowId || queryFlowId;
 
   // Smart resolver handles all cases:

@@ -67,8 +67,8 @@ export const useDashboardFilters = (flows: FlowSummary[] | undefined): UseDashbo
         // Check if date parsing was successful
         if (isNaN(flowDate.getTime())) {
           console.warn('Invalid started_at date for flow:', flow.flow_id, 'Date string:', flow.started_at);
-          // Allow flows with invalid dates to pass through for now
-          return true;
+          // Exclude flows with invalid dates from filtering
+          return false;
         }
 
         const diffHours = (now.getTime() - flowDate.getTime()) / (1000 * 60 * 60);

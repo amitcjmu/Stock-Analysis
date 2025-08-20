@@ -119,17 +119,17 @@ export const useFieldMappings = (
             // Convert unified discovery format to expected format
             // IMPORTANT: Return data with BOTH camelCase and snake_case for compatibility
             const transformedMappings = response.field_mappings.map(m => ({
-              id: m.id || `${m.source_field}_${m.target_attribute}`,
+              id: m.id || `${m.source_field}_${m.target_field}`,
               // CRITICAL: Include both camelCase and snake_case versions
               sourceField: m.source_field,  // camelCase for ThreeColumnFieldMapper
               source_field: m.source_field,  // snake_case for compatibility
-              targetAttribute: m.target_attribute,  // camelCase for ThreeColumnFieldMapper
-              target_field: m.target_attribute,  // snake_case for compatibility
-              target_attribute: m.target_attribute,  // Also include exact backend field name
-              confidence: m.confidence || 0.5,
-              is_approved: m.is_approved || false,
-              status: m.status || 'pending',  // Use 'pending' for unmapped fields
-              mapping_type: m.mapping_type || 'auto',
+              targetAttribute: m.target_field,  // camelCase for ThreeColumnFieldMapper
+              target_field: m.target_field,  // snake_case for compatibility
+              target_attribute: m.target_field,  // Also include exact backend field name (for backwards compatibility)
+              confidence: m.confidence_score ?? 0.5,  // Use nullish coalescing to preserve explicit 0
+              is_approved: m.is_approved ?? false,  // Use nullish coalescing to preserve explicit false
+              status: m.target_field ? (m.status ?? 'pending') : 'unmapped',  // Set 'unmapped' when target_field is missing
+              mapping_type: m.mapping_type ?? 'auto',
               transformation_rule: m.transformation,
               validation_rule: m.validation_rules,
               // Add extra fields that might be expected

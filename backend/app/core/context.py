@@ -100,9 +100,11 @@ def _decode_jwt_payload(token: str) -> Optional[str]:
             return None
 
         payload_part = parts[1]
-        # Add padding if needed
-        payload_part += "=" * (4 - len(payload_part) % 4)
-        decoded_payload = base64.b64decode(payload_part)
+        # Add padding only if needed
+        missing_padding = (-len(payload_part)) % 4
+        if missing_padding:
+            payload_part += "=" * missing_padding
+        decoded_payload = base64.urlsafe_b64decode(payload_part)
         payload = json.loads(decoded_payload)
         return payload.get("sub")
     except Exception:
@@ -382,6 +384,8 @@ def clear_request_context() -> None:
 # Import them from there if needed:
 # from app.core.context_legacy import get_client_account_id, get_engagement_id, etc.
 
+# Note: For backward compatibility, import functions from context_legacy as needed
+# TODO: Update all imports to use context_legacy directly
 
 # Decorators are now available in context_decorators.py
 # Import them from there if needed

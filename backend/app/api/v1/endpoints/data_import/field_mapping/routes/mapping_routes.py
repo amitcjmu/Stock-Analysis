@@ -230,11 +230,48 @@ async def generate_field_mappings(
                     import_id=import_id,
                 )
             )
-            # Delete existing mappings to trigger CrewAI regeneration
-            from sqlalchemy import and_, delete
 
-            from app.models.data_import import ImportFieldMapping
+            # CRITICAL FIX: Clean up JSON artifacts first, then delete all existing mappings
+            from sqlalchemy import and_, delete, select
+            from app.models.data_import import DataImport, ImportFieldMapping
 
+            # Get the data import record for cleanup
+            import_query = select(DataImport).where(DataImport.id == import_id)
+            import_result = await service.db.execute(import_query)
+            data_import = import_result.scalar_one_or_none()
+
+            if data_import:
+                # Clean up JSON artifacts first
+                try:
+                    from app.services.data_import.storage_manager.mapping_operations import (
+                        FieldMappingOperationsMixin,
+                    )
+
+                    class CleanupService(FieldMappingOperationsMixin):
+                        def __init__(self, db_session, client_account_id):
+                            self.db = db_session
+                            self.client_account_id = client_account_id
+
+                    cleanup_service = CleanupService(
+                        service.db, service.context.client_account_id
+                    )
+                    removed_count = (
+                        await cleanup_service.cleanup_json_artifact_mappings(
+                            data_import
+                        )
+                    )
+
+                    if removed_count > 0:
+                        logger.info(
+                            f"🧹 Cleaned up {removed_count} JSON artifact mappings before regeneration"
+                        )
+
+                except Exception as cleanup_error:
+                    logger.warning(
+                        f"⚠️ JSON artifact cleanup failed but continuing: {cleanup_error}"
+                    )
+
+            # Delete all existing mappings to trigger CrewAI regeneration
             delete_query = delete(ImportFieldMapping).where(
                 and_(
                     ImportFieldMapping.data_import_id == import_id,
@@ -321,6 +358,37 @@ async def create_field_mapping_latest(
                 logger.info(
                     f"🔄 Force regenerating field mappings for latest import {latest_import.id}"
                 )
+
+                # CRITICAL FIX: Clean up JSON artifacts first
+                try:
+                    from app.services.data_import.storage_manager.mapping_operations import (
+                        FieldMappingOperationsMixin,
+                    )
+
+                    class CleanupService(FieldMappingOperationsMixin):
+                        def __init__(self, db_session, client_account_id):
+                            self.db = db_session
+                            self.client_account_id = client_account_id
+
+                    cleanup_service = CleanupService(
+                        service.db, service.context.client_account_id
+                    )
+                    removed_count = (
+                        await cleanup_service.cleanup_json_artifact_mappings(
+                            latest_import
+                        )
+                    )
+
+                    if removed_count > 0:
+                        logger.info(
+                            f"🧹 Cleaned up {removed_count} JSON artifact mappings for latest import"
+                        )
+
+                except Exception as cleanup_error:
+                    logger.warning(
+                        f"⚠️ JSON artifact cleanup failed but continuing: {cleanup_error}"
+                    )
+
                 # Delete existing mappings to trigger CrewAI regeneration
                 from sqlalchemy import and_, delete, select
 
@@ -389,6 +457,85 @@ async def get_mapping_count(
             )
         )
         raise HTTPException(status_code=500, detail="Failed to get mapping count")
+
+
+@router.post("/imports/{import_id}/cleanup-artifacts")
+async def cleanup_json_artifacts(
+    import_id: str,
+    service: MappingService = Depends(get_mapping_service),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """
+    Clean up JSON artifact field mappings for an import.
+
+    This endpoint removes field mappings where the source_field contains
+    JSON metadata like "mappings", "skipped_fields", etc. that should not
+    have been stored as actual CSV field names.
+    """
+    try:
+        logger.info(
+            safe_log_format(
+                "🧹 Cleaning up JSON artifacts for import: {import_id}",
+                import_id=import_id,
+            )
+        )
+
+        # Get the data import
+        from uuid import UUID
+        from sqlalchemy import select
+        from app.models.data_import import DataImport
+
+        # Convert string UUID to UUID object if needed
+        try:
+            if isinstance(import_id, str):
+                import_uuid = UUID(import_id)
+            else:
+                import_uuid = import_id
+        except ValueError as e:
+            logger.error(safe_log_format("❌ Invalid UUID format: {e}", e=e))
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid UUID format for import_id: {import_id}",
+            )
+
+        import_query = select(DataImport).where(DataImport.id == import_uuid)
+        import_result = await db.execute(import_query)
+        data_import = import_result.scalar_one_or_none()
+
+        if not data_import:
+            raise HTTPException(
+                status_code=404, detail=f"Data import {import_id} not found"
+            )
+
+        # Initialize the storage manager mixin directly to access cleanup method
+        from app.services.data_import.storage_manager.mapping_operations import (
+            FieldMappingOperationsMixin,
+        )
+
+        # Create a minimal class with the required attributes
+        class CleanupService(FieldMappingOperationsMixin):
+            def __init__(self, db_session, client_account_id):
+                self.db = db_session
+                self.client_account_id = client_account_id
+
+        cleanup_service = CleanupService(db, context.client_account_id)
+        removed_count = await cleanup_service.cleanup_json_artifact_mappings(
+            data_import
+        )
+
+        return {
+            "status": "success",
+            "message": f"Cleaned up {removed_count} JSON artifact field mappings",
+            "import_id": import_id,
+            "artifacts_removed": removed_count,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(safe_log_format("Error cleaning up JSON artifacts: {e}", e=e))
+        raise HTTPException(status_code=500, detail="Failed to clean up JSON artifacts")
 
 
 @router.get("/health")
