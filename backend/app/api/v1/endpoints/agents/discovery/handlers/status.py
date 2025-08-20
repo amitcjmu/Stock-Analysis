@@ -95,7 +95,11 @@ async def get_discovery_status(
 @router.get("/health")
 async def agent_discovery_health():
     """Simple health check for discovery agent."""
-    return {"status": "healthy", "agent": "discovery", "timestamp": datetime.utcnow()}
+    return {
+        "status": "healthy",
+        "agent": "discovery",
+        "timestamp": datetime.utcnow().isoformat(),
+    }
 
 
 @router.get("/monitor")
@@ -157,7 +161,8 @@ async def get_agent_monitor(
         cached_insights = _get_cached_agent_insights()
 
         return {
-            "success": True,
+            "success": False,
+            "error": "Service degraded; returning fallback data",
             "data": {
                 "agent_status": "degraded",
                 "last_activity": datetime.utcnow().isoformat(),

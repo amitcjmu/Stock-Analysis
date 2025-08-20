@@ -12,9 +12,6 @@ from app.services.discovery_flow_service import DiscoveryFlowService
 
 logger = logging.getLogger(__name__)
 
-# Cache for CrewAI service to avoid repeated initialization
-_crewai_service_cache = {}
-
 
 class MockDiscoveryFlowService:
     """Mock service for graceful degradation when Discovery Flow service is unavailable."""
@@ -30,25 +27,15 @@ class MockDiscoveryFlowService:
         }
 
 
-# Dependency injection for CrewAI Flow Service with caching
+# Dependency injection for CrewAI Flow Service
 async def get_crewai_flow_service(
     db: AsyncSession = Depends(get_db),
 ) -> DiscoveryFlowService:
-    """Cached Discovery Flow Service to avoid repeated initialization."""
+    """Provide a Discovery Flow Service per request to avoid memory leaks."""
     try:
-        # Use database session ID as cache key
-        cache_key = f"discovery_flow_service_{id(db)}"
-
-        if cache_key not in _crewai_service_cache:
-            _crewai_service_cache[cache_key] = DiscoveryFlowService(db=db)
-
-        return _crewai_service_cache[cache_key]
+        # Create new instance per request to prevent caching issues
+        # This avoids memory leaks from caching by session ID
+        return DiscoveryFlowService(db=db)
     except Exception as e:
         logger.warning(safe_log_format("Discovery Flow service unavailable: {e}", e=e))
         return MockDiscoveryFlowService()
-
-
-def clear_crewai_service_cache():
-    """Clear the CrewAI service cache. Useful for testing or service resets."""
-    _crewai_service_cache.clear()
-    logger.info("CrewAI service cache cleared")

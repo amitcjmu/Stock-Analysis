@@ -288,8 +288,16 @@ def _calculate_progress_percentage(flow_state) -> int:
     ]
 
     try:
+        # Check if flow is completed
+        if (
+            hasattr(flow_state, "status")
+            and flow_state.status == AssessmentFlowStatus.COMPLETED
+        ):
+            return 100
+
+        # Calculate 1-based progress
         current_index = phase_order.index(flow_state.current_phase)
-        return int((current_index / len(phase_order)) * 100)
+        return int(((current_index + 1) / len(phase_order)) * 100)
     except ValueError:
         return 0
 
