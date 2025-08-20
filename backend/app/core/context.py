@@ -15,7 +15,6 @@ from app.core.security.secure_logging import (
     sanitize_headers_for_logging,
     mask_id,
 )
-from app.core.context_legacy import get_client_account_id
 
 logger = logging.getLogger(__name__)
 
@@ -411,7 +410,8 @@ def is_demo_client(client_account_id: Optional[str] = None) -> bool:
         True if this is the demo client
     """
     if client_account_id is None:
-        client_account_id = get_client_account_id()
+        # Get client account ID directly from context var to avoid circular import
+        client_account_id = _client_account_id.get()
 
     from app.core.context_utils import is_demo_client as _is_demo_client
 
@@ -438,4 +438,25 @@ async def resolve_demo_client_ids(db_session) -> None:
     await _resolve_ids(db_session, DEMO_CLIENT_CONFIG)
 
 
-# Legacy getter functions are now imported at the top for full backward compatibility
+# Legacy getter functions for backward compatibility
+# These are defined here to avoid circular imports with context_legacy.py
+
+
+def get_client_account_id() -> Optional[str]:
+    """Get current client account ID."""
+    return _client_account_id.get()
+
+
+def get_engagement_id() -> Optional[str]:
+    """Get current engagement ID."""
+    return _engagement_id.get()
+
+
+def get_user_id() -> Optional[str]:
+    """Get current user ID."""
+    return _user_id.get()
+
+
+def get_flow_id() -> Optional[str]:
+    """Get current flow ID."""
+    return _flow_id.get()

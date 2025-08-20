@@ -3,32 +3,21 @@ Legacy context functions for backward compatibility.
 Extracted from context.py to reduce file size and complexity.
 """
 
-from typing import Optional
-
-# Import context variables from main module
-from app.core.context import (
-    _client_account_id,
-    _engagement_id,
-    _user_id,
-    _flow_id,
+# Re-export the legacy functions from main module to maintain backward compatibility
+# This avoids circular imports and provides a single source of truth
+from app.core.context import (  # noqa: F401
+    get_client_account_id,
+    get_engagement_id,
+    get_user_id,
+    get_flow_id,
 )
 
+# All functions are now re-exported from context.py
+# This module exists purely for backward compatibility
 
-def get_client_account_id() -> Optional[str]:
-    """Get current client account ID."""
-    return _client_account_id.get()
-
-
-def get_engagement_id() -> Optional[str]:
-    """Get current engagement ID."""
-    return _engagement_id.get()
-
-
-def get_user_id() -> Optional[str]:
-    """Get current user ID."""
-    return _user_id.get()
-
-
-def get_flow_id() -> Optional[str]:
-    """Get current flow ID."""
-    return _flow_id.get()
+__all__ = [
+    "get_client_account_id",
+    "get_engagement_id",
+    "get_user_id",
+    "get_flow_id",
+]
