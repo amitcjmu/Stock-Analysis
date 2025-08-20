@@ -233,7 +233,9 @@ async def sync_collection_child_flow_state(
         # Transition to next phase
         mapped_phase = phase_mapping.get(next_phase, next_phase)
         collection_flow.current_phase = mapped_phase
-        collection_flow.status = determine_next_phase_status(mapped_phase)
+        collection_flow.status = determine_next_phase_status(
+            mapped_phase, collection_flow.status
+        )
 
     elif phase_result.get("status") == "failed":
         # Handle failure

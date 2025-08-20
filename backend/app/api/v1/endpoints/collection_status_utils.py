@@ -33,22 +33,26 @@ def is_flow_stuck_in_initialization(
     return time_since_creation > timedelta(minutes=timeout_minutes)
 
 
-def determine_next_phase_status(next_phase: str) -> str:
+def determine_next_phase_status(next_phase: str, current_status: str = None) -> str:
     """Determine the appropriate flow status based on next phase.
 
     Args:
         next_phase: The next phase name
+        current_status: Current flow status (for finalization handling)
 
     Returns:
         Appropriate collection flow status
     """
+    # For finalization phase, keep current status unchanged
+    if next_phase == "finalization" and current_status:
+        return current_status
+
     phase_status_mapping = {
         "initialization": CollectionFlowStatus.INITIALIZED.value,
         "platform_detection": CollectionFlowStatus.PLATFORM_DETECTION.value,
         "automated_collection": CollectionFlowStatus.AUTOMATED_COLLECTION.value,
         "gap_analysis": CollectionFlowStatus.GAP_ANALYSIS.value,
         "manual_collection": CollectionFlowStatus.MANUAL_COLLECTION.value,
-        "finalization": CollectionFlowStatus.AUTOMATED_COLLECTION.value,  # Keep active until complete
         # Legacy phase names
         CollectionPhase.PLATFORM_DETECTION.value: CollectionFlowStatus.PLATFORM_DETECTION.value,
         CollectionPhase.GAP_ANALYSIS.value: CollectionFlowStatus.GAP_ANALYSIS.value,
