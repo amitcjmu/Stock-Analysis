@@ -13,6 +13,9 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Development localhost allowlist
+LOCALHOST_ALLOWLIST = "localhost:* 127.0.0.1:* http://localhost:* http://127.0.0.1:*"
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Middleware to add security headers to all responses."""
@@ -99,7 +102,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                 (
                     directive.replace(
                         "'self'",
-                        "'self' localhost:* 127.0.0.1:* http://localhost:* http://127.0.0.1:*",
+                        f"'self' {LOCALHOST_ALLOWLIST}",
                     )
                     if "connect-src" in directive or "default-src" in directive
                     else directive
@@ -138,6 +141,48 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                     "default-src 'self'",
                     "connect-src 'self'",
                     "frame-ancestors 'none'",
+                ]
+
+        # Swagger UI and ReDoc endpoints need external CDN access
+        elif request.url.path in [
+            "/docs",
+            "/redoc",
+            "/api/v1/docs",
+            "/api/v1/redoc",
+            "/openapi.json",
+            "/api/v1/openapi.json",
+        ]:
+            # Allow external CDN resources for API documentation
+            csp_directives = [
+                "default-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com",
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.jsdelivr.net https://unpkg.com",
+                (
+                    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net "
+                    "https://unpkg.com https://fonts.googleapis.com"
+                ),
+                "img-src 'self' data: https:",
+                "font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com",
+                "connect-src 'self'",
+                "worker-src blob:",
+                "frame-ancestors 'none'",
+                "base-uri 'self'",
+                "form-action 'self'",
+            ]
+
+            # Add localhost support for development
+            if is_dev:
+                csp_directives = [
+                    (
+                        directive.replace(
+                            "'self'",
+                            f"'self' {LOCALHOST_ALLOWLIST}",
+                        )
+                        if any(
+                            src in directive for src in ["default-src", "connect-src"]
+                        )
+                        else directive
+                    )
+                    for directive in csp_directives
                 ]
 
         return "; ".join(csp_directives)

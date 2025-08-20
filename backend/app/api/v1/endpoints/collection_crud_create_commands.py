@@ -45,7 +45,7 @@ async def create_collection_from_discovery(
     current_user: User,
     context: RequestContext,
 ) -> CollectionFlowResponse:
-    """Create a Collection flow from Discovery results with selected applications.
+    """Create Collection flow from Discovery results with selected applications.
 
     This function enables seamless transition from Discovery to Collection,
     allowing users to select applications from the Discovery inventory for
@@ -65,14 +65,22 @@ async def create_collection_from_discovery(
     require_role(current_user, COLLECTION_CREATE_ROLES, "create collection flows")
 
     try:
+        # Validate required context
+        if not context.engagement_id:
+            raise HTTPException(
+                status_code=400, detail="Missing engagement_id in request context"
+            )
+
         # Validate Discovery flow exists and is complete
+        # Convert engagement_id to UUID since validators expect UUID type
+        engagement_uuid = uuid.UUID(context.engagement_id)
         discovery_flow = await collection_validators.validate_discovery_flow_exists(
-            db, discovery_flow_id, context.engagement_id
+            db, discovery_flow_id, engagement_uuid
         )
 
         # Validate selected applications exist and belong to the engagement
         applications = await collection_validators.validate_applications_exist(
-            db, selected_application_ids, context.engagement_id
+            db, selected_application_ids, engagement_uuid
         )
 
         # Use actual application IDs if none were provided
@@ -120,7 +128,8 @@ async def create_collection_from_discovery(
             "flow_id": str(collection_flow.flow_id),
             "automation_tier": collection_flow.automation_tier,
             "collection_config": collection_flow.collection_config,
-            "start_phase": "gap_analysis",  # Skip platform detection since we have Discovery data
+            # Skip platform detection since we have Discovery data
+            "start_phase": "gap_analysis",
         }
 
         # Create the flow - it will be automatically started by the execution engine
@@ -129,9 +138,16 @@ async def create_collection_from_discovery(
         )
 
         # Update collection flow with master flow ID
-        collection_flow.master_flow_id = master_flow_id
-        await db.commit()
-        await db.refresh(collection_flow)
+        # Convert string to UUID for master_flow_id field
+        if master_flow_id:
+            collection_flow.master_flow_id = uuid.UUID(master_flow_id)
+            await db.commit()
+            await db.refresh(collection_flow)
+        else:
+            logger.warning(
+                "Master flow creation returned None - collection flow will not "
+                "have master_flow_id set"
+            )
 
         logger.info(
             "Created collection flow %s from discovery flow %s with %d applications",
@@ -140,7 +156,17 @@ async def create_collection_from_discovery(
             len(selected_application_ids),
         )
 
-        return collection_serializers.serialize_collection_flow(collection_flow)
+        # Serialize flow and add warning if master_flow_id is missing
+        serialized_flow = collection_serializers.serialize_collection_flow(
+            collection_flow
+        )
+        if not master_flow_id:
+            serialized_flow["warning"] = (
+                "Master flow creation failed - collection flow created without "
+                "master orchestration. Please retry or contact support."
+            )
+
+        return serialized_flow
 
     except HTTPException:
         raise
@@ -208,8 +234,7 @@ async def create_collection_flow(
         flow_id = uuid.uuid4()
         collection_flow = CollectionFlow(
             flow_id=flow_id,
-            flow_name=flow_data.flow_name
-            or collection_utils.format_flow_display_name(),
+            flow_name=collection_utils.format_flow_display_name(),
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
             user_id=current_user.id,
@@ -236,19 +261,37 @@ async def create_collection_flow(
         )
 
         # Update collection flow with master flow ID
-        collection_flow.master_flow_id = master_flow_id
-        await db.commit()
-        await db.refresh(collection_flow)
+        # Convert string to UUID for master_flow_id field
+        if master_flow_id:
+            collection_flow.master_flow_id = uuid.UUID(master_flow_id)
+            await db.commit()
+            await db.refresh(collection_flow)
+        else:
+            logger.warning(
+                "Master flow creation returned None - collection flow will not "
+                "have master_flow_id set"
+            )
 
         logger.info(
             safe_log_format(
-                "Created collection flow: flow_id={flow_id}, engagement_id={engagement_id}",
+                "Created collection flow: flow_id={flow_id}, "
+                "engagement_id={engagement_id}",
                 flow_id=str(collection_flow.flow_id),
                 engagement_id=context.engagement_id,
             )
         )
 
-        return collection_serializers.serialize_collection_flow(collection_flow)
+        # Serialize flow and add warning if master_flow_id is missing
+        serialized_flow = collection_serializers.serialize_collection_flow(
+            collection_flow
+        )
+        if not master_flow_id:
+            serialized_flow["warning"] = (
+                "Master flow creation failed - collection flow created without "
+                "master orchestration. Please retry or contact support."
+            )
+
+        return serialized_flow
 
     except HTTPException:
         raise
