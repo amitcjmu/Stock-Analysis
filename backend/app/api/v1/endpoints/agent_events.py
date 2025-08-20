@@ -23,7 +23,7 @@ from app.services.crewai_flows.persistence.postgres_store import PostgresFlowSta
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/flows", tags=["Flow Events"])
+router = APIRouter(prefix="/flows")
 
 
 async def _check_flow_exists_and_permissions(flow_id, context, store):

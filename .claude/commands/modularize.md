@@ -85,17 +85,23 @@ Prompt: "
   4. **DELETE ANY SPLIT FILES** in parent directory (*_auth.py, etc.)
   5. Update ALL imports in codebase
   6. Create proper __init__.py with exports
+  7. **API SYNC CHECK**: If modularizing API endpoints:
+     - Check if routes are registered in router_registry.py
+     - Search frontend for API calls: grep -r "${API_PATH}" src/
+     - Update BOTH backend AND frontend in same commit
 
   VERIFICATION STEPS:
   - Confirm original file deleted: rm ${FILE}
   - Check no duplicates remain: ls ${FILE}_*.py should be empty
   - Test imports work: python -c 'from module import *'
   - Compare line counts: new total MUST be less than original
+  - If API file: verify frontend services updated
 
   Return:
   - Files created
   - Files deleted (MUST include original)
   - Import updates made
+  - Frontend services updated (if applicable)
   - Line count before/after
 "
 ```
@@ -121,10 +127,17 @@ Prompt: "
   [ ] No imports from old file location
   [ ] Import test passes
 
+  CHECK 4 - API Synchronization (if applicable):
+  [ ] Backend routes still registered in router_registry.py
+  [ ] Frontend API calls updated to match new structure
+  [ ] No 404 errors in browser console
+  [ ] Run: docker-compose build && npm run build
+
   If ANY check fails:
   1. Fix the issue immediately
   2. Delete orphaned files
   3. Update incorrect imports
+  4. Sync frontend if API paths changed
 
   Return cleanup report with all actions taken.
 "

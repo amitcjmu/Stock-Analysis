@@ -16,7 +16,7 @@ from app.core.database import get_db
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["dependencies"])
+router = APIRouter()
 
 
 class DependencyAnalysisRequest(BaseModel):

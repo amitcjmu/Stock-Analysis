@@ -33,7 +33,7 @@ class DataCleaningRequest(BaseModel):
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/clean", tags=["data-import-clean"])
+router = APIRouter(prefix="/clean")
 
 
 @router.post("/import")

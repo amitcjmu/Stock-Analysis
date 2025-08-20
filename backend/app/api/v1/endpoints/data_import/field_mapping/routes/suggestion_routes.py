@@ -17,7 +17,7 @@ from ..services.suggestion_service import SuggestionService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/suggestions", tags=["field-mapping-suggestions"])
+router = APIRouter(prefix="/suggestions")
 
 
 def get_suggestion_service(

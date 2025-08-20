@@ -25,7 +25,7 @@ from .pagination import router as pagination_router
 from .utils import get_asset_data
 
 # Create main router that combines all sub-routers
-router = APIRouter(tags=["Asset Inventory"])
+router = APIRouter()
 
 # Include all sub-routers
 router.include_router(intelligence_router)

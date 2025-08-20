@@ -209,7 +209,7 @@ Get the current status of a discovery flow.
 
 List all active discovery flows for the current context.
 
-**Endpoint:** `GET /api/v1/discovery/flows/active`
+**Endpoint:** `GET /api/v1/flows/active`
 
 **Response (200 OK):**
 ```json

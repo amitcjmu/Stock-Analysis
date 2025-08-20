@@ -39,7 +39,7 @@ from app.services.websocket_cache_events import (
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/ws-cache", tags=["websocket-cache"])
+router = APIRouter(prefix="/ws-cache")
 
 
 @router.websocket("/events")

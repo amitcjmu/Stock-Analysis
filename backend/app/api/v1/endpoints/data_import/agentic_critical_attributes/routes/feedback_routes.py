@@ -16,7 +16,7 @@ from ..services.learning_service import LearningService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/feedback", tags=["agentic-feedback"])
+router = APIRouter(prefix="/feedback")
 
 
 def get_learning_service(

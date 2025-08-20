@@ -52,3 +52,26 @@
 - docs/adr/*.md - All Architectural Decision Records
 - docs/analysis/Notes/000-lessons.md - Critical lessons learned
 - docs/guidelines/ARCHITECTURAL_REVIEW_GUIDELINES.md - Detailed review guidelines
+
+## Critical: API Endpoint Synchronization (Post-Aug 2025 Incident)
+
+### MANDATORY: Backend-Frontend Changes MUST Be Done Together
+When modifying API endpoints, **ALWAYS**:
+1. Search frontend for endpoint usage: `grep -r "/api/path" src/`
+2. Update BOTH backend router AND frontend services in same commit
+3. Test with Docker + check browser console for 404s
+
+### Current Endpoint Patterns (Don't Assume - Verify in router_registry.py)
+- MFO: `/api/v1/master-flows/*` (NOT `/flows/*`)
+- Flow Processing: `/api/v1/flow-processing/*`
+- Discovery: `/api/v1/unified-discovery/*`
+- Collection: `/api/v1/collection/*`
+
+### Files That MUST Be Updated Together
+- Backend: `router_registry.py`, `router_imports.py`, endpoint files
+- Frontend: `masterFlowService.ts`, `discoveryService.ts`, `collectionService.ts`
+
+### Never Do This
+- ❌ Change backend without frontend
+- ❌ Use fallbacks to hide broken endpoints
+- ❌ Skip browser console check for 404s

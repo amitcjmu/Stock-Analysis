@@ -15,7 +15,7 @@ from app.core.database import get_db
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["analysis"])
+router = APIRouter()
 
 
 @router.get("/analysis")

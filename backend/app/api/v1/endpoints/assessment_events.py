@@ -22,7 +22,7 @@ from app.schemas.assessment_flow import AgentProgressEvent, AssessmentFlowEvent
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/assessment-flow", tags=["Assessment Flow Events"])
+router = APIRouter(prefix="/assessment-flow")
 
 # In-memory storage for active connections (in production, use Redis or similar)
 active_connections: Dict[str, Dict[str, Any]] = {}

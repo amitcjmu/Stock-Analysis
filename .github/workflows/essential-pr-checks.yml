@@ -40,17 +40,16 @@ jobs:
       - name: Backend Syntax Check
         run: |
           echo "🔍 Checking Python syntax..."
-          python -m py_compile backend/**/*.py || true
+          find backend/app -name "*.py" -exec python -m py_compile {} \; || true
           echo "✅ Python syntax check complete"
         continue-on-error: true
 
       - name: Frontend Type Check
         run: |
           echo "🔍 Running quick TypeScript check..."
-          cd frontend || cd .
           if [ -f "package.json" ]; then
             npm ci --prefer-offline --no-audit --no-fund || true
-            npm run type-check --if-present || npx tsc --noEmit || true
+            npm run typecheck || npx tsc --noEmit || true
           fi
           echo "✅ TypeScript check complete"
         continue-on-error: true

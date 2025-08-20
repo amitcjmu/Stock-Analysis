@@ -20,7 +20,7 @@ from ..services.validation_service import ValidationService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/validation", tags=["field-mapping-validation"])
+router = APIRouter(prefix="/validation")
 
 
 def get_validation_service(

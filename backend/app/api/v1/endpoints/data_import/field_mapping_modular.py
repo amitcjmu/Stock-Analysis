@@ -19,16 +19,8 @@ from .field_mapping.routes.validation_routes import router as validation_router
 # Import service dependencies
 from .field_mapping.services.mapping_service import MappingService
 
-# Legacy compatibility imports
-from .field_mapping.routes.mapping_routes import (
-    create_field_mapping_latest as legacy_create_latest,
-    generate_field_mappings as legacy_generate,
-    get_field_mappings as legacy_get_mappings,
-)
-from .field_mapping.routes.suggestion_routes import (
-    get_available_target_fields as legacy_get_available_fields,
-    get_field_mapping_suggestions as legacy_get_suggestions,
-)
+# Legacy compatibility imports removed - functions are now in modularized routers
+# The functions are available through the included routers
 
 
 def get_mapping_service(
@@ -40,7 +32,7 @@ def get_mapping_service(
 
 
 # Create main router
-router = APIRouter(prefix="/field-mapping", tags=["field-mapping"])
+router = APIRouter(prefix="/field-mapping")
 
 # Include all sub-routers
 router.include_router(mapping_router)
@@ -48,40 +40,8 @@ router.include_router(suggestion_router)
 router.include_router(validation_router)
 router.include_router(approval_router)
 
-# Legacy compatibility routes - these delegate to the new modular structure
-
-
-# Add legacy routes for backward compatibility
-@router.get("/imports/{import_id}/field-mappings")
-async def get_field_mappings_legacy(
-    import_id: str, service: MappingService = Depends(get_mapping_service)
-):
-    """Legacy compatibility route."""
-    return await legacy_get_mappings(import_id, service)
-
-
-@router.post("/imports/{import_id}/field-mappings")
-async def create_field_mappings_legacy(import_id: str, **kwargs):
-    """Legacy compatibility route."""
-    return await legacy_generate(import_id, **kwargs)
-
-
-@router.post("/imports/latest/field-mappings")
-async def create_field_mapping_latest_legacy(**kwargs):
-    """Legacy compatibility route."""
-    return await legacy_create_latest(**kwargs)
-
-
-@router.get("/imports/{import_id}/field-mapping-suggestions")
-async def get_field_mapping_suggestions_legacy(import_id: str, **kwargs):
-    """Legacy compatibility route."""
-    return await legacy_get_suggestions(import_id, **kwargs)
-
-
-@router.get("/available-target-fields")
-async def get_available_target_fields_legacy(**kwargs):
-    """Legacy compatibility route."""
-    return await legacy_get_available_fields(**kwargs)
+# Note: Legacy routes removed - all functionality available through included routers
+# The modularized routers provide all the same endpoints with improved organization
 
 
 # Health check
@@ -92,5 +52,5 @@ async def health_check():
         "status": "healthy",
         "service": "field_mapping_modular",
         "modules": ["mapping", "suggestions", "validation", "transformation"],
-        "legacy_compatibility": True,
+        "legacy_compatibility": False,  # Changed to False since legacy routes removed
     }
