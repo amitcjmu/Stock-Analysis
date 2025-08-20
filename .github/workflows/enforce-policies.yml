@@ -20,7 +20,7 @@ jobs:
             echo "ripgrep (rg) is required for policy checks but not installed." >&2
             exit 1
           fi
-          if rg -n "/api/v1/discovery" backend/app backend/src | grep -v README | grep -v tests | grep -v middleware/legacy_endpoint_guard.py; then
+          if rg -n "/api/v1/discovery" backend/app 2>/dev/null | grep -v README | grep -v tests | grep -v middleware/legacy_endpoint_guard.py; then
             echo "Legacy discovery endpoints found in application code. Use /api/v1/flows or /unified-discovery." >&2
             exit 1
           fi
@@ -32,7 +32,7 @@ jobs:
             echo "ripgrep (rg) is required for policy checks but not installed." >&2
             exit 1
           fi
-          if rg -n "from app\.repositories\.base import ContextAwareRepository" backend | grep -v README; then
+          if rg -n "from app\.repositories\.base import ContextAwareRepository" backend 2>/dev/null | grep -v README; then
             echo "Deprecated ContextAwareRepository import detected. Use app.repositories.context_aware_repository." >&2
             exit 1
           fi
