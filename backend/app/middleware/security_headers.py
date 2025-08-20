@@ -140,6 +140,35 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                     "frame-ancestors 'none'",
                 ]
 
+        # Swagger UI and ReDoc endpoints need external CDN access
+        elif request.url.path in ["/docs", "/redoc"]:
+            # Allow external CDN resources for API documentation
+            csp_directives = [
+                "default-src 'self' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+                "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://cdn.jsdelivr.net",
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+                "img-src 'self' data: https:",
+                "font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com",
+                "connect-src 'self'",
+                "frame-ancestors 'none'",
+                "base-uri 'self'",
+                "form-action 'self'",
+            ]
+
+            # Add localhost support for development
+            if is_dev:
+                csp_directives = [
+                    (
+                        directive.replace(
+                            "'self'",
+                            "'self' localhost:* 127.0.0.1:* http://localhost:* http://127.0.0.1:*",
+                        )
+                        if "connect-src" in directive or "default-src" in directive
+                        else directive
+                    )
+                    for directive in csp_directives
+                ]
+
         return "; ".join(csp_directives)
 
 

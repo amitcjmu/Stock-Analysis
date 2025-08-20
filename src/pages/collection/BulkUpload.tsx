@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { FileSpreadsheet } from 'lucide-react'
 import { ArrowLeft, Download, Upload, AlertCircle, CheckCircle } from 'lucide-react'
 
+// Import API utilities
+import { apiCall } from '@/config/api';
+
 // Import layout components
 import Sidebar from '@/components/Sidebar';
 import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
@@ -172,13 +175,12 @@ const BulkUpload: React.FC = () => {
 
       setUploadProgress(50);
 
-      // Call real backend API
-      const response = await fetch('/api/v1/data-import/store-import', {
+      // Call real backend API with proper headers
+      const result = await apiCall('/api/v1/data-import/store-import', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
         body: JSON.stringify({
           filename: file.name,
           data: dataRows,
@@ -194,12 +196,7 @@ const BulkUpload: React.FC = () => {
 
       setUploadProgress(80);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail?.message || `Upload failed: ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      // apiCall returns parsed JSON directly and throws errors on non-2xx responses
       setUploadProgress(100);
 
       // Create BulkUploadResult from API response
