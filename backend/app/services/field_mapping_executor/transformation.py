@@ -166,8 +166,21 @@ class MappingTransformer(TransformationEngine):
             }
 
         except Exception as e:
-            logger.error(f"Failed to transform and persist mappings: {e}")
-            return {"success": False, "error": str(e), "mappings_persisted": 0}
+            # CRITICAL FIX: Use safe_log_format for error logging to prevent sensitive data leakage
+            from app.core.security.secure_logging import safe_log_format
+
+            logger.error(
+                safe_log_format(
+                    "Failed to transform and persist mappings: {error_type}",
+                    error_type=type(e).__name__,
+                )
+            )
+            # SECURITY FIX: Return exception type instead of full message
+            return {
+                "success": False,
+                "error": f"Transformation failed: {type(e).__name__}",
+                "mappings_persisted": 0,
+            }
 
     def transform_mappings(self, mappings: Dict[str, str]) -> Dict[str, str]:
         """Placeholder mapping transformation"""

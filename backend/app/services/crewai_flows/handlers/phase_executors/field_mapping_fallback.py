@@ -144,11 +144,21 @@ def _extract_mappings_from_text(crew_result: Any) -> List[Dict[str, Any]]:
         # Look for patterns like "field_name -> target_field" or "field_name: target_field"
         lines = crew_result.raw.split("\n")
         for line in lines:
-            # Match patterns like "Device_ID -> asset_id" or "Device_ID: asset_id"
-            match = re.search(r"(\w+)\s*(?:->|:|=>|maps to)\s*(\w+)", line)
+            # CRITICAL FIX: Enhanced regex to support dots, hyphens, camelCase in field names
+            # Supports: Device_ID, device-id, deviceId, device.id, Device ID (with spaces)
+            field_pattern = r"([a-zA-Z][a-zA-Z0-9._-]*(?:\s+[a-zA-Z0-9._-]+)*)"
+            match = re.search(
+                rf"{field_pattern}\s*(?:->|:|=>|maps\s+to)\s*{field_pattern}",
+                line,
+                re.IGNORECASE,
+            )
             if match:
-                source_field = match.group(1)
-                target_field = match.group(2)
+                source_field = match.group(1).strip()
+                target_field = match.group(2).strip()
+
+                # CRITICAL FIX: Trim punctuation from extracted fields
+                source_field = source_field.strip(".,;!?()[]{}\"'")
+                target_field = target_field.strip(".,;!?()[]{}\"'")
 
                 # Basic validation of extracted field names
                 if (
@@ -156,6 +166,8 @@ def _extract_mappings_from_text(crew_result: Any) -> List[Dict[str, Any]]:
                     and target_field
                     and len(source_field) > 0
                     and len(target_field) > 0
+                    and not source_field.isspace()
+                    and not target_field.isspace()
                 ):
                     extracted_mappings.append(
                         {

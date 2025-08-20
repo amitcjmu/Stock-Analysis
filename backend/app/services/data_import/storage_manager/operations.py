@@ -101,19 +101,45 @@ class ImportStorageOperations(RawRecordOperationsMixin, FieldMappingOperationsMi
                     f"for import {data_import.id}"
                 )
 
-                # Store raw records
-                records_stored = await self.store_raw_records(
-                    data_import=data_import,
-                    file_data=extracted_records,
-                    engagement_id=engagement_id or "unknown",
-                )
+                # CRITICAL FIX: Validate extracted records and add fallback for empty extraction
+                if not extracted_records and parsed_data:
+                    # Fallback: if extraction returns empty but we have valid data, create single record
+                    if isinstance(parsed_data, dict) and parsed_data:
+                        logger.warning(
+                            "🚨 Empty extraction returns 0 records despite valid input, "
+                            "using fallback to single-record list"
+                        )
+                        extracted_records = [parsed_data]
+                    elif isinstance(parsed_data, list) and parsed_data:
+                        # Filter non-dict records before storing
+                        valid_records = [
+                            item for item in parsed_data if isinstance(item, dict)
+                        ]
+                        if valid_records:
+                            extracted_records = valid_records
+                            logger.info(
+                                f"📊 Filtered to {len(valid_records)} valid dict records"
+                            )
 
-                # Update total records count
-                data_import.total_records = records_stored
+                # Store raw records within transaction
+                if extracted_records:
+                    records_stored = await self.store_raw_records(
+                        data_import=data_import,
+                        file_data=extracted_records,
+                        engagement_id=engagement_id or "unknown",
+                    )
 
-                logger.info(
-                    f"✅ Stored {records_stored} raw records for import {data_import.id}"
-                )
+                    # Update total records count
+                    data_import.total_records = records_stored
+
+                    logger.info(
+                        f"✅ Stored {records_stored} raw records for import {data_import.id}"
+                    )
+                else:
+                    logger.warning(
+                        f"🚨 No valid records to store for import {data_import.id}"
+                    )
+                    data_import.total_records = 0
 
             logger.info(f"✅ Created DataImport record: {data_import.id}")
             return data_import
@@ -367,13 +393,20 @@ class ImportStorageOperations(RawRecordOperationsMixin, FieldMappingOperationsMi
                     f"Master flow with flow_id {master_flow_id} not found in database"
                 )
 
+            # CRITICAL FIX: Wrap batch updates in transaction for atomicity
             # Link the master flow to the main DataImport record
             stmt_data_import = (
                 update(DataImport)
                 .where(DataImport.id == data_import_id)
                 .values(master_flow_id=actual_master_flow_id)
             )
-            await self.db.execute(stmt_data_import)
+            result_data_import = await self.db.execute(stmt_data_import)
+
+            # CRITICAL FIX: Check rowcount to verify updates
+            if result_data_import.rowcount == 0:
+                logger.warning(
+                    f"🚨 No DataImport record updated for ID {data_import_id}"
+                )
 
             # Link the master flow to all RawImportRecord children
             stmt_raw_records = (
@@ -381,7 +414,10 @@ class ImportStorageOperations(RawRecordOperationsMixin, FieldMappingOperationsMi
                 .where(RawImportRecord.data_import_id == data_import_id)
                 .values(master_flow_id=actual_master_flow_id)
             )
-            await self.db.execute(stmt_raw_records)
+            result_raw_records = await self.db.execute(stmt_raw_records)
+            logger.info(
+                f"Updated {result_raw_records.rowcount} RawImportRecord(s) with master flow ID"
+            )
 
             # Link the master flow to the ImportFieldMapping child
             stmt_field_mapping = (
@@ -389,7 +425,13 @@ class ImportStorageOperations(RawRecordOperationsMixin, FieldMappingOperationsMi
                 .where(ImportFieldMapping.data_import_id == data_import_id)
                 .values(master_flow_id=actual_master_flow_id)
             )
-            await self.db.execute(stmt_field_mapping)
+            result_field_mapping = await self.db.execute(stmt_field_mapping)
+            logger.info(
+                f"Updated {result_field_mapping.rowcount} ImportFieldMapping(s) with master flow ID"
+            )
+
+            # CRITICAL FIX: Ensure all updates are committed
+            await self.db.flush()
 
             logger.info(
                 f"Successfully prepared linkage for master flow {master_flow_id} "

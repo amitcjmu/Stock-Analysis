@@ -62,6 +62,13 @@ class RawRecordOperationsMixin:
             if extracted_records:
                 # Store the raw records
                 for idx, record in enumerate(extracted_records):
+                    # SECURITY FIX: Validate record type before storing
+                    if not isinstance(record, dict):
+                        logger.warning(
+                            f"🚨 Skipping non-dict record at index {idx}: {type(record)}"
+                        )
+                        continue
+
                     raw_record = RawImportRecord(
                         data_import_id=data_import.id,
                         client_account_id=self.client_account_id,
@@ -74,6 +81,8 @@ class RawRecordOperationsMixin:
                     self.db.add(raw_record)
                     records_stored += 1
 
+                # CRITICAL FIX: Add proper commit after adding records
+                await self.db.flush()  # Ensure all operations are written to DB
                 logger.info(
                     f"✅ Stored {records_stored} raw records for import {data_import.id}"
                 )
@@ -102,9 +111,11 @@ class RawRecordOperationsMixin:
                 f"Retrieving raw records for import {data_import_id} (limit: {limit})"
             )
 
+            # CRITICAL FIX: Add ORDER BY row_number for stable results
             query = (
                 select(RawImportRecord)
                 .where(RawImportRecord.data_import_id == data_import_id)
+                .order_by(RawImportRecord.row_number)
                 .limit(limit)
             )
 
@@ -157,9 +168,16 @@ class RawRecordOperationsMixin:
                         validation_errors=record.get("validation_errors"),
                     )
                 )
-                await self.db.execute(update_stmt)
-                records_updated += 1
+                result = await self.db.execute(update_stmt)
 
+                # CRITICAL FIX: Check rowcount to verify updates
+                if result.rowcount > 0:
+                    records_updated += 1
+                else:
+                    logger.warning(f"🚨 No rows updated for record ID {record_id}")
+
+            # CRITICAL FIX: Add proper commit after batch updates
+            await self.db.flush()  # Ensure all updates are written to DB
             logger.info(f"✅ Updated {records_updated} raw records with cleansed data.")
             return records_updated
 

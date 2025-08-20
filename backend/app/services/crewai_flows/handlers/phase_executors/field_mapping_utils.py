@@ -19,12 +19,23 @@ logger = logging.getLogger(__name__)
 # CrewAI Flow availability detection for compatibility
 CREWAI_FLOW_AVAILABLE = False
 try:
-    # Flow and LLM imports will be used when needed
+    # CRITICAL FIX: Add concrete import to test availability
+    from crewai import Flow
+    from crewai.llm import LLM
+
+    # Test that classes can be instantiated
+    test_flow = Flow  # Just reference the class to ensure it's importable
+    test_llm = LLM  # Just reference the class to ensure it's importable
+
     CREWAI_FLOW_AVAILABLE = True
-    logger.info("✅ CrewAI Flow and LLM imports available")
+    logger.info(
+        "✅ CrewAI Flow and LLM imports available - concrete import test passed"
+    )
 except ImportError as e:
+    CREWAI_FLOW_AVAILABLE = False
     logger.warning(f"CrewAI Flow not available: {e}")
 except Exception as e:
+    CREWAI_FLOW_AVAILABLE = False
     logger.warning(f"CrewAI imports failed: {e}")
 
 

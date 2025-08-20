@@ -90,7 +90,12 @@ class RequestContext:
 
 
 def _decode_jwt_payload(token: str) -> Optional[str]:
-    """Decode JWT payload and extract user_id (sub claim)."""
+    """
+    Decode JWT payload and extract user_id (sub claim).
+
+    SECURITY WARNING: This function decodes JWT without verification.
+    It should only be used as a fallback when proper JWT verification fails.
+    """
     import base64
     import json
 
@@ -106,8 +111,47 @@ def _decode_jwt_payload(token: str) -> Optional[str]:
             payload_part += "=" * missing_padding
         decoded_payload = base64.urlsafe_b64decode(payload_part)
         payload = json.loads(decoded_payload)
-        return payload.get("sub")
-    except Exception:
+
+        # SECURITY FIX: Validate payload structure and prevent system user impersonation
+        sub_claim = payload.get("sub")
+
+        # CRITICAL: Never trust or use 'system' or empty subjects
+        if not sub_claim or sub_claim in ["system", "admin", "root", ""]:
+            logger.warning(
+                safe_log_format(
+                    "🚨 SECURITY: Rejecting suspicious JWT subject claim: {sub_claim}",
+                    sub_claim=sub_claim or "empty",
+                )
+            )
+            return None
+
+        # Additional validation: subject should be a valid UUID or identifier
+        if len(str(sub_claim).strip()) < 3:
+            logger.warning(
+                safe_log_format(
+                    "🚨 SECURITY: Rejecting too-short JWT subject claim: {sub_claim}",
+                    sub_claim=sub_claim,
+                )
+            )
+            return None
+
+        # Validate that sub claim doesn't contain suspicious patterns
+        suspicious_patterns = ["system", "admin", "root", "service", "internal", "api"]
+        sub_lower = str(sub_claim).lower()
+        if any(pattern in sub_lower for pattern in suspicious_patterns):
+            logger.warning(
+                safe_log_format(
+                    "🚨 SECURITY: Rejecting JWT with suspicious subject pattern: {sub_claim}",
+                    sub_claim=sub_claim,
+                )
+            )
+            return None
+
+        return sub_claim
+    except Exception as e:
+        logger.warning(
+            safe_log_format("JWT payload decode failed: {error}", error=str(e))
+        )
         return None
 
 
