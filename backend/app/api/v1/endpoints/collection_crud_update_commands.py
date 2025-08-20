@@ -229,10 +229,18 @@ async def submit_questionnaire_response(
         if not collection_flow:
             raise HTTPException(status_code=404, detail="Collection flow not found")
 
+        # Convert questionnaire_id to UUID
+        try:
+            questionnaire_uuid = UUID(questionnaire_id)
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=400, detail="Invalid questionnaire ID format"
+            )
+
         # Get questionnaire
         questionnaire_result = await db.execute(
             select(AdaptiveQuestionnaire).where(
-                AdaptiveQuestionnaire.id == questionnaire_id,
+                AdaptiveQuestionnaire.id == questionnaire_uuid,
                 AdaptiveQuestionnaire.collection_flow_id == collection_flow.id,
             )
         )

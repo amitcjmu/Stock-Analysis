@@ -82,7 +82,13 @@ class FlowHealthMonitor:
                 # Find stuck flows
                 cutoff_time = datetime.now(timezone.utc) - self.stuck_threshold
                 stmt = select(CollectionFlow).where(
-                    CollectionFlow.status.notin_(["completed", "failed", "cancelled"]),
+                    CollectionFlow.status.notin_(
+                        [
+                            CollectionFlowStatus.COMPLETED.value,
+                            CollectionFlowStatus.FAILED.value,
+                            CollectionFlowStatus.CANCELLED.value,
+                        ]
+                    ),
                     CollectionFlow.updated_at < cutoff_time,
                 )
                 result = await db.execute(stmt)
