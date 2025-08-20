@@ -142,11 +142,30 @@ def _extract_user_id_from_jwt(auth_header: str) -> Optional[str]:
     Returns:
         User ID extracted from JWT token, or None if extraction fails
     """
-    if not auth_header.startswith("Bearer "):
+    # SECURITY FIX: Normalize header value for case variations and extra spaces
+    if not auth_header:
+        return None
+
+    # Strip extra spaces and normalize case
+    normalized_header = auth_header.strip()
+
+    # Check for Bearer token with case insensitive comparison
+    if not normalized_header.lower().startswith("bearer "):
         return None
 
     try:
-        token = auth_header.split(" ")[1]
+        # SECURITY FIX: Handle extra spaces properly and guard against headers with only scheme
+        parts = normalized_header.split()
+        if len(parts) != 2:
+            logger.warning(
+                "Authorization header does not contain exactly 2 parts (scheme and token)"
+            )
+            return None
+
+        scheme, token = parts
+        if not token:
+            logger.warning("Authorization header contains empty token")
+            return None
 
         # Try direct JWT decode first (more reliable for user_id extraction)
         user_id = _decode_jwt_payload(token)
@@ -179,12 +198,21 @@ def _extract_user_id_from_jwt(auth_header: str) -> Optional[str]:
 
 
 def _clean_header_value(value: str) -> str:
-    """Clean header value by taking first non-empty value if comma-separated"""
+    """
+    Clean header value by taking first non-empty value if comma-separated.
+    SECURITY FIX: Enhanced normalization for header processing.
+    """
     if not value:
         return value
+
+    # SECURITY FIX: Strip extra spaces and normalize
+    normalized_value = value.strip()
+    if not normalized_value:
+        return value
+
     # Split by comma and take the first non-empty value
-    parts = [part.strip() for part in value.split(",") if part.strip()]
-    return parts[0] if parts else value
+    parts = [part.strip() for part in normalized_value.split(",") if part.strip()]
+    return parts[0] if parts else normalized_value
 
 
 def _extract_client_account_id(headers) -> Optional[str]:
@@ -253,7 +281,13 @@ def extract_context_from_request(request: Request) -> RequestContext:
 
     # CRITICAL FIX: If user_id not found in headers, extract from JWT token
     if not user_id:
-        auth_header = headers.get("authorization", "")
+        # SECURITY FIX: Get authorization header with case insensitive lookup
+        auth_header = (
+            headers.get("authorization")
+            or headers.get("Authorization")
+            or headers.get("AUTHORIZATION")
+            or ""
+        )
         user_id = _extract_user_id_from_jwt(auth_header)
 
     flow_id = _extract_flow_id(headers)

@@ -8,37 +8,56 @@ import type { FieldMapping } from '../../types';
 import type { ProgressInfo } from './types'
 import type { MappingBuckets } from './types'
 
+// SECURITY FIX: Environment-controlled debug logging to prevent sensitive data leaks
+const DEBUG_ENABLED = process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_DEBUG_MAPPING_UTILS === 'true';
+const TRUNCATE_LOGGED_DATA = true; // Always truncate in production-like environments
+
+// Secure debug logging helper
+const debugLog = (message: string, data?: any) => {
+  if (!DEBUG_ENABLED) return;
+
+  if (data && TRUNCATE_LOGGED_DATA) {
+    // SECURITY FIX: Truncate logged data to prevent sensitive information exposure
+    const truncatedData = typeof data === 'object' && data !== null
+      ? JSON.stringify(data).substring(0, 200) + '...[truncated]'
+      : String(data).substring(0, 200) + '...[truncated]';
+    console.log(message, truncatedData);
+  } else if (data) {
+    console.log(message, data);
+  } else {
+    console.log(message);
+  }
+};
+
 export const categorizeMappings = (fieldMappings: FieldMapping[]): MappingBuckets => {
-  console.log('🔍 ThreeColumnFieldMapper - Field mappings data:', {
+  // SECURITY FIX: Use secure debug logging instead of verbose console.log
+  debugLog('🔍 ThreeColumnFieldMapper - Field mappings data:', {
     total_mappings: fieldMappings.length,
     sample_mappings: fieldMappings.slice(0, 3).map(m => ({
       id: m.id,
       sourceField: m.sourceField,
       sourceField_type: typeof m.sourceField,
-      sourceField_value: m.sourceField,
       targetAttribute: m.targetAttribute,
       targetAttribute_type: typeof m.targetAttribute,
       status: m.status,
       confidence: m.confidence,
-      mapping_type: m.mapping_type,
-      full_object: m
+      mapping_type: m.mapping_type
+      // SECURITY FIX: Remove full_object to prevent sensitive data exposure
     }))
   });
 
-  // Log individual field values for debugging
-  fieldMappings.forEach((m, index) => {
-    console.log(`🔍 Mapping ${index}:`, {
-      sourceField: m.sourceField,
-      sourceField_undefined: m.sourceField === undefined,
-      targetAttribute: m.targetAttribute,
-      targetAttribute_undefined: m.targetAttribute === undefined,
-      status: m.status,
-      mapping_type: m.mapping_type,
-      has_source_field_property: 'sourceField' in m,
-      has_source_field_snake: 'source_field' in m,
-      keys: Object.keys(m)
+  // SECURITY FIX: Remove per-item logging in production to prevent data leaks
+  if (DEBUG_ENABLED) {
+    fieldMappings.slice(0, 3).forEach((m, index) => { // Only log first 3 items
+      debugLog(`🔍 Mapping ${index}:`, {
+        sourceField: m.sourceField,
+        targetAttribute: m.targetAttribute,
+        status: m.status,
+        mapping_type: m.mapping_type
+        // SECURITY FIX: Remove detailed field inspection to prevent sensitive data exposure
+      });
     });
-  });
+  }
 
   // Improved categorization logic:
   // 1. Approved mappings go to the approved column
@@ -65,7 +84,8 @@ export const categorizeMappings = (fieldMappings: FieldMapping[]): MappingBucket
            m.targetAttribute === 'unmapped';
   });
 
-  console.log('🔍 ThreeColumnFieldMapper - Buckets:', {
+  // SECURITY FIX: Use secure debug logging for bucket information
+  debugLog('🔍 ThreeColumnFieldMapper - Buckets:', {
     autoMapped: autoMapped.length,
     unmapped: unmapped.length,
     approved: approved.length,

@@ -40,18 +40,23 @@ from app.services.field_mapping_executor import (
 # Import base executor for inheritance compatibility
 from .base_phase_executor import BasePhaseExecutor
 
-logger = logging.getLogger(__name__)
+# Import modularized utilities
+from .field_mapping_utils import (
+    CREWAI_FLOW_AVAILABLE,
+    get_supported_flow_types,
+    validate_input,
+    get_execution_context,
+    prepare_crew_input_from_state,
+    store_results_in_state,
+)
+from .field_mapping_converters import (
+    convert_crew_input_to_state,
+    convert_result_to_crew_format,
+    convert_flow_state_to_crew_input,
+)
+from .field_mapping_fallback import execute_with_crew_fallback
 
-# CrewAI Flow availability detection for compatibility
-CREWAI_FLOW_AVAILABLE = False
-try:
-    # Flow and LLM imports will be used when needed
-    CREWAI_FLOW_AVAILABLE = True
-    logger.info("✅ CrewAI Flow and LLM imports available")
-except ImportError as e:
-    logger.warning(f"CrewAI Flow not available: {e}")
-except Exception as e:
-    logger.warning(f"CrewAI imports failed: {e}")
+logger = logging.getLogger(__name__)
 
 
 class FieldMappingExecutor(BasePhaseExecutor):
@@ -127,32 +132,71 @@ class FieldMappingExecutor(BasePhaseExecutor):
             )
 
             # Create a mock state object from crew_input
-            mock_state = self._convert_crew_input_to_state(crew_input)
+            mock_state = convert_crew_input_to_state(crew_input, self.state)
 
-            # Get async database session
+            # Get async database session with proper lifecycle management
             from app.db.session import get_db
 
+            # SECURITY FIX: Proper async context management for database sessions
+            # Support both async and sync generators with defensive handling
             db_session_generator = get_db()
-            db_session = await db_session_generator.__anext__()
+            db_session = None
 
             try:
+                # Handle async generator
+                if hasattr(db_session_generator, "__anext__"):
+                    db_session = await db_session_generator.__anext__()
+                # Handle sync generator as fallback
+                elif hasattr(db_session_generator, "__next__"):
+                    db_session = next(db_session_generator)
+                else:
+                    raise RuntimeError(
+                        "Database session generator not properly configured"
+                    )
+
                 # Execute using modular implementation if available
                 if self._modular_executor:
                     result = await self._modular_executor.execute_phase(
                         mock_state, db_session
                     )
                     # Convert result back to expected format
-                    return self._convert_result_to_crew_format(result)
+                    return convert_result_to_crew_format(result, self.get_phase_name())
                 else:
                     # Fallback execution when modular executor is not available
                     logger.warning(
                         "Modular executor not available, using direct crew execution"
                     )
-                    result = await self._execute_with_crew_fallback(crew_input)
+                    result = await execute_with_crew_fallback(
+                        crew_input,
+                        self.crew_manager,
+                        self.get_phase_name(),
+                        self._get_phase_timeout(),
+                    )
                     return result
 
             finally:
-                await db_session.close()
+                # SECURITY FIX: Ensure generator is properly closed in finally block
+                if db_session:
+                    try:
+                        if hasattr(db_session, "close"):
+                            # Handle async session close
+                            if hasattr(db_session.close, "__await__"):
+                                await db_session.close()
+                            else:
+                                db_session.close()
+                    except Exception as close_error:
+                        logger.warning(f"Error closing database session: {close_error}")
+
+                # Close the generator to prevent connection leaks
+                try:
+                    if hasattr(db_session_generator, "aclose"):
+                        await db_session_generator.aclose()
+                    elif hasattr(db_session_generator, "close"):
+                        db_session_generator.close()
+                except Exception as gen_close_error:
+                    logger.warning(
+                        f"Error closing database generator: {gen_close_error}"
+                    )
 
         except Exception as e:
             logger.error(f"Field mapping execution failed: {str(e)}")
@@ -164,52 +208,6 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 "timestamp": datetime.utcnow().isoformat(),
             }
 
-    def _convert_crew_input_to_state(self, crew_input: Dict[str, Any]) -> Any:
-        """Convert legacy crew_input format to UnifiedDiscoveryFlowState."""
-        from app.schemas.unified_discovery_flow_state import UnifiedDiscoveryFlowState
-
-        # Extract data from crew_input
-        engagement_id = getattr(self.state, "engagement_id", "unknown")
-        client_account_id = getattr(self.state, "client_account_id", "unknown")
-        flow_id = crew_input.get("flow_id", f"compat_{engagement_id}")
-        discovery_data = crew_input.get("discovery_data", {})
-
-        # Ensure discovery_data has required fields
-        if "sample_data" not in discovery_data:
-            discovery_data["sample_data"] = crew_input.get("sample_data", [])
-        if "detected_columns" not in discovery_data:
-            discovery_data["detected_columns"] = crew_input.get("detected_columns", [])
-        if "data_source_info" not in discovery_data:
-            discovery_data["data_source_info"] = crew_input.get("data_source_info", {})
-
-        # Create state object
-        mock_state = UnifiedDiscoveryFlowState(
-            flow_id=flow_id,
-            client_account_id=client_account_id,
-            engagement_id=engagement_id,
-            flow_type="unified_discovery",
-            current_phase="field_mapping",
-            discovery_data=discovery_data,
-            field_mappings=crew_input.get("previous_mappings", []),
-        )
-
-        return mock_state
-
-    def _convert_result_to_crew_format(self, result: Dict[str, Any]) -> Dict[str, Any]:
-        """Convert modular execution result to legacy crew format."""
-        return {
-            "success": result.get("success", True),
-            "mappings": result.get("mappings", []),
-            "confidence_scores": result.get("confidence_scores", {}),
-            "clarifications": result.get("clarifications", []),
-            "validation_errors": result.get("validation_errors", []),
-            "phase_name": self.get_phase_name(),
-            "next_phase": result.get("next_phase", "data_transformation"),
-            "timestamp": result.get("timestamp", datetime.utcnow().isoformat()),
-            "execution_metadata": result.get("execution_metadata", {}),
-            "raw_response": result.get("raw_response", ""),
-        }
-
     async def execute_field_mapping(
         self, flow_state: Any, db_session: Any
     ) -> Dict[str, Any]:
@@ -218,11 +216,23 @@ class FieldMappingExecutor(BasePhaseExecutor):
 
         This method provides backward compatibility for code that calls
         execute_field_mapping directly instead of using the crew interface.
+
+        SECURITY FIX: Validates db_session before use to prevent errors.
         """
         try:
             logger.info(
                 f"Executing field mapping directly for flow {getattr(flow_state, 'flow_id', 'unknown')}"
             )
+
+            # SECURITY FIX: Validate db_session before DB operations
+            if not db_session:
+                raise ValueError(
+                    "Database session is required for field mapping execution"
+                )
+
+            # Check if session is still active
+            if hasattr(db_session, "is_active") and not db_session.is_active:
+                raise ValueError("Database session is not active")
 
             # Use modular executor directly if available
             if self._modular_executor:
@@ -235,21 +245,13 @@ class FieldMappingExecutor(BasePhaseExecutor):
                     "Modular executor not available for direct execution, using basic execution"
                 )
                 # Convert flow_state to crew_input format and use fallback
-                crew_input = {
-                    "flow_id": getattr(flow_state, "flow_id", "unknown"),
-                    "discovery_data": getattr(flow_state, "discovery_data", {}),
-                    "sample_data": getattr(flow_state, "discovery_data", {}).get(
-                        "sample_data", []
-                    ),
-                    "detected_columns": getattr(flow_state, "discovery_data", {}).get(
-                        "detected_columns", []
-                    ),
-                    "data_source_info": getattr(flow_state, "discovery_data", {}).get(
-                        "data_source_info", {}
-                    ),
-                    "previous_mappings": getattr(flow_state, "field_mappings", []),
-                }
-                result = await self._execute_with_crew_fallback(crew_input)
+                crew_input = convert_flow_state_to_crew_input(flow_state)
+                result = await execute_with_crew_fallback(
+                    crew_input,
+                    self.crew_manager,
+                    self.get_phase_name(),
+                    self._get_phase_timeout(),
+                )
 
             logger.info("Field mapping completed successfully")
             return result
@@ -263,129 +265,28 @@ class FieldMappingExecutor(BasePhaseExecutor):
     # Additional compatibility methods
     def get_supported_flow_types(self) -> List[str]:
         """Return the flow types supported by this executor."""
-        return ["unified_discovery", "field_mapping", "data_mapping"]
+        return get_supported_flow_types()
 
     async def validate_input(self, input_data: Dict[str, Any]) -> bool:
         """Validate input data for field mapping."""
-        try:
-            required_fields = ["sample_data", "detected_columns"]
-
-            for field in required_fields:
-                if field not in input_data:
-                    logger.warning(f"Missing required field: {field}")
-                    return False
-
-            if not input_data.get("sample_data"):
-                logger.warning("Empty sample_data provided")
-                return False
-
-            if not input_data.get("detected_columns"):
-                logger.warning("Empty detected_columns provided")
-                return False
-
-            return True
-
-        except Exception as e:
-            logger.error(f"Input validation failed: {str(e)}")
-            return False
+        return await validate_input(input_data)
 
     def get_execution_context(self) -> Dict[str, Any]:
         """Get execution context for field mapping."""
-        return {
-            "phase_name": self.get_phase_name(),
-            "client_account_id": self.client_account_id,
-            "engagement_id": self.engagement_id,
-            "timeout": self._get_phase_timeout(),
-            "crewai_available": CREWAI_FLOW_AVAILABLE,
-            "modular_implementation": True,
-            "backward_compatible": True,
-        }
+        return get_execution_context(
+            self.get_phase_name(),
+            self.client_account_id,
+            self.engagement_id,
+            self._get_phase_timeout(),
+        )
 
     def _prepare_crew_input(self) -> Dict[str, Any]:
         """Prepare input data for crew execution - required by BasePhaseExecutor."""
-        try:
-            # Extract data from the current state
-            discovery_data = getattr(self.state, "discovery_data", {})
-            field_mappings = getattr(self.state, "field_mappings", [])
-            raw_data = getattr(self.state, "raw_data", [])
-
-            crew_input = {
-                "flow_id": getattr(self.state, "flow_id", None),
-                "discovery_data": discovery_data,
-                "sample_data": discovery_data.get("sample_data", raw_data),
-                "detected_columns": discovery_data.get("detected_columns", []),
-                "data_source_info": discovery_data.get("data_source_info", {}),
-                "previous_mappings": field_mappings,
-                "mapping_type": "field_mapping",
-            }
-
-            logger.info(
-                f"Prepared crew input with {len(crew_input.get('sample_data', []))} sample records"
-            )
-            return crew_input
-
-        except Exception as e:
-            logger.error(f"Failed to prepare crew input: {str(e)}")
-            # Return minimal valid input
-            return {
-                "flow_id": getattr(self.state, "flow_id", "unknown"),
-                "discovery_data": {},
-                "sample_data": [],
-                "detected_columns": [],
-                "data_source_info": {},
-                "previous_mappings": [],
-                "mapping_type": "field_mapping",
-            }
+        return prepare_crew_input_from_state(self.state)
 
     async def _store_results(self, results: Dict[str, Any]):
         """Store execution results in state - required by BasePhaseExecutor."""
-        try:
-            logger.info(
-                f"Storing field mapping results with keys: {list(results.keys())}"
-            )
-
-            # Store mappings in state
-            if "mappings" in results:
-                self.state.field_mappings = results["mappings"]
-                logger.info(f"Stored {len(results['mappings'])} field mappings")
-
-            # Store confidence scores
-            if "confidence_scores" in results:
-                if not hasattr(self.state, "field_mapping_metadata"):
-                    self.state.field_mapping_metadata = {}
-                self.state.field_mapping_metadata["confidence_scores"] = results[
-                    "confidence_scores"
-                ]
-
-            # Store clarifications
-            if "clarifications" in results:
-                if not hasattr(self.state, "field_mapping_metadata"):
-                    self.state.field_mapping_metadata = {}
-                self.state.field_mapping_metadata["clarifications"] = results[
-                    "clarifications"
-                ]
-
-            # Store validation errors if any
-            if "validation_errors" in results and results["validation_errors"]:
-                logger.warning(
-                    f"Field mapping validation errors: {results['validation_errors']}"
-                )
-                if not hasattr(self.state, "validation_errors"):
-                    self.state.validation_errors = []
-                self.state.validation_errors.extend(results["validation_errors"])
-
-            # Store execution metadata
-            if "execution_metadata" in results:
-                if not hasattr(self.state, "field_mapping_metadata"):
-                    self.state.field_mapping_metadata = {}
-                self.state.field_mapping_metadata.update(results["execution_metadata"])
-
-            logger.info("Field mapping results stored successfully in state")
-
-        except Exception as e:
-            logger.error(f"Failed to store field mapping results: {str(e)}")
-            # Don't raise exception to avoid breaking the flow
-            # Just log the error and continue
+        store_results_in_state(self.state, results)
 
     async def execute_suggestions_only(
         self, input_data: Dict[str, Any]
@@ -424,129 +325,6 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 "error": str(e),
                 "mappings": [],
                 "clarifications": [],
-            }
-
-    async def _execute_with_crew_fallback(
-        self, crew_input: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Fallback execution when modular executor is not available."""
-        try:
-            logger.info("Executing field mapping fallback with direct crew manager")
-
-            # Use the crew manager to create and execute a field mapping crew
-            phase_name = self.get_phase_name()
-            crew = self.crew_manager.create_crew_on_demand(phase_name)
-
-            if not crew:
-                raise RuntimeError(f"Could not create crew for {phase_name}")
-
-            # Execute the crew with the input data
-            # Note: This is a simplified fallback that may not have all the sophistication
-            # of the modular executor, but it maintains basic functionality
-            # CRITICAL FIX: Pass the timeout to avoid 15-second global timeout
-            timeout = self._get_phase_timeout()
-            logger.info(f"Executing crew with timeout: {timeout} seconds")
-
-            # Set crew configuration with proper timeout
-            crew.max_time = timeout
-            crew_result = await crew.kickoff_async(inputs=crew_input)
-
-            # Process the result into expected format
-            if hasattr(crew_result, "raw") and crew_result.raw:
-                # Try to parse structured response
-                import json
-
-                try:
-                    if "{" in crew_result.raw and "}" in crew_result.raw:
-                        start = crew_result.raw.find("{")
-                        end = crew_result.raw.rfind("}") + 1
-                        json_str = crew_result.raw[start:end]
-                        parsed_result = json.loads(json_str)
-
-                        return {
-                            "success": True,
-                            "mappings": parsed_result.get("mappings", []),
-                            "confidence_scores": parsed_result.get(
-                                "confidence_scores", {}
-                            ),
-                            "clarifications": parsed_result.get("clarifications", []),
-                            "validation_errors": [],
-                            "phase_name": phase_name,
-                            "next_phase": "data_transformation",
-                            "timestamp": datetime.utcnow().isoformat(),
-                            "execution_metadata": {"fallback_used": True},
-                            "raw_response": crew_result.raw,
-                        }
-                except json.JSONDecodeError:
-                    pass
-
-            # If we can't parse JSON, try to extract mappings from raw text
-            logger.warning(
-                "Could not parse JSON from crew result, attempting text extraction"
-            )
-
-            # Extract field mappings from raw text if available
-            extracted_mappings = []
-            if hasattr(crew_result, "raw") and crew_result.raw:
-                # Look for patterns like "field_name -> target_field" or "field_name: target_field"
-                import re
-
-                lines = crew_result.raw.split("\n")
-                for line in lines:
-                    # Match patterns like "Device_ID -> asset_id" or "Device_ID: asset_id"
-                    match = re.search(r"(\w+)\s*(?:->|:|=>|maps to)\s*(\w+)", line)
-                    if match:
-                        source_field = match.group(1)
-                        target_field = match.group(2)
-                        extracted_mappings.append(
-                            {
-                                "source_field": source_field,
-                                "target_field": target_field,
-                                "confidence": 0.7,  # Default confidence for text-extracted mappings
-                                "status": "suggested",
-                            }
-                        )
-                        logger.info(
-                            f"Extracted mapping: {source_field} -> {target_field}"
-                        )
-
-            if extracted_mappings:
-                logger.info(
-                    f"Successfully extracted {len(extracted_mappings)} mappings from raw text"
-                )
-            else:
-                logger.error("No mappings could be extracted from crew result")
-
-            return {
-                "success": True if extracted_mappings else False,
-                "mappings": extracted_mappings,
-                "confidence_scores": {},
-                "clarifications": [],
-                "validation_errors": (
-                    []
-                    if extracted_mappings
-                    else ["No mappings extracted from crew result"]
-                ),
-                "phase_name": phase_name,
-                "next_phase": "data_transformation",
-                "timestamp": datetime.utcnow().isoformat(),
-                "execution_metadata": {
-                    "fallback_used": True,
-                    "raw_result": str(crew_result),
-                },
-                "raw_response": str(crew_result),
-            }
-
-        except Exception as e:
-            logger.error(f"Field mapping fallback execution failed: {str(e)}")
-            return {
-                "success": False,
-                "error": f"Fallback execution failed: {str(e)}",
-                "mappings": [],
-                "clarifications": [],
-                "validation_errors": [str(e)],
-                "phase_name": self.get_phase_name(),
-                "timestamp": datetime.utcnow().isoformat(),
             }
 
 

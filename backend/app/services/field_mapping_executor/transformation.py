@@ -12,6 +12,10 @@ Backward compatibility wrapper for the original transformation.py
 import logging
 from typing import Any, Dict
 
+# SECURITY FIX: Add required SQLAlchemy imports at top of file
+from sqlalchemy import select, and_
+from sqlalchemy.ext.asyncio import AsyncSession
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,6 +35,10 @@ class MappingTransformer(TransformationEngine):
 
     def __init__(self, storage_manager, client_account_id, engagement_id):
         super().__init__()
+        # SECURITY FIX: Validate storage_manager availability before use
+        if not storage_manager:
+            raise ValueError("Storage manager is required for MappingTransformer")
+
         self.storage_manager = storage_manager
         self.client_account_id = client_account_id
         self.engagement_id = engagement_id
@@ -49,6 +57,20 @@ class MappingTransformer(TransformationEngine):
         that matches the original CSV import, not a new/different import ID.
         """
         try:
+            # SECURITY FIX: Check db_session before DB operations
+            if not db_session:
+                return {
+                    "success": False,
+                    "error": "Database session is required for persistence",
+                    "mappings_persisted": 0,
+                }
+
+            # Validate db_session is an AsyncSession
+            if not isinstance(db_session, AsyncSession):
+                logger.warning(
+                    "Database session is not an AsyncSession - attempting to proceed"
+                )
+
             mappings_data = parsed_mappings.get("mappings", [])
 
             if not mappings_data:
@@ -71,7 +93,6 @@ class MappingTransformer(TransformationEngine):
             if not data_import_id:
                 # Last resort: look up via engagement_id
                 from app.models.data_import import DataImport
-                from sqlalchemy import select, and_
 
                 query = (
                     select(DataImport)

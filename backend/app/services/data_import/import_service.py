@@ -58,6 +58,20 @@ class DataImportService:
             int: The actual number of records
         """
         try:
+            # SECURITY FIX: Handle generators/iterables properly for counting
+            if hasattr(data, "__iter__") and not isinstance(data, (str, dict)):
+                # Convert generator to list for counting, but be memory conscious
+                try:
+                    if hasattr(data, "__len__"):
+                        return len(data)
+                    else:
+                        # For generators, count without consuming all memory
+                        count = sum(1 for _ in data)
+                        return count
+                except Exception:
+                    # Fallback if iteration fails
+                    return 0
+
             # If data is already a list, return its length
             if isinstance(data, list):
                 return len(data)
@@ -84,7 +98,15 @@ class DataImportService:
             return 0
 
         except Exception as e:
-            logger.error(f"Error calculating record count: {e}")
+            # SECURITY FIX: Use secure formatting for errors - log exception type only
+            from app.core.security.secure_logging import safe_log_format
+
+            logger.error(
+                safe_log_format(
+                    "Error calculating record count: {error_type}",
+                    error_type=type(e).__name__,
+                )
+            )
             # Fallback: assume no records
             return 0
 
@@ -184,10 +206,19 @@ class DataImportService:
                         "Failed to create master flow - no flow ID returned"
                     )
             except Exception as flow_error:
+                # SECURITY FIX: Use secure formatting for flow creation errors
+                from app.core.security.secure_logging import safe_log_format
+
                 logger.error(
-                    f"❌ Exception during flow creation: {flow_error}", exc_info=True
+                    safe_log_format(
+                        "❌ Exception during flow creation: {error_type}",
+                        error_type=type(flow_error).__name__,
+                    ),
+                    exc_info=True,
                 )
-                raise FlowError(f"Failed to create master flow: {str(flow_error)}")
+                raise FlowError(
+                    f"Failed to create master flow: {type(flow_error).__name__}"
+                )
 
             logger.info(f"✅ Master flow created successfully: {master_flow_id}")
 
@@ -243,9 +274,17 @@ class DataImportService:
             return data_import
 
         except Exception as e:
-            logger.error(f"❌ Data import and flow trigger failed: {e}")
+            # SECURITY FIX: Use secure formatting for final error logging
+            from app.core.security.secure_logging import safe_log_format
+
+            logger.error(
+                safe_log_format(
+                    "❌ Data import and flow trigger failed: {error_type}",
+                    error_type=type(e).__name__,
+                )
+            )
             logger.error(f"Full traceback: {traceback.format_exc()}")
             # The exception will be caught by the transaction manager, which will rollback.
             raise DataImportError(
-                f"Failed to process import and trigger flow: {str(e)}"
+                f"Failed to process import and trigger flow: {type(e).__name__}"
             )
