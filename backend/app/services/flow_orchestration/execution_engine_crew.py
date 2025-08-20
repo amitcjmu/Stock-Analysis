@@ -41,11 +41,19 @@ class FlowExecutionCrew:
         db: AsyncSession,
         context: RequestContext,
         master_repo: CrewAIFlowStateExtensionsRepository,
+        flow_registry=None,
+        handler_registry=None,
+        validator_registry=None,
     ):
         """Initialize the FlowExecutionCrew"""
         self.db = db
         self.context = context
         self.master_repo = master_repo
+
+        # Store registry parameters (optional for backward compatibility)
+        self.flow_registry = flow_registry
+        self.handler_registry = handler_registry
+        self.validator_registry = validator_registry
 
         # Initialize modular components
         self.crew_utils = ExecutionEngineCrewUtils()

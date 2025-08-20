@@ -416,23 +416,70 @@ export const useProgressMonitoring = (
       }
     } catch (error: unknown) {
       console.error('Failed to load collection flow data:', error);
-      setState(prev => ({ ...prev, error, isLoading: false }));
+
+      // Create a more descriptive error message based on the error type
+      let errorMessage: string;
+      let processedError: Error;
+
+      if (error && typeof error === 'object' && 'status' in error) {
+        const statusCode = (error as any).status;
+        if (statusCode === 404) {
+          errorMessage = flowId
+            ? `Collection flow '${flowId}' not found or has been deleted`
+            : 'No collection flows found or access denied';
+          processedError = new Error(errorMessage);
+        } else if (statusCode === 403) {
+          errorMessage = 'Access denied to collection flow data';
+          processedError = new Error(errorMessage);
+        } else if (statusCode >= 500) {
+          errorMessage = 'Server error occurred while loading collection data';
+          processedError = new Error(errorMessage);
+        } else {
+          errorMessage = `API error (${statusCode}): Unable to load collection data`;
+          processedError = new Error(errorMessage);
+        }
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        const apiError = error as any;
+        if (apiError.message?.includes('Context extraction failed')) {
+          errorMessage = 'Context extraction failed - unable to process collection data';
+          processedError = new Error(errorMessage);
+        } else if (apiError.message?.includes('Network Error') || apiError.message?.includes('fetch')) {
+          errorMessage = 'Network connection error - please check your internet connection';
+          processedError = new Error(errorMessage);
+        } else {
+          errorMessage = apiError.message || 'Unknown error occurred while loading data';
+          processedError = new Error(errorMessage);
+        }
+      } else if (typeof error === 'string') {
+        if (error.includes('Context extraction failed')) {
+          errorMessage = 'Context extraction failed - unable to process collection data';
+          processedError = new Error(errorMessage);
+        } else {
+          errorMessage = error;
+          processedError = new Error(errorMessage);
+        }
+      } else {
+        errorMessage = 'Unable to load collection flow data';
+        processedError = new Error(errorMessage);
+      }
+
+      setState(prev => ({ ...prev, error: processedError, isLoading: false }));
 
       // STOP INFINITE LOOPS: Handle 404 errors differently - don't retry for non-existent flows
-      if (error?.status === 404) {
+      if (error && typeof error === 'object' && 'status' in error && (error as any).status === 404) {
         console.warn('⚠️ Flow not found - stopping auto-refresh to prevent infinite 404 retries');
         setAutoRefresh(false); // Stop auto-refresh for 404 errors
 
         toast({
           title: 'Collection Flow Not Found',
-          description: 'The requested collection flow no longer exists or has been deleted.',
+          description: errorMessage,
           variant: 'destructive'
         });
       } else {
-        // Only show generic error toast for non-404 errors
+        // Show descriptive error toast for other errors
         toast({
           title: 'Failed to load data',
-          description: 'Unable to load collection flow data. Please try again.',
+          description: errorMessage,
           variant: 'destructive'
         });
       }

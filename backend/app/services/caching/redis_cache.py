@@ -11,7 +11,7 @@ This service provides a unified interface for Redis caching with support for:
 import asyncio
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, date, time
 from functools import wraps
 from typing import Any, Dict, List, Optional
 
@@ -20,6 +20,22 @@ from app.core.logging import get_logger
 from app.core.security.cache_encryption import SecureCache
 
 logger = get_logger(__name__)
+
+
+def datetime_json_serializer(obj):
+    """Custom JSON serializer for datetime objects and other complex types"""
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    elif isinstance(obj, date):
+        return obj.isoformat()
+    elif isinstance(obj, time):
+        return obj.isoformat()
+    elif hasattr(obj, "__dict__"):
+        # Handle complex objects by converting to dict
+        return str(obj)
+    else:
+        # Fall back to string representation
+        return str(obj)
 
 
 def redis_fallback(func):
@@ -174,7 +190,9 @@ class RedisCache:
         try:
             ttl = ttl or self.default_ttl
             serialized = (
-                json.dumps(value, default=str) if not isinstance(value, str) else value
+                json.dumps(value, default=datetime_json_serializer, ensure_ascii=False)
+                if not isinstance(value, str)
+                else value
             )
 
             if self.client_type == "upstash":
@@ -578,13 +596,21 @@ class RedisCache:
                             "client_id": flow_data.get("client_id"),
                             "engagement_id": flow_data.get("engagement_id"),
                             "user_id": flow_data.get("user_id"),
-                        }
+                        },
+                        default=datetime_json_serializer,
+                        ensure_ascii=False,
                     ),
                 )
 
                 # 3. Initialize flow state
                 state_key = f"flow:state:{flow_id}"
-                self.client.setex(state_key, ttl, json.dumps(flow_data))
+                self.client.setex(
+                    state_key,
+                    ttl,
+                    json.dumps(
+                        flow_data, default=datetime_json_serializer, ensure_ascii=False
+                    ),
+                )
 
                 # 4. Add to active flows set
                 active_key = f"flows:active:{flow_type}"
@@ -625,12 +651,20 @@ class RedisCache:
                             "client_id": flow_data.get("client_id"),
                             "engagement_id": flow_data.get("engagement_id"),
                             "user_id": flow_data.get("user_id"),
-                        }
+                        },
+                        default=datetime_json_serializer,
+                        ensure_ascii=False,
                     ),
                 )
 
                 state_key = f"flow:state:{flow_id}"
-                pipeline.setex(state_key, ttl, json.dumps(flow_data))
+                pipeline.setex(
+                    state_key,
+                    ttl,
+                    json.dumps(
+                        flow_data, default=datetime_json_serializer, ensure_ascii=False
+                    ),
+                )
 
                 # Add to active flows set
                 active_key = f"flows:active:{flow_type}"
