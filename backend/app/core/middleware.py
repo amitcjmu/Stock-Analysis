@@ -11,7 +11,8 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from .context import RequestContext, validate_context
+from .context import RequestContext
+from .context_utils import validate_context
 from .security.secure_logging import safe_log_format
 
 # Import security audit service
@@ -235,10 +236,10 @@ class ContextMiddleware(BaseHTTPMiddleware):
         try:
             from app.core.context import (
                 extract_context_from_request,
-                is_demo_client,
                 set_request_context,
-                validate_context,
             )
+            from app.core.context import is_demo_client
+            from app.core.context_utils import validate_context
 
             context = extract_context_from_request(request)
             validate_context(
