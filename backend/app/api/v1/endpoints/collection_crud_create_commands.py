@@ -156,7 +156,17 @@ async def create_collection_from_discovery(
             len(selected_application_ids),
         )
 
-        return collection_serializers.serialize_collection_flow(collection_flow)
+        # Serialize flow and add warning if master_flow_id is missing
+        serialized_flow = collection_serializers.serialize_collection_flow(
+            collection_flow
+        )
+        if not master_flow_id:
+            serialized_flow["warning"] = (
+                "Master flow creation failed - collection flow created without "
+                "master orchestration. Please retry or contact support."
+            )
+
+        return serialized_flow
 
     except HTTPException:
         raise
@@ -271,7 +281,17 @@ async def create_collection_flow(
             )
         )
 
-        return collection_serializers.serialize_collection_flow(collection_flow)
+        # Serialize flow and add warning if master_flow_id is missing
+        serialized_flow = collection_serializers.serialize_collection_flow(
+            collection_flow
+        )
+        if not master_flow_id:
+            serialized_flow["warning"] = (
+                "Master flow creation failed - collection flow created without "
+                "master orchestration. Please retry or contact support."
+            )
+
+        return serialized_flow
 
     except HTTPException:
         raise

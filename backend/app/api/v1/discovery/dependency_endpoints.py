@@ -26,20 +26,28 @@ async def get_user_context(
 ):
     """
     Extract client_account_id and engagement_id from authenticated user.
+
+    Returns consistent string types for all identifiers.
+    Raises 403 for missing client association, 400 for missing engagement.
     """
     service = UserService(db)
     user_context = await service.get_user_context(current_user)
 
     if not user_context.client:
         raise HTTPException(
-            status_code=400, detail="User not associated with a client account"
+            status_code=403, detail="User not associated with a client account"
+        )
+
+    engagement_id = user_context.engagement.id if user_context.engagement else None
+    if engagement_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Engagement context required for dependency operations",
         )
 
     return {
-        "client_account_id": user_context.client.id,
-        "engagement_id": (
-            user_context.engagement.id if user_context.engagement else None
-        ),
+        "client_account_id": str(user_context.client.id),
+        "engagement_id": str(engagement_id),
         "user_id": str(current_user.id),
     }
 
