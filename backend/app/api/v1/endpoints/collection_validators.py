@@ -312,7 +312,7 @@ def validate_flow_update_action(action: str) -> None:
     Raises:
         HTTPException: If action is invalid
     """
-    valid_actions = ["continue", "pause", "cancel"]
+    valid_actions = ["continue", "pause", "cancel", "update_applications"]
 
     if action not in valid_actions:
         raise HTTPException(

@@ -47,10 +47,14 @@ const AdaptiveForms: React.FC = () => {
     const config = collectionFlow.collection_config || {};
     const selectedApps = config.selected_application_ids || config.applications || config.application_ids || [];
 
-    // Also check if the flow was created from discovery (has discovery_flow_id)
-    const hasDiscoverySource = !!collectionFlow.discovery_flow_id;
+    // Check if applications are selected
+    const hasApps = Array.isArray(selectedApps) && selectedApps.length > 0;
 
-    return Array.isArray(selectedApps) && selectedApps.length > 0 && hasDiscoverySource;
+    // Also check if has_applications flag is set in config
+    const hasAppsFlag = config.has_applications === true;
+
+    // Return true if applications are selected either way
+    return hasApps || hasAppsFlag;
   };
 
   // Check for incomplete flows that would block new collection processes

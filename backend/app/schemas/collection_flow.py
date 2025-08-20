@@ -26,7 +26,8 @@ class CollectionFlowUpdate(BaseModel):
     """Schema for updating a collection flow"""
 
     action: Optional[str] = Field(
-        None, description="Action to perform: continue, pause, cancel"
+        None,
+        description="Action to perform: continue, pause, cancel, update_applications",
     )
     user_input: Optional[Dict[str, Any]] = Field(
         default_factory=dict, description="User input for flow continuation"
@@ -34,6 +35,8 @@ class CollectionFlowUpdate(BaseModel):
     collection_config: Optional[Dict[str, Any]] = Field(
         None, description="Updated collection configuration"
     )
+    flow_name: Optional[str] = Field(None, description="Updated flow name")
+    automation_tier: Optional[str] = Field(None, description="Updated automation tier")
 
 
 class CollectionFlowResponse(BaseModel):
@@ -52,6 +55,7 @@ class CollectionFlowResponse(BaseModel):
     completed_at: Optional[datetime] = None
     gaps_identified: Optional[int] = None
     collection_metrics: Optional[Dict[str, Any]] = None
+    discovery_flow_id: Optional[str] = None
 
     class Config:
         from_attributes = True

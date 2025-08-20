@@ -58,21 +58,27 @@ def build_collection_flow_response(
             "gaps_resolved": 0,  # Default since resolution tracking isn't implemented
         }
 
-    return CollectionFlowResponse(
-        id=str(collection_flow.flow_id),
-        client_account_id=str(collection_flow.client_account_id),
-        engagement_id=str(collection_flow.engagement_id),
-        status=collection_flow.status,
-        automation_tier=collection_flow.automation_tier,
-        current_phase=collection_flow.current_phase,
-        progress=collection_flow.progress_percentage or 0,
-        collection_config=collection_flow.collection_config,
-        created_at=collection_flow.created_at,
-        updated_at=collection_flow.updated_at,
-        completed_at=collection_flow.completed_at,
-        gaps_identified=gaps_identified,
-        collection_metrics=collection_metrics,
-    )
+    response_dict = {
+        "id": str(collection_flow.flow_id),
+        "client_account_id": str(collection_flow.client_account_id),
+        "engagement_id": str(collection_flow.engagement_id),
+        "status": collection_flow.status,
+        "automation_tier": collection_flow.automation_tier,
+        "current_phase": collection_flow.current_phase,
+        "progress": collection_flow.progress_percentage or 0,
+        "collection_config": collection_flow.collection_config,
+        "created_at": collection_flow.created_at,
+        "updated_at": collection_flow.updated_at,
+        "completed_at": collection_flow.completed_at,
+        "gaps_identified": gaps_identified,
+        "collection_metrics": collection_metrics,
+    }
+
+    # Include discovery_flow_id if present
+    if collection_flow.discovery_flow_id:
+        response_dict["discovery_flow_id"] = str(collection_flow.discovery_flow_id)
+
+    return CollectionFlowResponse(**response_dict)
 
 
 def build_collection_config_from_discovery(
