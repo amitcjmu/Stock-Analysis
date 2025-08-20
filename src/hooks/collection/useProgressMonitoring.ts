@@ -284,7 +284,7 @@ export const generateMockMetrics = (flows: CollectionFlow[]): CollectionMetrics 
 export const useProgressMonitoring = (
   options: UseProgressMonitoringOptions = {}
 ): ProgressMonitoringState & ProgressMonitoringActions & { autoRefresh: boolean } => {
-  const { flowId, autoRefresh: initialAutoRefresh = true, refreshInterval = 3000 } = options;
+  const { flowId, autoRefresh: initialAutoRefresh = true, refreshInterval = 30000 } = options; // 30 seconds instead of 3
   const { toast } = useToast();
 
   const [state, setState] = useState<ProgressMonitoringState>({
@@ -318,7 +318,7 @@ export const useProgressMonitoring = (
           status: flowDetails.status === 'initialized' || flowDetails.status === 'running' ? 'running' :
                   flowDetails.status === 'completed' ? 'completed' :
                   flowDetails.status === 'paused' ? 'paused' : 'failed',
-          progress: flowDetails.progress || 0,
+          progress: flowDetails.progress_percentage || 0,  // Use correct field
           startedAt: flowDetails.created_at,
           completedAt: flowDetails.completed_at,
           applicationCount: flowDetails.collection_metrics?.platforms_detected || 0,
@@ -370,7 +370,7 @@ export const useProgressMonitoring = (
           status: flowDetails.status === 'initialized' || flowDetails.status === 'running' ? 'running' :
                   flowDetails.status === 'completed' ? 'completed' :
                   flowDetails.status === 'paused' ? 'paused' : 'failed',
-          progress: flowDetails.progress || 0,
+          progress: flowDetails.progress_percentage || 0,  // Use correct field
           startedAt: flowDetails.created_at,
           completedAt: flowDetails.completed_at,
           applicationCount: flowDetails.collection_metrics?.platforms_detected || 10,
@@ -418,12 +418,24 @@ export const useProgressMonitoring = (
       console.error('Failed to load collection flow data:', error);
       setState(prev => ({ ...prev, error, isLoading: false }));
 
-      // Show error toast
-      toast({
-        title: 'Failed to load data',
-        description: 'Unable to load collection flow data. Please try again.',
-        variant: 'destructive'
-      });
+      // STOP INFINITE LOOPS: Handle 404 errors differently - don't retry for non-existent flows
+      if (error?.status === 404) {
+        console.warn('⚠️ Flow not found - stopping auto-refresh to prevent infinite 404 retries');
+        setAutoRefresh(false); // Stop auto-refresh for 404 errors
+
+        toast({
+          title: 'Collection Flow Not Found',
+          description: 'The requested collection flow no longer exists or has been deleted.',
+          variant: 'destructive'
+        });
+      } else {
+        // Only show generic error toast for non-404 errors
+        toast({
+          title: 'Failed to load data',
+          description: 'Unable to load collection flow data. Please try again.',
+          variant: 'destructive'
+        });
+      }
     }
   }, [flowId, toast]);
 
@@ -431,6 +443,10 @@ export const useProgressMonitoring = (
    * Refresh data (for manual refresh)
    */
   const refreshData = (): void => {
+    // Reset error state when manually refreshing
+    setState(prev => ({ ...prev, error: null }));
+    // Re-enable auto-refresh when user manually refreshes
+    setAutoRefresh(true);
     loadData();
   };
 
@@ -512,15 +528,24 @@ export const useProgressMonitoring = (
 
   // Auto-refresh effect
   useEffect(() => {
-    if (!autoRefresh) return;
+    // STOP INFINITE LOOPS: Don't auto-refresh if there's an error or if disabled
+    if (!autoRefresh || state.error) {
+      console.log('🛑 Auto-refresh disabled due to error or manual setting');
+      return;
+    }
 
-    const interval = setInterval(() => {
-      // Reload actual data from API
-      loadData();
+    const interval = setInterval(async () => {
+      // Reload actual data from API with error handling
+      try {
+        await loadData();
+      } catch (error) {
+        console.error('❌ Auto-refresh failed, stopping future refreshes:', error);
+        setAutoRefresh(false); // Stop auto-refresh on any error
+      }
     }, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval, flowId, loadData]);
+  }, [autoRefresh, refreshInterval, flowId, state.error, loadData]);
 
   // Initial data load
   useEffect(() => {

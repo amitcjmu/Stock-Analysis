@@ -84,8 +84,10 @@ COLLECTION_DELETE_ROLES = [
     RoleType.PLATFORM_ADMIN.value,
     RoleType.CLIENT_ADMIN.value,
     RoleType.ENGAGEMENT_MANAGER.value,
+    RoleType.ANALYST.value,  # Allow analysts to delete flows they created
     "admin",  # Legacy role
     "engagement_manager",  # Legacy role
+    "analyst",  # Legacy role
 ]
 
 COLLECTION_VIEW_ROLES = [

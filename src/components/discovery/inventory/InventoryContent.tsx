@@ -67,6 +67,17 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   const [isReclassifying, setIsReclassifying] = useState(false);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
 
+  // Check for collectionFlowId parameter to auto-show application selection modal
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const collectionFlowId = urlParams.get('collectionFlowId');
+
+    if (collectionFlowId) {
+      console.log('🔗 Collection flow requires application selection:', collectionFlowId);
+      setShowApplicationModal(true);
+    }
+  }, []);
+
   // Get assets data - fetch from API endpoint that returns all assets for the client/engagement
   const { data: assetsData, isLoading: assetsLoading, refetch: refetchAssets } = useQuery({
     queryKey: ['discovery-assets', client?.id, engagement?.id, flowId],
@@ -564,6 +575,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           onClose={() => setShowApplicationModal(false)}
           flowId={flowId}
           preSelectedApplicationIds={selectedApplicationIds}
+          existingCollectionFlowId={new URLSearchParams(window.location.search).get('collectionFlowId') || undefined}
         />
       )}
     </div>

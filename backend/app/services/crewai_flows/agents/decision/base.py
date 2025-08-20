@@ -10,7 +10,10 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from crewai import Agent
+try:
+    from crewai import Agent
+except ImportError:
+    Agent = None
 
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 
@@ -57,58 +60,88 @@ class AgentDecision:
         }
 
 
-class BaseDecisionAgent(Agent, ABC):
-    """Base class for all decision-making agents"""
+if Agent is not None:
 
-    def __init__(self, role: str, goal: str, backstory: str, **kwargs):
-        """Initialize base decision agent"""
-        super().__init__(
-            role=role,
-            goal=goal,
-            backstory=backstory,
-            verbose=True,
-            allow_delegation=False,
-            **kwargs
-        )
+    class BaseDecisionAgent(Agent, ABC):
+        """Base class for all decision-making agents with CrewAI support"""
 
-    @abstractmethod
-    async def analyze_phase_transition(
-        self, current_phase: str, results: Any, state: UnifiedDiscoveryFlowState
-    ) -> AgentDecision:
-        """
-        Analyze current state and results to decide next phase transition.
+        def __init__(self, role: str, goal: str, backstory: str, **kwargs):
+            """Initialize base decision agent"""
+            super().__init__(
+                role=role,
+                goal=goal,
+                backstory=backstory,
+                verbose=True,
+                allow_delegation=False,
+                **kwargs
+            )
 
-        Args:
-            current_phase: Current phase name
-            results: Results from current phase execution
-            state: Current flow state
+        @abstractmethod
+        async def analyze_phase_transition(
+            self, current_phase: str, results: Any, state: UnifiedDiscoveryFlowState
+        ) -> AgentDecision:
+            """
+            Analyze current state and results to decide next phase transition.
 
-        Returns:
-            AgentDecision with recommended action
-        """
-        pass
+            Args:
+                current_phase: Current phase name
+                results: Results from current phase execution
+                state: Current flow state
 
-    def _calculate_confidence(self, factors: Dict[str, float]) -> float:
-        """
-        Calculate overall confidence score from multiple factors.
+            Returns:
+                AgentDecision with recommended action
+            """
+            pass
 
-        Args:
-            factors: Dictionary of factor_name -> confidence (0-1)
+else:
 
-        Returns:
-            Weighted average confidence score
-        """
-        if not factors:
-            return 0.0
+    class BaseDecisionAgent(ABC):
+        """Base class for all decision-making agents (fallback mode)"""
 
-        total_weight = sum(factors.values())
-        if total_weight == 0:
-            return 0.0
+        def __init__(self, role: str, goal: str, backstory: str, **kwargs):
+            """Initialize base decision agent"""
+            self.role = role
+            self.goal = goal
+            self.backstory = backstory
 
-        return min(1.0, total_weight / len(factors))
+        @abstractmethod
+        async def analyze_phase_transition(
+            self, current_phase: str, results: Any, state: UnifiedDiscoveryFlowState
+        ) -> AgentDecision:
+            """
+            Analyze current state and results to decide next phase transition.
 
-    def _get_state_attr(self, state: Any, attr: str, default: Any = None) -> Any:
-        """Get attribute from state, handling both dict and object types"""
-        if isinstance(state, dict):
-            return state.get(attr, default)
-        return getattr(state, attr, default)
+            Args:
+                current_phase: Current phase name
+                results: Results from current phase execution
+                state: Current flow state
+
+            Returns:
+                AgentDecision with recommended action
+            """
+            pass
+
+        def _calculate_confidence(self, factors: Dict[str, float]) -> float:
+            """
+            Calculate overall confidence score from multiple factors.
+
+            Args:
+                factors: Dictionary of factor_name -> confidence (0-1)
+
+            Returns:
+                Weighted average confidence score
+            """
+            if not factors:
+                return 0.0
+
+            total_weight = sum(factors.values())
+            if total_weight == 0:
+                return 0.0
+
+            return min(1.0, total_weight / len(factors))
+
+        def _get_state_attr(self, state: Any, attr: str, default: Any = None) -> Any:
+            """Get attribute from state, handling both dict and object types"""
+            if isinstance(state, dict):
+                return state.get(attr, default)
+            return getattr(state, attr, default)

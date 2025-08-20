@@ -19,6 +19,20 @@ from app.schemas.collection_flow import (
 )
 
 
+def serialize_collection_flow(
+    collection_flow: CollectionFlow,
+    gaps_identified: int = 0,
+    collection_metrics: Optional[Dict[str, Any]] = None,
+) -> CollectionFlowResponse:
+    """Serialize a CollectionFlow model to CollectionFlowResponse.
+
+    Alias for build_collection_flow_response for backward compatibility.
+    """
+    return build_collection_flow_response(
+        collection_flow, gaps_identified, collection_metrics
+    )
+
+
 def build_collection_flow_response(
     collection_flow: CollectionFlow,
     gaps_identified: int = 0,

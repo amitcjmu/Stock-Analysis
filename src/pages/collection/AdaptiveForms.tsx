@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query';
@@ -13,6 +13,8 @@ import { CollectionUploadBlocker } from '@/components/collection/CollectionUploa
 // Import custom hooks
 import { useAdaptiveFormFlow } from '@/hooks/collection/useAdaptiveFormFlow';
 import { useIncompleteCollectionFlows, useCollectionFlowManagement } from '@/hooks/collection/useCollectionFlowManagement';
+import { useQuery } from '@tanstack/react-query';
+import { apiCall } from '@/config/api';
 
 // Import types
 import type { ProgressMilestone } from '@/components/collection/types';
@@ -36,6 +38,20 @@ const AdaptiveForms: React.FC = () => {
   // State to track flows being deleted
   const [deletingFlows, setDeletingFlows] = useState<Set<string>>(new Set());
   const [hasJustDeleted, setHasJustDeleted] = useState(false);
+
+  // Function to detect if applications are selected in the collection flow
+  const hasApplicationsSelected = (collectionFlow: any): boolean => {
+    if (!collectionFlow) return false;
+
+    // Check collection_config for selected applications
+    const config = collectionFlow.collection_config || {};
+    const selectedApps = config.selected_application_ids || config.applications || config.application_ids || [];
+
+    // Also check if the flow was created from discovery (has discovery_flow_id)
+    const hasDiscoverySource = !!collectionFlow.discovery_flow_id;
+
+    return Array.isArray(selectedApps) && selectedApps.length > 0 && hasDiscoverySource;
+  };
 
   // Check for incomplete flows that would block new collection processes
   const {
@@ -63,6 +79,7 @@ const AdaptiveForms: React.FC = () => {
     isLoading,
     isSaving,
     error,
+    flowId: activeFlowId, // Extract flowId from hook return
     handleFieldChange,
     handleValidationChange,
     handleSave,
@@ -73,6 +90,53 @@ const AdaptiveForms: React.FC = () => {
     flowId,
     autoInitialize: !checkingFlows && (!hasBlockingFlows || hasJustDeleted)
   });
+
+  // Check if the current Collection flow has application selection
+  // Now that formData is available from useAdaptiveFormFlow
+  const { data: currentCollectionFlow, isLoading: isLoadingFlow } = useQuery({
+    queryKey: ['collection-flow', activeFlowId],
+    queryFn: async () => {
+      if (!activeFlowId) return null;
+      try {
+        console.log('🔍 Fetching collection flow details for application check:', activeFlowId);
+        return await apiCall(`/collection/flows/${activeFlowId}`);
+      } catch (error) {
+        console.error('Failed to fetch collection flow:', error);
+        return null;
+      }
+    },
+    enabled: !!activeFlowId
+  });
+
+  // Detect if we need to redirect to application selection
+  useEffect(() => {
+    if (isLoadingFlow || !currentCollectionFlow || !activeFlowId) return;
+
+    const hasApps = hasApplicationsSelected(currentCollectionFlow);
+
+    if (!hasApps) {
+      console.log('🔄 Collection flow has no applications selected, redirecting to inventory selection...', {
+        flowId: activeFlowId,
+        collectionFlow: currentCollectionFlow
+      });
+
+      // Show a toast to inform the user
+      toast({
+        title: 'Application Selection Required',
+        description: 'Please select applications from your inventory before generating questionnaires.',
+        duration: 5000
+      });
+
+      // Redirect to inventory page for application selection
+      // We'll pass the collection flow ID so the selection modal can connect them
+      navigate(`/discovery/inventory?collectionFlowId=${activeFlowId}`, {
+        replace: true,
+        state: {
+          message: 'Please select applications to analyze for your collection flow'
+        }
+      });
+    }
+  }, [currentCollectionFlow, isLoadingFlow, activeFlowId, navigate, toast]);
 
   // Flow management handlers for incomplete flows
   const handleContinueFlow = async (flowId: string): void => {
@@ -133,7 +197,7 @@ const AdaptiveForms: React.FC = () => {
   };
 
   const handleManageFlows = (): void => {
-    navigate('/collection/management');
+    navigate('/collection/overview');
   };
 
   // Mock progress milestones - in a real implementation these would be dynamic
@@ -234,17 +298,21 @@ const AdaptiveForms: React.FC = () => {
               <h3 className="text-lg font-semibold text-red-800 mb-2">Collection Flow Error</h3>
               <p className="text-red-700 mb-4">{error.message}</p>
 
-              {error.message?.includes('Multiple active collection flows') && (
+              {/* Handle 409 Conflict errors - existing active flows */}
+              {(error.message?.includes('Multiple active collection flows') ||
+                error.message?.includes('Active collection flow already exists') ||
+                error.message?.includes('409') ||
+                error.message?.includes('Conflict')) && (
                 <div className="mt-4">
                   <p className="text-sm text-red-600 mb-3">
-                    Multiple active flows detected. Please delete existing flows before proceeding.
+                    An active collection flow already exists. Please manage existing flows before creating a new one.
                   </p>
                   <Button
-                    onClick={() => navigate('/collection/flow-management')}
+                    onClick={() => navigate('/collection/overview')}
                     variant="outline"
                     className="mr-2"
                   >
-                    Manage Flows
+                    View Collection Overview
                   </Button>
                   <Button onClick={() => window.location.reload()} variant="outline">
                     Refresh Page
@@ -252,7 +320,24 @@ const AdaptiveForms: React.FC = () => {
                 </div>
               )}
 
-              {!error.message?.includes('Multiple active collection flows') && (
+              {/* Handle 500 errors - backend issues */}
+              {error.message?.includes('500') && (
+                <div className="mt-4">
+                  <p className="text-sm text-red-600 mb-3">
+                    Server error detected. Please contact support if this persists.
+                  </p>
+                  <Button onClick={() => window.location.reload()} variant="outline">
+                    Refresh Page
+                  </Button>
+                </div>
+              )}
+
+              {/* Only allow retry for non-critical errors */}
+              {!error.message?.includes('Multiple active collection flows') &&
+               !error.message?.includes('Active collection flow already exists') &&
+               !error.message?.includes('409') &&
+               !error.message?.includes('Conflict') &&
+               !error.message?.includes('500') && (
                 <Button onClick={() => initializeFlow()} className="mt-4">
                   Retry
                 </Button>

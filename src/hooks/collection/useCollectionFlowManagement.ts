@@ -102,6 +102,13 @@ export const useIncompleteCollectionFlows = (enabled: boolean = true): JSX.Eleme
     },
     enabled,
     refetchInterval: (data, query) => {
+      // STOP INFINITE LOOPS: Disable aggressive polling
+      // Don't refetch if there was any error
+      if (query?.state?.error) {
+        console.log('🛑 Error detected, stopping all polling:', query.state.error);
+        return false;
+      }
+
       // Don't refetch if there was an auth error
       if (query?.state?.error?.status === 401 || query?.state?.error?.isAuthError) {
         return false;
@@ -120,16 +127,26 @@ export const useIncompleteCollectionFlows = (enabled: boolean = true): JSX.Eleme
         }
       }
 
-      return 30000; // Refetch every 30 seconds
+      // Reduce polling frequency to prevent spam
+      return 60000; // Refetch every 60 seconds instead of 30
     },
     staleTime: 10000, // Consider data stale after 10 seconds
     retry: (failureCount, error: unknown) => {
+      // STOP INFINITE LOOPS: No retries for critical errors
       // Don't retry on authentication errors
       if (error?.status === 401 || error?.isAuthError) {
         return false;
       }
-      // Otherwise, use default retry logic (3 attempts)
-      return failureCount < 3;
+      // Don't retry on 409 conflicts - these need user intervention
+      if (error?.status === 409) {
+        return false;
+      }
+      // Don't retry on 500 server errors - these need backend fixes
+      if (error?.status === 500) {
+        return false;
+      }
+      // Only retry on network errors (no status code) and 1 attempt max
+      return !error?.status && failureCount < 1;
     }
   });
 

@@ -38,7 +38,7 @@ const CollectionProgress: React.FC = () => {
   } = useProgressMonitoring({
     flowId,
     autoRefresh: true,
-    refreshInterval: 3000
+    refreshInterval: 30000 // Reduced from 3 seconds to 30 seconds to prevent spam
   });
 
 

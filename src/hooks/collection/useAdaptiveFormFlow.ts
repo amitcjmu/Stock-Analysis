@@ -337,11 +337,17 @@ export const useAdaptiveFormFlow = (
 
       setState(prev => ({ ...prev, error, isLoading: false }));
 
-      toast({
-        title: 'Collection Flow Error',
-        description: error.message || 'Failed to initialize collection flow.',
-        variant: 'destructive'
-      });
+      // Only show toast for non-409 errors to avoid spam
+      if (!error?.message?.includes('409') && !error?.message?.includes('Conflict')) {
+        toast({
+          title: 'Collection Flow Error',
+          description: error.message || 'Failed to initialize collection flow.',
+          variant: 'destructive'
+        });
+      } else {
+        // For 409 conflicts, show a more helpful message without toast spam
+        console.log('⚠️ 409 Conflict detected - existing flow found, showing management UI');
+      }
 
       // Ensure loading state is cleared
       setState(prev => ({ ...prev, isLoading: false }));
@@ -494,26 +500,33 @@ export const useAdaptiveFormFlow = (
 
   // Auto-initialize effect
   useEffect(() => {
+    // STOP INFINITE LOOPS: Only initialize once and handle errors gracefully
     // Only initialize if:
     // 1. Auto-initialize is enabled
     // 2. Not currently checking for flows
     // 3. No blocking flows exist
     // 4. We don't have form data yet
     // 5. Not currently loading
-    if (autoInitialize && !checkingFlows && !hasBlockingFlows && !state.formData && !state.isLoading) {
+    // 6. No previous error exists (prevents retry loops)
+    if (autoInitialize && !checkingFlows && !hasBlockingFlows && !state.formData && !state.isLoading && !state.error) {
       console.log('🚀 Auto-initializing collection flow...', {
         hasFormData: !!state.formData,
         hasBlockingFlows,
-        isLoading: state.isLoading
+        isLoading: state.isLoading,
+        hasError: !!state.error
       });
-      initializeFlow();
+      initializeFlow().catch(error => {
+        console.error('❌ Auto-initialization failed:', error);
+        // Don't retry - let the user manually retry or handle the error
+        setState(prev => ({ ...prev, error, isLoading: false }));
+      });
     }
 
     // Cleanup: Clear the flow context when leaving the page
     return () => {
       setCurrentFlow(null);
     };
-  }, [applicationId, flowIdFromUrl, checkingFlows, hasBlockingFlows, autoInitialize, state.formData, state.isLoading, initializeFlow, setCurrentFlow]);
+  }, [applicationId, flowIdFromUrl, checkingFlows, hasBlockingFlows, autoInitialize, state.formData, state.isLoading, state.error, initializeFlow, setCurrentFlow]);
 
   return {
     // State
