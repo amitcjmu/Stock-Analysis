@@ -38,8 +38,10 @@ export const COLLECTION_PERMISSIONS = {
     RoleLevel.PLATFORM_ADMIN,
     RoleLevel.CLIENT_ADMIN,
     RoleLevel.ENGAGEMENT_MANAGER,
+    RoleLevel.ANALYST, // Allow analysts to delete flows they created
     'admin', // Legacy
-    'engagement_manager' // Legacy
+    'engagement_manager', // Legacy
+    'analyst' // Legacy
   ],
   canView: [
     RoleLevel.PLATFORM_ADMIN,

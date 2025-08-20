@@ -23,13 +23,15 @@ interface ApplicationSelectionModalProps {
   onClose: () => void;
   flowId?: string;
   preSelectedApplicationIds?: string[];
+  existingCollectionFlowId?: string; // For connecting to existing collection flows
 }
 
 export const ApplicationSelectionModal: React.FC<ApplicationSelectionModalProps> = ({
   isOpen,
   onClose,
   flowId,
-  preSelectedApplicationIds = []
+  preSelectedApplicationIds = [],
+  existingCollectionFlowId
 }) => {
   const navigate = useNavigate();
   const { client, engagement } = useAuth();
@@ -50,9 +52,9 @@ export const ApplicationSelectionModal: React.FC<ApplicationSelectionModalProps>
     queryFn: async () => {
       const response = await apiCall('/assets/list/paginated?page=1&page_size=100');
 
-      // Filter only application assets
+      // Filter only application assets (case-insensitive)
       const apps = (response?.assets || []).filter(
-        (asset: Asset) => asset.asset_type === 'Application'
+        (asset: Asset) => asset.asset_type?.toLowerCase() === 'application'
       );
 
       return apps;
@@ -90,38 +92,63 @@ export const ApplicationSelectionModal: React.FC<ApplicationSelectionModalProps>
     setTransitionError(null);
 
     try {
-      // Call the Discovery to Collection transition API
-      const response = await apiCall('/collection/flows/from-discovery', {
-        method: 'POST',
-        body: JSON.stringify({
-          discovery_flow_id: flowId,
-          selected_application_ids: Array.from(selectedApplications),
-          collection_strategy: {
-            start_phase: 'gap_analysis',
-            automation_tier: 'inherited',
-            priority: 'critical_gaps_first'
-          }
-        })
-      });
+      let response;
 
-      if (response && response.id) {
-        // Success! Navigate to the Collection flow
-        console.log('✅ Collection flow created:', response.id);
+      if (existingCollectionFlowId) {
+        // Update existing collection flow with selected applications
+        console.log('🔄 Updating existing Collection flow:', existingCollectionFlowId);
 
-        // Navigate to Collection flow page
-        navigate(`/collection?flowId=${response.id}`);
+        response = await apiCall(`/collection/flows/${existingCollectionFlowId}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            action: 'update_applications',
+            collection_config: {
+              selected_application_ids: Array.from(selectedApplications),
+              discovery_flow_id: flowId,
+              updated_at: new Date().toISOString()
+            }
+          })
+        });
 
-        // Close the modal
-        onClose();
+        // Validate response before navigation
+        if (response && (response.id || response.status === 'success')) {
+          console.log('✅ Collection flow updated successfully');
+          navigate(`/collection?flowId=${existingCollectionFlowId}`);
+          onClose();
+        } else {
+          throw new Error('Failed to update Collection flow - invalid response');
+        }
       } else {
-        throw new Error('Failed to create Collection flow');
+        // Create new Collection flow from Discovery
+        console.log('➕ Creating new Collection flow from Discovery');
+
+        response = await apiCall('/collection/flows/from-discovery', {
+          method: 'POST',
+          body: JSON.stringify({
+            discovery_flow_id: flowId,
+            selected_application_ids: Array.from(selectedApplications),
+            collection_strategy: {
+              start_phase: 'gap_analysis',
+              automation_tier: 'inherited',
+              priority: 'critical_gaps_first'
+            }
+          })
+        });
+
+        if (response && response.id) {
+          console.log('✅ Collection flow created successfully');
+          navigate(`/collection?flowId=${response.id}`);
+          onClose();
+        } else {
+          throw new Error('Failed to create Collection flow - invalid response');
+        }
       }
     } catch (error) {
-      console.error('❌ Error transitioning to Collection:', error);
+      console.error('❌ Error processing Collection flow:', error);
       setTransitionError(
         error instanceof Error
           ? error.message
-          : 'Failed to create Collection flow. Please try again.'
+          : 'Failed to process Collection flow. Please try again.'
       );
     } finally {
       setIsTransitioning(false);
@@ -134,12 +161,16 @@ export const ApplicationSelectionModal: React.FC<ApplicationSelectionModalProps>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Cpu className="h-5 w-5" />
-            {preSelectedApplicationIds.length > 0
+            {existingCollectionFlowId
+              ? 'Update Collection Flow Applications'
+              : preSelectedApplicationIds.length > 0
               ? `Process ${preSelectedApplicationIds.length} Selected Application${preSelectedApplicationIds.length > 1 ? 's' : ''} for Assessment`
               : 'Select Applications for Assessment'}
           </DialogTitle>
           <DialogDescription>
-            {preSelectedApplicationIds.length > 0
+            {existingCollectionFlowId
+              ? 'Select applications for your existing Collection flow. This will enable questionnaire generation and gap analysis.'
+              : preSelectedApplicationIds.length > 0
               ? 'The following applications have been selected from your inventory. You can modify the selection before processing.'
               : 'Choose which applications you want to process for detailed migration assessment.'}
             The selected applications will undergo gap analysis and data collection.
