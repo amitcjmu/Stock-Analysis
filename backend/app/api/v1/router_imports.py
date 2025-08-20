@@ -120,6 +120,15 @@ except ImportError:
     COLLECTION_AVAILABLE = False
     collection_router = None
 
+# Flow Processing endpoints
+try:
+    from app.api.v1.endpoints.flow_processing import router as flow_processing_router
+
+    FLOW_PROCESSING_AVAILABLE = True
+except ImportError:
+    FLOW_PROCESSING_AVAILABLE = False
+    flow_processing_router = None
+
 # Additional routers with availability flags
 # API Health router
 try:
@@ -340,6 +349,8 @@ __all__ = [
     "plan_router",
     "COLLECTION_AVAILABLE",
     "collection_router",
+    "FLOW_PROCESSING_AVAILABLE",
+    "flow_processing_router",
     # Dynamic routers with flags
     "routers_with_flags",
 ]

@@ -231,7 +231,7 @@ export const masterFlowService = {
   ): Promise<FlowStatusResponse> {
     try {
       const response = await apiClient.get<FlowStatusResponse>(
-        `/flows/${flowId}/status`,
+        `/unified-discovery/flow/${flowId}/status`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
         },
@@ -254,7 +254,7 @@ export const masterFlowService = {
     const params = new URLSearchParams();
     if (flowType) params.append("flowType", flowType);
 
-    const endpoint = `/flows/active${params.toString() ? `?${params}` : ""}`; // Fixed: Use MFO endpoint
+    const endpoint = `/master-flows/active${params.toString() ? `?${params}` : ""}`; // Fixed: Use correct MFO endpoint path
     const headers = getMultiTenantHeaders(clientAccountId, engagementId);
 
     if (process.env.NODE_ENV !== 'production') {
@@ -268,7 +268,8 @@ export const masterFlowService = {
 
     // Backend returns snake_case, so define the actual response type
     interface BackendFlowResponse {
-      flow_id: string;
+      master_flow_id?: string;  // MFO endpoint returns this
+      flow_id?: string;  // Fallback field
       flow_type: string;
       flow_name: string;
       status: string;
@@ -322,7 +323,7 @@ export const masterFlowService = {
 
       // Transform snake_case backend response to camelCase ActiveFlowSummary[]
       return response.map((flow) => ({
-        flowId: flow.flow_id,
+        flowId: flow.master_flow_id || flow.flow_id,
         flowType: flow.flow_type,
         flowName: flow.flow_name || flow.flow_type,
         status: flow.status as FlowStatus,
@@ -347,11 +348,12 @@ export const masterFlowService = {
       }
 
       // CC: Implement fallback to unified-discovery endpoint for issues #95 and #94
-      // Gate fallback behind feature flag to prevent dual reads and maintain single source of truth
-      if (String(process.env.NEXT_PUBLIC_ENABLE_UNIFIED_DISCOVERY_FALLBACK || '').toLowerCase() !== 'true') {
+      // Enable fallback based on environment variable
+      const enableFallback = process.env.NEXT_PUBLIC_ENABLE_UNIFIED_DISCOVERY_FALLBACK === 'true';
+      if (!enableFallback) {
         if (process.env.NODE_ENV !== 'production') {
           console.warn(
-            "❌ MasterFlowService.getActiveFlows - Fallback disabled by feature flag. Original error:",
+            "❌ MasterFlowService.getActiveFlows - Fallback disabled. Original error:",
             error,
           );
         }
@@ -631,7 +633,7 @@ export const masterFlowService = {
       const response = await apiClient.post<
         ApiResponse<{ success: boolean; message?: string }>
       >(
-        `/flows/${flowId}/resume`,
+        `/flow-processing/continue/${flowId}`,
         {},
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),

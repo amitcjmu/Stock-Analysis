@@ -34,6 +34,77 @@ from app.api.v1.endpoints import collection_serializers
 logger = logging.getLogger(__name__)
 
 
+async def get_adaptive_questionnaires(
+    flow_id: str,
+    db: AsyncSession,
+    current_user: User,
+    context: RequestContext,
+) -> List[AdaptiveQuestionnaireResponse]:
+    """Get adaptive questionnaires for a collection flow.
+
+    Args:
+        flow_id: Collection flow ID
+        db: Database session
+        current_user: Current authenticated user
+        context: Request context
+
+    Returns:
+        List of adaptive questionnaires
+
+    Raises:
+        HTTPException: If flow not found or unauthorized
+    """
+    try:
+        # First verify the flow exists and user has access
+        flow_result = await db.execute(
+            select(CollectionFlow).where(
+                CollectionFlow.flow_id == UUID(flow_id),
+                CollectionFlow.engagement_id == context.engagement_id,
+            )
+        )
+        flow = flow_result.scalar_one_or_none()
+
+        if not flow:
+            raise HTTPException(status_code=404, detail="Collection flow not found")
+
+        # Get questionnaires for this flow
+        result = await db.execute(
+            select(AdaptiveQuestionnaire)
+            .where(AdaptiveQuestionnaire.collection_flow_id == flow.id)
+            .order_by(AdaptiveQuestionnaire.created_at.desc())
+        )
+        questionnaires = result.scalars().all()
+
+        # If no questionnaires exist yet, return empty list
+        # The frontend will retry until CrewAI generates them
+        if not questionnaires:
+            logger.info(f"No questionnaires found yet for flow {flow_id}")
+            return []
+
+        # Convert to response schema
+        return [
+            AdaptiveQuestionnaireResponse(
+                id=str(q.id),
+                collection_flow_id=str(q.collection_flow_id),
+                application_id=str(q.application_id) if q.application_id else None,
+                questionnaire_type=q.questionnaire_type,
+                questions=q.questions or {},
+                responses=q.responses or {},
+                metadata=q.metadata or {},
+                status=q.status,
+                created_at=q.created_at,
+                updated_at=q.updated_at,
+            )
+            for q in questionnaires
+        ]
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting adaptive questionnaires for flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 async def get_collection_status(
     db: AsyncSession,
     current_user: User,
@@ -55,7 +126,13 @@ async def get_collection_status(
             select(CollectionFlow)
             .where(
                 CollectionFlow.engagement_id == context.engagement_id,
-                CollectionFlow.status != CollectionFlowStatus.COMPLETED.value,
+                CollectionFlow.status.notin_(
+                    [
+                        CollectionFlowStatus.COMPLETED.value,
+                        CollectionFlowStatus.CANCELLED.value,
+                        CollectionFlowStatus.FAILED.value,
+                    ]
+                ),
             )
             .order_by(CollectionFlow.created_at.desc())
             .limit(1)  # Ensure we only get one row
@@ -190,75 +267,6 @@ async def get_collection_gaps(
         logger.error(
             safe_log_format(
                 "Error getting collection gaps: flow_id={flow_id}, error={e}",
-                flow_id=flow_id,
-                e=e,
-            )
-        )
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-async def get_adaptive_questionnaires(
-    flow_id: str,
-    db: AsyncSession,
-    current_user: User,
-    context: RequestContext,
-) -> List[AdaptiveQuestionnaireResponse]:
-    """Get adaptive questionnaires for a flow.
-
-    Args:
-        flow_id: Collection flow ID
-        db: Database session
-        current_user: Current authenticated user
-        context: Request context
-
-    Returns:
-        List of adaptive questionnaires
-
-    Raises:
-        HTTPException: If flow not found or unauthorized
-    """
-    try:
-        # Verify flow ownership
-        flow_result = await db.execute(
-            select(CollectionFlow).where(
-                CollectionFlow.flow_id == UUID(flow_id),
-                CollectionFlow.engagement_id == context.engagement_id,
-            )
-        )
-        collection_flow = flow_result.scalar_one_or_none()
-
-        if not collection_flow:
-            raise HTTPException(status_code=404, detail="Collection flow not found")
-
-        # Get questionnaires
-        questionnaires_result = await db.execute(
-            select(AdaptiveQuestionnaire).where(
-                AdaptiveQuestionnaire.collection_flow_id == collection_flow.id
-            )
-        )
-        questionnaires = questionnaires_result.scalars().all()
-
-        return [
-            AdaptiveQuestionnaireResponse(
-                id=str(questionnaire.id),
-                collection_flow_id=str(questionnaire.collection_flow_id),
-                question_text=questionnaire.question_text,
-                question_type=questionnaire.question_type,
-                context_category=questionnaire.context_category,
-                response_value=questionnaire.response_value,
-                confidence_score=questionnaire.confidence_score,
-                created_at=questionnaire.created_at,
-                updated_at=questionnaire.updated_at,
-            )
-            for questionnaire in questionnaires
-        ]
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(
-            safe_log_format(
-                "Error getting adaptive questionnaires: flow_id={flow_id}, error={e}",
                 flow_id=flow_id,
                 e=e,
             )

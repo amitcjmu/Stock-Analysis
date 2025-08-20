@@ -80,6 +80,8 @@ def register_conditional_routers(api_router: APIRouter):
         flow_management_router,
         COLLECTION_AVAILABLE,
         collection_router,
+        FLOW_PROCESSING_AVAILABLE,
+        flow_processing_router,
         routers_with_flags,
     )
 
@@ -98,6 +100,13 @@ def register_conditional_routers(api_router: APIRouter):
         logger.info("✅ Collection Flow API router included at /collection")
     else:
         logger.warning("⚠️ Collection Flow API router not available")
+
+    # Flow Processing API
+    if FLOW_PROCESSING_AVAILABLE:
+        api_router.include_router(flow_processing_router, prefix="/flow-processing")
+        logger.info("✅ Flow Processing API router included at /flow-processing")
+    else:
+        logger.warning("⚠️ Flow Processing API router not available")
 
     # Blocking flows check
     if routers_with_flags.get("BLOCKING_FLOWS", (False, None))[0]:
