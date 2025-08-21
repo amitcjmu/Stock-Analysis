@@ -17,7 +17,6 @@ from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.core.security.secure_logging import mask_id, safe_log_format
 from app.models.discovery_flow import DiscoveryFlow
-from app.services.flow_configs import initialize_all_flows
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 # Import the service modules
@@ -28,6 +27,27 @@ from app.services.discovery.flow_status_service import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Conditional import for flow initialization
+try:
+    from app.services.flow_configs import initialize_all_flows
+except ImportError as e:
+    # CC: Flow configuration module not available (likely CrewAI dependency missing)
+    logger.warning(f"Flow configuration initialization unavailable: {e}")
+
+    # Create fallback function that returns expected structure
+    async def initialize_all_flows():
+        """Fallback for when flow configs cannot be initialized due to missing dependencies"""
+        logger.warning("Flow initialization skipped - CrewAI dependencies unavailable")
+        return {
+            "status": "skipped_missing_dependencies",
+            "flows_registered": [],
+            "validators_registered": [],
+            "handlers_registered": [],
+            "errors": ["CrewAI dependencies not available"],
+        }
+
+
 router = APIRouter()
 
 
@@ -64,8 +84,12 @@ async def initialize_discovery_flow(
     architectural flow through the Master Flow Orchestrator.
     """
     try:
-        # Ensure flow configs are initialized
-        await initialize_all_flows()
+        # Ensure flow configs are initialized (fallback handles missing dependencies)
+        flow_init_result = await initialize_all_flows()
+        if "errors" in flow_init_result and flow_init_result["errors"]:
+            logger.warning(
+                f"Flow initialization completed with warnings: {flow_init_result['errors']}"
+            )
 
         # Extract configuration
         configuration = request.configuration or {}

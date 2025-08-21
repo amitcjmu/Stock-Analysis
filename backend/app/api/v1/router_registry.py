@@ -28,6 +28,7 @@ def register_core_routers(api_router: APIRouter):
         monitoring_router,
         context_establishment_router,
         flow_sync_debug_router,
+        plan_router,
     )
 
     logger.info("--- Registering Core Routers ---")
@@ -65,6 +66,10 @@ def register_core_routers(api_router: APIRouter):
     api_router.include_router(monitoring_router, prefix="/monitoring")
     api_router.include_router(flow_sync_debug_router, prefix="/flow-sync-debug")
     logger.info("✅ Data and monitoring routers registered")
+
+    # Planning
+    api_router.include_router(plan_router, prefix="/plan")
+    logger.info("✅ Plan router registered")
 
 
 def register_conditional_routers(api_router: APIRouter):

@@ -182,7 +182,7 @@ export const useCMDBImport = (): JSX.Element => {
 
       for (const file of processingFiles) {
         try {
-          const response = await apiCall(`/api/v1/flows/${file.flow_id}/status`, {
+          const response = await apiCall(`/api/v1/unified-discovery/flow/${file.flow_id}/status`, {
             headers: getAuthHeaders()
           });
 

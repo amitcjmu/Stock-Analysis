@@ -41,7 +41,7 @@ export const useImportData = (finalFlowId: string | null): ImportDataResult => {
       console.log('🔍 Fetching import data for flow:', finalFlowId);
       try {
         // Use the unified flow status endpoint to get import data
-        const flowResponse = await apiCall(`/api/v1/flows/${finalFlowId}/status`, {
+        const flowResponse = await apiCall(`/api/v1/unified-discovery/flow/${finalFlowId}/status`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

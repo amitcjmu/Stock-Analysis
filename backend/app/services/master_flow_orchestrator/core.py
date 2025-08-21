@@ -86,12 +86,19 @@ class MasterFlowOrchestrator:
         # Initialize flow configurations if not already done
         if not self.flow_registry.list_flow_types():
             logger.info("🔄 Initializing flow configurations...")
-            from app.services.flow_configs import initialize_all_flows
+            try:
+                from app.services.flow_configs import initialize_all_flows
 
-            result = initialize_all_flows()
-            logger.info(
-                f"✅ Flow configurations initialized: {len(result.get('flows_registered', []))} flows"
-            )
+                # Note: initialize_all_flows is synchronous in the real implementation
+                # The async fallback in flow_handlers.py is only used when import fails there
+                result = initialize_all_flows()
+                logger.info(
+                    f"✅ Flow configurations initialized: {len(result.get('flows_registered', []))} flows"
+                )
+            except ImportError as e:
+                # CC: Flow configuration module not available (likely CrewAI dependency missing)
+                logger.warning(f"Flow configuration initialization skipped: {e}")
+                logger.info("System will continue with minimal flow support")
 
         # Initialize state manager
         self.state_manager = FlowStateManager(db, context)
