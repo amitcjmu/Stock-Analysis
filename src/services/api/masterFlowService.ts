@@ -11,6 +11,7 @@ import type { BaseMetadata } from "../../types/shared/metadata-types";
 import type { ActiveFlowSummary } from "../../types/modules/flow-orchestration/model-types";
 import { createMultiTenantHeaders } from "../../utils/api/multiTenantHeaders";
 import type { MultiTenantContext } from "../../utils/api/apiTypes";
+import { tokenStorage } from "../../contexts/AuthContext/storage";
 
 const apiClient = ApiClient.getInstance();
 import type { AuthService } from "../../contexts/AuthContext/services/authService";
@@ -128,7 +129,7 @@ const getMultiTenantHeaders = (
   engagementId?: string,
   userId?: string,
 ): Record<string, string> => {
-  const token = localStorage.getItem("auth_token");
+  const token = tokenStorage.getToken();
   const context: MultiTenantContext = {
     clientAccountId,
     engagementId,

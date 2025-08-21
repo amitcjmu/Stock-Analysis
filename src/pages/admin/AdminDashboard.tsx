@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { tokenStorage } from '@/contexts/AuthContext/storage';
 import { AdminLoadingState, AdminErrorState } from '@/components/admin/shared/components'
 import { AdminHeader } from '@/components/admin/shared/components'
 import { formatDate } from '@/components/admin/shared'
@@ -54,14 +55,14 @@ const AdminDashboard: React.FC = () => {
 
   const fetchDashboardStats = async (): Promise<DashboardStatsData> => {
     try {
-      // Get token from localStorage to verify it exists
-      const token = localStorage.getItem('auth_token');
+      // Get token from tokenStorage to verify it exists and is valid
+      const token = tokenStorage.getToken();
       console.log('📊 Admin Dashboard - Token available:', !!token);
       console.log('📊 Admin Dashboard - User:', user);
       console.log('📊 Admin Dashboard - isAuthenticated:', isAuthenticated);
 
       if (!token) {
-        throw new Error('No authentication token found');
+        throw new Error('No authentication token found or token expired');
       }
 
       if (!isAuthenticated) {

@@ -9,6 +9,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { isCacheFeatureEnabled } from '@/constants/features';
+import { tokenStorage } from '@/contexts/AuthContext/storage';
 import type {
   CacheInvalidationEvent,
   WebSocketCacheMessage,
@@ -112,7 +113,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): {
   // Get auth token for WebSocket connection
   const getAuthToken = useCallback(() => {
     try {
-      return localStorage.getItem('auth_token') || '';
+      return tokenStorage.getToken() || '';
     } catch {
       return '';
     }
