@@ -25,25 +25,26 @@ branch_labels = None
 depends_on = None
 
 
-def table_exists(table_name):
-    """Check if a table exists in the database"""
+def table_exists(table_name: str) -> bool:
+    """Check if a table exists in the 'migration' schema."""
     bind = op.get_bind()
     try:
-        result = bind.execute(
-            sa.text(
-                """
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables
-                    WHERE table_schema = 'migration'
-                    AND table_name = :table_name
-                )
+        stmt = sa.text(
             """
-            ).bindparams(table_name=table_name)
-        ).scalar()
-        return result
+            SELECT EXISTS (
+                SELECT 1
+                FROM information_schema.tables
+                WHERE table_schema = 'migration'
+                  AND table_name = :table_name
+            )
+            """
+        )
+        result = bind.execute(stmt, {"table_name": table_name}).scalar()
+        return bool(result)
     except Exception as e:
         print(f"Error checking if table {table_name} exists: {e}")
-        return True
+        # Fail safe: indicate table does not exist so creation proceeds
+        return False
 
 
 def create_table_if_not_exists(table_name, *columns, **kwargs):
