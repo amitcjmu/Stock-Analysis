@@ -63,55 +63,50 @@ def upgrade() -> None:
     print("🔄 Creating 6R analysis tables...")
     created_count = 0
 
-    # Create analysis_status enum
-    try:
-        analysis_status_enum = postgresql.ENUM(
-            "pending",
-            "in_progress",
-            "completed",
-            "failed",
-            "requires_input",
-            name="analysis_status",
-            create_type=False,
-        )
-        analysis_status_enum.create(op.get_bind(), checkfirst=True)
-        print("  ✅ Created analysis_status enum")
-    except Exception as e:
-        print(f"  ℹ️  analysis_status enum might already exist: {e}")
+    # Define ENUM types for reuse across columns
+    analysis_status_enum = postgresql.ENUM(
+        "pending",
+        "in_progress",
+        "completed",
+        "failed",
+        "requires_input",
+        name="analysis_status",
+        create_type=False,
+    )
+    
+    question_type_enum = postgresql.ENUM(
+        "text",
+        "select",
+        "multiselect",
+        "file_upload",
+        "boolean",
+        "numeric",
+        name="question_type",
+        create_type=False,
+    )
+    
+    sixr_strategy_enum = postgresql.ENUM(
+        "rehost",
+        "replatform",
+        "refactor",
+        "rearchitect",
+        "replace",
+        "rewrite",
+        name="sixr_strategy",
+        create_type=False,
+    )
 
-    # Create question_type enum
-    try:
-        question_type_enum = postgresql.ENUM(
-            "text",
-            "select",
-            "multiselect",
-            "file_upload",
-            "boolean",
-            "numeric",
-            name="question_type",
-            create_type=False,
-        )
-        question_type_enum.create(op.get_bind(), checkfirst=True)
-        print("  ✅ Created question_type enum")
-    except Exception as e:
-        print(f"  ℹ️  question_type enum might already exist: {e}")
-
-    # Create sixr_strategy enum if it doesn't exist
-    try:
-        sixr_strategy_enum = postgresql.ENUM(
-            "rehost",
-            "replatform",
-            "refactor",
-            "rearchitect",
-            "replace",
-            "rewrite",
-            name="sixr_strategy",
-            create_type=False,
-        )
-        sixr_strategy_enum.create(op.get_bind(), checkfirst=True)
-        print("  ✅ Created sixr_strategy enum")
-    except Exception as e:
-        print(f"  ℹ️  sixr_strategy enum might already exist: {e}")
+    # Create enums if they don't exist
+    for enum_obj, enum_name in [
+        (analysis_status_enum, "analysis_status"),
+        (question_type_enum, "question_type"),
+        (sixr_strategy_enum, "sixr_strategy"),
+    ]:
+        try:
+            enum_obj.create(op.get_bind(), checkfirst=True)
+            print(f"  ✅ Created {enum_name} enum")
+        except Exception as e:
+            print(f"  ℹ️  {enum_name} enum might already exist: {e}")
 
     # 1. sixr_analyses table (main analysis records)
     if create_table_if_not_exists(
@@ -133,7 +128,7 @@ def upgrade() -> None:
         sa.Column("description", sa.Text),
         sa.Column(
             "status",
-            postgresql.ENUM(name="analysis_status"),
+            analysis_status_enum,
             nullable=False,
             server_default="pending",
         ),
@@ -146,7 +141,7 @@ def upgrade() -> None:
         sa.Column("progress_percentage", sa.Float, server_default="0.0"),
         sa.Column("estimated_completion", sa.DateTime(timezone=True)),
         # Results
-        sa.Column("final_recommendation", postgresql.ENUM(name="sixr_strategy")),
+        sa.Column("final_recommendation", sixr_strategy_enum),
         sa.Column("confidence_score", sa.Float),
         # Metadata
         sa.Column("created_by", sa.String(100)),
@@ -191,7 +186,7 @@ def upgrade() -> None:
         sa.Column("analysis_duration", sa.Float),
         sa.Column("agent_insights", postgresql.JSONB),
         # Status tracking
-        sa.Column("status", sa.String(20), server_default="pending"),
+        sa.Column("status", analysis_status_enum, server_default="pending"),
         sa.Column("error_details", postgresql.JSONB),
         # Audit fields
         sa.Column("created_by", sa.String(100)),
@@ -217,7 +212,7 @@ def upgrade() -> None:
         # Core recommendation
         sa.Column(
             "recommended_strategy",
-            postgresql.ENUM(name="sixr_strategy"),
+            sixr_strategy_enum,
             nullable=False,
         ),
         sa.Column("confidence_score", sa.Float, nullable=False),
@@ -260,7 +255,7 @@ def upgrade() -> None:
         ),
         sa.Column("question_text", sa.Text, nullable=False),
         sa.Column(
-            "question_type", postgresql.ENUM(name="question_type"), nullable=False
+            "question_type", question_type_enum, nullable=False
         ),
         sa.Column("category", sa.String(100), nullable=False),
         # Question metadata
