@@ -11,7 +11,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.context import RequestContext, get_current_context
+from app.core.context import RequestContext, get_request_context
 from app.core.database import get_db
 from app.core.security.secure_logging import safe_log_format
 
@@ -32,7 +32,7 @@ async def list_assets(
     status_filter: Optional[str] = Query(None, description="Filter by asset status"),
     flow_id: Optional[str] = Query(None, description="Filter by discovery flow ID"),
     db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context),
+    context: RequestContext = Depends(get_request_context),
 ):
     """
     List assets with tenant isolation and pagination support.
@@ -48,6 +48,20 @@ async def list_assets(
     - Comprehensive error handling and logging
     """
     try:
+        # Validate that required context headers are present
+        if not context.client_account_id or not context.engagement_id:
+            missing_headers = []
+            if not context.client_account_id:
+                missing_headers.append("X-Client-Account-Id")
+            if not context.engagement_id:
+                missing_headers.append("X-Engagement-ID")
+
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing required context headers: {', '.join(missing_headers)}. "
+                f"Please ensure your request includes the required multi-tenant context headers.",
+            )
+
         # Create asset list handler following the modular pattern
         asset_handler = await create_asset_list_handler(db, context)
 
@@ -86,7 +100,7 @@ async def list_assets(
 @router.get("/assets/summary")
 async def get_assets_summary(
     db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context),
+    context: RequestContext = Depends(get_request_context),
 ):
     """
     Get asset summary statistics for the current tenant context.
@@ -97,6 +111,20 @@ async def get_assets_summary(
     - Status distribution
     """
     try:
+        # Validate that required context headers are present
+        if not context.client_account_id or not context.engagement_id:
+            missing_headers = []
+            if not context.client_account_id:
+                missing_headers.append("X-Client-Account-Id")
+            if not context.engagement_id:
+                missing_headers.append("X-Engagement-ID")
+
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing required context headers: {', '.join(missing_headers)}. "
+                f"Please ensure your request includes the required multi-tenant context headers.",
+            )
+
         # Create asset list handler
         asset_handler = await create_asset_list_handler(db, context)
 

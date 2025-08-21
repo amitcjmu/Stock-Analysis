@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useCollectionFlowManagement } from '@/hooks/collection/useCollectionFlowManagement';
 import { IncompleteCollectionFlowManager } from '@/components/collection/IncompleteCollectionFlowManager';
 import { collectionFlowApi } from '@/services/api/collection-flow';
+import { getErrorToastOptions } from '@/utils/errorHandling';
 
 interface CollectionFlowManagementPageProps {
   showHealthMonitor?: boolean;
@@ -79,13 +80,15 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
         ]);
         setHealthStatus(health);
         setCleanupRecommendations(recommendations);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to load health data:', error);
+        // Use centralized error handling for consistent messaging
+        toast(getErrorToastOptions(error));
       }
     };
 
     loadHealthData();
-  }, []);
+  }, [toast]);
 
   // Auto refresh health status
   useEffect(() => {
@@ -95,13 +98,23 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
       try {
         const health = await collectionFlowApi.getFlowHealthStatus();
         setHealthStatus(health);
-      } catch (error) {
+      } catch (error: any) {
+        // Only show error on first failure to avoid spam
         console.error('Failed to refresh health status:', error);
+        if (healthStatus !== null) {
+          // Only show toast if we had health data before
+          const errorOptions = getErrorToastOptions(error);
+          toast({
+            ...errorOptions,
+            title: "Health Status Update Failed",
+            description: "Unable to refresh health information. Data may be outdated.",
+          });
+        }
       }
     }, 30000); // Refresh every 30 seconds
 
     return () => clearInterval(interval);
-  }, [autoRefresh]);
+  }, [autoRefresh, healthStatus, toast]);
 
   // Handlers
   const handleContinueFlow = async (flowId: string): void => {
@@ -109,8 +122,18 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
       await continueFlow(flowId);
       // Refetch incomplete flows
       await incompleteFlowsQuery.refetch();
-    } catch (error) {
-      // Error handled by mutation
+      toast({
+        title: "Flow Resumed",
+        description: "The collection flow has been successfully resumed.",
+        variant: "default"
+      });
+    } catch (error: any) {
+      console.error('Failed to continue flow:', error);
+      const errorOptions = getErrorToastOptions(error);
+      toast({
+        ...errorOptions,
+        title: "Failed to Resume Flow",
+      });
     }
   };
 
@@ -118,8 +141,18 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
     try {
       await deleteFlow(flowId, false);
       await incompleteFlowsQuery.refetch();
-    } catch (error) {
-      // Error handled by mutation
+      toast({
+        title: "Flow Deleted",
+        description: "The collection flow has been successfully deleted.",
+        variant: "default"
+      });
+    } catch (error: any) {
+      console.error('Failed to delete flow:', error);
+      const errorOptions = getErrorToastOptions(error);
+      toast({
+        ...errorOptions,
+        title: "Failed to Delete Flow",
+      });
     }
   };
 
@@ -127,8 +160,18 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
     try {
       await batchDeleteFlows(flowIds, false);
       await incompleteFlowsQuery.refetch();
-    } catch (error) {
-      // Error handled by mutation
+      toast({
+        title: "Flows Deleted",
+        description: `Successfully deleted ${flowIds.length} collection flows.`,
+        variant: "default"
+      });
+    } catch (error: any) {
+      console.error('Failed to batch delete flows:', error);
+      const errorOptions = getErrorToastOptions(error);
+      toast({
+        ...errorOptions,
+        title: "Failed to Delete Flows",
+      });
     }
   };
 
@@ -137,16 +180,40 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
       const result = await cleanupFlows(cleanupOptions);
       setCleanupResult(result);
 
+      const actionType = cleanupOptions.dryRun ? "Preview" : "Cleanup";
+      toast({
+        title: `${actionType} Completed`,
+        description: cleanupOptions.dryRun
+          ? `Preview shows ${result.flows_cleaned} flows would be cleaned up.`
+          : `Successfully cleaned up ${result.flows_cleaned} flows.`,
+        variant: "default"
+      });
+
       if (!cleanupOptions.dryRun) {
         // Refresh all data after actual cleanup
-        await Promise.all([
-          incompleteFlowsQuery.refetch(),
-          collectionFlowApi.getFlowHealthStatus().then(setHealthStatus),
-          collectionFlowApi.getCleanupRecommendations().then(setCleanupRecommendations)
-        ]);
+        try {
+          await Promise.all([
+            incompleteFlowsQuery.refetch(),
+            collectionFlowApi.getFlowHealthStatus().then(setHealthStatus),
+            collectionFlowApi.getCleanupRecommendations().then(setCleanupRecommendations)
+          ]);
+        } catch (refreshError: any) {
+          console.error('Failed to refresh data after cleanup:', refreshError);
+          const errorOptions = getErrorToastOptions(refreshError);
+          toast({
+            ...errorOptions,
+            title: "Data Refresh Failed",
+            description: "Cleanup completed but failed to refresh data. Please refresh the page.",
+          });
+        }
       }
-    } catch (error) {
-      // Error handled by mutation
+    } catch (error: any) {
+      console.error('Failed to cleanup flows:', error);
+      const errorOptions = getErrorToastOptions(error);
+      toast({
+        ...errorOptions,
+        title: "Cleanup Failed",
+      });
     }
   };
 
@@ -174,7 +241,7 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
   const incompleteFlows = incompleteFlowsQuery.data || [];
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 lg:p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -272,6 +339,23 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
                 <div className="flex items-center justify-center py-12">
                   <RefreshCw className="h-8 w-8 animate-spin mr-2" />
                   <span>Loading collection flows...</span>
+                </div>
+              ) : incompleteFlowsQuery.error ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center max-w-md">
+                    <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to Load Collection Flows</h3>
+                    <p className="text-gray-600 mb-4">
+                      {incompleteFlowsQuery.error?.message || 'Unable to load collection flow data.'}
+                    </p>
+                    <Button
+                      onClick={() => incompleteFlowsQuery.refetch()}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Try Again
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <IncompleteCollectionFlowManager

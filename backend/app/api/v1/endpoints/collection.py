@@ -9,7 +9,7 @@ delegating to modular components while maintaining 100% backward compatibility.
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
@@ -338,6 +338,81 @@ async def batch_delete_flows(
         current_user=current_user,
         context=context,
     )
+
+
+# ========================================
+# FLOW CONFLICT RESOLUTION ENDPOINTS
+# ========================================
+
+
+@router.get("/flows/analysis")
+async def analyze_existing_flows(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Analyze existing collection flows to resolve creation conflicts.
+
+    This endpoint is called when a 409 conflict occurs during flow creation
+    to provide users with options for handling existing flows.
+    """
+    from app.api.v1.endpoints.collection_flow_lifecycle import (
+        CollectionFlowLifecycleManager,
+    )
+
+    lifecycle_manager = CollectionFlowLifecycleManager(db, context)
+    return await lifecycle_manager.analyze_existing_flows(str(current_user.id))
+
+
+@router.post("/flows/manage")
+async def manage_existing_flow(
+    action: str,
+    flow_id: Optional[str] = None,
+    flow_ids: Optional[List[str]] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Manage existing flows (cancel, complete, etc.) to resolve conflicts.
+
+    Actions:
+    - 'cancel_flow': Cancel a specific flow
+    - 'cancel_multiple': Cancel multiple flows
+    - 'complete_flow': Mark a flow as complete
+    - 'cancel_stale': Cancel all stale flows
+    - 'auto_complete': Auto-complete eligible flows
+    """
+    from app.api.v1.endpoints.collection_flow_lifecycle import (
+        CollectionFlowLifecycleManager,
+    )
+
+    lifecycle_manager = CollectionFlowLifecycleManager(db, context)
+
+    if action == "cancel_flow" and flow_id:
+        return await collection_crud.delete_flow(
+            flow_id=flow_id,
+            force=True,
+            db=db,
+            current_user=current_user,
+            context=context,
+        )
+    elif action == "cancel_multiple" and flow_ids:
+        return await collection_crud.batch_delete_flows(
+            flow_ids=flow_ids,
+            force=True,
+            db=db,
+            current_user=current_user,
+            context=context,
+        )
+    elif action == "cancel_stale":
+        return await lifecycle_manager.cancel_stale_flows()
+    elif action == "auto_complete":
+        return await lifecycle_manager.auto_complete_eligible_flows()
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid action '{action}' or missing required parameters",
+        )
 
 
 # Export router for backward compatibility

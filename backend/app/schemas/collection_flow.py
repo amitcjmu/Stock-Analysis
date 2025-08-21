@@ -20,6 +20,10 @@ class CollectionFlowCreate(BaseModel):
     target_platforms: Optional[List[str]] = Field(
         default_factory=list, description="Target platforms to scan"
     )
+    allow_multiple: Optional[bool] = Field(
+        default=False,
+        description="Allow multiple concurrent flows (overrides 409 conflict checking)",
+    )
 
 
 class CollectionFlowUpdate(BaseModel):

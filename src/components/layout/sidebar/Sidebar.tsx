@@ -259,7 +259,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   };
 
   return (
-    <div className={`fixed left-0 top-0 h-full w-64 bg-gray-800 text-white z-40 ${className || ''} flex flex-col`}>
+    <div className={`fixed left-0 top-0 h-full w-64 bg-gray-800 text-white z-40 ${className || ''} flex flex-col
+      lg:translate-x-0 transition-transform duration-300 ease-in-out
+      -translate-x-full lg:block`}>
       <SidebarHeader
         onAuthClick={handleAuthClick}
         isAuthenticated={isAuthenticated}
