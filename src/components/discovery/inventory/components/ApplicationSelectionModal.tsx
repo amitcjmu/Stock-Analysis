@@ -50,7 +50,7 @@ export const ApplicationSelectionModal: React.FC<ApplicationSelectionModalProps>
   const { data: applications, isLoading } = useQuery({
     queryKey: ['applications-for-collection', client?.id, engagement?.id],
     queryFn: async () => {
-      const response = await apiCall('/assets/list/paginated?page=1&page_size=100');
+      const response = await apiCall('/unified-discovery/assets?page=1&page_size=100');
 
       // Filter only application assets (case-insensitive)
       const apps = (response?.assets || []).filter(

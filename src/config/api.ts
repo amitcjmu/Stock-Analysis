@@ -542,7 +542,7 @@ export const apiCall = async (
       // UI interactions have reasonable timeouts
       // Use regex patterns to match exact path boundaries and prevent false positives
       const isAgenticActivity = (
-        /\/assets\/list\/paginated(?:$|\?)/.test(normalizedEndpoint) ||
+        /\/unified-discovery\/assets(?:$|\?)/.test(normalizedEndpoint) ||
         /\/flows\/execute(?:$|\?)/.test(normalizedEndpoint) ||  // Fixed: Use MFO endpoint for flow execution
         /\/flow-processing\/continue(?:$|\?)/.test(normalizedEndpoint) ||
         (/\/flows\/[^/]+\/resume(?:$|\?)/.test(normalizedEndpoint)) ||  // Long-running recovery operation

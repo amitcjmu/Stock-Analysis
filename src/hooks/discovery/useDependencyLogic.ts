@@ -155,7 +155,7 @@ export const useDependencyLogic = (flowId?: string): {
       try {
         // Use the same apiCall method that inventory uses - it handles auth context properly
         const { apiCall } = await import('@/config/api');
-        const response = await apiCall('/assets/list/paginated?page=1&page_size=50');
+        const response = await apiCall('/unified-discovery/assets?page=1&page_size=50');
 
         if (response.assets) {
           const servers = response.assets.filter((asset: { asset_type: string }) => asset.asset_type === 'server');

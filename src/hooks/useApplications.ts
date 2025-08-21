@@ -62,7 +62,7 @@ interface AssetsResponse {
 const loadApplicationsFromBackend = async (contextHeaders: Record<string, string> = {}): Promise<Application[]> => {
   try {
     // Load assets using paginated endpoint with larger page size to get applications
-    const assetsResponse = await apiCall<AssetsResponse>('assets/list/paginated?page_size=100', {
+    const assetsResponse = await apiCall<AssetsResponse>('unified-discovery/assets?page_size=100', {
       headers: contextHeaders
     });
 

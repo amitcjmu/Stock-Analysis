@@ -295,7 +295,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
           {/* Flow Status Monitor Dialog */}
           {selectedFlowForStatus && (
             <Dialog open={!!selectedFlowForStatus} onOpenChange={() => setSelectedFlowForStatus(null)}>
-              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto break-words overflow-wrap-anywhere">
                 <DialogHeader>
                   <DialogTitle>Flow Status Monitor</DialogTitle>
                 </DialogHeader>

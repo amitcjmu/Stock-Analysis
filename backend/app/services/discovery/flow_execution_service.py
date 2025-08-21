@@ -13,8 +13,16 @@ from app.models.discovery_flow import DiscoveryFlow
 from app.core.context import RequestContext
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.core.security.secure_logging import safe_log_format
+from app.utils.flow_constants.flow_states import FlowType, PHASE_SEQUENCES
 
 logger = logging.getLogger(__name__)
+
+
+def validate_discovery_phase(phase: str) -> bool:
+    """Validate that a phase is valid for discovery flows."""
+    discovery_phases = PHASE_SEQUENCES.get(FlowType.DISCOVERY, [])
+    valid_phase_names = [p.value for p in discovery_phases]
+    return phase in valid_phase_names
 
 
 async def determine_phase_to_execute(discovery_flow: DiscoveryFlow) -> str:
@@ -26,19 +34,37 @@ async def determine_phase_to_execute(discovery_flow: DiscoveryFlow) -> str:
     # MFO expects "field_mapping" not "field_mapping_suggestions"
     if status == "initialized" and not current_phase:
         # Flow is initialized but hasn't started any phase yet
-        return "field_mapping"
+        phase = "field_mapping"
     elif status in ["failed", "error", "paused", "waiting_for_approval"]:
         # For failed/paused flows, restart from current phase or field mapping
-        return current_phase or "field_mapping"
+        phase = current_phase or "field_mapping"
     elif status == "initialized":
         # Flow was initialized but needs to execute field mapping phase
-        return "field_mapping"
+        phase = "field_mapping"
     elif current_phase:
-        # Use the current phase from the flow
-        return current_phase
+        # Use the current phase from the flow if valid
+        if validate_discovery_phase(current_phase):
+            phase = current_phase
+        else:
+            logger.warning(
+                f"Invalid phase '{current_phase}' for discovery flow, defaulting to field_mapping"
+            )
+            phase = "field_mapping"
     else:
-        # Default phase mapping
-        return "initialization"
+        # Default phase mapping - field_mapping is the standard first operational phase
+        phase = "field_mapping"
+
+    # Defensive validation of the selected phase
+    if not validate_discovery_phase(phase):
+        logger.error(
+            f"Selected phase '{phase}' is not valid for discovery flows. Using field_mapping as fallback."
+        )
+        phase = "field_mapping"
+
+    logger.info(
+        f"Determined phase to execute: '{phase}' (status: {status}, current_phase: {current_phase})"
+    )
+    return phase
 
 
 async def handle_flow_initialization(

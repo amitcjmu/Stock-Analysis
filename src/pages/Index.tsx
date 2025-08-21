@@ -13,7 +13,7 @@ const DashboardOverviewStats: React.FC = () => {
     queryKey: ['workflow-summary', auth.client?.id, auth.engagement?.id],
     queryFn: async () => {
       const headers = getAuthHeaders({ user: auth.user, client: auth.client, engagement: auth.engagement });
-      const res = await apiCall('/api/v1/assets/workflow/summary', { method: 'GET', headers });
+      const res = await apiCall('/api/v1/asset-workflow/workflow/summary', { method: 'GET', headers });
       return res as {
         total_assets: number;
         assessment_ready: number;

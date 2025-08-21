@@ -52,7 +52,7 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
 
       try {
         // Try to get applications from asset inventory
-        const response = await apiCall('assets/list/paginated', {
+        const response = await apiCall('unified-discovery/assets', {
           headers,
           method: 'GET'
         });
