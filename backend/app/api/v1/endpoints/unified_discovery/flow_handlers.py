@@ -182,8 +182,18 @@ async def execute_flow(
 ):
     """Execute the next phase of a discovery flow."""
     try:
-        # Get the current flow state to determine next phase
-        discovery_flow = await db.get(DiscoveryFlow, flow_id)
+        # Query the flow with proper tenant scoping
+        from sqlalchemy import and_, select
+
+        stmt = select(DiscoveryFlow).where(
+            and_(
+                DiscoveryFlow.flow_id == flow_id,
+                DiscoveryFlow.client_account_id == context.client_account_id,
+                DiscoveryFlow.engagement_id == context.engagement_id,
+            )
+        )
+        result = await db.execute(stmt)
+        discovery_flow = result.scalar_one_or_none()
         if not discovery_flow:
             raise HTTPException(status_code=404, detail="Discovery flow not found")
 
@@ -197,8 +207,8 @@ async def execute_flow(
                 "status": "completed",
             }
 
-        # Execute the phase
-        result = await execute_flow_phase(flow_id, next_phase, db, context)
+        # Execute the phase with correct signature
+        result = await execute_flow_phase(flow_id, discovery_flow, context, db)
 
         logger.info(
             safe_log_format(

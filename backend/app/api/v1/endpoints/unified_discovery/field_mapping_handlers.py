@@ -127,6 +127,7 @@ async def get_field_mappings(
                 continue
 
         return FieldMappingsResponse(
+            success=True,
             flow_id=flow_id,
             field_mappings=field_mapping_items,
             count=len(field_mapping_items),

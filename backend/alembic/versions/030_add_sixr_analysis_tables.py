@@ -71,8 +71,9 @@ def upgrade() -> None:
             "failed",
             "requires_input",
             name="analysis_status",
+            create_type=False,
         )
-        analysis_status_enum.create(op.get_bind())
+        analysis_status_enum.create(op.get_bind(), checkfirst=True)
         print("  ✅ Created analysis_status enum")
     except Exception as e:
         print(f"  ℹ️  analysis_status enum might already exist: {e}")
@@ -87,8 +88,9 @@ def upgrade() -> None:
             "boolean",
             "numeric",
             name="question_type",
+            create_type=False,
         )
-        question_type_enum.create(op.get_bind())
+        question_type_enum.create(op.get_bind(), checkfirst=True)
         print("  ✅ Created question_type enum")
     except Exception as e:
         print(f"  ℹ️  question_type enum might already exist: {e}")
@@ -103,8 +105,9 @@ def upgrade() -> None:
             "replace",
             "rewrite",
             name="sixr_strategy",
+            create_type=False,
         )
-        sixr_strategy_enum.create(op.get_bind())
+        sixr_strategy_enum.create(op.get_bind(), checkfirst=True)
         print("  ✅ Created sixr_strategy enum")
     except Exception as e:
         print(f"  ℹ️  sixr_strategy enum might already exist: {e}")
