@@ -404,10 +404,11 @@ class UnifiedDiscoveryFlow(Flow):
         logger.info(f"🗺️ [ECHO] Field mapping phase triggered for flow {self._flow_id}")
 
         # Check if field mapping has already been executed to prevent duplicates
-        if (
-            hasattr(self.state, "field_mapping_executed")
-            and self.state.field_mapping_executed
-        ):
+        # Use defensive programming to handle missing fields gracefully
+        field_mapping_executed = getattr(self.state, "field_mapping_executed", False)
+        phase_completed = self.state.phase_completion.get("field_mapping", False)
+
+        if field_mapping_executed or phase_completed:
             logger.warning(
                 f"⚠️ Field mapping already executed for flow {self._flow_id}, skipping duplicate execution"
             )

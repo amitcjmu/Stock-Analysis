@@ -142,6 +142,13 @@ class UnifiedDiscoveryFlowState(BaseModel):
         default=0.0, description="Overall confidence score for field mappings (0-1)"
     )
 
+    # Backward compatibility field for field mapping execution tracking
+    # Note: This duplicates phase_completion["field_mapping"] but maintained for compatibility
+    field_mapping_executed: bool = Field(
+        default=False,
+        description="Tracks if field mapping has been executed (backward compatibility)",
+    )
+
     # Data validation results (from DataImportValidationAgent)
     data_validation_results: Dict[str, Any] = Field(default_factory=dict)
 

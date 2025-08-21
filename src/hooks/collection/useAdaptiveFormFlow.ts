@@ -16,8 +16,7 @@ import { useCollectionFlowManagement, useIncompleteCollectionFlows } from './use
 import { collectionFlowApi } from '@/services/api/collection-flow';
 
 // Import form data transformation utilities
-import type { convertQuestionnairesToFormData } from '@/utils/collection/formDataTransformation'
-import { validateFormDataStructure } from '@/utils/collection/formDataTransformation'
+import { convertQuestionnairesToFormData, validateFormDataStructure } from '@/utils/collection/formDataTransformation'
 
 // Import types
 import type {
@@ -173,22 +172,29 @@ export const useAdaptiveFormFlow = (
             console.log(`✅ Found ${existingQuestionnaires.length} existing questionnaires for flow`);
 
             // Convert existing questionnaires to form data
-            const adaptiveFormData = convertQuestionnairesToFormData(existingQuestionnaires[0], applicationId);
+            try {
+              const adaptiveFormData = convertQuestionnairesToFormData(existingQuestionnaires[0], applicationId);
 
-            if (validateFormDataStructure(adaptiveFormData)) {
-              setState(prev => ({
-                ...prev,
-                formData: adaptiveFormData,
-                questionnaires: existingQuestionnaires,
-                isLoading: false
-              }));
+              if (validateFormDataStructure(adaptiveFormData)) {
+                setState(prev => ({
+                  ...prev,
+                  formData: adaptiveFormData,
+                  questionnaires: existingQuestionnaires,
+                  isLoading: false
+                }));
 
-              toast({
-                title: 'Form Loaded',
-                description: 'Loaded existing questionnaire for this flow'
-              });
+                toast({
+                  title: 'Form Loaded',
+                  description: 'Loaded existing questionnaire for this flow'
+                });
 
-              return; // Skip waiting for agents
+                return; // Skip waiting for agents
+              } else {
+                console.warn('⚠️ Existing questionnaire data structure is invalid, will regenerate');
+              }
+            } catch (conversionError) {
+              console.error('❌ Failed to convert existing questionnaire:', conversionError);
+              // Continue to regenerate questionnaire instead of failing
             }
           }
         } catch (error) {
@@ -308,15 +314,22 @@ export const useAdaptiveFormFlow = (
       }
 
       if (agentQuestionnaires.length === 0) {
-        throw new Error('CrewAI agents failed to generate questionnaires. Check backend logs for errors.');
+        throw new Error('CrewAI agents failed to generate questionnaires within the timeout period. This may be due to backend processing delays or agent failures. Check backend logs for more details.');
       }
 
       // Convert CrewAI-generated questionnaires to AdaptiveFormData format
-      const adaptiveFormData = convertQuestionnairesToFormData(agentQuestionnaires[0], applicationId);
+      let adaptiveFormData;
+      try {
+        adaptiveFormData = convertQuestionnairesToFormData(agentQuestionnaires[0], applicationId);
+      } catch (conversionError) {
+        console.error('❌ Failed to convert agent questionnaire to form data:', conversionError);
+        throw new Error(`Failed to convert agent-generated questionnaire to form format: ${conversionError.message}`);
+      }
 
       // Validate the converted form data
       if (!validateFormDataStructure(adaptiveFormData)) {
-        throw new Error('Generated form data structure is invalid');
+        console.error('❌ Generated form data structure validation failed:', adaptiveFormData);
+        throw new Error('Generated form data structure is invalid. The questionnaire may be missing required fields or sections.');
       }
 
       setState(prev => ({
@@ -335,13 +348,32 @@ export const useAdaptiveFormFlow = (
     } catch (error: unknown) {
       console.error('❌ Failed to initialize adaptive collection:', error);
 
-      setState(prev => ({ ...prev, error, isLoading: false }));
+      // Create a more user-friendly error message
+      let userMessage = 'Failed to initialize collection flow.';
+      if (error?.message) {
+        if (error.message.includes('questionnaire')) {
+          userMessage = 'Failed to load adaptive forms. The questionnaire generation process encountered an error.';
+        } else if (error.message.includes('permission')) {
+          userMessage = 'Permission denied. You do not have access to create collection flows.';
+        } else if (error.message.includes('timeout')) {
+          userMessage = 'The form generation process is taking longer than expected. Please try again.';
+        } else if (error.message.includes('Multiple active')) {
+          userMessage = 'Multiple active collection flows detected. Please manage existing flows first.';
+        } else {
+          userMessage = error.message;
+        }
+      }
+
+      const enhancedError = new Error(userMessage);
+      enhancedError.cause = error;
+
+      setState(prev => ({ ...prev, error: enhancedError, isLoading: false }));
 
       // Only show toast for non-409 errors to avoid spam
       if (!error?.message?.includes('409') && !error?.message?.includes('Conflict')) {
         toast({
-          title: 'Collection Flow Error',
-          description: error.message || 'Failed to initialize collection flow.',
+          title: 'Failed to Load Adaptive Forms',
+          description: userMessage,
           variant: 'destructive'
         });
       } else {
@@ -353,7 +385,7 @@ export const useAdaptiveFormFlow = (
       setState(prev => ({ ...prev, isLoading: false }));
 
       // No fallback - let the error be shown to the user
-      throw error;
+      throw enhancedError;
     } finally {
       // Always ensure loading state is cleared
       setState(prev => ({ ...prev, isLoading: false }));

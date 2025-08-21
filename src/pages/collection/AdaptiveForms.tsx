@@ -299,8 +299,18 @@ const AdaptiveForms: React.FC = () => {
         >
           <div className="max-w-2xl mx-auto mt-8">
             <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-red-800 mb-2">Collection Flow Error</h3>
-              <p className="text-red-700 mb-4">{error.message}</p>
+              <h3 className="text-lg font-semibold text-red-800 mb-2">Failed to Load Adaptive Forms</h3>
+              <p className="text-red-700 mb-4">{error.message || 'An unexpected error occurred while loading the adaptive forms.'}</p>
+
+              {/* Show more detailed error information in development */}
+              {process.env.NODE_ENV === 'development' && error.cause && (
+                <details className="mt-4">
+                  <summary className="text-sm text-red-600 cursor-pointer">Technical Details (Development)</summary>
+                  <pre className="text-xs text-red-500 mt-2 overflow-auto bg-red-100 p-2 rounded">
+                    {error.cause.message || error.cause.toString()}
+                  </pre>
+                </details>
+              )}
 
               {/* Handle 409 Conflict errors - existing active flows */}
               {(error.message?.includes('Multiple active collection flows') ||
@@ -342,9 +352,17 @@ const AdaptiveForms: React.FC = () => {
                !error.message?.includes('409') &&
                !error.message?.includes('Conflict') &&
                !error.message?.includes('500') && (
-                <Button onClick={() => initializeFlow()} className="mt-4">
-                  Retry
-                </Button>
+                <div className="mt-4 space-x-2">
+                  <Button onClick={() => initializeFlow()} variant="default">
+                    Retry Initialization
+                  </Button>
+                  <Button
+                    onClick={() => window.location.reload()}
+                    variant="outline"
+                  >
+                    Refresh Page
+                  </Button>
+                </div>
               )}
             </div>
           </div>

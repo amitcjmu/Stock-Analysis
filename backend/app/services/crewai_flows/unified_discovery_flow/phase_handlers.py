@@ -135,10 +135,13 @@ class PhaseHandlers:
         )
 
         # Check if field mapping has already been executed to prevent duplicates
-        if (
-            hasattr(self.flow.state, "field_mapping_executed")
-            and self.flow.state.field_mapping_executed
-        ):
+        # Use defensive programming to handle missing fields gracefully
+        field_mapping_executed = getattr(
+            self.flow.state, "field_mapping_executed", False
+        )
+        phase_completed = self.flow.state.phase_completion.get("field_mapping", False)
+
+        if field_mapping_executed or phase_completed:
             self.logger.warning(
                 f"⚠️ Field mapping already executed for flow {self.flow._flow_id}, skipping duplicate execution"
             )
@@ -151,7 +154,9 @@ class PhaseHandlers:
             }
 
         # Mark field mapping as executed to prevent duplicate runs
-        self.flow.state.field_mapping_executed = True
+        # Ensure both tracking methods are synchronized
+        if hasattr(self.flow.state, "field_mapping_executed"):
+            self.flow.state.field_mapping_executed = True
 
         # CC: Record phase start time and transition
         start_time = datetime.utcnow()
@@ -187,6 +192,11 @@ class PhaseHandlers:
 
             # Update state with mapping suggestions
             self.flow.state.field_mappings = mapping_result.get("field_mappings", {})
+
+            # Synchronize both completion tracking fields
+            self.flow.state.phase_completion["field_mapping"] = True
+            if hasattr(self.flow.state, "field_mapping_executed"):
+                self.flow.state.field_mapping_executed = True
 
             # CC: Record phase completion time and transition
             execution_time_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
