@@ -153,7 +153,7 @@ def upgrade() -> None:
         # Analysis configuration
         sa.Column("analysis_config", postgresql.JSONB),
         # Foreign key constraints
-        # Note: migration.migrations table doesn't exist, removed that FK constraint
+        # Removed nonexistent FK to "migration.migrations" to avoid migration failure
         sa.ForeignKeyConstraint(
             ["client_account_id"], ["migration.client_accounts.id"], ondelete="CASCADE"
         ),

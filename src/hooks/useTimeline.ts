@@ -47,7 +47,7 @@ export const useTimeline = () => {
   const { isAuthenticated, client, engagement } = useAuth();
 
   return useQuery<TimelineData>({
-    queryKey: ['timeline'],
+    queryKey: ['timeline', client?.id, engagement?.id],
     queryFn: async () => {
       try {
         const response = await apiCall('/api/v1/plan/timeline');
