@@ -22,6 +22,7 @@ from app.schemas.collection_flow import (
     CollectionFlowResponse,
     CollectionFlowUpdate,
     CollectionGapAnalysisResponse,
+    ManageFlowRequest,
 )
 
 # Import all modular functions to maintain backward compatibility
@@ -366,9 +367,7 @@ async def analyze_existing_flows(
 
 @router.post("/flows/manage")
 async def manage_existing_flow(
-    action: str,
-    flow_id: Optional[str] = None,
-    flow_ids: Optional[List[str]] = None,
+    request: ManageFlowRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     context=Depends(get_request_context),
@@ -376,9 +375,9 @@ async def manage_existing_flow(
     """Manage existing flows (cancel, complete, etc.) to resolve conflicts.
 
     Actions:
-    - 'cancel_flow': Cancel a specific flow
-    - 'cancel_multiple': Cancel multiple flows
-    - 'complete_flow': Mark a flow as complete
+    - 'cancel_flow': Cancel a specific flow (requires flow_id)
+    - 'cancel_multiple': Cancel multiple flows (requires flow_ids)
+    - 'complete_flow': Mark a flow as complete (requires flow_id)
     - 'cancel_stale': Cancel all stale flows
     - 'auto_complete': Auto-complete eligible flows
     """
@@ -388,30 +387,44 @@ async def manage_existing_flow(
 
     lifecycle_manager = CollectionFlowLifecycleManager(db, context)
 
-    if action == "cancel_flow" and flow_id:
+    if request.action == "cancel_flow":
+        if not request.flow_id:
+            raise HTTPException(
+                status_code=400,
+                detail="flow_id is required for 'cancel_flow' action",
+            )
         return await collection_crud.delete_flow(
-            flow_id=flow_id,
+            flow_id=request.flow_id,
             force=True,
             db=db,
             current_user=current_user,
             context=context,
         )
-    elif action == "cancel_multiple" and flow_ids:
+    elif request.action == "cancel_multiple":
+        if not request.flow_ids:
+            raise HTTPException(
+                status_code=400,
+                detail="flow_ids is required for 'cancel_multiple' action",
+            )
         return await collection_crud.batch_delete_flows(
-            flow_ids=flow_ids,
+            flow_ids=request.flow_ids,
             force=True,
             db=db,
             current_user=current_user,
             context=context,
         )
-    elif action == "cancel_stale":
+    elif request.action == "cancel_stale":
         return await lifecycle_manager.cancel_stale_flows()
-    elif action == "auto_complete":
+    elif request.action == "auto_complete":
         return await lifecycle_manager.auto_complete_eligible_flows()
     else:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid action '{action}' or missing required parameters",
+            detail=(
+                f"Invalid action '{request.action}'. Valid actions are: "
+                "cancel_flow, cancel_multiple, complete_flow, "
+                "cancel_stale, auto_complete"
+            ),
         )
 
 

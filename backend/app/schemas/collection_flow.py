@@ -102,3 +102,28 @@ class AdaptiveQuestionnaireResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ManageFlowRequest(BaseModel):
+    """Schema for managing existing flows via /flows/manage endpoint"""
+
+    action: str = Field(
+        ...,
+        description=(
+            "Action to perform on flows. Valid actions: "
+            "'cancel_flow', 'cancel_multiple', 'complete_flow', "
+            "'cancel_stale', 'auto_complete'"
+        ),
+    )
+    flow_id: Optional[str] = Field(
+        None,
+        description=(
+            "Specific flow ID for single-flow actions " "(required for 'cancel_flow')"
+        ),
+    )
+    flow_ids: Optional[List[str]] = Field(
+        None,
+        description=(
+            "Multiple flow IDs for batch actions " "(required for 'cancel_multiple')"
+        ),
+    )

@@ -6,7 +6,7 @@ and stale flow handling to resolve 409 conflicts.
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,8 +15,9 @@ from app.core.context import RequestContext
 from app.models.collection_flow import (
     CollectionFlow,
     CollectionFlowStatus,
-    CollectionPhase,
 )
+from app.services.collection_flow_rate_limiter import CollectionFlowRateLimitingService
+from app.services.collection_flow_analyzer import CollectionFlowAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,11 @@ class CollectionFlowLifecycleManager:
     def __init__(self, db: AsyncSession, context: RequestContext):
         self.db = db
         self.context = context
+        # Initialize rate limiting service and analyzer
+        self.rate_limiter = CollectionFlowRateLimitingService(
+            min_operation_interval_minutes=5
+        )
+        self.analyzer = CollectionFlowAnalyzer()
 
     async def analyze_existing_flows(self, user_id: str) -> Dict[str, Any]:
         """
@@ -74,7 +80,7 @@ class CollectionFlowLifecycleManager:
             recently_active_flows = []
 
             for flow in active_flows:
-                analysis = await self._analyze_single_flow(flow, now)
+                analysis = await self.analyzer.analyze_single_flow(flow, now)
                 flow_analysis.append(analysis)
 
                 if analysis["is_stale"]:
@@ -85,7 +91,7 @@ class CollectionFlowLifecycleManager:
                     recently_active_flows.append(flow)
 
             # Determine recommended action
-            recommended_action, message = self._determine_recommended_action(
+            recommended_action, message = self.analyzer.determine_recommended_action(
                 recently_active_flows, resumable_flows, stale_flows
             )
 
@@ -99,7 +105,7 @@ class CollectionFlowLifecycleManager:
                 "recommended_action": recommended_action,
                 "message": message,
                 "can_create_new": recommended_action == "create_new",
-                "options": self._generate_user_options(
+                "options": self.analyzer.generate_user_options(
                     recently_active_flows, resumable_flows, stale_flows
                 ),
             }
@@ -108,208 +114,10 @@ class CollectionFlowLifecycleManager:
             logger.error(f"Error analyzing existing flows: {e}")
             raise
 
-    async def _analyze_single_flow(
-        self, flow: CollectionFlow, now: datetime
-    ) -> Dict[str, Any]:
-        """Analyze a single flow to determine its state and options."""
-
-        # Calculate age and activity metrics
-        age_hours = (now - flow.updated_at).total_seconds() / 3600
-        creation_age_hours = (now - flow.created_at).total_seconds() / 3600
-
-        # Determine if flow is stale (no activity in 24+ hours)
-        is_stale = age_hours >= 24
-
-        # Determine if flow is recently active (activity within 2 hours)
-        recently_active = age_hours < 2
-
-        # Check if flow appears to be stuck in initialization
-        is_stuck_init = (
-            flow.status == CollectionFlowStatus.INITIALIZED.value
-            and creation_age_hours > 0.5  # Stuck if initializing for 30+ minutes
-        )
-
-        # Determine if flow is resumable (not stuck, has some progress)
-        is_resumable = (
-            not is_stuck_init
-            and not is_stale
-            and flow.status != CollectionFlowStatus.INITIALIZED.value
-        )
-
-        # Check for completion indicators
-        completion_indicators = await self._check_completion_indicators(flow)
-
-        # Determine flow health
-        health_status = self._determine_flow_health(
-            flow, is_stale, is_stuck_init, recently_active, completion_indicators
-        )
-
-        return {
-            "flow_id": str(flow.flow_id),
-            "flow_name": flow.flow_name,
-            "status": flow.status,
-            "current_phase": flow.current_phase,
-            "progress_percentage": flow.progress_percentage,
-            "age_hours": round(age_hours, 2),
-            "creation_age_hours": round(creation_age_hours, 2),
-            "is_stale": is_stale,
-            "is_stuck_init": is_stuck_init,
-            "recently_active": recently_active,
-            "is_resumable": is_resumable,
-            "health_status": health_status,
-            "completion_indicators": completion_indicators,
-            "last_activity": flow.updated_at.isoformat(),
-            "created_at": flow.created_at.isoformat(),
-        }
-
-    async def _check_completion_indicators(
-        self, flow: CollectionFlow
-    ) -> Dict[str, Any]:
-        """Check if a flow has indicators that it should be marked as complete."""
-
-        indicators = {"should_be_complete": False, "reasons": [], "confidence": 0.0}
-
-        # Check progress percentage
-        if flow.progress_percentage >= 95:
-            indicators["reasons"].append("Progress at 95%+")
-            indicators["confidence"] += 0.3
-
-        # Check if in finalization phase
-        if flow.current_phase == CollectionPhase.FINALIZATION.value:
-            indicators["reasons"].append("In finalization phase")
-            indicators["confidence"] += 0.4
-
-        # Check if assessment ready
-        if flow.assessment_ready:
-            indicators["reasons"].append("Marked as assessment ready")
-            indicators["confidence"] += 0.3
-
-        # Check for completion timestamp
-        if flow.completed_at:
-            indicators["reasons"].append("Has completion timestamp")
-            indicators["confidence"] = 1.0
-
-        # Determine if should be complete
-        indicators["should_be_complete"] = indicators["confidence"] >= 0.7
-
-        return indicators
-
-    def _determine_flow_health(
-        self,
-        flow: CollectionFlow,
-        is_stale: bool,
-        is_stuck_init: bool,
-        recently_active: bool,
-        completion_indicators: Dict[str, Any],
-    ) -> str:
-        """Determine the overall health status of a flow."""
-
-        if completion_indicators["should_be_complete"]:
-            return "should_be_completed"
-        elif is_stuck_init:
-            return "stuck_initialization"
-        elif is_stale:
-            return "stale"
-        elif recently_active:
-            return "active"
-        elif flow.status == CollectionFlowStatus.FAILED.value:
-            return "failed"
-        elif flow.error_message:
-            return "error"
-        else:
-            return "idle"
-
-    def _determine_recommended_action(
-        self,
-        recently_active: List[CollectionFlow],
-        resumable: List[CollectionFlow],
-        stale: List[CollectionFlow],
-    ) -> Tuple[str, str]:
-        """Determine the recommended action based on flow analysis."""
-
-        if recently_active:
-            return "resume_existing", (
-                f"Found {len(recently_active)} recently active flow(s). "
-                "Recommend resuming existing flow instead of creating new one."
-            )
-
-        if resumable and not stale:
-            return "resume_existing", (
-                f"Found {len(resumable)} resumable flow(s). "
-                "Recommend resuming existing flow."
-            )
-
-        if stale:
-            return "cleanup_and_create", (
-                f"Found {len(stale)} stale flow(s). "
-                "Recommend cleaning up stale flows and creating new one."
-            )
-
-        return "create_new", "No active flows preventing new flow creation."
-
-    def _generate_user_options(
-        self,
-        recently_active: List[CollectionFlow],
-        resumable: List[CollectionFlow],
-        stale: List[CollectionFlow],
-    ) -> List[Dict[str, Any]]:
-        """Generate user-friendly options for handling existing flows."""
-
-        options = []
-
-        if recently_active:
-            options.append(
-                {
-                    "action": "resume_existing",
-                    "title": "Resume Active Flow",
-                    "description": f"Continue with the recently active flow ({recently_active[0].flow_name})",
-                    "flow_id": str(recently_active[0].flow_id),
-                    "recommended": True,
-                }
-            )
-
-        if resumable:
-            for flow in resumable[:2]:  # Show max 2 resumable options
-                options.append(
-                    {
-                        "action": "resume_existing",
-                        "title": f"Resume Flow: {flow.flow_name}",
-                        "description": (
-                            f"Continue from {flow.current_phase} phase "
-                            f"({flow.progress_percentage:.1f}% complete)"
-                        ),
-                        "flow_id": str(flow.flow_id),
-                        "recommended": len(recently_active) == 0,
-                    }
-                )
-
-        if stale:
-            options.append(
-                {
-                    "action": "cancel_stale_and_create",
-                    "title": "Cancel Stale Flows & Create New",
-                    "description": f"Cancel {len(stale)} stale flow(s) and start fresh",
-                    "flow_ids": [str(flow.flow_id) for flow in stale],
-                    "recommended": len(recently_active) == 0 and len(resumable) == 0,
-                }
-            )
-
-        # Always offer the option to create with explicit override
-        options.append(
-            {
-                "action": "force_create_new",
-                "title": "Force Create New Flow",
-                "description": "Create a new flow alongside existing ones (use with caution)",
-                "recommended": False,
-                "warning": "This may create duplicate flows",
-            }
-        )
-
-        return options
-
     async def auto_complete_eligible_flows(self) -> Dict[str, Any]:
         """
         Auto-complete flows that have completion indicators but aren't marked complete.
+        Includes rate limiting to prevent frequent status flips.
 
         Returns:
             Summary of flows that were auto-completed
@@ -333,11 +141,32 @@ class CollectionFlowLifecycleManager:
             active_flows = result.scalars().all()
 
             completed_flows = []
+            rate_limited_flows = []
 
             for flow in active_flows:
-                completion_indicators = await self._check_completion_indicators(flow)
+                completion_indicators = await self.analyzer.check_completion_indicators(
+                    flow
+                )
 
                 if completion_indicators["should_be_complete"]:
+                    # Check rate limiting before proceeding
+                    can_proceed, rate_limit_reason = self.rate_limiter.check_rate_limit(
+                        flow, "auto_complete"
+                    )
+
+                    if not can_proceed:
+                        rate_limited_flows.append(
+                            {
+                                "flow_id": str(flow.flow_id),
+                                "flow_name": flow.flow_name,
+                                "reason": rate_limit_reason,
+                            }
+                        )
+                        logger.info(
+                            f"Rate limited auto-completion for flow {flow.flow_id}: {rate_limit_reason}"
+                        )
+                        continue
+
                     # Auto-complete the flow
                     flow.status = CollectionFlowStatus.COMPLETED.value
                     flow.completed_at = datetime.utcnow()
@@ -357,6 +186,9 @@ class CollectionFlowLifecycleManager:
                         "confidence"
                     ]
 
+                    # Update operation timestamp for rate limiting
+                    self.rate_limiter.update_operation_timestamp(flow, "auto_complete")
+
                     completed_flows.append(
                         {
                             "flow_id": str(flow.flow_id),
@@ -373,6 +205,9 @@ class CollectionFlowLifecycleManager:
             return {
                 "flows_completed": len(completed_flows),
                 "completed_flows": completed_flows,
+                "rate_limited_flows": len(rate_limited_flows),
+                "rate_limited_details": rate_limited_flows,
+                "rate_limit_config": self.rate_limiter.get_rate_limit_config(),
             }
 
         except Exception as e:
@@ -383,6 +218,7 @@ class CollectionFlowLifecycleManager:
     async def cancel_stale_flows(self, max_age_hours: int = 24) -> Dict[str, Any]:
         """
         Cancel flows that have been stale for more than the specified time.
+        Includes rate limiting to prevent frequent status flips.
 
         Args:
             max_age_hours: Maximum age in hours before a flow is considered stale
@@ -412,9 +248,29 @@ class CollectionFlowLifecycleManager:
             stale_flows = result.scalars().all()
 
             cancelled_flows = []
+            rate_limited_flows = []
 
             for flow in stale_flows:
                 age_hours = (datetime.utcnow() - flow.updated_at).total_seconds() / 3600
+
+                # Check rate limiting before proceeding
+                can_proceed, rate_limit_reason = self.rate_limiter.check_rate_limit(
+                    flow, "auto_cancel"
+                )
+
+                if not can_proceed:
+                    rate_limited_flows.append(
+                        {
+                            "flow_id": str(flow.flow_id),
+                            "flow_name": flow.flow_name,
+                            "age_hours": round(age_hours, 2),
+                            "reason": rate_limit_reason,
+                        }
+                    )
+                    logger.info(
+                        f"Rate limited auto-cancellation for flow {flow.flow_id}: {rate_limit_reason}"
+                    )
+                    continue
 
                 # Cancel the stale flow
                 flow.status = CollectionFlowStatus.CANCELLED.value
@@ -426,6 +282,9 @@ class CollectionFlowLifecycleManager:
                 flow.flow_metadata["auto_cancelled"] = True
                 flow.flow_metadata["auto_cancelled_at"] = datetime.utcnow().isoformat()
                 flow.flow_metadata["stale_hours"] = age_hours
+
+                # Update operation timestamp for rate limiting
+                self.rate_limiter.update_operation_timestamp(flow, "auto_cancel")
 
                 cancelled_flows.append(
                     {
@@ -445,6 +304,9 @@ class CollectionFlowLifecycleManager:
             return {
                 "flows_cancelled": len(cancelled_flows),
                 "cancelled_flows": cancelled_flows,
+                "rate_limited_flows": len(rate_limited_flows),
+                "rate_limited_details": rate_limited_flows,
+                "rate_limit_config": self.rate_limiter.get_rate_limit_config(),
             }
 
         except Exception as e:

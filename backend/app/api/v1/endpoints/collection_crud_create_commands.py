@@ -213,13 +213,7 @@ async def create_collection_flow(
 
         lifecycle_manager = CollectionFlowLifecycleManager(db, context)
 
-        # Auto-complete flows that should be completed
-        await lifecycle_manager.auto_complete_eligible_flows()
-
-        # Cancel stale flows (older than 24 hours with no activity)
-        await lifecycle_manager.cancel_stale_flows(max_age_hours=24)
-
-        # Check for existing active flows after cleanup
+        # Check for existing active flows (no automatic mutations)
         existing_result = await db.execute(
             select(CollectionFlow)
             .where(
@@ -248,6 +242,10 @@ async def create_collection_flow(
             # Create enhanced error response with user options
             error_detail = {
                 "error": "Active collection flow already exists",
+                "message": (
+                    "Cannot create new flow while another is active. "
+                    "Please manage existing flows first."
+                ),
                 "existing_flow_id": str(existing_flow.flow_id),
                 "existing_flow_name": existing_flow.flow_name,
                 "existing_flow_status": existing_flow.status,
@@ -261,13 +259,25 @@ async def create_collection_flow(
                 "suggested_endpoints": {
                     "analyze_flows": "/api/v1/collection/flows/analysis",
                     "manage_flows": "/api/v1/collection/flows/manage",
-                    "resume_flow": f"/api/v1/collection/flows/{existing_flow.flow_id}/continue",
+                    "resume_flow": (
+                        f"/api/v1/collection/flows/{existing_flow.flow_id}/continue"
+                    ),
                 },
                 "resolution_steps": [
-                    "1. Call /api/v1/collection/flows/analysis to see all options",
-                    "2. Use /api/v1/collection/flows/manage to cancel stale flows if needed",
-                    "3. Retry flow creation or resume existing flow",
+                    (
+                        "1. Call /api/v1/collection/flows/analysis to view all "
+                        "existing flows and their states"
+                    ),
+                    (
+                        "2. Use /api/v1/collection/flows/manage to cancel, "
+                        "complete, or clean up flows as needed"
+                    ),
+                    (
+                        "3. Retry flow creation or resume the existing flow "
+                        "using the continue endpoint"
+                    ),
                 ],
+                "user_action_required": True,
             }
 
             raise HTTPException(
