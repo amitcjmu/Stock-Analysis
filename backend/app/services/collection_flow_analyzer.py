@@ -26,8 +26,16 @@ class CollectionFlowAnalyzer:
         """Analyze a single flow to determine its state and options."""
 
         # Calculate age and activity metrics
-        age_hours = (now - flow.updated_at).total_seconds() / 3600
-        creation_age_hours = (now - flow.created_at).total_seconds() / 3600
+        # Use updated_at for activity, fallback to created_at for both if updated_at is null
+        last_activity = flow.updated_at or flow.created_at
+        creation_time = flow.created_at
+
+        age_hours = (
+            (now - last_activity).total_seconds() / 3600 if last_activity else 0.0
+        )
+        creation_age_hours = (
+            (now - creation_time).total_seconds() / 3600 if creation_time else 0.0
+        )
 
         # Determine if flow is stale (no activity in 24+ hours)
         is_stale = age_hours >= 24
@@ -70,8 +78,8 @@ class CollectionFlowAnalyzer:
             "is_resumable": is_resumable,
             "health_status": health_status,
             "completion_indicators": completion_indicators,
-            "last_activity": flow.updated_at.isoformat(),
-            "created_at": flow.created_at.isoformat(),
+            "last_activity": last_activity.isoformat() if last_activity else None,
+            "created_at": creation_time.isoformat() if creation_time else None,
         }
 
     async def check_completion_indicators(self, flow: CollectionFlow) -> Dict[str, Any]:

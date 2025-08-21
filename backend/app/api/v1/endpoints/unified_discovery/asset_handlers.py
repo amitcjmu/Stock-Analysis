@@ -6,7 +6,7 @@ Extracted from the main unified_discovery.py file for better maintainability.
 """
 
 import logging
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +26,7 @@ router = APIRouter()
 
 def _create_context_validation_response(
     missing_headers: list, is_read_operation: bool = False
-) -> Dict[str, any]:
+) -> Dict[str, Any]:
     """
     Create a user-friendly response for missing context headers.
 

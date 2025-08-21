@@ -215,6 +215,133 @@ class CollectionFlowLifecycleManager:
             await self.db.rollback()
             raise
 
+    async def complete_single_flow(self, flow_id: str) -> Dict[str, Any]:
+        """
+        Mark a specific flow as complete.
+        Includes rate limiting and proper metadata tracking.
+
+        Args:
+            flow_id: The specific flow ID to complete
+
+        Returns:
+            Result of the completion operation
+
+        Raises:
+            HTTPException: If flow is not found or completion fails
+        """
+        from fastapi import HTTPException
+        from uuid import UUID
+
+        try:
+            # Convert flow_id to UUID for query
+            try:
+                flow_uuid = UUID(flow_id)
+            except (ValueError, TypeError):
+                raise HTTPException(
+                    status_code=400, detail=f"Invalid flow ID format: {flow_id}"
+                )
+
+            # Find the specific flow
+            query = select(CollectionFlow).where(
+                CollectionFlow.flow_id == flow_uuid,
+                CollectionFlow.engagement_id == self.context.engagement_id,
+            )
+
+            result = await self.db.execute(query)
+            flow = result.scalar_one_or_none()
+
+            if not flow:
+                raise HTTPException(
+                    status_code=404, detail=f"Collection flow not found: {flow_id}"
+                )
+
+            # Check if already completed
+            if flow.status == CollectionFlowStatus.COMPLETED.value:
+                return {
+                    "success": True,
+                    "message": "Flow was already completed",
+                    "flow_id": flow_id,
+                    "flow_name": flow.flow_name,
+                    "already_completed": True,
+                    "completed_at": (
+                        flow.completed_at.isoformat() if flow.completed_at else None
+                    ),
+                }
+
+            # Check if flow is in a state that can be completed
+            completable_statuses = [
+                CollectionFlowStatus.INITIALIZED.value,
+                CollectionFlowStatus.PLATFORM_DETECTION.value,
+                CollectionFlowStatus.AUTOMATED_COLLECTION.value,
+                CollectionFlowStatus.GAP_ANALYSIS.value,
+                CollectionFlowStatus.MANUAL_COLLECTION.value,
+            ]
+
+            if flow.status not in completable_statuses:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Flow cannot be completed from current status '{flow.status}'. "
+                        f"Completable statuses: {', '.join(completable_statuses)}"
+                    ),
+                )
+
+            # Check rate limiting before proceeding
+            can_proceed, rate_limit_reason = self.rate_limiter.check_rate_limit(
+                flow, "manual_complete"
+            )
+
+            if not can_proceed:
+                return {
+                    "success": False,
+                    "flow_id": flow_id,
+                    "flow_name": flow.flow_name,
+                    "rate_limited": True,
+                    "reason": rate_limit_reason,
+                    "message": f"Rate limited: {rate_limit_reason}",
+                }
+
+            # Complete the flow
+            flow.status = CollectionFlowStatus.COMPLETED.value
+            flow.completed_at = datetime.utcnow()
+            flow.progress_percentage = 100.0
+
+            # Add completion metadata
+            if not flow.flow_metadata:
+                flow.flow_metadata = {}
+            flow.flow_metadata["manually_completed"] = True
+            flow.flow_metadata["manually_completed_at"] = datetime.utcnow().isoformat()
+            flow.flow_metadata["completion_method"] = "manual_complete_flow_action"
+
+            # Update operation timestamp for rate limiting
+            self.rate_limiter.update_operation_timestamp(flow, "manual_complete")
+
+            # Commit the changes
+            await self.db.commit()
+
+            logger.info(
+                f"Manually completed collection flow {flow.flow_id} ({flow.flow_name})"
+            )
+
+            return {
+                "success": True,
+                "message": "Flow completed successfully",
+                "flow_id": flow_id,
+                "flow_name": flow.flow_name,
+                "completed_at": flow.completed_at.isoformat(),
+                "progress_percentage": flow.progress_percentage,
+                "completion_method": "manual",
+            }
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error completing single flow {flow_id}: {e}")
+            await self.db.rollback()
+            raise HTTPException(
+                status_code=500, detail=f"Failed to complete flow: {str(e)}"
+            )
+
     async def cancel_stale_flows(self, max_age_hours: int = 24) -> Dict[str, Any]:
         """
         Cancel flows that have been stale for more than the specified time.

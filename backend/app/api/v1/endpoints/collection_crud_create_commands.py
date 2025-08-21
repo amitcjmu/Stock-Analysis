@@ -228,7 +228,7 @@ async def create_collection_flow(
                     ]
                 ),
             )
-            .order_by(CollectionFlow.updated_at.desc())
+            .order_by(CollectionFlow.updated_at.desc().nulls_last())
             .limit(1)
         )
         existing_flow = existing_result.scalar_one_or_none()
@@ -249,9 +249,16 @@ async def create_collection_flow(
                 "existing_flow_id": str(existing_flow.flow_id),
                 "existing_flow_name": existing_flow.flow_name,
                 "existing_flow_status": existing_flow.status,
-                "last_activity": existing_flow.updated_at.isoformat(),
+                "last_activity": (
+                    existing_flow.updated_at.isoformat()
+                    if existing_flow.updated_at
+                    else existing_flow.created_at.isoformat()
+                ),
                 "age_hours": round(
-                    (datetime.utcnow() - existing_flow.updated_at).total_seconds()
+                    (
+                        datetime.utcnow()
+                        - (existing_flow.updated_at or existing_flow.created_at)
+                    ).total_seconds()
                     / 3600,
                     2,
                 ),

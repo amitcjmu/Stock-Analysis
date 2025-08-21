@@ -413,6 +413,13 @@ async def manage_existing_flow(
             current_user=current_user,
             context=context,
         )
+    elif request.action == "complete_flow":
+        if not request.flow_id:
+            raise HTTPException(
+                status_code=400,
+                detail="flow_id is required for 'complete_flow' action",
+            )
+        return await lifecycle_manager.complete_single_flow(request.flow_id)
     elif request.action == "cancel_stale":
         return await lifecycle_manager.cancel_stale_flows()
     elif request.action == "auto_complete":
