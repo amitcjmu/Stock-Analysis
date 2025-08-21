@@ -6,6 +6,7 @@ and new collection flow creation.
 
 import logging
 import uuid
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException
@@ -205,7 +206,14 @@ async def create_collection_flow(
     require_role(current_user, COLLECTION_CREATE_ROLES, "create collection flows")
 
     try:
-        # Check for existing active flows
+        # Import lifecycle manager locally to avoid circular imports
+        from app.api.v1.endpoints.collection_flow_lifecycle import (
+            CollectionFlowLifecycleManager,
+        )
+
+        lifecycle_manager = CollectionFlowLifecycleManager(db, context)
+
+        # Check for existing active flows (no automatic mutations)
         existing_result = await db.execute(
             select(CollectionFlow)
             .where(
@@ -220,14 +228,68 @@ async def create_collection_flow(
                     ]
                 ),
             )
+            .order_by(CollectionFlow.updated_at.desc().nulls_last())
             .limit(1)
         )
         existing_flow = existing_result.scalar_one_or_none()
 
         if existing_flow and not getattr(flow_data, "allow_multiple", False):
+            # Analyze the existing flow to provide better error information
+            flow_analysis = await lifecycle_manager.analyze_existing_flows(
+                str(current_user.id)
+            )
+
+            # Create enhanced error response with user options
+            error_detail = {
+                "error": "Active collection flow already exists",
+                "message": (
+                    "Cannot create new flow while another is active. "
+                    "Please manage existing flows first."
+                ),
+                "existing_flow_id": str(existing_flow.flow_id),
+                "existing_flow_name": existing_flow.flow_name,
+                "existing_flow_status": existing_flow.status,
+                "last_activity": (
+                    existing_flow.updated_at.isoformat()
+                    if existing_flow.updated_at
+                    else existing_flow.created_at.isoformat()
+                ),
+                "age_hours": round(
+                    (
+                        datetime.utcnow()
+                        - (existing_flow.updated_at or existing_flow.created_at)
+                    ).total_seconds()
+                    / 3600,
+                    2,
+                ),
+                "analysis": flow_analysis,
+                "suggested_endpoints": {
+                    "analyze_flows": "/api/v1/collection/flows/analysis",
+                    "manage_flows": "/api/v1/collection/flows/manage",
+                    "resume_flow": (
+                        f"/api/v1/collection/flows/{existing_flow.flow_id}/continue"
+                    ),
+                },
+                "resolution_steps": [
+                    (
+                        "1. Call /api/v1/collection/flows/analysis to view all "
+                        "existing flows and their states"
+                    ),
+                    (
+                        "2. Use /api/v1/collection/flows/manage to cancel, "
+                        "complete, or clean up flows as needed"
+                    ),
+                    (
+                        "3. Retry flow creation or resume the existing flow "
+                        "using the continue endpoint"
+                    ),
+                ],
+                "user_action_required": True,
+            }
+
             raise HTTPException(
                 status_code=409,
-                detail=f"Active collection flow already exists: {existing_flow.id}",
+                detail=error_detail,
             )
 
         # Create flow record

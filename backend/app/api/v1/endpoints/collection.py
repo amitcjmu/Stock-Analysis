@@ -9,7 +9,7 @@ delegating to modular components while maintaining 100% backward compatibility.
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
@@ -22,6 +22,7 @@ from app.schemas.collection_flow import (
     CollectionFlowResponse,
     CollectionFlowUpdate,
     CollectionGapAnalysisResponse,
+    ManageFlowRequest,
 )
 
 # Import all modular functions to maintain backward compatibility
@@ -338,6 +339,100 @@ async def batch_delete_flows(
         current_user=current_user,
         context=context,
     )
+
+
+# ========================================
+# FLOW CONFLICT RESOLUTION ENDPOINTS
+# ========================================
+
+
+@router.get("/flows/analysis")
+async def analyze_existing_flows(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Analyze existing collection flows to resolve creation conflicts.
+
+    This endpoint is called when a 409 conflict occurs during flow creation
+    to provide users with options for handling existing flows.
+    """
+    from app.api.v1.endpoints.collection_flow_lifecycle import (
+        CollectionFlowLifecycleManager,
+    )
+
+    lifecycle_manager = CollectionFlowLifecycleManager(db, context)
+    return await lifecycle_manager.analyze_existing_flows(str(current_user.id))
+
+
+@router.post("/flows/manage")
+async def manage_existing_flow(
+    request: ManageFlowRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Manage existing flows (cancel, complete, etc.) to resolve conflicts.
+
+    Actions:
+    - 'cancel_flow': Cancel a specific flow (requires flow_id)
+    - 'cancel_multiple': Cancel multiple flows (requires flow_ids)
+    - 'complete_flow': Mark a flow as complete (requires flow_id)
+    - 'cancel_stale': Cancel all stale flows
+    - 'auto_complete': Auto-complete eligible flows
+    """
+    from app.api.v1.endpoints.collection_flow_lifecycle import (
+        CollectionFlowLifecycleManager,
+    )
+
+    lifecycle_manager = CollectionFlowLifecycleManager(db, context)
+
+    if request.action == "cancel_flow":
+        if not request.flow_id:
+            raise HTTPException(
+                status_code=400,
+                detail="flow_id is required for 'cancel_flow' action",
+            )
+        return await collection_crud.delete_flow(
+            flow_id=request.flow_id,
+            force=True,
+            db=db,
+            current_user=current_user,
+            context=context,
+        )
+    elif request.action == "cancel_multiple":
+        if not request.flow_ids:
+            raise HTTPException(
+                status_code=400,
+                detail="flow_ids is required for 'cancel_multiple' action",
+            )
+        return await collection_crud.batch_delete_flows(
+            flow_ids=request.flow_ids,
+            force=True,
+            db=db,
+            current_user=current_user,
+            context=context,
+        )
+    elif request.action == "complete_flow":
+        if not request.flow_id:
+            raise HTTPException(
+                status_code=400,
+                detail="flow_id is required for 'complete_flow' action",
+            )
+        return await lifecycle_manager.complete_single_flow(request.flow_id)
+    elif request.action == "cancel_stale":
+        return await lifecycle_manager.cancel_stale_flows()
+    elif request.action == "auto_complete":
+        return await lifecycle_manager.auto_complete_eligible_flows()
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Invalid action '{request.action}'. Valid actions are: "
+                "cancel_flow, cancel_multiple, complete_flow, "
+                "cancel_stale, auto_complete"
+            ),
+        )
 
 
 # Export router for backward compatibility
