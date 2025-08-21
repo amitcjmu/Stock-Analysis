@@ -10,7 +10,7 @@ from app.infrastructure import get_deployment_config, get_service_factory
 from app.infrastructure.telemetry import MetricType
 
 
-async def test_deployment_mode(mode: str) -> Dict[str, Any]:
+async def run_deployment_mode_test(mode: str) -> Dict[str, Any]:
     """Test services in a specific deployment mode."""
     print(f"\n{'='*60}")
     print(f"Testing {mode.upper()} deployment mode")
@@ -83,7 +83,7 @@ async def test_deployment_mode(mode: str) -> Dict[str, Any]:
     }
 
 
-async def test_service_fallbacks():
+async def run_service_fallback_tests():
     """Test service fallback mechanisms."""
     print(f"\n{'='*60}")
     print("Testing Service Fallbacks")
@@ -120,13 +120,13 @@ async def main():
 
     for mode in modes:
         try:
-            result = await test_deployment_mode(mode)
+            result = await run_deployment_mode_test(mode)
             results.append(result)
         except Exception as e:
             print(f"\n❌ Error testing {mode} mode: {e}")
 
     # Test fallbacks
-    await test_service_fallbacks()
+    await run_service_fallback_tests()
 
     # Summary
     print(f"\n{'='*60}")

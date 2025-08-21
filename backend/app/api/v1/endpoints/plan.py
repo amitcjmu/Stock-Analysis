@@ -188,3 +188,155 @@ async def update_wave_planning(
     """Update wave planning data."""
     # In a real implementation, this would save to database
     return {"message": "Wave planning updated successfully"}
+
+
+@router.get("/timeline")
+async def get_timeline(
+    db: AsyncSession = Depends(get_db), context=Depends(get_current_context)
+) -> Dict[str, Any]:
+    """Get migration timeline data with phases, milestones, and scheduling information."""
+    current_date = datetime.now()
+
+    timeline_data = {
+        "phases": [
+            {
+                "id": "phase-1",
+                "name": "Discovery & Assessment",
+                "start_date": current_date.strftime("%Y-%m-%d"),
+                "end_date": (current_date + timedelta(days=30)).strftime("%Y-%m-%d"),
+                "status": "In Progress",
+                "progress": 75,
+                "dependencies": [],
+                "milestones": [
+                    {
+                        "name": "Application Discovery Complete",
+                        "date": (current_date + timedelta(days=14)).strftime(
+                            "%Y-%m-%d"
+                        ),
+                        "status": "Completed",
+                        "description": "All applications identified and catalogued",
+                    },
+                    {
+                        "name": "Dependency Analysis",
+                        "date": (current_date + timedelta(days=25)).strftime(
+                            "%Y-%m-%d"
+                        ),
+                        "status": "In Progress",
+                        "description": "Complete dependency mapping between applications",
+                    },
+                ],
+                "risks": [
+                    {
+                        "description": "Legacy system discovery taking longer than expected",
+                        "impact": "Medium",
+                        "mitigation": "Allocate additional resources to discovery team",
+                    }
+                ],
+            },
+            {
+                "id": "phase-2",
+                "name": "Migration Planning",
+                "start_date": (current_date + timedelta(days=20)).strftime("%Y-%m-%d"),
+                "end_date": (current_date + timedelta(days=50)).strftime("%Y-%m-%d"),
+                "status": "Not Started",
+                "progress": 0,
+                "dependencies": ["phase-1"],
+                "milestones": [
+                    {
+                        "name": "Wave Planning Complete",
+                        "date": (current_date + timedelta(days=35)).strftime(
+                            "%Y-%m-%d"
+                        ),
+                        "status": "Pending",
+                        "description": "Applications grouped into migration waves",
+                    },
+                    {
+                        "name": "Resource Planning",
+                        "date": (current_date + timedelta(days=45)).strftime(
+                            "%Y-%m-%d"
+                        ),
+                        "status": "Pending",
+                        "description": "Team assignments and resource allocation finalized",
+                    },
+                ],
+                "risks": [
+                    {
+                        "description": "Resource availability constraints",
+                        "impact": "High",
+                        "mitigation": "Negotiate additional team members or extend timeline",
+                    }
+                ],
+            },
+            {
+                "id": "phase-3",
+                "name": "Wave 1 Migration",
+                "start_date": (current_date + timedelta(days=45)).strftime("%Y-%m-%d"),
+                "end_date": (current_date + timedelta(days=90)).strftime("%Y-%m-%d"),
+                "status": "Not Started",
+                "progress": 0,
+                "dependencies": ["phase-2"],
+                "milestones": [
+                    {
+                        "name": "Infrastructure Preparation",
+                        "date": (current_date + timedelta(days=55)).strftime(
+                            "%Y-%m-%d"
+                        ),
+                        "status": "Pending",
+                        "description": "Target cloud infrastructure ready for migration",
+                    },
+                    {
+                        "name": "Pilot Migration Complete",
+                        "date": (current_date + timedelta(days=70)).strftime(
+                            "%Y-%m-%d"
+                        ),
+                        "status": "Pending",
+                        "description": "First batch of applications successfully migrated",
+                    },
+                    {
+                        "name": "Wave 1 Go-Live",
+                        "date": (current_date + timedelta(days=85)).strftime(
+                            "%Y-%m-%d"
+                        ),
+                        "status": "Pending",
+                        "description": "All Wave 1 applications live in production",
+                    },
+                ],
+                "risks": [
+                    {
+                        "description": "Data migration complexity higher than anticipated",
+                        "impact": "High",
+                        "mitigation": "Implement additional data validation checkpoints",
+                    }
+                ],
+            },
+        ],
+        "metrics": {
+            "total_duration_weeks": 13,
+            "completed_phases": 0,
+            "total_phases": 3,
+            "overall_progress": 25,
+            "delayed_milestones": 0,
+            "at_risk_milestones": 2,
+        },
+        "critical_path": [
+            "Discovery & Assessment",
+            "Migration Planning",
+            "Wave 1 Migration",
+            "Wave 2 Migration",
+            "Validation & Cutover",
+        ],
+        "schedule_health": {
+            "status": "On Track",
+            "issues": [
+                "Legacy system documentation incomplete",
+                "Pending stakeholder approval for cloud architecture",
+            ],
+            "recommendations": [
+                "Schedule additional discovery sessions for undocumented systems",
+                "Expedite architecture review process with stakeholders",
+                "Consider parallel workstreams to reduce timeline impact",
+            ],
+        },
+    }
+
+    return timeline_data

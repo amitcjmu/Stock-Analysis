@@ -73,7 +73,7 @@ def upgrade() -> None:
         name="analysis_status",
         create_type=False,
     )
-    
+
     question_type_enum = postgresql.ENUM(
         "text",
         "select",
@@ -84,7 +84,7 @@ def upgrade() -> None:
         name="question_type",
         create_type=False,
     )
-    
+
     sixr_strategy_enum = postgresql.ENUM(
         "rehost",
         "replatform",
@@ -153,7 +153,7 @@ def upgrade() -> None:
         # Analysis configuration
         sa.Column("analysis_config", postgresql.JSONB),
         # Foreign key constraints
-        sa.ForeignKeyConstraint(["migration_id"], ["migration.migrations.id"]),
+        # Note: migration.migrations table doesn't exist, removed that FK constraint
         sa.ForeignKeyConstraint(
             ["client_account_id"], ["migration.client_accounts.id"], ondelete="CASCADE"
         ),
@@ -254,9 +254,7 @@ def upgrade() -> None:
             "question_id", sa.String(100), unique=True, nullable=False, index=True
         ),
         sa.Column("question_text", sa.Text, nullable=False),
-        sa.Column(
-            "question_type", question_type_enum, nullable=False
-        ),
+        sa.Column("question_type", question_type_enum, nullable=False),
         sa.Column("category", sa.String(100), nullable=False),
         # Question metadata
         sa.Column("priority", sa.Integer, server_default="1"),

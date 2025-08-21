@@ -107,31 +107,8 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
       return;
     }
 
-    // Map phases to appropriate pages instead of monitor
-    const phaseRouteMap: Record<string, string> = {
-      'initialization': `/discovery/cmdb-import`,
-      'data_import_validation': `/discovery/cmdb-import`,
-      'data_import': `/discovery/cmdb-import`,
-      'field_mapping': `/discovery/attribute-mapping/${flowId}`,
-      'attribute_mapping': `/discovery/attribute-mapping/${flowId}`,
-      'data_cleansing': `/discovery/data-cleansing/${flowId}`,
-      'asset_inventory': `/discovery/inventory/${flowId}`,
-      'inventory': `/discovery/inventory/${flowId}`,
-      'dependency_analysis': `/discovery/dependencies/${flowId}`,
-      'dependencies': `/discovery/dependencies/${flowId}`,
-      'waiting_for_user_approval': `/discovery/attribute-mapping/${flowId}`,
-      'paused': `/discovery/attribute-mapping/${flowId}`,
-      'pending_approval': `/discovery/attribute-mapping/${flowId}`,
-      // For error/unknown states, stay on dashboard
-      'failed': `/discovery/dashboard`,
-      'error': `/discovery/dashboard`,
-      'not_found': `/discovery/dashboard`,
-      'unknown': `/discovery/dashboard`,
-      'undefined': `/discovery/dashboard`,
-      'current': `/discovery/dashboard`,
-    };
-
-    const route = phaseRouteMap[actualPhase] || `/discovery/dashboard`;
+    // Use centralized routing configuration instead of hardcoded mapping
+    const route = getDiscoveryPhaseRoute(actualPhase, flowId);
     console.log(`✅ Navigation decision: phase="${actualPhase}" -> route="${route}"`);
     navigate(route);
   };;

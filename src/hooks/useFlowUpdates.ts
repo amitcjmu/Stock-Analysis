@@ -108,7 +108,7 @@ export function useFlowUpdates(
     try {
       safeSetState({ isLoading: true, error: null });
 
-      const sseUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/flows/${flowId}/events`;
+      const sseUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/unified-discovery/flow/${flowId}/events`;
 
       // Create EventSource
       // Note: Native EventSource doesn't support custom headers
@@ -205,7 +205,7 @@ export function useFlowUpdates(
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/flows/${flowId}/status`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/unified-discovery/flow/${flowId}/status`,
         {
           method: 'GET',
           headers: getHeaders(),
