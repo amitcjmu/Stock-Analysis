@@ -89,6 +89,8 @@ class MasterFlowOrchestrator:
             try:
                 from app.services.flow_configs import initialize_all_flows
 
+                # Note: initialize_all_flows is synchronous in the real implementation
+                # The async fallback in flow_handlers.py is only used when import fails there
                 result = initialize_all_flows()
                 logger.info(
                     f"✅ Flow configurations initialized: {len(result.get('flows_registered', []))} flows"

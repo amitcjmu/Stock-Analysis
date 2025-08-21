@@ -138,3 +138,4 @@ test-results/**
 # Data artifacts (keep structure, ignore contents)
 backend/data/**
 !backend/data/.gitkeep
+backend/.adcs/
