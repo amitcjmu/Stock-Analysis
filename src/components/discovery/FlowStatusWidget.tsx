@@ -356,7 +356,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
         {/* AI Guidance */}
         <div>
           <h4 className="text-sm font-medium mb-2">AI Guidance</h4>
-          <p className="text-sm text-gray-700 mb-3">
+          <p className="text-sm text-gray-700 mb-3 break-words overflow-wrap-anywhere">
             {analysis.user_guidance.primary_message}
           </p>
 
@@ -365,7 +365,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
               <p className="text-xs font-medium text-gray-500 mb-2">Recommended Next Steps:</p>
               <ul className="space-y-1">
                 {analysis.user_guidance.action_items.slice(0, 3).map((step, index) => (
-                  <li key={index} className="text-xs text-gray-600 flex items-start gap-2">
+                  <li key={index} className="text-xs text-gray-600 flex items-start gap-2 break-words overflow-wrap-anywhere">
                     <span className="text-blue-500 mt-1">•</span>
                     {step}
                   </li>
@@ -384,7 +384,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
             disabled={!analysis.routing_context?.target_page}
           >
             <ArrowRight className="h-4 w-4 mr-2" />
-            {analysis.user_guidance.action_items[0] || 'No Action Items'}
+            Continue to Next Step
           </Button>
 
           {analysis.routing_context.specific_task && (

@@ -144,9 +144,27 @@ export const useAttributeMappingActions = (
       } else {
         console.error('❌ No flow ID available - cannot trigger field mapping analysis');
         console.log('📋 Flow object:', flow);
+
+        // Show user-friendly error message for missing flow ID
+        if (typeof window !== 'undefined' && (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast) {
+          (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast('No flow ID available. Please refresh the page and try again.');
+        }
+
+        throw new Error('No flow ID available - cannot trigger field mapping analysis');
       }
     } catch (error) {
       console.error('❌ Failed to trigger field mapping analysis:', error);
+
+      // Show user-friendly error message
+      if (typeof window !== 'undefined' && (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast) {
+        const errorMessage = error instanceof Error
+          ? `Failed to trigger field mapping: ${error.message}`
+          : 'Failed to trigger field mapping analysis. Please try again.';
+        (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast(errorMessage);
+      }
+
+      // Re-throw for component error handling
+      throw error;
     }
   }, [flow, refresh, getAuthHeaders]);
 

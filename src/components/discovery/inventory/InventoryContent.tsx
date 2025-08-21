@@ -88,7 +88,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
 
         // First try to fetch from the database API with proper context headers
         // The apiCall function will handle the proxy and headers correctly
-        const response = await apiCall('/assets/list/paginated?page=1&page_size=100');
+        const response = await apiCall('/unified-discovery/assets?page=1&page_size=100');
 
         console.log('📊 Assets API response:', response);
 

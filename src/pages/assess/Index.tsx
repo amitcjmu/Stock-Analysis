@@ -37,7 +37,7 @@ const AssessIndex = (): JSX.Element => {
       } catch (primaryErr) {
         // Fallback to assets
         try {
-          const assetsResp: unknown = await apiCall('assets/list/paginated', { headers });
+          const assetsResp: unknown = await apiCall('unified-discovery/assets', { headers });
           const totalAssets = assetsResp?.pagination?.total_items ?? 0;
           const estimatedApps = Math.ceil(totalAssets * 0.3);
           return {
