@@ -21,7 +21,18 @@ class ExecutionEnginePhaseUtils:
         self, master_repo: CrewAIFlowStateExtensionsRepository, flow_registry=None
     ):
         self.master_repo = master_repo
-        self.flow_registry = flow_registry
+
+        # Validate flow_registry interface
+        if flow_registry and not hasattr(flow_registry, "get_flow_config"):
+            logger.warning(
+                "Provided flow_registry lacks 'get_flow_config'; disabling registry-backed transitions"
+            )
+            self.flow_registry = None
+        else:
+            self.flow_registry = flow_registry
+
+        # Cache for flow configurations to improve performance
+        self._flow_configs_cache = {}
 
     async def skip_to_next_phase(
         self, flow_id: str, phase_name: str, decision: AgentDecision
@@ -55,7 +66,13 @@ class ExecutionEnginePhaseUtils:
         # Use flow registry if flow type is provided
         if flow_type and self.flow_registry:
             try:
-                flow_config = self.flow_registry.get_flow_config(flow_type)
+                # Check cache first
+                if flow_type not in self._flow_configs_cache:
+                    self._flow_configs_cache[flow_type] = (
+                        self.flow_registry.get_flow_config(flow_type)
+                    )
+
+                flow_config = self._flow_configs_cache[flow_type]
                 next_phase = flow_config.get_next_phase(current_phase)
                 if next_phase:
                     return next_phase
@@ -65,13 +82,17 @@ class ExecutionEnginePhaseUtils:
                 logger.warning(f"⚠️ Failed to get next phase from registry: {e}")
 
         # Fallback to hardcoded transitions for backward compatibility (Discovery)
+        # Support both legacy and new naming conventions
         phase_transitions = {
             "initialization": "data_import",
-            "data_import": "field_mapping",
-            "field_mapping": "data_cleansing",
-            "data_cleansing": "asset_creation",
-            "asset_creation": "analysis",
-            "analysis": "completed",
+            "data_import": "attribute_mapping",
+            "field_mapping": "data_cleansing",  # Legacy name support
+            "attribute_mapping": "data_cleansing",  # New name
+            "data_cleansing": "inventory",
+            "asset_creation": "inventory",  # Alternative name
+            "inventory": "dependencies",
+            "dependencies": "completed",
+            "analysis": "completed",  # Legacy name support
         }
 
         return phase_transitions.get(current_phase, "completed")

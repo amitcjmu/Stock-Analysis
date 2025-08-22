@@ -53,7 +53,9 @@ class AutomatedCollectionManager:
         self.data_transformation = DataTransformationService(
             flow_context.db_session, flow_context.context
         )
-        self.quality_assessment = QualityAssessmentService()
+        self.quality_assessment = QualityAssessmentService(
+            flow_context.db_session, flow_context.context
+        )
 
         # Collection configuration
         self.collection_timeout_minutes = 60

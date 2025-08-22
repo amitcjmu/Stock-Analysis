@@ -20,9 +20,7 @@ class CollectionDecisionLogic:
         current_phase: str, analysis: Dict[str, Any]
     ) -> AgentDecision:
         """Collection-specific decision logic"""
-        from app.services.flow_orchestration.execution_engine_phase_utils import (
-            DecisionUtils,
-        )
+        from app.services.crewai_flows.agents.decision.utils import DecisionUtils
 
         if current_phase == "platform_detection":
             return CollectionDecisionLogic._decide_after_platform_detection(analysis)

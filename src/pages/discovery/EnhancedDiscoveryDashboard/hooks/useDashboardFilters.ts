@@ -20,7 +20,7 @@ interface UseDashboardFiltersReturn {
 
 export const useDashboardFilters = (flows: FlowSummary[] | undefined): UseDashboardFiltersReturn => {
   const [filters, setFilters] = useState<DashboardFilters>({
-    timeRange: '7d', // Changed from '24h' to '7d' to be more inclusive
+    timeRange: 'all', // Changed to 'all' to show all flows by default
     status: [],
     flowType: [],
     searchQuery: ''

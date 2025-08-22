@@ -222,22 +222,26 @@ class DecisionUtils:
     @staticmethod
     def get_next_phase(current_phase: str, flow_type: str = "discovery") -> str:
         """Get the next phase in the flow with flow-type awareness"""
-        # Try flow registry first for all flow types
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Prefer flow registry when available
         try:
-            from app.services.flow_type_registry import FlowTypeRegistry
+            from app.services.flow_type_registry import (
+                FlowTypeRegistry,
+            )  # local import to avoid import cycles
 
             flow_registry = FlowTypeRegistry()
             flow_config = flow_registry.get_flow_config(flow_type)
             next_phase = flow_config.get_next_phase(current_phase)
             if next_phase:
                 return next_phase
-
         except Exception as e:
-            import logging
-
-            logger = logging.getLogger(__name__)
             logger.warning(
-                f"⚠️ Failed to get next phase from flow registry for {flow_type}: {e}"
+                "Failed to get next phase from flow registry for %s: %s",
+                flow_type,
+                e,
             )
 
         # Fallback to hardcoded phase orders for backward compatibility
@@ -250,16 +254,19 @@ class DecisionUtils:
                 "asset_inventory",
                 "dependency_analysis",
                 "tech_debt_assessment",
+                "completed",
             ]
-
             try:
-                current_index = discovery_order.index(current_phase)
-                if current_index < len(discovery_order) - 1:
-                    return discovery_order[current_index + 1]
+                idx = discovery_order.index(current_phase)
+                return (
+                    discovery_order[idx + 1]
+                    if idx < len(discovery_order) - 1
+                    else "completed"
+                )
             except ValueError:
-                pass
+                return "completed"
 
-        elif flow_type == "collection":
+        if flow_type == "collection":
             collection_order = [
                 "platform_detection",
                 "automated_collection",
@@ -267,14 +274,17 @@ class DecisionUtils:
                 "questionnaire_generation",
                 "manual_collection",
                 "synthesis",
+                "completed",
             ]
-
             try:
-                current_index = collection_order.index(current_phase)
-                if current_index < len(collection_order) - 1:
-                    return collection_order[current_index + 1]
+                idx = collection_order.index(current_phase)
+                return (
+                    collection_order[idx + 1]
+                    if idx < len(collection_order) - 1
+                    else "completed"
+                )
             except ValueError:
-                pass
+                return "completed"
 
         return "completed"
 

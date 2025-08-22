@@ -20,19 +20,40 @@ logger = logging.getLogger(__name__)
 class PhaseTransitionAgent(BaseDecisionAgent):
     """Agent that decides phase transitions based on data analysis and business context"""
 
-    def __init__(self, flow_type: str = "discovery"):
-        self.flow_type = flow_type
-        super().__init__(
-            role="Flow Orchestration Strategist",
-            goal="Determine optimal phase transitions based on data quality, business context, and flow objectives",
-            backstory=f"""You are an expert in workflow optimization with deep understanding of:
+    # Declare flow_type as a proper field for Pydantic v2 compatibility
+    flow_type: str = "discovery"
+    flow_registry: Any = None
+
+    def __init__(self, flow_type: str = None, flow_registry=None, **kwargs):
+        # Dynamically determine backstory based on flow_type if provided
+        if flow_type:
+            backstory = f"""You are an expert in workflow optimization with deep understanding of:
             - Data quality assessment and validation
             - Business process optimization
             - Risk management and decision theory
             - {flow_type.title()} flow best practices
 
             You make intelligent decisions about when to proceed, pause for human input,
-            or skip phases based on comprehensive analysis of the current situation.""",
+            or skip phases based on comprehensive analysis of the current situation."""
+        else:
+            # Generic backstory when flow type is determined at runtime
+            backstory = """You are an expert in workflow optimization with deep understanding of:
+            - Data quality assessment and validation
+            - Business process optimization
+            - Risk management and decision theory
+            - Multi-flow orchestration best practices
+
+            You make intelligent decisions about when to proceed, pause for human input,
+            or skip phases based on comprehensive analysis of the current situation."""
+
+        super().__init__(
+            role="Flow Orchestration Strategist",
+            goal="Determine optimal phase transitions based on data quality, business context, and flow objectives",
+            backstory=backstory,
+            flow_type=flow_type
+            or "discovery",  # Default to discovery for backward compatibility
+            flow_registry=flow_registry,
+            **kwargs,
         )
 
     async def analyze_phase_transition(
@@ -64,13 +85,12 @@ class PhaseTransitionAgent(BaseDecisionAgent):
         self, phase: str, results: Any, state: Any, flow_type: str
     ) -> Dict[str, Any]:
         """Comprehensive state analysis with flow-type awareness"""
-        from app.services.flow_orchestration.execution_engine_phase_utils import (
-            DecisionUtils,
-        )
+        from app.services.crewai_flows.agents.decision.utils import DecisionUtils
 
         analysis = {
             "phase": phase,
             "flow_type": flow_type,
+            "state": state,  # Include state for downstream decision helpers
             "has_errors": DecisionUtils.check_for_errors(state),
             "data_quality": DecisionUtils.assess_data_quality(state),
             "completeness": DecisionUtils.assess_completeness(phase, state),
@@ -117,9 +137,7 @@ class PhaseTransitionAgent(BaseDecisionAgent):
         self, current_phase: str, analysis: Dict[str, Any], flow_type: str = None
     ) -> AgentDecision:
         """Make decision based on analysis with flow-type awareness"""
-        from app.services.flow_orchestration.execution_engine_phase_utils import (
-            DecisionUtils,
-        )
+        from app.services.crewai_flows.agents.decision.utils import DecisionUtils
 
         effective_flow_type = flow_type or analysis.get("flow_type", self.flow_type)
 

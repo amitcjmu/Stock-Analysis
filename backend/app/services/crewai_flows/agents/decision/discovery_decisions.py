@@ -32,9 +32,7 @@ class DiscoveryDecisionLogic:
             return DiscoveryDecisionLogic._decide_after_asset_creation(analysis)
         else:
             # Default progression
-            from app.services.flow_orchestration.execution_engine_phase_utils import (
-                DecisionUtils,
-            )
+            from app.services.crewai_flows.agents.decision.utils import DecisionUtils
 
             return AgentDecision(
                 action=PhaseAction.PROCEED,
@@ -322,9 +320,7 @@ class DiscoveryDecisionLogic:
     @staticmethod
     def _check_assets_created(analysis: Dict[str, Any]) -> bool:
         """Check if assets were actually created in the database"""
-        from app.services.flow_orchestration.execution_engine_phase_utils import (
-            DecisionUtils,
-        )
+        from app.services.crewai_flows.agents.decision.utils import DecisionUtils
 
         # Check if asset creation results indicate success
         asset_creation_results = analysis.get("asset_creation_results", {})

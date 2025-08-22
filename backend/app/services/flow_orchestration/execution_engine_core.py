@@ -68,7 +68,11 @@ class FlowExecutionCore:
 
         # Initialize decision agents
         self.field_mapping_agent = FieldMappingDecisionAgent()
-        self.phase_transition_agent = PhaseTransitionAgent()
+        # Make the phase transition agent flow-aware by providing the registry
+        # Flow type will be determined at runtime from context
+        self.phase_transition_agent = PhaseTransitionAgent(
+            flow_registry=self.flow_registry
+        )
 
         # Initialize modular components
         self.agents = ExecutionEngineAgentHandlers(

@@ -51,7 +51,9 @@ class ServiceInitializer:
         self.data_transformation = DataTransformationService(
             self.db_session, self.context
         )
-        self.quality_assessment = QualityAssessmentService()
+        self.quality_assessment = QualityAssessmentService(
+            self.db_session, self.context
+        )
         self.audit_logging = AuditLoggingService(self.db_session, self.context)
 
         # Initialize AI analysis services

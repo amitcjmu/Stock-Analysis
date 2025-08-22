@@ -153,22 +153,24 @@ async def create_collection_from_discovery(
             logger.info(
                 f"🚀 Initializing background execution for collection flow {flow_id}"
             )
-            try:
-                execution_result = await collection_utils.initialize_mfo_flow_execution(
-                    db=db,
-                    context=context,
-                    master_flow_id=uuid.UUID(master_flow_id),
-                    flow_type="collection",
-                    initial_state=flow_input,
+            execution_result = await collection_utils.initialize_mfo_flow_execution(
+                db=db,
+                context=context,
+                master_flow_id=uuid.UUID(master_flow_id),
+                flow_type="collection",
+                initial_state=flow_input,
+            )
+
+            # Check execution result status
+            if execution_result.get("status") == "failed":
+                logger.error(
+                    f"❌ Failed to initialize background execution: {execution_result.get('error', 'Unknown error')}"
                 )
+                # Don't fail the entire flow creation, just log the error
+            else:
                 logger.info(
                     f"✅ Background execution initialized for collection flow: {execution_result}"
                 )
-            except Exception as exec_error:
-                logger.error(
-                    f"❌ Failed to initialize background execution: {exec_error}"
-                )
-                # Don't fail the entire flow creation, just log the error
         else:
             logger.warning(
                 "Master flow creation returned None - collection flow will not "
@@ -387,22 +389,24 @@ async def create_collection_flow(
             logger.info(
                 f"🚀 Initializing background execution for collection flow {flow_id}"
             )
-            try:
-                execution_result = await collection_utils.initialize_mfo_flow_execution(
-                    db=db,
-                    context=context,
-                    master_flow_id=uuid.UUID(master_flow_id),
-                    flow_type="collection",
-                    initial_state=flow_input,
+            execution_result = await collection_utils.initialize_mfo_flow_execution(
+                db=db,
+                context=context,
+                master_flow_id=uuid.UUID(master_flow_id),
+                flow_type="collection",
+                initial_state=flow_input,
+            )
+
+            # Check execution result status
+            if execution_result.get("status") == "failed":
+                logger.error(
+                    f"❌ Failed to initialize background execution: {execution_result.get('error', 'Unknown error')}"
                 )
+                # Don't fail the entire flow creation, just log the error
+            else:
                 logger.info(
                     f"✅ Background execution initialized for collection flow: {execution_result}"
                 )
-            except Exception as exec_error:
-                logger.error(
-                    f"❌ Failed to initialize background execution: {exec_error}"
-                )
-                # Don't fail the entire flow creation, just log the error
         else:
             logger.error(
                 "Master flow creation returned None - collection flow cannot proceed"

@@ -8,8 +8,6 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
-from app.core.context import get_current_context
-from app.services.collection_flow.quality_scoring import QualityAssessmentService
 from app.services.tools.base_tool import AsyncBaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
 
@@ -66,8 +64,9 @@ class QualityValidator(AsyncBaseDiscoveryTool, BaseCollectionTool):
         Returns:
             Validation results with quality scores
         """
-        get_current_context()
-        QualityAssessmentService()
+        # TODO: Implement actual quality assessment service integration
+        # context = get_current_context()
+        # quality_service = QualityAssessmentService(db_session, context)
 
         validation_results = self._create_base_result("validate_quality") | {
             "validation_type": validation_type,
