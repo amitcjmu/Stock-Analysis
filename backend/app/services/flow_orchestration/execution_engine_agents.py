@@ -149,7 +149,7 @@ class ExecutionEngineAgentHandlers:
             agent_context = {
                 "flow_id": master_flow.flow_id,
                 "flow_type": master_flow.flow_type,
-                "completed_phase": phase_name,
+                "phase_name": phase_name,  # Fixed: was "completed_phase"
                 "phase_result": phase_result,
                 "flow_state": flow_state or {},
                 "flow_history": master_flow.flow_persistence_data or {},

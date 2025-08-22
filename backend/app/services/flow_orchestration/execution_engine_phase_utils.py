@@ -50,9 +50,21 @@ class ExecutionEnginePhaseUtils:
             "agent_action": decision.action.value,
         }
 
-    def get_default_next_phase(self, current_phase: str) -> str:
+    def get_default_next_phase(self, current_phase: str, flow_type: str = None) -> str:
         """Get default next phase using FlowTypeRegistry"""
-        # This would ideally come from flow configuration
+        # Use flow registry if flow type is provided
+        if flow_type and self.flow_registry:
+            try:
+                flow_config = self.flow_registry.get_flow_config(flow_type)
+                next_phase = flow_config.get_next_phase(current_phase)
+                if next_phase:
+                    return next_phase
+                # If no next phase, flow is complete
+                return "completed"
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to get next phase from registry: {e}")
+
+        # Fallback to hardcoded transitions for backward compatibility (Discovery)
         phase_transitions = {
             "initialization": "data_import",
             "data_import": "field_mapping",
