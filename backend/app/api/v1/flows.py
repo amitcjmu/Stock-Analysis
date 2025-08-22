@@ -21,7 +21,7 @@ from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["Unified Flow Management"])
+router = APIRouter()
 
 
 # ===========================

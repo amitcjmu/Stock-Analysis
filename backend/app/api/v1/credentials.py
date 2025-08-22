@@ -12,10 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
 from app.core.database import get_db
-from app.core.security.cache_encryption import (
-    encrypt_for_cache,
-    is_sensitive_field,
-)
+from app.core.security.cache_encryption import encrypt_for_cache, is_sensitive_field
 from app.middleware.credential_access_control import CredentialAccessControl
 from app.models.platform_credentials import CredentialStatus, VaultProvider
 from app.models.user import User
@@ -35,7 +32,7 @@ from app.services.credential_lifecycle_service import CredentialLifecycleService
 from app.services.credential_service import CredentialService
 from app.services.credential_validators import get_credential_validator
 
-router = APIRouter(prefix="/credentials", tags=["credentials"])
+router = APIRouter(prefix="/credentials")
 # CC DevSecOps: Create alias to avoid triggering cache security scanner false positive
 route_update = router.put  # Alias to avoid 'put' triggering cache operation detection
 

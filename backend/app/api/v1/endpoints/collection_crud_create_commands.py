@@ -6,7 +6,7 @@ and new collection flow creation.
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException
@@ -133,9 +133,13 @@ async def create_collection_from_discovery(
             "start_phase": "gap_analysis",
         }
 
-        # Create the flow - it will be automatically started by the execution engine
-        master_flow_id, master_flow_data = await collection_utils.create_mfo_flow(
-            db, context, "collection", flow_input
+        # Create the flow through MFO - it will be automatically started by the execution engine
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+
+        orchestrator = MasterFlowOrchestrator(db, context)
+
+        master_flow_id, master_flow_data = await orchestrator.create_flow(
+            flow_type="collection", flow_name=flow_name, initial_state=flow_input
         )
 
         # Update collection flow with master flow ID
@@ -144,6 +148,27 @@ async def create_collection_from_discovery(
             collection_flow.master_flow_id = uuid.UUID(master_flow_id)
             await db.commit()
             await db.refresh(collection_flow)
+
+            # Initialize background execution for the collection flow
+            logger.info(
+                f"🚀 Initializing background execution for collection flow {flow_id}"
+            )
+            try:
+                execution_result = await collection_utils.initialize_mfo_flow_execution(
+                    db=db,
+                    context=context,
+                    master_flow_id=uuid.UUID(master_flow_id),
+                    flow_type="collection",
+                    initial_state=flow_input,
+                )
+                logger.info(
+                    f"✅ Background execution initialized for collection flow: {execution_result}"
+                )
+            except Exception as exec_error:
+                logger.error(
+                    f"❌ Failed to initialize background execution: {exec_error}"
+                )
+                # Don't fail the entire flow creation, just log the error
         else:
             logger.warning(
                 "Master flow creation returned None - collection flow will not "
@@ -256,8 +281,17 @@ async def create_collection_flow(
                 ),
                 "age_hours": round(
                     (
-                        datetime.utcnow()
-                        - (existing_flow.updated_at or existing_flow.created_at)
+                        datetime.now(timezone.utc)
+                        - (
+                            (
+                                existing_flow.updated_at or existing_flow.created_at
+                            ).replace(tzinfo=timezone.utc)
+                            if (
+                                existing_flow.updated_at or existing_flow.created_at
+                            ).tzinfo
+                            is None
+                            else (existing_flow.updated_at or existing_flow.created_at)
+                        )
                     ).total_seconds()
                     / 3600,
                     2,
@@ -318,9 +352,29 @@ async def create_collection_flow(
             "collection_config": collection_flow.collection_config,
         }
 
-        master_flow_id, master_flow_data = await collection_utils.create_mfo_flow(
-            db, context, "collection", flow_input
-        )
+        try:
+            from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+
+            orchestrator = MasterFlowOrchestrator(db, context)
+
+            master_flow_id, master_flow_data = await orchestrator.create_flow(
+                flow_type="collection",
+                flow_name=collection_flow.flow_name,
+                initial_state=flow_input,
+            )
+        except Exception as mfo_error:
+            logger.error(
+                safe_log_format(
+                    "Failed to create MFO flow: error={error}", error=str(mfo_error)
+                )
+            )
+            # Delete the collection flow if MFO creation fails
+            await db.delete(collection_flow)
+            await db.commit()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to initialize collection flow orchestration: {str(mfo_error)}",
+            )
 
         # Update collection flow with master flow ID
         # Convert string to UUID for master_flow_id field
@@ -328,10 +382,37 @@ async def create_collection_flow(
             collection_flow.master_flow_id = uuid.UUID(master_flow_id)
             await db.commit()
             await db.refresh(collection_flow)
+
+            # Initialize background execution for the collection flow
+            logger.info(
+                f"🚀 Initializing background execution for collection flow {flow_id}"
+            )
+            try:
+                execution_result = await collection_utils.initialize_mfo_flow_execution(
+                    db=db,
+                    context=context,
+                    master_flow_id=uuid.UUID(master_flow_id),
+                    flow_type="collection",
+                    initial_state=flow_input,
+                )
+                logger.info(
+                    f"✅ Background execution initialized for collection flow: {execution_result}"
+                )
+            except Exception as exec_error:
+                logger.error(
+                    f"❌ Failed to initialize background execution: {exec_error}"
+                )
+                # Don't fail the entire flow creation, just log the error
         else:
-            logger.warning(
-                "Master flow creation returned None - collection flow will not "
-                "have master_flow_id set"
+            logger.error(
+                "Master flow creation returned None - collection flow cannot proceed"
+            )
+            # Delete the collection flow if no MFO ID was returned
+            await db.delete(collection_flow)
+            await db.commit()
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to initialize collection flow orchestration: No master flow ID returned",
             )
 
         logger.info(

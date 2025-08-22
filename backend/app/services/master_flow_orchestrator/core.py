@@ -92,7 +92,7 @@ class MasterFlowOrchestrator:
                 # Note: initialize_all_flows is synchronous in the real implementation
                 # The async fallback in flow_handlers.py is only used when import fails there
                 result = initialize_all_flows()
-                
+
                 # Handle unexpected return values
                 flows_registered = 0
                 if isinstance(result, dict):
@@ -100,9 +100,13 @@ class MasterFlowOrchestrator:
                 elif result is None:
                     logger.warning("Flow configuration initialization returned None")
                 else:
-                    logger.warning(f"Unexpected initialize_all_flows() return type: {type(result).__name__}")
-                
-                logger.info(f"✅ Flow configurations initialized: {flows_registered} flows")
+                    logger.warning(
+                        f"Unexpected initialize_all_flows() return type: {type(result).__name__}"
+                    )
+
+                logger.info(
+                    f"✅ Flow configurations initialized: {flows_registered} flows"
+                )
             except ImportError as e:
                 # CC: Flow configuration module not available (likely CrewAI dependency missing)
                 logger.warning(f"Flow configuration initialization skipped: {e}")

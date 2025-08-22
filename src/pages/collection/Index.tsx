@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
 
 // Import layout components
@@ -19,7 +19,8 @@ import { canCreateCollectionFlow, getRoleName } from '@/utils/rbac';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FormInput, Upload, Settings, BarChart3, Clock, CheckCircle, AlertCircle, Loader2, Shield } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FormInput, Upload, Settings, BarChart3, Clock, CheckCircle, AlertCircle, Loader2, Shield, Info } from 'lucide-react'
 
 /**
  * Collection workflow index page
@@ -30,6 +31,69 @@ const CollectionIndex: React.FC = () => {
   const { toast } = useToast();
   const { setCurrentFlow, user } = useAuth();
   const [isCreatingFlow, setIsCreatingFlow] = useState<string | null>(null);
+  const [collectionMetrics, setCollectionMetrics] = useState({
+    activeForms: 0,
+    bulkUploads: 0,
+    pendingConflicts: 0,
+    completionRate: 0,
+    hasActiveFlow: false,
+    activeFlowId: null as string | null,
+    activeFlowStatus: null as string | null
+  });
+
+  // Fetch collection status on mount
+  useEffect(() => {
+    const fetchCollectionStatus = async () => {
+      try {
+        // Get auth data from correct localStorage keys
+        const authToken = localStorage.getItem('auth_token');
+        const clientId = localStorage.getItem('auth_client_id');
+        const engagementStr = localStorage.getItem('auth_engagement');
+        let engagementId = '';
+
+        if (engagementStr) {
+          try {
+            const engagement = JSON.parse(engagementStr);
+            engagementId = engagement.id;
+          } catch (e) {
+            console.error('Failed to parse engagement data:', e);
+          }
+        }
+
+        const response = await fetch('/api/v1/collection/status', {
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+            'X-Client-Account-ID': clientId || '',
+            'X-Engagement-ID': engagementId || ''
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          // Check if there's an active flow
+          if (data.status !== 'no_active_flow') {
+            setCollectionMetrics(prev => ({
+              ...prev,
+              hasActiveFlow: true,
+              activeFlowId: data.flow_id,
+              activeFlowStatus: data.status,
+              activeForms: data.status === 'initialized' || data.status === 'platform_detection' ? 1 : 0,
+              completionRate: data.progress || 0
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch collection status:', error);
+      }
+    };
+
+    fetchCollectionStatus();
+    // Refresh status every 10 seconds
+    const interval = setInterval(fetchCollectionStatus, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const workflowOptions = [
     {
@@ -242,6 +306,31 @@ const CollectionIndex: React.FC = () => {
         </div>
       </div>
 
+      {/* Active Flow Notification */}
+      {collectionMetrics.hasActiveFlow && (
+        <Alert className="border-blue-200 bg-blue-50">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="font-medium">Active Collection Flow Detected</span>
+                <span className="ml-2 text-sm">
+                  Flow ID: {collectionMetrics.activeFlowId?.slice(0, 8)}... | Status: {collectionMetrics.activeFlowStatus}
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/collection/progress/${collectionMetrics.activeFlowId}`)}
+                className="ml-4"
+              >
+                View Progress
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -252,7 +341,7 @@ const CollectionIndex: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm font-medium">Active Forms</p>
-                <p className="text-2xl font-bold">0</p>
+                <p className="text-2xl font-bold">{collectionMetrics.activeForms}</p>
               </div>
             </div>
           </CardContent>
@@ -266,7 +355,7 @@ const CollectionIndex: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm font-medium">Bulk Uploads</p>
-                <p className="text-2xl font-bold">0</p>
+                <p className="text-2xl font-bold">{collectionMetrics.bulkUploads}</p>
               </div>
             </div>
           </CardContent>
@@ -280,7 +369,7 @@ const CollectionIndex: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm font-medium">Pending Conflicts</p>
-                <p className="text-2xl font-bold">0</p>
+                <p className="text-2xl font-bold">{collectionMetrics.pendingConflicts}</p>
               </div>
             </div>
           </CardContent>
@@ -294,7 +383,7 @@ const CollectionIndex: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm font-medium">Completion Rate</p>
-                <p className="text-2xl font-bold">0%</p>
+                <p className="text-2xl font-bold">{collectionMetrics.completionRate}%</p>
               </div>
             </div>
           </CardContent>
@@ -331,14 +420,16 @@ const CollectionIndex: React.FC = () => {
                   onClick={() => startCollectionWorkflow(workflow.id, workflow.path)}
                   variant="outline"
                   size="sm"
-                  disabled={isCreatingFlow === workflow.id || !canCreateCollectionFlow(user)}
-                  title={!canCreateCollectionFlow(user) ? `Only analysts and above can create collection flows. Your role: ${getRoleName(user?.role)}` : ''}
+                  disabled={isCreatingFlow === workflow.id || !canCreateCollectionFlow(user) || (collectionMetrics.hasActiveFlow && workflow.id !== 'progress-monitoring')}
+                  title={!canCreateCollectionFlow(user) ? `Only analysts and above can create collection flows. Your role: ${getRoleName(user?.role)}` : (collectionMetrics.hasActiveFlow && workflow.id !== 'progress-monitoring' ? 'An active flow exists. Please complete or cancel it first.' : '')}
                 >
                   {isCreatingFlow === workflow.id ? (
                     <>
                       <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                       Starting...
                     </>
+                  ) : collectionMetrics.hasActiveFlow && workflow.id !== 'progress-monitoring' ? (
+                    'Flow Active'
                   ) : (
                     'Start Workflow'
                   )}
@@ -365,14 +456,16 @@ const CollectionIndex: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => startCollectionWorkflow('adaptive-forms', '/collection/adaptive-forms')}
-                disabled={isCreatingFlow === 'adaptive-forms' || !canCreateCollectionFlow(user)}
-                title={!canCreateCollectionFlow(user) ? `Only analysts and above can create collection flows. Your role: ${getRoleName(user?.role)}` : ''}
+                disabled={isCreatingFlow === 'adaptive-forms' || !canCreateCollectionFlow(user) || collectionMetrics.hasActiveFlow}
+                title={!canCreateCollectionFlow(user) ? `Only analysts and above can create collection flows. Your role: ${getRoleName(user?.role)}` : (collectionMetrics.hasActiveFlow ? 'An active flow exists. Please complete or cancel it first.' : '')}
               >
                 {isCreatingFlow === 'adaptive-forms' ? (
                   <>
                     <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                     Starting...
                   </>
+                ) : collectionMetrics.hasActiveFlow ? (
+                  'Flow Active'
                 ) : (
                   'Start Adaptive Collection'
                 )}
@@ -387,14 +480,16 @@ const CollectionIndex: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => startCollectionWorkflow('bulk-upload', '/collection/bulk-upload')}
-                disabled={isCreatingFlow === 'bulk-upload' || !canCreateCollectionFlow(user)}
-                title={!canCreateCollectionFlow(user) ? `Only analysts and above can create collection flows. Your role: ${getRoleName(user?.role)}` : ''}
+                disabled={isCreatingFlow === 'bulk-upload' || !canCreateCollectionFlow(user) || collectionMetrics.hasActiveFlow}
+                title={!canCreateCollectionFlow(user) ? `Only analysts and above can create collection flows. Your role: ${getRoleName(user?.role)}` : (collectionMetrics.hasActiveFlow ? 'An active flow exists. Please complete or cancel it first.' : '')}
               >
                 {isCreatingFlow === 'bulk-upload' ? (
                   <>
                     <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                     Starting...
                   </>
+                ) : collectionMetrics.hasActiveFlow ? (
+                  'Flow Active'
                 ) : (
                   'Start Bulk Upload'
                 )}

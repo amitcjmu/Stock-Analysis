@@ -118,10 +118,20 @@ const AdaptiveForms: React.FC = () => {
 
     const hasApps = hasApplicationsSelected(currentCollectionFlow);
 
-    if (!hasApps) {
-      console.log('🔄 Collection flow has no applications selected, redirecting to inventory selection...', {
+    // Only redirect for NEW flows (not existing ones being continued)
+    // Check if this is a continuation of an existing flow by looking for flowId in URL
+    const isExistingFlowContinuation = flowId !== null && flowId !== undefined;
+
+    // Also check if the flow has already progressed beyond initial state
+    const hasProgressed = currentCollectionFlow.progress > 0 ||
+                         currentCollectionFlow.current_phase !== 'initialization';
+
+    if (!hasApps && !isExistingFlowContinuation && !hasProgressed) {
+      console.log('🔄 New collection flow has no applications selected, redirecting to inventory selection...', {
         flowId: activeFlowId,
-        collectionFlow: currentCollectionFlow
+        collectionFlow: currentCollectionFlow,
+        isExistingFlowContinuation,
+        hasProgressed
       });
 
       // Show a toast to inform the user
@@ -139,8 +149,23 @@ const AdaptiveForms: React.FC = () => {
           message: 'Please select applications to analyze for your collection flow'
         }
       });
+    } else if (!hasApps && (isExistingFlowContinuation || hasProgressed)) {
+      // For existing flows without apps, show a warning but don't redirect
+      console.log('⚠️ Existing collection flow has no applications selected, but not redirecting to avoid loop', {
+        flowId: activeFlowId,
+        isExistingFlowContinuation,
+        hasProgressed
+      });
+
+      // Show a warning toast
+      toast({
+        title: 'No Applications Selected',
+        description: 'This collection flow does not have any applications selected. You may need to restart the flow.',
+        variant: 'destructive',
+        duration: 7000
+      });
     }
-  }, [currentCollectionFlow, isLoadingFlow, activeFlowId, navigate, toast]);
+  }, [currentCollectionFlow, isLoadingFlow, activeFlowId, flowId, navigate, toast]);
 
   // Flow management handlers for incomplete flows
   const handleContinueFlow = async (flowId: string): void => {

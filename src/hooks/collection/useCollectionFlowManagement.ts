@@ -75,7 +75,7 @@ export interface FlowContinueResult {
 }
 
 // Hook for detecting incomplete collection flows
-export const useIncompleteCollectionFlows = (enabled: boolean = true): JSX.Element => {
+export const useIncompleteCollectionFlows = (enabled: boolean = true) => {
   console.log('🔍 useIncompleteCollectionFlows hook called with enabled:', enabled);
 
   const queryResult = useQuery({
@@ -161,7 +161,7 @@ export const useIncompleteCollectionFlows = (enabled: boolean = true): JSX.Eleme
   return queryResult;
 };
 
-export const useCollectionFlowManagement = (): unknown => {
+export const useCollectionFlowManagement = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isOperationPending, setIsOperationPending] = useState(false);
@@ -311,7 +311,7 @@ export const useCollectionFlowManagement = (): unknown => {
   };
 };
 
-export const useCollectionFlowStatus = (flowId?: string, enabled: boolean = true): unknown => {
+export const useCollectionFlowStatus = (flowId?: string, enabled: boolean = true) => {
   return useQuery({
     queryKey: ['collection-flows', 'status', flowId],
     queryFn: () => collectionFlowApi.getFlowStatus(),

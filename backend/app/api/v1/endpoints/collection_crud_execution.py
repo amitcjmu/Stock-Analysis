@@ -24,6 +24,7 @@ from app.schemas.collection_flow import CollectionFlowCreate, CollectionFlowResp
 
 # Import modular functions
 from app.api.v1.endpoints import collection_utils
+from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.api.v1.endpoints import collection_validators
 from app.api.v1.endpoints import collection_serializers
 from app.api.v1.endpoints.collection_crud_commands import create_collection_flow
@@ -119,10 +120,29 @@ async def execute_collection_flow(
         # Check if flow can be executed
         await collection_validators.validate_flow_can_be_executed(collection_flow)
 
-        # Execute the current phase
+        # Execute the current phase using the master flow ID if available
         current_phase = collection_flow.current_phase or "initialization"
-        execution_result = await collection_utils.execute_mfo_phase(
-            db, context, flow_id, current_phase, {}
+
+        # Use master_flow_id if it exists, otherwise try with collection flow_id
+        execute_flow_id = (
+            str(collection_flow.master_flow_id)
+            if collection_flow.master_flow_id
+            else flow_id
+        )
+
+        logger.info(
+            safe_log_format(
+                "Executing phase {phase} for collection flow {flow_id} using MFO flow {mfo_id}",
+                phase=current_phase,
+                flow_id=flow_id,
+                mfo_id=execute_flow_id,
+            )
+        )
+
+        # Execute through MasterFlowOrchestrator directly
+        orchestrator = MasterFlowOrchestrator(db, context)
+        execution_result = await orchestrator.execute_phase(
+            flow_id=execute_flow_id, phase_name=current_phase, phase_input={}
         )
 
         logger.info(

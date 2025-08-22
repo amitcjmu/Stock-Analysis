@@ -19,11 +19,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from app.services.crewai_flows.handlers.base_executor import BasePhaseExecutor
-    from app.services.storage_manager.core import StorageManager
-    from app.services.persistent_agents.tenant_scoped_agent_pool import (
-        TenantScopedAgentPool,
-    )
+    pass
 from app.schemas.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 
 # from app.models.discovery_flows import DiscoveryFlow  # Currently unused

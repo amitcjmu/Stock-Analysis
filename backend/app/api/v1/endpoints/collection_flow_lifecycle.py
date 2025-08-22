@@ -5,7 +5,7 @@ and stale flow handling to resolve 409 conflicts.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 
 from sqlalchemy import select
@@ -74,7 +74,7 @@ class CollectionFlowLifecycleManager:
 
             # Analyze each flow
             flow_analysis = []
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             resumable_flows = []
             stale_flows = []
             recently_active_flows = []
@@ -169,16 +169,16 @@ class CollectionFlowLifecycleManager:
 
                     # Auto-complete the flow
                     flow.status = CollectionFlowStatus.COMPLETED.value
-                    flow.completed_at = datetime.utcnow()
+                    flow.completed_at = datetime.now(timezone.utc)
                     flow.progress_percentage = 100.0
 
                     # Add completion metadata
                     if not flow.flow_metadata:
                         flow.flow_metadata = {}
                     flow.flow_metadata["auto_completed"] = True
-                    flow.flow_metadata["auto_completed_at"] = (
-                        datetime.utcnow().isoformat()
-                    )
+                    flow.flow_metadata["auto_completed_at"] = datetime.now(
+                        timezone.utc
+                    ).isoformat()
                     flow.flow_metadata["completion_reasons"] = completion_indicators[
                         "reasons"
                     ]
@@ -303,14 +303,16 @@ class CollectionFlowLifecycleManager:
 
             # Complete the flow
             flow.status = CollectionFlowStatus.COMPLETED.value
-            flow.completed_at = datetime.utcnow()
+            flow.completed_at = datetime.now(timezone.utc)
             flow.progress_percentage = 100.0
 
             # Add completion metadata
             if not flow.flow_metadata:
                 flow.flow_metadata = {}
             flow.flow_metadata["manually_completed"] = True
-            flow.flow_metadata["manually_completed_at"] = datetime.utcnow().isoformat()
+            flow.flow_metadata["manually_completed_at"] = datetime.now(
+                timezone.utc
+            ).isoformat()
             flow.flow_metadata["completion_method"] = "manual_complete_flow_action"
 
             # Update operation timestamp for rate limiting
@@ -354,7 +356,7 @@ class CollectionFlowLifecycleManager:
             Summary of cancelled flows
         """
         try:
-            cutoff_time = datetime.utcnow() - timedelta(hours=max_age_hours)
+            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
 
             # Find stale flows
             active_statuses = [
@@ -378,7 +380,9 @@ class CollectionFlowLifecycleManager:
             rate_limited_flows = []
 
             for flow in stale_flows:
-                age_hours = (datetime.utcnow() - flow.updated_at).total_seconds() / 3600
+                age_hours = (
+                    datetime.now(timezone.utc) - flow.updated_at
+                ).total_seconds() / 3600
 
                 # Check rate limiting before proceeding
                 can_proceed, rate_limit_reason = self.rate_limiter.check_rate_limit(
@@ -401,13 +405,15 @@ class CollectionFlowLifecycleManager:
 
                 # Cancel the stale flow
                 flow.status = CollectionFlowStatus.CANCELLED.value
-                flow.completed_at = datetime.utcnow()
+                flow.completed_at = datetime.now(timezone.utc)
                 flow.error_message = f"Flow cancelled due to inactivity (stale for {age_hours:.1f} hours)"
 
                 if not flow.flow_metadata:
                     flow.flow_metadata = {}
                 flow.flow_metadata["auto_cancelled"] = True
-                flow.flow_metadata["auto_cancelled_at"] = datetime.utcnow().isoformat()
+                flow.flow_metadata["auto_cancelled_at"] = datetime.now(
+                    timezone.utc
+                ).isoformat()
                 flow.flow_metadata["stale_hours"] = age_hours
 
                 # Update operation timestamp for rate limiting

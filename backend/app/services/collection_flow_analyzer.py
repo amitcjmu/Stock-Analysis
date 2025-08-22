@@ -5,7 +5,7 @@ health assessment, and user option generation.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
 
 from app.models.collection_flow import (
@@ -20,6 +20,12 @@ logger = logging.getLogger(__name__)
 class CollectionFlowAnalyzer:
     """Service for analyzing collection flow states and generating recommendations."""
 
+    def _ensure_timezone_aware(self, dt: datetime) -> datetime:
+        """Ensure a datetime is timezone-aware, assuming UTC if naive."""
+        if dt and dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
+
     async def analyze_single_flow(
         self, flow: CollectionFlow, now: datetime
     ) -> Dict[str, Any]:
@@ -27,8 +33,8 @@ class CollectionFlowAnalyzer:
 
         # Calculate age and activity metrics
         # Use updated_at for activity, fallback to created_at for both if updated_at is null
-        last_activity = flow.updated_at or flow.created_at
-        creation_time = flow.created_at
+        last_activity = self._ensure_timezone_aware(flow.updated_at or flow.created_at)
+        creation_time = self._ensure_timezone_aware(flow.created_at)
 
         age_hours = (
             (now - last_activity).total_seconds() / 3600 if last_activity else 0.0

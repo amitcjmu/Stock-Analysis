@@ -14,7 +14,7 @@ from app.core.rbac_middleware import require_admin_access
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/admin/flow-comparison", tags=["Flow Comparison"])
+router = APIRouter(prefix="/admin/flow-comparison")
 
 
 @router.get("/health")

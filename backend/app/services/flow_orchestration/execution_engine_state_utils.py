@@ -52,11 +52,22 @@ class ExecutionEngineStateUtils:
 
             # Fallback to basic flow info
             if master_flow:
+                # Extract current phase from persistence data or use get_current_phase method
+                current_phase = None
+                if hasattr(master_flow, "get_current_phase"):
+                    current_phase = master_flow.get_current_phase()
+                elif master_flow.flow_persistence_data and isinstance(
+                    master_flow.flow_persistence_data, dict
+                ):
+                    current_phase = master_flow.flow_persistence_data.get(
+                        "current_phase"
+                    )
+
                 return {
                     "flow_id": master_flow.flow_id,
                     "flow_type": master_flow.flow_type,
                     "status": master_flow.flow_status,
-                    "current_phase": master_flow.current_phase,
+                    "current_phase": current_phase,
                     "persistence_data": master_flow.flow_persistence_data or {},
                 }
 

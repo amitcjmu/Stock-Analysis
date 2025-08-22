@@ -59,6 +59,7 @@ class FlowExecutionCrew:
         self.crew_utils = ExecutionEngineCrewUtils()
         self.discovery_crews = ExecutionEngineDiscoveryCrews(self.crew_utils)
         self.assessment_crews = ExecutionEngineAssessmentCrews(self.crew_utils)
+        # Collection crews now use persistent agents like Discovery
         self.collection_crews = ExecutionEngineCollectionCrews(self.crew_utils)
 
         # ServiceRegistry for shared state
@@ -70,11 +71,17 @@ class FlowExecutionCrew:
             try:
                 from app.services.service_registry import ServiceRegistry
 
-                self.service_registry = await ServiceRegistry.get_instance()
+                # ServiceRegistry needs db, context, and optional audit_logger
+                self.service_registry = ServiceRegistry(
+                    db=self.db,
+                    context=self.context,
+                    audit_logger=None,  # Can be added if needed
+                )
                 logger.info("🔧 ServiceRegistry initialized for crew execution")
-            except ImportError as e:
+            except (ImportError, AttributeError) as e:
                 logger.warning(f"⚠️ ServiceRegistry not available: {e}")
                 # Continue without ServiceRegistry - graceful degradation
+                self.service_registry = None
 
     async def execute_crew_phase(
         self,
