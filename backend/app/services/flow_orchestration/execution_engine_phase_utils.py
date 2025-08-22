@@ -17,8 +17,11 @@ logger = get_logger(__name__)
 class ExecutionEnginePhaseUtils:
     """Phase utilities for flow execution engine."""
 
-    def __init__(self, master_repo: CrewAIFlowStateExtensionsRepository):
+    def __init__(
+        self, master_repo: CrewAIFlowStateExtensionsRepository, flow_registry=None
+    ):
         self.master_repo = master_repo
+        self.flow_registry = flow_registry
 
     async def skip_to_next_phase(
         self, flow_id: str, phase_name: str, decision: AgentDecision
