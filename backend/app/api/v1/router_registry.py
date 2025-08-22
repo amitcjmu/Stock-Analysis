@@ -1,6 +1,7 @@
 """
 Router registration utilities for the v1 API.
-This module handles the registration of all routers to reduce complexity in the main api.py file.
+This module handles the registration of all routers to reduce complexity
+in the main api.py file.
 """
 
 import logging
@@ -19,7 +20,7 @@ def register_core_routers(api_router: APIRouter):
         agents_router,
         agent_learning_router,
         assessment_events_router,
-        # assessment_flow_router,  # CC: Temporarily disabled due to circular import issue
+        # assessment_flow_router,  # CC: Disabled due to circular import
         asset_workflow_router,
         asset_inventory_router,
         chat_router,
@@ -46,7 +47,8 @@ def register_core_routers(api_router: APIRouter):
 
     # Assessment and Workflow
     api_router.include_router(assessment_events_router, prefix="/assessment-events")
-    # api_router.include_router(assessment_flow_router, prefix="/assessment-flow")  # Disabled - circular import
+    # api_router.include_router(assessment_flow_router,
+    #                           prefix="/assessment-flow")  # Disabled - circular import
     api_router.include_router(asset_workflow_router, prefix="/asset-workflow")
     api_router.include_router(execute_router, prefix="/execute")
     logger.info("✅ Assessment and workflow routers registered")

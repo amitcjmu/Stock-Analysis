@@ -1,6 +1,7 @@
 """
 Execute API Endpoints.
-Handles execution workflows for migration strategies: rehost, replatform, cutovers, metrics, and reports.
+Handles execution workflows for migration strategies: rehost, replatform,
+cutovers, metrics, and reports.
 """
 
 import logging
@@ -78,7 +79,8 @@ async def get_rehost_executions(
     Get rehost execution workflows.
 
     Returns a list of rehost executions with their current status and progress.
-    This is a placeholder implementation that will be enhanced with actual business logic.
+    This is a placeholder implementation that will be enhanced with actual
+    business logic.
     """
     try:
         # Placeholder implementation - will be enhanced with actual database queries
@@ -122,8 +124,9 @@ async def get_replatform_executions(
     """
     Get replatform execution workflows.
 
-    Returns a list of replatform executions with their current status and progress.
-    This is a placeholder implementation that will be enhanced with actual business logic.
+    Returns a list of replatform executions with their current status and
+    progress. This is a placeholder implementation that will be enhanced with
+    actual business logic.
     """
     try:
         # Placeholder implementation - will be enhanced with actual database queries
@@ -167,8 +170,9 @@ async def get_cutover_executions(
     """
     Get cutover execution workflows.
 
-    Returns a list of cutover executions with their current status and progress.
-    This is a placeholder implementation that will be enhanced with actual business logic.
+    Returns a list of cutover executions with their current status and
+    progress. This is a placeholder implementation that will be enhanced with
+    actual business logic.
     """
     try:
         # Placeholder implementation - will be enhanced with actual database queries
@@ -300,10 +304,11 @@ async def create_rehost_execution(
         # Placeholder implementation - will be enhanced with actual business logic
         execution_id = f"rehost-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
 
+        status_message = "initiated" if not request.dry_run else "dry run completed"
         execution = ExecuteResponse(
             execution_id=execution_id,
             status="initiated" if not request.dry_run else "dry_run_completed",
-            message=f"Rehost execution {'initiated' if not request.dry_run else 'dry run completed'}",
+            message=f"Rehost execution {status_message}",
             affected_assets=len(request.asset_ids) if request.asset_ids else 0,
             timestamp=datetime.utcnow(),
             details={
@@ -337,10 +342,11 @@ async def create_replatform_execution(
         # Placeholder implementation - will be enhanced with actual business logic
         execution_id = f"replatform-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
 
+        status_message = "initiated" if not request.dry_run else "dry run completed"
         execution = ExecuteResponse(
             execution_id=execution_id,
             status="initiated" if not request.dry_run else "dry_run_completed",
-            message=f"Replatform execution {'initiated' if not request.dry_run else 'dry run completed'}",
+            message=f"Replatform execution {status_message}",
             affected_assets=len(request.asset_ids) if request.asset_ids else 0,
             timestamp=datetime.utcnow(),
             details={
@@ -374,10 +380,11 @@ async def create_cutover_execution(
         # Placeholder implementation - will be enhanced with actual business logic
         execution_id = f"cutover-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
 
+        status_message = "initiated" if not request.dry_run else "dry run completed"
         execution = ExecuteResponse(
             execution_id=execution_id,
             status="initiated" if not request.dry_run else "dry_run_completed",
-            message=f"Cutover execution {'initiated' if not request.dry_run else 'dry run completed'}",
+            message=f"Cutover execution {status_message}",
             affected_assets=len(request.asset_ids) if request.asset_ids else 0,
             timestamp=datetime.utcnow(),
             details={
