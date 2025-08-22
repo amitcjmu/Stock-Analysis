@@ -1,4 +1,5 @@
 import type { AuthContextType } from '../contexts/AuthContext';
+import { tokenStorage } from '../contexts/AuthContext/storage';
 
 interface ContextWithIds {
   client?: { id: string };
@@ -14,7 +15,7 @@ interface ContextWithIds {
  * @returns Headers object with authentication and context information
  */
 export const getAuthHeaders = (context?: Partial<AuthContextType & ContextWithIds>): Record<string, string> => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  const token = typeof window !== 'undefined' ? tokenStorage.getToken() : null;
   const headers: Record<string, string> = {};
 
   if (token) {

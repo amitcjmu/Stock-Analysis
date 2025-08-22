@@ -11,6 +11,7 @@ import logging
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.api_tags import APITags
 from app.api.v1.auth.handlers.admin_handlers import admin_router
 from app.api.v1.auth.handlers.authentication_handlers import authentication_router
 from app.api.v1.auth.handlers.demo_handlers import demo_router
@@ -21,13 +22,13 @@ from app.services.auth_services.rbac_core_service import RBACCoreService
 logger = logging.getLogger(__name__)
 
 # Create main router
-router = APIRouter(tags=["Authentication & RBAC"])
+router = APIRouter()
 
 # Include all modular handlers
-router.include_router(authentication_router, tags=["Authentication"])
-router.include_router(user_management_router, tags=["User Management"])
-router.include_router(admin_router, tags=["Admin Operations"])
-router.include_router(demo_router, tags=["Demo Functions"])
+router.include_router(authentication_router, tags=[APITags.AUTHENTICATION])
+router.include_router(user_management_router, tags=[APITags.USER_MANAGEMENT])
+router.include_router(admin_router, tags=[APITags.ADMIN_OPERATIONS])
+router.include_router(demo_router, tags=[APITags.DEMO_FUNCTIONS])
 
 
 # Note: RBAC initialization moved to main application lifespan handler

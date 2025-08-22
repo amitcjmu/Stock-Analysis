@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.dependencies import get_db
 from app.services.llm_usage_tracker import llm_tracker
 
-router = APIRouter(prefix="/finops", tags=["FinOps"])
+router = APIRouter(prefix="/finops")
 logger = logging.getLogger(__name__)
 
 
@@ -28,8 +28,7 @@ async def get_real_llm_costs(db: AsyncSession, days: int = 30) -> Dict[str, Any]
         start_date = end_date - timedelta(days=days)
 
         report = await llm_tracker.get_usage_report(
-            start_date=start_date,
-            end_date=end_date,
+            start_date=start_date, end_date=end_date
         )
 
         return {

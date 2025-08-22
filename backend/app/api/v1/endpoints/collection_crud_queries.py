@@ -275,13 +275,15 @@ async def get_collection_gaps(
 
 
 async def get_collection_readiness(
+    flow_id: str,
     db: AsyncSession,
     current_user: User,
     context: RequestContext,
 ) -> Dict[str, Any]:
-    """Assess collection readiness for current engagement.
+    """Assess collection readiness for a specific flow or current engagement.
 
     Args:
+        flow_id: Collection flow ID to assess
         db: Database session
         current_user: Current authenticated user
         context: Request context
@@ -290,6 +292,8 @@ async def get_collection_readiness(
         Dictionary with readiness assessment
     """
     try:
+        from uuid import UUID
+
         # Get asset count for engagement
         asset_result = await db.execute(
             select(func.count(Asset.id)).where(
@@ -298,16 +302,26 @@ async def get_collection_readiness(
         )
         asset_count = asset_result.scalar() or 0
 
-        # Get active collection flow
+        # Get the specific collection flow by ID
         flow_result = await db.execute(
-            select(CollectionFlow)
-            .where(
+            select(CollectionFlow).where(
+                CollectionFlow.flow_id == UUID(flow_id),
                 CollectionFlow.engagement_id == context.engagement_id,
-                CollectionFlow.status != CollectionFlowStatus.COMPLETED.value,
             )
-            .order_by(CollectionFlow.created_at.desc())
         )
         active_flow = flow_result.scalar_one_or_none()
+
+        if not active_flow:
+            # If specific flow not found, try to get any active flow as fallback
+            flow_result = await db.execute(
+                select(CollectionFlow)
+                .where(
+                    CollectionFlow.engagement_id == context.engagement_id,
+                    CollectionFlow.status != CollectionFlowStatus.COMPLETED.value,
+                )
+                .order_by(CollectionFlow.created_at.desc())
+            )
+            active_flow = flow_result.scalar_one_or_none()
 
         # Calculate readiness score
         readiness_score = 0.0

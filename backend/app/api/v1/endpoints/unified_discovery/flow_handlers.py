@@ -36,7 +36,7 @@ except ImportError as e:
     logger.warning(f"Flow configuration initialization unavailable: {e}")
 
     # Create fallback function that returns expected structure
-    async def initialize_all_flows():
+    def initialize_all_flows():
         """Fallback for when flow configs cannot be initialized due to missing dependencies"""
         logger.warning("Flow initialization skipped - CrewAI dependencies unavailable")
         return {

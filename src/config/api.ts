@@ -476,17 +476,17 @@ export const apiCall = async (
 
       // Add auth token if available (don't override if user provided one)
       try {
-        const token = localStorage.getItem('auth_token');
+        const token = tokenStorage.getToken();
         if (token && !headers['Authorization']) {
           headers['Authorization'] = `Bearer ${token}`;
           console.log(`🔐 API Call [${requestId}] - Added auth token to headers`); // nosec - operational log, no token data exposed
         } else if (!token) {
-          console.warn(`⚠️ API Call [${requestId}] - No auth token found in localStorage`);
+          console.warn(`⚠️ API Call [${requestId}] - No auth token found or token expired`);
         } else {
           console.log(`🔐 API Call [${requestId}] - User provided Authorization header, not overriding`);
         }
       } catch (storageError) {
-        console.warn(`⚠️ API Call [${requestId}] - Failed to access localStorage for auth token:`, storageError);
+        console.warn(`⚠️ API Call [${requestId}] - Failed to access tokenStorage for auth token:`, storageError);
       }
 
       // Add context headers if needed

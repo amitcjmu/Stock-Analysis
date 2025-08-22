@@ -15,6 +15,7 @@ class APITags:
     AUTHENTICATION = "Authentication"
     USER_MANAGEMENT = "User Management"
     ADMIN_USER_MANAGEMENT = "Admin User Management"
+    DEMO_FUNCTIONS = "Demo Functions"
 
     # Data Import & Processing
     DATA_IMPORT_CORE = "Data Import Core"
@@ -32,6 +33,7 @@ class APITags:
     CLIENT_MANAGEMENT = "Client Management"
     ENGAGEMENT_MANAGEMENT = "Admin - Engagement Management"
     PLATFORM_ADMIN = "Platform Admin"
+    ADMIN_OPERATIONS = "Admin Operations"
     SECURITY_MONITORING = "Security Monitoring"
     FLOW_COMPARISON = "Flow Comparison"
 

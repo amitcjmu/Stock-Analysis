@@ -25,7 +25,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/security", tags=["security-monitoring"])
+router = APIRouter(prefix="/security")
 
 
 # Pydantic models

@@ -8,9 +8,8 @@ Generated with CC for backend collection handler modularization.
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .base import CollectionHandlerBase, normalize_platform_data

@@ -44,7 +44,7 @@ async def get_current_user_context(
     }
 
 
-router = APIRouter(tags=["Master Flow Coordination"])
+router = APIRouter()
 
 
 class MasterFlowSummaryResponse(BaseModel):

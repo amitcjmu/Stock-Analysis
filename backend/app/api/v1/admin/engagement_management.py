@@ -31,7 +31,7 @@ from app.schemas.engagement import EngagementSession
 logger = logging.getLogger(__name__)
 
 # Create the router with proper configuration
-router = APIRouter(tags=["Admin - Engagement Management"])
+router = APIRouter()
 
 # Define the API endpoints with their routes
 

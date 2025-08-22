@@ -8,6 +8,7 @@
  */
 
 import { isCacheFeatureEnabled } from '@/constants/features';
+import { tokenStorage } from '@/contexts/AuthContext/storage';
 
 // Auth utilities
 interface AuthHeaders {
@@ -22,17 +23,14 @@ const getAuthHeaders = (): AuthHeaders => {
   const headers: AuthHeaders = {};
 
   try {
-    const token = localStorage.getItem('auth_token');
+    const token = tokenStorage.getToken();
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    const userId = localStorage.getItem('auth_user');
-    if (userId && userId !== 'null') {
-      const user = JSON.parse(userId);
-      if (user?.id) {
-        headers['X-User-ID'] = user.id;
-      }
+    const user = tokenStorage.getUser();
+    if (user?.id) {
+      headers['X-User-ID'] = user.id;
     }
 
     const clientId = localStorage.getItem('auth_client');
@@ -317,8 +315,8 @@ class ApiClient {
         // Handle auth errors
         if (error.status === 401) {
           console.warn('🔐 Token expired, clearing auth data');
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('auth_user');
+          tokenStorage.removeToken();
+          tokenStorage.removeUser();
           localStorage.removeItem('auth_client');
           localStorage.removeItem('auth_engagement');
           localStorage.removeItem('auth_flow');

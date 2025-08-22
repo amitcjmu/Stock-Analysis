@@ -9,15 +9,13 @@ gap analysis preparation, gap prioritization, and synthesis preparation.
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid import UUID
 
 from .base import (
     CollectionHandlerBase,
     normalize_platform_data,
-    build_field_updates_from_rows,
 )
 
 logger = logging.getLogger(__name__)

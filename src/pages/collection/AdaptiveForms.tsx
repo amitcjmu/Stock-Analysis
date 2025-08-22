@@ -118,10 +118,20 @@ const AdaptiveForms: React.FC = () => {
 
     const hasApps = hasApplicationsSelected(currentCollectionFlow);
 
-    if (!hasApps) {
-      console.log('🔄 Collection flow has no applications selected, redirecting to inventory selection...', {
+    // Only redirect for NEW flows (not existing ones being continued)
+    // Check if this is a continuation of an existing flow by looking for flowId in URL
+    const isExistingFlowContinuation = flowId !== null && flowId !== undefined;
+
+    // Also check if the flow has already progressed beyond initial state
+    const hasProgressed = currentCollectionFlow.progress > 0 ||
+                         currentCollectionFlow.current_phase !== 'initialization';
+
+    if (!hasApps && !isExistingFlowContinuation && !hasProgressed) {
+      console.log('🔄 New collection flow has no applications selected, redirecting to inventory selection...', {
         flowId: activeFlowId,
-        collectionFlow: currentCollectionFlow
+        collectionFlow: currentCollectionFlow,
+        isExistingFlowContinuation,
+        hasProgressed
       });
 
       // Show a toast to inform the user
@@ -139,8 +149,23 @@ const AdaptiveForms: React.FC = () => {
           message: 'Please select applications to analyze for your collection flow'
         }
       });
+    } else if (!hasApps && (isExistingFlowContinuation || hasProgressed)) {
+      // For existing flows without apps, show a warning but don't redirect
+      console.log('⚠️ Existing collection flow has no applications selected, but not redirecting to avoid loop', {
+        flowId: activeFlowId,
+        isExistingFlowContinuation,
+        hasProgressed
+      });
+
+      // Show a warning toast
+      toast({
+        title: 'No Applications Selected',
+        description: 'This collection flow does not have any applications selected. You may need to restart the flow.',
+        variant: 'destructive',
+        duration: 7000
+      });
     }
-  }, [currentCollectionFlow, isLoadingFlow, activeFlowId, navigate, toast]);
+  }, [currentCollectionFlow, isLoadingFlow, activeFlowId, flowId, navigate, toast]);
 
   // Flow management handlers for incomplete flows
   const handleContinueFlow = async (flowId: string): void => {
@@ -299,8 +324,18 @@ const AdaptiveForms: React.FC = () => {
         >
           <div className="max-w-2xl mx-auto mt-8">
             <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-red-800 mb-2">Collection Flow Error</h3>
-              <p className="text-red-700 mb-4">{error.message}</p>
+              <h3 className="text-lg font-semibold text-red-800 mb-2">Failed to Load Adaptive Forms</h3>
+              <p className="text-red-700 mb-4">{error.message || 'An unexpected error occurred while loading the adaptive forms.'}</p>
+
+              {/* Show more detailed error information in development */}
+              {process.env.NODE_ENV === 'development' && error.cause && (
+                <details className="mt-4">
+                  <summary className="text-sm text-red-600 cursor-pointer">Technical Details (Development)</summary>
+                  <pre className="text-xs text-red-500 mt-2 overflow-auto bg-red-100 p-2 rounded">
+                    {error.cause.message || error.cause.toString()}
+                  </pre>
+                </details>
+              )}
 
               {/* Handle 409 Conflict errors - existing active flows */}
               {(error.message?.includes('Multiple active collection flows') ||
@@ -342,9 +377,17 @@ const AdaptiveForms: React.FC = () => {
                !error.message?.includes('409') &&
                !error.message?.includes('Conflict') &&
                !error.message?.includes('500') && (
-                <Button onClick={() => initializeFlow()} className="mt-4">
-                  Retry
-                </Button>
+                <div className="mt-4 space-x-2">
+                  <Button onClick={() => initializeFlow()} variant="default">
+                    Retry Initialization
+                  </Button>
+                  <Button
+                    onClick={() => window.location.reload()}
+                    variant="outline"
+                  >
+                    Refresh Page
+                  </Button>
+                </div>
               )}
             </div>
           </div>

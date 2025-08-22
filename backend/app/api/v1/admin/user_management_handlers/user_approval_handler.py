@@ -76,4 +76,4 @@ class UserApprovalHandler:
 
 
 # Create router for the handler
-router = APIRouter(prefix="/admin/user-approval", tags=["admin", "user-approval"])
+router = APIRouter(prefix="/admin/user-approval")

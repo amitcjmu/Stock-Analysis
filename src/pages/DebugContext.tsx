@@ -2,6 +2,7 @@ import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
+import { tokenStorage } from '@/contexts/AuthContext/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle } from 'lucide-react'
@@ -47,7 +48,7 @@ export const DebugContext: React.FC = () => {
   const fetchClients = async (): Promise<void> => {
     setLoading(true);
     try {
-      const token = window.localStorage.getItem('auth_token');
+      const token = tokenStorage.getToken();
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/context-establishment/clients`, {
         headers: {
           'Authorization': `Bearer ${token}`,

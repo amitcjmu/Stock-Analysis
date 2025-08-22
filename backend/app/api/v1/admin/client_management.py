@@ -40,7 +40,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(tags=["Client Management"])
+router = APIRouter()
 
 # =========================
 # Health Check

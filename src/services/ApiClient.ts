@@ -4,6 +4,7 @@
  */
 
 import type { ApiResponse, ApiError } from '../types/shared/api-types';
+import { tokenStorage } from '../contexts/AuthContext/storage';
 
 export interface ApiClientConfig {
   baseURL: string;
@@ -87,12 +88,12 @@ export class ApiClient {
 
     // Add auth token if available
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = tokenStorage.getToken();
       if (token && !headers['Authorization']) {
         headers['Authorization'] = `Bearer ${token}`;
       }
     } catch (e) {
-      // Ignore localStorage errors
+      // Ignore tokenStorage errors
     }
 
     if (process.env.NODE_ENV !== 'production') {

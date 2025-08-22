@@ -56,8 +56,27 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
   onCancel,
   className = ''
 }) => {
+  // Defensive checks
+  if (!formData) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <p className="text-gray-500">No form data available. Please try refreshing the page.</p>
+      </div>
+    );
+  }
+
+  if (!formData.sections || formData.sections.length === 0) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <p className="text-gray-500">Form sections are not available. Please contact support if this issue persists.</p>
+      </div>
+    );
+  }
+
   const handleFormSubmit = (): void => {
-    onSubmit(formValues);
+    if (onSubmit && formValues) {
+      onSubmit(formValues);
+    }
   };
 
   return (

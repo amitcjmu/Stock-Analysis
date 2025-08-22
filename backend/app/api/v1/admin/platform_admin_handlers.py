@@ -33,7 +33,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="", tags=["platform-admin"])
+router = APIRouter(prefix="")
 
 
 # Pydantic models for request/response
