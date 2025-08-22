@@ -80,8 +80,8 @@ class ExecutionEngineCollectionCrews:
 
             # Initialize the tenant pool with collection-relevant agents
             agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
-                tenant_id=master_flow.client_account_id,
-                engagement_id=master_flow.engagement_id,
+                client_id=str(master_flow.client_account_id),
+                engagement_id=str(master_flow.engagement_id),
             )
 
             logger.info(
