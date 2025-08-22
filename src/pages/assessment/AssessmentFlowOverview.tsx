@@ -101,7 +101,7 @@ const AssessmentFlowOverview = (): JSX.Element => {
     queryFn: async () => {
       try {
         const headers = getAuthHeaders();
-        const res = await apiCall('/assets/workflow/by-phase/assessment_ready', { method: 'GET', headers });
+        const res = await apiCall('/asset-workflow/workflow/by-phase/assessment_ready', { method: 'GET', headers });
         const items = Array.isArray(res) ? res : [];
         return items
           .map((a: any) => a?.id ?? a?.asset_id ?? a?.asset?.id)

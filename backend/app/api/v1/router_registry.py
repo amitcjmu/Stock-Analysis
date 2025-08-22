@@ -25,6 +25,7 @@ def register_core_routers(api_router: APIRouter):
         chat_router,
         context_router,
         data_import_router,
+        execute_router,
         monitoring_router,
         context_establishment_router,
         flow_sync_debug_router,
@@ -47,6 +48,7 @@ def register_core_routers(api_router: APIRouter):
     api_router.include_router(assessment_events_router, prefix="/assessment-events")
     # api_router.include_router(assessment_flow_router, prefix="/assessment-flow")  # Disabled - circular import
     api_router.include_router(asset_workflow_router, prefix="/asset-workflow")
+    api_router.include_router(execute_router, prefix="/execute")
     logger.info("✅ Assessment and workflow routers registered")
 
     # Asset Management

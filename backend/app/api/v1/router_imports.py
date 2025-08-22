@@ -21,6 +21,8 @@ from app.api.v1.endpoints import (
     sixr_router,
 )
 
+from app.api.v1.endpoints.execute import router as execute_router
+
 from app.api.v1.endpoints.context_establishment import (
     router as context_establishment_router,
 )
@@ -323,6 +325,7 @@ __all__ = [
     "chat_router",
     "context_router",
     "data_import_router",
+    "execute_router",
     "monitoring_router",
     "sixr_router",
     "context_establishment_router",
