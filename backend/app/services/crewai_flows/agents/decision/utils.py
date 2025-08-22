@@ -220,26 +220,63 @@ class DecisionUtils:
         return critical_fields
 
     @staticmethod
-    def get_next_phase(current_phase: str) -> str:
-        """Get the next phase in the flow"""
-        phase_order = [
-            "data_import",
-            "field_mapping",
-            "data_cleansing",
-            "asset_creation",
-            "asset_inventory",
-            "dependency_analysis",
-            "tech_debt_assessment",
-        ]
-
+    def get_next_phase(current_phase: str, flow_type: str = "discovery") -> str:
+        """Get the next phase in the flow with flow-type awareness"""
+        # Try flow registry first for all flow types
         try:
-            current_index = phase_order.index(current_phase)
-            if current_index < len(phase_order) - 1:
-                return phase_order[current_index + 1]
-        except ValueError:
-            pass
+            from app.services.flow_type_registry import FlowTypeRegistry
 
-        return "complete"
+            flow_registry = FlowTypeRegistry()
+            flow_config = flow_registry.get_flow_config(flow_type)
+            next_phase = flow_config.get_next_phase(current_phase)
+            if next_phase:
+                return next_phase
+
+        except Exception as e:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"⚠️ Failed to get next phase from flow registry for {flow_type}: {e}"
+            )
+
+        # Fallback to hardcoded phase orders for backward compatibility
+        if flow_type == "discovery":
+            discovery_order = [
+                "data_import",
+                "field_mapping",
+                "data_cleansing",
+                "asset_creation",
+                "asset_inventory",
+                "dependency_analysis",
+                "tech_debt_assessment",
+            ]
+
+            try:
+                current_index = discovery_order.index(current_phase)
+                if current_index < len(discovery_order) - 1:
+                    return discovery_order[current_index + 1]
+            except ValueError:
+                pass
+
+        elif flow_type == "collection":
+            collection_order = [
+                "platform_detection",
+                "automated_collection",
+                "gap_analysis",
+                "questionnaire_generation",
+                "manual_collection",
+                "synthesis",
+            ]
+
+            try:
+                current_index = collection_order.index(current_phase)
+                if current_index < len(collection_order) - 1:
+                    return collection_order[current_index + 1]
+            except ValueError:
+                pass
+
+        return "completed"
 
     @staticmethod
     def _has_sensitive_data_patterns(state: UnifiedDiscoveryFlowState) -> bool:
