@@ -51,7 +51,7 @@ class ExecuteMetricsResponse(BaseModel):
     failed_executions: int
     in_progress_executions: int
     average_duration_minutes: float
-    success_rate: float
+    success_rate: float  # Percentage 0.0-100.0
     execution_types: Dict[str, int]
     recent_activity: List[Dict[str, Any]]
 
@@ -83,27 +83,25 @@ async def get_rehost_executions(
     business logic.
     """
     try:
-        # Placeholder implementation - will be enhanced with actual database queries
-        # and business logic for rehost executions
+        # Sanitize pagination parameters
+        limit = max(1, min(limit, 1000))  # Clamp between 1 and 1000
+        offset = max(0, offset)  # Ensure non-negative
+
+        # TODO: Implement actual database queries
+        # executions = await db.execute(
+        #     select(ExecutionModel)
+        #     .where(ExecutionModel.type == "rehost")
+        #     .limit(limit)
+        #     .offset(offset)
+        # )
+
+        # Return empty list until implementation is complete
         executions = []
 
-        # For demonstration, return a sample execution if none exist
-        if offset == 0:
-            sample_execution = ExecuteResponse(
-                execution_id="rehost-sample-001",
-                status="pending",
-                message="Rehost execution ready to begin",
-                affected_assets=0,
-                timestamp=datetime.utcnow(),
-                details={
-                    "execution_type": "rehost",
-                    "strategy": "lift_and_shift",
-                    "target_platform": "cloud",
-                },
-            )
-            executions.append(sample_execution)
-
-        logger.info(f"Retrieved {len(executions)} rehost executions")
+        logger.info(
+            f"Retrieved {len(executions)} rehost executions "
+            f"(limit={limit}, offset={offset})"
+        )
         return executions
 
     except Exception as e:
@@ -129,27 +127,18 @@ async def get_replatform_executions(
     actual business logic.
     """
     try:
-        # Placeholder implementation - will be enhanced with actual database queries
-        # and business logic for replatform executions
+        # Sanitize pagination parameters
+        limit = max(1, min(limit, 1000))  # Clamp between 1 and 1000
+        offset = max(0, offset)  # Ensure non-negative
+
+        # TODO: Implement actual database queries
+        # Return empty list until implementation is complete
         executions = []
 
-        # For demonstration, return a sample execution if none exist
-        if offset == 0:
-            sample_execution = ExecuteResponse(
-                execution_id="replatform-sample-001",
-                status="pending",
-                message="Replatform execution ready to begin",
-                affected_assets=0,
-                timestamp=datetime.utcnow(),
-                details={
-                    "execution_type": "replatform",
-                    "strategy": "containerization",
-                    "target_platform": "kubernetes",
-                },
-            )
-            executions.append(sample_execution)
-
-        logger.info(f"Retrieved {len(executions)} replatform executions")
+        logger.info(
+            f"Retrieved {len(executions)} replatform executions "
+            f"(limit={limit}, offset={offset})"
+        )
         return executions
 
     except Exception as e:
@@ -175,27 +164,18 @@ async def get_cutover_executions(
     actual business logic.
     """
     try:
-        # Placeholder implementation - will be enhanced with actual database queries
-        # and business logic for cutover executions
+        # Sanitize pagination parameters
+        limit = max(1, min(limit, 1000))  # Clamp between 1 and 1000
+        offset = max(0, offset)  # Ensure non-negative
+
+        # TODO: Implement actual database queries
+        # Return empty list until implementation is complete
         executions = []
 
-        # For demonstration, return a sample execution if none exist
-        if offset == 0:
-            sample_execution = ExecuteResponse(
-                execution_id="cutover-sample-001",
-                status="pending",
-                message="Cutover execution ready to begin",
-                affected_assets=0,
-                timestamp=datetime.utcnow(),
-                details={
-                    "execution_type": "cutover",
-                    "strategy": "blue_green_deployment",
-                    "rollback_plan": "enabled",
-                },
-            )
-            executions.append(sample_execution)
-
-        logger.info(f"Retrieved {len(executions)} cutover executions")
+        logger.info(
+            f"Retrieved {len(executions)} cutover executions "
+            f"(limit={limit}, offset={offset})"
+        )
         return executions
 
     except Exception as e:
@@ -219,16 +199,23 @@ async def get_execution_metrics(
     and execution patterns across different migration strategies.
     """
     try:
-        # Placeholder implementation - will be enhanced with actual database queries
-        # and business logic for execution metrics
+        # TODO: Implement actual database queries
+        # These would come from real data
+        total = 0
+        successful = 0
+        failed = 0
+        in_progress = 0
+
+        # Calculate success rate safely
+        success_rate = (successful / total * 100.0) if total > 0 else 0.0
 
         metrics = ExecuteMetricsResponse(
-            total_executions=0,
-            successful_executions=0,
-            failed_executions=0,
-            in_progress_executions=0,
+            total_executions=total,
+            successful_executions=successful,
+            failed_executions=failed,
+            in_progress_executions=in_progress,
             average_duration_minutes=0.0,
-            success_rate=0.0,
+            success_rate=success_rate,
             execution_types={"rehost": 0, "replatform": 0, "cutover": 0},
             recent_activity=[],
         )
@@ -258,28 +245,18 @@ async def get_execution_reports(
     performance analytics, and detailed execution logs.
     """
     try:
-        # Placeholder implementation - will be enhanced with actual database queries
-        # and business logic for execution reports
+        # Sanitize pagination parameters
+        limit = max(1, min(limit, 1000))  # Clamp between 1 and 1000
+        offset = max(0, offset)  # Ensure non-negative
+
+        # TODO: Implement actual database queries
+        # Return empty list until implementation is complete
         reports = []
 
-        # For demonstration, return a sample report if none exist
-        if offset == 0:
-            sample_report = ExecuteReportResponse(
-                report_id="exec-report-001",
-                report_type="execution_summary",
-                generated_at=datetime.utcnow(),
-                format="json",
-                status="available",
-                data={
-                    "total_executions": 0,
-                    "execution_types": ["rehost", "replatform", "cutover"],
-                    "success_rate": 0.0,
-                    "average_duration": 0.0,
-                },
-            )
-            reports.append(sample_report)
-
-        logger.info(f"Retrieved {len(reports)} execution reports")
+        logger.info(
+            f"Retrieved {len(reports)} execution reports "
+            f"(limit={limit}, offset={offset})"
+        )
         return reports
 
     except Exception as e:
@@ -301,7 +278,15 @@ async def create_rehost_execution(
     Initiates a rehost execution workflow for the specified assets.
     """
     try:
-        # Placeholder implementation - will be enhanced with actual business logic
+        # Validate input for non-dry-run executions
+        if not request.dry_run:
+            if not request.asset_ids or len(request.asset_ids) == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="asset_ids must be provided for execution (non-dry-run)",
+                )
+
+        # TODO: Implement actual business logic
         execution_id = f"rehost-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
 
         status_message = "initiated" if not request.dry_run else "dry run completed"
@@ -339,7 +324,15 @@ async def create_replatform_execution(
     Initiates a replatform execution workflow for the specified assets.
     """
     try:
-        # Placeholder implementation - will be enhanced with actual business logic
+        # Validate input for non-dry-run executions
+        if not request.dry_run:
+            if not request.asset_ids or len(request.asset_ids) == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="asset_ids must be provided for execution (non-dry-run)",
+                )
+
+        # TODO: Implement actual business logic
         execution_id = f"replatform-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
 
         status_message = "initiated" if not request.dry_run else "dry run completed"
@@ -377,7 +370,15 @@ async def create_cutover_execution(
     Initiates a cutover execution workflow for the specified assets.
     """
     try:
-        # Placeholder implementation - will be enhanced with actual business logic
+        # Validate input for non-dry-run executions
+        if not request.dry_run:
+            if not request.asset_ids or len(request.asset_ids) == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="asset_ids must be provided for execution (non-dry-run)",
+                )
+
+        # TODO: Implement actual business logic
         execution_id = f"cutover-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
 
         status_message = "initiated" if not request.dry_run else "dry run completed"
