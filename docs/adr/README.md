@@ -24,6 +24,8 @@ This directory contains Architecture Decision Records for the AI Modernize Migra
 | [ADR-016](016-collection-flow-intelligent-data-enrichment.md) | Collection Flow for Intelligent Data Enrichment | Accepted | 2025-08-08 |
 | [ADR-017](017-redis-backed-failure-journal-and-dlq.md) | Redis-Backed Failure Journal and DLQ | Accepted | 2025 |
 | [ADR-018](018-service-registry-for-crewai-tools.md) | Service Registry for CrewAI Tools | Proposed | 2025-01-13 |
+| [ADR-019](019-crewai-deepinfra-embeddings-monkey-patch.md) | CrewAI DeepInfra Embeddings Monkey Patch | Accepted | 2025 |
+| [ADR-020](020-flow-type-aware-phase-transitions.md) | Flow-Type Aware Phase Transition Architecture | Proposed | 2025-08-22 |
 
 ## ADR Template
 
@@ -74,13 +76,14 @@ For new team members, we recommend reading ADRs in this order:
 7. **ADR-008** - Agentic Intelligence System - AI/ML integration patterns
 8. **ADR-015** - Persistent Multi-Tenant Agent Architecture - Agent persistence and memory systems
 9. **ADR-018** - Service Registry for CrewAI Tools - Service layer architecture for agent tools
-10. **ADR-013** - Adaptive Data Collection System Integration - Automated data collection capabilities
-11. **ADR-016** - Collection Flow for Intelligent Data Enrichment - Bridge between Discovery and Assessment flows
-12. **ADR-017** - Redis-Backed Failure Journal and DLQ - Failure recovery and dead letter queue
-13. **ADR-014** - On-Premises Deployment Model - Regulated environment support (pending approval)
+10. **ADR-020** - Flow-Type Aware Phase Transition Architecture - Dynamic phase management across flow types
+11. **ADR-013** - Adaptive Data Collection System Integration - Automated data collection capabilities
+12. **ADR-016** - Collection Flow for Intelligent Data Enrichment - Bridge between Discovery and Assessment flows
+13. **ADR-017** - Redis-Backed Failure Journal and DLQ - Failure recovery and dead letter queue
+14. **ADR-014** - On-Premises Deployment Model - Regulated environment support (pending approval)
 
 ### Legacy Context
-14. **ADR-005** - Database Consolidation Architecture - Historical database decisions
-15. **ADR-002** - API Consolidation Strategy - API versioning and migration
-16. **ADR-004** - Field Mapping UI/UX Stabilization - UI stabilization patterns
-17. **ADR-001** - Session to Flow Migration - Original identifier migration (superseded by ADR-011)
+15. **ADR-005** - Database Consolidation Architecture - Historical database decisions
+16. **ADR-002** - API Consolidation Strategy - API versioning and migration
+17. **ADR-004** - Field Mapping UI/UX Stabilization - UI stabilization patterns
+18. **ADR-001** - Session to Flow Migration - Original identifier migration (superseded by ADR-011)

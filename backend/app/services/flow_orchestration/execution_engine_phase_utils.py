@@ -17,8 +17,22 @@ logger = get_logger(__name__)
 class ExecutionEnginePhaseUtils:
     """Phase utilities for flow execution engine."""
 
-    def __init__(self, master_repo: CrewAIFlowStateExtensionsRepository):
+    def __init__(
+        self, master_repo: CrewAIFlowStateExtensionsRepository, flow_registry=None
+    ):
         self.master_repo = master_repo
+
+        # Validate flow_registry interface
+        if flow_registry and not hasattr(flow_registry, "get_flow_config"):
+            logger.warning(
+                "Provided flow_registry lacks 'get_flow_config'; disabling registry-backed transitions"
+            )
+            self.flow_registry = None
+        else:
+            self.flow_registry = flow_registry
+
+        # Cache for flow configurations to improve performance
+        self._flow_configs_cache = {}
 
     async def skip_to_next_phase(
         self, flow_id: str, phase_name: str, decision: AgentDecision
@@ -47,16 +61,38 @@ class ExecutionEnginePhaseUtils:
             "agent_action": decision.action.value,
         }
 
-    def get_default_next_phase(self, current_phase: str) -> str:
+    def get_default_next_phase(self, current_phase: str, flow_type: str = None) -> str:
         """Get default next phase using FlowTypeRegistry"""
-        # This would ideally come from flow configuration
+        # Use flow registry if flow type is provided
+        if flow_type and self.flow_registry:
+            try:
+                # Check cache first
+                if flow_type not in self._flow_configs_cache:
+                    self._flow_configs_cache[flow_type] = (
+                        self.flow_registry.get_flow_config(flow_type)
+                    )
+
+                flow_config = self._flow_configs_cache[flow_type]
+                next_phase = flow_config.get_next_phase(current_phase)
+                if next_phase:
+                    return next_phase
+                # If no next phase, flow is complete
+                return "completed"
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to get next phase from registry: {e}")
+
+        # Fallback to hardcoded transitions for backward compatibility (Discovery)
+        # Support both legacy and new naming conventions
         phase_transitions = {
             "initialization": "data_import",
-            "data_import": "field_mapping",
-            "field_mapping": "data_cleansing",
-            "data_cleansing": "asset_creation",
-            "asset_creation": "analysis",
-            "analysis": "completed",
+            "data_import": "attribute_mapping",
+            "field_mapping": "data_cleansing",  # Legacy name support
+            "attribute_mapping": "data_cleansing",  # New name
+            "data_cleansing": "inventory",
+            "asset_creation": "inventory",  # Alternative name
+            "inventory": "dependencies",
+            "dependencies": "completed",
+            "analysis": "completed",  # Legacy name support
         }
 
         return phase_transitions.get(current_phase, "completed")

@@ -178,7 +178,23 @@ class CollectionFlowApi {
   }
 
   async getFlowQuestionnaires(flowId: string): Promise<AdaptiveQuestionnaireResponse[]> {
-    return await apiCall(`${this.baseUrl}/flows/${flowId}/questionnaires`, { method: 'GET' });
+    try {
+      return await apiCall(`${this.baseUrl}/flows/${flowId}/questionnaires`, { method: 'GET' });
+    } catch (err: any) {
+      // Stabilize error handling - check multiple possible error shapes
+      const status = err?.status ?? err?.response?.status;
+      const detail = err?.response?.data?.detail ?? err?.response?.detail;
+      const errorCode = typeof detail === 'object' ? detail?.error : undefined;
+
+      if (status === 422 && errorCode === 'no_applications_selected') {
+        // Redirect to application selection
+        window.location.href = '/discovery/cmdb-import';
+        // Return a promise that never resolves to prevent further handling after redirect
+        return new Promise<AdaptiveQuestionnaireResponse[]>(() => {});
+      }
+      // Properly reject with the original error
+      return Promise.reject(err);
+    }
   }
 
   async submitQuestionnaireResponse(

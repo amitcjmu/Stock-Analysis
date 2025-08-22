@@ -49,7 +49,9 @@ class PlatformDetectionManager:
         self.tier_detection = TierDetectionService(
             flow_context.db_session, flow_context.context
         )
-        self.quality_assessment = QualityAssessmentService()
+        self.quality_assessment = QualityAssessmentService(
+            flow_context.db_session, flow_context.context
+        )
 
     async def execute(
         self,

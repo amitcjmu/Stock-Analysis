@@ -78,14 +78,39 @@ class ExecutionEngineCollectionCrews:
                 TenantScopedAgentPool,
             )
 
+            # Validate required identifiers before pool init
+            client_id = master_flow.client_account_id
+            engagement_id = master_flow.engagement_id
+
+            # Ensure identifiers are non-empty strings to prevent passing "None" or empty IDs
+            if not client_id or not engagement_id:
+                logger.error(
+                    "Missing required identifiers for agent pool initialization"
+                )
+                raise ValueError(
+                    "client_id and engagement_id are required for agent pool initialization"
+                )
+
+            # Convert to safe string representations
+            safe_client = str(client_id)
+            safe_eng = str(engagement_id)
+
             # Initialize the tenant pool with collection-relevant agents
-            agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
-                tenant_id=master_flow.client_account_id,
-                engagement_id=master_flow.engagement_id,
-            )
+            try:
+                agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
+                    client_id=safe_client,
+                    engagement_id=safe_eng,
+                )
+            except Exception as e:
+                msg = "Failed to initialize TenantScopedAgentPool for collection flow"
+                # Avoid logging sensitive identifiers directly
+                logger.exception("%s", msg)
+                raise RuntimeError(msg) from e
 
             logger.info(
-                f"🏊 Initialized agent pool for collection flow - tenant {master_flow.client_account_id}"
+                "🏊 Initialized agent pool for collection flow - client_id=%s engagement_id=%s",
+                str(client_id),
+                str(engagement_id),
             )
 
             # For collection, we might want specific agents

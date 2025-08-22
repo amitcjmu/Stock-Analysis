@@ -14,6 +14,7 @@ export type FlowState = Record<string, FlowValue | FlowValue[] | FlowData>;
 // Core Flow Types
 export type FlowType =
   | 'discovery'
+  | 'collection'
   | 'assessment'
   | 'planning'
   | 'execution'
@@ -50,6 +51,7 @@ export interface FlowConfiguration {
 
   // Flow-specific configurations
   discovery?: DiscoveryFlowConfig;
+  collection?: CollectionFlowConfig;
   assessment?: AssessmentFlowConfig;
   planning?: PlanningFlowConfig;
   execution?: ExecutionFlowConfig;
@@ -65,6 +67,17 @@ export interface DiscoveryFlowConfig {
   data_sources?: string[];
   mapping_templates?: string[];
   asset_templates?: string[];
+}
+
+export interface CollectionFlowConfig {
+  automation_tier?: 'manual' | 'semi_automated' | 'fully_automated';
+  enable_questionnaire_generation?: boolean;
+  enable_adaptive_questionnaires?: boolean;
+  platform_detection_scope?: 'basic' | 'comprehensive' | 'targeted';
+  data_quality_threshold?: number;
+  sixr_alignment_mode?: 'strict' | 'balanced' | 'flexible';
+  questionnaire_delivery_method?: 'email' | 'portal' | 'api';
+  synthesis_quality_threshold?: number;
 }
 
 export interface AssessmentFlowConfig {

@@ -157,30 +157,93 @@ async def initialize_mfo_flow_execution(
     master_flow = result.scalar_one_or_none()
 
     if master_flow:
-        logger.info(f"Flow {master_flow_id} already running, skipping duplicate start")
+        logger.info("Flow %s already running, skipping duplicate start", master_flow_id)
         return {"status": "already_running", "flow_id": str(master_flow_id)}
 
     try:
+        logger.info(
+            "🚀 Starting MFO background execution for %s flow %s",
+            flow_type,
+            master_flow_id,
+        )
+
+        # Initialize MFO with detailed logging
         mfo = MasterFlowOrchestrator(db, context)
+        logger.info("✅ MasterFlowOrchestrator created successfully")
+
+        # Check if execution engine is available
+        if not hasattr(mfo, "execution_engine") or mfo.execution_engine is None:
+            raise RuntimeError("MFO execution engine not initialized")
+
+        logger.info("✅ MFO execution engine available")
+
+        # Initialize flow execution with comprehensive error context
         result = await mfo.execution_engine.initialize_flow_execution(
             flow_id=str(master_flow_id),
             flow_type=flow_type,
             initial_state=initial_state,
         )
+
+        logger.info("✅ MFO flow execution initialized successfully: %s", result)
         return result
 
     except ImportError as e:
-        logger.warning(f"CrewAI not available, using fallback loop: {e}")
-        from app.services.flow_orchestration.collection_phase_runner import (
-            start_collection_phase_loop_background,
+        logger.warning("CrewAI not available, using fallback loop: %s", e)
+        try:
+            from app.services.flow_orchestration.collection_phase_runner import (
+                start_collection_phase_loop_background,
+            )
+
+            asyncio.create_task(
+                start_collection_phase_loop_background(
+                    master_flow_id, context, initial_state
+                )
+            )
+            logger.info(
+                "✅ Fallback collection phase loop started for flow %s", master_flow_id
+            )
+            return {"status": "started_fallback", "flow_id": str(master_flow_id)}
+
+        except Exception as fallback_error:
+            logger.error("❌ Fallback execution also failed: %s", fallback_error)
+            return {
+                "status": "failed",
+                "flow_id": str(master_flow_id),
+                "error": f"Both MFO and fallback execution failed: {str(fallback_error)}",
+            }
+
+    except RuntimeError as e:
+        logger.error(
+            "❌ MFO runtime error for flow %s: %s", master_flow_id, e, exc_info=True
+        )
+        return {
+            "status": "failed",
+            "flow_id": str(master_flow_id),
+            "error": f"MFO runtime error: {str(e)}",
+            "error_type": "RuntimeError",
+        }
+
+    except Exception as e:
+        logger.error(
+            "❌ Unexpected error initializing MFO flow execution for %s: %s: %s",
+            master_flow_id,
+            type(e).__name__,
+            e,
+        )
+        # Log only metadata-safe context; do not log initial_state keys or sensitive identifiers
+        logger.error(
+            "❌ Flow init failed. Flow type: %s",
+            flow_type,
         )
 
-        asyncio.create_task(
-            start_collection_phase_loop_background(
-                master_flow_id, context, initial_state
-            )
-        )
-        return {"status": "started_fallback", "flow_id": str(master_flow_id)}
+        # Return error details instead of silently failing
+        return {
+            "status": "failed",
+            "flow_id": str(master_flow_id),
+            "error": f"Flow execution initialization failed: {type(e).__name__}: {str(e)}",
+            "error_type": type(e).__name__,
+            "flow_type": flow_type,
+        }
 
 
 async def sync_collection_child_flow_state(

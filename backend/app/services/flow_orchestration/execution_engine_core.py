@@ -68,13 +68,17 @@ class FlowExecutionCore:
 
         # Initialize decision agents
         self.field_mapping_agent = FieldMappingDecisionAgent()
-        self.phase_transition_agent = PhaseTransitionAgent()
+        # Make the phase transition agent flow-aware by providing the registry
+        # Flow type will be determined at runtime from context
+        self.phase_transition_agent = PhaseTransitionAgent(
+            flow_registry=self.flow_registry
+        )
 
         # Initialize modular components
         self.agents = ExecutionEngineAgentHandlers(
             master_repo, self.phase_transition_agent
         )
-        self.phase_utils = ExecutionEnginePhaseUtils(master_repo)
+        self.phase_utils = ExecutionEnginePhaseUtils(master_repo, self.flow_registry)
         self.state_utils = ExecutionEngineStateUtils(master_repo, context)
         self.validators = ExecutionEngineValidators(validator_registry, context)
 
@@ -208,13 +212,15 @@ class FlowExecutionCore:
                     master_flow, phase_config, phase_input
                 )
 
-            # Get post-execution decision
+            # Get post-execution decision with flow-type aware fallback
             post_decision = await self.agents.get_post_execution_decision(
                 master_flow,
                 phase_name,
                 phase_result,
                 flow_state,
-                self.phase_utils.get_default_next_phase,
+                lambda name: self.phase_utils.get_default_next_phase(
+                    name, flow_type=master_flow.flow_type
+                ),
             )
 
             # Apply post-execution decision to result
