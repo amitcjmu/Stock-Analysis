@@ -166,7 +166,7 @@ class AssessmentFlowService:
                 "phase_results": flow_status.get("phase_results", {}),
                 "user_input_required": flow_status.get("status")
                 == "paused_for_user_input",
-                "pause_points": flow_status.get("pause_points", {}),
+                "pause_points": flow_status.get("pause_points", []) or [],
                 "last_user_interaction": flow_status.get("last_user_interaction"),
                 "created_at": flow_status.get("created_at"),
                 "updated_at": flow_status.get("updated_at"),

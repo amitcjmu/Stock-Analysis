@@ -151,7 +151,10 @@ class AssessmentPhaseHandlers:
 
             if total_apps == 0:
                 logger.warning("No applications found for technical debt analysis")
+                # Reset related state to a coherent empty baseline
                 self.flow.state.tech_debt_analysis = {}
+                self.flow.state.sixr_decisions = []
+                self.flow.state.metadata.setdefault("app_assessments", {})
                 self.flow.state.update_phase_progress(
                     AssessmentPhase.TECH_DEBT_ANALYSIS.value, 100.0
                 )

@@ -120,12 +120,12 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
         self.selected_applications = selected_applications or []
         self.master_flow_id = master_flow_id
 
-        # Initialize helper classes
+        # Initialize flow state and components first
+        self._initialize_components()
+
+        # Initialize helper classes after state is ready
         self.data_helper = AssessmentDataAccessHelper(context, self.flow_id)
         self.phase_handlers = AssessmentPhaseHandlers(self)
-
-        # Initialize flow state
-        self._initialize_components()
 
         logger.info(
             f"✅ UnifiedAssessmentFlow initialized with flow_id: {self.flow_id}"
