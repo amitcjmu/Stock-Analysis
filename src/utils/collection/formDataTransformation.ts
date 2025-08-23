@@ -36,6 +36,7 @@ export interface QuestionData {
  */
 export const mapQuestionTypeToFieldType = (questionType: string): string => {
   const mappings: Record<string, string> = {
+    // Core types
     'text': 'text',
     'textarea': 'textarea',
     'select': 'select',
@@ -47,6 +48,11 @@ export const mapQuestionTypeToFieldType = (questionType: string): string => {
     'url': 'url',
     'date': 'date',
     'file': 'file',
+    // Backend generator CrewAI types
+    'single_select': 'select',
+    'multi_select': 'multiselect',
+    'boolean': 'checkbox',
+    // Domain-specific shortcuts
     'application_name': 'text',
     'application_type': 'select',
     'technology_stack': 'multiselect',
@@ -113,11 +119,17 @@ export const groupQuestionsIntoSections = (questions: QuestionData[]): FormSecti
 
   // Group questions by category
   const basicQuestions = questions.filter((q: QuestionData) =>
-    q.category === 'basic' || q.field_type === 'application_name' || q.field_type === 'application_type'
+    q.category === 'basic' ||
+    q.category === 'business' ||
+    q.field_type === 'application_name' ||
+    q.field_type === 'application_type'
   );
 
   const technicalQuestions = questions.filter((q: QuestionData) =>
-    q.category === 'technical' || q.field_type === 'technology_stack' || q.field_type === 'database'
+    q.category === 'technical' ||
+    q.category === 'infrastructure' ||
+    q.field_type === 'technology_stack' ||
+    q.field_type === 'database'
   );
 
   // Create basic information section
@@ -147,6 +159,19 @@ export const groupQuestionsIntoSections = (questions: QuestionData[]): FormSecti
       order: 2,
       requiredFieldsCount: technicalQuestions.filter((q: QuestionData) => q.required !== false).length,
       completionWeight: 0.6
+    });
+  }
+
+  // Fallback: If no sections were created, put all questions into a general section
+  if (sections.length === 0 && questions.length > 0) {
+    sections.push({
+      id: 'agent-general',
+      title: 'Adaptive Questionnaire',
+      description: 'General questions generated from gap analysis',
+      fields: questions.map((q, index) => convertQuestionToFormField(q, index, 'agent-general')),
+      order: 1,
+      requiredFieldsCount: questions.filter((q: QuestionData) => q.required !== false).length,
+      completionWeight: 1.0
     });
   }
 
