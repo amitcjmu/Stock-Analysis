@@ -26,7 +26,7 @@ export interface QuestionData {
   required?: boolean;
   validation?: ConfigurationObject;
   business_impact_score?: number;
-  options?: FieldOption[];
+  options?: any[]; // can be FieldOption[] or string[] from backend
   help_text?: string;
   description?: string;
 }
@@ -92,6 +92,29 @@ export const convertQuestionToFormField = (
   index: number,
   sectionId: string
 ): FormField => {
+  const toTitle = (s: string): string => s
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, c => c.toUpperCase());
+
+  const normalizeOptions = (opts: any[] | undefined): FieldOption[] | undefined => {
+    if (!opts) return undefined;
+    if (opts.length === 0) return [];
+    if (typeof opts[0] === 'string') {
+      return (opts as string[]).map(v => ({ value: v, label: toTitle(String(v)) }));
+    }
+    return opts as FieldOption[];
+  };
+
+  // Determine a domain key to fetch defaults (e.g., 'application_type', 'database')
+  const defaultKey = ((): string | undefined => {
+    if (question.field_id && getDefaultFieldOptions(question.field_id).length > 0) return question.field_id;
+    if (question.critical_attribute && getDefaultFieldOptions(question.critical_attribute).length > 0) return question.critical_attribute;
+    if (question.field_type && getDefaultFieldOptions(question.field_type).length > 0) return question.field_type;
+    return undefined;
+  })();
+
   return {
     id: question.field_id || `field-${index}`,
     label: question.question_text || question.label || 'Field',
@@ -104,9 +127,7 @@ export const convertQuestionToFormField = (
     section: sectionId,
     order: index + 1,
     businessImpactScore: question.business_impact_score || 0.7,
-    options: question.options || (
-      question.field_type === 'select' ? getDefaultFieldOptions(question.field_type) : undefined
-    ),
+    options: normalizeOptions(question.options) || (defaultKey ? getDefaultFieldOptions(defaultKey) : undefined),
     helpText: question.help_text || question.description
   };
 };
