@@ -195,9 +195,7 @@ export class DashboardService {
           console.log('📊 Processing flow:', flow);
           console.log('📊 Flow ID debug:', {
             flow_id: flow.flow_id,
-            flowId: flow.flowId,
             flow_id_type: typeof flow.flow_id,
-            flowId_type: typeof flow.flowId,
             flow_id_length: flow.flow_id?.length,
             flow_id_chars: flow.flow_id?.split('').slice(0, 10)
           });
@@ -205,11 +203,11 @@ export class DashboardService {
           // Extract metadata if it exists
           const metadata = flow.metadata || {};
 
-          // Safely extract flow ID using the validation utility
-          // This handles both 'flow_id' and 'flowId' field names from API response
+          // Safely extract flow ID - Backend returns flow_id (snake_case)
+          // Remove flowId check as it's always undefined from backend
           let validatedFlowId: string;
           try {
-            validatedFlowId = flow.flow_id || flow.flowId || flow.id || '';
+            validatedFlowId = flow.flow_id || flow.id || '';
             if (!validatedFlowId || validatedFlowId.trim().length < 8) {
               throw new Error(`Invalid flow ID format: ${validatedFlowId}`);
             }
@@ -219,10 +217,9 @@ export class DashboardService {
             console.warn(`⚠️ Failed to extract flow ID from flow:`, {
               flow: flow,
               error: flowIdError,
-              attempted_fields: ['flow_id', 'flowId', 'id'],
+              attempted_fields: ['flow_id', 'id'],
               field_values: {
                 flow_id: flow.flow_id,
-                flowId: flow.flowId,
                 id: flow.id
               }
             });
@@ -251,7 +248,6 @@ export class DashboardService {
 
           console.log('📊 Final flow summary before adding to allFlows:', {
             original_flow_id: flow.flow_id,
-            original_flowId: flow.flowId,
             summary_flow_id: flowSummary.flow_id,
             extracted_successfully: !!validatedFlowId,
             flow_summary: flowSummary
