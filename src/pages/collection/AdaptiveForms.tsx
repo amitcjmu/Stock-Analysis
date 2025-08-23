@@ -126,30 +126,7 @@ const AdaptiveForms: React.FC = () => {
     const hasProgressed = currentCollectionFlow.progress > 0 ||
                          currentCollectionFlow.current_phase !== 'initialization';
 
-    if (!hasApps && !isExistingFlowContinuation && !hasProgressed) {
-      console.log('🔄 New collection flow has no applications selected, redirecting to inventory selection...', {
-        flowId: activeFlowId,
-        collectionFlow: currentCollectionFlow,
-        isExistingFlowContinuation,
-        hasProgressed
-      });
-
-      // Show a toast to inform the user
-      toast({
-        title: 'Application Selection Required',
-        description: 'Please select applications from your inventory before generating questionnaires.',
-        duration: 5000
-      });
-
-      // Redirect to inventory page for application selection
-      // We'll pass the collection flow ID so the selection modal can connect them
-      navigate(`/discovery/inventory?collectionFlowId=${activeFlowId}`, {
-        replace: true,
-        state: {
-          message: 'Please select applications to analyze for your collection flow'
-        }
-      });
-    } else if (!hasApps && (isExistingFlowContinuation || hasProgressed)) {
+    if (!hasApps && (isExistingFlowContinuation || hasProgressed)) {
       // For existing flows without apps, show a warning but don't redirect
       console.log('⚠️ Existing collection flow has no applications selected, but not redirecting to avoid loop', {
         flowId: activeFlowId,

@@ -94,9 +94,52 @@ async def save_questionnaires_to_db(
         saved_questionnaires = []
 
         for questionnaire_data in questionnaires:
-            # Extract questionnaire metadata from the generated data
-            metadata = questionnaire_data.get("questionnaire", {}).get("metadata", {})
-            sections = questionnaire_data.get("questionnaire", {}).get("sections", [])
+            # Support both nested and flat questionnaire structures
+            nested = (
+                questionnaire_data.get("questionnaire", {})
+                if isinstance(questionnaire_data, dict)
+                else {}
+            )
+
+            metadata = nested.get("metadata", {}) if isinstance(nested, dict) else {}
+            sections = nested.get("sections", []) if isinstance(nested, dict) else []
+
+            # If no sections present in nested structure, look for flat structure
+            if not sections and isinstance(questionnaire_data, dict):
+                # Flat structure: top-level keys like id/title/questions
+                if questionnaire_data.get("questions") and isinstance(
+                    questionnaire_data.get("questions"), list
+                ):
+                    sections = [
+                        {
+                            "section_id": questionnaire_data.get("id", "section_1"),
+                            "section_title": questionnaire_data.get(
+                                "title", "Adaptive Questionnaire"
+                            ),
+                            "questions": questionnaire_data.get("questions", []),
+                        }
+                    ]
+                # Populate metadata from flat keys if available
+                if not metadata:
+                    metadata = {
+                        "id": questionnaire_data.get("id"),
+                        "title": questionnaire_data.get(
+                            "title", "Adaptive Data Collection Questionnaire"
+                        ),
+                        "description": questionnaire_data.get(
+                            "description",
+                            "AI-generated questionnaire for gap resolution",
+                        ),
+                        "version": questionnaire_data.get("version", "1.0"),
+                        "estimated_duration_minutes": questionnaire_data.get(
+                            "estimated_duration", 20
+                        ),
+                        "total_questions": (
+                            sum(len(s.get("questions", [])) for s in sections)
+                            if sections
+                            else len(questionnaire_data.get("questions", []))
+                        ),
+                    }
 
             # Create questionnaire instance
             questionnaire = AdaptiveQuestionnaire(
@@ -111,23 +154,40 @@ async def save_questionnaires_to_db(
                 template_type="adaptive_collection",
                 version=metadata.get("version", "1.0"),
                 applicable_tiers=[automation_tier.value],
-                question_set=questionnaire_data.get("questionnaire", {}),
-                questions=extract_questions_from_sections(sections),
-                question_count=metadata.get("total_questions", 0),
+                question_set=(nested if nested else questionnaire_data),
+                questions=(
+                    extract_questions_from_sections(sections)
+                    if sections
+                    else questionnaire_data.get("questions", [])
+                ),
+                question_count=(
+                    metadata.get("total_questions")
+                    or (
+                        len(extract_questions_from_sections(sections))
+                        if sections
+                        else len(questionnaire_data.get("questions", []))
+                    )
+                ),
                 estimated_completion_time=metadata.get(
                     "estimated_duration_minutes", 20
                 ),
-                target_gaps=questionnaire_data.get("questionnaire", {}).get(
-                    "target_gaps", []
+                target_gaps=(
+                    nested.get("target_gaps", [])
+                    if isinstance(nested, dict)
+                    else questionnaire_data.get("target_gaps", [])
                 ),
                 gap_categories=extract_gap_categories(sections),
                 platform_types=detected_platforms,
                 data_domains=["collection", "migration_readiness"],
-                scoring_rules=questionnaire_data.get("questionnaire", {}).get(
-                    "completion_criteria", {}
+                scoring_rules=(
+                    nested.get("completion_criteria", {})
+                    if isinstance(nested, dict)
+                    else questionnaire_data.get("completion_criteria", {})
                 ),
-                validation_rules=questionnaire_data.get("questionnaire", {}).get(
-                    "adaptive_logic", {}
+                validation_rules=(
+                    nested.get("adaptive_logic", {})
+                    if isinstance(nested, dict)
+                    else questionnaire_data.get("validation_rules", {})
                 ),
                 completion_status="pending",
                 is_template=False,  # This is an instance, not a template

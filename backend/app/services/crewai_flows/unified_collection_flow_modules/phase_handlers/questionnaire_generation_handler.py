@@ -41,12 +41,8 @@ class QuestionnaireGenerationHandler:
         gap_result: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Phase 4: Generate adaptive questionnaires"""
-        # Skip if no gaps or tier 1
-        if (
-            gap_result["gaps_identified"] == 0
-            or state.automation_tier == AutomationTier.TIER_1
-        ):
-            # Delegate to validation handler
+        # Skip only for Tier 1 (manual/template) flows. Allow bootstrap questionnaire when no gaps.
+        if state.automation_tier == AutomationTier.TIER_1:
             return None  # Signal to skip to validation
 
         try:
@@ -68,6 +64,7 @@ class QuestionnaireGenerationHandler:
                         "business_context", {}
                     ),
                     automation_tier=state.automation_tier.value,
+                    collection_flow_id=state.flow_id,
                 )
             )
 
