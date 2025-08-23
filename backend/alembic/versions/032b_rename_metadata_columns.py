@@ -11,6 +11,7 @@ Declarative API and cannot be used as a column name.
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import text
 
 # revision identifiers, used by Alembic.
 revision = "032b_rename_metadata_columns"
@@ -78,11 +79,12 @@ def upgrade() -> None:
             if column_exists(table_name, old_column_name) and not column_exists(
                 table_name, new_column_name
             ):
-                op.alter_column(
-                    table_name,
-                    old_column_name,
-                    new_column_name=new_column_name,
-                    schema="migration",
+                # Use raw SQL for reliable column rename in PostgreSQL
+                op.execute(
+                    text(
+                        f'ALTER TABLE "migration"."{table_name}" '
+                        f'RENAME COLUMN "{old_column_name}" TO "{new_column_name}"'
+                    )
                 )
                 print(
                     f"  ✅ Renamed column {old_column_name} to {new_column_name} in table {table_name}"
@@ -129,11 +131,12 @@ def downgrade() -> None:
             if column_exists(table_name, new_column_name) and not column_exists(
                 table_name, old_column_name
             ):
-                op.alter_column(
-                    table_name,
-                    new_column_name,
-                    new_column_name=old_column_name,
-                    schema="migration",
+                # Use raw SQL for reliable column rename in PostgreSQL
+                op.execute(
+                    text(
+                        f'ALTER TABLE "migration"."{table_name}" '
+                        f'RENAME COLUMN "{new_column_name}" TO "{old_column_name}"'
+                    )
                 )
                 print(
                     f"  ✅ Reverted column {new_column_name} to {old_column_name} in table {table_name}"
