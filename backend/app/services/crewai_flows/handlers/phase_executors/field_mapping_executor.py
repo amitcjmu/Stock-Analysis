@@ -87,6 +87,10 @@ class FieldMappingExecutor(BasePhaseExecutor):
         client_account_id = getattr(state, "client_account_id", None)
         engagement_id = getattr(state, "engagement_id", None)
 
+        # Store as instance attributes for later use
+        self.client_account_id = client_account_id
+        self.engagement_id = engagement_id
+
         # Initialize the modular executor with proper error handling
         # The modular executor will be used through our wrapper methods
         try:
