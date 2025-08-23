@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { API_CONFIG, apiCall } from '../../../config/api';
-import type { FieldMapping } from './useFieldMappings';
+import type { FieldMapping } from '@/types/api/discovery/field-mapping-types';
 
 export interface CriticalAttribute {
   name: string;
@@ -182,8 +182,8 @@ export const useCriticalAttributes = (
         console.log('🔍 Checking fieldMappings for critical attributes:', {
           total_mappings: fieldMappings.length,
           sample_mappings: fieldMappings.slice(0, 5).map(m => ({
-            targetAttribute: m.targetAttribute,
-            sourceField: m.sourceField,
+            targetAttribute: m.target_field,
+            sourceField: m.source_field,
             confidence: m.confidence,
             status: m.status
           })),
@@ -192,17 +192,17 @@ export const useCriticalAttributes = (
 
         // PRIMARY: Use exact same logic as dashboard mappingProgress calculation
         const exactCriticalMappings = fieldMappings.filter((m: FieldMapping) =>
-          m.targetAttribute && criticalFieldsForMigration.includes(m.targetAttribute.toLowerCase()) && m.status === 'approved'
+          m.target_field && criticalFieldsForMigration.includes(m.target_field.toLowerCase()) && m.status === 'approved'
         );
 
         // SECONDARY: Also include pending critical mappings (not just approved ones)
         const pendingCriticalMappings = fieldMappings.filter((m: FieldMapping) =>
-          m.targetAttribute && criticalFieldsForMigration.includes(m.targetAttribute.toLowerCase()) && m.status !== 'approved' && m.status !== 'deleted'
+          m.target_field && criticalFieldsForMigration.includes(m.target_field.toLowerCase()) && m.status !== 'approved' && m.status !== 'deleted'
         );
 
         // TERTIARY: Enhanced matching logic for other important fields
         const otherImportantMappings = fieldMappings.filter((mapping: FieldMapping) => {
-          const targetField = mapping.targetAttribute?.toLowerCase();
+          const targetField = mapping.target_field?.toLowerCase();
 
           // Skip unmapped or null target fields
           if (!targetField || targetField === 'null' || mapping.mapping_type === 'unmapped') {
@@ -247,25 +247,25 @@ export const useCriticalAttributes = (
           other_important_mappings: otherImportantMappings.length,
           total_combined: criticalMappings.length,
           exact_sample: exactCriticalMappings.slice(0, 3).map(m => ({
-            target: m.targetAttribute,
-            source: m.sourceField,
+            target: m.target_field,
+            source: m.source_field,
             status: m.status
           })),
           pending_sample: pendingCriticalMappings.slice(0, 3).map(m => ({
-            target: m.targetAttribute,
-            source: m.sourceField,
+            target: m.target_field,
+            source: m.source_field,
             status: m.status
           }))
         });
 
         const criticalAttrs = criticalMappings.map((mapping: FieldMapping) => ({
-          name: mapping.targetAttribute,
-          description: `${mapping.targetAttribute} mapped from source field "${mapping.sourceField}"`,
+          name: mapping.target_field,
+          description: `${mapping.target_field} mapped from source field "${mapping.source_field}"`,
           category: 'technical',
           required: true,
           status: mapping.status === 'approved' ? 'mapped' : 'partially_mapped',
-          mapped_to: mapping.sourceField,
-          source_field: mapping.sourceField,
+          mapped_to: mapping.source_field,
+          source_field: mapping.source_field,
           confidence: mapping.confidence || 0,
           quality_score: Math.round((mapping.confidence || 0) * 100),
           completeness_percentage: mapping.status === 'approved' ? 100 : 80,
@@ -311,8 +311,8 @@ export const useCriticalAttributes = (
         console.log('🚨 Emergency fallback: Converting all field mappings to critical attributes:', {
           total_mappings: fieldMappings.length,
           sample_mappings: fieldMappings.slice(0, 3).map(m => ({
-            targetAttribute: m.targetAttribute,
-            sourceField: m.sourceField,
+            targetAttribute: m.target_field,
+            sourceField: m.source_field,
             status: m.status,
             mapping_type: m.mapping_type
           }))
@@ -320,20 +320,20 @@ export const useCriticalAttributes = (
 
         // Convert all field mappings to critical attributes, but only those with valid targets
         const mappedFieldMappings = fieldMappings.filter((mapping: FieldMapping) =>
-          mapping.targetAttribute &&
-          mapping.targetAttribute !== 'null' &&
+          mapping.target_field &&
+          mapping.target_field !== 'null' &&
           mapping.mapping_type !== 'unmapped' &&
           mapping.status !== 'deleted'
         );
 
         const allCriticalAttrs = mappedFieldMappings.map((mapping: FieldMapping) => ({
-          name: mapping.targetAttribute,
-          description: `${mapping.targetAttribute} mapped from source field "${mapping.sourceField}"`,
+          name: mapping.target_field,
+          description: `${mapping.target_field} mapped from source field "${mapping.source_field}"`,
           category: 'technical',
           required: false,
           status: mapping.status === 'approved' ? 'mapped' : 'partially_mapped',
-          mapped_to: mapping.sourceField,
-          source_field: mapping.sourceField,
+          mapped_to: mapping.source_field,
+          source_field: mapping.source_field,
           confidence: mapping.confidence || 0,
           quality_score: Math.round((mapping.confidence || 0) * 100),
           completeness_percentage: mapping.status === 'approved' ? 100 : 80,

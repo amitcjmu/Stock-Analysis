@@ -27,14 +27,14 @@ interface FeedbackStats {
 }
 
 const FeedbackView: React.FC = () => {
-  const { getAuthHeaders, clientAccountId, engagementId } = useAuth();
+  const { getAuthHeaders, client, engagement } = useAuth();
 
   // Fetch feedback with React Query
   const { data: feedbackData, isLoading: feedbackLoading } = useQuery<{
     items: Feedback[];
     stats: FeedbackStats;
   }>({
-    queryKey: ['feedback', clientAccountId],
+    queryKey: ['feedback', client?.id],
     queryFn: async () => {
       try {
         const response = await apiCall('feedback', {
@@ -43,7 +43,7 @@ const FeedbackView: React.FC = () => {
         return response;
       } catch (error) {
         // Return demo data if API fails or if using demo client
-        if (!clientAccountId || clientAccountId === 'demo' || clientAccountId === 'pujyam-corp') {
+        if (!client?.id || client.id === 'demo' || client.id === 'pujyam-corp') {
           return {
             items: [
               {
@@ -53,8 +53,8 @@ const FeedbackView: React.FC = () => {
                 feedback_text: 'The attribute mapping interface is intuitive, but could use more examples.',
                 status: 'needs_attention',
                 created_at: new Date().toISOString(),
-                client_account_id: clientAccountId || 'demo',
-                engagement_id: engagementId || 'demo-engagement'
+                client_account_id: client?.id || 'demo',
+                engagement_id: engagement?.id || 'demo-engagement'
               },
               {
                 id: 'demo-2',
@@ -63,8 +63,8 @@ const FeedbackView: React.FC = () => {
                 feedback_text: 'Assessment readiness checklist is very helpful.',
                 status: 'resolved',
                 created_at: new Date().toISOString(),
-                client_account_id: clientAccountId || 'demo',
-                engagement_id: engagementId || 'demo-engagement'
+                client_account_id: client?.id || 'demo',
+                engagement_id: engagement?.id || 'demo-engagement'
               }
             ],
             stats: {

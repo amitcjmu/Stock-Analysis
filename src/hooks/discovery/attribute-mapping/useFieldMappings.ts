@@ -10,7 +10,7 @@ import type {
   FieldMappingsResponse,
   FieldMappingItem,
   FieldMapping,
-  FieldMappingsResult,
+  FieldMappingsResult as StandardFieldMappingsResult,
   FieldMappingType,
   FieldMappingStatus
 } from '@/types/api/discovery/field-mapping-types';
@@ -59,25 +59,8 @@ interface FieldMappingRecord {
   pattern_matched?: string;
 }
 
-export interface FieldMapping {
-  id: string;
-  sourceField: string;
-  targetAttribute: string | null;
-  confidence: number;
-  mapping_type: string;
-  sample_values: FormFieldValue[];
-  status: 'approved' | 'pending' | 'unmapped' | 'suggested';
-  ai_reasoning: string;
-  is_user_defined: boolean;
-  user_feedback: string | null;
-  validation_method: string;
-  is_validated: boolean;
-  transformation_rule?: string;
-  validation_rule?: string;
-  is_required?: boolean;
-  is_placeholder?: boolean;
-  is_fallback?: boolean;
-}
+// Use standardized FieldMapping interface from types
+// (removed duplicate interface definition to avoid conflicts)
 
 export interface FieldMappingsResult {
   fieldMappings: FieldMapping[];
@@ -104,14 +87,14 @@ const ENABLE_TEST_DATA_FILTERING = process.env.NEXT_PUBLIC_ENABLE_TEST_DATA_FILT
 const DEBUG_LOGS = process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_DEBUG_LOGS === 'true';
 
 // Debug logging helper
-const debugLog = (...args: any[]) => {
+const debugLog = (...args: unknown[]) => {
   if (DEBUG_LOGS) {
     console.log(...args);
   }
 };
 
 // SECURITY FIX: Check if test data filtering should be applied
-const shouldFilterTestData = (response: any): boolean => {
+const shouldFilterTestData = (response: unknown): boolean => {
   // Only filter if enabled via environment variable
   if (!ENABLE_TEST_DATA_FILTERING) {
     return false;
@@ -235,22 +218,23 @@ export const useFieldMappings = (
             // Fallback for invalid response structure
             console.warn('⚠️ Received invalid field mappings response structure, using fallback processing');
 
-            const transformedMappings = response.field_mappings.map((m: any) => {
-              const confidenceScore = isValidConfidenceScore(m.confidence_score) ? m.confidence_score : 0.5;
+            const transformedMappings = response.field_mappings.map((m: unknown) => {
+              const mapping = m as Record<string, unknown>;
+              const confidenceScore = isValidConfidenceScore(mapping.confidence_score) ? mapping.confidence_score : 0.5;
 
               return {
-                id: m.id || `${m.source_field}_${m.target_field || 'unmapped'}`,
-                sourceField: m.source_field,
-                source_field: m.source_field,
-                targetAttribute: m.target_field,
-                target_field: m.target_field,
-                target_attribute: m.target_field,
+                id: mapping.id || `${mapping.source_field}_${mapping.target_field || 'unmapped'}`,
+                sourceField: mapping.source_field,
+                source_field: mapping.source_field,
+                targetAttribute: mapping.target_field,
+                target_field: mapping.target_field,
+                target_attribute: mapping.target_field,
                 confidence: confidenceScore,
                 is_approved: false,
-                status: m.target_field ? 'pending' : 'unmapped',
-                mapping_type: m.mapping_type || 'auto',
-                transformation_rule: m.transformation,
-                validation_rule: m.validation_rules,
+                status: mapping.target_field ? 'pending' : 'unmapped',
+                mapping_type: mapping.mapping_type || 'auto',
+                transformation_rule: mapping.transformation,
+                validation_rule: mapping.validation_rules,
                 sample_values: [],
                 ai_reasoning: '',
                 is_user_defined: false,
@@ -619,22 +603,22 @@ export const useFieldMappings = (
 
         const transformedMapping: FieldMapping = {
           id: mapping.id || `mapping_${index}_${sourceField}_${targetField || 'unmapped'}`,
-          sourceField: sourceField,
-          targetField: isUnmapped ? null : (targetField || null),
-          confidenceScore: confidenceScore,
-          mappingType: mappingType,
+          source_field: sourceField,
+          target_field: isUnmapped ? null : (targetField || null),
+          confidence_score: confidenceScore,
+          mapping_type: mappingType,
           transformation: mapping.transformation_rule || null,
-          validationRules: mapping.validation_rule || null,
+          validation_rules: mapping.validation_rule || null,
           status: finalStatus,
-          sampleValues: mapping.sample_values || [],
-          aiReasoning: mapping.ai_reasoning || (isUnmapped
+          sample_values: mapping.sample_values || [],
+          ai_reasoning: mapping.ai_reasoning || (isUnmapped
             ? `Field "${sourceField}" needs mapping assignment`
             : `AI suggested mapping to ${targetField}`),
-          isUserDefined: mapping.is_user_defined || false,
-          userFeedback: mapping.user_feedback || null,
-          validationMethod: mapping.validation_method || 'semantic_analysis',
-          isValidated: mapping.is_validated || mapping.is_approved === true,
-          isPlaceholder: mapping.is_placeholder || isUnmapped,
+          is_user_defined: mapping.is_user_defined || false,
+          user_feedback: mapping.user_feedback || null,
+          validation_method: mapping.validation_method || 'semantic_analysis',
+          is_validated: mapping.is_validated || mapping.is_approved === true,
+          is_placeholder: mapping.is_placeholder || isUnmapped,
           metadata: {
             legacyMapping: true,
             originalData: mapping

@@ -12,10 +12,10 @@ import type {
 
 // Progress Tracking APIs
 export interface GetMappingProgressRequest extends GetRequest {
-  flowId: string;
-  dataImportId?: string;
-  includeDetails?: boolean;
-  includeProjections?: boolean;
+  flow_id: string;
+  data_import_id?: string;
+  include_details?: boolean;
+  include_projections?: boolean;
 }
 
 export interface GetMappingProgressResponse extends GetResponse<MappingProgressDetail> {
@@ -25,101 +25,101 @@ export interface GetMappingProgressResponse extends GetResponse<MappingProgressD
 }
 
 export interface GetFlowProgressRequest extends GetRequest {
-  flowId: string;
-  includePhaseBreakdown?: boolean;
-  includeTimeline?: boolean;
-  includeMetrics?: boolean;
+  flow_id: string;
+  include_phase_breakdown?: boolean;
+  include_timeline?: boolean;
+  include_metrics?: boolean;
 }
 
 export interface GetFlowProgressResponse extends GetResponse<FlowProgressDetail> {
   data: FlowProgressDetail;
   timeline?: ProgressTimeline[];
   metrics?: ProgressMetrics;
-  estimatedCompletion?: string;
+  estimated_completion?: string;
 }
 
 // Progress Tracking Models
 export interface MappingProgressDetail {
-  flowId: string;
-  dataImportId?: string;
-  totalMappings: number;
-  completedMappings: number;
-  pendingMappings: number;
-  approvedMappings: number;
-  rejectedMappings: number;
-  reviewRequiredMappings: number;
-  progressPercentage: number;
-  startTime: string;
-  lastUpdateTime: string;
-  estimatedCompletionTime?: string;
-  averageMappingTime: number;
+  flow_id: string;
+  data_import_id?: string;
+  total_mappings: number;
+  completed_mappings: number;
+  pending_mappings: number;
+  approved_mappings: number;
+  rejected_mappings: number;
+  review_required_mappings: number;
+  progress_percentage: number;
+  start_time: string;
+  last_update_time: string;
+  estimated_completion_time?: string;
+  average_mapping_time: number;
   velocity: MappingVelocity;
-  qualityMetrics: MappingQualityMetrics;
+  quality_metrics: MappingQualityMetrics;
 }
 
 export interface MappingVelocity {
-  mappingsPerHour: number;
-  approvalsPerHour: number;
+  mappings_per_hour: number;
+  approvals_per_hour: number;
   trend: 'increasing' | 'stable' | 'decreasing';
-  projectedCompletion: string;
+  projected_completion: string;
 }
 
 export interface MappingQualityMetrics {
-  averageConfidence: number;
-  autoApprovalRate: number;
-  rejectionRate: number;
-  reviewCycleTime: number;
+  average_confidence: number;
+  auto_approval_rate: number;
+  rejection_rate: number;
+  review_cycle_time: number;
 }
 
 export interface ProgressBottleneck {
   type: 'approval' | 'validation' | 'resource' | 'dependency';
   description: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
-  affectedMappings: number;
-  estimatedDelay: number;
-  suggestedActions: string[];
+  affected_mappings: number;
+  estimated_delay: number;
+  suggested_actions: string[];
 }
 
 export interface ProgressProjection {
   scenario: 'optimistic' | 'realistic' | 'pessimistic';
-  completionDate: string;
+  completion_date: string;
   confidence: number;
   assumptions: string[];
-  riskFactors: string[];
+  risk_factors: string[];
 }
 
 export interface FlowProgressDetail {
-  flowId: string;
-  overallProgress: number;
-  phaseProgress: Record<string, PhaseProgress>;
-  currentPhase: string;
+  flow_id: string;
+  overall_progress: number;
+  phase_progress: Record<string, PhaseProgress>;
+  current_phase: string;
   blockers: ProgressBlocker[];
   milestones: Milestone[];
   velocity: FlowVelocity;
-  estimatedCompletion: string;
-  actualStartTime: string;
-  lastUpdateTime: string;
+  estimated_completion: string;
+  actual_start_time: string;
+  last_update_time: string;
 }
 
 export interface PhaseProgress {
-  phaseName: string;
+  phase_name: string;
   status: PhaseStatus;
   progress: number;
-  startTime?: string;
-  endTime?: string;
-  estimatedDuration: number;
-  actualDuration?: number;
+  start_time?: string;
+  end_time?: string;
+  estimated_duration: number;
+  actual_duration?: number;
   tasks: TaskProgress[];
 }
 
 export interface TaskProgress {
-  taskId: string;
-  taskName: string;
+  task_id: string;
+  task_name: string;
   status: TaskStatus;
   progress: number;
   assignee?: string;
-  estimatedTime: number;
-  actualTime?: number;
+  estimated_time: number;
+  actual_time?: number;
   dependencies: string[];
 }
 
@@ -128,9 +128,9 @@ export interface ProgressBlocker {
   type: 'resource' | 'approval' | 'technical' | 'data' | 'external';
   description: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
-  affectedPhases: string[];
-  estimatedImpact: number;
-  resolutionSteps: string[];
+  affected_phases: string[];
+  estimated_impact: number;
+  resolution_steps: string[];
   escalated: boolean;
 }
 
@@ -138,19 +138,19 @@ export interface Milestone {
   id: string;
   name: string;
   description: string;
-  targetDate: string;
-  actualDate?: string;
+  target_date: string;
+  actual_date?: string;
   status: 'upcoming' | 'at_risk' | 'achieved' | 'missed';
   dependencies: string[];
   deliverables: string[];
 }
 
 export interface FlowVelocity {
-  phasesPerWeek: number;
-  tasksPerDay: number;
+  phases_per_week: number;
+  tasks_per_day: number;
   trend: 'accelerating' | 'stable' | 'decelerating';
-  historicalAverage: number;
-  projectedCompletion: string;
+  historical_average: number;
+  projected_completion: string;
 }
 
 export interface ProgressTimeline {
@@ -169,21 +169,21 @@ export interface TimelineEvent {
 }
 
 export interface ProgressMetrics {
-  overallEfficiency: number;
-  timeToValue: number;
-  qualityScore: number;
-  resourceUtilization: number;
-  riskScore: number;
-  userSatisfaction?: number;
-  businessImpact: BusinessImpactMetrics;
+  overall_efficiency: number;
+  time_to_value: number;
+  quality_score: number;
+  resource_utilization: number;
+  risk_score: number;
+  user_satisfaction?: number;
+  business_impact: BusinessImpactMetrics;
 }
 
 export interface BusinessImpactMetrics {
-  valueRealized: number;
-  costSavings: number;
-  timeToMarket: number;
-  riskReduction: number;
-  complianceScore: number;
+  value_realized: number;
+  cost_savings: number;
+  time_to_market: number;
+  risk_reduction: number;
+  compliance_score: number;
 }
 
 // Enums and Types

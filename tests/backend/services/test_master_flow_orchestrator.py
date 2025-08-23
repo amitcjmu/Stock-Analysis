@@ -15,6 +15,9 @@ from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+
+# Generic orchestrator coverage; include in regression
+pytestmark = [pytest.mark.regression, pytest.mark.unit]
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.schemas import RequestContext

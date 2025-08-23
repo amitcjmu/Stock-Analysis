@@ -20,19 +20,52 @@ logger = logging.getLogger(__name__)
 class DockerTestRunner:
     """Manages Docker containers for testing and runs test suites."""
 
-    def __init__(self, project_name: str = "migrate-ui-orchestrator-test"):
+    def __init__(self, project_name: str = "migrate-ui-orchestrator-test", compose_file_override: Optional[str] = None, no_build: bool = False, skip_start: bool = False):
         self.project_name = project_name
-        self.compose_file = "docker-compose.yml"
+        self.compose_file = compose_file_override or self._detect_compose_file()
+        self.compose_cmd = self._detect_compose_command()
         self.containers_started = False
+        self.no_build = no_build
+        self.skip_start = skip_start
+
+    def _detect_compose_command(self) -> List[str]:
+        """Detect whether to use 'docker compose' (v2) or 'docker-compose' (v1)."""
+        try:
+            result = subprocess.run(["docker", "compose", "version"], capture_output=True, text=True)
+            if result.returncode == 0:
+                return ["docker", "compose"]
+        except Exception:
+            pass
+        return ["docker-compose"]
+
+    def _detect_compose_file(self) -> str:
+        """Detect compose file location, prefer config/docker/docker-compose.yml when available."""
+        env_compose = os.environ.get("COMPOSE_FILE")
+        if env_compose and os.path.exists(env_compose):
+            logger.info(f"Using compose file from COMPOSE_FILE: {env_compose}")
+            return env_compose
+
+        candidates = [
+            os.path.join("config", "docker", "docker-compose.yml"),
+            os.path.join("config", "docker", "docker-compose.test.yml"),
+            "docker-compose.yml",
+        ]
+        for path in candidates:
+            if os.path.exists(path):
+                logger.info(f"Using compose file: {path}")
+                return path
+        # Fallback even if not present (let compose error clearly)
+        logger.warning("No compose file detected; defaulting to docker-compose.yml")
+        return "docker-compose.yml"
 
     def cleanup_existing_containers(self):
         """Clean up any existing test containers."""
         logger.info("Cleaning up existing containers...")
         try:
-            result = subprocess.run([
-                "docker-compose", "-f", self.compose_file, "-p", self.project_name,
-                "down", "-v", "--remove-orphans"
-            ], capture_output=True, text=True, timeout=60)
+            result = subprocess.run(
+                self.compose_cmd + ["-f", self.compose_file, "-p", self.project_name, "down", "-v", "--remove-orphans"],
+                capture_output=True, text=True, timeout=60
+            )
 
             if result.returncode == 0:
                 logger.info("Existing containers cleaned up successfully")
@@ -48,10 +81,9 @@ class DockerTestRunner:
         logger.info("Starting Docker containers for testing...")
 
         try:
-            cmd = [
-                "docker-compose", "-f", self.compose_file, "-p", self.project_name,
-                "up", "-d", "--build"
-            ]
+            cmd = self.compose_cmd + ["-f", self.compose_file, "-p", self.project_name, "up", "-d"]
+            if not self.no_build:
+                cmd.append("--build")
 
             if services:
                 cmd.extend(services)
@@ -112,6 +144,14 @@ class DockerTestRunner:
         logger.warning(f"Only {len(ready_services)}/{len(services)} services became ready")
         return len(ready_services) > 0  # Proceed if at least one service is ready
 
+    def is_backend_running(self) -> bool:
+        """Check if migration_backend container is running."""
+        try:
+            result = subprocess.run(["docker", "ps", "--filter", "name=migration_backend", "--format", "{{.Names}}"], capture_output=True, text=True, timeout=10)
+            return "migration_backend" in result.stdout.strip()
+        except Exception:
+            return False
+
     def stop_containers(self):
         """Stop Docker containers."""
         if not self.containers_started:
@@ -119,10 +159,10 @@ class DockerTestRunner:
 
         logger.info("Stopping Docker containers...")
         try:
-            result = subprocess.run([
-                "docker-compose", "-f", self.compose_file, "-p", self.project_name,
-                "down", "-v"
-            ], capture_output=True, text=True, timeout=60)
+            result = subprocess.run(
+                self.compose_cmd + ["-f", self.compose_file, "-p", self.project_name, "down", "-v"],
+                capture_output=True, text=True, timeout=60
+            )
 
             if result.returncode == 0:
                 logger.info("Containers stopped successfully")
@@ -137,28 +177,30 @@ class DockerTestRunner:
             self.containers_started = False
 
     def run_backend_tests(self) -> int:
-        """Run backend Python tests."""
-        logger.info("Running backend tests...")
+        """Run backend Python tests inside the backend container with auto-detected test root."""
+        logger.info("Running backend tests (inside container)...")
 
-        env = os.environ.copy()
-        env.update({
-            "DOCKER_API_BASE": "http://localhost:8000",
-            "DOCKER_FRONTEND_BASE": "http://localhost:8081",
-            "PYTHONPATH": "backend:tests/backend",
-            "TESTING": "true"
-        })
+        detect_and_run = (
+            "bash -lc '"
+            "set -e; "
+            "if [ -d backend/tests ]; then TEST_DIR=backend/tests; "
+            "elif [ -d tests/backend ]; then TEST_DIR=tests/backend; "
+            "elif [ -d tests ]; then TEST_DIR=tests; "
+            "else echo ""No tests directory found (checked backend/tests, tests/backend, tests)"" >&2; exit 2; fi; "
+            "python -m pytest \"$TEST_DIR\" -v --tb=short -x --disable-warnings'"
+        )
 
-        cmd = [
-            sys.executable, "-m", "pytest",
-            "tests/backend/",
-            "-v",
-            "--tb=short",
-            "-x",  # Stop on first failure
-            "--disable-warnings"
+        cmd = ["docker", "exec", "-i", "migration_backend", "bash", "-lc",
+               "set -e; "
+               "if [ -d backend/tests ]; then TEST_DIR=backend/tests; "
+               "elif [ -d tests/backend ]; then TEST_DIR=tests/backend; "
+               "elif [ -d tests ]; then TEST_DIR=tests; "
+               "else echo 'No tests directory found (checked backend/tests, tests/backend, tests)' >&2; exit 2; fi; "
+               "python -m pytest \"$TEST_DIR\" -v --tb=short -x --disable-warnings"
         ]
 
         try:
-            result = subprocess.run(cmd, env=env, timeout=600)  # 10 minute timeout
+            result = subprocess.run(cmd, timeout=900)
             return result.returncode
         except subprocess.TimeoutExpired:
             logger.error("Backend tests timed out")
@@ -288,6 +330,9 @@ def main():
                        help="Specific services to start (default: all)")
     parser.add_argument("--keep-running", action="store_true",
                        help="Keep containers running after tests for manual inspection")
+    parser.add_argument("--compose-file", help="Path to docker-compose file to use")
+    parser.add_argument("--no-build", action="store_true", help="Do not pass --build to compose up")
+    parser.add_argument("--skip-start", action="store_true", help="Skip container startup if already running")
 
     args = parser.parse_args()
 
@@ -297,20 +342,29 @@ def main():
     else:
         test_suites = args.suites
 
-    runner = DockerTestRunner()
+    runner = DockerTestRunner(
+        compose_file_override=args.compose_file,
+        no_build=args.no_build,
+        skip_start=args.skip_start,
+    )
 
     # Set up signal handlers for graceful cleanup
     signal.signal(signal.SIGINT, lambda s, f: signal_handler(s, f, runner))
     signal.signal(signal.SIGTERM, lambda s, f: signal_handler(s, f, runner))
 
     try:
-        # Ensure we start with clean state
-        runner.cleanup_existing_containers()
+        # Optionally skip start when backend already running
+        if runner.skip_start and runner.is_backend_running():
+            logger.info("Backend already running; skipping cleanup/start")
+        else:
+            # Ensure we start with clean state
+            runner.cleanup_existing_containers()
 
-        # Start containers
-        if not runner.start_containers(services=args.services):
-            logger.error("Failed to start containers")
-            return 1
+            # Start containers
+            if not runner.start_containers(services=args.services):
+                logger.error("Failed to start containers")
+                logger.error("TIP: If build failures occur, try --no-build or start containers manually with required env vars, then re-run with --skip-start")
+                return 1
 
         # Run tests
         exit_code = runner.run_all_tests(test_suites)

@@ -158,26 +158,40 @@ export const useReadinessAssessment = (clientAccountId: string, engagementId: st
 };
 
 export const useGenerateSignoffPackage = (): ReturnType<typeof useMutation> => {
-  const { clientAccountId, engagementId } = useAuth();
+  const { client, engagement } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => generateSignoffPackage(clientAccountId, engagementId),
+    mutationFn: () => {
+      if (!client?.id || !engagement?.id) {
+        throw new Error('Missing client or engagement context for signoff package generation');
+      }
+      return generateSignoffPackage(client.id, engagement.id);
+    },
     onSuccess: (data) => {
-      queryClient.setQueryData(['signoffPackage', clientAccountId, engagementId], data);
+      if (client?.id && engagement?.id) {
+        queryClient.setQueryData(['signoffPackage', client.id, engagement.id], data);
+      }
     },
   });
 };
 
 export const useSubmitForApproval = (): ReturnType<typeof useMutation> => {
-  const { clientAccountId, engagementId } = useAuth();
+  const { client, engagement } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (signoffData: StakeholderSignoffData) => submitForApproval(clientAccountId, engagementId, signoffData),
+    mutationFn: (signoffData: StakeholderSignoffData) => {
+      if (!client?.id || !engagement?.id) {
+        throw new Error('Missing client or engagement context for approval submission');
+      }
+      return submitForApproval(client.id, engagement.id, signoffData);
+    },
     onSuccess: () => {
       // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: ['readinessAssessment', clientAccountId, engagementId] });
+      if (client?.id && engagement?.id) {
+        queryClient.invalidateQueries({ queryKey: ['readinessAssessment', client.id, engagement.id] });
+      }
     },
   });
 };

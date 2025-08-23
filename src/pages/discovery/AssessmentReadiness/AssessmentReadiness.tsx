@@ -24,7 +24,7 @@ import { ReadinessAssessment } from './types';
 
 // Main component
 const AssessmentReadiness: React.FC = () => {
-  const { clientAccountId, engagementId } = useAuth();
+  const { client, engagement } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -35,8 +35,8 @@ const AssessmentReadiness: React.FC = () => {
     error: assessmentError,
     refetch: refetchAssessment,
   } = useReadinessAssessment({
-    clientAccountId,
-    engagementId,
+    clientAccountId: client?.id,
+    engagementId: engagement?.id,
   });
 
   // Generate signoff package mutation
@@ -47,7 +47,9 @@ const AssessmentReadiness: React.FC = () => {
         description: 'The signoff package has been successfully created.',
       });
       // Invalidate queries to refetch the latest data
-      queryClient.invalidateQueries(['readinessAssessment', { clientAccountId, engagementId }]);
+      if (client?.id && engagement?.id) {
+        queryClient.invalidateQueries(['readinessAssessment', { clientAccountId: client.id, engagementId: engagement.id }]);
+      }
       setActiveTab('signoff');
     },
     onError: (error: Error) => {
@@ -67,7 +69,9 @@ const AssessmentReadiness: React.FC = () => {
         description: 'The assessment has been submitted for stakeholder approval.',
       });
       // Invalidate queries to refetch the latest data
-      queryClient.invalidateQueries(['readinessAssessment', { clientAccountId, engagementId }]);
+      if (client?.id && engagement?.id) {
+        queryClient.invalidateQueries(['readinessAssessment', { clientAccountId: client.id, engagementId: engagement.id }]);
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -83,8 +87,8 @@ const AssessmentReadiness: React.FC = () => {
     if (!readinessAssessment) return;
     generateSignoff({
       assessmentId: readinessAssessment.id,
-      clientAccountId,
-      engagementId,
+      clientAccountId: client?.id,
+      engagementId: engagement?.id,
     });
   };
 
@@ -95,8 +99,8 @@ const AssessmentReadiness: React.FC = () => {
     submitApproval({
       assessmentId: readinessAssessment.id,
       signoffPackage: readinessAssessment.signoffPackage,
-      clientAccountId,
-      engagementId,
+      clientAccountId: client?.id,
+      engagementId: engagement?.id,
     });
   };
 

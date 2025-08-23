@@ -10,7 +10,7 @@ export const isDiscoveryFlow = (obj: unknown): obj is import('./modules/discover
   return obj &&
     typeof obj === 'object' &&
     typeof obj.id === 'string' &&
-    typeof obj.flowName === 'string' &&
+    typeof obj.flow_name === 'string' &&
     typeof obj.status === 'string' &&
     Array.isArray(obj.phases);
 };
@@ -18,9 +18,9 @@ export const isDiscoveryFlow = (obj: unknown): obj is import('./modules/discover
 export const isFlowState = (obj: unknown): obj is import('./modules/flow-orchestration').FlowOrchestration.Models.FlowState => {
   return obj &&
     typeof obj === 'object' &&
-    typeof obj.flowId === 'string' &&
+    typeof obj.flow_id === 'string' &&
     typeof obj.status === 'string' &&
-    typeof obj.currentPhase === 'string' &&
+    typeof obj.current_phase === 'string' &&
     typeof obj.progress === 'number';
 };
 
@@ -35,16 +35,11 @@ export const isAgentConfiguration = (obj: unknown): obj is import('./modules/flo
 
 // Component Type Guards
 // Legacy NavigationSidebar type guard removed
-  return obj &&
-    typeof obj === 'object' &&
-    typeof obj.isOpen === 'boolean' &&
-    typeof obj.onToggle === 'function';
-};
 
 export const isFieldMappingProps = (obj: unknown): obj is import('./components/discovery').FieldMappingsTabProps => {
   return obj &&
     typeof obj === 'object' &&
-    typeof obj.flowId === 'string' &&
+    typeof obj.flow_id === 'string' &&
     Array.isArray(obj.mappings);
 };
 
@@ -59,8 +54,8 @@ export const isAttributeMappingReturn = (obj: unknown): obj is import('./hooks/d
   return obj &&
     typeof obj === 'object' &&
     Array.isArray(obj.mappings) &&
-    Array.isArray(obj.criticalAttributes) &&
-    typeof obj.flowId === 'string';
+    Array.isArray(obj.critical_attributes) &&
+    typeof obj.flow_id === 'string';
 };
 
 export const isAsyncHookReturn = (obj: unknown): obj is import('./hooks/shared').BaseAsyncHookReturn => {
@@ -90,16 +85,16 @@ export const isBaseApiResponse = (obj: unknown): obj is import('./api/shared').B
 export const isMultiTenantContext = (obj: unknown): obj is import('./api/shared').MultiTenantContext => {
   return obj &&
     typeof obj === 'object' &&
-    typeof obj.clientAccountId === 'string' &&
-    typeof obj.engagementId === 'string' &&
-    typeof obj.userId === 'string';
+    typeof obj.client_account_id === 'string' &&
+    typeof obj.engagement_id === 'string' &&
+    typeof obj.user_id === 'string';
 };
 
 // Utility Type Guards
 export const isValidationResult = (obj: unknown): obj is import('./api/shared').ValidationResult => {
   return obj &&
     typeof obj === 'object' &&
-    typeof obj.isValid === 'boolean' &&
+    typeof obj.is_valid === 'boolean' &&
     Array.isArray(obj.errors) &&
     Array.isArray(obj.warnings);
 };
@@ -108,17 +103,17 @@ export const isPaginationInfo = (obj: unknown): obj is import('./api/shared').Pa
   return obj &&
     typeof obj === 'object' &&
     typeof obj.page === 'number' &&
-    typeof obj.pageSize === 'number' &&
+    typeof obj.page_size === 'number' &&
     typeof obj.total === 'number' &&
-    typeof obj.hasNext === 'boolean' &&
-    typeof obj.hasPrevious === 'boolean';
+    typeof obj.has_next === 'boolean' &&
+    typeof obj.has_previous === 'boolean';
 };
 
 // Complex Type Guards
 export const isDiscoveryFlowRequest = (obj: unknown): obj is import('./api/discovery').InitializeDiscoveryFlowRequest => {
   return obj &&
     typeof obj === 'object' &&
-    typeof obj.flowName === 'string' &&
+    typeof obj.flow_name === 'string' &&
     isMultiTenantContext(obj.context);
 };
 
@@ -126,9 +121,9 @@ export const isFieldMapping = (obj: unknown): obj is import('./hooks/discovery')
   return obj &&
     typeof obj === 'object' &&
     typeof obj.id === 'string' &&
-    typeof obj.sourceField === 'string' &&
-    typeof obj.targetField === 'string' &&
-    typeof obj.mappingType === 'string' &&
+    typeof obj.source_field === 'string' &&
+    typeof obj.target_field === 'string' &&
+    typeof obj.mapping_type === 'string' &&
     typeof obj.confidence === 'number';
 };
 
@@ -268,22 +263,22 @@ export const COMMON_SCHEMAS: Record<string, ValidationSchema> = {
   },
 
   MultiTenantContext: {
-    clientAccountId: { type: 'string', required: true },
-    engagementId: { type: 'string', required: true },
-    userId: { type: 'string', required: true },
-    tenantId: { type: 'string', required: false },
-    organizationId: { type: 'string', required: false }
+    client_account_id: { type: 'string', required: true },
+    engagement_id: { type: 'string', required: true },
+    user_id: { type: 'string', required: true },
+    tenant_id: { type: 'string', required: false },
+    organization_id: { type: 'string', required: false }
   },
 
   FieldMapping: {
     id: { type: 'string', required: true },
-    sourceField: { type: 'string', required: true },
-    targetField: { type: 'string', required: true },
-    mappingType: { type: 'string', required: true },
+    source_field: { type: 'string', required: true },
+    target_field: { type: 'string', required: true },
+    mapping_type: { type: 'string', required: true },
     confidence: { type: 'number', required: true, validator: (v) => v >= 0 && v <= 1 },
     status: { type: 'string', required: true },
-    createdAt: { type: 'string', required: true },
-    updatedAt: { type: 'string', required: true }
+    created_at: { type: 'string', required: true },
+    updated_at: { type: 'string', required: true }
   }
 };
 

@@ -1,3 +1,7 @@
+import pytest
+
+# Phase markers for curated regression runs
+pytestmark = [pytest.mark.backend, pytest.mark.collection, pytest.mark.integration, pytest.mark.regression]
 """
 Test Collection Flow with Master Flow Orchestrator Integration
 

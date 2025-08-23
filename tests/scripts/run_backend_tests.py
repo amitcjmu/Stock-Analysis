@@ -119,8 +119,8 @@ try:
     assert response.status_code == 200
     assert response.json()['status'] == 'healthy'
 
-    # Test CrewAI Flow service health
-    response = requests.get('http://localhost:8000/api/v1/discovery/flow/health', timeout=10)
+    # Test CrewAI Flow service health (unified)
+    response = requests.get('http://localhost:8000/api/v1/unified-discovery/flow/health', timeout=10)
     assert response.status_code == 200
     assert response.json()['service_name'] == 'CrewAI Flow Service'
 

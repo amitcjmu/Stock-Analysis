@@ -151,7 +151,7 @@ export interface ImportFieldMapping {
   approved_at: string | null;
 
   /** Transformation rules (JSON) - matches transformation_rules */
-  transformation_rules: Record<string, any> | null;
+  transformation_rules: Record<string, unknown> | null;
 
   /** Created timestamp */
   created_at: string;
@@ -316,49 +316,49 @@ export interface FieldMapping {
   id: string;
 
   /** Source field name (from CSV/import) */
-  sourceField: string;
+  source_field: string;
 
   /** Target field name (system field) */
-  targetField: string | null;
+  target_field: string | null;
 
   /** Confidence score [0.0-1.0] */
-  confidenceScore: number;
+  confidence_score: number;
 
   /** Mapping type */
-  mappingType: FieldMappingType;
+  mapping_type: FieldMappingType;
 
   /** Transformation rule */
   transformation: string | null;
 
   /** Validation rules */
-  validationRules: string | null;
+  validation_rules: string | null;
 
   /** Mapping status */
   status: FieldMappingStatus;
 
   /** Sample values from source data */
-  sampleValues?: any[];
+  sample_values?: unknown[];
 
   /** AI reasoning for the mapping */
-  aiReasoning?: string;
+  ai_reasoning?: string;
 
   /** Whether user-defined */
-  isUserDefined?: boolean;
+  is_user_defined?: boolean;
 
   /** User feedback */
-  userFeedback?: string | null;
+  user_feedback?: string | null;
 
   /** Validation method used */
-  validationMethod?: string;
+  validation_method?: string;
 
   /** Whether mapping is validated */
-  isValidated?: boolean;
+  is_validated?: boolean;
 
   /** Whether this is a placeholder/fallback */
-  isPlaceholder?: boolean;
+  is_placeholder?: boolean;
 
   /** Additional metadata */
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -369,10 +369,10 @@ export interface FieldMappingsResult {
   success: boolean;
 
   /** Flow ID */
-  flowId: string;
+  flow_id: string;
 
-  /** Field mappings (camelCase) */
-  fieldMappings: FieldMapping[];
+  /** Field mappings (snake_case) */
+  field_mappings: FieldMapping[];
 
   /** Total count */
   count: number;
@@ -404,10 +404,10 @@ export interface FieldMappingStatistics {
   pending: number;
 
   /** Average confidence */
-  averageConfidence: number;
+  average_confidence: number;
 
   /** Confidence distribution */
-  confidenceDistribution: {
+  confidence_distribution: {
     high: number;    // >= 0.8
     medium: number;  // 0.5-0.8
     low: number;     // < 0.5
@@ -419,7 +419,7 @@ export interface FieldMappingStatistics {
  */
 export interface ValidationSummary {
   /** Total validated */
-  totalValidated: number;
+  total_validated: number;
 
   /** Validation passed */
   passed: number;
@@ -431,10 +431,10 @@ export interface ValidationSummary {
   warnings: number;
 
   /** Overall validation score */
-  overallScore: number;
+  overall_score: number;
 
   /** Critical issues count */
-  criticalIssues: number;
+  critical_issues: number;
 }
 
 // ============================================================================
@@ -444,7 +444,7 @@ export interface ValidationSummary {
 /**
  * Type guard to check if object is a valid FieldMappingItem
  */
-export function isFieldMappingItem(obj: any): obj is FieldMappingItem {
+export function isFieldMappingItem(obj: unknown): obj is FieldMappingItem {
   return (
     obj &&
     typeof obj === 'object' &&
@@ -462,7 +462,7 @@ export function isFieldMappingItem(obj: any): obj is FieldMappingItem {
 /**
  * Type guard to check if object is a valid FieldMappingsResponse
  */
-export function isFieldMappingsResponse(obj: any): obj is FieldMappingsResponse {
+export function isFieldMappingsResponse(obj: unknown): obj is FieldMappingsResponse {
   return (
     obj &&
     typeof obj === 'object' &&
@@ -477,7 +477,7 @@ export function isFieldMappingsResponse(obj: any): obj is FieldMappingsResponse 
 /**
  * Validates a confidence score value
  */
-export function isValidConfidenceScore(score: any): score is number {
+export function isValidConfidenceScore(score: unknown): score is number {
   return (
     typeof score === 'number' &&
     !isNaN(score) &&
@@ -490,7 +490,7 @@ export function isValidConfidenceScore(score: any): score is number {
 /**
  * Validates a field mapping type
  */
-export function isValidMappingType(type: any): type is FieldMappingType {
+export function isValidMappingType(type: unknown): type is FieldMappingType {
   const validTypes: FieldMappingType[] = ['auto', 'manual', 'suggested', 'direct', 'inferred', 'transformed'];
   return typeof type === 'string' && validTypes.includes(type as FieldMappingType);
 }
@@ -498,7 +498,7 @@ export function isValidMappingType(type: any): type is FieldMappingType {
 /**
  * Validates a field mapping status
  */
-export function isValidMappingStatus(status: any): status is FieldMappingStatus {
+export function isValidMappingStatus(status: unknown): status is FieldMappingStatus {
   const validStatuses: FieldMappingStatus[] = ['suggested', 'approved', 'rejected', 'pending', 'unmapped'];
   return typeof status === 'string' && validStatuses.includes(status as FieldMappingStatus);
 }
@@ -513,22 +513,22 @@ export function isValidMappingStatus(status: any): status is FieldMappingStatus 
 export function transformToFrontendMapping(backendItem: FieldMappingItem, id?: string): FieldMapping {
   return {
     id: id || `${backendItem.source_field}_${backendItem.target_field || 'unmapped'}`,
-    sourceField: backendItem.source_field,
-    targetField: backendItem.target_field,
-    confidenceScore: isValidConfidenceScore(backendItem.confidence_score) ? backendItem.confidence_score : 0.5,
-    mappingType: isValidMappingType(backendItem.mapping_type) ? backendItem.mapping_type : 'auto',
+    source_field: backendItem.source_field,
+    target_field: backendItem.target_field,
+    confidence_score: isValidConfidenceScore(backendItem.confidence_score) ? backendItem.confidence_score : 0.5,
+    mapping_type: isValidMappingType(backendItem.mapping_type) ? backendItem.mapping_type : 'auto',
     transformation: backendItem.transformation,
-    validationRules: backendItem.validation_rules,
+    validation_rules: backendItem.validation_rules,
     status: backendItem.target_field ? 'pending' : 'unmapped',
-    sampleValues: [],
-    aiReasoning: backendItem.target_field
+    sample_values: [],
+    ai_reasoning: backendItem.target_field
       ? `AI suggested mapping to ${backendItem.target_field}`
       : 'Field needs mapping assignment',
-    isUserDefined: false,
-    userFeedback: null,
-    validationMethod: 'semantic_analysis',
-    isValidated: false,
-    isPlaceholder: !backendItem.target_field
+    is_user_defined: false,
+    user_feedback: null,
+    validation_method: 'semantic_analysis',
+    is_validated: false,
+    is_placeholder: !backendItem.target_field
   };
 }
 
@@ -537,12 +537,12 @@ export function transformToFrontendMapping(backendItem: FieldMappingItem, id?: s
  */
 export function transformToBackendMapping(frontendMapping: FieldMapping): FieldMappingItem {
   return {
-    source_field: frontendMapping.sourceField,
-    target_field: frontendMapping.targetField,
-    confidence_score: frontendMapping.confidenceScore,
-    mapping_type: frontendMapping.mappingType,
+    source_field: frontendMapping.source_field,
+    target_field: frontendMapping.target_field,
+    confidence_score: frontendMapping.confidence_score,
+    mapping_type: frontendMapping.mapping_type,
     transformation: frontendMapping.transformation,
-    validation_rules: frontendMapping.validationRules
+    validation_rules: frontendMapping.validation_rules
   };
 }
 
@@ -550,31 +550,31 @@ export function transformToBackendMapping(frontendMapping: FieldMapping): FieldM
  * Transforms backend FieldMappingsResponse to frontend FieldMappingsResult
  */
 export function transformToFrontendResponse(backendResponse: FieldMappingsResponse): FieldMappingsResult {
-  const fieldMappings = backendResponse.field_mappings.map((item, index) =>
+  const field_mappings = backendResponse.field_mappings.map((item, index) =>
     transformToFrontendMapping(item, `mapping_${index}`)
   );
 
   // Calculate statistics
   const statistics: FieldMappingStatistics = {
-    total: fieldMappings.length,
-    mapped: fieldMappings.filter(m => m.targetField).length,
-    unmapped: fieldMappings.filter(m => !m.targetField).length,
-    approved: fieldMappings.filter(m => m.status === 'approved').length,
-    pending: fieldMappings.filter(m => m.status === 'pending').length,
-    averageConfidence: fieldMappings.length > 0
-      ? fieldMappings.reduce((sum, m) => sum + m.confidenceScore, 0) / fieldMappings.length
+    total: field_mappings.length,
+    mapped: field_mappings.filter(m => m.target_field).length,
+    unmapped: field_mappings.filter(m => !m.target_field).length,
+    approved: field_mappings.filter(m => m.status === 'approved').length,
+    pending: field_mappings.filter(m => m.status === 'pending').length,
+    average_confidence: field_mappings.length > 0
+      ? field_mappings.reduce((sum, m) => sum + m.confidence_score, 0) / field_mappings.length
       : 0,
-    confidenceDistribution: {
-      high: fieldMappings.filter(m => m.confidenceScore >= 0.8).length,
-      medium: fieldMappings.filter(m => m.confidenceScore >= 0.5 && m.confidenceScore < 0.8).length,
-      low: fieldMappings.filter(m => m.confidenceScore < 0.5).length
+    confidence_distribution: {
+      high: field_mappings.filter(m => m.confidence_score >= 0.8).length,
+      medium: field_mappings.filter(m => m.confidence_score >= 0.5 && m.confidence_score < 0.8).length,
+      low: field_mappings.filter(m => m.confidence_score < 0.5).length
     }
   };
 
   return {
     success: backendResponse.success,
-    flowId: backendResponse.flow_id,
-    fieldMappings,
+    flow_id: backendResponse.flow_id,
+    field_mappings,
     count: backendResponse.count,
     statistics
   };

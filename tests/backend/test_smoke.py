@@ -6,6 +6,9 @@ This test should be run after every backend restart to catch initialization erro
 
 import pytest
 
+# Make smoke tests selectable with "smoke and backend" and usable for sanity
+pytestmark = [pytest.mark.backend, pytest.mark.sanity]
+
 
 @pytest.mark.smoke
 def test_basic_imports():

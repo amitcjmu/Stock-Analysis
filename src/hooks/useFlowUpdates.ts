@@ -46,7 +46,8 @@ export function useFlowUpdates(
   disconnect: () => void;
   reconnect: () => void;
 } {
-  const { token, clientAccountId, engagementId } = useAuth();
+  const { user, client, engagement } = useAuth();
+  const token = user?.id; // Use user.id as token fallback
   const [state, setState] = useState<UseFlowUpdatesState>({
     data: null,
     isLoading: true,
@@ -79,8 +80,8 @@ export function useFlowUpdates(
   const getHeaders = useCallback(() => {
     const headers: HeadersInit = {
       'Authorization': `Bearer ${token}`,
-      'X-Client-Account-ID': clientAccountId?.toString() || '',
-      'X-Engagement-ID': engagementId?.toString() || '',
+      'X-Client-Account-ID': client?.id?.toString() || '',
+      'X-Engagement-ID': engagement?.id?.toString() || '',
     };
 
     // Add ETag header for conditional requests during polling
@@ -89,7 +90,7 @@ export function useFlowUpdates(
     }
 
     return headers;
-  }, [token, clientAccountId, engagementId]);
+  }, [token, client?.id, engagement?.id]);
 
   // Parse and update flow data
   const updateFlowData = useCallback((data: FlowUpdate) => {
@@ -330,7 +331,7 @@ export function useFlowUpdates(
   useEffect(() => {
     isMountedRef.current = true;
 
-    if (flowId && token && clientAccountId && engagementId) {
+    if (flowId && token && client?.id && engagement?.id) {
       // Try SSE first, fall back to polling
       if (mergedOptions.enableSSE) {
         connectSSE();
@@ -344,7 +345,7 @@ export function useFlowUpdates(
       disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flowId, token, clientAccountId, engagementId]); // Don't include all dependencies to avoid reconnection loops
+  }, [flowId, token, client?.id, engagement?.id]); // Don't include all dependencies to avoid reconnection loops
 
   return {
     ...state,

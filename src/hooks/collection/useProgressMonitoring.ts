@@ -16,22 +16,22 @@ export interface CollectionFlow {
   type: 'adaptive' | 'bulk' | 'integration';
   status: 'running' | 'paused' | 'completed' | 'failed';
   progress: number;
-  startedAt: string;
-  completedAt?: string;
-  estimatedCompletion?: string;
-  applicationCount: number;
-  completedApplications: number;
+  started_at: string;
+  completed_at?: string;
+  estimated_completion?: string;
+  application_count: number;
+  completed_applications: number;
 }
 
 export interface CollectionMetrics {
-  totalFlows: number;
-  activeFlows: number;
-  completedFlows: number;
-  failedFlows: number;
-  totalApplications: number;
-  completedApplications: number;
-  averageCompletionTime: number;
-  dataQualityScore: number;
+  total_flows: number;
+  active_flows: number;
+  completed_flows: number;
+  failed_flows: number;
+  total_applications: number;
+  completed_applications: number;
+  average_completion_time: number;
+  data_quality_score: number;
 }
 
 export interface UseProgressMonitoringOptions {
@@ -106,7 +106,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           title: 'Flow Initialization',
           description: 'Collection flow setup and configuration',
           achieved: baseProgress >= 10,
-          achievedAt: baseProgress >= 10 ? flow.startedAt : undefined,
+          achievedAt: baseProgress >= 10 ? flow.started_at : undefined,
           weight: 0.1,
           required: true
         },
@@ -139,7 +139,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           title: 'Flow Completion',
           description: 'Collection process completed',
           achieved: baseProgress >= 100,
-          achievedAt: flow.completedAt,
+          achievedAt: flow.completed_at,
           weight: 0.1,
           required: true
         }
@@ -176,7 +176,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           title: 'Processing Complete',
           description: 'Bulk processing completed',
           achieved: baseProgress >= 100,
-          achievedAt: flow.completedAt,
+          achievedAt: flow.completed_at,
           weight: 0.2,
           required: true
         }
@@ -213,7 +213,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           title: 'Data Integration',
           description: 'Final data integration and validation',
           achieved: baseProgress >= 100,
-          achievedAt: flow.completedAt,
+          achievedAt: flow.completed_at,
           weight: 0.15,
           required: true
         }
@@ -235,10 +235,10 @@ export const generateMockFlows = (includeSpecificFlow?: string): CollectionFlow[
       type: 'adaptive',
       status: 'running',
       progress: 68,
-      startedAt: '2025-07-19T09:00:00Z',
-      applicationCount: 45,
-      completedApplications: 31,
-      estimatedCompletion: '2025-07-19T16:30:00Z'
+      started_at: '2025-07-19T09:00:00Z',
+      application_count: 45,
+      completed_applications: 31,
+      estimated_completion: '2025-07-19T16:30:00Z'
     },
     {
       id: 'flow-002',
@@ -246,10 +246,10 @@ export const generateMockFlows = (includeSpecificFlow?: string): CollectionFlow[
       type: 'bulk',
       status: 'completed',
       progress: 100,
-      startedAt: '2025-07-19T08:00:00Z',
-      completedAt: '2025-07-19T10:45:00Z',
-      applicationCount: 150,
-      completedApplications: 150
+      started_at: '2025-07-19T08:00:00Z',
+      completed_at: '2025-07-19T10:45:00Z',
+      application_count: 150,
+      completed_applications: 150
     },
     {
       id: 'flow-003',
@@ -257,9 +257,9 @@ export const generateMockFlows = (includeSpecificFlow?: string): CollectionFlow[
       type: 'integration',
       status: 'paused',
       progress: 42,
-      startedAt: '2025-07-19T11:00:00Z',
-      applicationCount: 8,
-      completedApplications: 3
+      started_at: '2025-07-19T11:00:00Z',
+      application_count: 8,
+      completed_applications: 3
     },
     {
       id: 'flow-004',
@@ -267,9 +267,9 @@ export const generateMockFlows = (includeSpecificFlow?: string): CollectionFlow[
       type: 'adaptive',
       status: 'failed',
       progress: 25,
-      startedAt: '2025-07-19T12:00:00Z',
-      applicationCount: 20,
-      completedApplications: 5
+      started_at: '2025-07-19T12:00:00Z',
+      application_count: 20,
+      completed_applications: 5
     }
   ];
 
@@ -281,10 +281,10 @@ export const generateMockFlows = (includeSpecificFlow?: string): CollectionFlow[
       type: 'adaptive',
       status: 'running',
       progress: 35,
-      startedAt: new Date().toISOString(),
-      applicationCount: 10,
-      completedApplications: 3,
-      estimatedCompletion: new Date(Date.now() + 3600000).toISOString() // 1 hour from now
+      started_at: new Date().toISOString(),
+      application_count: 10,
+      completed_applications: 3,
+      estimated_completion: new Date(Date.now() + 3600000).toISOString() // 1 hour from now
     });
   }
 
@@ -295,18 +295,18 @@ export const generateMockFlows = (includeSpecificFlow?: string): CollectionFlow[
  * Generates mock metrics data
  */
 export const generateMockMetrics = (flows: CollectionFlow[]): CollectionMetrics => {
-  const totalApplications = flows.reduce((sum, flow) => sum + flow.applicationCount, 0);
-  const completedApplications = flows.reduce((sum, flow) => sum + flow.completedApplications, 0);
+  const total_applications = flows.reduce((sum, flow) => sum + flow.application_count, 0);
+  const completed_applications = flows.reduce((sum, flow) => sum + flow.completed_applications, 0);
 
   return {
-    totalFlows: flows.length,
-    activeFlows: flows.filter(f => f.status === 'running').length,
-    completedFlows: flows.filter(f => f.status === 'completed').length,
-    failedFlows: flows.filter(f => f.status === 'failed').length,
-    totalApplications,
-    completedApplications,
-    averageCompletionTime: 180000, // 3 minutes in ms
-    dataQualityScore: 92.5
+    total_flows: flows.length,
+    active_flows: flows.filter(f => f.status === 'running').length,
+    completed_flows: flows.filter(f => f.status === 'completed').length,
+    failed_flows: flows.filter(f => f.status === 'failed').length,
+    total_applications,
+    completed_applications,
+    average_completion_time: 180000, // 3 minutes in ms
+    data_quality_score: 92.5
   };
 };
 
