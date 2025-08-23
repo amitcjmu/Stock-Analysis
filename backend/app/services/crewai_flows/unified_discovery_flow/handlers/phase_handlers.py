@@ -12,6 +12,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 """
 
 import logging
+from datetime import datetime
 from typing import Any, Dict, Optional
 
 from .analysis_handler import AnalysisHandler
@@ -202,7 +203,7 @@ class PhaseHandlers:
                 "failed_mappings": failed_mappings,
                 "total_attempted": total_mappings,
                 "successful_count": successful_mappings,
-                "timestamp": "datetime.now().isoformat()",
+                "timestamp": datetime.now().isoformat(),
             }
 
             self.logger.info(f"✅ Field mapping application completed: {message}")
@@ -227,7 +228,7 @@ class PhaseHandlers:
                 "message": "Field mapping application encountered an error",
                 "applied_mappings": [],
                 "failed_mappings": [],
-                "timestamp": "datetime.now().isoformat()",
+                "timestamp": datetime.now().isoformat(),
             }
 
     async def _apply_single_field_mapping(
@@ -267,7 +268,7 @@ class PhaseHandlers:
                 "target_field": target_field,
                 "mapping_type": mapping.get("mapping_type", "direct"),
                 "confidence": mapping.get("confidence", 1.0),
-                "applied_at": "datetime.now().isoformat()",
+                "applied_at": datetime.now().isoformat(),
                 "index": index,
                 "status": "applied",
             }
@@ -324,7 +325,7 @@ class PhaseHandlers:
                 "suggestions": [],
                 "clarifications": [],
                 "message": "Field mapping generation failed after trying all available methods",
-                "timestamp": "datetime.now().isoformat()",
+                "timestamp": datetime.now().isoformat(),
             }
 
     async def _safe_generate_field_mapping_suggestions(
@@ -536,7 +537,7 @@ class PhaseHandlers:
                 "clarifications": mapping_result.get("clarifications", []),
                 "message": "Field mapping suggestions generated successfully",
                 "execution_method": method_name,
-                "timestamp": "datetime.now().isoformat()",
+                "timestamp": datetime.now().isoformat(),
             }
         else:
             # Process failed result
@@ -603,9 +604,9 @@ class PhaseHandlers:
         }
 
         # This is a placeholder - would need actual crew execution logic
-        # For now, return a basic success structure
+        # Return not_implemented status instead of success for placeholder
         return {
-            "status": "success",
+            "status": "not_implemented",
             "phase": "field_mapping",
             "field_mappings": [],
             "suggestions": [],
