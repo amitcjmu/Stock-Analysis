@@ -9,6 +9,7 @@ import type { EnhancedApiError } from "../../config/api";
 import type { AuditableMetadata } from "../../types/shared/metadata-types";
 import type { BaseMetadata } from "../../types/shared/metadata-types";
 import type { ActiveFlowSummary, FlowStatus } from "../../types/modules/flow-orchestration/model-types";
+import type { FlowContinuationResponse } from "../../types/api/flow-continuation";
 import { createMultiTenantHeaders } from "../../utils/api/multiTenantHeaders";
 import type { MultiTenantContext } from "../../utils/api/apiTypes";
 import { tokenStorage } from "../../contexts/AuthContext/storage";
@@ -626,10 +627,10 @@ export const masterFlowService = {
     flowId: string,
     clientAccountId: string,
     engagementId?: string,
-  ): Promise<ApiResponse<{ success: boolean; message?: string }>> {
+  ): Promise<ApiResponse<FlowContinuationResponse>> {
     try {
       const response = await apiClient.post<
-        ApiResponse<{ success: boolean; message?: string }>
+        ApiResponse<FlowContinuationResponse>
       >(
         `/flow-processing/continue/${flowId}`,
         {},

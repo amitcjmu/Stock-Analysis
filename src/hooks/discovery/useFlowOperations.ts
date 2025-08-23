@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
 import type { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
+import type { FlowContinuationResponse } from '@/types/api/flow-continuation';
 
 // Type definitions
 export interface IncompleteFlow {
@@ -149,24 +150,60 @@ export const useFlowResumption = (): unknown => {
         throw error;
       }
     },
-    onSuccess: (data, flowId) => {
-      console.log('🎉 [DEBUG] Flow resumption mutation success:', { data, flowId });
+    onSuccess: (response, flowId) => {
+      console.log('🎉 [DEBUG] Flow resumption mutation success:', { response, flowId });
 
       queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
       queryClient.invalidateQueries({ queryKey: ['discovery-flows'] });
 
-      toast({
-        title: "Flow Resumed",
-        description: "The discovery flow has been resumed successfully.",
-      });
+      // Extract the flow continuation data
+      const data = response.data as FlowContinuationResponse;
 
-      // Navigate to the appropriate page based on the flow's current phase
-      if (data.current_phase) {
+      // Display the intelligent agent's user guidance
+      if (data.user_guidance) {
+        // Show the primary message from the agent
+        toast({
+          title: "Agent Guidance",
+          description: data.user_guidance.primary_message,
+          duration: 8000, // Show for longer so user can read
+        });
+
+        // If there are specific user actions, show them too
+        if (data.user_guidance.user_actions && data.user_guidance.user_actions.length > 0) {
+          setTimeout(() => {
+            toast({
+              title: "Required Actions",
+              description: data.user_guidance.user_actions.join("\n"),
+              duration: 10000,
+            });
+          }, 1000);
+        }
+
+        // Log the full guidance for debugging
+        console.log('🤖 Agent Guidance:', {
+          primary: data.user_guidance.primary_message,
+          actions: data.user_guidance.action_items,
+          userActions: data.user_guidance.user_actions,
+          systemActions: data.user_guidance.system_actions
+        });
+      } else {
+        // Fallback to generic message if no guidance
+        toast({
+          title: "Flow Resumed",
+          description: "The discovery flow has been resumed successfully.",
+        });
+      }
+
+      // Navigate based on routing context or current phase
+      if (data.routing_context) {
+        console.log('📍 [DEBUG] Using routing context:', data.routing_context);
+        navigate(data.routing_context.target_page);
+      } else if (data.current_phase) {
         const route = getDiscoveryPhaseRoute(data.current_phase, flowId);
-        console.log('📍 [DEBUG] Navigating to:', route);
+        console.log('📍 [DEBUG] Navigating to phase route:', route);
         navigate(route);
       } else {
-        console.log('📍 [DEBUG] No current_phase in response, navigating to attribute mapping');
+        console.log('📍 [DEBUG] No routing info, defaulting to attribute mapping');
         const route = getDiscoveryPhaseRoute('field_mapping', flowId);
         navigate(route);
       }
