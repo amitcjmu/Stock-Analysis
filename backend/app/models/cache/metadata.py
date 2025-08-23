@@ -269,7 +269,8 @@ class CacheMetadata(Base, TimestampMixin):
             expires_at_aware = self.expires_at.replace(tzinfo=timezone.utc)
         else:
             expires_at_aware = self.expires_at
-        return now >= expires_at_aware
+        # Use strict greater-than to avoid boundary issues
+        return now > expires_at_aware
 
     def update_access_metrics(self, was_hit: bool, access_time_ms: float):
         """Update access metrics for performance tracking."""

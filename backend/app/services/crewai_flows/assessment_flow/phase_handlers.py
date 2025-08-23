@@ -328,10 +328,17 @@ class AssessmentPhaseHandlers:
                 app_tech_debt = self.flow.state.tech_debt_analysis.get(app_id, {})
 
                 # Filter decisions to only those belonging to this app's components
-                app_component_ids = {
+                # Normalize component IDs to handle both raw and app-scoped IDs
+                app_component_raw_ids = {
                     c.get("component_id") or c.get("name")
                     for c in app.get("components", [])
                 }
+                # Include app-scoped IDs (e.g., "app1:component1")
+                app_scoped_ids = {
+                    f"{app_id}:{rid}" for rid in app_component_raw_ids if rid
+                }
+                app_component_ids = app_component_raw_ids | app_scoped_ids
+
                 app_sixr_decisions = [
                     decision.to_dict()
                     for decision in self.flow.state.sixr_decisions

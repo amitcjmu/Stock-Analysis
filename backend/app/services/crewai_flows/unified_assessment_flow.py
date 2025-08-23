@@ -113,8 +113,8 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
         selected_applications: List[str] = None,
         master_flow_id: Optional[str] = None,
     ):
-        # Generate unique flow ID
-        self.flow_id = str(uuid.uuid4())
+        # Use master_flow_id if provided to preserve orchestration identity
+        self.flow_id = str(master_flow_id) if master_flow_id else str(uuid.uuid4())
         self.context = context
         self.flow_configuration = flow_configuration or {}
         self.selected_applications = selected_applications or []
@@ -145,6 +145,9 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
         """Initialize all flow components."""
         try:
             # Initialize state store
+            # TODO: PostgresFlowStateStore requires db session - should be provided by MFO
+            # Currently instantiated without params which will fail at runtime
+            # This needs to be refactored to get db session from context or MFO
             self.state_store = PostgresFlowStateStore()
 
             # Initialize flow state manager
