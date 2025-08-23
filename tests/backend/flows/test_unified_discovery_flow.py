@@ -7,6 +7,14 @@ ensuring all phases work correctly with the new consolidated architecture.
 
 import pytest
 from unittest.mock import Mock, AsyncMock
+
+# Suite/phase markers for curated regression runs
+pytestmark = [
+    pytest.mark.backend,
+    pytest.mark.discovery,
+    pytest.mark.integration,
+    pytest.mark.regression,
+]
 import time
 
 # Mock imports for testing

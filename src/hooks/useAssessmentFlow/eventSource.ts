@@ -5,7 +5,16 @@
  */
 
 // API base URL
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const getApiBase = (): string => {
+  // Force proxy usage for development - Docker container on port 8081
+  if (typeof window !== 'undefined' && window.location.port === '8081') {
+    return '';
+  }
+
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+};
+
+const API_BASE = getApiBase();
 
 // Event source service for real-time updates
 export const eventSourceService = {

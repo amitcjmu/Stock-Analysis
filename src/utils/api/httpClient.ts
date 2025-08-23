@@ -27,9 +27,19 @@ import { applyRetryPolicy } from './retryPolicies';
 import { CacheManager } from './cacheStrategies';
 import { createMultiTenantHeaders } from './multiTenantHeaders';
 
+// Get base URL with proper Docker development handling
+const getDefaultBaseUrl = (): string => {
+  // Force proxy usage for development - Docker container on port 8081
+  if (typeof window !== 'undefined' && window.location.port === '8081') {
+    return '';
+  }
+
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+};
+
 // Default configuration
 const DEFAULT_CONFIG: ApiClientConfig = {
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  baseURL: getDefaultBaseUrl(),
   timeout: 30000,
   retries: 3,
   retryDelay: 1000,

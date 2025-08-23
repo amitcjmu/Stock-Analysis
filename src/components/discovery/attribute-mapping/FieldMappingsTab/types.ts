@@ -1,16 +1,5 @@
-export interface FieldMapping {
-  id: string;
-  sourceField: string;
-  targetAttribute: string | null;
-  confidence: number;
-  mapping_type: 'direct' | 'calculated' | 'manual' | 'ai_suggested' | 'unmapped';
-  sample_values: string[];
-  status: 'pending' | 'approved' | 'rejected' | 'ignored' | 'deleted';
-  ai_reasoning?: string;
-  action?: 'ignore' | 'delete';
-  is_placeholder?: boolean;
-  is_fallback?: boolean;
-}
+// Import standardized FieldMapping interface
+import type { FieldMapping } from '@/types/api/discovery/field-mapping-types';
 
 // Import TargetField type from the context to ensure consistency
 export type { TargetField } from '../../../../contexts/FieldOptionsContext';
@@ -26,8 +15,8 @@ export interface FieldMappingsTabProps {
 export interface RejectionDialogProps {
   isOpen: boolean;
   mappingId: string;
-  sourceField: string;
-  targetField: string;
+  source_field: string;
+  target_field: string;
   onConfirm: (reason: string) => void;
   onCancel: () => void;
 }

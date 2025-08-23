@@ -1,5 +1,6 @@
 import { apiCall } from '@/config/api';
 import { getAuthHeaders } from '../../../../utils/contextUtils';
+// Removed transformSnakeToCamel and isBackendFormat imports - using snake_case directly
 import type { FlowSummary, SystemMetrics, CrewPerformanceMetrics, PlatformAlert } from '../types';
 
 export interface DashboardData {
@@ -190,8 +191,11 @@ export class DashboardService {
       }
 
       // Process all flows with consistent handling
-      for (const flow of flowsToProcess) {
+      for (const rawFlow of flowsToProcess) {
         try {
+          // Use snake_case directly from backend response
+          const flow = rawFlow;
+
           console.log('📊 Processing flow:', flow);
           console.log('📊 Flow ID debug:', {
             flow_id: flow.flow_id,
@@ -203,8 +207,7 @@ export class DashboardService {
           // Extract metadata if it exists
           const metadata = flow.metadata || {};
 
-          // Safely extract flow ID - Backend returns flow_id (snake_case)
-          // Remove flowId check as it's always undefined from backend
+          // Safely extract flow ID - Now using snake_case directly
           let validatedFlowId: string;
           try {
             validatedFlowId = flow.flow_id || flow.id || '';
@@ -255,7 +258,7 @@ export class DashboardService {
 
           allFlows.push(flowSummary);
         } catch (flowError) {
-          console.warn('Failed to process flow:', flow, flowError);
+          console.warn('Failed to process flow:', rawFlow, flowError);
         }
       }
 

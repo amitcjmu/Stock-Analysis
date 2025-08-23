@@ -18,70 +18,70 @@ import type {
 
 // Flow State Management APIs
 export interface GetFlowStateRequest extends GetRequest {
-  flowId: string;
-  includeHistory?: boolean;
-  includeAgentStates?: boolean;
-  includeCheckpoints?: boolean;
+  flow_id: string;
+  include_history?: boolean;
+  include_agent_states?: boolean;
+  include_checkpoints?: boolean;
 }
 
 export interface GetFlowStateResponse extends GetResponse<FlowStateDetail> {
   data: FlowStateDetail;
-  stateHistory?: FlowStateHistory[];
-  availableTransitions?: FlowTransition[];
+  state_history?: FlowStateHistory[];
+  available_transitions?: FlowTransition[];
 }
 
 export interface UpdateFlowStateRequest extends UpdateRequest<Partial<FlowState>> {
-  flowId: string;
+  flow_id: string;
   data: Partial<FlowState>;
-  validateTransition?: boolean;
-  createCheckpoint?: boolean;
-  notifyAgents?: boolean;
+  validate_transition?: boolean;
+  create_checkpoint?: boolean;
+  notify_agents?: boolean;
 }
 
 export interface UpdateFlowStateResponse extends UpdateResponse<FlowState> {
   data: FlowState;
-  transitionResult?: StateTransitionResult;
-  checkpointId?: string;
+  transition_result?: StateTransitionResult;
+  checkpoint_id?: string;
   notifications?: StateChangeNotification[];
 }
 
 export interface TransitionFlowPhaseRequest extends BaseApiRequest {
-  flowId: string;
+  flow_id: string;
   context: MultiTenantContext;
-  targetPhase: string;
-  skipValidation?: boolean;
+  target_phase: string;
+  skip_validation?: boolean;
   force?: boolean;
   reason?: string;
 }
 
 export interface TransitionFlowPhaseResponse extends BaseApiResponse<PhaseTransitionResult> {
   data: PhaseTransitionResult;
-  newState: FlowState;
-  validationResults?: ValidationResult[];
+  new_state: FlowState;
+  validation_results?: ValidationResult[];
   warnings?: string[];
 }
 
 // Flow State Models
 export interface FlowState {
-  flowId: string;
-  currentPhase: string;
-  nextPhase?: string;
-  previousPhase?: string;
-  phaseCompletion: Record<string, boolean>;
-  phaseData: Record<string, string | number | boolean | null>;
-  agentStates: Record<string, AgentState>;
-  sharedData: Record<string, string | number | boolean | null>;
+  flow_id: string;
+  current_phase: string;
+  next_phase?: string;
+  previous_phase?: string;
+  phase_completion: Record<string, boolean>;
+  phase_data: Record<string, string | number | boolean | null>;
+  agent_states: Record<string, AgentState>;
+  shared_data: Record<string, string | number | boolean | null>;
   checkpoints: StateCheckpoint[];
   version: number;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface FlowStateDetail extends FlowState {
-  stateHistory: FlowStateHistory[];
-  agentStates: Record<string, AgentStateDetail>;
-  validationResults: ValidationResult[];
-  performanceMetrics: StatePerformanceMetrics;
+  state_history: FlowStateHistory[];
+  agent_states: Record<string, AgentStateDetail>;
+  validation_results: ValidationResult[];
+  performance_metrics: StatePerformanceMetrics;
 }
 
 export interface FlowStateHistory {
@@ -94,12 +94,12 @@ export interface FlowStateHistory {
 }
 
 export interface AgentState {
-  agentId: string;
+  agent_id: string;
   status: AgentStatus;
-  currentTask?: string;
-  taskQueue: string[];
+  current_task?: string;
+  task_queue: string[];
   configuration: AgentConfiguration;
-  lastActivity: string;
+  last_activity: string;
   metadata: Record<string, string | number | boolean | null>;
 }
 
@@ -114,16 +114,16 @@ export interface AgentConfiguration {
   capabilities: string[];
   preferences: Record<string, string | number | boolean | null>;
   constraints: Record<string, string | number | boolean | null>;
-  learningEnabled: boolean;
+  learning_enabled: boolean;
 }
 
 export interface AgentPerformance {
-  tasksCompleted: number;
-  averageTaskTime: number;
-  successRate: number;
-  qualityScore: number;
-  learningProgress: number;
-  userRating?: number;
+  tasks_completed: number;
+  average_task_time: number;
+  success_rate: number;
+  quality_score: number;
+  learning_progress: number;
+  user_rating?: number;
 }
 
 export interface AgentStateHistory {
@@ -136,25 +136,25 @@ export interface AgentStateHistory {
 
 export interface AgentInsight {
   id: string;
-  agentId: string;
+  agent_id: string;
   type: InsightType;
   category: string;
   confidence: number;
   description: string;
   recommendations?: string[];
   evidence?: Record<string, string | number | boolean | null>;
-  createdAt: string;
+  created_at: string;
 }
 
 export interface AgentClarification {
   id: string;
-  agentId: string;
+  agent_id: string;
   question: string;
   context: string;
   urgency: 'low' | 'medium' | 'high' | 'critical';
   status: 'pending' | 'answered' | 'dismissed';
-  createdAt: string;
-  answeredAt?: string;
+  created_at: string;
+  answered_at?: string;
   answer?: string;
 }
 
@@ -164,57 +164,57 @@ export interface StateCheckpoint {
   phase: string;
   data: Record<string, string | number | boolean | null>;
   description?: string;
-  createdBy: string;
-  restoreAvailable: boolean;
+  created_by: string;
+  restore_available: boolean;
 }
 
 export interface StatePerformanceMetrics {
-  transitionTime: number;
-  validationTime: number;
-  persistenceTime: number;
-  agentResponseTime: number;
-  overallEfficiency: number;
+  transition_time: number;
+  validation_time: number;
+  persistence_time: number;
+  agent_response_time: number;
+  overall_efficiency: number;
 }
 
 export interface FlowTransition {
-  fromPhase: string;
-  toPhase: string;
+  from_phase: string;
+  to_phase: string;
   conditions: TransitionCondition[];
   validations: ValidationRule[];
   automated: boolean;
-  estimatedDuration?: number;
+  estimated_duration?: number;
 }
 
 export interface TransitionCondition {
   type: 'completion' | 'approval' | 'validation' | 'manual' | 'time';
   description: string;
   required: boolean;
-  currentStatus: 'met' | 'not_met' | 'pending';
+  current_status: 'met' | 'not_met' | 'pending';
   details?: Record<string, string | number | boolean | null>;
 }
 
 export interface StateTransitionResult {
   success: boolean;
-  fromPhase: string;
-  toPhase: string;
-  transitionTime: number;
-  validationResults: ValidationResult[];
+  from_phase: string;
+  to_phase: string;
+  transition_time: number;
+  validation_results: ValidationResult[];
   warnings: string[];
-  rollbackAvailable: boolean;
+  rollback_available: boolean;
 }
 
 export interface PhaseTransitionResult extends StateTransitionResult {
-  agentNotifications: AgentNotification[];
-  nextSteps: string[];
-  automaticActions: AutomaticAction[];
+  agent_notifications: AgentNotification[];
+  next_steps: string[];
+  automatic_actions: AutomaticAction[];
 }
 
 export interface AgentNotification {
-  agentId: string;
+  agent_id: string;
   type: 'phase_change' | 'task_assignment' | 'clarification_request' | 'alert';
   message: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  actionRequired: boolean;
+  action_required: boolean;
   deadline?: string;
 }
 
@@ -222,7 +222,7 @@ export interface AutomaticAction {
   type: string;
   description: string;
   scheduled: boolean;
-  scheduledTime?: string;
+  scheduled_time?: string;
   dependencies?: string[];
 }
 

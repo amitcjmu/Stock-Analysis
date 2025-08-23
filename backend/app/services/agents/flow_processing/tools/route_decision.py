@@ -26,6 +26,7 @@ class RouteDecisionTool(BaseTool):
     ROUTE_MAPPING: ClassVar[Dict[str, Dict[str, str]]] = {
         "discovery": {
             "data_import": "/discovery/cmdb-import",
+            "field_mapping": "/discovery/attribute-mapping/{flow_id}",  # Alias for attribute_mapping
             "attribute_mapping": "/discovery/attribute-mapping/{flow_id}",
             "data_cleansing": "/discovery/data-cleansing/{flow_id}",
             "inventory": "/discovery/inventory/{flow_id}",
@@ -157,28 +158,42 @@ class RouteDecisionTool(BaseTool):
 
         # Check if user needs to configure mappings
         if any("mapping" in action.lower() for action in user_actions):
+            # Use ROUTE_MAPPING for consistent route generation
+            route_template = self.ROUTE_MAPPING.get("discovery", {}).get(
+                "attribute_mapping", "/discovery/attribute-mapping/{flow_id}"
+            )
             return (
-                f"/discovery/attribute-mapping/{flow_id}"
+                route_template.format(flow_id=flow_id)
                 if flow_id
-                else "/discovery/attribute-mapping"
+                else route_template.replace("/{flow_id}", "")
             )
 
         # Check if user needs to review something
         if any("review" in action.lower() for action in user_actions):
-            phase_route = f"/discovery/{current_phase.replace('_', '-')}"
-            return (
-                f"{phase_route}/{flow_id}"
-                if flow_id and current_phase != "data_import"
-                else phase_route
+            # Use ROUTE_MAPPING if phase exists there
+            route_template = self.ROUTE_MAPPING.get("discovery", {}).get(
+                current_phase,
+                f"/discovery/{current_phase.replace('_', '-')}/{{flow_id}}",
             )
+            if "{flow_id}" in route_template:
+                return (
+                    route_template.format(flow_id=flow_id)
+                    if flow_id
+                    else route_template.replace("/{flow_id}", "")
+                )
+            return route_template
 
-        # Default to current phase page
-        phase_route = f"/discovery/{current_phase.replace('_', '-')}"
-        return (
-            f"{phase_route}/{flow_id}"
-            if flow_id and current_phase != "data_import"
-            else phase_route
+        # Default to current phase page using ROUTE_MAPPING
+        route_template = self.ROUTE_MAPPING.get("discovery", {}).get(
+            current_phase, f"/discovery/{current_phase.replace('_', '-')}/{{flow_id}}"
         )
+        if "{flow_id}" in route_template:
+            return (
+                route_template.format(flow_id=flow_id)
+                if flow_id
+                else route_template.replace("/{flow_id}", "")
+            )
+        return route_template
 
     def _determine_system_action_route(
         self, current_phase: str, system_actions: List[str], flow_id: str
@@ -191,14 +206,19 @@ class RouteDecisionTool(BaseTool):
         ):
             return "/discovery/enhanced-dashboard"
 
-        # For navigation actions, go to the specified page
+        # For navigation actions, go to the specified page using ROUTE_MAPPING
         if any("navigate" in action.lower() for action in system_actions):
-            phase_route = f"/discovery/{current_phase.replace('_', '-')}"
-            return (
-                f"{phase_route}/{flow_id}"
-                if flow_id and current_phase != "data_import"
-                else phase_route
+            route_template = self.ROUTE_MAPPING.get("discovery", {}).get(
+                current_phase,
+                f"/discovery/{current_phase.replace('_', '-')}/{{flow_id}}",
             )
+            if "{flow_id}" in route_template:
+                return (
+                    route_template.format(flow_id=flow_id)
+                    if flow_id
+                    else route_template.replace("/{flow_id}", "")
+                )
+            return route_template
 
         # Default to enhanced dashboard
         return "/discovery/enhanced-dashboard"

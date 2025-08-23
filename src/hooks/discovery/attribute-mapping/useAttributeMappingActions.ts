@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall } from '../../../config/api';
-import type { FieldMapping } from './useFieldMappings';
+import type { FieldMapping } from '@/types/api/discovery/field-mapping-types';
 import type { FlowUpdate } from '../../useFlowUpdates'
 import { useFlowUpdates } from '../../useFlowUpdates'
 
@@ -166,7 +166,7 @@ export const useAttributeMappingActions = (
       // Re-throw for component error handling
       throw error;
     }
-  }, [flow, refresh, getAuthHeaders]);
+  }, [flow, refresh, getAuthHeaders, fieldMappings]);
 
   const handleApproveMapping = useCallback(async (mappingId: string) => {
     try {
@@ -196,7 +196,7 @@ export const useAttributeMappingActions = (
 
       // Show success feedback
       if (typeof window !== 'undefined' && (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast) {
-        (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast(`Mapping approved: ${mapping.sourceField} → ${mapping.targetAttribute}`);
+        (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast(`Mapping approved: ${mapping.source_field} → ${mapping.target_field}`);
       }
 
       // Add delay before refetching to prevent rate limiting
@@ -241,7 +241,7 @@ export const useAttributeMappingActions = (
 
         // Show success message
         if (typeof window !== 'undefined' && (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast) {
-          (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast(`Mapping rejected: ${mapping.sourceField}`);
+          (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast(`Mapping rejected: ${mapping.source_field}`);
         }
       } else {
         // Fallback: Just log the rejection
@@ -287,7 +287,7 @@ export const useAttributeMappingActions = (
       // The parent component should handle this state update
       // For now, just show feedback
       if (typeof window !== 'undefined' && (window as Window & { showInfoToast?: (message: string) => void }).showInfoToast) {
-        (window as Window & { showInfoToast?: (message: string) => void }).showInfoToast(`Field mapping updated: ${mapping.sourceField} → ${newTarget}`);
+        (window as Window & { showInfoToast?: (message: string) => void }).showInfoToast(`Field mapping updated: ${mapping.source_field} → ${newTarget}`);
       }
 
     } catch (error) {
@@ -377,7 +377,7 @@ export const useAttributeMappingActions = (
         if (agentDecision.metadata.approval_requirements.critical_fields_required) {
           const criticalFields = agentDecision.metadata.critical_fields || [];
           const allCriticalFieldsMapped = criticalFields.every(field =>
-            fieldMappings.some(m => m.sourceField === field && m.status === 'approved')
+            fieldMappings.some(m => m.source_field === field && m.status === 'approved')
           );
 
           if (!allCriticalFieldsMapped) {

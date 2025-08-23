@@ -148,7 +148,7 @@ python -m pytest tests/docker/ -v -m "slow"
 
 ### Test Markers
 
-Use pytest markers to run specific test categories:
+Use pytest markers to run specific test categories. See `docs/testing/QA_GUIDE.md` and `docs/testing/SUITE_MATRIX.md` for the full taxonomy and suite matrix.
 
 ```bash
 # Device classification tests only

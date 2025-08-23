@@ -171,13 +171,21 @@ class Phase3ValidationRunner:
         """Run API integration tests."""
         self.log("Running API Integration Tests...", "PHASE")
 
-        # Run the fixed validation script
+        # Detect tests root inside backend container and run curated discovery regression
         self.run_command(
-            ["python", "tests/scripts/validate_crewai_flow_migration_fixed.py", "--quick"],
-            "CrewAI Flow Migration Validation"
+            [
+                "docker", "exec", "-i", "migration_backend", "bash", "-lc",
+                "set -e; "
+                "if [ -d backend/tests ]; then TEST_DIR=backend/tests; "
+                "elif [ -d tests/backend ]; then TEST_DIR=tests/backend; "
+                "elif [ -d tests ]; then TEST_DIR=tests; "
+                "else echo 'No tests directory found (checked backend/tests, tests/backend, tests)' >&2; exit 2; fi; "
+                "python -m pytest \"$TEST_DIR\" -m 'regression and discovery' -v --tb=short"
+            ],
+            "Pytest: Discovery Regression"
         )
 
-        # Run backend test runner
+        # Run backend test runner if present
         if (self.tests_dir / "scripts" / "run_backend_tests.py").exists():
             self.run_command(
                 ["python", "tests/scripts/run_backend_tests.py", "--quick"],
@@ -215,9 +223,9 @@ class Phase3ValidationRunner:
 
         # Test cleanup endpoints
         cleanup_commands = [
-            ["curl", "-s", "http://localhost:8000/api/v1/discovery/flow/cleanup", "-X", "POST"],
-            ["curl", "-s", "http://localhost:8000/api/v1/discovery/flow/active"],
-            ["curl", "-s", "http://localhost:8000/api/v1/discovery/flow/health"]
+            ["curl", "-s", "http://localhost:8000/api/v1/unified-discovery/flow/cleanup", "-X", "POST"],
+            ["curl", "-s", "http://localhost:8000/api/v1/unified-discovery/flows/active"],
+            ["curl", "-s", "http://localhost:8000/api/v1/unified-discovery/flow/health"]
         ]
 
         for cmd in cleanup_commands:

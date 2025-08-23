@@ -17,18 +17,18 @@ import type { ValidationRule, BusinessRule, AgentInsight } from './validation-ty
  */
 export interface FieldMapping {
   id: string;
-  sourceField: string;
-  targetField: string;
-  mappingType: 'direct' | 'transformed' | 'calculated' | 'conditional';
-  transformationLogic?: string;
-  validationRules?: ValidationRule[];
+  source_field: string;
+  target_field: string;
+  mapping_type: 'direct' | 'transformed' | 'calculated' | 'conditional';
+  transformation_logic?: string;
+  validation_rules?: ValidationRule[];
   confidence: number;
   status: 'pending' | 'approved' | 'rejected' | 'in_review';
-  createdAt: string;
-  updatedAt: string;
-  createdBy: string;
-  reviewedBy?: string;
-  rejectionReason?: string;
+  created_at: string;
+  updated_at: string;
+  created_by: string;
+  reviewed_by?: string;
+  rejection_reason?: string;
 }
 
 /**
@@ -38,14 +38,14 @@ export interface CriticalAttribute {
   id: string;
   name: string;
   description: string;
-  dataType: string;
-  isRequired: boolean;
-  defaultValue?: unknown;
-  validationRules: ValidationRule[];
-  mappingStatus: 'mapped' | 'unmapped' | 'partially_mapped';
-  sourceFields: string[];
-  targetField?: string;
-  businessRules?: BusinessRule[];
+  data_type: string;
+  is_required: boolean;
+  default_value?: unknown;
+  validation_rules: ValidationRule[];
+  mapping_status: 'mapped' | 'unmapped' | 'partially_mapped';
+  source_fields: string[];
+  target_field?: string;
+  business_rules?: BusinessRule[];
   priority: 'critical' | 'high' | 'medium' | 'low';
   category: string;
   tags: string[];
@@ -57,12 +57,12 @@ export interface CriticalAttribute {
  */
 export interface CrewAnalysis {
   id: string;
-  analysisType: string;
+  analysis_type: string;
   findings: AnalysisFinding[];
   recommendations: string[];
   confidence: number;
-  executedAt: string;
-  executedBy: string;
+  executed_at: string;
+  executed_by: string;
   status: 'completed' | 'in_progress' | 'failed';
   metadata: Record<string, string | number | boolean | null>;
 }
@@ -82,30 +82,30 @@ export interface AnalysisFinding {
  * Mapping progress tracking
  */
 export interface MappingProgress {
-  totalMappings: number;
-  completedMappings: number;
-  pendingMappings: number;
-  approvedMappings: number;
-  rejectedMappings: number;
-  progressPercentage: number;
-  lastUpdated: string;
+  total_mappings: number;
+  completed_mappings: number;
+  pending_mappings: number;
+  approved_mappings: number;
+  rejected_mappings: number;
+  progress_percentage: number;
+  last_updated: string;
 }
 
 /**
  * Flow state management
  */
 export interface FlowState {
-  flowId: string;
-  currentPhase: string;
-  nextPhase?: string;
-  previousPhase?: string;
-  phaseCompletion: Record<string, boolean>;
-  phaseData: Record<string, string | number | boolean | null>;
-  agentInsights: Record<string, AgentInsight[]>;
-  agentProgress: Record<string, number>;
-  agentStatus: Record<string, string>;
-  createdAt: string;
-  updatedAt: string;
+  flow_id: string;
+  current_phase: string;
+  next_phase?: string;
+  previous_phase?: string;
+  phase_completion: Record<string, boolean>;
+  phase_data: Record<string, string | number | boolean | null>;
+  agent_insights: Record<string, AgentInsight[]>;
+  agent_progress: Record<string, number>;
+  agent_status: Record<string, string>;
+  created_at: string;
+  updated_at: string;
 }
 
 /**
@@ -113,20 +113,20 @@ export interface FlowState {
  */
 export interface DiscoveryFlowData {
   id: string;
-  flowId: string;
-  clientAccountId: string;
-  engagementId: string;
-  userId: string;
-  flowName: string;
-  flowDescription?: string;
+  flow_id: string;
+  client_account_id: string;
+  engagement_id: string;
+  user_id: string;
+  flow_name: string;
+  flow_description?: string;
   status: FlowStatus;
   progress: number;
   phases: PhaseCompletion;
-  currentPhase: string;
-  nextPhase?: string;
-  createdAt: string;
-  updatedAt: string;
-  completedAt?: string;
+  current_phase: string;
+  next_phase?: string;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
 }
 
 /**
@@ -134,19 +134,19 @@ export interface DiscoveryFlowData {
  */
 export interface DataImport {
   id: string;
-  flowId: string;
-  fileName: string;
-  fileSize: number;
-  fileType: string;
-  recordsTotal: number;
-  recordsProcessed: number;
-  recordsValid: number;
-  recordsInvalid: number;
+  flow_id: string;
+  file_name: string;
+  file_size: number;
+  file_type: string;
+  records_total: number;
+  records_processed: number;
+  records_valid: number;
+  records_invalid: number;
   status: 'uploading' | 'processing' | 'completed' | 'failed';
   errors?: ImportError[];
-  uploadedAt: string;
-  processedAt?: string;
-  uploadedBy: string;
+  uploaded_at: string;
+  processed_at?: string;
+  uploaded_by: string;
 }
 
 /**
@@ -154,25 +154,25 @@ export interface DataImport {
  */
 export interface AgentClarification {
   id: string;
-  agentId: string;
+  agent_id: string;
   question: string;
   context: string;
   priority: 'high' | 'medium' | 'low';
   status: 'pending' | 'answered' | 'dismissed';
   response?: string;
-  createdAt: string;
-  answeredAt?: string;
+  created_at: string;
+  answered_at?: string;
 }
 
 /**
  * Training progress tracking
  */
 export interface TrainingProgress {
-  totalSamples: number;
-  processedSamples: number;
+  total_samples: number;
+  processed_samples: number;
   accuracy: number;
-  lastTrainingRun: string;
-  modelVersion: string;
+  last_training_run: string;
+  model_version: string;
 }
 
 /**
@@ -188,18 +188,18 @@ export interface MappingFilter {
  * Field mapping input for API requests
  */
 export interface FieldMappingInput {
-  sourceField: string;
-  targetField: string;
-  mappingType: string;
-  transformationLogic?: string;
-  validationRules?: ValidationRule[];
+  source_field: string;
+  target_field: string;
+  mapping_type: string;
+  transformation_logic?: string;
+  validation_rules?: ValidationRule[];
 }
 
 /**
  * Bulk mapping update structure
  */
 export interface BulkMappingUpdate {
-  mappingId: string;
+  mapping_id: string;
   updates: Partial<FieldMapping>;
 }
 
@@ -211,5 +211,5 @@ export interface MappingApprovalStatus {
   approved: number;
   rejected: number;
   pending: number;
-  canProceed: boolean;
+  can_proceed: boolean;
 }

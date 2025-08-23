@@ -11,18 +11,18 @@ import type { AgentTypeInfo, ConfidenceDisplayInfo } from './types';
 
 // AGENTIC UI HELPERS: Agent reasoning and confidence display functions
 export const getAgentReasoningForMapping = (mapping: FieldMapping): string => {
-  const confidence = mapping.confidence || 0;
-  const sourceField = mapping.sourceField?.toLowerCase() || '';
-  const targetField = mapping.targetAttribute?.toLowerCase() || '';
+  const confidence = mapping.confidence_score || 0;
+  const sourceField = mapping.source_field?.toLowerCase() || '';
+  const targetField = mapping.target_field?.toLowerCase() || '';
 
   if (sourceField.includes('name') && targetField.includes('name')) {
-    return `Strong semantic match detected between "${mapping.sourceField}" and "${mapping.targetAttribute}". Field naming patterns indicate direct correspondence with ${Math.round(confidence * 100)}% confidence.`;
+    return `Strong semantic match detected between "${mapping.source_field}" and "${mapping.target_field}". Field naming patterns indicate direct correspondence with ${Math.round(confidence * 100)}% confidence.`;
   } else if (sourceField.includes('ip') && targetField.includes('ip')) {
-    return `Network identifier pattern match. "${mapping.sourceField}" contains IP addressing data suitable for "${mapping.targetAttribute}" field with high pattern recognition confidence.`;
+    return `Network identifier pattern match. "${mapping.source_field}" contains IP addressing data suitable for "${mapping.target_field}" field with high pattern recognition confidence.`;
   } else if (sourceField.includes('cpu') || sourceField.includes('core')) {
-    return `Hardware specification mapping. "${mapping.sourceField}" contains computational resource data matching "${mapping.targetAttribute}" requirements based on metric analysis.`;
+    return `Hardware specification mapping. "${mapping.source_field}" contains computational resource data matching "${mapping.target_field}" requirements based on metric analysis.`;
   } else if (sourceField.includes('ram') || sourceField.includes('memory')) {
-    return `Memory resource identification. Agent detected memory allocation data in "${mapping.sourceField}" suitable for "${mapping.targetAttribute}" classification.`;
+    return `Memory resource identification. Agent detected memory allocation data in "${mapping.source_field}" suitable for "${mapping.target_field}" classification.`;
   } else if (confidence > 0.8) {
     return `High-confidence ensemble decision. Multiple semantic and pattern analysis agents agree on this mapping with ${Math.round(confidence * 100)}% consensus.`;
   } else if (confidence > 0.6) {
@@ -33,9 +33,9 @@ export const getAgentReasoningForMapping = (mapping: FieldMapping): string => {
 };
 
 export const getAgentTypeForMapping = (mapping: FieldMapping): AgentTypeInfo => {
-  const sourceField = mapping.sourceField?.toLowerCase() || '';
-  const targetField = mapping.targetAttribute?.toLowerCase() || '';
-  const confidence = mapping.confidence || 0;
+  const sourceField = mapping.source_field?.toLowerCase() || '';
+  const targetField = mapping.target_field?.toLowerCase() || '';
+  const confidence = mapping.confidence_score || 0;
 
   if (sourceField.includes('name') && targetField.includes('name')) {
     return { type: 'Semantic', icon: React.createElement(Brain, { className: "w-3 h-3" }), color: 'text-blue-600 bg-blue-50' };

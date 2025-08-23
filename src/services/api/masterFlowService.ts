@@ -8,7 +8,8 @@ import type { ApiResponse, ApiError } from "../../types/shared/api-types";
 import type { EnhancedApiError } from "../../config/api";
 import type { AuditableMetadata } from "../../types/shared/metadata-types";
 import type { BaseMetadata } from "../../types/shared/metadata-types";
-import type { ActiveFlowSummary } from "../../types/modules/flow-orchestration/model-types";
+import type { ActiveFlowSummary, FlowStatus } from "../../types/modules/flow-orchestration/model-types";
+import type { FlowContinuationResponse } from "../../types/api/flow-continuation";
 import { createMultiTenantHeaders } from "../../utils/api/multiTenantHeaders";
 import type { MultiTenantContext } from "../../utils/api/apiTypes";
 import { tokenStorage } from "../../contexts/AuthContext/storage";
@@ -43,9 +44,9 @@ export interface FlowMetrics {
 }
 
 export interface MasterFlowRequest {
-  clientAccountId: string;
-  engagementId: string;
-  flowType:
+  client_account_id: string;
+  engagement_id: string;
+  flow_type:
     | "discovery"
     | "assessment"
     | "planning"
@@ -55,36 +56,33 @@ export interface MasterFlowRequest {
     | "observability"
     | "decommission";
   config?: FlowConfiguration;
-  userId?: string;
+  user_id?: string;
 }
 
 export interface MasterFlowResponse {
-  flowId: string;
+  flow_id: string;
   status: "initializing" | "running" | "completed" | "failed" | "paused";
-  flowType: string;
+  flow_type: string;
   progress: number;
-  currentPhase: string;
+  current_phase: string;
   metadata: AuditableMetadata;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface FlowStatusResponse {
-  flowId: string;
-  flow_id?: string; // Some endpoints return flow_id instead of flowId
+  flow_id: string;
   status: string;
   progress?: number;
-  progress_percentage?: number; // Backend uses this
-  currentPhase?: string;
-  current_phase?: string; // Some endpoints use snake_case
-  phase?: string; // Another variant
-  phaseDetails?: Record<string, unknown>;
-  phase_completion?: Record<string, boolean>; // For phase completion tracking
+  progress_percentage?: number;
+  current_phase?: string;
+  phase?: string;
+  phase_details?: Record<string, unknown>;
+  phase_completion?: Record<string, boolean>;
   errors?: string[];
   metadata?: Record<string, unknown>;
-  awaitingUserApproval?: boolean;
-  awaiting_user_approval?: boolean; // Snake case variant
-  lastUpdated?: string;
+  awaiting_user_approval?: boolean;
+  last_updated?: string;
   field_mappings?: Array<{
     id: string;
     source_field: string;
@@ -125,15 +123,15 @@ export interface FlowStatusResponse {
  * Get multi-tenant headers for API requests using centralized utility
  */
 const getMultiTenantHeaders = (
-  clientAccountId: string,
-  engagementId?: string,
-  userId?: string,
+  client_account_id: string,
+  engagement_id?: string,
+  user_id?: string,
 ): Record<string, string> => {
   const token = tokenStorage.getToken();
   const context: MultiTenantContext = {
-    clientAccountId,
-    engagementId,
-    userId,
+    clientAccountId: client_account_id,
+    engagementId: engagement_id,
+    userId: user_id,
   };
 
   const headers = {
@@ -170,10 +168,10 @@ export const masterFlowService = {
     request: MasterFlowRequest,
   ): Promise<MasterFlowResponse> {
     try {
-      // Transform the request to match backend expectations
+      // Use snake_case directly
       const backendRequest = {
-        flow_type: request.flowType,
-        flow_name: request.config?.flow_name || `${request.flowType} Flow`,
+        flow_type: request.flow_type,
+        flow_name: request.config?.flow_name || `${request.flow_type} Flow`,
         configuration: request.config || {},
         initial_state: {},
       };
@@ -189,32 +187,32 @@ export const masterFlowService = {
         updated_at: string;
       }>("/flows/", backendRequest, {
         headers: getMultiTenantHeaders(
-          request.clientAccountId,
-          request.engagementId,
-          request.userId,
+          request.client_account_id,
+          request.engagement_id,
+          request.user_id,
         ),
       });
 
-      // Transform backend response to match frontend expectations
+      // Use snake_case directly from backend response
       return {
-        flowId: response.flow_id,
+        flow_id: response.flow_id,
         status: response.status as
           | "initializing"
           | "running"
           | "completed"
           | "failed"
           | "paused",
-        flowType: response.flow_type,
+        flow_type: response.flow_type,
         progress: response.progress_percentage || 0,
-        currentPhase: response.phase || "initialization",
+        current_phase: response.phase || "initialization",
         metadata: response.metadata || {
           tags: {},
           labels: {},
           annotations: {},
           customFields: {},
         },
-        createdAt: response.created_at,
-        updatedAt: response.updated_at,
+        created_at: response.created_at,
+        updated_at: response.updated_at,
       };
     } catch (error) {
       handleApiError(error, "initializeFlow");
@@ -226,15 +224,15 @@ export const masterFlowService = {
    * Get flow status for any flow type
    */
   async getFlowStatus(
-    flowId: string,
-    clientAccountId: string,
-    engagementId?: string,
+    flow_id: string,
+    client_account_id: string,
+    engagement_id?: string,
   ): Promise<FlowStatusResponse> {
     try {
       const response = await apiClient.get<FlowStatusResponse>(
-        `/unified-discovery/flow/${flowId}/status`,
+        `/unified-discovery/flow/${flow_id}/status`,
         {
-          headers: getMultiTenantHeaders(clientAccountId, engagementId),
+          headers: getMultiTenantHeaders(client_account_id, engagement_id),
         },
       );
       return response;
@@ -248,22 +246,22 @@ export const masterFlowService = {
    * Get all active flows for a client
    */
   async getActiveFlows(
-    clientAccountId: string,
-    engagementId?: string,
-    flowType?: string,
+    client_account_id: string,
+    engagement_id?: string,
+    flow_type?: string,
   ): Promise<ActiveFlowSummary[]> {
     const params = new URLSearchParams();
-    if (flowType) params.append("flowType", flowType);
+    if (flow_type) params.append("flow_type", flow_type);
 
     const endpoint = `/master-flows/active${params.toString() ? `?${params}` : ""}`; // Fixed: Use correct MFO endpoint path
-    const headers = getMultiTenantHeaders(clientAccountId, engagementId);
+    const headers = getMultiTenantHeaders(client_account_id, engagement_id);
 
     if (process.env.NODE_ENV !== 'production') {
       console.log("🔍 MasterFlowService.getActiveFlows - Making API call:", {
         endpoint,
-        clientAccountId,
-        engagementId,
-        flowType,
+        client_account_id,
+        engagement_id,
+        flow_type,
       });
     }
 
@@ -336,8 +334,8 @@ export const masterFlowService = {
         priority: "normal",
         startTime: flow.created_at || new Date().toISOString(),
         estimatedCompletion: undefined,
-        clientAccountId: clientAccountId,
-        engagementId: engagementId || "",
+        clientAccountId: client_account_id,
+        engagementId: engagement_id || "",
         userId: "",
       }));
     } catch (error) {
@@ -377,8 +375,8 @@ export const masterFlowService = {
             "🔍 MasterFlowService.getActiveFlows - Fallback API call:",
             {
               fallbackEndpoint,
-              clientAccountId,
-              engagementId,
+              clientAccountId: client_account_id,
+              engagementId: engagement_id,
               flowType,
             },
           );
@@ -441,12 +439,12 @@ export const masterFlowService = {
             flow.startTime ||
             new Date().toISOString();
           const engagementIdFromFlow =
-            flow.engagement_id || flow.engagementId || engagementId || "";
+            flow.engagement_id || flow.engagementId || engagement_id || "";
           const clientAccountIdFromFlow =
             flow.client_account_id ||
             flow.client_id ||
             flow.clientAccountId ||
-            clientAccountId;
+            client_account_id;
 
           return {
             flowId,
@@ -629,10 +627,10 @@ export const masterFlowService = {
     flowId: string,
     clientAccountId: string,
     engagementId?: string,
-  ): Promise<ApiResponse<{ success: boolean; message?: string }>> {
+  ): Promise<ApiResponse<FlowContinuationResponse>> {
     try {
       const response = await apiClient.post<
-        ApiResponse<{ success: boolean; message?: string }>
+        ApiResponse<FlowContinuationResponse>
       >(
         `/flow-processing/continue/${flowId}`,
         {},

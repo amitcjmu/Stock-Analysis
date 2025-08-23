@@ -19,25 +19,25 @@ export type FlowMetadata = Record<string, string | number | boolean>;
 
 // Flow Management APIs
 export interface InitializeDiscoveryFlowRequest extends BaseApiRequest {
-  flowName: string;
-  flowDescription?: string;
+  flow_name: string;
+  flow_description?: string;
   context: MultiTenantContext;
   configuration?: DiscoveryFlowConfiguration;
   template?: string;
-  parentFlowId?: string;
+  parent_flow_id?: string;
   metadata?: FlowMetadata;
 }
 
 export interface InitializeDiscoveryFlowResponse extends BaseApiResponse<DiscoveryFlowData> {
   data: DiscoveryFlowData;
-  flowId: string;
-  initialState: FlowState;
-  nextSteps: string[];
+  flow_id: string;
+  initial_state: FlowState;
+  next_steps: string[];
   recommendations?: string[];
 }
 
 export interface UpdateDiscoveryFlowRequest extends BaseApiRequest {
-  flowId: string;
+  flow_id: string;
   configuration?: Partial<DiscoveryFlowConfiguration>;
   status?: FlowStatus;
   metadata?: FlowMetadata;
@@ -47,27 +47,27 @@ export interface UpdateDiscoveryFlowRequest extends BaseApiRequest {
 
 export interface UpdateDiscoveryFlowResponse extends BaseApiResponse<DiscoveryFlowData> {
   data: DiscoveryFlowData;
-  previousState: FlowState;
-  currentState: FlowState;
-  changesApplied: string[];
+  previous_state: FlowState;
+  current_state: FlowState;
+  changes_applied: string[];
 }
 
 export interface GetDiscoveryFlowStatusRequest extends BaseApiRequest {
-  flowId: string;
-  includeDetails?: boolean;
-  includeLogs?: boolean;
+  flow_id: string;
+  include_details?: boolean;
+  include_logs?: boolean;
 }
 
 export interface GetDiscoveryFlowStatusResponse extends BaseApiResponse<FlowStatusData> {
   data: FlowStatusData;
-  currentPhase: string;
+  current_phase: string;
   progress: number;
-  estimatedCompletion?: string;
+  estimated_completion?: string;
   issues?: FlowIssue[];
 }
 
 export interface ControlDiscoveryFlowRequest extends BaseApiRequest {
-  flowId: string;
+  flow_id: string;
   action: FlowAction;
   parameters?: FlowDataRecord;
   reason?: string;
@@ -75,46 +75,46 @@ export interface ControlDiscoveryFlowRequest extends BaseApiRequest {
 
 export interface ControlDiscoveryFlowResponse extends BaseApiResponse<FlowActionResult> {
   data: FlowActionResult;
-  newStatus: FlowStatus;
-  actionTaken: FlowAction;
+  new_status: FlowStatus;
+  action_taken: FlowAction;
   timestamp: string;
 }
 
 // Flow Data Models
 export interface DiscoveryFlowData {
   id: string;
-  flowId: string;
-  flowName: string;
-  flowDescription?: string;
+  flow_id: string;
+  flow_name: string;
+  flow_description?: string;
   status: FlowStatus;
-  currentPhase: string;
+  current_phase: string;
   progress: number;
   configuration: DiscoveryFlowConfiguration;
   context: MultiTenantContext;
-  createdAt: string;
-  updatedAt: string;
-  createdBy: string;
+  created_at: string;
+  updated_at: string;
+  created_by: string;
   metadata: FlowMetadata;
   phases: FlowPhase[];
   state: FlowState;
 }
 
 export interface DiscoveryFlowConfiguration {
-  enableAutoMapping?: boolean;
-  mappingConfidenceThreshold?: number;
-  enableQualityValidation?: boolean;
-  requireManualApproval?: boolean;
-  enableProgressNotifications?: boolean;
-  customRules?: CustomRule[];
-  agentSettings?: AgentSettings;
-  timeoutSettings?: TimeoutSettings;
-  retrySettings?: RetrySettings;
+  enable_auto_mapping?: boolean;
+  mapping_confidence_threshold?: number;
+  enable_quality_validation?: boolean;
+  require_manual_approval?: boolean;
+  enable_progress_notifications?: boolean;
+  custom_rules?: CustomRule[];
+  agent_settings?: AgentSettings;
+  timeout_settings?: TimeoutSettings;
+  retry_settings?: RetrySettings;
 }
 
 export interface FlowState {
-  currentPhase: string;
-  phaseData: FlowDataRecord;
-  globalData: FlowDataRecord;
+  current_phase: string;
+  phase_data: FlowDataRecord;
+  global_data: FlowDataRecord;
   flags: Record<string, boolean>;
   timestamps: Record<string, string>;
   metrics: Record<string, number>;
@@ -122,28 +122,28 @@ export interface FlowState {
 
 export interface FlowPhase {
   name: string;
-  displayName: string;
+  display_name: string;
   description: string;
   status: PhaseStatus;
   progress: number;
-  startTime?: string;
-  endTime?: string;
-  estimatedDuration?: number;
+  start_time?: string;
+  end_time?: string;
+  estimated_duration?: number;
   dependencies: string[];
   outputs: FlowDataRecord;
   metadata: FlowMetadata;
 }
 
 export interface FlowStatusData {
-  flowId: string;
+  flow_id: string;
   status: FlowStatus;
-  currentPhase: string;
+  current_phase: string;
   progress: number;
-  totalPhases: number;
-  completedPhases: number;
-  startTime: string;
-  lastUpdated: string;
-  estimatedCompletion?: string;
+  total_phases: number;
+  completed_phases: number;
+  start_time: string;
+  last_updated: string;
+  estimated_completion?: string;
   performance: PerformanceMetrics;
   health: HealthStatus;
 }
@@ -160,12 +160,12 @@ export interface FlowIssue {
 }
 
 export interface FlowActionResult {
-  actionId: string;
+  action_id: string;
   action: FlowAction;
   success: boolean;
   message: string;
   details?: FlowDataRecord;
-  sideEffects?: string[];
+  side_effects?: string[];
 }
 
 export interface CustomRule {
@@ -179,37 +179,37 @@ export interface CustomRule {
 }
 
 export interface AgentSettings {
-  enableAgentAssistance?: boolean;
-  agentModel?: string;
-  maxTokens?: number;
+  enable_agent_assistance?: boolean;
+  agent_model?: string;
+  max_tokens?: number;
   temperature?: number;
-  customPrompts?: Record<string, string>;
+  custom_prompts?: Record<string, string>;
 }
 
 export interface TimeoutSettings {
-  phaseTimeout?: number;
-  operationTimeout?: number;
-  totalFlowTimeout?: number;
+  phase_timeout?: number;
+  operation_timeout?: number;
+  total_flow_timeout?: number;
 }
 
 export interface RetrySettings {
-  maxRetries?: number;
-  retryDelay?: number;
-  backoffMultiplier?: number;
+  max_retries?: number;
+  retry_delay?: number;
+  backoff_multiplier?: number;
 }
 
 export interface PerformanceMetrics {
-  averagePhaseTime: number;
-  totalExecutionTime: number;
-  throughputRate: number;
-  errorRate: number;
-  resourceUtilization: Record<string, number>;
+  average_phase_time: number;
+  total_execution_time: number;
+  throughput_rate: number;
+  error_rate: number;
+  resource_utilization: Record<string, number>;
 }
 
 export interface HealthStatus {
   overall: HealthLevel;
   components: Record<string, HealthLevel>;
-  lastCheck: string;
+  last_check: string;
   issues: string[];
 }
 
@@ -217,7 +217,7 @@ export interface IssueResolution {
   id: string;
   action: string;
   timestamp: string;
-  resolvedBy: string;
+  resolved_by: string;
   notes?: string;
 }
 

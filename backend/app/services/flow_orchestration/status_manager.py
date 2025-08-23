@@ -257,9 +257,9 @@ class FlowStatusManager:
             # Get all master flows
             filters = {}
             if status_filter:
-                filters["flow_status__in"] = status_filter
+                filters["flow_status"] = status_filter
 
-            master_flows = await self.master_repo.get_all(**filters)
+            master_flows = await self.master_repo.get_by_filters(**filters)
 
             # Build summaries
             summaries = []
@@ -377,7 +377,7 @@ class FlowStatusManager:
                 filters["flow_type"] = flow_type
 
             # Get flows from repository
-            master_flows = await self.master_repo.get_all(**filters)
+            master_flows = await self.master_repo.get_by_filters(**filters)
 
             # Build summaries
             summaries = []

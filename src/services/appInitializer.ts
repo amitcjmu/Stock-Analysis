@@ -62,7 +62,17 @@ export class AppInitializer {
 
       // Task 2: Check API health
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/v1/health`);
+        // Use proper URL construction for Docker development
+        let healthUrl: string;
+        if (typeof window !== 'undefined' && window.location.port === '8081') {
+          // Force relative URL for Docker development to use Vite proxy
+          healthUrl = '/api/v1/health';
+        } else {
+          // For other environments, use the environment variable if available
+          healthUrl = `${import.meta.env.VITE_API_BASE_URL || ''}/api/v1/health`;
+        }
+
+        const response = await fetch(healthUrl);
         // API health check completed (no need to log success)
       } catch (error) {
         // API health check failed (silent - don't spam console)

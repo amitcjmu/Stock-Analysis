@@ -1,14 +1,5 @@
-export interface FieldMapping {
-  id: string;
-  sourceField: string;
-  targetAttribute: string;
-  confidence: number;
-  mapping_type: 'direct' | 'calculated' | 'manual';
-  sample_values: string[];
-  status: 'pending' | 'approved' | 'rejected' | 'ignored' | 'deleted';
-  ai_reasoning: string;
-  action?: 'ignore' | 'delete';
-}
+// Import standardized FieldMapping interface
+import type { FieldMapping } from '@/types/api/discovery/field-mapping-types';
 
 export interface TargetField {
   name: string;
@@ -28,8 +19,8 @@ export interface FilterOptions {
 export interface RejectionDialogState {
   isOpen: boolean;
   mappingId: string;
-  sourceField: string;
-  targetField: string;
+  source_field: string;
+  target_field: string;
 }
 
 export interface FieldMappingsListProps {
@@ -43,7 +34,7 @@ export interface FieldMappingsListProps {
   onToggleDropdown: (mappingId: string) => void;
   onTargetFieldChange: (mappingId: string, newTarget: string) => void;
   onApproveMapping: (mappingId: string) => void;
-  onRejectMapping: (mappingId: string, sourceField: string, targetField: string) => void;
+  onRejectMapping: (mappingId: string, source_field: string, target_field: string) => void;
   selectedCategory: string;
   searchTerm: string;
   loadingFields: boolean;
@@ -92,8 +83,8 @@ export interface ApprovalWorkflowProps {
 export interface RejectionDialogProps {
   isOpen: boolean;
   mappingId: string;
-  sourceField: string;
-  targetField: string;
+  source_field: string;
+  target_field: string;
   onConfirm: (reason: string) => void;
   onCancel: () => void;
 }

@@ -50,7 +50,6 @@ class TestCollectionFlowMFO:
             client_account_id=str(uuid.uuid4()),
             engagement_id=str(uuid.uuid4()),
             user_id="test_user_" + str(uuid.uuid4()),
-            user_role="admin",
             request_id=str(uuid.uuid4()),
         )
 
