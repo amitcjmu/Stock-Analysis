@@ -16,7 +16,7 @@ services:
       # - ./postgres-data:/var/lib/postgresql/data
 
       # Persist initialization scripts
-      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ../../backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
     # Add backup command alias
     command: >

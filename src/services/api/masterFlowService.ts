@@ -499,7 +499,7 @@ export const masterFlowService = {
 
     try {
       // Use proper MFO endpoint for flow deletion
-      await apiClient.delete(`/flows/${flowId}`, undefined, {
+      await apiClient.delete(`/master-flows/${flowId}`, undefined, {
         // Fixed: Use MFO endpoint
         headers,
       });
