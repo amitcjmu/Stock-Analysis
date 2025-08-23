@@ -197,9 +197,30 @@ async def get_execution_metrics(
 
     Returns comprehensive metrics about execution performance, success rates,
     and execution patterns across different migration strategies.
+
+    Args:
+        time_range: Time range for metrics (e.g., '24h', '7d', '30d')
+        execution_type: Optional filter by execution type (rehost/replatform/cutover)
     """
     try:
-        # TODO: Implement actual database queries
+        # Validate time_range parameter
+        import re
+
+        if not re.match(r"^\d+[hd]$", time_range):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid time_range format. Use values like '24h' or '7d'.",
+            )
+
+        # Validate execution_type if provided
+        valid_types = {"rehost", "replatform", "cutover"}
+        if execution_type and execution_type not in valid_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid execution_type. Must be one of: {', '.join(valid_types)}",
+            )
+
+        # TODO: Implement actual database queries based on time_range and execution_type
         # These would come from real data
         total = 0
         successful = 0
@@ -220,9 +241,13 @@ async def get_execution_metrics(
             recent_activity=[],
         )
 
-        logger.info("Retrieved execution metrics")
+        logger.info(
+            f"Retrieved execution metrics for time_range={time_range}, type={execution_type}"
+        )
         return metrics
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to retrieve execution metrics: {e}")
         raise HTTPException(

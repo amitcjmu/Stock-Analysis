@@ -32,11 +32,16 @@ fi
 
 echo ""
 
-# Check Docker Compose
+# Check Docker Compose (v1 or v2)
 echo -e "${BLUE}Docker Compose Status:${NC}"
 if docker-compose version >/dev/null 2>&1; then
     compose_version=$(docker-compose version --short)
     echo -e "  ${GREEN}✓${NC} Docker Compose version: $compose_version"
+    DOCKER_COMPOSE="docker-compose"
+elif docker compose version >/dev/null 2>&1; then
+    compose_version=$(docker compose version --short 2>/dev/null || docker compose version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    echo -e "  ${GREEN}✓${NC} Docker Compose v2 detected: $compose_version"
+    DOCKER_COMPOSE="docker compose"
 else
     echo -e "  ${RED}✗${NC} Docker Compose not found"
     exit 1
@@ -76,18 +81,25 @@ echo ""
 # Check service endpoints
 echo -e "${BLUE}Service Endpoints:${NC}"
 if [ "$running_containers" -gt "0" ]; then
-    # Check backend
-    if curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/docs | grep -q "200"; then
-        echo -e "  ${GREEN}✓${NC} Backend API: http://localhost:8000/docs"
-    else
-        echo -e "  ${RED}✗${NC} Backend API not responding"
-    fi
+    # Check if curl is available
+    if command -v curl >/dev/null 2>&1; then
+        # Check backend (accept any 2xx response)
+        code_backend=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/docs 2>/dev/null || echo "000")
+        if [[ "$code_backend" =~ ^2[0-9][0-9]$ ]]; then
+            echo -e "  ${GREEN}✓${NC} Backend API: http://localhost:8000/docs"
+        else
+            echo -e "  ${RED}✗${NC} Backend API not responding (HTTP $code_backend)"
+        fi
 
-    # Check frontend
-    if curl -s -o /dev/null -w "%{http_code}" http://localhost:8081 | grep -q "200"; then
-        echo -e "  ${GREEN}✓${NC} Frontend: http://localhost:8081"
+        # Check frontend (accept any 2xx response)
+        code_frontend=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8081 2>/dev/null || echo "000")
+        if [[ "$code_frontend" =~ ^2[0-9][0-9]$ ]]; then
+            echo -e "  ${GREEN}✓${NC} Frontend: http://localhost:8081"
+        else
+            echo -e "  ${RED}✗${NC} Frontend not responding (HTTP $code_frontend)"
+        fi
     else
-        echo -e "  ${RED}✗${NC} Frontend not responding"
+        echo -e "  ${YELLOW}⚠${NC} curl not found; skipping HTTP endpoint checks"
     fi
 
     # Check database
