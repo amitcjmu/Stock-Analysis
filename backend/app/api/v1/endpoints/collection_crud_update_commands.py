@@ -195,7 +195,7 @@ async def _handle_update_applications_action(
 async def submit_questionnaire_response(
     flow_id: str,
     questionnaire_id: str,
-    response_value: str,
+    responses: Dict[str, Any],
     db: AsyncSession,
     current_user: User,
     context: RequestContext,
@@ -229,31 +229,62 @@ async def submit_questionnaire_response(
         if not collection_flow:
             raise HTTPException(status_code=404, detail="Collection flow not found")
 
-        # Convert questionnaire_id to UUID
+        questionnaire: AdaptiveQuestionnaire | None = None
+
+        # Attempt to treat questionnaire_id as UUID; if invalid, fall back to ephemeral storage
+        questionnaire_uuid: UUID | None = None
         try:
             questionnaire_uuid = UUID(questionnaire_id)
         except (ValueError, TypeError):
-            raise HTTPException(
-                status_code=400, detail="Invalid questionnaire ID format"
+            questionnaire_uuid = None
+
+        if questionnaire_uuid is not None:
+            questionnaire_result = await db.execute(
+                select(AdaptiveQuestionnaire).where(
+                    AdaptiveQuestionnaire.id == questionnaire_uuid,
+                    AdaptiveQuestionnaire.collection_flow_id == collection_flow.id,
+                )
             )
+            questionnaire = questionnaire_result.scalar_one_or_none()
 
-        # Get questionnaire
-        questionnaire_result = await db.execute(
-            select(AdaptiveQuestionnaire).where(
-                AdaptiveQuestionnaire.id == questionnaire_uuid,
-                AdaptiveQuestionnaire.collection_flow_id == collection_flow.id,
-            )
-        )
-        questionnaire = questionnaire_result.scalar_one_or_none()
+        if questionnaire is not None:
+            # Merge responses into questionnaire.responses_collected JSONB
+            existing = questionnaire.responses_collected or {}
+            submission_record = {
+                "submitted_at": datetime.now(timezone.utc).isoformat(),
+                "submitted_by": str(current_user.id),
+                "payload": responses,
+            }
+            if isinstance(existing, list):
+                existing.append(submission_record)
+                questionnaire.responses_collected = existing
+            elif isinstance(existing, dict):
+                # Keep both a history list and latest pointer
+                history = existing.get("history", [])
+                if not isinstance(history, list):
+                    history = []
+                history.append(submission_record)
+                existing["history"] = history
+                existing["latest_submission"] = submission_record
+                questionnaire.responses_collected = existing
+            else:
+                questionnaire.responses_collected = [submission_record]
 
-        if not questionnaire:
-            raise HTTPException(status_code=404, detail="Questionnaire not found")
-
-        # Update questionnaire with response
-        questionnaire.response_value = response_value
-        questionnaire.updated_at = datetime.now(timezone.utc)
-
-        await db.commit()
+            questionnaire.updated_at = datetime.now(timezone.utc)
+            await db.commit()
+        else:
+            # Ephemeral questionnaire (e.g., bootstrap_...): persist into flow phase_state
+            phase_state = collection_flow.phase_state or {}
+            submissions = phase_state.get("questionnaire_submissions", {})
+            submissions[questionnaire_id] = {
+                "submitted_at": datetime.now(timezone.utc).isoformat(),
+                "submitted_by": str(current_user.id),
+                "payload": responses,
+            }
+            phase_state["questionnaire_submissions"] = submissions
+            collection_flow.phase_state = phase_state
+            collection_flow.updated_at = datetime.now(timezone.utc)
+            await db.commit()
 
         logger.info(
             safe_log_format(
@@ -268,7 +299,6 @@ async def submit_questionnaire_response(
             "status": "success",
             "message": "Response submitted successfully",
             "questionnaire_id": questionnaire_id,
-            "response_value": response_value,
         }
 
     except HTTPException:
