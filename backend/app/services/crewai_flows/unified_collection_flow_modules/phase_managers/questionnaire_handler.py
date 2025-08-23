@@ -29,9 +29,7 @@ class QuestionnaireHandler:
 
         # Initialize services
         self.questionnaire_generator = AdaptiveQuestionnaireGenerator()
-        self.adaptive_form_service = AdaptiveFormService(
-            flow_context.db_session, flow_context
-        )
+        self.adaptive_form_service = AdaptiveFormService()
 
     async def generate_questionnaires(
         self, flow_state, client_requirements

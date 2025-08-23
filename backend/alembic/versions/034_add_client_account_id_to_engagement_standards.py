@@ -14,7 +14,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "034_add_client_account_id_to_engagement_standards"
-down_revision = "033_merge_metadata_rename_heads"
+down_revision = "033_merge_all_heads"
 branch_labels = None
 depends_on = None
 
