@@ -40,8 +40,11 @@ class StrategyAnalysisHelper:
     ) -> InMemorySixRDecision:
         """Analyze a component and recommend a 6R strategy."""
         try:
-            component_id = component.get(
-                "component_id", str(component.get("name", "unknown"))
+            # Ensure unique component ID with application context
+            app_id = application_context.get("application_id", "unknown-app")
+            raw_id = component.get("component_id") or component.get("name") or "unknown"
+            component_id = (
+                str(raw_id) if component.get("component_id") else f"{app_id}:{raw_id}"
             )
             component_name = component.get("name", "Unknown Component")
 

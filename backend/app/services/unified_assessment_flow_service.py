@@ -44,6 +44,15 @@ class AssessmentFlowService:
         """Initialize the assessment flow service"""
         self.db = db
         self.context = context
+
+        # Validate required context attributes
+        missing = []
+        for attr in ("client_account_id", "engagement_id"):
+            if not getattr(self.context, attr, None):
+                missing.append(attr)
+        if missing:
+            raise ValueError(f"Missing required context fields: {', '.join(missing)}")
+
         # DEPRECATED: Legacy _active_flows for backward compatibility during migration
         # TODO: Remove once all callers updated to use MFO directly
         self._active_flows: Dict[str, UnifiedAssessmentFlow] = {}

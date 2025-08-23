@@ -57,7 +57,7 @@ class CachePerformanceLog(Base, TimestampMixin):
 
     client_account_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         comment="Client account for tenant isolation",
     )
@@ -92,7 +92,7 @@ class CachePerformanceLog(Base, TimestampMixin):
 
     user_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="SET NULL"),
+        ForeignKey("migration.users.id", ondelete="SET NULL"),
         nullable=True,
         comment="User who initiated the operation",
     )

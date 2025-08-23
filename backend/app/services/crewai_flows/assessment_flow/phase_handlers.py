@@ -305,10 +305,16 @@ class AssessmentPhaseHandlers:
 
                 # Get related data for this application
                 app_tech_debt = self.flow.state.tech_debt_analysis.get(app_id, {})
+
+                # Filter decisions to only those belonging to this app's components
+                app_component_ids = {
+                    c.get("component_id") or c.get("name")
+                    for c in app.get("components", [])
+                }
                 app_sixr_decisions = [
                     decision.to_dict()
                     for decision in self.flow.state.sixr_decisions
-                    # Filter decisions for this app's components if needed
+                    if decision.component_id in app_component_ids
                 ]
 
                 # Generate App on a Page
@@ -426,7 +432,8 @@ class AssessmentPhaseHandlers:
 
     async def _analyze_app_technical_debt(self, app: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze technical debt for a single application."""
-        # Placeholder implementation
+        # TODO: Placeholder implementation - replace with actual tech debt analysis
+        # This should integrate with code analysis tools and metrics collection
         return {
             "overall_score": 6.5,
             "categories": {"maintainability": 7.0, "security": 6.0, "performance": 6.5},
@@ -439,6 +446,8 @@ class AssessmentPhaseHandlers:
 
     def _validate_architecture_standards(self) -> Dict[str, Any]:
         """Validate architecture standards completeness."""
+        # TODO: Placeholder implementation - replace with actual validation logic
+        # This should check completeness of standards against requirements
         return {"is_valid": True, "missing_standards": [], "recommendations": []}
 
     def _calculate_average_debt_score(self, tech_debt_results: Dict[str, Any]) -> float:
@@ -453,5 +462,7 @@ class AssessmentPhaseHandlers:
 
     async def _apply_architecture_modifications(self, user_input: Dict[str, Any]):
         """Apply user modifications to architecture standards."""
-        # Placeholder implementation
+        # TODO: Placeholder implementation - replace with actual modification logic
+        # This should apply user-provided modifications to architecture standards
+        # and validate the changes before committing
         pass

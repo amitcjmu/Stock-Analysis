@@ -21,6 +21,7 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -63,7 +64,7 @@ class CacheMetadata(Base, TimestampMixin):
             "ix_cache_metadata_active_keys",
             "cache_key",
             "client_account_id",
-            postgresql_where=Column("is_active") == True,  # noqa: E712
+            postgresql_where=text("cache_metadata.is_active = TRUE"),
         ),
         {"schema": "migration"},
     )
@@ -102,7 +103,7 @@ class CacheMetadata(Base, TimestampMixin):
     # Multi-tenant isolation
     client_account_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="Client account this cache entry belongs to for tenant isolation",
@@ -110,7 +111,7 @@ class CacheMetadata(Base, TimestampMixin):
 
     engagement_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("engagements.id", ondelete="CASCADE"),
+        ForeignKey("migration.engagements.id", ondelete="CASCADE"),
         nullable=True,
         comment="Optional engagement context for engagement-scoped cache entries",
     )
@@ -216,7 +217,7 @@ class CacheMetadata(Base, TimestampMixin):
     # Audit fields
     created_by_user_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="SET NULL"),
+        ForeignKey("migration.users.id", ondelete="SET NULL"),
         nullable=True,
         comment="User who initiated the cache operation",
     )

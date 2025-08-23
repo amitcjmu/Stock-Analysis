@@ -48,7 +48,7 @@ class CacheConfiguration(Base, TimestampMixin):
 
     client_account_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        ForeignKey("migration.client_accounts.id", ondelete="CASCADE"),
         nullable=False,
         unique=True,
         comment="Client account this configuration applies to",

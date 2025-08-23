@@ -33,7 +33,6 @@ async def assessment_initialization(
         # Extract assessment-specific data from initial_data
         service_instance = initial_data.get("service_instance")
         selected_application_ids = initial_data.get("selected_application_ids", [])
-        flow_name = initial_data.get("flow_name", f"Assessment Flow {flow_id}")
 
         crewai_flow = None
         if service_instance and selected_application_ids:
@@ -47,13 +46,10 @@ async def assessment_initialization(
                 request_context = service_instance.context
 
                 crewai_flow = create_unified_assessment_flow(
-                    crewai_service=service_instance,
                     context=request_context,
-                    selected_application_ids=selected_application_ids,
+                    flow_configuration=config,
+                    selected_applications=selected_application_ids,
                     master_flow_id=flow_id,
-                    flow_id=flow_id,
-                    flow_name=flow_name,
-                    configuration=config,
                 )
 
                 # Store in service instance for later access
