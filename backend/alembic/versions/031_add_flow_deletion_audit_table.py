@@ -97,13 +97,22 @@ def upgrade() -> None:
         ),
         # Comprehensive data deletion summary
         sa.Column(
-            "data_deleted", postgresql.JSONB, nullable=False, server_default="{}"
+            "data_deleted",
+            postgresql.JSONB,
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
         ),
         sa.Column(
-            "deletion_impact", postgresql.JSONB, nullable=False, server_default="{}"
+            "deletion_impact",
+            postgresql.JSONB,
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
         ),
         sa.Column(
-            "cleanup_summary", postgresql.JSONB, nullable=False, server_default="{}"
+            "cleanup_summary",
+            postgresql.JSONB,
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
         ),
         # CrewAI specific cleanup tracking
         sa.Column(
@@ -113,7 +122,7 @@ def upgrade() -> None:
             "knowledge_base_refs_cleaned",
             postgresql.JSONB,
             nullable=False,
-            server_default="[]",
+            server_default=sa.text("'[]'::jsonb"),
         ),
         sa.Column(
             "agent_memory_cleaned", sa.Boolean, nullable=False, server_default="false"
@@ -133,7 +142,10 @@ def upgrade() -> None:
             "recovery_possible", sa.Boolean, nullable=False, server_default="false"
         ),
         sa.Column(
-            "recovery_data", postgresql.JSONB, nullable=False, server_default="{}"
+            "recovery_data",
+            postgresql.JSONB,
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
         ),
         # Foreign key constraints for multi-tenant isolation
         sa.ForeignKeyConstraint(

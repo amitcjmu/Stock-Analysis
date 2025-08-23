@@ -27,6 +27,7 @@ from app.schemas.collection_flow import (
 
 # Import modular functions
 from app.api.v1.endpoints import collection_serializers
+from app.api.v1.endpoints import collection_mfo_utils as collection_utils
 
 logger = logging.getLogger(__name__)
 
@@ -285,6 +286,25 @@ async def submit_questionnaire_response(
             collection_flow.phase_state = phase_state
             collection_flow.updated_at = datetime.now(timezone.utc)
             await db.commit()
+
+        # Attempt to resume the flow via MFO after submission
+        try:
+            await collection_utils.resume_mfo_flow(
+                db=db,
+                context=context,
+                flow_id=flow_id,
+                resume_context={
+                    "event": "questionnaire_submitted",
+                    "questionnaire_id": questionnaire_id,
+                },
+            )
+        except Exception as resume_err:
+            logger.warning(
+                safe_log_format(
+                    "Non-fatal: resume after questionnaire submit failed: {e}",
+                    e=str(resume_err),
+                )
+            )
 
         logger.info(
             safe_log_format(

@@ -136,10 +136,12 @@ const Assess = (): JSX.Element => {
 
   const exportAssessmentDataToCSV = (): void => {
     try {
-      console.log('🔄 Starting CSV export...', { dataCount: filteredData.length });
+      // Snapshot filteredData to prevent stale references
+      const dataSnapshot = [...filteredData];
+      console.log('🔄 Starting CSV export...', { dataCount: dataSnapshot.length });
 
       // Validate filtered data
-      if (!filteredData || filteredData.length === 0) {
+      if (!dataSnapshot || dataSnapshot.length === 0) {
         console.warn('⚠️ No assessment data to export');
         alert('No assessment data available to export. Please adjust your filters or check if data is loaded.');
         return;
@@ -157,8 +159,8 @@ const Assess = (): JSX.Element => {
         'Complexity'
       ];
 
-      // Generate CSV rows from filtered data
-      const csvRows = filteredData.map((app: AssessmentApp) => [
+      // Generate CSV rows from snapshot data
+      const csvRows = dataSnapshot.map((app: AssessmentApp) => [
         app.appId || '',
         app.name || '',
         app.techStack || '',
@@ -178,8 +180,12 @@ const Assess = (): JSX.Element => {
       // Combine headers and rows
       const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
 
-      // Create blob and download link
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      // Add UTF-8 BOM for Excel compatibility
+      const BOM = '\uFEFF';
+      const csvWithBOM = BOM + csvContent;
+
+      // Create blob with UTF-8 BOM
+      const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
 
       // Generate filename with timestamp and filter info
@@ -197,12 +203,17 @@ const Assess = (): JSX.Element => {
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
 
-      // Clean up
-      window.URL.revokeObjectURL(url);
-
-      console.log(`✅ CSV export completed successfully: ${filename}`);
+      // Improve cleanup timing - use setTimeout to allow download to complete
+      setTimeout(() => {
+        try {
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          console.log(`✅ CSV export completed successfully: ${filename}`);
+        } catch (cleanupError) {
+          console.warn('⚠️ Cleanup warning (non-critical):', cleanupError);
+        }
+      }, 100);
 
       // Optional: Show success feedback (could use toast instead of alert)
       // alert(`CSV exported successfully: ${filename}`);

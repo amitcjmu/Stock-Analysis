@@ -188,7 +188,10 @@ class PhaseHandlers:
                 message = f"Failed to apply any of {total_mappings} field mappings"
             elif failed_mappings:
                 status = "partial_success"
-                message = f"Applied {successful_mappings} of {total_mappings} field mappings ({len(failed_mappings)} failed)"
+                message = (
+                    f"Applied {successful_mappings} of {total_mappings} field mappings "
+                    f"({len(failed_mappings)} failed)"
+                )
             else:
                 status = "success"
                 message = (
@@ -596,22 +599,16 @@ class PhaseHandlers:
         if not hasattr(self.flow, "crew_manager") or not self.flow.crew_manager:
             raise RuntimeError("Crew manager not available")
 
-        # Simplified crew execution
-        crew_input = {
-            "phase": "field_mapping",
-            "data": data_validation_result,
-            "task": "generate field mapping suggestions",
-        }
-
         # This is a placeholder - would need actual crew execution logic
-        # Return not_implemented status instead of success for placeholder
+        # Return failed status to ensure proper fallback handling
         return {
-            "status": "not_implemented",
+            "status": "failed",
+            "error": "not_implemented",
             "phase": "field_mapping",
             "field_mappings": [],
             "suggestions": [],
             "clarifications": [],
-            "message": "Direct crew execution completed (placeholder)",
+            "message": "Direct crew execution not implemented, falling back to alternative method",
             "execution_method": "direct_crew",
         }
 
