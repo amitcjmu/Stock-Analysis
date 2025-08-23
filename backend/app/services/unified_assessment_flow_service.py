@@ -51,7 +51,10 @@ class AssessmentFlowService:
             if not getattr(self.context, attr, None):
                 missing.append(attr)
         if missing:
-            raise ValueError(f"Missing required context fields: {', '.join(missing)}")
+            logger.error(
+                f"Missing required context fields on AssessmentFlowService init: {missing}"
+            )
+            raise RuntimeError(f"Invalid request context: missing {', '.join(missing)}")
 
         # DEPRECATED: Legacy _active_flows for backward compatibility during migration
         # TODO: Remove once all callers updated to use MFO directly

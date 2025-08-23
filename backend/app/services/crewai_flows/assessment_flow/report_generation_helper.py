@@ -156,7 +156,12 @@ class ReportGenerationHelper:
     ) -> Dict[str, Any]:
         """Format 6R decisions for App on a Page."""
         if not sixr_decisions:
-            return {"strategies": [], "distribution": {}, "confidence": 0.0}
+            return {
+                "strategies": [],
+                "distribution": {},
+                "average_confidence": 0.0,
+                "total_decisions": 0,
+            }
 
         strategies = []
         distribution = {}
@@ -168,15 +173,16 @@ class ReportGenerationHelper:
                 distribution[strategy] = distribution.get(strategy, 0) + 1
                 total_confidence += decision.get("confidence", 0.0)
 
+                reasoning_text = decision.get("reasoning", "") or ""
                 strategies.append(
                     {
                         "component": decision.get("component_name"),
                         "strategy": strategy,
                         "confidence": decision.get("confidence"),
                         "reasoning": (
-                            decision.get("reasoning", "")[:200] + "..."
-                            if len(decision.get("reasoning", "")) > 200
-                            else decision.get("reasoning", "")
+                            reasoning_text[:200] + "..."
+                            if len(reasoning_text) > 200
+                            else reasoning_text
                         ),
                         "estimated_effort": decision.get("estimated_effort"),
                         "risk_level": decision.get("risk_level"),

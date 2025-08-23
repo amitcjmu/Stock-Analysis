@@ -66,7 +66,7 @@ class CachePerformanceLog(Base, TimestampMixin):
     operation_type = Column(
         String(20),
         nullable=False,
-        comment="Type of cache operation (GET, SET, DELETE, INVALIDATE)",
+        comment="Type of cache operation (GET, SET, DELETE, INVALIDATE, EXISTS)",
     )
 
     was_hit = Column(

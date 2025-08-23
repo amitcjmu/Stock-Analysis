@@ -149,6 +149,24 @@ class AssessmentPhaseHandlers:
             tech_debt_results = {}
             total_apps = len(self.flow.state.application_components)
 
+            if total_apps == 0:
+                logger.warning("No applications found for technical debt analysis")
+                self.flow.state.tech_debt_analysis = {}
+                self.flow.state.update_phase_progress(
+                    AssessmentPhase.TECH_DEBT_ANALYSIS.value, 100.0
+                )
+                await self.flow.flow_state_manager.save_state(
+                    self.flow.flow_id, self.flow.state.to_dict()
+                )
+                return {
+                    "phase": AssessmentPhase.TECH_DEBT_ANALYSIS.value,
+                    "applications_analyzed": 0,
+                    "average_debt_score": 0.0,
+                    "next_phase": AssessmentPhase.COMPONENT_SIXR_STRATEGIES.value,
+                    "requires_user_input": False,
+                    "user_input_prompt": "No applications to analyze.",
+                }
+
             for i, app in enumerate(self.flow.state.application_components):
                 app_id = app.get("application_id")
                 app_name = app.get("application_name", f"Application {app_id}")

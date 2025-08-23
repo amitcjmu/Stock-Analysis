@@ -261,7 +261,7 @@ class CacheMetadata(Base, TimestampMixin):
         """Check if cache entry is expired."""
         if not self.expires_at:
             return False
-        return datetime.utcnow() <= self.expires_at
+        return datetime.utcnow() >= self.expires_at
 
     def update_access_metrics(self, was_hit: bool, access_time_ms: float):
         """Update access metrics for performance tracking."""

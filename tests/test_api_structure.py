@@ -125,7 +125,7 @@ class APIStructureValidator:
             }
 
             async with self.session.post(auth_url, json=auth_data) as response:
-                if response.status == 200:
+                if response.status in (200, 201):
                     auth_response = await response.json()
 
                     if auth_response.get('status') == 'success':
