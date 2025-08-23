@@ -8,7 +8,7 @@ import type { ApiResponse, ApiError } from "../../types/shared/api-types";
 import type { EnhancedApiError } from "../../config/api";
 import type { AuditableMetadata } from "../../types/shared/metadata-types";
 import type { BaseMetadata } from "../../types/shared/metadata-types";
-import type { ActiveFlowSummary } from "../../types/modules/flow-orchestration/model-types";
+import type { ActiveFlowSummary, FlowStatus } from "../../types/modules/flow-orchestration/model-types";
 import { createMultiTenantHeaders } from "../../utils/api/multiTenantHeaders";
 import type { MultiTenantContext } from "../../utils/api/apiTypes";
 import { tokenStorage } from "../../contexts/AuthContext/storage";
@@ -333,8 +333,8 @@ export const masterFlowService = {
         priority: "normal",
         startTime: flow.created_at || new Date().toISOString(),
         estimatedCompletion: undefined,
-        clientAccountId: clientAccountId,
-        engagementId: engagementId || "",
+        clientAccountId: client_account_id,
+        engagementId: engagement_id || "",
         userId: "",
       }));
     } catch (error) {
@@ -374,8 +374,8 @@ export const masterFlowService = {
             "🔍 MasterFlowService.getActiveFlows - Fallback API call:",
             {
               fallbackEndpoint,
-              clientAccountId,
-              engagementId,
+              clientAccountId: client_account_id,
+              engagementId: engagement_id,
               flowType,
             },
           );
@@ -438,12 +438,12 @@ export const masterFlowService = {
             flow.startTime ||
             new Date().toISOString();
           const engagementIdFromFlow =
-            flow.engagement_id || flow.engagementId || engagementId || "";
+            flow.engagement_id || flow.engagementId || engagement_id || "";
           const clientAccountIdFromFlow =
             flow.client_account_id ||
             flow.client_id ||
             flow.clientAccountId ||
-            clientAccountId;
+            client_account_id;
 
           return {
             flowId,
