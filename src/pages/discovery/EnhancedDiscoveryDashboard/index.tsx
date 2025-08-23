@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 // Components
 import Sidebar from '../../../components/Sidebar';
 import ContextBreadcrumbs from '../../../components/context/ContextBreadcrumbs';
-import { FlowStatusWidget } from '../../../components/discovery/FlowStatusWidget';
+import FlowStatusWidget from '../../../components/discovery/FlowStatusWidget';
 import { AgentGuidanceModal } from '../../../components/discovery/AgentGuidanceModal';
 
 // Custom hooks and components
