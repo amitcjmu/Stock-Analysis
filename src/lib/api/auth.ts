@@ -82,7 +82,18 @@ export const authApi = {
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.detail || 'Login failed');
+      // Provide user-friendly error messages
+      let errorMessage = 'Login failed';
+      if (response.status === 401) {
+        errorMessage = 'Invalid email or password';
+      } else if (response.status === 403) {
+        errorMessage = 'Account is disabled or unauthorized';
+      } else if (response.status === 429) {
+        errorMessage = 'Too many login attempts. Please try again later';
+      } else if (errorData.detail) {
+        errorMessage = errorData.detail;
+      }
+      throw new Error(errorMessage);
     }
 
     return response.json();

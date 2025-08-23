@@ -106,6 +106,10 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
 
   // Handle flow navigation
   const handleFlowClick = (flow: FlowStatus): void => {
+    if (!flow) {
+      console.error('Flow is undefined, cannot navigate');
+      return;
+    }
     const route = getFlowPhaseRoute(
       flow.flow_type,
       flow.current_phase || flow.status,
@@ -116,6 +120,10 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
 
   // Handle flow actions
   const handlePauseFlow = async (flow: FlowStatus): void => {
+    if (!flow || !flow.flow_id) {
+      console.error('Flow or flow_id is undefined, cannot pause');
+      return;
+    }
     try {
       await actions.pauseFlow(flow.flow_id);
       await actions.refreshFlows();
@@ -125,6 +133,10 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
   };
 
   const handleResumeFlow = async (flow: FlowStatus): void => {
+    if (!flow || !flow.flow_id) {
+      console.error('Flow or flow_id is undefined, cannot resume');
+      return;
+    }
     try {
       await actions.resumeFlow(flow.flow_id);
       await actions.refreshFlows();
