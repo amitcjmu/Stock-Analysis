@@ -1,9 +1,4 @@
-"""
-Intelligent Flow Agent
-
-Single intelligent CrewAI agent for flow processing that can handle all flow processing
-tasks using multiple tools and comprehensive knowledge of the platform.
-"""
+"""Intelligent Flow Agent for flow processing with CrewAI"""
 
 import json
 import logging
@@ -64,29 +59,21 @@ logger = logging.getLogger(__name__)
 
 
 class IntelligentFlowAgent:
-    """Single intelligent CrewAI agent for flow processing"""
 
     def __init__(self):
-        """Initialize the intelligent flow agent"""
         self.agent = None
         self.crew = None
         self.tools = []
-
         if CREWAI_AVAILABLE:
             self._setup_crewai_agent()
-        else:
-            logger.warning("CrewAI not available - using fallback implementation")
 
     def _setup_crewai_agent(self):
-        """Setup CrewAI agent with proper tools and configuration"""
         try:
-            # Create tools
             self.flow_context_tool = FlowContextTool()
             self.flow_status_tool = FlowStatusTool()
             self.phase_validation_tool = PhaseValidationTool()
             self.navigation_tool = NavigationDecisionTool()
 
-            # Create agent
             from app.core.env_flags import is_truthy_env
 
             enable_memory = is_truthy_env("CREWAI_ENABLE_MEMORY", default=False)
@@ -122,7 +109,6 @@ class IntelligentFlowAgent:
                 llm=get_crewai_llm(),
             )
 
-            # Create task
             self.task = Task(
                 description=(
                     "Analyze the discovery flow and provide intelligent routing guidance.\n\n"
@@ -148,7 +134,6 @@ class IntelligentFlowAgent:
                 ),
             )
 
-            # Create crew
             self.crew = Crew(
                 agents=[self.agent],
                 tasks=[self.task],
@@ -158,10 +143,8 @@ class IntelligentFlowAgent:
             )
 
             self.crewai_available = True
-            logger.info("✅ CrewAI agent successfully configured")
-
         except Exception as e:
-            logger.error(f"❌ Failed to setup CrewAI agent: {e}")
+            logger.error(f"Failed to setup CrewAI agent: {e}")
             self.crewai_available = False
 
     async def analyze_flow_continuation(
@@ -171,18 +154,11 @@ class IntelligentFlowAgent:
         engagement_id: str = None,
         user_id: str = None,
     ) -> FlowIntelligenceResult:
-        """Analyze flow continuation using intelligent agent"""
-
         if not self.crewai_available:
-            logger.warning("CrewAI not available, using fallback analysis")
             return await self._fallback_analysis(
                 flow_id, client_account_id, engagement_id, user_id
             )
-
         try:
-            logger.info(f"🤖 Starting intelligent flow analysis for {flow_id}")
-
-            # Create dynamic task with flow-specific inputs
             inputs = {
                 "flow_id": flow_id,
                 "client_account_id": client_account_id
@@ -191,39 +167,24 @@ class IntelligentFlowAgent:
                 or "22222222-2222-2222-2222-222222222222",
                 "user_id": user_id or "33333333-3333-3333-3333-333333333333",
             }
-
-            # Execute crew with specific inputs
             result = self.crew.kickoff(inputs=inputs)
-
-            logger.info(f"✅ CrewAI analysis completed for {flow_id}")
-
-            # Parse and return structured result
             return self._parse_crew_result(result, flow_id)
-
         except Exception as e:
-            logger.error(f"❌ CrewAI flow analysis failed for {flow_id}: {e}")
-            # Fallback to direct analysis
+            logger.error(f"CrewAI flow analysis failed for {flow_id}: {e}")
             return await self._fallback_analysis(
                 flow_id, client_account_id, engagement_id, user_id
             )
 
     def _parse_crew_result(self, crew_result, flow_id: str) -> FlowIntelligenceResult:
-        """Parse crew result into structured response"""
         try:
-            # Extract result text
             result_text = str(crew_result)
-
-            # Try to extract JSON from result
             json_match = re.search(r"\{.*\}", result_text, re.DOTALL)
-
             if json_match:
                 try:
                     result_data = json.loads(json_match.group())
 
-                    # Fix next_actions if they're objects instead of strings
                     next_actions = result_data.get("next_actions", [])
                     if next_actions and isinstance(next_actions[0], dict):
-                        # Convert objects to strings
                         next_actions = [
                             (
                                 action.get("description", str(action))
@@ -233,14 +194,41 @@ class IntelligentFlowAgent:
                             for action in next_actions
                         ]
 
+                    routing_raw = result_data.get(
+                        "routing_decision", "/discovery/overview"
+                    )
+                    current_phase = result_data.get("current_phase", "data_import")
+                    flow_type = result_data.get("flow_type", "discovery")
+
+                    if not routing_raw.startswith("/"):
+                        phase = (
+                            routing_raw.replace("continue_", "")
+                            if routing_raw.startswith("continue_")
+                            else current_phase
+                        )
+                        from ..flow_processing.tools.route_decision import (
+                            RouteDecisionTool,
+                        )
+
+                        route_template = RouteDecisionTool.ROUTE_MAPPING.get(
+                            flow_type, {}
+                        ).get(
+                            phase, f"/{flow_type}/{phase.replace('_', '-')}/{{flow_id}}"
+                        )
+                        routing_decision = (
+                            route_template.format(flow_id=flow_id)
+                            if "{flow_id}" in route_template
+                            else route_template
+                        )
+                    else:
+                        routing_decision = routing_raw
+
                     return FlowIntelligenceResult(
                         success=True,
                         flow_id=flow_id,
-                        flow_type=result_data.get("flow_type", "discovery"),
-                        current_phase=result_data.get("current_phase", "data_import"),
-                        routing_decision=result_data.get(
-                            "routing_decision", "/discovery/overview"
-                        ),
+                        flow_type=flow_type,
+                        current_phase=current_phase,
+                        routing_decision=routing_decision,
                         user_guidance=result_data.get(
                             "user_guidance", "Continue with flow processing"
                         ),
@@ -287,23 +275,15 @@ class IntelligentFlowAgent:
         engagement_id: str = None,
         user_id: str = None,
     ) -> FlowIntelligenceResult:
-        """Fallback analysis when CrewAI is not available"""
         try:
-            logger.info(f"🔄 Using fallback analysis for flow {flow_id}")
-
-            # Use direct tools to analyze flow
             context_tool = FlowContextTool()
             status_tool = FlowStatusTool()
-
-            # Get context
             context_data = context_tool._run(
                 flow_id=flow_id,
                 client_account_id=client_account_id,
                 engagement_id=engagement_id,
                 user_id=user_id,
             )
-
-            # Get flow status
             status_result = status_tool._run(flow_id, context_data)
             status_data = (
                 json.loads(status_result)
@@ -311,7 +291,6 @@ class IntelligentFlowAgent:
                 else status_result
             )
 
-            # Handle non-existent flows
             if (
                 status_data.get("status") == "not_found"
                 or status_data.get("current_phase") == "not_found"
@@ -340,11 +319,8 @@ class IntelligentFlowAgent:
                     issues_found=["Flow does not exist in the system"],
                 )
 
-            # Handle flows with no data - check both raw_data_count and field_mapping_count
             raw_data_count = status_data.get("raw_data_count", 0)
             field_mapping_count = status_data.get("field_mapping_count", 0)
-
-            # If we have either raw data or field mappings, the flow has data
             has_data = raw_data_count > 0 or field_mapping_count > 0
 
             if not has_data:
@@ -372,7 +348,6 @@ class IntelligentFlowAgent:
                     issues_found=["No raw data in flow", "Data import incomplete"],
                 )
 
-            # Handle flows with data but incomplete phases
             current_phase = status_data.get("current_phase", "data_import")
             progress = status_data.get("progress", 0)
 
@@ -418,7 +393,6 @@ class IntelligentFlowAgent:
                     ],
                 )
 
-            # Default case - route to overview
             return FlowIntelligenceResult(
                 success=True,
                 flow_id=flow_id,
@@ -439,7 +413,6 @@ class IntelligentFlowAgent:
             )
 
         except Exception as e:
-            logger.error(f"❌ Fallback analysis failed for {flow_id}: {e}")
             return FlowIntelligenceResult(
                 success=False,
                 flow_id=flow_id,
