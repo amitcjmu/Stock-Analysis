@@ -7,7 +7,16 @@ import { useState } from 'react'
 import { useEffect, useCallback } from 'react'
 
 // Base configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const getApiBaseUrl = (): string => {
+  // Force proxy usage for development - Docker container on port 8081
+  if (typeof window !== 'undefined' && window.location.port === '8081') {
+    return '';
+  }
+
+  return import.meta.env.VITE_API_URL || 'http://localhost:8000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 const DEMO_API_BASE = `${API_BASE_URL}/api/v1/demo`;
 
 // Types for the demo data

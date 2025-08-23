@@ -18,6 +18,12 @@ export class APIError extends Error {
 
 // API Configuration
 const getWsBaseUrl = (): string => {
+  // Force relative WebSocket URL for Docker development on port 8081
+  if (typeof window !== 'undefined' && window.location.port === '8081') {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}/ws`;
+  }
+
   // First, check for WebSocket-specific environment variable
   const wsUrl = import.meta.env.VITE_WS_BASE_URL || import.meta.env.VITE_WS_URL;
 
@@ -408,17 +414,19 @@ export class SixRApiClient {
     format: 'csv' | 'pdf' | 'json'
   ): Promise<Blob> {
     try {
-      // Use the same base URL logic as the main API client to ensure proxy usage in Docker
-      const getBaseUrl = (): string => {
-        // Force proxy usage for development - Docker container on port 8081
-        if (typeof window !== 'undefined' && window.location.port === '8081') {
-          return '';
-        }
-        return import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BACKEND_URL || '';
-      };
+      // Use direct fetch with proper URL construction for file downloads
+      // The apiClient doesn't handle blob responses well, so we construct the URL manually
+      let url: string;
 
-      const baseUrl = getBaseUrl();
-      const url = `${baseUrl}/api/v1/6r/export`;
+      // CRITICAL FIX: Always use relative URLs when running on port 8081 (Docker development)
+      if (typeof window !== 'undefined' && window.location.port === '8081') {
+        // Force relative URL for Docker development to use Vite proxy
+        url = '/api/v1/6r/export';
+      } else {
+        // For other environments, use the proper base URL
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || '';
+        url = `${backendUrl}/api/v1/6r/export`;
+      }
 
       const response = await fetch(url, {
         method: 'POST',
@@ -447,17 +455,19 @@ export class SixRApiClient {
     format: 'csv' | 'pdf' | 'json'
   ): Promise<Blob> {
     try {
-      // Use the same base URL logic as the main API client to ensure proxy usage in Docker
-      const getBaseUrl = (): string => {
-        // Force proxy usage for development - Docker container on port 8081
-        if (typeof window !== 'undefined' && window.location.port === '8081') {
-          return '';
-        }
-        return import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BACKEND_URL || '';
-      };
+      // Use direct fetch with proper URL construction for file downloads
+      // The apiClient doesn't handle blob responses well, so we construct the URL manually
+      let url: string;
 
-      const baseUrl = getBaseUrl();
-      const url = `${baseUrl}/api/v1/6r/bulk/${jobId}/export`;
+      // CRITICAL FIX: Always use relative URLs when running on port 8081 (Docker development)
+      if (typeof window !== 'undefined' && window.location.port === '8081') {
+        // Force relative URL for Docker development to use Vite proxy
+        url = `/api/v1/6r/bulk/${jobId}/export`;
+      } else {
+        // For other environments, use the proper base URL
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || '';
+        url = `${backendUrl}/api/v1/6r/bulk/${jobId}/export`;
+      }
 
       const response = await fetch(url, {
         method: 'POST',

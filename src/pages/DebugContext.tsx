@@ -49,7 +49,18 @@ export const DebugContext: React.FC = () => {
     setLoading(true);
     try {
       const token = tokenStorage.getToken();
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/context-establishment/clients`, {
+
+      // Use proper URL construction for Docker development
+      let apiUrl: string;
+      if (typeof window !== 'undefined' && window.location.port === '8081') {
+        // Force relative URL for Docker development to use Vite proxy
+        apiUrl = '/api/v1/context-establishment/clients';
+      } else {
+        // For other environments, use the environment variable
+        apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/context-establishment/clients`;
+      }
+
+      const response = await fetch(apiUrl, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

@@ -15,6 +15,11 @@ interface PasswordChangeResponse {
   [key: string]: unknown;
 }
 const getApiBaseUrl = (): string => {
+  // Force proxy usage for development - Docker container on port 8081
+  if (typeof window !== 'undefined' && window.location.port === '8081') {
+    return '';
+  }
+
   // First, check for environment-specific variables
   const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL;
 
