@@ -39,6 +39,9 @@ const AdaptiveForms: React.FC = () => {
   const [deletingFlows, setDeletingFlows] = useState<Set<string>>(new Set());
   const [hasJustDeleted, setHasJustDeleted] = useState(false);
 
+  // State to show app selection prompt when no applications are selected
+  const [showAppSelectionPrompt, setShowAppSelectionPrompt] = useState(false);
+
   // Function to detect if applications are selected in the collection flow
   const hasApplicationsSelected = (collectionFlow: any): boolean => {
     if (!collectionFlow) return false;
@@ -133,6 +136,9 @@ const AdaptiveForms: React.FC = () => {
         isExistingFlowContinuation,
         hasProgressed
       });
+
+      // Show app selection prompt to give users a path forward
+      setShowAppSelectionPrompt(true);
 
       // Show a warning toast
       toast({
@@ -266,6 +272,62 @@ const AdaptiveForms: React.FC = () => {
         loadingSubMessage="Validating workflow state"
       >
         {/* Loading content handled by layout */}
+      </CollectionPageLayout>
+    );
+  }
+
+  // Show app selection prompt if no applications are selected for the current flow
+  if (showAppSelectionPrompt && activeFlowId) {
+    const handleGoToAppSelection = () => {
+      navigate(`/discovery/applications?continueFlow=${activeFlowId}`);
+    };
+
+    const handleRestartFlow = () => {
+      // Clear the current flow and start fresh
+      navigate('/collection/forms');
+      setShowAppSelectionPrompt(false);
+    };
+
+    return (
+      <CollectionPageLayout
+        title="Application Selection Required"
+        description="This collection flow needs applications to proceed"
+      >
+        <div className="max-w-2xl mx-auto mt-8">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-yellow-800 mb-2">No Applications Selected</h3>
+            <p className="text-yellow-700 mb-4">
+              This collection flow does not have any applications selected. You need to select applications
+              before proceeding with data collection.
+            </p>
+
+            <div className="space-y-3">
+              <Button
+                onClick={handleGoToAppSelection}
+                variant="default"
+                className="w-full"
+              >
+                Select Applications for This Flow
+              </Button>
+
+              <Button
+                onClick={handleRestartFlow}
+                variant="outline"
+                className="w-full"
+              >
+                Start New Collection Flow
+              </Button>
+
+              <Button
+                onClick={() => navigate('/collection/overview')}
+                variant="outline"
+                className="w-full"
+              >
+                View All Collection Flows
+              </Button>
+            </div>
+          </div>
+        </div>
       </CollectionPageLayout>
     );
   }
