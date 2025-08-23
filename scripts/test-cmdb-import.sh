@@ -107,7 +107,7 @@ test_file_analysis() {
         -H "X-Client-Account-Id: bafd5b46-aaaf-4c95-8142-573699d93171" \
         -H "X-Engagement-Id: 6e9c8133-4169-4b79-b052-106dc93d0208" \
         -d "$TEST_DATA" \
-        http://localhost:8000/api/v1/discovery/flow/agent/analysis)
+        http://localhost:8000/api/v1/unified-discovery/flow/agent/analysis)
 
     if echo "$RESPONSE" | jq -e '.success' > /dev/null 2>&1; then
         print_success "File analysis endpoint working"
@@ -129,7 +129,7 @@ test_discovery_flow() {
         -H "X-Client-Account-Id: bafd5b46-aaaf-4c95-8142-573699d93171" \
         -H "X-Engagement-Id: 6e9c8133-4169-4b79-b052-106dc93d0208" \
         -d "$FLOW_DATA" \
-        http://localhost:8000/api/v1/discovery/flow/run)
+        http://localhost:8000/api/v1/unified-discovery/flow/run)
 
     if echo "$RESPONSE" | jq -e '.success' > /dev/null 2>&1; then
         print_success "Discovery flow initiated"
@@ -157,7 +157,7 @@ test_flow_status() {
         RESPONSE=$(curl -s \
             -H "X-Client-Account-Id: bafd5b46-aaaf-4c95-8142-573699d93171" \
             -H "X-Engagement-Id: 6e9c8133-4169-4b79-b052-106dc93d0208" \
-            "http://localhost:8000/api/v1/discovery/flow/agent/crew/analysis/status?session_id=$session_id")
+            "http://localhost:8000/api/v1/unified-discovery/flow/$session_id/status")
 
         if echo "$RESPONSE" | jq -e '.success' > /dev/null 2>&1; then
             STATUS=$(echo "$RESPONSE" | jq -r '.flow_status.status // "unknown"')
@@ -174,7 +174,7 @@ test_flow_status() {
                 RESULTS=$(curl -s \
                     -H "X-Client-Account-Id: bafd5b46-aaaf-4c95-8142-573699d93171" \
                     -H "X-Engagement-Id: 6e9c8133-4169-4b79-b052-106dc93d0208" \
-                    "http://localhost:8000/api/v1/discovery/flow/status/$session_id")
+                    "http://localhost:8000/api/v1/unified-discovery/flow/$session_id/status")
 
                 if echo "$RESULTS" | jq -e '.success' > /dev/null 2>&1; then
                     print_success "Results retrieved successfully"

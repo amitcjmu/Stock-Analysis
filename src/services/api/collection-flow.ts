@@ -187,10 +187,8 @@ class CollectionFlowApi {
       const errorCode = typeof detail === 'object' ? detail?.error : undefined;
 
       if (status === 422 && errorCode === 'no_applications_selected') {
-        // Redirect to application selection
-        window.location.href = '/discovery/cmdb-import';
-        // Return a promise that never resolves to prevent further handling after redirect
-        return new Promise<AdaptiveQuestionnaireResponse[]>(() => {});
+        // Do not hard-redirect. Let callers render an in-form application selection.
+        throw Object.assign(new Error('no_applications_selected'), { code: 'no_applications_selected', status });
       }
       // Properly reject with the original error
       return Promise.reject(err);

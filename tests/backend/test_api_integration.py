@@ -9,6 +9,9 @@ import time
 import httpx
 import pytest
 
+# Markers for curated runs
+pytestmark = [pytest.mark.backend, pytest.mark.discovery, pytest.mark.integration, pytest.mark.regression]
+
 # Docker test configuration
 DOCKER_API_BASE = os.getenv("DOCKER_API_BASE", "http://localhost:8000")
 DOCKER_FRONTEND_BASE = os.getenv("DOCKER_FRONTEND_BASE", "http://localhost:8081")
@@ -279,7 +282,7 @@ class TestAssetInventoryAPI:
     async def test_get_assets_endpoint(self, api_client, auth_headers):
         """Test getting active discovery flows."""
         response = await api_client.get(
-            "/api/v1/discovery/flows/active", headers=auth_headers
+            "/api/v1/unified-discovery/flows/active", headers=auth_headers
         )
         assert response.status_code == 200
 
@@ -293,7 +296,7 @@ class TestAssetInventoryAPI:
     async def test_suggested_headers_generation(self, api_client, auth_headers):
         """Test that suggested headers are generated correctly."""
         response = await api_client.get(
-            "/api/v1/discovery/flows/active", headers=auth_headers
+            "/api/v1/unified-discovery/flows/active", headers=auth_headers
         )
         assert response.status_code == 200
 
@@ -313,7 +316,7 @@ class TestAssetInventoryAPI:
     async def test_assets_with_6r_readiness(self, api_client, auth_headers):
         """Test that assets include 6R readiness information."""
         response = await api_client.get(
-            "/api/v1/discovery/flows/active", headers=auth_headers
+            "/api/v1/unified-discovery/flows/active", headers=auth_headers
         )
         assert response.status_code == 200
 
@@ -472,7 +475,7 @@ class TestDockerContainerIntegration:
 
         # Test preflight request
         response = await api_client.options(
-            "/api/v1/discovery/flows/active", headers=headers
+            "/api/v1/unified-discovery/flows/active", headers=headers
         )
 
         # Should not block CORS
@@ -626,7 +629,7 @@ async def test_end_to_end_workflow(api_client, sample_cmdb_csv_content, auth_hea
 
     # Step 3: Check inventory
     inventory_response = await api_client.get(
-        "/api/v1/discovery/flows/active", headers=auth_headers
+        "/api/v1/unified-discovery/flows/active", headers=auth_headers
     )
     assert inventory_response.status_code == 200
 

@@ -26,7 +26,7 @@ export interface QuestionData {
   required?: boolean;
   validation?: ConfigurationObject;
   business_impact_score?: number;
-  options?: FieldOption[];
+  options?: any[]; // can be FieldOption[] or string[] from backend
   help_text?: string;
   description?: string;
 }
@@ -36,6 +36,7 @@ export interface QuestionData {
  */
 export const mapQuestionTypeToFieldType = (questionType: string): string => {
   const mappings: Record<string, string> = {
+    // Core types
     'text': 'text',
     'textarea': 'textarea',
     'select': 'select',
@@ -47,6 +48,11 @@ export const mapQuestionTypeToFieldType = (questionType: string): string => {
     'url': 'url',
     'date': 'date',
     'file': 'file',
+    // Backend generator CrewAI types
+    'single_select': 'select',
+    'multi_select': 'multiselect',
+    'boolean': 'checkbox',
+    // Domain-specific shortcuts
     'application_name': 'text',
     'application_type': 'select',
     'technology_stack': 'multiselect',
@@ -86,6 +92,29 @@ export const convertQuestionToFormField = (
   index: number,
   sectionId: string
 ): FormField => {
+  const toTitle = (s: string): string => s
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, c => c.toUpperCase());
+
+  const normalizeOptions = (opts: any[] | undefined): FieldOption[] | undefined => {
+    if (!opts) return undefined;
+    if (opts.length === 0) return [];
+    if (typeof opts[0] === 'string') {
+      return (opts as string[]).map(v => ({ value: v, label: toTitle(String(v)) }));
+    }
+    return opts as FieldOption[];
+  };
+
+  // Determine a domain key to fetch defaults (e.g., 'application_type', 'database')
+  const defaultKey = ((): string | undefined => {
+    if (question.field_id && getDefaultFieldOptions(question.field_id).length > 0) return question.field_id;
+    if (question.critical_attribute && getDefaultFieldOptions(question.critical_attribute).length > 0) return question.critical_attribute;
+    if (question.field_type && getDefaultFieldOptions(question.field_type).length > 0) return question.field_type;
+    return undefined;
+  })();
+
   return {
     id: question.field_id || `field-${index}`,
     label: question.question_text || question.label || 'Field',
@@ -98,9 +127,7 @@ export const convertQuestionToFormField = (
     section: sectionId,
     order: index + 1,
     businessImpactScore: question.business_impact_score || 0.7,
-    options: question.options || (
-      question.field_type === 'select' ? getDefaultFieldOptions(question.field_type) : undefined
-    ),
+    options: normalizeOptions(question.options) || (defaultKey ? getDefaultFieldOptions(defaultKey) : undefined),
     helpText: question.help_text || question.description
   };
 };
@@ -113,11 +140,17 @@ export const groupQuestionsIntoSections = (questions: QuestionData[]): FormSecti
 
   // Group questions by category
   const basicQuestions = questions.filter((q: QuestionData) =>
-    q.category === 'basic' || q.field_type === 'application_name' || q.field_type === 'application_type'
+    q.category === 'basic' ||
+    q.category === 'business' ||
+    q.field_type === 'application_name' ||
+    q.field_type === 'application_type'
   );
 
   const technicalQuestions = questions.filter((q: QuestionData) =>
-    q.category === 'technical' || q.field_type === 'technology_stack' || q.field_type === 'database'
+    q.category === 'technical' ||
+    q.category === 'infrastructure' ||
+    q.field_type === 'technology_stack' ||
+    q.field_type === 'database'
   );
 
   // Create basic information section
@@ -147,6 +180,19 @@ export const groupQuestionsIntoSections = (questions: QuestionData[]): FormSecti
       order: 2,
       requiredFieldsCount: technicalQuestions.filter((q: QuestionData) => q.required !== false).length,
       completionWeight: 0.6
+    });
+  }
+
+  // Fallback: If no sections were created, put all questions into a general section
+  if (sections.length === 0 && questions.length > 0) {
+    sections.push({
+      id: 'agent-general',
+      title: 'Adaptive Questionnaire',
+      description: 'General questions generated from gap analysis',
+      fields: questions.map((q, index) => convertQuestionToFormField(q, index, 'agent-general')),
+      order: 1,
+      requiredFieldsCount: questions.filter((q: QuestionData) => q.required !== false).length,
+      completionWeight: 1.0
     });
   }
 

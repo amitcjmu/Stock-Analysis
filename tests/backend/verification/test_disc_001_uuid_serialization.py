@@ -34,7 +34,7 @@ class TestDISC001UUIDSerialization:
         Test that data cleansing analysis endpoint returns valid JSON without UUID serialization errors
 
         Verification Steps:
-        1. Call GET /api/v1/discovery/flows/{flow_id}/data-cleansing
+        1. Call GET /api/v1/unified-discovery/flows/{flow_id}/data-cleansing
         2. Verify response is valid JSON
         3. Check that all UUID fields are strings, not objects
         4. Ensure no TypeError or serialization errors
@@ -45,7 +45,7 @@ class TestDISC001UUIDSerialization:
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.get(
-                    f"{base_url}/discovery/flows/{flow_id}/data-cleansing",
+                    f"{base_url}/unified-discovery/flows/{flow_id}/data-cleansing",
                     headers=auth_headers,
                 )
 
@@ -102,7 +102,7 @@ class TestDISC001UUIDSerialization:
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.get(
-                    f"{base_url}/discovery/flows/{flow_id}/data-cleansing/stats",
+                    f"{base_url}/unified-discovery/flows/{flow_id}/data-cleansing/stats",
                     headers=auth_headers,
                 )
 

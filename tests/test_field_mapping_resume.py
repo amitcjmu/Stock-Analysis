@@ -27,7 +27,7 @@ async def get_active_flows():
     """Get active discovery flows to find one in waiting_for_approval state."""
     async with httpx.AsyncClient() as client:
         response = await client.get(
-            f"{API_BASE_URL}/discovery/flows/active",
+            f"{API_BASE_URL}/unified-discovery/flows/active",
             headers=TEST_HEADERS
         )
 
@@ -54,7 +54,7 @@ async def get_flow_status(flow_id: str):
     """Get detailed status of a specific flow."""
     async with httpx.AsyncClient() as client:
         response = await client.get(
-            f"{API_BASE_URL}/discovery/flows/{flow_id}/status",
+            f"{API_BASE_URL}/unified-discovery/flows/{flow_id}/status",
             headers=TEST_HEADERS
         )
 
@@ -94,7 +94,7 @@ async def resume_flow_with_approval(flow_id: str, field_mappings: dict = None):
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(
-            f"{API_BASE_URL}/discovery/flow/{flow_id}/resume",
+            f"{API_BASE_URL}/unified-discovery/flow/{flow_id}/resume",
             headers=TEST_HEADERS,
             json=resume_data
         )

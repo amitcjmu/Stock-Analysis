@@ -165,11 +165,19 @@ class DiscoveryFlowCleanupService:
                 if delete_success:
                     cleanup_summary["discovery_flows_deleted"] = 1
 
-                # 7. Save audit record
+                # 7. Save audit record with defensive handling
                 if AUDIT_AVAILABLE and audit_data:
+                    from app.utils.flow_deletion_utils import (
+                        safely_create_deletion_audit,
+                    )
+
                     audit_record = FlowDeletionAudit(**audit_data)
-                    db_session.add(audit_record)
-                    cleanup_summary["audit_record_created"] = True
+                    audit_id = await safely_create_deletion_audit(
+                        db_session, audit_record, flow_id, "v2_flow_cleanup"
+                    )
+                    cleanup_summary["audit_record_created"] = audit_id is not None
+                    if not audit_id:
+                        cleanup_summary["audit_skipped_reason"] = "table_not_found"
 
                 # Commit all changes
                 await db_session.commit()

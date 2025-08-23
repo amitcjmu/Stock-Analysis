@@ -32,11 +32,11 @@ class DiscoveryFlowValidator:
 
     def test_discovery_flows_active_endpoint(self):
         """Test the correct discovery flows active endpoint"""
-        print("🔍 Testing /api/v1/discovery/flows/active endpoint...")
+        print("🔍 Testing /api/v1/unified-discovery/flows/active endpoint...")
 
         try:
             response = requests.get(
-                f"{self.base_url}/api/v1/discovery/flows/active",
+                f"{self.base_url}/api/v1/unified-discovery/flows/active",
                 headers=self.auth_headers,
                 params={"flowType": "discovery"},
                 timeout=10
@@ -90,8 +90,8 @@ class DiscoveryFlowValidator:
             self.test_results["discovery_flows_active"] = {"error": str(e), "success": False}
 
     def test_unified_discovery_endpoint(self):
-        """Test the incorrect unified-discovery endpoint that's causing 404s"""
-        print("🔍 Testing /api/v1/unified-discovery/flows/active endpoint (should fail)...")
+        """Test the correct unified-discovery endpoint that should work"""
+        print("🔍 Testing /api/v1/unified-discovery/flows/active endpoint (should work)...")
 
         try:
             response = requests.get(
@@ -103,14 +103,14 @@ class DiscoveryFlowValidator:
             self.test_results["unified_discovery_flows"] = {
                 "status_code": response.status_code,
                 "success": response.status_code == 200,
-                "expected_to_fail": True,
+                "expected_to_succeed": True,
                 "response_text": response.text[:200] if response.text else ""
             }
 
-            if response.status_code == 404:
-                print(f"✅ Expected 404 error confirmed - this endpoint doesn't exist")
+            if response.status_code == 200:
+                print(f"✅ Unified discovery endpoint working correctly")
             else:
-                print(f"⚠️ Unexpected response: {response.status_code}")
+                print(f"❌ Unexpected response: {response.status_code}")
 
         except Exception as e:
             print(f"❌ Request failed: {e}")
@@ -123,7 +123,7 @@ class DiscoveryFlowValidator:
         # First get a flow ID from active flows
         try:
             response = requests.get(
-                f"{self.base_url}/api/v1/discovery/flows/active",
+                f"{self.base_url}/api/v1/unified-discovery/flows/active",
                 headers=self.auth_headers,
                 timeout=10
             )
@@ -143,7 +143,7 @@ class DiscoveryFlowValidator:
                     if test_flow_id:
                         # Test the status endpoint
                         status_response = requests.get(
-                            f"{self.base_url}/api/v1/discovery/flows/{test_flow_id}/status",
+                            f"{self.base_url}/api/v1/unified-discovery/flows/{test_flow_id}/status",
                             headers=self.auth_headers,
                             timeout=10
                         )
@@ -183,7 +183,7 @@ class DiscoveryFlowValidator:
 
         try:
             response = requests.post(
-                f"{self.base_url}/api/v1/discovery/flows/{test_flow_id}/clarifications/submit",
+                f"{self.base_url}/api/v1/unified-discovery/flows/{test_flow_id}/clarifications/submit",
                 headers=self.auth_headers,
                 json=clarification_data,
                 timeout=10

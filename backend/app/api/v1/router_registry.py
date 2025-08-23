@@ -81,6 +81,8 @@ def register_conditional_routers(api_router: APIRouter):
     from app.api.v1.router_imports import (
         ANALYSIS_QUEUES_AVAILABLE,
         analysis_queues_router,
+        DISCOVERY_AVAILABLE,
+        discovery_router,
         UNIFIED_DISCOVERY_AVAILABLE,
         unified_discovery_router,
         dependency_analysis_router,
@@ -102,6 +104,16 @@ def register_conditional_routers(api_router: APIRouter):
         logger.info("✅ Analysis Queues router included at /analysis/queues")
     else:
         logger.warning("⚠️ Analysis Queues router not available")
+
+    # Discovery API (LEGACY - Prefer unified-discovery)
+    if DISCOVERY_AVAILABLE:
+        api_router.include_router(discovery_router, prefix="/discovery")
+        logger.info("✅ Discovery API router included at /discovery (LEGACY)")
+        logger.warning(
+            "🔄 MIGRATION NOTICE: /discovery endpoints are legacy. Use /unified-discovery instead"
+        )
+    else:
+        logger.warning("⚠️ Discovery API router not available")
 
     # Collection Flow API
     if COLLECTION_AVAILABLE:
@@ -363,6 +375,14 @@ def register_special_routers(api_router: APIRouter):
 
 def register_all_routers(api_router: APIRouter):
     """Register all routers in organized groups."""
+    # Validate endpoint migration mappings on startup
+    try:
+        from app.utils.endpoint_migration_logger import validate_endpoint_migration
+
+        validate_endpoint_migration()
+    except ImportError as e:
+        logger.warning(f"Endpoint migration validation skipped: {e}")
+
     register_core_routers(api_router)
     register_conditional_routers(api_router)
     register_utility_routers(api_router)

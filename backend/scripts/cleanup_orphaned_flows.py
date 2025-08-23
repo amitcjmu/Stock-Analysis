@@ -69,6 +69,9 @@ async def cleanup_orphaned_flows():
 
             audit_flow_id = str(uuid.uuid4())  # Generate a valid UUID for the audit
 
+            # Create audit record with defensive handling
+            from app.utils.flow_deletion_utils import safely_create_deletion_audit
+
             audit_record = FlowDeletionAudit.create_audit_record(
                 flow_id=audit_flow_id,
                 client_account_id="11111111-1111-1111-1111-111111111111",  # Demo client ID
@@ -90,13 +93,21 @@ async def cleanup_orphaned_flows():
                 deletion_duration_ms=0,
             )
 
-            db.add(audit_record)
+            # Safely create audit record (handles missing table scenario)
+            audit_id = await safely_create_deletion_audit(
+                db, audit_record, audit_flow_id, "orphaned_flow_cleanup"
+            )
             await db.commit()
 
             logger.info(
                 f"Successfully marked {flows_deleted} orphaned flows as deleted"
             )
-            logger.info(f"Audit record created: {audit_record.id}")
+            if audit_id:
+                logger.info(f"Audit record created: {audit_id}")
+            else:
+                logger.warning(
+                    "Audit record skipped - table not found (expected during initial migration)"
+                )
 
             # Also check for any master flows that might be in inconsistent state
             logger.info("\nChecking for inconsistent master flows...")

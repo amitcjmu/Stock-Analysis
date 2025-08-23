@@ -1,6 +1,31 @@
 # AI Modernize Migration Platform - Changelog
 
 ## [2025-08-19] - Attribute Mapping Architecture Fix (PR #127)
+## [2025-08-23] - Collection Flow Bug Batch (PR TBD)
+### 🐛 Fixes: Adaptive Forms Initialization and Questionnaire Generation
+- Align frontend flow creation with backend expectations
+  - Use `selected_application_ids` in `collection_config` instead of `application_id` to correctly mark app selection state
+- Remove hard redirects on missing applications
+  - Frontend no longer forces navigation on 422; renders in-form selection instead
+- Provide bootstrap questionnaire when no apps selected (backend)
+  - `GET /collection/flows/{flow_id}/questionnaires` returns a minimal application-selection questionnaire instead of 422
+- Persist questionnaires with mixed shapes (flat vs nested)
+  - `save_questionnaires_to_db` now supports both generator output formats and ensures non-empty `questions`
+- Improve questionnaire generation context and skip logic
+  - Pass `collection_flow_id` into generator; relax zero-gap skip to allow bootstrap questionnaire for non-tier-1 flows
+
+### ✨ UX/Resilience Improvements
+- Fallback adaptive form is actually used after timeout, avoiding empty conversions
+- AdaptiveForms page no longer auto-redirects new flows; allows in-form prompting
+
+### 🔧 Files Changed (Highlights)
+- Backend: `collection_crud_questionnaires.py`, `flow_utilities.py`, `questionnaire_generation_handler.py`
+- Frontend: `useAdaptiveFormFlow.ts`, `collection-flow.ts`, `AdaptiveForms.tsx`
+
+### 📊 Impact
+- Users can start Adaptive Forms without preselected application; the system now prompts intelligently within the flow
+- Reduced dead-ends and improved persistence of generated questionnaires
+
 ### Major Bug Fixes
 - **FIX**: Attribute mapping now correctly shows all 9 fields from CSV imports
   - Fixed frontend to use Master Flow Orchestrator (MFO) endpoint instead of import_id approach

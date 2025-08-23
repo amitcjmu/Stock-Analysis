@@ -6,19 +6,15 @@ Questionnaire-specific read operations for collection flows.
 import logging
 from datetime import datetime
 from typing import List
-from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from uuid import UUID
 
 from app.core.context import RequestContext
 from app.models import User
-from app.models.asset import Asset, AssetType
-from app.models.collection_flow import (
-    AdaptiveQuestionnaire,
-    CollectionFlow,
-)
+from app.models.collection_flow import CollectionFlow, AdaptiveQuestionnaire
 from app.schemas.collection_flow import (
     AdaptiveQuestionnaireResponse,
 )
@@ -167,7 +163,7 @@ async def get_adaptive_questionnaires(
             flow_id,
         )
 
-        # If no questionnaires exist yet, check if applications are available
+        # If no questionnaires exist yet, provide a bootstrap questionnaire instead of hard failing
         if not questionnaires:
             logger.info(f"No questionnaires found yet for flow {flow_id}")
             logger.debug(
@@ -175,36 +171,50 @@ async def get_adaptive_questionnaires(
                 context.engagement_id,
             )
 
-            # Check if any applications (assets) exist for this engagement
-            # Questionnaires cannot be generated without applications to assess
-            apps_result = await db.execute(
-                select(Asset)
-                .where(
-                    Asset.engagement_id == context.engagement_id,
-                    Asset.asset_type == AssetType.APPLICATION,
-                )
-                .limit(1)
-            )
-            has_applications = apps_result.scalar_one_or_none() is not None
-
-            if not has_applications:
-                raise HTTPException(
-                    status_code=422,
-                    detail={
-                        "error": "no_applications_selected",
-                        "message": (
-                            "No applications have been discovered or selected for this engagement. "
-                            "Please complete the Discovery phase or import application data before "
-                            "proceeding with Collection questionnaires."
-                        ),
+            # Minimal bootstrap questionnaire to select application(s)
+            bootstrap_questionnaire = AdaptiveQuestionnaireResponse(
+                id=f"bootstrap_{flow_id}",
+                collection_flow_id=flow_id,
+                title="Application Selection",
+                description=(
+                    "Please select one or more applications from your inventory to begin adaptive collection."
+                ),
+                target_gaps=["application_selection"],
+                questions=[
+                    {
+                        "field_id": "application_name",
+                        "question_text": "Which application are we collecting data for?",
+                        "field_type": "text",
+                        "required": True,
+                        "help_text": "Enter the application name exactly as it appears in inventory",
                     },
-                )
-
-            # Applications exist but no questionnaires yet - Collection flow may still be processing
-            logger.info(
-                f"Applications exist for engagement {context.engagement_id} but no questionnaires generated yet. "
-                f"Collection flow {flow_id} (master: {flow.master_flow_id}) may still be processing."
+                    {
+                        "field_id": "application_type",
+                        "question_text": "What type of application is this?",
+                        "field_type": "select",
+                        "required": True,
+                        "options": [
+                            "web",
+                            "desktop",
+                            "mobile",
+                            "service",
+                            "batch",
+                        ],
+                    },
+                ],
+                validation_rules={
+                    "required": ["application_name", "application_type"],
+                },
+                completion_status="pending",
+                responses_collected={},
+                created_at=datetime.utcnow(),
+                completed_at=None,
             )
+
+            logger.info(
+                "Returning bootstrap questionnaire to enable in-form application selection"
+            )
+            return [bootstrap_questionnaire]
 
         return [
             (

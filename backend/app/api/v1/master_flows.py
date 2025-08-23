@@ -18,6 +18,7 @@ from app.core.security.secure_logging import safe_log_format
 from app.models import User
 from app.repositories.asset_repository import AssetRepository
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+from app.utils.flow_deletion_utils import safely_create_deletion_audit
 from app.schemas.asset_schemas import AssetResponse
 
 logger = logging.getLogger(__name__)
@@ -512,7 +513,7 @@ async def delete_master_flow(
                 child_flow.status = "deleted"
                 child_flow.updated_at = datetime.utcnow()
 
-                # Create audit record
+                # Create audit record with defensive handling
                 duration_ms = int((time.time() - start_time) * 1000)
                 audit_record = FlowDeletionAudit.create_audit_record(
                     flow_id=str(flow_uuid),
@@ -531,14 +532,18 @@ async def delete_master_flow(
                     cleanup_summary={"child_flow_deleted": True},
                     deletion_duration_ms=duration_ms,
                 )
-                db.add(audit_record)
+
+                # Safely create audit record (handles missing table scenario)
+                audit_id = await safely_create_deletion_audit(
+                    db, audit_record, str(flow_uuid), "child_flow_deletion"
+                )
                 await db.commit()
 
                 return {
                     "success": True,
                     "flow_id": flow_id,
                     "message": "Child flow marked as deleted",
-                    "audit_id": str(audit_record.id),
+                    "audit_id": audit_id or "audit_skipped_table_missing",
                 }
 
             return {"success": False, "flow_id": flow_id, "message": "Flow not found"}
@@ -587,7 +592,7 @@ async def delete_master_flow(
         )
         master_flow.flow_persistence_data["deleted_by"] = current_user.get("user_id")
 
-        # Create comprehensive audit record
+        # Create comprehensive audit record with defensive handling
         duration_ms = int((time.time() - start_time) * 1000)
         audit_record = FlowDeletionAudit.create_audit_record(
             flow_id=str(flow_uuid),
@@ -610,7 +615,11 @@ async def delete_master_flow(
             },
             deletion_duration_ms=duration_ms,
         )
-        db.add(audit_record)
+
+        # Safely create audit record (handles missing table scenario)
+        audit_id = await safely_create_deletion_audit(
+            db, audit_record, str(flow_uuid), "master_flow_deletion"
+        )
 
         await db.commit()
 
@@ -623,7 +632,7 @@ async def delete_master_flow(
             "flow_id": flow_id,
             "message": f"Master flow and {child_flows_deleted} child flows marked as deleted",
             "child_flows_deleted": child_flows_deleted,
-            "audit_id": str(audit_record.id),
+            "audit_id": audit_id or "audit_skipped_table_missing",
         }
 
     except Exception as e:

@@ -193,8 +193,15 @@ async def continue_flow(
         await collection_validators.validate_flow_can_be_resumed(collection_flow)
 
         # Resume flow through MFO
+        # Use master_flow_id if available, otherwise fallback to collection flow_id
+        resume_flow_id = (
+            str(collection_flow.master_flow_id)
+            if collection_flow.master_flow_id
+            else flow_id
+        )
+        
         result = await collection_utils.resume_mfo_flow(
-            db, context, flow_id, resume_context or {}
+            db, context, resume_flow_id, resume_context or {}
         )
 
         logger.info(

@@ -225,7 +225,8 @@ export const useAdaptiveFormFlow = (
               automation_tier: 'tier_2',
               collection_config: {
                 form_type: 'adaptive_data_collection',
-                application_id: applicationId,
+                // Align with backend expectation: selected_application_ids array
+                selected_application_ids: applicationId ? [applicationId] : [],
                 collection_method: 'manual_adaptive_form'
               }
             };
@@ -371,8 +372,19 @@ export const useAdaptiveFormFlow = (
 
       if (agentQuestionnaires.length === 0) {
         console.warn('⚠️ No questionnaires generated after timeout. Using fallback.');
-        // Don't throw error - just use fallback questionnaire instead
-        // throw new Error('No questionnaires were generated. The CrewAI agents may still be processing or encountered an error. Check backend logs for details.');
+        // Use a local fallback adaptive form to allow user to proceed
+        const fallback = createFallbackFormData(applicationId || null);
+        setState(prev => ({
+          ...prev,
+          formData: fallback,
+          questionnaires: [],
+        }));
+
+        toast({
+          title: 'Fallback Form Loaded',
+          description: 'Using a basic adaptive form to begin collection while agents prepare questionnaires.'
+        });
+        return;
       }
 
       // Convert CrewAI-generated questionnaires to AdaptiveFormData format

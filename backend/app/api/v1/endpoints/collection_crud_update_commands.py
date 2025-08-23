@@ -5,6 +5,7 @@ and questionnaire response submissions.
 """
 
 import logging
+import json
 from datetime import datetime, timezone
 from typing import Any, Dict
 from uuid import UUID
@@ -27,8 +28,139 @@ from app.schemas.collection_flow import (
 
 # Import modular functions
 from app.api.v1.endpoints import collection_serializers
+from app.api.v1.endpoints import collection_mfo_utils as collection_utils
 
 logger = logging.getLogger(__name__)
+
+
+def _validate_ephemeral_questionnaire_id(questionnaire_id: str) -> None:
+    """Validate that questionnaire_id is for an ephemeral questionnaire.
+
+    Args:
+        questionnaire_id: The questionnaire ID to validate
+
+    Raises:
+        HTTPException: If validation fails
+    """
+    if not questionnaire_id.startswith("bootstrap_"):
+        raise HTTPException(
+            status_code=400,
+            detail="Ephemeral questionnaire ID must start with 'bootstrap_'",
+        )
+
+
+def _validate_payload_size(payload: Dict[str, Any]) -> None:
+    """Validate that payload size is within limits.
+
+    Args:
+        payload: The payload to validate
+
+    Raises:
+        HTTPException: If payload exceeds size limit
+    """
+    try:
+        payload_json = json.dumps(payload)
+        payload_size = len(payload_json.encode("utf-8"))
+        max_size = 100 * 1024  # 100KB
+
+        if payload_size > max_size:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Payload size ({payload_size} bytes) exceeds maximum allowed size ({max_size} bytes)",
+            )
+    except (TypeError, ValueError) as e:
+        raise HTTPException(status_code=400, detail=f"Invalid payload format: {str(e)}")
+
+
+async def _save_ephemeral_submission(
+    collection_flow: CollectionFlow,
+    questionnaire_id: str,
+    responses: Dict[str, Any],
+    current_user: User,
+    db: AsyncSession,
+) -> None:
+    """Save ephemeral questionnaire submission with history preservation.
+
+    Args:
+        collection_flow: The collection flow to update
+        questionnaire_id: The questionnaire ID
+        responses: The user responses
+        current_user: Current authenticated user
+        db: Database session
+
+    Raises:
+        HTTPException: If validation fails or save fails
+    """
+    # Validate ephemeral questionnaire ID and payload size
+    _validate_ephemeral_questionnaire_id(questionnaire_id)
+    _validate_payload_size(responses)
+
+    try:
+        # Begin database transaction for ephemeral submission
+        phase_state = collection_flow.phase_state or {}
+        submissions = phase_state.get("questionnaire_submissions", {})
+
+        # Create new submission record
+        submission_record = {
+            "submitted_at": datetime.now(timezone.utc).isoformat(),
+            "submitted_by": str(current_user.id),
+            "payload": responses,
+        }
+
+        # Preserve submission history - don't overwrite existing submissions
+        if questionnaire_id in submissions:
+            existing_submission = submissions[questionnaire_id]
+
+            # If existing submission is already in history format, append to history
+            if (
+                isinstance(existing_submission, dict)
+                and "history" in existing_submission
+            ):
+                history = existing_submission.get("history", [])
+                if not isinstance(history, list):
+                    history = []
+                # Add previous latest_submission to history if it exists
+                if "latest_submission" in existing_submission:
+                    history.append(existing_submission["latest_submission"])
+                history.append(submission_record)
+                submissions[questionnaire_id] = {
+                    "history": history,
+                    "latest_submission": submission_record,
+                }
+            else:
+                # Convert old format to new format with history
+                submissions[questionnaire_id] = {
+                    "history": [existing_submission, submission_record],
+                    "latest_submission": submission_record,
+                }
+        else:
+            # First submission for this questionnaire
+            submissions[questionnaire_id] = {
+                "history": [submission_record],
+                "latest_submission": submission_record,
+            }
+
+        phase_state["questionnaire_submissions"] = submissions
+        collection_flow.phase_state = phase_state
+        collection_flow.updated_at = datetime.now(timezone.utc)
+
+        await db.commit()
+
+    except Exception as e:
+        # Rollback transaction on any error
+        await db.rollback()
+        logger.error(
+            safe_log_format(
+                "Failed to save ephemeral questionnaire submission: "
+                "questionnaire_id={questionnaire_id}, error={e}",
+                questionnaire_id=questionnaire_id,
+                e=e,
+            )
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to save ephemeral questionnaire submission: {str(e)}",
+        )
 
 
 async def update_collection_flow(
@@ -195,7 +327,7 @@ async def _handle_update_applications_action(
 async def submit_questionnaire_response(
     flow_id: str,
     questionnaire_id: str,
-    response_value: str,
+    responses: Dict[str, Any],
     db: AsyncSession,
     current_user: User,
     context: RequestContext,
@@ -229,31 +361,80 @@ async def submit_questionnaire_response(
         if not collection_flow:
             raise HTTPException(status_code=404, detail="Collection flow not found")
 
-        # Convert questionnaire_id to UUID
+        questionnaire: AdaptiveQuestionnaire | None = None
+
+        # Attempt to treat questionnaire_id as UUID; if invalid, fall back to ephemeral storage
+        questionnaire_uuid: UUID | None = None
         try:
             questionnaire_uuid = UUID(questionnaire_id)
         except (ValueError, TypeError):
-            raise HTTPException(
-                status_code=400, detail="Invalid questionnaire ID format"
+            questionnaire_uuid = None
+
+        if questionnaire_uuid is not None:
+            questionnaire_result = await db.execute(
+                select(AdaptiveQuestionnaire).where(
+                    AdaptiveQuestionnaire.id == questionnaire_uuid,
+                    AdaptiveQuestionnaire.collection_flow_id == collection_flow.id,
+                )
+            )
+            questionnaire = questionnaire_result.scalar_one_or_none()
+
+        if questionnaire is not None:
+            # Merge responses into questionnaire.responses_collected JSONB
+            existing = questionnaire.responses_collected or {}
+            submission_record = {
+                "submitted_at": datetime.now(timezone.utc).isoformat(),
+                "submitted_by": str(current_user.id),
+                "payload": responses,
+            }
+            if isinstance(existing, list):
+                existing.append(submission_record)
+                questionnaire.responses_collected = existing
+            elif isinstance(existing, dict):
+                # Keep both a history list and latest pointer
+                history = existing.get("history", [])
+                if not isinstance(history, list):
+                    history = []
+                history.append(submission_record)
+                existing["history"] = history
+                existing["latest_submission"] = submission_record
+                questionnaire.responses_collected = existing
+            else:
+                questionnaire.responses_collected = [submission_record]
+
+            questionnaire.updated_at = datetime.now(timezone.utc)
+            await db.commit()
+        else:
+            # Ephemeral questionnaire (e.g., bootstrap_...): persist into flow phase_state
+            await _save_ephemeral_submission(
+                collection_flow, questionnaire_id, responses, current_user, db
             )
 
-        # Get questionnaire
-        questionnaire_result = await db.execute(
-            select(AdaptiveQuestionnaire).where(
-                AdaptiveQuestionnaire.id == questionnaire_uuid,
-                AdaptiveQuestionnaire.collection_flow_id == collection_flow.id,
-            )
+        # Attempt to resume the flow via MFO after submission
+        # Use master_flow_id if available, otherwise fallback to collection flow_id
+        resume_flow_id = (
+            str(collection_flow.master_flow_id)
+            if collection_flow.master_flow_id
+            else flow_id
         )
-        questionnaire = questionnaire_result.scalar_one_or_none()
 
-        if not questionnaire:
-            raise HTTPException(status_code=404, detail="Questionnaire not found")
-
-        # Update questionnaire with response
-        questionnaire.response_value = response_value
-        questionnaire.updated_at = datetime.now(timezone.utc)
-
-        await db.commit()
+        try:
+            await collection_utils.resume_mfo_flow(
+                db=db,
+                context=context,
+                flow_id=resume_flow_id,
+                resume_context={
+                    "event": "questionnaire_submitted",
+                    "questionnaire_id": questionnaire_id,
+                },
+            )
+        except Exception as resume_err:
+            logger.warning(
+                safe_log_format(
+                    "Non-fatal: resume after questionnaire submit failed: {e}",
+                    e=str(resume_err),
+                )
+            )
 
         logger.info(
             safe_log_format(
@@ -268,7 +449,6 @@ async def submit_questionnaire_response(
             "status": "success",
             "message": "Response submitted successfully",
             "questionnaire_id": questionnaire_id,
-            "response_value": response_value,
         }
 
     except HTTPException:

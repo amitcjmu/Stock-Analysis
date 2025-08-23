@@ -4,6 +4,17 @@ import Sidebar from '../components/Sidebar';
 import { Filter } from 'lucide-react'
 import { Download, Calendar, BarChart3 } from 'lucide-react'
 
+interface AssessmentApp {
+  appId: string;
+  name: string;
+  techStack: string;
+  criticality: string;
+  dept: string;
+  treatment: string;
+  group: string;
+  complexity: string;
+}
+
 const Assess = (): JSX.Element => {
   const [filterDept, setFilterDept] = useState('All');
   const [filterTreatment, setFilterTreatment] = useState('All');
@@ -123,6 +134,96 @@ const Assess = (): JSX.Element => {
     return colors[criticality] || 'bg-gray-100 text-gray-800';
   };
 
+  const exportAssessmentDataToCSV = (): void => {
+    try {
+      // Snapshot filteredData to prevent stale references
+      const dataSnapshot = [...filteredData];
+      console.log('🔄 Starting CSV export...', { dataCount: dataSnapshot.length });
+
+      // Validate filtered data
+      if (!dataSnapshot || dataSnapshot.length === 0) {
+        console.warn('⚠️ No assessment data to export');
+        alert('No assessment data available to export. Please adjust your filters or check if data is loaded.');
+        return;
+      }
+
+      // Define CSV headers based on table structure
+      const csvHeaders = [
+        'App ID',
+        'Application',
+        'Tech Stack',
+        'Criticality',
+        'Department',
+        '6R Treatment',
+        'Group',
+        'Complexity'
+      ];
+
+      // Generate CSV rows from snapshot data
+      const csvRows = dataSnapshot.map((app: AssessmentApp) => [
+        app.appId || '',
+        app.name || '',
+        app.techStack || '',
+        app.criticality || '',
+        app.dept || '',
+        app.treatment || '',
+        app.group || '',
+        app.complexity || ''
+      ].map(value => {
+        // Handle CSV escaping for special characters
+        if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return value;
+      }).join(','));
+
+      // Combine headers and rows
+      const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
+
+      // Add UTF-8 BOM for Excel compatibility
+      const BOM = '\uFEFF';
+      const csvWithBOM = BOM + csvContent;
+
+      // Create blob with UTF-8 BOM
+      const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+
+      // Generate filename with timestamp and filter info
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filterInfo = [];
+      if (filterDept !== 'All') filterInfo.push(filterDept);
+      if (filterTreatment !== 'All') filterInfo.push(filterTreatment);
+      const filterSuffix = filterInfo.length > 0 ? `-${filterInfo.join('-')}` : '';
+      const filename = `6r-assessment-data${filterSuffix}-${timestamp}.csv`;
+
+      // Create and trigger download
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+
+      // Improve cleanup timing - use setTimeout to allow download to complete
+      setTimeout(() => {
+        try {
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          console.log(`✅ CSV export completed successfully: ${filename}`);
+        } catch (cleanupError) {
+          console.warn('⚠️ Cleanup warning (non-critical):', cleanupError);
+        }
+      }, 100);
+
+      // Optional: Show success feedback (could use toast instead of alert)
+      // alert(`CSV exported successfully: ${filename}`);
+
+    } catch (error) {
+      console.error('❌ Error exporting assessment data to CSV:', error);
+      alert('Failed to export CSV. Please try again or contact support if the issue persists.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar />
@@ -209,7 +310,11 @@ const Assess = (): JSX.Element => {
                       <option value="Refactor">Refactor</option>
                       <option value="Retire">Retire</option>
                     </select>
-                    <button className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 flex items-center space-x-2">
+                    <button
+                      onClick={exportAssessmentDataToCSV}
+                      className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 flex items-center space-x-2 transition-colors duration-200"
+                      title={`Export ${filteredData.length} assessment records to CSV`}
+                    >
                       <Download className="h-4 w-4" />
                       <span>Download CSV</span>
                     </button>
