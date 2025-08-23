@@ -1,19 +1,19 @@
 """
-Assessment Flow Models - Modularized Import
+Assessment Flow Models Package
 
-This file maintains backward compatibility by importing all models from
-the modularized assessment_flow package.
+This package provides a complete set of models for the assessment flow system,
+organized by functionality for better maintainability and code organization.
 
-The models have been organized into separate modules for better maintainability:
-- Core models: AssessmentFlow, EngagementArchitectureStandard
-- Component models: ApplicationComponent, ComponentTreatment, etc.
-- Analysis models: TechDebtAnalysis, SixRDecision, etc.
-- In-memory models: AssessmentFlowState, etc.
-- Enums and exceptions: All shared constants and exceptions
+Modules:
+- enums_and_exceptions: Shared enums and exceptions
+- in_memory_models: In-memory state models for CrewAI integration
+- core_models: Primary database models (AssessmentFlow, EngagementArchitectureStandard)
+- component_models: Component-related models (ApplicationComponent, etc.)
+- analysis_models: Analysis models (TechDebtAnalysis, SixRDecision, etc.)
 """
 
-# Import all models from the modularized package
-from .assessment_flow import (
+# Import all enums and exceptions
+from .enums_and_exceptions import (
     AssessmentFlowStatus,
     AssessmentPhase,
     AssessmentStatus,
@@ -22,19 +22,35 @@ from .assessment_flow import (
     TechDebtSeverity,
     AssessmentFlowError,
     CrewExecutionError,
+)
+
+# Import in-memory models
+from .in_memory_models import (
     InMemorySixRDecision,
     AssessmentFlowState,
+)
+
+# Import core database models
+from .core_models import (
     AssessmentFlow,
     EngagementArchitectureStandard,
+)
+
+# Import component models
+from .component_models import (
     ApplicationArchitectureOverride,
     ApplicationComponent,
     ComponentTreatment,
+)
+
+# Import analysis models
+from .analysis_models import (
     TechDebtAnalysis,
     SixRDecision,
     AssessmentLearningFeedback,
 )
 
-# Ensure backward compatibility by re-exporting everything
+# Export all classes for easy import
 __all__ = [
     # Enums and exceptions
     "AssessmentFlowStatus",

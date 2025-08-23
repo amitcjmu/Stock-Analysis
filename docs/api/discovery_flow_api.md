@@ -1,8 +1,16 @@
-# Discovery Flow API Documentation
+# Discovery Flow API Documentation (MFO-Integrated)
 
 ## 📋 **Overview**
 
-The Discovery Flow API provides comprehensive endpoints for managing the AI-powered cloud migration discovery process using CrewAI crews with hierarchical agent management, shared memory, and cross-crew collaboration.
+The Discovery Flow API provides comprehensive endpoints for managing the AI-powered cloud migration discovery process using CrewAI crews with hierarchical agent management, shared memory, and cross-crew collaboration. **ALL operations now use master_flow_id as the primary identifier and are coordinated through the Master Flow Orchestrator (MFO).**
+
+## 🎯 **CRITICAL: MFO Integration**
+
+**Key Changes:**
+- **Primary Identifier:** `master_flow_id` is used for ALL Discovery flow operations
+- **Unified Endpoints:** Flow lifecycle operations use `/api/v1/master-flows/*` endpoints  
+- **MFO Coordination:** All flow management goes through Master Flow Orchestrator
+- **Child Flow IDs:** Internal implementation details only - never exposed in APIs
 
 ## 🏗️ **Architecture Overview**
 
@@ -37,11 +45,71 @@ All endpoints require:
 - **Authorization Header**: `Bearer {jwt_token}`
 - **Client Account Header**: `X-Client-Account-ID: {client_account_id}`
 
-## 📊 **Discovery Flow Endpoints**
+## 📊 **Discovery Flow Endpoints (MFO-Aligned)**
 
-### **1. Flow Initialization**
+### **1. Flow Lifecycle Operations (Through MFO)**
 
-#### `POST /discovery/flow/initialize`
+#### `POST /api/v1/master-flows`
+
+Create a new Discovery Flow through the Master Flow Orchestrator.
+
+**Request Body:**
+```json
+{
+  "flow_type": "discovery",
+  "client_account_id": "string",
+  "engagement_id": "string", 
+  "user_id": "string",
+  "configuration": {
+    "data_source": "cmdb_import|csv_upload|api_integration",
+    "data_preview": [...],
+    "enable_field_mapping": true,
+    "enable_data_cleansing": true,
+    "enable_inventory_building": true,
+    "enable_dependency_analysis": true,
+    "enable_technical_debt_analysis": true
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "master_flow_id": "550e8400-e29b-41d4-a716-446655440000",
+  "flow_type": "discovery", 
+  "status": "initialized",
+  "current_phase": "data_import",
+  "created_at": "2025-01-15T10:00:00Z"
+}
+```
+
+#### `GET /api/v1/master-flows/{master_flow_id}/status`
+
+Get comprehensive flow status using master_flow_id.
+
+#### `POST /api/v1/master-flows/{master_flow_id}/execute`
+
+Execute next phase or specific phase through MFO.
+
+#### `POST /api/v1/master-flows/{master_flow_id}/pause`
+
+Pause the Discovery flow.
+
+#### `POST /api/v1/master-flows/{master_flow_id}/resume`
+
+Resume a paused Discovery flow.
+
+#### `DELETE /api/v1/master-flows/{master_flow_id}`
+
+Delete the Discovery flow.
+
+### **2. Discovery-Specific Operations (Using master_flow_id)**
+
+#### `POST /api/v1/unified-discovery/flow/{master_flow_id}/execute`
+
+Execute Discovery flow phases with master_flow_id.
+
+**Original Endpoint Documentation (Updated for MFO):**
 
 Initialize a new Discovery Flow session with comprehensive planning.
 

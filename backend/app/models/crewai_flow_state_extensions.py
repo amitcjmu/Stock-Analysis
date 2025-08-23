@@ -214,6 +214,14 @@ class CrewAIFlowStateExtensions(Base):
         cascade="all, delete-orphan",
     )
 
+    assessment_flows = relationship(
+        "AssessmentFlow",
+        foreign_keys="AssessmentFlow.master_flow_id",
+        primaryjoin="CrewAIFlowStateExtensions.flow_id == AssessmentFlow.master_flow_id",
+        back_populates="master_flow",
+        cascade="all, delete-orphan",
+    )
+
     data_imports = relationship(
         "DataImport",
         foreign_keys="DataImport.master_flow_id",

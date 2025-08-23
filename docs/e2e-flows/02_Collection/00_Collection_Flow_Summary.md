@@ -1,22 +1,36 @@
-# E2E Flow: 04 - Collection
+# E2E Flow: Collection Phase
 
-This document outlines the end-to-end user and data flow for the **Collection** phase of the migration process.
+This document outlines the end-to-end user and data flow for the **Collection** phase of the migration process, which is fully integrated with the Master Flow Orchestrator (MFO) architecture.
 
 ## 1. Objective
 
 The primary objective of the Collection flow is to gather detailed information about the assets identified during the **Discovery** phase. This involves a combination of automated data collection, manual data entry through adaptive forms, and bulk data uploads. The goal is to enrich the asset inventory with the necessary details to perform a comprehensive assessment.
 
-## 2. API Call Summary
+## 🏗️ MFO Integration Architecture
 
-| # | Method | Endpoint                              | Trigger                               | Description                                      |
-|---|--------|---------------------------------------|---------------------------------------|--------------------------------------------------|
-| 1 | `POST` | `/collection/flows`                   | User selects a collection method.     | Creates a new collection flow.                   |
-| 2 | `GET`  | `/collection/flows`                   | Loading the collection progress page. | Fetches all collection flows.                    |
-| 3 | `GET`  | `/collection/flows/{flow_id}`         | Viewing details of a specific flow.   | Fetches a single collection flow.                |
-| 4 | `POST` | `/collection/flows/{flow_id}/start`   | User action to start a paused flow.   | Starts or resumes a collection flow.             |
-| 5 | `POST` | `/collection/flows/{flow_id}/complete`| Automatic, upon flow completion.      | Marks a collection flow as complete.             |
-| 6 | `GET`  | `/collection/questionnaires/{flow_id}`| Adaptive forms page loads.            | Fetches the questionnaire for a flow.            |
-| 7 | `POST` | `/collection/questionnaires/{flow_id}`| User submits a form.                  | Submits answers to a questionnaire.              |
+The Collection flow follows the **Master Flow Orchestrator** pattern:
+
+- **Primary Identifier**: `master_flow_id` is used for ALL Collection operations
+- **Unified Management**: ALL flow operations (create, resume, pause, delete) go through MFO
+- **API Pattern**: Uses `/api/v1/master-flows/*` for flow lifecycle operations
+- **Internal Implementation**: Collection-specific data stored in child tables but accessed via master_flow_id
+
+## 2. API Call Summary (MFO-Aligned)
+
+| # | Method | Endpoint                                           | Trigger                               | Description                                      |
+|---|--------|----------------------------------------------------|---------------------------------------|--------------------------------------------------|
+| 1 | `POST` | `/api/v1/master-flows`                            | User initiates collection flow.      | Creates a new collection flow via MFO.          |
+| 2 | `GET`  | `/api/v1/master-flows/active?type=collection`     | Loading the collection progress page. | Fetches all active collection flows.            |
+| 3 | `GET`  | `/api/v1/master-flows/{master_flow_id}`           | Viewing details of a specific flow.   | Fetches a single collection flow by master ID.  |
+| 4 | `POST` | `/api/v1/master-flows/{master_flow_id}/resume`    | User action to start a paused flow.   | Resumes a collection flow via MFO.              |
+| 5 | `POST` | `/api/v1/master-flows/{master_flow_id}/complete`  | Automatic, upon flow completion.      | Marks a collection flow as complete via MFO.    |
+| 6 | `GET`  | `/api/v1/collection/questionnaires/{master_flow_id}` | Adaptive forms page loads.         | Fetches questionnaire using master_flow_id.     |
+| 7 | `POST` | `/api/v1/collection/questionnaires/{master_flow_id}` | User submits a form.               | Submits answers using master_flow_id.           |
+
+**Key Changes:**
+- All flow lifecycle operations use `/api/v1/master-flows/*` endpoints
+- Collection-specific operations use `master_flow_id` as the identifier
+- No direct references to child flow IDs in public APIs
 
 ## 3. Directory Structure
 

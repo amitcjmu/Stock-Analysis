@@ -15,7 +15,9 @@ logger = logging.getLogger(__name__)
 ENDPOINT_MIGRATION_MAP: Dict[str, str] = {
     "/api/v1/discovery/flows/active": "/api/v1/unified-discovery/flows/active",
     "/api/v1/discovery/flows/{flow_id}/status": "/api/v1/unified-discovery/flows/{flow_id}/status",
-    "/api/v1/discovery/flows/{flow_id}/clarifications/submit": "/api/v1/unified-discovery/flows/{flow_id}/clarifications/submit",
+    "/api/v1/discovery/flows/{flow_id}/clarifications/submit": (
+        "/api/v1/unified-discovery/flows/{flow_id}/clarifications/submit"
+    ),
     "/api/v1/discovery/flows/{flow_id}/data-cleansing": "/api/v1/unified-discovery/flows/{flow_id}/data-cleansing",
     "/api/v1/discovery/flows/{flow_id}/field-mappings": "/api/v1/unified-discovery/flows/{flow_id}/field-mappings",
     "/api/v1/discovery/flow/{flow_id}/resume": "/api/v1/unified-discovery/flow/{flow_id}/resume",

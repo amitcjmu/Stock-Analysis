@@ -66,7 +66,10 @@ def _validate_payload_size(payload: Dict[str, Any]) -> None:
         if payload_size > max_size:
             raise HTTPException(
                 status_code=413,
-                detail=f"Payload size ({payload_size} bytes) exceeds maximum allowed size ({max_size} bytes)",
+                detail=(
+                    f"Payload size ({payload_size} bytes) exceeds maximum "
+                    f"allowed size ({max_size} bytes)"
+                ),
             )
     except (TypeError, ValueError) as e:
         raise HTTPException(status_code=400, detail=f"Invalid payload format: {str(e)}")
@@ -271,7 +274,9 @@ async def _handle_update_applications_action(
     if not selected_application_ids:
         raise HTTPException(
             status_code=400,
-            detail="selected_application_ids is required for update_applications action",
+            detail=(
+                "selected_application_ids is required for " "update_applications action"
+            ),
         )
 
     # Validate that all selected applications exist and belong to this engagement
@@ -363,7 +368,8 @@ async def submit_questionnaire_response(
 
         questionnaire: AdaptiveQuestionnaire | None = None
 
-        # Attempt to treat questionnaire_id as UUID; if invalid, fall back to ephemeral storage
+        # Attempt to treat questionnaire_id as UUID; if invalid, fall back to
+        # ephemeral storage
         questionnaire_uuid: UUID | None = None
         try:
             questionnaire_uuid = UUID(questionnaire_id)
@@ -405,7 +411,8 @@ async def submit_questionnaire_response(
             questionnaire.updated_at = datetime.now(timezone.utc)
             await db.commit()
         else:
-            # Ephemeral questionnaire (e.g., bootstrap_...): persist into flow phase_state
+            # Ephemeral questionnaire (e.g., bootstrap_...): persist into flow
+            # phase_state
             await _save_ephemeral_submission(
                 collection_flow, questionnaire_id, responses, current_user, db
             )

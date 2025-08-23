@@ -64,7 +64,7 @@ class ServiceInitializer:
         self.questionnaire_generator = AdaptiveQuestionnaireGenerator()
 
         # Initialize manual collection services
-        self.adaptive_form_service = AdaptiveFormService(self.db_session, self.context)
+        self.adaptive_form_service = AdaptiveFormService()
         self.bulk_data_service = BulkDataService(self.db_session, self.context)
         self.validation_service = ValidationService()
         self.template_service = TemplateService(self.db_session, self.context)

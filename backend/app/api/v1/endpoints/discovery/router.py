@@ -3,7 +3,7 @@ Discovery flow endpoints for managing discovery workflows.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -17,10 +17,9 @@ from app.utils.endpoint_migration_logger import endpoint_migration_warning
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.flow_state import CrewAIFlowStateExtension
 from app.services.flow_service import FlowService
-from app.api.v1.api_tags import APITags
 
 logger = logging.getLogger(__name__)
-router = APIRouter(tags=[APITags.DISCOVERY])
+router = APIRouter()
 
 
 @router.get("/flows/active")
@@ -113,7 +112,8 @@ async def get_active_discovery_flows(
             flow_data.append(flow_dict)
 
         logger.warning(
-            f"LEGACY ENDPOINT USED: /discovery/flows/active by user {current_user.id} - Consider migrating to /unified-discovery/flows/active"
+            f"LEGACY ENDPOINT USED: /discovery/flows/active by user {current_user.id} - "
+            f"Consider migrating to /unified-discovery/flows/active"
         )
         logger.info(
             f"Found {len(flow_data)} active discovery flows for user {current_user.id}"
