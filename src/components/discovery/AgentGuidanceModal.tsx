@@ -63,10 +63,13 @@ export const AgentGuidanceModal: React.FC<AgentGuidanceModalProps> = ({
     }
 
     if (routingContext?.target_page) {
+      const phaseLabel = routingContext?.phase
+        ? routingContext.phase.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+        : 'Next Step';
       return (
         <Button onClick={handleNavigate} className="gap-2">
           <ChevronRight className="h-4 w-4" />
-          Continue to {routingContext.phase?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+          Continue to {phaseLabel}
         </Button>
       );
     }

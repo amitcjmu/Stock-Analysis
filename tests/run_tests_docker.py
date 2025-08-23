@@ -190,13 +190,15 @@ class DockerTestRunner:
             "python -m pytest \"$TEST_DIR\" -v --tb=short -x --disable-warnings'"
         )
 
-        cmd = ["docker", "exec", "-i", "migration_backend", "bash", "-lc",
-               "set -e; "
-               "if [ -d backend/tests ]; then TEST_DIR=backend/tests; "
-               "elif [ -d tests/backend ]; then TEST_DIR=tests/backend; "
-               "elif [ -d tests ]; then TEST_DIR=tests; "
-               "else echo 'No tests directory found (checked backend/tests, tests/backend, tests)' >&2; exit 2; fi; "
-               "python -m pytest \"$TEST_DIR\" -v --tb=short -x --disable-warnings"
+        cmd = [
+            "docker", "exec", "-T", "migration_backend", "--",
+            "bash", "-lc",
+            "set -e; "
+            "if [ -d backend/tests ]; then TEST_DIR=backend/tests; "
+            "elif [ -d tests/backend ]; then TEST_DIR=tests/backend; "
+            "elif [ -d tests ]; then TEST_DIR=tests; "
+            "else echo 'No tests directory found (checked backend/tests, tests/backend, tests)' >&2; exit 2; fi; "
+            "python -m pytest \"$TEST_DIR\" -v --tb=short -x --disable-warnings"
         ]
 
         try:

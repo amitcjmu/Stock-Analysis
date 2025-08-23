@@ -88,21 +88,23 @@ export const FlowResumptionHandler: React.FC<FlowResumptionHandlerProps> = ({ ch
   });
 
   const handleNavigation = (data: FlowContinuationResponse, flowId: string) => {
-    if (data.routing_context) {
-      navigate(data.routing_context.target_page);
-    } else if (data.current_phase) {
-      const route = getDiscoveryPhaseRoute(data.current_phase, flowId);
-      navigate(route);
-    } else {
-      const route = getDiscoveryPhaseRoute('field_mapping', flowId);
-      navigate(route);
+    const target = data.routing_context?.target_page || data.routing_context?.recommended_page;
+    if (target) {
+      navigate(target);
+      return;
     }
+    if (data.current_phase) {
+      navigate(getDiscoveryPhaseRoute(data.current_phase, flowId));
+      return;
+    }
+    navigate(getDiscoveryPhaseRoute('field_mapping', flowId));
   };
 
   const handleCloseGuidance = () => {
     // Navigate after closing if we have routing context
-    if (guidanceState.routingContext) {
-      navigate(guidanceState.routingContext.target_page);
+    const target = guidanceState.routingContext?.target_page || guidanceState.routingContext?.recommended_page;
+    if (target) {
+      navigate(target);
     }
 
     // Clear the guidance state

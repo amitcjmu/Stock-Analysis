@@ -46,8 +46,7 @@ export function useFlowUpdates(
   disconnect: () => void;
   reconnect: () => void;
 } {
-  const { user, client, engagement } = useAuth();
-  const token = user?.id; // Use user.id as token fallback
+  const { token, user, client, engagement } = useAuth();
   const [state, setState] = useState<UseFlowUpdatesState>({
     data: null,
     isLoading: true,
@@ -79,7 +78,7 @@ export function useFlowUpdates(
   // Build headers with auth and tenant context
   const getHeaders = useCallback(() => {
     const headers: HeadersInit = {
-      'Authorization': `Bearer ${token}`,
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       'X-Client-Account-ID': client?.id?.toString() || '',
       'X-Engagement-ID': engagement?.id?.toString() || '',
     };
