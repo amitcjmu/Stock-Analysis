@@ -1,46 +1,57 @@
-# Discovery Flow Complete Architecture
+# Discovery Flow Complete Architecture (MFO-Integrated)
 
 ## Executive Summary
 
-The Discovery Flow is a complex, multi-phase process that transforms uploaded CMDB data into a complete asset inventory with dependencies, ready for assessment. This document consolidates the complete architecture showing data flow, sequence of operations, state management, and controller hierarchy.
+The Discovery Flow is a complex, multi-phase process that transforms uploaded CMDB data into a complete asset inventory with dependencies, ready for assessment. This document consolidates the complete architecture showing data flow, sequence of operations, state management, and controller hierarchy, all integrated with the **Master Flow Orchestrator (MFO)** architecture.
+
+## 🎯 Critical: MFO Integration
+
+**ALL Discovery Flow operations now use master_flow_id as the primary identifier:**
+- Flow creation, execution, pause, resume, and deletion go through MFO
+- Child flow IDs are internal implementation details only
+- APIs and UI components exclusively reference master_flow_id
+- MFO provides unified flow lifecycle management across all flow types
 
 ## Architecture Overview
 
-### System Layers
+### System Layers (MFO-Centralized)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     Frontend (React)                         │
+│                Frontend (React) - Uses master_flow_id        │
 ├─────────────────────────────────────────────────────────────┤
-│                   API Gateway (FastAPI)                      │
+│            API Gateway (FastAPI) - MFO Endpoints             │
 ├─────────────────────────────────────────────────────────────┤
-│              Master Flow Orchestrator (MFO)                  │
+│       🎯 Master Flow Orchestrator (MFO) - CENTRAL HUB        │
+│            master_flow_id as PRIMARY IDENTIFIER              │
 ├─────────────────────────────────────────────────────────────┤
 │        Discovery Flow Components │ CrewAI Integration        │
+│          (Coordinated by MFO)     │  (master_flow_id)        │
 ├─────────────────────────────────────────────────────────────┤
 │              Service Layer │ Phase Executors                 │
+│            (MFO-managed)   │  (master_flow_id context)       │
 ├─────────────────────────────────────────────────────────────┤
-│                  PostgreSQL Database                         │
+│     PostgreSQL Database (master_flow_id relationships)       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## Complete Data Flow Path
 
-### 1. File Upload → Flow Initialization
+### 1. File Upload → Flow Initialization (MFO-Managed)
 ```
-User → CMDBImport → UploadBlocker → API Gateway → DataImportService → MFO → UnifiedDiscoveryFlow → PostgreSQL
-```
-
-### 2. Phase Progression
-```
-MFO → Phase Executor → Service Layer → Database → MFO → UI Update
+User → CMDBImport → API → DataImportService → MFO.create_flow() → master_flow_id → PostgreSQL
 ```
 
-### 3. State Synchronization
+### 2. Phase Progression (MFO-Coordinated)  
 ```
-MFO → discovery_flows table
-MFO → crewai_flow_state_extensions table
-MFO → State Reconciliation → UI
+MFO.execute_phase(master_flow_id) → Phase Executor → Service Layer → Database → MFO → UI Update
+```
+
+### 3. State Synchronization (master_flow_id-centric)
+```
+MFO (master_flow_id) → crewai_flow_state_extensions (primary)
+MFO (master_flow_id) → discovery_flows (child table)
+MFO → State Reconciliation → UI (using master_flow_id)
 ```
 
 ## Controllers and Orchestration

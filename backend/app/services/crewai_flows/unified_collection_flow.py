@@ -2,7 +2,8 @@
 Unified Collection Flow - CrewAI Implementation
 
 This module implements the main CollectionFlow using CrewAI Flow patterns,
-following the same architecture as UnifiedDiscoveryFlow with PostgreSQL-only persistence.
+following the same architecture as UnifiedDiscoveryFlow with PostgreSQL-only
+persistence.
 
 The Collection Flow handles adaptive data collection for migration readiness and:
 1. Detects platforms in the environment
@@ -65,7 +66,7 @@ from app.services.crewai_flows.handlers.unified_flow_management import (  # noqa
 )
 
 # Import modularized components
-from app.services.crewai_flows.unified_collection_flow_modules import (  # Phase handlers  # noqa: E402
+from app.services.crewai_flows.unified_collection_flow_modules import (  # noqa: E402
     AutomatedCollectionHandler,
     FinalizationHandler,
     FlowContext,

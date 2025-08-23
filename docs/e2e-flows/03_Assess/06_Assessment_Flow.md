@@ -1,15 +1,30 @@
 
-# Data Flow Analysis Report: Assessment Flow Page
+# Assessment Flow: MFO-Integrated Data Flow Analysis
 
-This document provides a complete, end-to-end data flow analysis for the active `Assessment Flow` pages of the AI Modernize Migration Platform.
+This document provides a complete, end-to-end data flow analysis for the Assessment Flow, which is fully integrated with the Master Flow Orchestrator (MFO) architecture.
 
-**Analysis Date:** 2024-07-29
+**Last Updated:** 2025-08-23  
+**MFO Integration Status:** Complete
 
-**Assumptions:**
-*   The analysis is based on the `AssessmentFlowLayout.tsx` component and its core hook, `useAssessmentFlow`.
-*   This is a mature feature with a full suite of API interactions.
-*   The platform operates entirely within a Docker environment.
-*   All API calls require authentication and multi-tenant context headers.
+## 🏗️ MFO Integration Overview
+
+The Assessment Flow now follows the **Master Flow Orchestrator** architecture:
+
+- **Primary Identifier**: `master_flow_id` is used for ALL Assessment flow operations
+- **Unified API Pattern**: All flow lifecycle operations use `/api/v1/master-flows/*` endpoints  
+- **MFO Coordination**: Assessment flows are created, managed, and executed through MFO
+- **Internal Implementation**: Assessment-specific data linked via master_flow_id
+
+**Key Architectural Change:**
+All Assessment flow operations now go through MFO, with `master_flow_id` as the primary identifier. Child flow IDs are internal implementation details only.
+
+**Analysis Date:** 2024-07-29 (Updated for MFO: 2025-08-23)
+
+**Current Assumptions:**
+*   The Assessment Flow is integrated with Master Flow Orchestrator (MFO)
+*   All flow operations use `master_flow_id` as the primary identifier
+*   The platform operates entirely within a Docker environment
+*   All API calls require authentication and multi-tenant context headers
 
 ---
 
@@ -21,18 +36,23 @@ The Assessment Flow is a multi-step, orchestrated process that guides the user t
 *   **Layout Component:** `src/components/assessment/AssessmentFlowLayout.tsx`
 *   **Core Logic Hook:** `useAssessmentFlow.ts` - This hook contains a complete, handcrafted API client and state machine for managing the assessment flow.
 
-### API Call Summary
+### API Call Summary (MFO-Aligned)
 
 | # | Method | Endpoint                                                 | Trigger                               | Description                                         |
 |---|--------|----------------------------------------------------------|---------------------------------------|-----------------------------------------------------|
-| 1 | `POST` | `/api/v1/assessment-flow/initialize`                     | `initializeFlow` action.              | Starts a new assessment flow.                       |
-| 2 | `GET`  | `/api/v1/assessment-flow/{id}/status`                    | Polling within the hook.              | Fetches the current state of the flow.              |
-| 3 | `POST` | `/api/v1/assessment-flow/{id}/resume`                    | `resumeFlow` action.                  | Sends user input to a paused flow.                  |
-| 4 | `POST` | `/api/v1/assessment-flow/{id}/navigate`                  | `navigateToPhase` action.             | Moves the flow to a specific phase.                 |
-| 5 | `PUT`  | `/api/v1/assessment-flow/{id}/architecture-standards`    | `updateArchitectureStandards` action. | Saves changes to architecture standards.            |
-| 6 | `PUT`  | `/api/v1/assessment-flow/{id}/applications/{appId}/components` | `updateApplicationComponents` action. | Saves changes to an application's components.       |
-| 7 | `PUT`  | `/api/v1/assessment-flow/{id}/applications/{appId}/sixr-decision` | `updateSixRDecision` action.      | Saves changes to a 6R decision.                     |
-| 8 | `POST` | `/api/v1/assessment-flow/{id}/finalize`                  | `finalizeAssessment` action.          | Finalizes the assessment and marks it as complete.  |
+| 1 | `POST` | `/api/v1/master-flows`                                  | `initializeFlow` action.              | Creates a new assessment flow via MFO.             |
+| 2 | `GET`  | `/api/v1/master-flows/{master_flow_id}/status`          | Polling within the hook.              | Fetches current flow state using master_flow_id.   |
+| 3 | `POST` | `/api/v1/master-flows/{master_flow_id}/resume`          | `resumeFlow` action.                  | Resumes flow with user input via MFO.              |
+| 4 | `POST` | `/api/v1/master-flows/{master_flow_id}/execute`         | `navigateToPhase` action.             | Executes specific phase via MFO.                   |
+| 5 | `PUT`  | `/api/v1/assessment/{master_flow_id}/architecture-standards`    | `updateArchitectureStandards` action. | Saves architecture standards using master_flow_id. |
+| 6 | `PUT`  | `/api/v1/assessment/{master_flow_id}/applications/{appId}/components` | `updateApplicationComponents` action. | Updates components using master_flow_id.          |
+| 7 | `PUT`  | `/api/v1/assessment/{master_flow_id}/applications/{appId}/sixr-decision` | `updateSixRDecision` action.      | Updates 6R decisions using master_flow_id.        |
+| 8 | `POST` | `/api/v1/master-flows/{master_flow_id}/complete`        | `finalizeAssessment` action.          | Finalizes assessment and completes flow via MFO.   |
+
+**Key Changes:**
+- Flow lifecycle operations (create, status, resume, execute, complete) now use MFO endpoints
+- Assessment-specific operations use `master_flow_id` as the primary identifier
+- All operations coordinate through MFO for unified flow management
 
 ---
 

@@ -132,7 +132,8 @@ async def execute_collection_flow(
 
         logger.info(
             safe_log_format(
-                "Executing phase {phase} for collection flow {flow_id} using MFO flow {mfo_id}",
+                "Executing phase {phase} for collection flow {flow_id} "
+                "using MFO flow {mfo_id}",
                 phase=current_phase,
                 flow_id=flow_id,
                 mfo_id=execute_flow_id,
@@ -199,7 +200,7 @@ async def continue_flow(
             if collection_flow.master_flow_id
             else flow_id
         )
-        
+
         result = await collection_utils.resume_mfo_flow(
             db, context, resume_flow_id, resume_context or {}
         )

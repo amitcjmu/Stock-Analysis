@@ -16,23 +16,65 @@ async def assessment_initialization(
     flow_id: str, flow_type: str, context: Dict[str, Any], **kwargs
 ) -> Dict[str, Any]:
     """
-    Initialize assessment flow
+    Initialize assessment flow and create UnifiedAssessmentFlow instance
 
     Sets up:
     - Assessment framework
     - Scoring configurations
     - Analysis parameters
+    - Creates UnifiedAssessmentFlow instance for CrewAI execution
     """
     try:
-        logger.info(f"Initializing assessment flow {flow_id}")
+        logger.info(f"Initializing assessment flow {flow_id} with MFO integration")
 
         config = kwargs.get("configuration", {})
-        kwargs.get("initial_state", {})
+        initial_data = kwargs.get("initial_data", {})
+
+        # Extract assessment-specific data from initial_data
+        service_instance = initial_data.get("service_instance")
+        selected_application_ids = initial_data.get("selected_application_ids", [])
+        flow_name = initial_data.get("flow_name", f"Assessment Flow {flow_id}")
+
+        crewai_flow = None
+        if service_instance and selected_application_ids:
+            try:
+                # Create the actual UnifiedAssessmentFlow instance
+                from app.services.crewai_flows.unified_assessment_flow import (
+                    create_unified_assessment_flow,
+                )
+
+                # Create request context from service instance context
+                request_context = service_instance.context
+
+                crewai_flow = create_unified_assessment_flow(
+                    crewai_service=service_instance,
+                    context=request_context,
+                    selected_application_ids=selected_application_ids,
+                    master_flow_id=flow_id,
+                    flow_id=flow_id,
+                    flow_name=flow_name,
+                    configuration=config,
+                )
+
+                # Store in service instance for later access
+                if hasattr(service_instance, "_active_flows"):
+                    service_instance._active_flows[flow_id] = crewai_flow
+
+                logger.info(f"UnifiedAssessmentFlow instance created for {flow_id}")
+
+            except Exception as e:
+                logger.error(
+                    f"Failed to create UnifiedAssessmentFlow for {flow_id}: {e}"
+                )
+                # Continue with basic initialization if CrewAI flow creation fails
 
         initialization_result = {
             "initialized": True,
             "flow_id": flow_id,
+            "master_flow_id": flow_id,  # For MFO integration
             "initialization_time": datetime.utcnow().isoformat(),
+            "crewai_flow_created": crewai_flow is not None,
+            "selected_applications_count": len(selected_application_ids),
             "assessment_config": {
                 "assessment_depth": config.get("assessment_depth", "comprehensive"),
                 "confidence_threshold": config.get("confidence_threshold", 0.85),

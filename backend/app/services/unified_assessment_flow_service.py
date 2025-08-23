@@ -13,20 +13,17 @@ Key responsibilities:
 - Delegate to real CrewAI agents for assessment intelligence
 """
 
-import asyncio
 import logging
-import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.models.assessment_flow import AssessmentStatus
 from app.services.crewai_flows.unified_assessment_flow import (
     UnifiedAssessmentFlow,
-    create_unified_assessment_flow,
 )
+from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 # from app.services.crewai_flows.persistence.postgres_store import PostgresStore  # Handled by master orchestrator
 
@@ -39,352 +36,247 @@ class AssessmentFlowService:
 
     This service provides the interface between the Master Flow Orchestrator
     and the actual CrewAI UnifiedAssessmentFlow implementation.
+
+    Updated to properly integrate with MFO instead of managing flows in memory.
     """
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession, context: RequestContext):
         """Initialize the assessment flow service"""
         self.db = db
+        self.context = context
+        # DEPRECATED: Legacy _active_flows for backward compatibility during migration
+        # TODO: Remove once all callers updated to use MFO directly
         self._active_flows: Dict[str, UnifiedAssessmentFlow] = {}
-        logger.info("✅ Assessment Flow Service initialized")
+        logger.info("✅ Assessment Flow Service initialized with MFO integration")
 
     async def create_assessment_flow(
         self,
-        context: RequestContext,
         selected_application_ids: List[str],
         flow_name: Optional[str] = None,
         configuration: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        Create a new assessment flow
+        Create a new assessment flow through Master Flow Orchestrator
 
         Args:
-            context: Request context with tenant information
             selected_application_ids: Applications from Discovery inventory to assess
             flow_name: Optional human-readable name for the flow
             configuration: Optional flow configuration
 
         Returns:
-            Dictionary with flow_id and initial status
+            Dictionary with master_flow_id and initial status
         """
         try:
-            # Generate unique flow ID
-            flow_id = f"assess_{str(uuid.uuid4())[:8]}"
-
             logger.info(
-                f"🚀 Creating assessment flow {flow_id} for {len(selected_application_ids)} applications"
+                f"🚀 Creating assessment flow for {len(selected_application_ids)} applications through MFO"
             )
 
-            # Create the UnifiedAssessmentFlow instance
-            assessment_flow = create_unified_assessment_flow(
-                crewai_service=self,  # Pass self as the service
-                context=context,
-                selected_application_ids=selected_application_ids,
-                flow_id=flow_id,
-                flow_name=flow_name or f"Assessment Flow {flow_id}",
+            # Prepare initial data for the assessment flow
+            initial_data = {
+                "selected_application_ids": selected_application_ids,
+                "flow_name": flow_name
+                or f"Assessment Flow - {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}",
+                "configuration": configuration or {},
+                "service_instance": self,  # Pass service reference for CrewAI flow creation
+            }
+
+            # Initialize through Master Flow Orchestrator
+            orchestrator = MasterFlowOrchestrator(self.db, self.context)
+
+            master_flow_id, flow_details = await orchestrator.create_flow(
+                flow_type="assessment",
+                flow_name=flow_name
+                or f"Assessment Flow - {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}",
                 configuration=configuration or {},
+                initial_data=initial_data,
             )
 
-            # Store the active flow
-            self._active_flows[flow_id] = assessment_flow
-
-            # Start the assessment flow in background
-            logger.info(f"🎯 Starting CrewAI Assessment Flow kickoff for {flow_id}")
-
-            async def run_assessment_flow():
-                try:
-                    # Start with initialization
-                    await assessment_flow.initialize_assessment()
-                    logger.info(
-                        f"✅ Assessment Flow {flow_id} initialized successfully"
-                    )
-
-                except Exception as e:
-                    logger.error(f"❌ Assessment Flow {flow_id} execution failed: {e}")
-                    # Update flow state to failed
-                    if hasattr(assessment_flow, "state") and assessment_flow.state:
-                        assessment_flow.state.status = AssessmentStatus.FAILED
-                        assessment_flow.state.add_error("execution", str(e))
-                        await assessment_flow.postgres_store.save_flow_state(
-                            assessment_flow.state
-                        )
-
-            # Create the task but don't await it - let it run in background
-            asyncio.create_task(run_assessment_flow())
             logger.info(
-                f"🚀 Assessment Flow {flow_id} task created and running in background"
+                f"✅ Assessment flow registered with MFO: master_flow_id={master_flow_id}"
             )
 
             return {
-                "flow_id": flow_id,
+                "master_flow_id": str(master_flow_id),
+                "flow_id": str(master_flow_id),  # For backward compatibility
                 "status": "initialized",
                 "selected_applications": len(selected_application_ids),
                 "created_at": datetime.utcnow().isoformat(),
-                "message": "Assessment flow created and running",
+                "message": "Assessment flow created through Master Flow Orchestrator",
+                "flow_details": flow_details,
             }
 
         except Exception as e:
-            logger.error(f"❌ Failed to create assessment flow: {e}")
+            logger.error(f"❌ Failed to create assessment flow through MFO: {e}")
             raise RuntimeError(f"Assessment flow creation failed: {str(e)}")
 
-    async def get_flow_status(
-        self, flow_id: str, context: RequestContext
-    ) -> Dict[str, Any]:
+    async def get_flow_status(self, master_flow_id: str) -> Dict[str, Any]:
         """
-        Get the current status of an assessment flow
+        Get the current status of an assessment flow through MFO
 
         Args:
-            flow_id: Assessment flow identifier
-            context: Request context for tenant isolation
+            master_flow_id: Master flow identifier from MFO
 
         Returns:
             Dictionary with current flow status and details
         """
         try:
-            logger.info(f"📊 Getting status for assessment flow {flow_id}")
-
-            # Try to get from active flows first
-            if flow_id in self._active_flows:
-                assessment_flow = self._active_flows[flow_id]
-                if hasattr(assessment_flow, "state") and assessment_flow.state:
-                    state = assessment_flow.state
-
-                    return {
-                        "flow_id": flow_id,
-                        "flow_status": (
-                            state.status.value if state.status else "unknown"
-                        ),
-                        "current_phase": (
-                            state.current_phase.value if state.current_phase else None
-                        ),
-                        "progress": state.progress,
-                        "selected_applications": len(state.selected_application_ids),
-                        "apps_ready_for_planning": (
-                            len(state.apps_ready_for_planning)
-                            if state.apps_ready_for_planning
-                            else 0
-                        ),
-                        "phase_results": state.phase_results,
-                        "user_input_required": state.status
-                        == AssessmentStatus.PAUSED_FOR_USER_INPUT,
-                        "pause_points": state.pause_points,
-                        "last_user_interaction": (
-                            state.last_user_interaction.isoformat()
-                            if state.last_user_interaction
-                            else None
-                        ),
-                        "created_at": (
-                            state.created_at.isoformat() if state.created_at else None
-                        ),
-                        "updated_at": (
-                            state.updated_at.isoformat() if state.updated_at else None
-                        ),
-                        "errors": state.errors,
-                    }
-
-            # Try to load from PostgreSQL persistence
-            from app.services.crewai_flows.persistence.postgres_store import (
-                PostgresFlowStateStore,
+            logger.info(
+                f"📊 Getting status for assessment flow {master_flow_id} through MFO"
             )
 
-            PostgresFlowStateStore(self.db, context)
-            try:
-                # This would need to be implemented to load assessment flow state
-                # For now, return not found
-                state = None
-                if state:
-                    return {
-                        "flow_id": flow_id,
-                        "flow_status": (
-                            state.status.value if state.status else "unknown"
-                        ),
-                        "current_phase": (
-                            state.current_phase.value if state.current_phase else None
-                        ),
-                        "progress": state.progress,
-                        "selected_applications": len(state.selected_application_ids),
-                        "apps_ready_for_planning": (
-                            len(state.apps_ready_for_planning)
-                            if state.apps_ready_for_planning
-                            else 0
-                        ),
-                        "phase_results": state.phase_results,
-                        "user_input_required": state.status
-                        == AssessmentStatus.PAUSED_FOR_USER_INPUT,
-                        "pause_points": state.pause_points,
-                        "last_user_interaction": (
-                            state.last_user_interaction.isoformat()
-                            if state.last_user_interaction
-                            else None
-                        ),
-                        "created_at": (
-                            state.created_at.isoformat() if state.created_at else None
-                        ),
-                        "updated_at": (
-                            state.updated_at.isoformat() if state.updated_at else None
-                        ),
-                        "errors": state.errors,
-                    }
-            except Exception as e:
-                logger.warning(f"Could not load flow state from persistence: {e}")
+            # Get status through Master Flow Orchestrator
+            orchestrator = MasterFlowOrchestrator(self.db, self.context)
 
-            # Flow not found
+            # Get comprehensive flow status from MFO
+            flow_status = await orchestrator.get_flow_status(master_flow_id)
+
+            if not flow_status or flow_status.get("status") == "not_found":
+                return {
+                    "master_flow_id": master_flow_id,
+                    "flow_id": master_flow_id,  # For backward compatibility
+                    "flow_status": "not_found",
+                    "message": "Assessment flow not found",
+                }
+
+            # Return MFO status with assessment-specific formatting for backward compatibility
             return {
-                "flow_id": flow_id,
-                "flow_status": "not_found",
-                "message": "Assessment flow not found",
+                "master_flow_id": master_flow_id,
+                "flow_id": master_flow_id,  # For backward compatibility
+                "flow_status": flow_status.get("status", "unknown"),
+                "current_phase": flow_status.get("current_phase"),
+                "progress": flow_status.get("progress", 0),
+                "selected_applications": flow_status.get("metadata", {}).get(
+                    "selected_applications_count", 0
+                ),
+                "apps_ready_for_planning": flow_status.get("metadata", {}).get(
+                    "apps_ready_for_planning", 0
+                ),
+                "phase_results": flow_status.get("phase_results", {}),
+                "user_input_required": flow_status.get("status")
+                == "paused_for_user_input",
+                "pause_points": flow_status.get("pause_points", {}),
+                "last_user_interaction": flow_status.get("last_user_interaction"),
+                "created_at": flow_status.get("created_at"),
+                "updated_at": flow_status.get("updated_at"),
+                "errors": flow_status.get("errors", []),
+                "flow_details": flow_status,  # Include full MFO status
             }
 
         except Exception as e:
-            logger.error(f"❌ Failed to get assessment flow status: {e}")
-            return {"flow_id": flow_id, "flow_status": "error", "error": str(e)}
+            logger.error(f"❌ Failed to get assessment flow status through MFO: {e}")
+            return {
+                "master_flow_id": master_flow_id,
+                "flow_id": master_flow_id,  # For backward compatibility
+                "flow_status": "error",
+                "error": str(e),
+            }
 
     async def resume_flow(
         self,
-        flow_id: str,
+        master_flow_id: str,
         resume_context: Optional[Dict[str, Any]] = None,
-        context: RequestContext = None,
     ) -> Dict[str, Any]:
         """
-        Resume a paused assessment flow with user input
+        Resume a paused assessment flow through MFO
 
         Args:
-            flow_id: Assessment flow identifier
+            master_flow_id: Master flow identifier from MFO
             resume_context: Context and user input for resuming
-            context: Request context for tenant isolation
 
         Returns:
             Dictionary with resume operation result
         """
         try:
-            logger.info(f"🔄 Resuming assessment flow {flow_id}")
+            logger.info(f"🔄 Resuming assessment flow {master_flow_id} through MFO")
 
-            # Get or recreate the assessment flow
-            assessment_flow = self._active_flows.get(flow_id)
+            # Resume flow through Master Flow Orchestrator
+            orchestrator = MasterFlowOrchestrator(self.db, self.context)
 
-            if not assessment_flow:
-                logger.info(
-                    f"Assessment flow {flow_id} not in active flows, attempting to recreate"
-                )
-
-                # Try to load state from persistence and recreate flow
-                from app.services.crewai_flows.persistence.postgres_store import (
-                    PostgresFlowStateStore,
-                )
-
-                PostgresFlowStateStore(self.db, context)
-                # This would need to be implemented to load assessment flow state
-                state = None
-
-                if not state:
-                    raise ValueError(f"Assessment flow {flow_id} not found")
-
-                # Recreate the assessment flow
-                assessment_flow = create_unified_assessment_flow(
-                    crewai_service=self,
-                    context=context,
-                    selected_application_ids=state.selected_application_ids,
-                    flow_id=flow_id,
-                )
-
-                # Restore state
-                assessment_flow.state = state
-                self._active_flows[flow_id] = assessment_flow
-
-            # Get current phase and user input
-            current_phase = assessment_flow.state.current_phase
-
-            # Ensure resume_context is not None
+            # Prepare resume context with assessment-specific data
             if resume_context is None:
                 resume_context = {}
                 logger.info(
-                    f"🔍 resume_context was None for assessment flow {flow_id}, using empty dict"
+                    f"🔍 resume_context was None for assessment flow {master_flow_id}, using empty dict"
                 )
 
-            user_input = resume_context.get("user_input", {})
+            # Resume the flow through MFO
+            resume_result = await orchestrator.resume_flow(
+                master_flow_id, resume_context
+            )
 
-            # Resume from the current phase
-            await assessment_flow.resume_from_phase(current_phase, user_input)
-
-            logger.info(f"✅ Assessment flow {flow_id} resumed successfully")
+            logger.info(
+                f"✅ Assessment flow {master_flow_id} resumed successfully through MFO"
+            )
 
             return {
-                "flow_id": flow_id,
-                "status": "resumed",
-                "current_phase": current_phase.value if current_phase else None,
+                "master_flow_id": master_flow_id,
+                "flow_id": master_flow_id,  # For backward compatibility
+                "status": resume_result.get("status", "resumed"),
+                "current_phase": resume_result.get("current_phase"),
                 "resumed_at": datetime.utcnow().isoformat(),
+                "resume_details": resume_result,
             }
 
         except Exception as e:
-            logger.error(f"❌ Failed to resume assessment flow {flow_id}: {e}")
+            logger.error(
+                f"❌ Failed to resume assessment flow {master_flow_id} through MFO: {e}"
+            )
             raise RuntimeError(f"Assessment flow resume failed: {str(e)}")
 
     async def advance_flow_phase(
         self,
-        flow_id: str,
+        master_flow_id: str,
         next_phase: str,
-        context: RequestContext,
         phase_input: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        Advance assessment flow to a specific phase
+        Advance assessment flow to a specific phase through MFO
 
         Args:
-            flow_id: Assessment flow identifier
+            master_flow_id: Master flow identifier from MFO
             next_phase: Name of the phase to advance to
-            context: Request context for tenant isolation
             phase_input: Optional input data for the phase
 
         Returns:
             Dictionary with advancement result
         """
         try:
-            logger.info(f"⏭️ Advancing assessment flow {flow_id} to phase {next_phase}")
+            logger.info(
+                f"⏭️ Advancing assessment flow {master_flow_id} to phase {next_phase} through MFO"
+            )
 
-            # Get the assessment flow
-            assessment_flow = self._active_flows.get(flow_id)
-            if not assessment_flow:
-                raise ValueError(f"Assessment flow {flow_id} not found in active flows")
+            # Execute phase through Master Flow Orchestrator
+            orchestrator = MasterFlowOrchestrator(self.db, self.context)
 
-            # Map phase names to methods
-            phase_methods = {
-                "architecture_minimums": assessment_flow.capture_architecture_minimums,
-                "tech_debt_analysis": assessment_flow.analyze_technical_debt,
-                "component_sixr_strategies": assessment_flow.determine_component_sixr_strategies,
-                "app_on_page_generation": assessment_flow.generate_app_on_page,
-                "finalization": assessment_flow.finalize_assessment,
-            }
+            # Execute the phase through MFO
+            result = await orchestrator.execute_phase(
+                flow_id=master_flow_id, phase_name=next_phase, phase_input=phase_input
+            )
 
-            phase_method = phase_methods.get(next_phase)
-            if not phase_method:
-                raise ValueError(f"Unknown assessment phase: {next_phase}")
-
-            # Execute the phase
-            result = await phase_method("advanced_to_phase")
-
-            logger.info(f"✅ Assessment flow {flow_id} advanced to {next_phase}")
+            logger.info(
+                f"✅ Assessment flow {master_flow_id} advanced to {next_phase} through MFO"
+            )
 
             return {
-                "flow_id": flow_id,
+                "master_flow_id": master_flow_id,
+                "flow_id": master_flow_id,  # For backward compatibility
                 "phase": next_phase,
-                "status": "completed",
+                "status": result.get("status", "completed"),
                 "result": result,
                 "advanced_at": datetime.utcnow().isoformat(),
             }
 
         except Exception as e:
             logger.error(
-                f"❌ Failed to advance assessment flow {flow_id} to {next_phase}: {e}"
+                f"❌ Failed to advance assessment flow {master_flow_id} to {next_phase} through MFO: {e}"
             )
             raise RuntimeError(f"Phase advancement failed: {str(e)}")
 
-    async def list_active_flows(
-        self, context: RequestContext, limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    async def list_active_flows(self, limit: int = 10) -> List[Dict[str, Any]]:
         """
-        List active assessment flows for the tenant
+        List active assessment flows through MFO
 
         Args:
-            context: Request context for tenant isolation
             limit: Maximum number of flows to return
 
         Returns:
@@ -392,86 +284,99 @@ class AssessmentFlowService:
         """
         try:
             logger.info(
-                f"📋 Listing active assessment flows for tenant {context.client_account_id}"
+                f"📋 Listing active assessment flows for tenant {self.context.client_account_id} through MFO"
             )
 
-            active_flows = []
+            # Get flows through Master Flow Orchestrator
+            orchestrator = MasterFlowOrchestrator(self.db, self.context)
 
-            for flow_id, assessment_flow in list(self._active_flows.items())[:limit]:
-                if hasattr(assessment_flow, "state") and assessment_flow.state:
-                    state = assessment_flow.state
+            # Get all flows and filter for assessment type
+            all_flows = await orchestrator.list_flows(
+                limit=limit * 2
+            )  # Get more to account for filtering
 
-                    # Check tenant isolation
-                    if str(state.client_account_id) == str(context.client_account_id):
-                        active_flows.append(
-                            {
-                                "flow_id": flow_id,
-                                "flow_name": getattr(
-                                    state, "flow_name", f"Assessment {flow_id}"
-                                ),
-                                "status": (
-                                    state.status.value if state.status else "unknown"
-                                ),
-                                "current_phase": (
-                                    state.current_phase.value
-                                    if state.current_phase
-                                    else None
-                                ),
-                                "progress": state.progress,
-                                "selected_applications": len(
-                                    state.selected_application_ids
-                                ),
-                                "created_at": (
-                                    state.created_at.isoformat()
-                                    if state.created_at
-                                    else None
-                                ),
-                                "updated_at": (
-                                    state.updated_at.isoformat()
-                                    if state.updated_at
-                                    else None
-                                ),
-                            }
-                        )
+            assessment_flows = []
+            count = 0
 
-            logger.info(f"✅ Found {len(active_flows)} active assessment flows")
+            for flow in all_flows:
+                if count >= limit:
+                    break
 
-            return active_flows
+                # Filter for assessment flows
+                if flow.get("flow_type") == "assessment":
+                    assessment_flows.append(
+                        {
+                            "master_flow_id": flow.get("flow_id"),
+                            "flow_id": flow.get(
+                                "flow_id"
+                            ),  # For backward compatibility
+                            "flow_name": flow.get(
+                                "flow_name", f"Assessment {flow.get('flow_id')}"
+                            ),
+                            "status": flow.get("status", "unknown"),
+                            "current_phase": flow.get("current_phase"),
+                            "progress": flow.get("progress", 0),
+                            "selected_applications": flow.get("metadata", {}).get(
+                                "selected_applications_count", 0
+                            ),
+                            "created_at": flow.get("created_at"),
+                            "updated_at": flow.get("updated_at"),
+                        }
+                    )
+                    count += 1
+
+            logger.info(
+                f"✅ Found {len(assessment_flows)} active assessment flows through MFO"
+            )
+
+            return assessment_flows
 
         except Exception as e:
-            logger.error(f"❌ Failed to list active assessment flows: {e}")
+            logger.error(f"❌ Failed to list active assessment flows through MFO: {e}")
             return []
 
-    async def delete_flow(
-        self, flow_id: str, context: RequestContext
-    ) -> Dict[str, Any]:
+    async def delete_flow(self, master_flow_id: str) -> Dict[str, Any]:
         """
-        Delete an assessment flow
+        Delete an assessment flow through MFO
 
         Args:
-            flow_id: Assessment flow identifier
-            context: Request context for tenant isolation
+            master_flow_id: Master flow identifier from MFO
 
         Returns:
             Dictionary with deletion result
         """
         try:
-            logger.info(f"🗑️ Deleting assessment flow {flow_id}")
+            logger.info(f"🗑️ Deleting assessment flow {master_flow_id} through MFO")
 
-            # Remove from active flows
-            if flow_id in self._active_flows:
-                del self._active_flows[flow_id]
-                logger.info(f"Removed {flow_id} from active flows")
+            # Delete flow through Master Flow Orchestrator
+            orchestrator = MasterFlowOrchestrator(self.db, self.context)
 
-            # TODO: Implement PostgreSQL cleanup if needed
-            # For now, we'll just remove from active memory
+            # Delete the flow through MFO (soft delete by default)
+            delete_result = await orchestrator.delete_flow(
+                flow_id=master_flow_id,
+                soft_delete=True,
+                reason="Assessment flow deletion requested",
+            )
+
+            # Clean up legacy active flows if present
+            if master_flow_id in self._active_flows:
+                del self._active_flows[master_flow_id]
+                logger.info(f"Removed {master_flow_id} from legacy active flows")
+
+            logger.info(
+                f"✅ Assessment flow {master_flow_id} deleted successfully through MFO"
+            )
 
             return {
-                "flow_id": flow_id,
-                "deleted": True,
+                "master_flow_id": master_flow_id,
+                "flow_id": master_flow_id,  # For backward compatibility
+                "deleted": delete_result.get("deleted", True),
                 "deleted_at": datetime.utcnow().isoformat(),
+                "delete_details": delete_result,
             }
 
         except Exception as e:
-            logger.error(f"❌ Failed to delete assessment flow {flow_id}: {e}")
+            logger.error(
+                f"❌ Failed to delete assessment flow {master_flow_id} through MFO: {e}"
+            )
             raise RuntimeError(f"Assessment flow deletion failed: {str(e)}")

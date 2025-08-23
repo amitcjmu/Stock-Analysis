@@ -9,22 +9,28 @@ The Discovery flow is a multi-phase, AI-powered process that imports, analyzes, 
 
 ## 🏗️ Core Architecture
 
-### Two-Table Design (CRITICAL)
-The Discovery flow uses a **two-table architecture** that MUST be maintained:
+### Master Flow Orchestrator (MFO) Integration (CRITICAL)
+The Discovery flow is fully integrated with the **Master Flow Orchestrator** architecture:
 
-1. **Master Flow Table** (`crewai_flow_state_extensions`)
-   - Orchestration and coordination
-   - Flow status and current phase
-   - Managed by MasterFlowOrchestrator
-   - Stores high-level flow state
+1. **Master Flow Orchestrator (MFO)**
+   - **Primary identifier**: `master_flow_id` is used for ALL operations
+   - ALL flow operations (create, resume, pause, delete) go through MFO
+   - **Unified API**: `/api/v1/master-flows/*` endpoints
+   - Single source of truth for flow lifecycle management
 
-2. **Child Flow Table** (`discovery_flows`) 
-   - Discovery-specific phase tracking
-   - Links to master via `master_flow_id`
-   - Contains phase completion booleans
-   - Used by UI for display logic
+2. **Master Flow Table** (`crewai_flow_state_extensions`)
+   - Orchestration and coordination hub
+   - Flow status and current phase tracking
+   - Stores comprehensive flow state and metadata
+   - **Primary Key**: `flow_id` (this IS the master_flow_id)
 
-⚠️ **WARNING**: Both tables MUST have records for the flow to work properly. The MasterFlowOrchestrator creates the master flow record, but the flow-specific service must create the child flow record as part of the MFO two-table design pattern.
+3. **Child Flow Table** (`discovery_flows`) 
+   - Discovery-specific phase tracking (internal implementation detail)
+   - Links to master via `master_flow_id` foreign key
+   - Contains phase completion booleans for UI display
+   - **NOT exposed to API consumers** - internal state only
+
+⚠️ **CRITICAL**: The `master_flow_id` is the **primary identifier** for all Discovery flow operations. Child flow IDs are internal implementation details and should never be used directly by API consumers or UI components.
 
 ### Key Components
 
@@ -67,20 +73,21 @@ The Discovery flow uses a **two-table architecture** that MUST be maintained:
 - Security vulnerability analysis
 - [Details →](./07_Tech_Debt.md)
 
-## 🔄 Data Flow Sequence
+## 🔄 Data Flow Sequence (MFO-Aligned)
 
 ```
 1. User uploads file → POST /api/v1/data-import/store-import
-2. Backend creates (atomic transaction):
-   - DataImport record
+2. Backend creates flow through MasterFlowOrchestrator (atomic transaction):
+   - MFO.create_flow() → returns master_flow_id
+   - DataImport record (references master_flow_id)
    - RawImportRecords 
    - ImportFieldMappings
-   - Master flow (crewai_flow_state_extensions)
-   - Child flow (discovery_flows) - Created by DiscoveryFlowService
-3. BackgroundExecutionService starts UnifiedDiscoveryFlow
-4. PhaseController executes phases sequentially
-5. Each phase updates flow state
-6. UI polls for updates via WebSocket/polling
+   - Master flow state (crewai_flow_state_extensions)
+   - Child flow record (discovery_flows) - internal tracking only
+3. MFO initiates BackgroundExecutionService with master_flow_id
+4. PhaseController executes phases through MFO coordination
+5. ALL phase updates go through MFO using master_flow_id
+6. UI polls MFO endpoints with master_flow_id for updates
 ```
 
 ## 🚨 Recently Fixed Issues
@@ -91,11 +98,12 @@ The Discovery flow uses a **two-table architecture** that MUST be maintained:
 - **Root Cause**: Misunderstanding of MFO two-table design pattern
 - **Solution**: Restored child flow creation in flow_trigger_service.py to follow MFO pattern
 
-### MFO Two-Table Design Pattern
-1. MasterFlowOrchestrator creates the master flow record
-2. Flow-specific services (e.g., DiscoveryFlowService) create child flow records
-3. Both records are required for proper flow operation
-4. UI and APIs depend on both tables existing
+### MFO Integration Pattern (Updated)
+1. **MasterFlowOrchestrator is the single entry point** for all flow operations
+2. MFO manages the master flow record with `master_flow_id` as primary identifier
+3. Child flow records are created automatically but are internal implementation details
+4. **APIs exclusively use master_flow_id** - child flow IDs are never exposed
+5. **UI components only reference master_flow_id** for all operations
 
 ## 💾 Database Schema
 
@@ -106,11 +114,15 @@ The Discovery flow uses a **two-table architecture** that MUST be maintained:
 - `crewai_flow_state_extensions` - Master flow orchestration
 - `discovery_flows` - Discovery-specific tracking (MUST EXIST)
 
-### Foreign Key Relationships
+### Foreign Key Relationships (MFO-Aligned)
 ```
-data_imports.master_flow_id → crewai_flow_state_extensions.flow_id
-discovery_flows.master_flow_id → crewai_flow_state_extensions.flow_id
+# Primary relationships through master_flow_id
+data_imports.master_flow_id → crewai_flow_state_extensions.flow_id (master_flow_id)
+discovery_flows.master_flow_id → crewai_flow_state_extensions.flow_id (master_flow_id)
 discovery_flows.data_import_id → data_imports.id
+
+# Key Point: crewai_flow_state_extensions.flow_id IS the master_flow_id
+# All external references use this as the primary identifier
 ```
 
 ## 🛠️ Critical Code Patterns
@@ -118,41 +130,52 @@ discovery_flows.data_import_id → data_imports.id
 ### ✅ Correct Patterns
 
 ```python
-# UUID Serialization (prevents JSON errors)
-configuration = convert_uuids_to_str({...})
-
-# Atomic Flow Creation
-flow_result = await orchestrator.create_flow(
+# MFO Flow Creation (Primary Pattern)
+master_flow_id = await mfo.create_flow(
     flow_type="discovery",
-    atomic=True,  # MUST be true for imports
+    configuration=config,
+    atomic=True  # MUST be true for imports
 )
 
-# Phase Status Checking
-is_successful = isinstance(result, dict) and \
-                result.get("status") in ["initialized", "initialization_completed"]
+# Always use master_flow_id for operations
+await mfo.execute_phase(master_flow_id, phase_input)
+await mfo.get_flow_status(master_flow_id)
+await mfo.pause_flow(master_flow_id)
+
+# UUID Serialization (prevents JSON errors)
+configuration = convert_uuids_to_str({...})
 ```
 
 ### ❌ Incorrect Patterns
 
 ```python
-# DON'T compare status as string
-if result == "initialization_completed":  # WRONG!
+# DON'T use child flow IDs for operations
+discovery_flow_id = get_discovery_flow_id()  # WRONG!
+await some_operation(discovery_flow_id)      # WRONG!
 
-# DON'T assume MFO creates child flows
-# Just creating master flow is NOT enough
+# DON'T bypass MFO for flow operations
+await direct_database_update(flow_id)        # WRONG!
+
+# DON'T reference child flow IDs in APIs/UI
+return {"discovery_flow_id": child_id}       # WRONG!
+
+# Always use master_flow_id instead
+return {"master_flow_id": master_flow_id}    # CORRECT!
 ```
 
 ## 📋 Implementation Checklist
 
 Before modifying Discovery flow code:
 
-- [ ] Understand two-table architecture requirement
-- [ ] Ensure child flow records are created
-- [ ] Use atomic transactions for data import
+- [ ] **CRITICAL**: Use master_flow_id for ALL external operations
+- [ ] Route all flow operations through MasterFlowOrchestrator
+- [ ] Never expose child flow IDs to API consumers or UI
+- [ ] Use `/api/v1/master-flows/*` endpoints for flow operations
+- [ ] Ensure child flow records are created for internal tracking
+- [ ] Use atomic transactions for data import through MFO
 - [ ] Handle UUID serialization for JSON storage
-- [ ] Check phase status as dictionary, not string
-- [ ] Test full flow from import through all phases
-- [ ] Verify UI can find and display flow data
+- [ ] Test full flow lifecycle using only master_flow_id
+- [ ] Verify UI uses master_flow_id for all flow references
 
 ## 🔗 Quick References
 

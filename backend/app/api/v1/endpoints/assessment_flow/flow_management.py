@@ -97,12 +97,12 @@ async def initialize_assessment_flow(
             )
 
         return AssessmentFlowResponse(
-            flow_id=flow_id,
+            flow_id=flow_id,  # This is now the master_flow_id from MFO
             status=AssessmentFlowStatus.INITIALIZED,
             current_phase=AssessmentPhase.ARCHITECTURE_MINIMUMS,
             next_phase=AssessmentPhase.ARCHITECTURE_MINIMUMS,
             selected_applications=len(request.selected_application_ids),
-            message="Assessment flow initialized successfully",
+            message="Assessment flow initialized through Master Flow Orchestrator",
         )
 
     except ValueError as e:

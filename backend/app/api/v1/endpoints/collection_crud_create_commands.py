@@ -133,7 +133,7 @@ async def create_collection_from_discovery(
             "start_phase": "gap_analysis",
         }
 
-        # Create the flow through MFO - it will be automatically started by the execution engine
+        # Create the flow through MFO - automatically started by execution engine
         from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
         orchestrator = MasterFlowOrchestrator(db, context)
@@ -164,12 +164,14 @@ async def create_collection_from_discovery(
             # Check execution result status
             if execution_result.get("status") == "failed":
                 logger.error(
-                    f"❌ Failed to initialize background execution: {execution_result.get('error', 'Unknown error')}"
+                    f"❌ Failed to initialize background execution: "
+                    f"{execution_result.get('error', 'Unknown error')}"
                 )
                 # Don't fail the entire flow creation, just log the error
             else:
                 logger.info(
-                    f"✅ Background execution initialized for collection flow: {execution_result}"
+                    f"✅ Background execution initialized for collection flow: "
+                    f"{execution_result}"
                 )
         else:
             logger.warning(
@@ -375,7 +377,10 @@ async def create_collection_flow(
             await db.commit()
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to initialize collection flow orchestration: {str(mfo_error)}",
+                detail=(
+                    f"Failed to initialize collection flow orchestration: "
+                    f"{str(mfo_error)}"
+                ),
             )
 
         # Update collection flow with master flow ID
@@ -400,12 +405,14 @@ async def create_collection_flow(
             # Check execution result status
             if execution_result.get("status") == "failed":
                 logger.error(
-                    f"❌ Failed to initialize background execution: {execution_result.get('error', 'Unknown error')}"
+                    f"❌ Failed to initialize background execution: "
+                    f"{execution_result.get('error', 'Unknown error')}"
                 )
                 # Don't fail the entire flow creation, just log the error
             else:
                 logger.info(
-                    f"✅ Background execution initialized for collection flow: {execution_result}"
+                    f"✅ Background execution initialized for collection flow: "
+                    f"{execution_result}"
                 )
         else:
             logger.error(
@@ -416,7 +423,10 @@ async def create_collection_flow(
             await db.commit()
             raise HTTPException(
                 status_code=500,
-                detail="Failed to initialize collection flow orchestration: No master flow ID returned",
+                detail=(
+                    "Failed to initialize collection flow orchestration: "
+                    "No master flow ID returned"
+                ),
             )
 
         logger.info(
