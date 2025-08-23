@@ -129,7 +129,7 @@ async def test_context_persistence():
         try:
             # Test context extraction
             async with session.get(
-                "http://localhost:8000/api/v1/discovery/latest-import",
+                "http://localhost:8000/api/v1/data-import/latest-import",
                 headers=headers
             ) as response:
 
@@ -178,7 +178,7 @@ async def test_backend_context_extraction():
         for variation in header_variations:
             try:
                 async with session.get(
-                    "http://localhost:8000/api/v1/discovery/latest-import",
+                    "http://localhost:8000/api/v1/data-import/latest-import",
                     headers=variation["headers"]
                 ) as response:
 

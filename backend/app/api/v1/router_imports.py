@@ -59,6 +59,15 @@ except ImportError:
     platform_admin_router = None
     security_audit_router = None
 
+# Discovery endpoints (separate from unified discovery)
+try:
+    from app.api.v1.endpoints.discovery import router as discovery_router
+
+    DISCOVERY_AVAILABLE = True
+except ImportError:
+    DISCOVERY_AVAILABLE = False
+    discovery_router = None
+
 # Unified Discovery Flow API - Master Flow Orchestrator Integration
 try:
     from app.api.v1.endpoints.unified_discovery import (
@@ -338,6 +347,8 @@ __all__ = [
     "ADMIN_ENDPOINTS_AVAILABLE",
     "platform_admin_router",
     "security_audit_router",
+    "DISCOVERY_AVAILABLE",
+    "discovery_router",
     "UNIFIED_DISCOVERY_AVAILABLE",
     "unified_discovery_router",
     "dependency_analysis_router",

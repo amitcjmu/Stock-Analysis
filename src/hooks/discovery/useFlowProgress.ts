@@ -70,9 +70,13 @@ export const useFlowProgress = ({
     if (!flowId) return;
 
     try {
-      const response = await apiCall<any>(`/api/v1/discovery/flows/${flowId}/status`, {
+      // Fixed: Use unified-discovery endpoint instead of legacy discovery endpoint (Issue #222)
+      // This ensures we call the correct API that's registered in router_registry.py
+      const response = await apiCall<any>(`/api/v1/unified-discovery/flows/${flowId}/status`, {
         method: 'GET'
       });
+
+      console.log(`🔍 Flow status response for ${flowId}:`, response);
 
       if (response.success && response.data) {
         const data = response.data;
@@ -133,8 +137,18 @@ export const useFlowProgress = ({
         adjustPollingFrequency(update);
       }
     } catch (error) {
-      console.error('Failed to fetch flow status:', error);
-      setPollingError('Failed to fetch flow status');
+      console.error(`❌ Failed to fetch flow status for ${flowId}:`, error);
+
+      // Provide more specific error messages for common issues
+      if (error?.status === 404) {
+        setPollingError(`Flow ${flowId} not found. The flow may have been completed or removed.`);
+      } else if (error?.status === 429) {
+        setPollingError('Rate limited. Polling will retry automatically.');
+      } else if (error?.message?.includes('discovery/flows')) {
+        setPollingError('API endpoint error. Please check if the discovery flow API is available.');
+      } else {
+        setPollingError(`Failed to fetch flow status: ${error?.message || 'Unknown error'}`);
+      }
     }
   }, [flowId, onProgressUpdate, onPhaseComplete, onError]);
 
@@ -237,7 +251,7 @@ export const useFlowProgress = ({
     const registered = pollingManager.register({
       id: pollId,
       component: 'useFlowProgress',
-      endpoint: `/api/v1/discovery/flows/${flowId}/status`,
+      endpoint: `/api/v1/unified-discovery/flows/${flowId}/status`,
       interval: 5000, // Start with 5 second polling
       maxRetries: 3,
       enabled: true

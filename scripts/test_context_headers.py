@@ -55,7 +55,7 @@ async def test_context_headers():
                 "/api/v1/clients",
                 f"/api/v1/clients/{context['client_id']}/engagements",
                 f"/api/v1/sessions/engagement/{context['engagement_id']}",
-                "/api/v1/discovery/latest-import",
+                "/api/v1/data-import/latest-import",
                 "/api/v1/data-import/latest-import"
             ]
 
