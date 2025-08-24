@@ -10,22 +10,25 @@ Tests the core functionality of the MasterFlowOrchestrator including:
 - Performance tracking
 """
 
+import os
+import sys
 import uuid
 from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+# Add backend to path before importing app modules
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../../backend"))
+
 # Generic orchestrator coverage; include in regression
 pytestmark = [pytest.mark.regression, pytest.mark.unit]
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.schemas import RequestContext
+from app.core.context import RequestContext
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.services.master_flow_orchestrator import (
-    FlowOperationType,
-    MasterFlowOrchestrator,
-)
+from app.services.master_flow_orchestrator.core import MasterFlowOrchestrator
+from app.services.master_flow_orchestrator.enums import FlowOperationType
 
 
 @pytest.fixture
@@ -119,11 +122,11 @@ def mock_master_repo():
 def orchestrator(mock_db, test_context, mock_flow_registry, mock_master_repo):
     """Create orchestrator with mocked dependencies"""
     with patch(
-        "app.services.master_flow_orchestrator.FlowTypeRegistry",
+        "app.services.master_flow_orchestrator.core.FlowTypeRegistry",
         return_value=mock_flow_registry,
     ):
         with patch(
-            "app.services.master_flow_orchestrator.CrewAIFlowStateExtensionsRepository",
+            "app.services.master_flow_orchestrator.core.CrewAIFlowStateExtensionsRepository",
             return_value=mock_master_repo,
         ):
             orchestrator = MasterFlowOrchestrator(mock_db, test_context)

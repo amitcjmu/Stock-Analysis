@@ -55,12 +55,12 @@ logger = logging.getLogger(__name__)
 
 # ⚡ PERFORMANCE OPTIMIZATIONS: Connection pool configuration
 OPTIMIZED_POOL_CONFIG = {
-    # Connection pool settings for production performance
-    "pool_size": 10,  # Base number of connections to maintain
-    "max_overflow": 20,  # Additional connections when needed
-    "pool_timeout": 10,  # Max seconds to wait for connection from pool
-    "pool_recycle": 300,  # Recycle connections every 5 minutes
-    "pool_pre_ping": True,  # Validate connections before use
+    # Connection pool settings for production performance - Enhanced for 100+ concurrent users
+    "pool_size": settings.DB_POOL_SIZE,  # Configurable base connections (default: 20)
+    "max_overflow": settings.DB_MAX_OVERFLOW,  # Configurable additional connections (default: 30)
+    "pool_timeout": settings.DB_POOL_TIMEOUT,  # Configurable timeout (default: 30s)
+    "pool_recycle": settings.DB_POOL_RECYCLE,  # Configurable recycle time (default: 3600s)
+    "pool_pre_ping": settings.DB_POOL_PRE_PING,  # Configurable connection validation
     # Query timeout settings
     "connect_args": {
         "command_timeout": 10,  # Command timeout in seconds
@@ -353,19 +353,45 @@ class DatabaseManager:
         return await get_db_with_timeout(timeout_seconds=5)
 
     def get_performance_metrics(self) -> dict:
-        """Get database performance metrics."""
+        """Get database performance metrics with enhanced pool monitoring."""
         pool_status = {}
+        pool_config = {}
+
         if hasattr(self.engine.pool, "size"):
             pool_status = {
                 "pool_size": self.engine.pool.size(),
                 "checked_in_connections": self.engine.pool.checkedin(),
                 "checked_out_connections": self.engine.pool.checkedout(),
                 "invalid_connections": self.engine.pool.invalidated(),
+                "overflow_connections": getattr(self.engine.pool, "overflow", 0),
+            }
+
+            # Add pool configuration info for monitoring
+            pool_config = {
+                "configured_pool_size": settings.DB_POOL_SIZE,
+                "configured_max_overflow": settings.DB_MAX_OVERFLOW,
+                "configured_pool_timeout": settings.DB_POOL_TIMEOUT,
+                "configured_pool_recycle": settings.DB_POOL_RECYCLE,
+                "max_possible_connections": settings.DB_POOL_SIZE
+                + settings.DB_MAX_OVERFLOW,
+                "pool_utilization_percent": (
+                    round(
+                        (
+                            pool_status.get("checked_out_connections", 0)
+                            / (settings.DB_POOL_SIZE + settings.DB_MAX_OVERFLOW)
+                        )
+                        * 100,
+                        2,
+                    )
+                    if (settings.DB_POOL_SIZE + settings.DB_MAX_OVERFLOW) > 0
+                    else 0.0
+                ),
             }
 
         return {
             "connection_health": self.health_tracker.get_health_status(),
             "pool_status": pool_status,
+            "pool_config": pool_config,
             "engine_type": type(self.engine).__name__ if self.engine else "None",
             "database_type": "unified_pgvector",
         }

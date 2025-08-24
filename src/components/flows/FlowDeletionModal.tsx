@@ -166,8 +166,8 @@ export const FlowDeletionModal: React.FC<FlowDeletionModalProps> = ({
                     {candidates
                       .sort((a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime())
                       .slice(0, 3)
-                      .map((flow, idx) => (
-                        <div key={idx} className="text-gray-600">
+                      .map((flow) => (
+                        <div key={flow.flowId} className="text-gray-600">
                           • {flow.flow_name} ({formatTimeAgo(flow.updated_at)})
                         </div>
                       ))}

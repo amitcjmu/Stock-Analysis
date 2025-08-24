@@ -12,6 +12,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
+from app.utils.json_utils import safe_json_dumps
 from app.models.data_import import ImportFieldMapping
 
 from ..models.mapping_schemas import (
@@ -230,10 +231,8 @@ class MappingService:
             if mapping.transformation_rules:
                 if isinstance(mapping.transformation_rules, dict):
                     # Convert dict to JSON string if needed
-                    import json
-
-                    transformation_rule_str = json.dumps(
-                        mapping.transformation_rules, default=str
+                    transformation_rule_str = safe_json_dumps(
+                        mapping.transformation_rules
                     )
                 elif isinstance(mapping.transformation_rules, str):
                     transformation_rule_str = mapping.transformation_rules
@@ -321,11 +320,7 @@ class MappingService:
         transformation_rule_str = None
         if mapping.transformation_rules:
             if isinstance(mapping.transformation_rules, dict):
-                import json
-
-                transformation_rule_str = json.dumps(
-                    mapping.transformation_rules, default=str
-                )
+                transformation_rule_str = safe_json_dumps(mapping.transformation_rules)
             elif isinstance(mapping.transformation_rules, str):
                 transformation_rule_str = mapping.transformation_rules
             else:
@@ -429,11 +424,7 @@ class MappingService:
         transformation_rule_str = None
         if mapping.transformation_rules:
             if isinstance(mapping.transformation_rules, dict):
-                import json
-
-                transformation_rule_str = json.dumps(
-                    mapping.transformation_rules, default=str
-                )
+                transformation_rule_str = safe_json_dumps(mapping.transformation_rules)
             elif isinstance(mapping.transformation_rules, str):
                 transformation_rule_str = mapping.transformation_rules
             else:

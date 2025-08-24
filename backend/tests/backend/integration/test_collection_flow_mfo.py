@@ -49,7 +49,7 @@ class TestCollectionFlowMFO:
         return RequestContext(
             client_account_id=str(uuid.uuid4()),
             engagement_id=str(uuid.uuid4()),
-            user_id="test_user_" + str(uuid.uuid4()),
+            user_id=str(uuid.uuid4()),
             request_id=str(uuid.uuid4()),
         )
 
@@ -63,10 +63,10 @@ class TestCollectionFlowMFO:
     async def test_user(self, db_session: AsyncSession, test_context: RequestContext):
         """Create test user in database"""
         user = User(
-            id=test_context.user_id,
-            email=f"{test_context.user_id}@test.com",
-            full_name="Test User",
-            role="platform_admin",  # Use platform_admin for full permissions
+            id=uuid.UUID(test_context.user_id),
+            email=f"test_user_{test_context.user_id}@test.com",
+            first_name="Test",
+            last_name="User",
             is_active=True,
         )
         db_session.add(user)
@@ -78,7 +78,8 @@ class TestCollectionFlowMFO:
         """Create test client account in database"""
         client = ClientAccount(
             id=uuid.UUID(test_context.client_account_id),
-            account_name="Test Client for Collection MFO",
+            name="Test Client for Collection MFO",
+            slug="test-client-mfo",
             industry="Technology",
             company_size="Enterprise",
             headquarters_location="Test City",
@@ -100,7 +101,8 @@ class TestCollectionFlowMFO:
         engagement = Engagement(
             id=uuid.UUID(test_context.engagement_id),
             client_account_id=test_client.id,
-            engagement_name="Test Collection Engagement",
+            name="Test Collection Engagement",
+            slug="test-collection-engagement",
             engagement_type="migration",
             start_date=datetime.utcnow(),
             status="active",

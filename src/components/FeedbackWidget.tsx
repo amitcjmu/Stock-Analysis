@@ -138,8 +138,8 @@ const FeedbackWidget = (): JSX.Element => {
           <div>
             <p className="text-sm font-medium text-gray-600">Top Categories</p>
             <div className="flex flex-wrap gap-2 mt-2">
-              {data.stats.top_categories.map((category, index) => (
-                <Badge key={index} className={getTypeColor(category.type)}>
+              {data.stats.top_categories.map((category) => (
+                <Badge key={category.type} className={getTypeColor(category.type)}>
                   {category.type} ({category.count})
                 </Badge>
               ))}
