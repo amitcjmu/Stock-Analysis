@@ -63,7 +63,7 @@ class TestCollectionFlowMFO:
     async def test_user(self, db_session: AsyncSession, test_context: RequestContext):
         """Create test user in database"""
         user = User(
-            id=test_context.user_id,
+            id=uuid.UUID(test_context.user_id),
             email=f"test_user_{test_context.user_id}@test.com",
             first_name="Test",
             last_name="User",

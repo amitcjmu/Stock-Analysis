@@ -19,6 +19,13 @@ async def setup_cleansing_tables(db_session):
 
     This fixture ensures the required database tables exist for data cleansing tests.
     """
+    # Skip DDL when using a mocked session to avoid false positives
+    from unittest.mock import AsyncMock
+
+    if isinstance(db_session, AsyncMock):
+        yield
+        return
+
     # Create test_cleansing_rules table
     await db_session.execute(
         """
