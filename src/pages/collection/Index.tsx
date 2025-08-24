@@ -236,10 +236,15 @@ const CollectionIndex: React.FC = () => {
       });
 
       // Give the flow a moment to initialize before navigating
-      setTimeout(() => {
+      const navigationTimeout = setTimeout(() => {
         // Navigate to the workflow page with the flow ID
         navigate(`${workflowPath}?flowId=${flowResponse.id}`);
       }, 1500);
+
+      // Ensure we clear the loading state even if navigation fails
+      setTimeout(() => {
+        setIsCreatingFlow(null);
+      }, 2000);
 
     } catch (error: unknown) {
       console.error(`❌ Failed to start collection workflow ${workflowId}:`, error);

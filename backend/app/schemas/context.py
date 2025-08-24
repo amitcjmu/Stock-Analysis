@@ -63,3 +63,16 @@ class UserContext(BaseModel):
     engagement: Optional[EngagementBase] = None
     active_flows: List[FlowBase] = Field(default_factory=list)
     current_flow: Optional[FlowBase] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert UserContext to dictionary for serialization."""
+        result = {
+            "user": self.user,
+            "client": self.client.model_dump() if self.client else None,
+            "engagement": self.engagement.model_dump() if self.engagement else None,
+            "active_flows": [flow.model_dump() for flow in self.active_flows],
+            "current_flow": (
+                self.current_flow.model_dump() if self.current_flow else None
+            ),
+        }
+        return result
