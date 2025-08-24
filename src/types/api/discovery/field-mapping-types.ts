@@ -304,12 +304,12 @@ export interface FieldMappingOperation {
 }
 
 // ============================================================================
-// FRONTEND-SPECIFIC TYPES (camelCase for UI components)
+// FRONTEND-SPECIFIC TYPES (using snake_case to match backend)
 // ============================================================================
 
 /**
- * Frontend field mapping interface (camelCase) for UI components
- * Transformed from backend FieldMappingItem for React components
+ * Frontend field mapping interface for UI components
+ * Uses snake_case to match backend API response format directly
  */
 export interface FieldMapping {
   /** Unique identifier */
@@ -362,7 +362,7 @@ export interface FieldMapping {
 }
 
 /**
- * Frontend field mappings response (camelCase)
+ * Frontend field mappings response (using snake_case)
  */
 export interface FieldMappingsResult {
   /** Operation success */
@@ -508,7 +508,8 @@ export function isValidMappingStatus(status: unknown): status is FieldMappingSta
 // ============================================================================
 
 /**
- * Transforms backend FieldMappingItem (snake_case) to frontend FieldMapping (camelCase)
+ * Transforms backend FieldMappingItem to frontend FieldMapping
+ * Both use snake_case fields as per current architecture requirements
  */
 export function transformToFrontendMapping(backendItem: FieldMappingItem, id?: string): FieldMapping {
   return {
@@ -533,7 +534,8 @@ export function transformToFrontendMapping(backendItem: FieldMappingItem, id?: s
 }
 
 /**
- * Transforms frontend FieldMapping (camelCase) to backend FieldMappingItem (snake_case)
+ * Transforms frontend FieldMapping to backend FieldMappingItem
+ * Both use snake_case fields as per current architecture requirements
  */
 export function transformToBackendMapping(frontendMapping: FieldMapping): FieldMappingItem {
   return {
