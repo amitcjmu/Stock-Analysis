@@ -13,6 +13,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import WS from 'jest-websocket-mock';
 
@@ -20,6 +21,20 @@ import WS from 'jest-websocket-mock';
 import DiscoveryFlowPage from '../../../src/pages/discovery/DiscoveryFlow';
 import AgentMonitor from '../../../src/components/AgentMonitor';
 import { useDiscoveryFlow } from '../../../src/hooks/discovery/useDiscoveryFlow';
+
+// Mock Auth Context
+vi.mock('../../../src/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: {
+      client_account_id: 'test_client_123',
+      engagement_id: 'test_engagement_456',
+      name: 'Test User',
+      email: 'test@example.com'
+    },
+    isAuthenticated: true,
+    loading: false
+  })
+}));
 
 // Mock data for testing
 const mockFlowData = {
@@ -98,9 +113,11 @@ const createTestQueryClient = () => {
 const renderWithProviders = (component: React.ReactElement) => {
   const queryClient = createTestQueryClient();
   return render(
-    <QueryClientProvider client={queryClient}>
-      {component}
-    </QueryClientProvider>
+    <MemoryRouter initialEntries={['/discovery/flow']}>
+      <QueryClientProvider client={queryClient}>
+        {component}
+      </QueryClientProvider>
+    </MemoryRouter>
   );
 };
 

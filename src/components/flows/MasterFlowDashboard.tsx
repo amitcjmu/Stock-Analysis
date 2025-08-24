@@ -106,13 +106,21 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
 
   // Handle flow navigation
   const handleFlowClick = (flow: FlowStatus): void => {
-    if (!flow) {
-      console.error('Flow is undefined, cannot navigate');
+    if (!flow || !flow.flow_id) {
+      console.error('Flow or flow_id is undefined, cannot navigate');
       return;
     }
+
+    // Ensure phase/status is a valid string
+    const phase = typeof flow.current_phase === 'string'
+      ? flow.current_phase
+      : typeof flow.status === 'string'
+        ? flow.status
+        : 'unknown';
+
     const route = getFlowPhaseRoute(
       flow.flow_type,
-      flow.current_phase || flow.status,
+      phase,
       flow.flow_id
     );
     navigate(route);

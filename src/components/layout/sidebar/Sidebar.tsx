@@ -118,6 +118,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       hasSubmenu: true,
       submenu: [
         { name: 'Overview', path: '/plan/overview', icon: Building2 },
+        { name: '6R Analysis', path: '/plan/6r-analysis', icon: BarChart3 },
         { name: 'Wave Planning', path: '/plan/waveplanning', icon: Calendar },
         { name: 'Roadmap', path: '/plan/roadmap', icon: Route },
         { name: 'Timeline', path: '/plan/timeline', icon: Clock },

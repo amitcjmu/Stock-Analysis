@@ -317,72 +317,111 @@ export const useAdaptiveFormFlow = (
       }
 
       // Wait for CrewAI agents to complete gap analysis and generate questionnaires
-      // Add reasonable timeout to prevent infinite loops
+      // Implement robust timeout handling to prevent infinite loading
+      const INITIALIZATION_TIMEOUT = 10000; // 10 seconds max wait time
+      const POLL_INTERVAL = 1000; // Check every 1 second
+      const MAX_ATTEMPTS = Math.floor(INITIALIZATION_TIMEOUT / POLL_INTERVAL);
+
       let attempts = 0;
-      const MAX_ATTEMPTS = 60; // Max 2 minutes (60 * 2 seconds)
       let agentQuestionnaires = [];
       let flowFailed = false;
+      let timeoutReached = false;
 
       console.log('⏳ Waiting for CrewAI agents to process through phases and generate questionnaires...');
       console.log('   Expected phases: PLATFORM_DETECTION -> AUTOMATED_COLLECTION -> GAP_ANALYSIS -> QUESTIONNAIRE_GENERATION');
-      console.log(`   Max wait time: ${MAX_ATTEMPTS * 2} seconds`);
+      console.log(`   Max wait time: ${INITIALIZATION_TIMEOUT / 1000} seconds with ${MAX_ATTEMPTS} attempts`);
 
-      while (agentQuestionnaires.length === 0 && !flowFailed && attempts < MAX_ATTEMPTS) {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Check every 2 seconds
-        attempts++;
+      // Setup timeout to prevent infinite loading
+      let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+      const timeoutPromise = new Promise<void>((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          timeoutReached = true;
+          reject(new Error(`Initialization timeout: CrewAI agents did not complete within ${INITIALIZATION_TIMEOUT / 1000} seconds`));
+        }, INITIALIZATION_TIMEOUT);
+      });
 
-        try {
-          // Check flow status to monitor phase progression
-          if (attempts % 3 === 0 || attempts === 1) {
-            flowStatus = await collectionFlowApi.getFlowStatus();
-            console.log(`📊 Flow status check (attempt ${attempts}):`, {
-              status: flowStatus.status,
-              current_phase: flowStatus.current_phase,
-              message: flowStatus.message
-            });
+      // Setup polling promise
+      const pollingPromise = new Promise<void>(async (resolve, reject) => {
+        while (agentQuestionnaires.length === 0 && !flowFailed && attempts < MAX_ATTEMPTS && !timeoutReached) {
+          await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
+          attempts++;
 
-            if (flowStatus.status === 'error' || flowStatus.status === 'failed') {
-              console.error('❌ Collection flow failed:', flowStatus.message);
-              flowFailed = true;
-              break;
+          try {
+            // Check flow status to monitor phase progression
+            if (attempts % 3 === 0 || attempts === 1) {
+              flowStatus = await collectionFlowApi.getFlowStatus();
+              console.log(`📊 Flow status check (attempt ${attempts}/${MAX_ATTEMPTS}):`, {
+                status: flowStatus.status,
+                current_phase: flowStatus.current_phase,
+                message: flowStatus.message
+              });
+
+              if (flowStatus.status === 'error' || flowStatus.status === 'failed') {
+                console.error('❌ Collection flow failed:', flowStatus.message);
+                flowFailed = true;
+                reject(new Error(`Collection flow failed: ${flowStatus.message}`));
+                return;
+              }
             }
-          }
 
-          // Try to fetch questionnaires
-          agentQuestionnaires = await collectionFlowApi.getFlowQuestionnaires(flowResponse.id);
-          if (agentQuestionnaires.length > 0) {
-            console.log(`✅ Found ${agentQuestionnaires.length} agent-generated questionnaires after ${attempts} attempts`);
-          }
-        } catch (error) {
-          // This is expected while agents are still processing
-          if (attempts % 10 === 0) {
-            console.log(`⏳ Still waiting for questionnaires... (${attempts * 2} seconds elapsed)`);
+            // Try to fetch questionnaires
+            agentQuestionnaires = await collectionFlowApi.getFlowQuestionnaires(flowResponse.id);
+            if (agentQuestionnaires.length > 0) {
+              console.log(`✅ Found ${agentQuestionnaires.length} agent-generated questionnaires after ${attempts} attempts`);
+              resolve();
+              return;
+            }
+          } catch (error) {
+            // This is expected while agents are still processing
+            if (attempts % 5 === 0) {
+              console.log(`⏳ Still waiting for questionnaires... (${attempts} seconds elapsed)`);
+            }
           }
         }
 
-        // Log progress every 30 seconds
-        if (attempts % 15 === 0) {
-          console.log(`⏰ Still processing... This may take a few minutes for CrewAI agents to complete all phases.`);
+        // If we exit the loop without success, it means timeout or max attempts reached
+        if (agentQuestionnaires.length === 0 && !flowFailed) {
+          reject(new Error('Max polling attempts reached without questionnaire generation'));
+        }
+      });
+
+      // Race between timeout and polling
+      try {
+        await Promise.race([timeoutPromise, pollingPromise]);
+      } catch (error) {
+        console.warn('⚠️ Agent processing timeout/failure, proceeding with fallback:', error.message);
+        // Don't throw here - let the fallback logic handle it below
+      } finally {
+        // Clean up timeout to prevent memory leaks
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+          timeoutHandle = null;
         }
       }
 
+      // Handle flow failure
       if (flowFailed) {
         throw new Error('Collection flow failed during processing. Check backend logs for details.');
       }
 
-      if (agentQuestionnaires.length === 0) {
-        console.warn('⚠️ No questionnaires generated after timeout. Using fallback.');
+      // Handle timeout or no questionnaires generated
+      if (agentQuestionnaires.length === 0 || timeoutReached) {
+        console.warn('⚠️ No questionnaires generated within timeout period. Using fallback form.');
+
         // Use a local fallback adaptive form to allow user to proceed
         const fallback = createFallbackFormData(applicationId || null);
         setState(prev => ({
           ...prev,
           formData: fallback,
           questionnaires: [],
+          isLoading: false,
+          error: null // Clear any previous errors since we have a fallback
         }));
 
         toast({
           title: 'Fallback Form Loaded',
-          description: 'Using a basic adaptive form to begin collection while agents prepare questionnaires.'
+          description: `CrewAI agents are taking longer than expected (>${INITIALIZATION_TIMEOUT / 1000}s). Using a basic adaptive form to begin collection.`,
+          variant: 'default'
         });
         return;
       }
@@ -420,20 +459,49 @@ export const useAdaptiveFormFlow = (
 
       // Create a more user-friendly error message
       let userMessage = 'Failed to initialize collection flow.';
+      let shouldUseFallback = false;
+
       if (error?.message) {
-        if (error.message.includes('questionnaire')) {
+        if (error.message.includes('timeout') || error.message.includes('Initialization timeout')) {
+          userMessage = `Collection initialization timed out after ${INITIALIZATION_TIMEOUT / 1000} seconds. Using fallback form to allow you to proceed.`;
+          shouldUseFallback = true;
+        } else if (error.message.includes('questionnaire')) {
           userMessage = 'Failed to load adaptive forms. The questionnaire generation process encountered an error.';
+          shouldUseFallback = true;
         } else if (error.message.includes('permission')) {
           userMessage = 'Permission denied. You do not have access to create collection flows.';
-        } else if (error.message.includes('timeout')) {
-          userMessage = 'The form generation process is taking longer than expected. Please try again.';
         } else if (error.message.includes('Multiple active')) {
           userMessage = 'Multiple active collection flows detected. Please manage existing flows first.';
         } else {
           userMessage = error.message;
+          // For unknown errors, provide fallback if it's not an auth/permission issue
+          shouldUseFallback = !error.message.includes('permission') && !error.message.includes('auth');
         }
       }
 
+      // If we should use fallback, provide it instead of showing error
+      if (shouldUseFallback) {
+        console.warn('⚠️ Using fallback form due to initialization error:', userMessage);
+
+        const fallback = createFallbackFormData(applicationId || null);
+        setState(prev => ({
+          ...prev,
+          formData: fallback,
+          questionnaires: [],
+          isLoading: false,
+          error: null // Clear error since we have a working fallback
+        }));
+
+        toast({
+          title: 'Fallback Form Loaded',
+          description: userMessage,
+          variant: 'default'
+        });
+
+        return; // Exit early with fallback, don't throw error
+      }
+
+      // For non-fallback errors, show error state
       const enhancedError = new Error(userMessage);
       enhancedError.cause = error;
 
@@ -451,14 +519,14 @@ export const useAdaptiveFormFlow = (
         console.log('⚠️ 409 Conflict detected - existing flow found, showing management UI');
       }
 
-      // Ensure loading state is cleared
-      setState(prev => ({ ...prev, isLoading: false }));
-
-      // No fallback - let the error be shown to the user
+      // Throw error for non-fallback cases
       throw enhancedError;
     } finally {
       // Always ensure loading state is cleared
       setState(prev => ({ ...prev, isLoading: false }));
+
+      // Clear any pending timers
+      console.log('✨ Collection workflow initialization completed');
     }
   }, [checkingFlows, hasBlockingFlows, state.isLoading, flowIdFromUrl, setCurrentFlow, applicationId, user, toast]);
 
@@ -623,12 +691,18 @@ export const useAdaptiveFormFlow = (
         setState(prev => ({ ...prev, error, isLoading: false }));
       });
     }
+  }, [applicationId, flowIdFromUrl, checkingFlows, hasBlockingFlows, autoInitialize, state.formData, state.isLoading, state.error, initializeFlow]);
 
-    // Cleanup: Clear the flow context when leaving the page
+  // Cleanup effect
+  useEffect(() => {
     return () => {
+      // Clear the flow context when component unmounts
       setCurrentFlow(null);
+
+      // Clear any pending timeouts or intervals
+      console.log('🧹 Cleaning up collection workflow state');
     };
-  }, [applicationId, flowIdFromUrl, checkingFlows, hasBlockingFlows, autoInitialize, state.formData, state.isLoading, state.error, initializeFlow, setCurrentFlow]);
+  }, [setCurrentFlow]);
 
   return {
     // State

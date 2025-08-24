@@ -18,7 +18,7 @@ const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD || ""; // Demo password
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, register } = useAuth();
+  const { login, register, error: authError } = useAuth();
   const { toast } = useToast();
 
   const [isLogin, setIsLogin] = useState(true);

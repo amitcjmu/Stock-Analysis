@@ -1,5 +1,5 @@
+import type { FieldMapping } from '../../../types/api/discovery/field-mapping-types';
 import type {
-  FieldMapping,
   CriticalAttribute,
   MappingAnalytics,
   MappingProgress,

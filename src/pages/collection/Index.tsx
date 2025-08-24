@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom';
 
 // Import layout components
@@ -31,6 +31,8 @@ const CollectionIndex: React.FC = () => {
   const { toast } = useToast();
   const { setCurrentFlow, user } = useAuth();
   const [isCreatingFlow, setIsCreatingFlow] = useState<string | null>(null);
+  const navigationTimeoutRef = useRef<number | null>(null);
+  const errorNavigationTimeoutRef = useRef<number | null>(null);
   const [collectionMetrics, setCollectionMetrics] = useState({
     activeForms: 0,
     bulkUploads: 0,
@@ -40,6 +42,18 @@ const CollectionIndex: React.FC = () => {
     activeFlowId: null as string | null,
     activeFlowStatus: null as string | null
   });
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+      }
+      if (errorNavigationTimeoutRef.current) {
+        clearTimeout(errorNavigationTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Fetch collection status on mount
   useEffect(() => {
@@ -235,16 +249,17 @@ const CollectionIndex: React.FC = () => {
         description: `CrewAI agents are initializing the ${workflowId} workflow. You will be redirected shortly.`
       });
 
+      // Clear any existing timeout before setting a new one
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+      }
+
       // Give the flow a moment to initialize before navigating
-      const navigationTimeout = setTimeout(() => {
+      navigationTimeoutRef.current = window.setTimeout(() => {
         // Navigate to the workflow page with the flow ID
         navigate(`${workflowPath}?flowId=${flowResponse.id}`);
+        navigationTimeoutRef.current = null;
       }, 1500);
-
-      // Ensure we clear the loading state even if navigation fails
-      setTimeout(() => {
-        setIsCreatingFlow(null);
-      }, 2000);
 
     } catch (error: unknown) {
       console.error(`❌ Failed to start collection workflow ${workflowId}:`, error);
@@ -267,9 +282,15 @@ const CollectionIndex: React.FC = () => {
           variant: 'destructive'
         });
 
+        // Clear any existing timeout before setting a new one
+        if (errorNavigationTimeoutRef.current) {
+          clearTimeout(errorNavigationTimeoutRef.current);
+        }
+
         // Navigate to progress monitoring to see active flows
-        setTimeout(() => {
+        errorNavigationTimeoutRef.current = window.setTimeout(() => {
           navigate('/collection/progress');
+          errorNavigationTimeoutRef.current = null;
         }, 2000);
       }
     } finally {

@@ -13,11 +13,11 @@ const ApprovedCard: React.FC<CardProps> = ({ mapping }) => (
   <div className="p-4 border rounded-lg transition-all duration-200 bg-green-50 border-green-200">
     <div className="flex items-center gap-2">
       <span className="font-medium text-gray-900">
-        {formatFieldValue(mapping.sourceField)}
+        {formatFieldValue(mapping?.source_field ?? 'Unmapped')}
       </span>
       <ArrowRight className="h-4 w-4 text-gray-400" />
       <span className="text-green-600 font-medium">
-        {formatTargetAttribute(mapping.targetAttribute)}
+        {formatTargetAttribute(mapping?.target_field ?? 'Unassigned')}
       </span>
     </div>
   </div>

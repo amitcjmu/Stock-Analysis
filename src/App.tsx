@@ -62,6 +62,7 @@ import {
   LazyAssessmentTechDebt,
   LazyAssessmentSixRReview,
   LazyPlanIndex,
+  LazySixRAnalysis,
   LazyTimeline,
   LazyResource,
   LazyTarget,
@@ -244,6 +245,8 @@ const AuthenticatedApp = (): JSX.Element => {
 
       {/* Plan sub-routes */}
       <Route path="/plan/overview" element={<LazyPlanIndex />} />
+      <Route path="/plan/6r-analysis" element={<LazySixRAnalysis />} />
+      <Route path="/planning/6r-analysis" element={<LazySixRAnalysis />} />
       <Route path="/plan/waveplanning" element={<LazyWavePlanning />} />
       <Route path="/plan/roadmap" element={<LazyRoadmap />} />
       <Route path="/plan/timeline" element={<LazyTimeline />} />

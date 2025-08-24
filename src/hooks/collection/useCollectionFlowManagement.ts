@@ -316,7 +316,13 @@ export const useCollectionFlowStatus = (flowId?: string, enabled: boolean = true
     queryKey: ['collection-flows', 'status', flowId],
     queryFn: () => collectionFlowApi.getFlowStatus(),
     enabled: enabled && !!flowId,
-    refetchInterval: (data) => {
+    refetchInterval: (data, query) => {
+      // Stop polling if there was an error
+      if (query?.state?.error) {
+        console.log('🛑 Error detected in flow status query, stopping polling:', query.state.error);
+        return false;
+      }
+
       // Stop polling if flow is in terminal state
       if (data) {
         const status = data.status?.toLowerCase();
@@ -326,11 +332,29 @@ export const useCollectionFlowStatus = (flowId?: string, enabled: boolean = true
           console.log(`✅ Flow ${flowId} reached terminal state (${status}, progress: ${progress}%), stopping polling`);
           return false;
         }
+
+        // If flow is in error state, stop aggressive polling
+        if (status === 'error') {
+          console.log(`⚠️ Flow ${flowId} in error state, reducing polling frequency`);
+          return 30000; // Poll every 30 seconds for error states
+        }
       }
 
       return 5000; // Continue polling every 5 seconds for active monitoring
     },
-    staleTime: 2000
+    staleTime: 2000,
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors
+      if (error?.status === 401) {
+        return false;
+      }
+      // Don't retry on 500 server errors
+      if (error?.status === 500) {
+        return false;
+      }
+      // Only retry network errors once
+      return !error?.status && failureCount < 1;
+    }
   });
 };
 
@@ -339,7 +363,15 @@ export const useCollectionFlowDetails = (flowId: string, enabled: boolean = true
     queryKey: ['collection-flows', 'details', flowId],
     queryFn: () => collectionFlowApi.getFlowDetails(flowId),
     enabled: enabled && !!flowId,
-    staleTime: 30000
+    staleTime: 30000,
+    retry: (failureCount, error) => {
+      // Don't retry on 404 (flow not found) or auth errors
+      if (error?.status === 404 || error?.status === 401) {
+        return false;
+      }
+      // Only retry network errors once
+      return !error?.status && failureCount < 1;
+    }
   });
 };
 
@@ -357,6 +389,18 @@ export const useCollectionFlowQuestionnaires = (flowId: string, enabled: boolean
     queryKey: ['collection-flows', 'questionnaires', flowId],
     queryFn: () => collectionFlowApi.getFlowQuestionnaires(flowId),
     enabled: enabled && !!flowId,
-    staleTime: 60000
+    staleTime: 30000, // Reduce stale time for more responsive updates
+    retry: (failureCount, error) => {
+      // Don't retry on 404 (not found) or 422 (no applications selected)
+      if (error?.status === 404 || error?.status === 422) {
+        return false;
+      }
+      // Don't retry on auth errors
+      if (error?.status === 401) {
+        return false;
+      }
+      // Only retry network errors once
+      return !error?.status && failureCount < 1;
+    }
   });
 };

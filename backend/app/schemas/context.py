@@ -70,7 +70,11 @@ class UserContext(BaseModel):
             "user": self.user,
             "client": self.client.model_dump() if self.client else None,
             "engagement": self.engagement.model_dump() if self.engagement else None,
-            "active_flows": [flow.model_dump() for flow in self.active_flows],
+            "active_flows": [
+                flow.model_dump()
+                for flow in self.active_flows
+                if flow and hasattr(flow, "model_dump")
+            ],
             "current_flow": (
                 self.current_flow.model_dump() if self.current_flow else None
             ),
