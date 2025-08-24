@@ -87,7 +87,7 @@ class UniversalFlowProcessingCrew:
             tools=[self.flow_analyzer],
             verbose=True,
             allow_delegation=False,
-            max_iter=3,
+            max_iter=1,  # Direct answers without iterations for faster response
             memory=enable_memory,
             llm=llm,
         )
@@ -107,7 +107,7 @@ class UniversalFlowProcessingCrew:
             tools=[self.phase_validator, self.flow_validator],
             verbose=True,
             allow_delegation=False,
-            max_iter=3,
+            max_iter=1,  # Direct answers without iterations for faster response
             memory=enable_memory,
             llm=llm,
         )
@@ -127,7 +127,7 @@ class UniversalFlowProcessingCrew:
             tools=[self.route_decider],
             verbose=True,
             allow_delegation=False,
-            max_iter=3,
+            max_iter=1,  # Direct answers without iterations for faster response
             memory=enable_memory,
             llm=llm,
         )

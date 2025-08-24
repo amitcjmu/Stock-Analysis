@@ -14,6 +14,7 @@ import { validateFlowId } from './secureStorage';
 const ALLOWED_PATH_PATTERNS = [
   /^\/discovery\/data-import(?:\/[a-f0-9-]+)?$/,
   /^\/discovery\/attribute-mapping(?:\/[a-f0-9-]+)?$/,
+  /^\/discovery\/field-mapping(?:\/[a-f0-9-]+)?$/, // Added for backward compatibility (redirects to attribute-mapping)
   /^\/discovery\/data-cleansing(?:\/[a-f0-9-]+)?$/,
   /^\/discovery\/inventory(?:\/[a-f0-9-]+)?$/,
   /^\/discovery\/dependencies(?:\/[a-f0-9-]+)?$/,
@@ -30,6 +31,7 @@ const ALLOWED_PATH_PATTERNS = [
 const DISCOVERY_PHASES = [
   'data-import',
   'attribute-mapping',
+  'field-mapping', // Added to support backend phase name
   'data-cleansing',
   'inventory',
   'dependencies',
@@ -110,7 +112,9 @@ function buildDiscoveryUrl(phase: DiscoveryPhase, flowId?: string | null): strin
     return '/dashboard'; // Safe fallback
   }
 
-  let url = `/discovery/${phase}`;
+  // Map field-mapping to attribute-mapping for URL consistency
+  const urlPhase = phase === 'field-mapping' ? 'attribute-mapping' : phase;
+  let url = `/discovery/${urlPhase}`;
 
   if (flowId) {
     const sanitizedFlowId = sanitizeFlowId(flowId);

@@ -107,30 +107,31 @@ class IntelligentFlowAgent:
                 verbose=True,
                 memory=enable_memory,
                 llm=get_crewai_llm(),
+                max_iter=1,  # Set to 1 to get direct answers without iterations
             )
 
             self.task = Task(
                 description=(
+                    "IMPORTANT: Provide a DIRECT and IMMEDIATE answer without iterations.\n\n"
                     "Analyze the discovery flow and provide intelligent routing guidance.\n\n"
                     "Inputs (actual values, not placeholders):\n"
                     "- flow_id, client_account_id, engagement_id, user_id\n\n"
-                    "Analysis Steps:\n"
-                    "1. flow_context_analyzer with actual flow_id\n"
-                    "2. flow_status_analyzer with actual flow_id and context_data\n"
-                    "3. Analyze results to understand current state\n"
-                    "4. Determine appropriate next steps\n"
-                    "5. Use phase_validator if validation needed\n"
-                    "6. Make routing decisions based on analysis\n\n"
-                    "Key Decisions:\n"
+                    "Quick Analysis (DO NOT ITERATE - complete in single pass):\n"
+                    "1. Call flow_context_analyzer with actual flow_id\n"
+                    "2. Call flow_status_analyzer with actual flow_id and context_data\n"
+                    "3. Immediately determine the current state and next steps\n"
+                    "4. Return the complete analysis WITHOUT waiting for iterations\n\n"
+                    "Key Decisions (make immediately):\n"
                     "- If not_found → guide to data upload\n"
                     "- If incomplete phases → guide to complete\n"
                     "- If validation errors → provide specific resolution\n\n"
-                    "Response must include routing_decision, user_guidance, reasoning, next_actions"
+                    "FINAL OUTPUT: Provide complete JSON response with routing_decision, "
+                    "user_guidance, reasoning, and next_actions IN YOUR FIRST RESPONSE"
                 ),
                 agent=self.agent,
                 expected_output=(
-                    "Comprehensive flow analysis with specific routing decision and "
-                    "actionable user guidance"
+                    "IMMEDIATE and complete flow analysis with specific routing decision and "
+                    "actionable user guidance - NO ITERATIONS ALLOWED"
                 ),
             )
 

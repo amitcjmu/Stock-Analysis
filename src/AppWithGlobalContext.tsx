@@ -208,6 +208,9 @@ const AuthenticatedAppWithGlobalContext = (): JSX.Element => {
         <Route path="/discovery/data-cleansing/:flowId" element={<LazyDataCleansing />} />
         <Route path="/discovery/attribute-mapping" element={<LazyAttributeMapping />} />
         <Route path="/discovery/attribute-mapping/:flowId" element={<LazyAttributeMapping />} />
+        {/* Redirect for backward compatibility - field-mapping to attribute-mapping */}
+        <Route path="/discovery/field-mapping" element={<LazyAttributeMapping />} />
+        <Route path="/discovery/field-mapping/:flowId" element={<LazyAttributeMapping />} />
 
         {/* Collection workflow routes */}
         <Route path="/collection" element={<LazyCollectionIndex />} />
