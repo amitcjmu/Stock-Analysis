@@ -81,15 +81,30 @@ export const authApi = {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      // Handle backend error format: { error: { details: { original_message: "..." }, message: "..." } }
       let errorMessage = 'Login failed';
-      if (errorData.error) {
-        errorMessage = errorData.error.details?.original_message || errorData.error.message || errorMessage;
-      } else if (errorData.detail) {
-        // Fallback for other potential error formats
-        errorMessage = errorData.detail;
+
+      try {
+        const errorData = await response.json();
+        // Handle backend error format: { error: { details: { original_message: "..." }, message: "..." } }
+        if (errorData.error) {
+          errorMessage = errorData.error.details?.original_message || errorData.error.message || errorMessage;
+        } else if (errorData.detail) {
+          // Fallback for other potential error formats
+          errorMessage = errorData.detail;
+        }
+      } catch (jsonError) {
+        // If JSON parsing fails, use status-based messaging
+        if (response.status === 401) {
+          errorMessage = 'Invalid email or password';
+        } else if (response.status === 403) {
+          errorMessage = 'Account is disabled or unauthorized';
+        } else if (response.status === 429) {
+          errorMessage = 'Too many login attempts. Please try again later';
+        } else {
+          errorMessage = `Login failed with status ${response.status}`;
+        }
       }
+
       throw new Error(errorMessage);
     }
 
@@ -106,15 +121,30 @@ export const authApi = {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      // Handle backend error format: { error: { details: { original_message: "..." }, message: "..." } }
       let errorMessage = 'Registration failed';
-      if (errorData.error) {
-        errorMessage = errorData.error.details?.original_message || errorData.error.message || errorMessage;
-      } else if (errorData.detail) {
-        // Fallback for other potential error formats
-        errorMessage = errorData.detail;
+
+      try {
+        const errorData = await response.json();
+        // Handle backend error format: { error: { details: { original_message: "..." }, message: "..." } }
+        if (errorData.error) {
+          errorMessage = errorData.error.details?.original_message || errorData.error.message || errorMessage;
+        } else if (errorData.detail) {
+          // Fallback for other potential error formats
+          errorMessage = errorData.detail;
+        }
+      } catch (jsonError) {
+        // If JSON parsing fails, use status-based messaging
+        if (response.status === 400) {
+          errorMessage = 'Invalid registration data';
+        } else if (response.status === 409) {
+          errorMessage = 'User already exists';
+        } else if (response.status === 429) {
+          errorMessage = 'Too many registration attempts. Please try again later';
+        } else {
+          errorMessage = `Registration failed with status ${response.status}`;
+        }
       }
+
       throw new Error(errorMessage);
     }
 
