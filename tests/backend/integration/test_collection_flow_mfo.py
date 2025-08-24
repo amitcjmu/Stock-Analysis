@@ -75,8 +75,8 @@ class TestCollectionFlowMFO:
         user = User(
             id=test_context.user_id,
             email=f"{test_context.user_id}@test.com",
-            full_name="Test User",
-            role="platform_admin",  # Use platform_admin for full permissions
+            first_name="Test",
+            last_name="User",
             is_active=True,
         )
         db_session.add(user)

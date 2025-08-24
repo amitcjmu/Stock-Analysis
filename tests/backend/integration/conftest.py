@@ -15,6 +15,7 @@ from uuid import uuid4
 
 import httpx
 import pytest
+import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -391,16 +392,24 @@ DOCKER_API_BASE = os.getenv("DOCKER_API_BASE", "http://localhost:8000")
 DOCKER_FRONTEND_BASE = os.getenv("DOCKER_FRONTEND_BASE", "http://localhost:8081")
 
 
-@pytest.fixture(scope="session")
-def api_client():
+@pytest_asyncio.fixture(scope="session")
+async def api_client():
     """Create HTTP client for API testing."""
-    return httpx.AsyncClient(base_url=DOCKER_API_BASE, timeout=30.0)
+    client = httpx.AsyncClient(base_url=DOCKER_API_BASE, timeout=30.0)
+    try:
+        yield client
+    finally:
+        await client.aclose()
 
 
-@pytest.fixture(scope="session")
-def frontend_client():
+@pytest_asyncio.fixture(scope="session")
+async def frontend_client():
     """Create HTTP client for frontend testing."""
-    return httpx.AsyncClient(base_url=DOCKER_FRONTEND_BASE, timeout=30.0)
+    client = httpx.AsyncClient(base_url=DOCKER_FRONTEND_BASE, timeout=30.0)
+    try:
+        yield client
+    finally:
+        await client.aclose()
 
 
 @pytest.fixture
