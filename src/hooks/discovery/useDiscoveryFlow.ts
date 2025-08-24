@@ -4,7 +4,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { discoveryFlowService } from '../../services/api/discoveryFlowService';
 import { masterFlowService } from '../../services/api/masterFlowService';
 import SecureLogger from '../../utils/secureLogger';
-import { transformFlowResponse, ensureFrontendFormat } from '../../utils/api-field-transformer';
 
 // Types for discovery flow state
 export interface DiscoveryFlowState {
@@ -85,7 +84,7 @@ export const useDiscoveryFlow = (flowId?: string): UseDiscoveryFlowReturn => {
           user.client_account_id,
           user.engagement_id
         );
-        return ensureFrontendFormat(response);
+        return response;
       } catch (discoveryError) {
         SecureLogger.warn('Discovery flow service failed, trying master flow service', {
           flowId,
@@ -95,7 +94,7 @@ export const useDiscoveryFlow = (flowId?: string): UseDiscoveryFlowReturn => {
         try {
           // Fallback to master flow service
           const response = await masterFlowService.getFlowDetails(flowId);
-          return transformFlowResponse(response);
+          return response;
         } catch (masterError) {
           SecureLogger.error('Both services failed to fetch flow data', {
             flowId,
@@ -117,8 +116,8 @@ export const useDiscoveryFlow = (flowId?: string): UseDiscoveryFlowReturn => {
     retryDelay: 1000
   });
 
-  // Transform flow data to ensure consistent format
-  const flow = rawFlowData ? ensureFrontendFormat(rawFlowData) : null;
+  // Use raw flow data directly (already in snake_case)
+  const flow = rawFlowData || null;
 
   // Initialize flow mutation
   const initializeFlowMutation = useMutation({
@@ -133,7 +132,7 @@ export const useDiscoveryFlow = (flowId?: string): UseDiscoveryFlowReturn => {
           engagement_id: user.engagement_id,
           flow_type: 'discovery'
         });
-        return ensureFrontendFormat(response);
+        return response;
       } catch (error) {
         SecureLogger.error('Failed to initialize discovery flow', {
           error,
@@ -169,7 +168,7 @@ export const useDiscoveryFlow = (flowId?: string): UseDiscoveryFlowReturn => {
           user.client_account_id,
           user.engagement_id
         );
-        return ensureFrontendFormat(response);
+        return response;
       } catch (error) {
         SecureLogger.error('Failed to start discovery flow', {
           flowId,
@@ -203,7 +202,7 @@ export const useDiscoveryFlow = (flowId?: string): UseDiscoveryFlowReturn => {
           user.client_account_id,
           user.engagement_id
         );
-        return ensureFrontendFormat(response);
+        return response;
       } catch (error) {
         SecureLogger.error('Failed to execute phase', {
           flowId,
@@ -232,7 +231,7 @@ export const useDiscoveryFlow = (flowId?: string): UseDiscoveryFlowReturn => {
 
       try {
         const response = await masterFlowService.pauseFlow(flowId);
-        return ensureFrontendFormat(response);
+        return response;
       } catch (error) {
         SecureLogger.error('Failed to pause flow', {
           flowId,
@@ -260,7 +259,7 @@ export const useDiscoveryFlow = (flowId?: string): UseDiscoveryFlowReturn => {
 
       try {
         const response = await masterFlowService.resumeFlow(flowId);
-        return ensureFrontendFormat(response);
+        return response;
       } catch (error) {
         SecureLogger.error('Failed to resume flow', {
           flowId,
@@ -342,7 +341,7 @@ export const useDiscoveryFlow = (flowId?: string): UseDiscoveryFlowReturn => {
     const crewResults = flow.crewResults || flow.crew_results;
     if (!crewResults || !crewResults[crewName]) return null;
 
-    return ensureFrontendFormat(crewResults[crewName]);
+    return crewResults[crewName];
   }, [flow]);
 
   // Update error state when query error changes

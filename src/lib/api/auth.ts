@@ -82,6 +82,7 @@ export const authApi = {
 
     if (!response.ok) {
       let errorMessage = 'Login failed';
+      const status = response.status;
 
       try {
         const errorData = await response.json();
@@ -94,18 +95,20 @@ export const authApi = {
         }
       } catch (jsonError) {
         // If JSON parsing fails, use status-based messaging
-        if (response.status === 401) {
+        if (status === 401) {
           errorMessage = 'Invalid email or password';
-        } else if (response.status === 403) {
+        } else if (status === 403) {
           errorMessage = 'Account is disabled or unauthorized';
-        } else if (response.status === 429) {
+        } else if (status === 429) {
           errorMessage = 'Too many login attempts. Please try again later';
         } else {
-          errorMessage = `Login failed with status ${response.status}`;
+          errorMessage = `Login failed with status ${status}`;
         }
       }
 
-      throw new Error(errorMessage);
+      const error = new Error(errorMessage) as Error & { status?: number };
+      error.status = status;
+      throw error;
     }
 
     return response.json();
@@ -122,6 +125,7 @@ export const authApi = {
 
     if (!response.ok) {
       let errorMessage = 'Registration failed';
+      const status = response.status;
 
       try {
         const errorData = await response.json();
@@ -134,18 +138,20 @@ export const authApi = {
         }
       } catch (jsonError) {
         // If JSON parsing fails, use status-based messaging
-        if (response.status === 400) {
+        if (status === 400) {
           errorMessage = 'Invalid registration data';
-        } else if (response.status === 409) {
+        } else if (status === 409) {
           errorMessage = 'User already exists';
-        } else if (response.status === 429) {
+        } else if (status === 429) {
           errorMessage = 'Too many registration attempts. Please try again later';
         } else {
-          errorMessage = `Registration failed with status ${response.status}`;
+          errorMessage = `Registration failed with status ${status}`;
         }
       }
 
-      throw new Error(errorMessage);
+      const error = new Error(errorMessage) as Error & { status?: number };
+      error.status = status;
+      throw error;
     }
 
     return response.json();

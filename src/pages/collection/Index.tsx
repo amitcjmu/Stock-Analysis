@@ -31,8 +31,8 @@ const CollectionIndex: React.FC = () => {
   const { toast } = useToast();
   const { setCurrentFlow, user } = useAuth();
   const [isCreatingFlow, setIsCreatingFlow] = useState<string | null>(null);
-  const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const errorNavigationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const navigationTimeoutRef = useRef<number | null>(null);
+  const errorNavigationTimeoutRef = useRef<number | null>(null);
   const [collectionMetrics, setCollectionMetrics] = useState({
     activeForms: 0,
     bulkUploads: 0,
@@ -255,7 +255,7 @@ const CollectionIndex: React.FC = () => {
       }
 
       // Give the flow a moment to initialize before navigating
-      navigationTimeoutRef.current = setTimeout(() => {
+      navigationTimeoutRef.current = window.setTimeout(() => {
         // Navigate to the workflow page with the flow ID
         navigate(`${workflowPath}?flowId=${flowResponse.id}`);
         navigationTimeoutRef.current = null;
@@ -288,7 +288,7 @@ const CollectionIndex: React.FC = () => {
         }
 
         // Navigate to progress monitoring to see active flows
-        errorNavigationTimeoutRef.current = setTimeout(() => {
+        errorNavigationTimeoutRef.current = window.setTimeout(() => {
           navigate('/collection/progress');
           errorNavigationTimeoutRef.current = null;
         }, 2000);
