@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     )
     DB_ECHO_LOG: bool = Field(default=False, env="DB_ECHO_LOG")
 
+    # Database Connection Pool Settings - Enhanced for production load
+    DB_POOL_SIZE: int = Field(default=20, env="DB_POOL_SIZE")
+    DB_MAX_OVERFLOW: int = Field(default=30, env="DB_MAX_OVERFLOW")
+    DB_POOL_TIMEOUT: int = Field(default=30, env="DB_POOL_TIMEOUT")
+    DB_POOL_RECYCLE: int = Field(default=3600, env="DB_POOL_RECYCLE")
+    DB_POOL_PRE_PING: bool = Field(default=True, env="DB_POOL_PRE_PING")
+
     # Railway.app specific database URL (if available)
     @property
     def database_url_async(self) -> str:

@@ -77,7 +77,9 @@ async def database_health_detailed() -> Dict[str, Any]:
             "health_check_time_ms": response_time,
             "connection_health": metrics.get("connection_health", {}),
             "pool_status": metrics.get("pool_status", {}),
+            "pool_config": metrics.get("pool_config", {}),
             "engine_type": metrics.get("engine_type", "Unknown"),
+            "database_type": metrics.get("database_type", "Unknown"),
             "recommendations": _get_performance_recommendations(metrics),
             "timestamp": datetime.utcnow().isoformat(),
         }
@@ -96,6 +98,7 @@ def _get_performance_recommendations(metrics: Dict[str, Any]) -> list:
     recommendations = []
 
     connection_health = metrics.get("connection_health", {})
+    pool_config = metrics.get("pool_config", {})
 
     # Check success rate
     success_rate = connection_health.get("success_rate", 1.0)
@@ -133,11 +136,47 @@ def _get_performance_recommendations(metrics: Dict[str, Any]) -> list:
             }
         )
 
+    # Check pool utilization
+    pool_utilization = pool_config.get("pool_utilization_percent", 0)
+    if pool_utilization > 85:
+        recommendations.append(
+            {
+                "issue": "High database connection pool utilization",
+                "current_value": f"{pool_utilization}%",
+                "recommendation": "Consider increasing DB_POOL_SIZE or DB_MAX_OVERFLOW environment variables",
+                "priority": "high",
+            }
+        )
+    elif pool_utilization > 70:
+        recommendations.append(
+            {
+                "issue": "Moderate database connection pool utilization",
+                "current_value": f"{pool_utilization}%",
+                "recommendation": "Monitor pool usage and consider scaling if load increases",
+                "priority": "medium",
+            }
+        )
+
+    # Check if pool configuration supports 100+ concurrent users
+    max_connections = pool_config.get("max_possible_connections", 0)
+    if max_connections < 50:
+        recommendations.append(
+            {
+                "issue": "Connection pool may not support high concurrency",
+                "current_value": f"{max_connections} max connections",
+                "recommendation": (
+                    "For 100+ concurrent users, consider increasing pool size "
+                    "(currently optimized for 50 connections)"
+                ),
+                "priority": "medium",
+            }
+        )
+
     if not recommendations:
         recommendations.append(
             {
                 "status": "optimal",
-                "message": "Database performance is optimal",
+                "message": "Database performance is optimal - Ready for 100+ concurrent users",
                 "priority": "info",
             }
         )
