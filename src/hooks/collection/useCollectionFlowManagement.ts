@@ -76,7 +76,7 @@ export interface FlowContinueResult {
 
 // Hook for detecting incomplete collection flows
 export const useIncompleteCollectionFlows = (enabled: boolean = true) => {
-  console.log('🔍 useIncompleteCollectionFlows hook called with enabled:', enabled);
+  // console.log('🔍 useIncompleteCollectionFlows hook called with enabled:', enabled);
 
   const queryResult = useQuery({
     queryKey: ['collection-flows', 'incomplete'],
@@ -150,13 +150,14 @@ export const useIncompleteCollectionFlows = (enabled: boolean = true) => {
     }
   });
 
-  console.log('🔍 Query result:', {
-    isLoading: queryResult.isLoading,
-    isFetching: queryResult.isFetching,
-    isError: queryResult.isError,
-    data: queryResult.data,
-    error: queryResult.error
-  });
+  // Commented out to reduce console spam
+  // console.log('🔍 Query result:', {
+  //   isLoading: queryResult.isLoading,
+  //   isFetching: queryResult.isFetching,
+  //   isError: queryResult.isError,
+  //   data: queryResult.data,
+  //   error: queryResult.error
+  // });
 
   return queryResult;
 };

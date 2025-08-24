@@ -142,15 +142,35 @@ export const groupQuestionsIntoSections = (questions: QuestionData[]): FormSecti
   const basicQuestions = questions.filter((q: QuestionData) =>
     q.category === 'basic' ||
     q.category === 'business' ||
-    q.field_type === 'application_name' ||
-    q.field_type === 'application_type'
+    q.field_id === 'application_name' ||
+    q.field_id === 'application_type' ||
+    q.field_id === 'business_criticality' ||
+    q.field_id === 'primary_users' ||
+    q.field_id === 'user_count'
   );
 
   const technicalQuestions = questions.filter((q: QuestionData) =>
     q.category === 'technical' ||
+    q.field_id === 'technology_stack' ||
+    q.field_id === 'database_type' ||
+    q.field_id === 'architecture_pattern' ||
+    q.field_id === 'api_interfaces' ||
+    q.field_id === 'authentication_method'
+  );
+
+  const infrastructureQuestions = questions.filter((q: QuestionData) =>
     q.category === 'infrastructure' ||
-    q.field_type === 'technology_stack' ||
-    q.field_type === 'database'
+    q.field_id === 'deployment_environment' ||
+    q.field_id === 'cloud_provider' ||
+    q.field_id === 'containerized' ||
+    q.field_id === 'scalability_requirements'
+  );
+
+  const complianceQuestions = questions.filter((q: QuestionData) =>
+    q.category === 'compliance' ||
+    q.field_id === 'data_classification' ||
+    q.field_id === 'compliance_requirements' ||
+    q.field_id === 'disaster_recovery'
   );
 
   // Create basic information section
@@ -173,13 +193,43 @@ export const groupQuestionsIntoSections = (questions: QuestionData[]): FormSecti
     sections.push({
       id: 'agent-technical-details',
       title: 'Technical Details',
-      description: 'Technical architecture and dependencies from CrewAI analysis',
+      description: 'Technical architecture and dependencies',
       fields: technicalQuestions.map((q, index) =>
         convertQuestionToFormField(q, index, 'agent-technical-details')
       ),
       order: 2,
       requiredFieldsCount: technicalQuestions.filter((q: QuestionData) => q.required !== false).length,
-      completionWeight: 0.6
+      completionWeight: 0.25
+    });
+  }
+
+  // Create infrastructure section
+  if (infrastructureQuestions.length > 0) {
+    sections.push({
+      id: 'agent-infrastructure',
+      title: 'Infrastructure & Deployment',
+      description: 'Deployment environment and infrastructure details',
+      fields: infrastructureQuestions.map((q, index) =>
+        convertQuestionToFormField(q, index, 'agent-infrastructure')
+      ),
+      order: 3,
+      requiredFieldsCount: infrastructureQuestions.filter((q: QuestionData) => q.required !== false).length,
+      completionWeight: 0.2
+    });
+  }
+
+  // Create compliance section
+  if (complianceQuestions.length > 0) {
+    sections.push({
+      id: 'agent-compliance',
+      title: 'Compliance & Security',
+      description: 'Data classification and compliance requirements',
+      fields: complianceQuestions.map((q, index) =>
+        convertQuestionToFormField(q, index, 'agent-compliance')
+      ),
+      order: 4,
+      requiredFieldsCount: complianceQuestions.filter((q: QuestionData) => q.required !== false).length,
+      completionWeight: 0.15
     });
   }
 
@@ -202,6 +252,16 @@ export const groupQuestionsIntoSections = (questions: QuestionData[]): FormSecti
 /**
  * Converts CrewAI questionnaires to AdaptiveFormData format
  */
+/**
+ * Convert a single questionnaire to form data format
+ */
+export const convertQuestionnaireToFormData = (
+  questionnaire: QuestionnaireData,
+  applicationId?: string | null
+): AdaptiveFormData => {
+  return convertQuestionnairesToFormData(questionnaire, applicationId || null);
+};
+
 export const convertQuestionnairesToFormData = (
   questionnaire: QuestionnaireData,
   applicationId: string | null

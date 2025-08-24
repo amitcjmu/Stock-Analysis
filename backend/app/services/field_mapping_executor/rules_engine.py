@@ -41,6 +41,58 @@ class MappingRulesEngine(RulesEngine):
         """Placeholder mapping validation"""
         return True
 
+    async def apply_rules(
+        self, parsed_mappings: Dict[str, Any], rules_context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Apply business rules to parsed mappings.
+        This method provides compatibility with the base executor interface.
+        """
+        try:
+            # Extract mappings from parsed structure
+            if isinstance(parsed_mappings.get("mappings"), list):
+                mappings = {}
+                for mapping in parsed_mappings["mappings"]:
+                    if isinstance(mapping, dict):
+                        source = mapping.get("source_field", "")
+                        target = mapping.get("target_field", "")
+                        if source and target:
+                            mappings[source] = target
+            else:
+                mappings = parsed_mappings.get("mappings", {})
+
+            # Apply existing mapping rules
+            processed_mappings = self.apply_mapping_rules(mappings)
+
+            # Generate clarifications (placeholder logic)
+            clarifications = []
+
+            # Simple rule: if confidence is too low, ask for clarification
+            confidence_scores = parsed_mappings.get("confidence_scores", {})
+            for source, confidence in confidence_scores.items():
+                if confidence < 0.6:
+                    clarifications.append(
+                        f"Low confidence mapping for '{source}'. Please verify the target field."
+                    )
+
+            return {
+                "success": True,
+                "processed_mappings": processed_mappings,
+                "clarifications": clarifications,
+                "rules_applied": len(self.rules),
+                "context": rules_context,
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Rules engine error: {e}",
+                "processed_mappings": parsed_mappings.get("mappings", {}),
+                "clarifications": [],
+                "rules_applied": 0,
+                "context": rules_context,
+            }
+
 
 class MappingRule:
     """Mapping rule - placeholder implementation"""

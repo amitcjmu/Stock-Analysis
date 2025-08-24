@@ -6,7 +6,7 @@ Parsing logic for extracting field mappings and confidence scores from various i
 import json
 import re
 import logging
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 
 from .exceptions import MappingParseError
 
@@ -340,6 +340,32 @@ class CompositeMappingParser:
     def parse_clarifications(self, text: str) -> List[str]:
         """Parse clarification questions from text"""
         return self.clarification_parser.parse_clarifications(text)
+
+    async def parse_response(self, text: str) -> Dict[str, Any]:
+        """
+        Parse response text and return structured data.
+        This method provides compatibility with the base executor interface.
+        """
+        try:
+            mappings, confidence_scores = self.parse_mappings_and_confidence(text)
+            clarifications = self.parse_clarifications(text)
+
+            return {
+                "mappings": [
+                    {
+                        "source_field": source,
+                        "target_field": target,
+                        "confidence": confidence_scores.get(source, 0.7),
+                        "status": "suggested",
+                    }
+                    for source, target in mappings.items()
+                ],
+                "confidence_scores": confidence_scores,
+                "clarifications": clarifications,
+            }
+        except Exception as e:
+            logger.error(f"Failed to parse response: {e}")
+            raise MappingParseError(f"Response parsing failed: {e}")
 
 
 # Factory function

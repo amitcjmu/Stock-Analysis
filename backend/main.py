@@ -189,6 +189,16 @@ async def lifespan(fastapi_app: FastAPI):  # noqa: C901
     except Exception as e:
         logger.warning(f"Flow health monitor initialization warning: {e}")
 
+    # Start field mapping auto-trigger
+    try:
+        logger.info("🔄 Starting field mapping auto-trigger...")
+        from app.services.field_mapping_auto_trigger import start_field_mapping_monitor
+
+        await start_field_mapping_monitor()
+        logger.info("✅ Field mapping auto-trigger started successfully")
+    except Exception as e:
+        logger.warning(f"Field mapping auto-trigger initialization warning: {e}")
+
     # Yield control to the application
     yield
 
@@ -203,6 +213,15 @@ async def lifespan(fastapi_app: FastAPI):  # noqa: C901
         logger.info("✅ Flow health monitor stopped")
     except Exception as e:
         logger.warning(f"Error stopping flow health monitor: {e}")
+
+    # Stop field mapping auto-trigger
+    try:
+        from app.services.field_mapping_auto_trigger import stop_field_mapping_monitor
+
+        await stop_field_mapping_monitor()
+        logger.info("✅ Field mapping auto-trigger stopped")
+    except Exception as e:
+        logger.warning(f"Error stopping field mapping auto-trigger: {e}")
 
     logger.info("✅ Shutdown logic completed.")
 

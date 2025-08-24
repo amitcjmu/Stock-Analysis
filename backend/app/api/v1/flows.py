@@ -669,7 +669,7 @@ async def get_flow_status(
 
         # Check if flow is waiting for approval
         awaiting_approval = (
-            flow_data.get("status") == "waiting_for_approval"
+            discovery_flow.status == "waiting_for_approval"
             or flow_data.get("current_state", {}).get("awaiting_user_approval", False)
             or flow_data.get("awaiting_user_approval", False)
         )
@@ -853,13 +853,20 @@ async def _recover_corrupted_flow(
         field_mappings_count = len(field_mappings)
 
         # Determine the correct phase and status based on existing data
-        if field_mappings_count > 0:
+        # CRITICAL FIX: If status is waiting_for_approval, we MUST be in field_mapping phase
+        # This is because we're waiting for field mapping approval/generation
+        if discovery_flow.status == "waiting_for_approval":
+            # Waiting for approval means we're in field_mapping phase
+            correct_phase = "field_mapping"
+            correct_status = "waiting_for_approval"
+            progress = 50.0  # Field mapping is typically 50% progress
+        elif field_mappings_count > 0:
             # Field mappings exist, so we should be in field_mapping phase
             correct_phase = "field_mapping"
             correct_status = "waiting_for_approval"
             progress = 60.0
         else:
-            # No field mappings, so we're likely in data_import phase
+            # No field mappings and not waiting for approval, so we're likely in data_import phase
             correct_phase = "data_import"
             correct_status = "processing"
             progress = 30.0

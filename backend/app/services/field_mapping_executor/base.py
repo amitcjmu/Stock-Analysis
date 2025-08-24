@@ -158,13 +158,12 @@ class FieldMappingExecutor:
 
     def _validate_execution_state(self, state: UnifiedDiscoveryFlowState) -> None:
         """Validate that the state has required data for field mapping."""
-        if not state.discovery_data:
-            raise ValidationError("No discovery data available for field mapping")
-
-        if not state.discovery_data.get("sample_data"):
+        # Check for raw_data (sample data)
+        if not state.raw_data:
             raise ValidationError("No sample data available for field mapping")
 
-        if not state.discovery_data.get("detected_columns"):
+        # Check for detected_columns in metadata
+        if not state.metadata.get("detected_columns"):
             raise ValidationError("No detected columns available for field mapping")
 
         logger.debug(f"State validation passed for flow {state.flow_id}")
@@ -207,8 +206,7 @@ class FieldMappingExecutor:
 
     def _get_mock_agent_response(self, state: UnifiedDiscoveryFlowState) -> str:
         """Generate a mock agent response for testing/fallback."""
-        discovery_data = state.discovery_data
-        detected_columns = discovery_data.get("detected_columns", [])
+        detected_columns = state.metadata.get("detected_columns", [])
 
         # Generate basic mappings
         mappings = []
@@ -236,12 +234,10 @@ class FieldMappingExecutor:
 
     def _prepare_agent_input(self, state: UnifiedDiscoveryFlowState) -> Dict[str, Any]:
         """Prepare input data for the field mapping agent."""
-        discovery_data = state.discovery_data
-
         agent_input = {
-            "sample_data": discovery_data.get("sample_data", []),
-            "detected_columns": discovery_data.get("detected_columns", []),
-            "data_source_info": discovery_data.get("data_source_info", {}),
+            "sample_data": state.raw_data,
+            "detected_columns": state.metadata.get("detected_columns", []),
+            "data_source_info": state.metadata.get("data_source_info", {}),
             "previous_mappings": state.field_mappings or [],
             "mapping_context": {
                 "flow_id": state.flow_id,
@@ -308,8 +304,8 @@ class FieldMappingExecutor:
         """Validate the parsed field mappings."""
         try:
             validation_context = {
-                "detected_columns": state.discovery_data.get("detected_columns", []),
-                "sample_data": state.discovery_data.get("sample_data", []),
+                "detected_columns": state.metadata.get("detected_columns", []),
+                "sample_data": state.raw_data,
                 "flow_id": state.flow_id,
             }
 

@@ -436,6 +436,59 @@ class CompositeValidator:
 
         return results
 
+    async def validate_mappings(
+        self, parsed_mappings: Dict[str, Any], validation_context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Validate parsed mappings with context information.
+        This method provides compatibility with the base executor interface.
+        """
+        try:
+            # Extract mappings from parsed structure
+            if isinstance(parsed_mappings.get("mappings"), list):
+                # Convert list format to dict format
+                mappings = {}
+                confidence_scores = {}
+                for mapping in parsed_mappings["mappings"]:
+                    if isinstance(mapping, dict):
+                        source = mapping.get("source_field", "")
+                        target = mapping.get("target_field", "")
+                        confidence = mapping.get("confidence", 0.7)
+                        if source and target:
+                            mappings[source] = target
+                            confidence_scores[source] = confidence
+            else:
+                mappings = parsed_mappings.get("mappings", {})
+                confidence_scores = parsed_mappings.get("confidence_scores", {})
+
+            # Use the existing validation method
+            validation_results = self.validate_mapping_results(
+                mappings, confidence_scores, validation_context.get("sample_data")
+            )
+
+            # Enhance with context information
+            validation_results["validation_context"] = validation_context
+            validation_results["error_count"] = len(
+                validation_results.get("errors", [])
+            )
+            validation_results["warning_count"] = len(
+                validation_results.get("warnings", [])
+            )
+
+            return validation_results
+
+        except Exception as e:
+            logger.error(f"Validation failed: {e}")
+            return {
+                "overall_valid": False,
+                "error_count": 1,
+                "errors": [f"Validation error: {e}"],
+                "warnings": [],
+                "cleaned_mappings": {},
+                "cleaned_confidence": {},
+                "validation_context": validation_context,
+            }
+
 
 # Factory function
 def create_validator() -> CompositeValidator:

@@ -226,7 +226,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
       return;
     }
 
-    const validateForm = (): JSX.Element => {
+    const validateForm = (): FormValidationResult => {
       const fieldResults: Record<string, FieldValidationResult> = {};
       let totalValid = 0;
       let totalFields = 0;
@@ -353,6 +353,14 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
         });
       });
 
+      // Debug validation state
+      console.log('Validation Debug:', {
+        totalValid,
+        totalFields,
+        isValid: totalValid === totalFields && totalFields > 0,
+        fieldResults: Object.keys(fieldResults).length
+      });
+      
       const newValidation: FormValidationResult = {
         formId: formData.formId,
         isValid: totalValid === totalFields && totalFields > 0,

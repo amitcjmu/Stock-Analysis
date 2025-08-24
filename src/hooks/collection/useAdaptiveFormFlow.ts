@@ -16,7 +16,7 @@ import { useCollectionFlowManagement, useIncompleteCollectionFlows } from './use
 import { collectionFlowApi } from '@/services/api/collection-flow';
 
 // Import form data transformation utilities
-import { convertQuestionnairesToFormData, validateFormDataStructure } from '@/utils/collection/formDataTransformation'
+import { convertQuestionnairesToFormData, convertQuestionnaireToFormData, validateFormDataStructure, createFallbackFormData } from '@/utils/collection/formDataTransformation'
 
 // Import types
 import type {
@@ -631,6 +631,64 @@ export const useAdaptiveFormFlow = (
       });
 
       console.log('✅ Form submitted successfully, CrewAI agents will continue processing');
+
+      // Refresh questionnaires after successful submission to get the next set
+      console.log('🔄 Refreshing questionnaires to check for follow-up questions...');
+
+      // Wait a moment for the backend to process and generate new questionnaires
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Re-fetch questionnaires to get the next set
+      if (state.flowId) {
+        try {
+          const updatedQuestionnaires = await collectionFlowApi.getAdaptiveQuestionnaires(state.flowId);
+          console.log(`📋 Retrieved ${updatedQuestionnaires.length} questionnaires after submission`);
+
+          setState(prev => ({
+            ...prev,
+            questionnaires: updatedQuestionnaires
+          }));
+
+          // If we have new questionnaires, load the first one
+          if (updatedQuestionnaires.length > 0) {
+            const nextQuestionnaire = updatedQuestionnaires.find(q =>
+              q.completion_status === 'pending' ||
+              q.completion_status === 'in_progress'
+            ) || updatedQuestionnaires[0];
+
+            if (nextQuestionnaire) {
+              console.log(`📝 Loading next questionnaire: ${nextQuestionnaire.id}`);
+
+              // Convert the questionnaire to form data format
+              const nextFormData = convertQuestionnaireToFormData(nextQuestionnaire);
+
+              setState(prev => ({
+                ...prev,
+                formData: nextFormData,
+                formValues: {},
+                validation: null
+              }));
+
+              toast({
+                title: 'Next Section Ready',
+                description: `Please continue with: ${nextQuestionnaire.title || 'Next questionnaire'}`
+              });
+            }
+          } else {
+            // Check if collection is complete
+            const flowStatus = await collectionFlowApi.getCollectionFlow(state.flowId);
+            if (flowStatus.status === 'completed' || flowStatus.progress >= 100) {
+              toast({
+                title: 'Collection Complete',
+                description: 'All required information has been collected successfully!',
+                variant: 'default'
+              });
+            }
+          }
+        } catch (refreshError) {
+          console.error('Failed to refresh questionnaires:', refreshError);
+        }
+      }
 
     } catch (error: unknown) {
       console.error('❌ Adaptive form submission failed:', error);

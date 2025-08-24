@@ -91,21 +91,15 @@ class FieldMappingExecutor(BasePhaseExecutor):
         self.client_account_id = client_account_id
         self.engagement_id = engagement_id
 
-        # Initialize the modular executor with proper error handling
-        # The modular executor will be used through our wrapper methods
-        try:
-            # Try to initialize with the fixed modular executor
-            self._modular_executor = ModularFieldMappingExecutor(
-                storage_manager=getattr(self, "storage_manager", None),
-                agent_pool=getattr(self, "agent_pool", None),
-                client_account_id=client_account_id or "unknown",
-                engagement_id=engagement_id or "unknown",
-            )
-            logger.info("Successfully initialized modular executor")
-        except Exception as e:
-            logger.error(f"Could not initialize modular executor: {e}", exc_info=True)
-            # Set to None and handle execution through fallback
-            self._modular_executor = None
+        # Initialize the modular executor - it can work with None dependencies
+        # The modular executor will gracefully handle None storage_manager and agent_pool
+        self._modular_executor = ModularFieldMappingExecutor(
+            storage_manager=None,  # Will be initialized when db_session is available
+            agent_pool=None,  # Will use mock responses for field mapping
+            client_account_id=client_account_id or "unknown",
+            engagement_id=engagement_id or "unknown",
+        )
+        logger.info("Modular executor initialized with deferred dependency injection")
 
         logger.info(
             f"FieldMappingExecutor (compatibility wrapper) initialized for client {client_account_id}"
@@ -158,25 +152,48 @@ class FieldMappingExecutor(BasePhaseExecutor):
                         "Database session generator not properly configured"
                     )
 
-                # Execute using modular implementation if available
-                if self._modular_executor:
-                    result = await self._modular_executor.execute_phase(
-                        mock_state, db_session
-                    )
-                    # Convert result back to expected format
-                    return convert_result_to_crew_format(result, self.get_phase_name())
-                else:
-                    # Fallback execution when modular executor is not available
-                    logger.warning(
-                        "Modular executor not available, using direct crew execution"
-                    )
-                    result = await execute_with_crew_fallback(
-                        crew_input,
-                        self.crew_manager,
-                        self.get_phase_name(),
-                        self._get_phase_timeout(),
-                    )
-                    return result
+                # Initialize storage manager now that we have db_session
+                if not self._modular_executor.storage_manager and db_session:
+                    try:
+                        from app.services.data_import.storage_manager import (
+                            ImportStorageManager,
+                        )
+
+                        storage_manager = ImportStorageManager(
+                            db_session, self.client_account_id
+                        )
+                        self._modular_executor.storage_manager = storage_manager
+                        # Re-initialize transformer with storage manager
+                        from app.services.field_mapping_executor.transformation import (
+                            MappingTransformer,
+                        )
+
+                        self._modular_executor.transformer = MappingTransformer(
+                            storage_manager, self.client_account_id, self.engagement_id
+                        )
+                        logger.info("Storage manager initialized for modular executor")
+                    except Exception as e:
+                        logger.warning(f"Could not initialize storage manager: {e}")
+
+                # Initialize agent pool if available
+                if not self._modular_executor.agent_pool:
+                    try:
+                        from app.services.persistent_agents import TenantScopedAgentPool
+
+                        agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
+                            self.client_account_id, self.engagement_id
+                        )
+                        self._modular_executor.agent_pool = agent_pool
+                        logger.info("Agent pool initialized for modular executor")
+                    except Exception as e:
+                        logger.warning(f"Could not initialize agent pool: {e}")
+
+                # Execute using modular implementation
+                result = await self._modular_executor.execute_phase(
+                    mock_state, db_session
+                )
+                # Convert result back to expected format
+                return convert_result_to_crew_format(result, self.get_phase_name())
 
             finally:
                 # SECURITY FIX: Ensure generator is properly closed in finally block
@@ -238,24 +255,44 @@ class FieldMappingExecutor(BasePhaseExecutor):
             if hasattr(db_session, "is_active") and not db_session.is_active:
                 raise ValueError("Database session is not active")
 
-            # Use modular executor directly if available
-            if self._modular_executor:
-                result = await self._modular_executor.execute_phase(
-                    flow_state, db_session
-                )
-            else:
-                # Fallback to basic execution if modular executor not available
-                logger.warning(
-                    "Modular executor not available for direct execution, using basic execution"
-                )
-                # Convert flow_state to crew_input format and use fallback
-                crew_input = convert_flow_state_to_crew_input(flow_state)
-                result = await execute_with_crew_fallback(
-                    crew_input,
-                    self.crew_manager,
-                    self.get_phase_name(),
-                    self._get_phase_timeout(),
-                )
+            # Initialize storage manager if needed and available
+            if not self._modular_executor.storage_manager and db_session:
+                try:
+                    from app.services.data_import.storage_manager import (
+                        ImportStorageManager,
+                    )
+
+                    storage_manager = ImportStorageManager(
+                        db_session, self.client_account_id
+                    )
+                    self._modular_executor.storage_manager = storage_manager
+                    # Re-initialize transformer with storage manager
+                    from app.services.field_mapping_executor.transformation import (
+                        MappingTransformer,
+                    )
+
+                    self._modular_executor.transformer = MappingTransformer(
+                        storage_manager, self.client_account_id, self.engagement_id
+                    )
+                    logger.info("Storage manager initialized for direct execution")
+                except Exception as e:
+                    logger.warning(f"Could not initialize storage manager: {e}")
+
+            # Initialize agent pool if needed
+            if not self._modular_executor.agent_pool:
+                try:
+                    from app.services.persistent_agents import TenantScopedAgentPool
+
+                    agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
+                        self.client_account_id, self.engagement_id
+                    )
+                    self._modular_executor.agent_pool = agent_pool
+                    logger.info("Agent pool initialized for direct execution")
+                except Exception as e:
+                    logger.warning(f"Could not initialize agent pool: {e}")
+
+            # Use modular executor for execution
+            result = await self._modular_executor.execute_phase(flow_state, db_session)
 
             logger.info("Field mapping completed successfully")
             return result
