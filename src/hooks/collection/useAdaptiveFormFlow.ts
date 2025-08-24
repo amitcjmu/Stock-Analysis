@@ -332,8 +332,9 @@ export const useAdaptiveFormFlow = (
       console.log(`   Max wait time: ${INITIALIZATION_TIMEOUT / 1000} seconds with ${MAX_ATTEMPTS} attempts`);
 
       // Setup timeout to prevent infinite loading
+      let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
       const timeoutPromise = new Promise<void>((_, reject) => {
-        setTimeout(() => {
+        timeoutHandle = setTimeout(() => {
           timeoutReached = true;
           reject(new Error(`Initialization timeout: CrewAI agents did not complete within ${INITIALIZATION_TIMEOUT / 1000} seconds`));
         }, INITIALIZATION_TIMEOUT);
@@ -390,6 +391,12 @@ export const useAdaptiveFormFlow = (
       } catch (error) {
         console.warn('⚠️ Agent processing timeout/failure, proceeding with fallback:', error.message);
         // Don't throw here - let the fallback logic handle it below
+      } finally {
+        // Clean up timeout to prevent memory leaks
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+          timeoutHandle = null;
+        }
       }
 
       // Handle flow failure

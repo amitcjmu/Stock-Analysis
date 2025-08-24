@@ -7,12 +7,18 @@ The #1 recurring bug in this codebase WAS confusion between snake_case and camel
 
 #### The Rule - NEVER BREAK THIS (Updated Aug 2025)
 1. **Backend (Python/FastAPI)**: ALWAYS returns `snake_case` fields (e.g., `flow_id`, `client_account_id`)
-2. **Frontend (TypeScript/React)**: ALWAYS uses `snake_case` fields to match backend (e.g., `flow_id`, `client_account_id`)
+2. **Frontend (TypeScript/React)**: SHOULD use `snake_case` fields to match backend for all NEW code
+   - **IMPORTANT**: Legacy code may still use `camelCase`. When touching those areas, refactor to `snake_case` in the same PR
+   - **MIGRATION IN PROGRESS**: Some components may have mixed usage during transition
 3. **Raw API Calls**: Will receive `snake_case` and should use it directly - NO TRANSFORMATION NEEDED
-4. **Type Definitions**: Frontend interfaces should use `snake_case` ONLY to match backend
+4. **Type Definitions**: Frontend interfaces should use `snake_case` ONLY for new/updated types to match backend
 
-#### Important Note About Legacy Code
-Some older utilities like `api-field-transformer.ts` may still exist that were designed to convert between snake_case and camelCase. These are NO LONGER NEEDED and should be ignored or removed when encountered.
+#### Migration Notes and Warnings
+- **Legacy Utilities**: `api-field-transformer.ts` is now a NO-OP but retained for backward compatibility
+- **Incremental Migration**: When updating a component, convert ALL its field references to snake_case
+- **Type Safety**: Use explicit null/undefined checks instead of truthy checks for numeric fields (e.g., confidence_score)
+- **DO NOT**: Mix camelCase and snake_case in the same component or type definition
+- **DO**: Complete field name migration within the scope of your PR when touching a file
 
 #### For AI Agents - MANDATORY CHECKS
 Before writing ANY code that handles API responses:

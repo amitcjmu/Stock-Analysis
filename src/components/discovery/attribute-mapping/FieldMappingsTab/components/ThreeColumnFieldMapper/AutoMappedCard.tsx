@@ -36,7 +36,8 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
   const [selectedTarget, setSelectedTarget] = useState(mapping.target_field || '');
   const isPlaceholder = mapping.is_placeholder || mapping.is_fallback;
   const agentType = getAgentTypeForMapping(mapping);
-  const confidence = getConfidenceDisplay(mapping.confidence_score || 0);
+  const confidenceValue = typeof mapping.confidence_score === 'number' ? mapping.confidence_score : 0;
+  const confidence = getConfidenceDisplay(confidenceValue);
   const reasoning = getAgentReasoningForMapping(mapping);
   const isExpanded = expandedReasonings.has(mapping.id);
 
@@ -120,7 +121,7 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
           {agentType.icon}
           {agentType.type} Agent
         </div>
-        {mapping.confidence_score && (
+        {typeof mapping.confidence_score === 'number' && (
           <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${confidence.colorClass}`}>
             {confidence.icon}
             {confidence.percentage}% confidence
@@ -154,8 +155,8 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
           {/* Status indicator for agent suggestions */}
           {!isPlaceholder && (
             <span className="text-xs text-gray-500">
-              {mapping.confidence_score && mapping.confidence_score > 0.8 ? '✨ High confidence' :
-               mapping.confidence_score && mapping.confidence_score > 0.6 ? '⚡ Moderate confidence' :
+              {confidenceValue > 0.8 ? '✨ High confidence' :
+               confidenceValue > 0.6 ? '⚡ Moderate confidence' :
                '🔍 Needs review'}
             </span>
           )}
