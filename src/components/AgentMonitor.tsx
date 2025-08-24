@@ -133,8 +133,8 @@ const AgentMonitor = (): JSX.Element => {
           <div className="ml-2">
             <p className="font-medium">System Alerts</p>
             <ul className="mt-1 text-sm list-disc list-inside">
-              {monitorData.alerts.map((alert, index) => (
-                <li key={index}>{alert.message}</li>
+              {monitorData.alerts.map((alert) => (
+                <li key={`${alert.severity}-${alert.message}`}>{alert.message}</li>
               ))}
             </ul>
           </div>
@@ -221,8 +221,8 @@ const AgentMonitor = (): JSX.Element => {
                   <div className="text-sm">
                     <span className="text-gray-600">Agents:</span>
                     <div className="mt-1">
-                      {crew.agents.map((agent, index) => (
-                        <Badge key={index} variant="outline" className="mr-1 mb-1">
+                      {crew.agents.map((agent) => (
+                        <Badge key={agent} variant="outline" className="mr-1 mb-1">
                           {agent}
                         </Badge>
                       ))}
@@ -272,8 +272,8 @@ const AgentMonitor = (): JSX.Element => {
         <div className="p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h2>
           <div className="space-y-3">
-            {monitorData.recent_activities.map((activity, index) => (
-              <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+            {monitorData.recent_activities.map((activity) => (
+              <div key={`${activity.timestamp}-${activity.agent}-${activity.action}`} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
                 <div className="flex-shrink-0">
                   <Badge className={getStatusColor(activity.status)}>{activity.status}</Badge>
                 </div>

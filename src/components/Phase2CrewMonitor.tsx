@@ -335,8 +335,8 @@ const Phase2CrewMonitor: React.FC = () => {
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Crews</h3>
               <div className="space-y-3">
-                {data.crew_details.map((crew, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                {data.crew_details.map((crew) => (
+                  <div key={crew.crew_type} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
                       <p className="font-medium text-gray-900">{crew.name}</p>
                       <p className="text-sm text-gray-600">{crew.description}</p>
@@ -422,8 +422,8 @@ const Phase2CrewMonitor: React.FC = () => {
                     <div className="mt-3 pt-3 border-t space-y-2">
                       <p className="text-sm font-medium text-gray-700">Agents:</p>
                       {agents.length > 0 ? (
-                        agents.map((agent, idx) => (
-                          <div key={idx} className="bg-gray-50 p-2 rounded text-xs">
+                        agents.map((agent) => (
+                          <div key={agent.name} className="bg-gray-50 p-2 rounded text-xs">
                             <p className="font-medium">{agent.name}</p>
                             <p className="text-gray-600">{agent.role}</p>
                             <p className="text-gray-500">Tools: {agent.tools_count}</p>

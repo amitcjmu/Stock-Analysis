@@ -189,16 +189,16 @@ export const RecommendationDisplay: React.FC<RecommendationDisplayProps> = ({
             <div>
               <span className="font-medium text-green-700">Benefits:</span>
               <ul className="mt-1 space-y-1">
-                {strategyScore.benefits.slice(0, 2).map((benefit, idx) => (
-                  <li key={idx} className="text-green-600">• {benefit}</li>
+                {strategyScore.benefits.slice(0, 2).map((benefit) => (
+                  <li key={benefit} className="text-green-600">• {benefit}</li>
                 ))}
               </ul>
             </div>
             <div>
               <span className="font-medium text-red-700">Risks:</span>
               <ul className="mt-1 space-y-1">
-                {strategyScore.risk_factors.slice(0, 2).map((risk, idx) => (
-                  <li key={idx} className="text-red-600">• {risk}</li>
+                {strategyScore.risk_factors.slice(0, 2).map((risk) => (
+                  <li key={risk} className="text-red-600">• {risk}</li>
                 ))}
               </ul>
             </div>
@@ -399,8 +399,8 @@ export const RecommendationDisplay: React.FC<RecommendationDisplayProps> = ({
                   Key Decision Factors
                 </h4>
                 <ul className="space-y-1">
-                  {recommendation.key_factors.map((factor, index) => (
-                    <li key={index} className="flex items-start space-x-2">
+                  {recommendation.key_factors.map((factor) => (
+                    <li key={factor} className="flex items-start space-x-2">
                       <span className="text-blue-500 mt-1">•</span>
                       <span className="text-sm">{factor}</span>
                     </li>
@@ -413,8 +413,8 @@ export const RecommendationDisplay: React.FC<RecommendationDisplayProps> = ({
               <div>
                 <h4 className="font-semibold mb-2">Detailed Rationale</h4>
                 <div className="space-y-2">
-                  {sortedStrategies[0]?.rationale.map((reason, index) => (
-                    <div key={index} className="p-3 bg-blue-50 rounded border-l-4 border-blue-500">
+                  {sortedStrategies[0]?.rationale.map((reason) => (
+                    <div key={reason} className="p-3 bg-blue-50 rounded border-l-4 border-blue-500">
                       <p className="text-sm">{reason}</p>
                     </div>
                   ))}
@@ -434,8 +434,8 @@ export const RecommendationDisplay: React.FC<RecommendationDisplayProps> = ({
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {recommendation.assumptions.map((assumption, index) => (
-                  <div key={index} className="flex items-start space-x-3 p-3 bg-yellow-50 rounded border-l-4 border-yellow-400">
+                {recommendation.assumptions.map((assumption) => (
+                  <div key={assumption} className="flex items-start space-x-3 p-3 bg-yellow-50 rounded border-l-4 border-yellow-400">
                     <Shield className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
                     <p className="text-sm">{assumption}</p>
                   </div>
@@ -456,7 +456,7 @@ export const RecommendationDisplay: React.FC<RecommendationDisplayProps> = ({
             <CardContent>
               <div className="space-y-3">
                 {recommendation.next_steps.map((step, index) => (
-                  <div key={index} className="flex items-start space-x-3 p-3 bg-green-50 rounded border-l-4 border-green-400">
+                  <div key={step} className="flex items-start space-x-3 p-3 bg-green-50 rounded border-l-4 border-green-400">
                     <div className="flex-shrink-0 w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
                       {index + 1}
                     </div>

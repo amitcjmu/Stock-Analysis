@@ -303,9 +303,9 @@ export const CollectionWorkflowError: React.FC<CollectionWorkflowErrorProps> = (
 
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-2">
-              {errorInfo.actions.map((action, index) => (
+              {errorInfo.actions.map((action) => (
                 <Button
-                  key={index}
+                  key={action.label}
                   variant={action.variant}
                   onClick={action.onClick}
                   className="flex items-center space-x-1"

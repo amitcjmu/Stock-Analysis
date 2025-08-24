@@ -24,8 +24,8 @@ Security & Performance:
 
 import asyncio
 import time
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Type, TypeVar, cast
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Type, TypeVar, cast, TYPE_CHECKING
 from collections import deque
 from dataclasses import dataclass
 
@@ -33,8 +33,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.core.logging import get_logger
-from app.services.flow_orchestration.tool_audit_logger import ToolAuditLogger
 from app.services.service_registry_metrics import get_monitor
+from app.services.service_registry_metrics_ops import ServiceRegistryMetricsOps
+from app.services.service_registry_operations import ServiceRegistryOperations
+
+# Use TYPE_CHECKING to avoid circular imports while maintaining type hints
+if TYPE_CHECKING:
+    from app.services.flow_orchestration.tool_audit_logger import ToolAuditLogger
 
 # Type variable for service classes
 T = TypeVar("T")
@@ -88,7 +93,7 @@ class ServiceRegistry:
         self,
         db: AsyncSession,
         context: RequestContext,
-        audit_logger: Optional[ToolAuditLogger] = None,
+        audit_logger: Optional["ToolAuditLogger"] = None,
     ):
         """
         Initialize the service registry with orchestrator-provided resources.
@@ -129,6 +134,10 @@ class ServiceRegistry:
 
         # Get the global monitor instance for performance tracking
         self._monitor = get_monitor()
+
+        # Initialize metrics and operations modules
+        self._metrics_ops = ServiceRegistryMetricsOps(self)
+        self._operations = ServiceRegistryOperations(self)
 
         # Track registry creation in monitor
         self._monitor.track_registry_creation(self._registry_id)
@@ -241,7 +250,7 @@ class ServiceRegistry:
                 f"Ensure it accepts (AsyncSession, RequestContext) constructor parameters."
             ) from e
 
-    def get_audit_logger(self) -> Optional[ToolAuditLogger]:
+    def get_audit_logger(self) -> Optional["ToolAuditLogger"]:
         """
         Get the injected audit logger for tools to use.
 
@@ -279,11 +288,8 @@ class ServiceRegistry:
         """
         Record a metric in the bounded buffer with automatic flushing.
 
-        This method provides non-blocking metrics collection:
-        1. Creates a metric record with timestamp
-        2. Adds to bounded buffer (auto-evicts old metrics if full)
-        3. Triggers automatic flush if buffer reaches max size
-        4. Ensures metrics don't block main execution flow
+        This method delegates to the metrics operations module for non-blocking
+        metrics collection and automatic flushing.
 
         Args:
             service_name: Name of the service recording the metric
@@ -291,209 +297,29 @@ class ServiceRegistry:
             metric_value: The metric value (number, string, etc.)
             metadata: Optional additional metadata
         """
-        if self._is_closed:
-            self._logger.warning(
-                f"Attempted to record metric on closed registry {self._registry_id}",
-                extra={"registry_id": self._registry_id, "metric_name": metric_name},
-            )
-            return
-
-        metric_record = MetricRecord(
-            timestamp=datetime.now(timezone.utc),
-            service_name=service_name,
-            metric_name=metric_name,
-            metric_value=metric_value,
-            metadata=metadata or {},
+        self._metrics_ops.record_metric(
+            service_name, metric_name, metric_value, metadata
         )
-
-        # Add to bounded buffer (automatically evicts oldest if at max size)
-        self._metrics_buffer.append(metric_record)
-
-        self._logger.debug(
-            f"Recorded metric {metric_name} for {service_name}",
-            extra={
-                "registry_id": self._registry_id,
-                "service_name": service_name,
-                "metric_name": metric_name,
-                "buffer_size": len(self._metrics_buffer),
-                "metric_value": metric_value,
-            },
-        )
-
-        # Auto-flush if buffer is full
-        if len(self._metrics_buffer) >= self.MAX_METRICS_BUFFER_SIZE:
-            self._logger.debug(
-                f"Metrics buffer full ({len(self._metrics_buffer)}), triggering auto-flush",
-                extra={"registry_id": self._registry_id},
-            )
-            # Trigger flush only if no flush task is currently running
-            # This prevents concurrent flushes and potential race conditions
-            if not self._metrics_flush_task or self._metrics_flush_task.done():
-                try:
-                    asyncio.get_running_loop()
-                except RuntimeError:
-                    # No running loop; skip scheduling and allow periodic/next async op to flush
-                    self._logger.debug(
-                        "No event loop running, skipping auto-flush scheduling",
-                        extra={"registry_id": self._registry_id},
-                    )
-                    return
-                self._metrics_flush_task = asyncio.create_task(
-                    self._flush_metrics(), name=f"metrics_flush_{self._registry_id}"
-                )
 
     async def _flush_metrics(self) -> None:
         """
         Flush metrics buffer non-blocking.
 
-        This method:
-        1. Copies current metrics buffer
-        2. Clears the buffer for new metrics
-        3. Writes metrics asynchronously without blocking
-        4. Handles flush failures gracefully
+        Delegates to metrics operations module for backward compatibility.
         """
-        # Start periodic flush if not started (first async operation)
-        if not self._periodic_flush_started:
-            self._start_periodic_flush()
-
-        if not self._metrics_buffer:
-            return
-
-        # Copy metrics and clear buffer atomically
-        metrics_to_flush = list(self._metrics_buffer)
-        self._metrics_buffer.clear()
-
-        self._logger.debug(
-            f"Flushing {len(metrics_to_flush)} metrics",
-            extra={
-                "registry_id": self._registry_id,
-                "metrics_count": len(metrics_to_flush),
-            },
-        )
-
-        try:
-            # Write metrics asynchronously
-            await self._write_metrics_async(metrics_to_flush)
-
-            # Track metrics flush in monitor
-            self._monitor.track_metrics_flush(self._registry_id, len(metrics_to_flush))
-
-            self._logger.debug(
-                f"Successfully flushed {len(metrics_to_flush)} metrics",
-                extra={
-                    "registry_id": self._registry_id,
-                    "metrics_count": len(metrics_to_flush),
-                },
-            )
-
-        except Exception as e:
-            self._logger.error(
-                f"Failed to flush metrics: {e}",
-                extra={
-                    "registry_id": self._registry_id,
-                    "metrics_count": len(metrics_to_flush),
-                    "error": str(e),
-                },
-            )
-            # Note: We don't re-queue failed metrics to prevent memory accumulation
-            # In production, consider dead letter queue for critical metrics
+        await self._metrics_ops.flush_metrics()
 
     def _start_periodic_flush(self) -> None:
-        """Start periodic metrics flush task."""
-        # Only start if we have an event loop and haven't started yet
-        if self._periodic_flush_started:
-            return
-
-        try:
-            asyncio.get_running_loop()
-        except RuntimeError:
-            # No event loop available, skip periodic flush
-            self._logger.debug(
-                "No event loop available for periodic flush, will start on first async operation"
-            )
-            return
-
-        if not self._periodic_flush_task or self._periodic_flush_task.done():
-            self._periodic_flush_task = asyncio.create_task(
-                self._periodic_flush_loop(), name=f"periodic_flush_{self._registry_id}"
-            )
-            self._periodic_flush_started = True
+        """Start periodic metrics flush task - delegates to metrics operations."""
+        self._metrics_ops._start_periodic_flush()
 
     async def _periodic_flush_loop(self) -> None:
-        """Periodically flush metrics to prevent long-lived buffers."""
-        try:
-            while not self._is_closed:
-                # Wait 30 seconds between flushes
-                await asyncio.sleep(30)
-
-                # Flush if we have any metrics
-                if self._metrics_buffer and not self._is_closed:
-                    self._logger.debug(
-                        f"Periodic flush triggered for {len(self._metrics_buffer)} metrics",
-                        extra={"registry_id": self._registry_id},
-                    )
-                    await self._flush_metrics()
-        except asyncio.CancelledError:
-            # Task was cancelled, this is expected during cleanup
-            pass
-        except Exception as e:
-            self._logger.error(
-                f"Periodic flush task failed: {e}",
-                extra={"registry_id": self._registry_id, "error": str(e)},
-            )
+        """Periodic flush loop - delegates to metrics operations."""
+        await self._metrics_ops._periodic_flush_loop()
 
     async def _write_metrics_async(self, metrics: List[MetricRecord]) -> None:
-        """
-        Write metrics asynchronously without blocking main execution.
-
-        This method handles the actual I/O for metrics writing:
-        1. Serializes metrics to appropriate format
-        2. Writes to configured metrics store (database, time-series DB, etc.)
-        3. Handles write failures gracefully
-        4. Provides minimal latency impact on main execution
-
-        Args:
-            metrics: List of metric records to write
-
-        Note:
-            This is a placeholder implementation. In production, this would
-            write to your actual metrics storage (InfluxDB, Prometheus, etc.)
-        """
-        try:
-            # Serialize metrics for storage
-            serialized_metrics = [metric.to_dict() for metric in metrics]
-
-            # TODO: Replace with actual metrics storage implementation
-            # Examples:
-            # - Write to InfluxDB for time-series data
-            # - Write to Prometheus pushgateway
-            # - Write to database metrics table
-            # - Send to external monitoring service
-
-            # For now, log the metrics at debug level
-            self._logger.debug(
-                f"Writing {len(serialized_metrics)} metrics to storage",
-                extra={
-                    "registry_id": self._registry_id,
-                    "metrics_data": serialized_metrics,
-                    "storage_type": "placeholder_logging",
-                },
-            )
-
-            # Simulate async I/O operation
-            await asyncio.sleep(0.01)
-
-        except Exception as e:
-            # Re-raise for caller to handle
-            self._logger.error(
-                f"Metrics write operation failed: {e}",
-                extra={
-                    "registry_id": self._registry_id,
-                    "metrics_count": len(metrics),
-                    "error": str(e),
-                },
-            )
-            raise
+        """Write metrics async - delegates to metrics operations."""
+        await self._metrics_ops._write_metrics_async(metrics)
 
     async def __aenter__(self):
         """
@@ -509,7 +335,7 @@ class ServiceRegistry:
 
         # Start periodic flush when entering context (event loop available)
         if not self._periodic_flush_started:
-            self._start_periodic_flush()
+            self._metrics_ops._start_periodic_flush()
 
         return self
 
@@ -539,68 +365,16 @@ class ServiceRegistry:
             },
         )
 
-        try:
-            # Mark as closed first to prevent new metrics from being recorded during shutdown
-            self._is_closed = True
-
-            # Flush any remaining metrics
-            if self._metrics_buffer:
-                await self._flush_metrics()
-
-            # Cancel any pending flush tasks
-            if self._metrics_flush_task and not self._metrics_flush_task.done():
-                self._metrics_flush_task.cancel()
-                try:
-                    await self._metrics_flush_task
-                except asyncio.CancelledError:
-                    pass
-
-            # Cancel periodic flush task
-            if self._periodic_flush_task and not self._periodic_flush_task.done():
-                self._periodic_flush_task.cancel()
-                try:
-                    await self._periodic_flush_task
-                except asyncio.CancelledError:
-                    pass
-
-            # Clear service cache (services will be garbage collected)
-            self._service_cache.clear()
-
-            # Track registry cleanup in monitor
-            self._monitor.track_registry_cleanup(self._registry_id)
-
-            self._logger.debug(
-                f"ServiceRegistry cleanup completed {self._registry_id}",
-                extra={"registry_id": self._registry_id},
-            )
-
-        except Exception as cleanup_error:
-            self._logger.error(
-                f"Error during ServiceRegistry cleanup: {cleanup_error}",
-                extra={
-                    "registry_id": self._registry_id,
-                    "cleanup_error": str(cleanup_error),
-                },
-            )
-            # Don't re-raise cleanup errors - log and continue
+        # Delegate cleanup to operations module
+        await self._operations.cleanup_registry()
 
     def get_registry_stats(self) -> Dict[str, Any]:
         """
         Get current registry statistics for monitoring and debugging.
 
+        Delegates to operations module for backward compatibility.
+
         Returns:
             Dictionary containing registry statistics
         """
-        return {
-            "registry_id": self._registry_id,
-            "is_closed": self._is_closed,
-            "services_cached": len(self._service_cache),
-            "cached_service_types": [
-                cls.__name__ for cls in self._service_cache.keys()
-            ],
-            "metrics_buffered": len(self._metrics_buffer),
-            "has_audit_logger": self._audit_logger is not None,
-            "context_client_id": self._context.client_account_id,
-            "context_engagement_id": self._context.engagement_id,
-            "context_flow_id": self._context.flow_id,
-        }
+        return self._operations.get_registry_stats()

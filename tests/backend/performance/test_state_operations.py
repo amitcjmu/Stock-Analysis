@@ -8,8 +8,10 @@ import time
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.context import RequestContext
 from app.services.crewai_flows.persistence.postgres_store import (
     ConcurrentModificationError,
     PostgresFlowStateStore,
@@ -19,11 +21,11 @@ from app.services.crewai_flows.persistence.postgres_store import (
 @pytest.fixture
 def test_context():
     """Test context for state operations"""
-    return {
-        "client_account_id": "test-client-123",
-        "engagement_id": "test-engagement-456",
-        "user_id": "test-user-789",
-    }
+    return RequestContext(
+        client_account_id="test-client-123",
+        engagement_id="test-engagement-456",
+        user_id="test-user-789",
+    )
 
 
 @pytest.fixture
@@ -110,15 +112,20 @@ def large_state():
     return state
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mock_db_session():
     """Create mock database session"""
     session = AsyncMock(spec=AsyncSession)
-    session.execute = AsyncMock()
+
+    # Mock the execute result properly
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none = MagicMock(return_value=None)  # No existing record by default
+
+    session.execute = AsyncMock(return_value=mock_result)
     session.commit = AsyncMock()
     session.rollback = AsyncMock()
-    session.add = AsyncMock()
-    session.merge = AsyncMock()
+    session.add = MagicMock()  # Sync operation, not async
+    session.merge = MagicMock()  # Sync operation, not async
     session.refresh = AsyncMock()
     return session
 
