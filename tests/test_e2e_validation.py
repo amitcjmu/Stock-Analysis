@@ -9,6 +9,7 @@ import aiohttp
 import json
 import time
 from datetime import datetime
+from tests.e2e.base import E2ETestBase, TestResultTracker
 
 # Test configuration
 BASE_URL = "http://localhost:8000"

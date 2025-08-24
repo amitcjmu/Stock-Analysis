@@ -11,7 +11,7 @@ I'll systematically address all GitHub issues labeled as 'bug' using multi-agent
 ## Configuration
 - Mode: ${1:-dry-run}
 - Target: ${2:-all}
-- Max Issues: 5 per run
+- Max Issues: 10 per run
 - Single PR for all fixes
 
 ## Phase 1: Issue Discovery & Triage
@@ -48,7 +48,7 @@ ISSUES_IN_BATCH=()
 
 ## Phase 3: Multi-Agent Bug Fix Pipeline
 
-Processing up to 5 actionable bug issues...
+Processing up to 10 actionable bug issues...
 
 ### For Each Bug Issue:
 
@@ -214,7 +214,7 @@ If QA returns APPROVED:
 
 ## Phase 4: Batch Commit & PR Creation
 
-After all issues processed (max 5):
+After all issues processed (max 10):
 
 ### Create Single Commit
 ```bash
@@ -361,7 +361,7 @@ Next Steps:
    - No premature commits
 
 4. **Batch Limit**
-   - Maximum 5 issues per run
+   - Maximum 10 issues per run
    - Single PR for review efficiency
 
 5. **Test Discovery**
