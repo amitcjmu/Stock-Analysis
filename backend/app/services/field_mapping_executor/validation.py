@@ -4,7 +4,7 @@ Validation logic for field mappings and data quality checks.
 """
 
 import logging
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 # from .exceptions import MappingValidationError  # Commented out - currently unused
 

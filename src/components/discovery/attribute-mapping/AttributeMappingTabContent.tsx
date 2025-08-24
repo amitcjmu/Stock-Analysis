@@ -9,6 +9,11 @@ import type {
   AgenticData,
   SessionInfo
 } from '../../../pages/discovery/AttributeMapping/types';
+import type {
+  FieldMappingLearningApprovalRequest,
+  FieldMappingLearningRejectionRequest,
+  BulkFieldMappingLearningRequest
+} from '../../../services/api/discoveryFlowService';
 
 interface AttributeMappingTabContentProps {
   activeTab: 'mappings' | 'data' | 'critical';
@@ -23,6 +28,13 @@ interface AttributeMappingTabContentProps {
   onAttributeUpdate?: (attributeName: string, updates: Partial<CriticalAttribute>) => void;
   isLoading?: boolean;
   sessionInfo?: SessionInfo;
+  // New learning-related props
+  onApproveMappingWithLearning?: (mappingId: string, request: FieldMappingLearningApprovalRequest) => Promise<void>;
+  onRejectMappingWithLearning?: (mappingId: string, request: FieldMappingLearningRejectionRequest) => Promise<void>;
+  onBulkLearnMappings?: (request: BulkFieldMappingLearningRequest) => Promise<void>;
+  learnedMappings?: Set<string>;
+  clientAccountId?: string;
+  engagementId?: string;
 }
 
 const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
@@ -37,7 +49,13 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
   refetchCriticalAttributes,
   onAttributeUpdate,
   isLoading = false,
-  sessionInfo
+  sessionInfo,
+  onApproveMappingWithLearning,
+  onRejectMappingWithLearning,
+  onBulkLearnMappings,
+  learnedMappings,
+  clientAccountId,
+  engagementId
 }) => {
   const renderTabContent = (): JSX.Element => {
     switch (activeTab) {
@@ -56,6 +74,13 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
               }}
               onMappingChange={onMappingChange}
               onRefresh={refetchAgentic}
+              // New learning-related props
+              onApproveMappingWithLearning={onApproveMappingWithLearning}
+              onRejectMappingWithLearning={onRejectMappingWithLearning}
+              onBulkLearnMappings={onBulkLearnMappings}
+              learnedMappings={learnedMappings}
+              clientAccountId={clientAccountId}
+              engagementId={engagementId}
             />
           </FieldMappingErrorBoundary>
         );
@@ -74,6 +99,13 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
             onRefresh={refetchAgentic}
             isLoading={isLoading}
             isAnalyzing={false}
+            // New learning-related props
+            onApproveMappingWithLearning={onApproveMappingWithLearning}
+            onRejectMappingWithLearning={onRejectMappingWithLearning}
+            onBulkLearnMappings={onBulkLearnMappings}
+            learnedMappings={learnedMappings}
+            clientAccountId={clientAccountId}
+            engagementId={engagementId}
           />
         );
       case 'data':

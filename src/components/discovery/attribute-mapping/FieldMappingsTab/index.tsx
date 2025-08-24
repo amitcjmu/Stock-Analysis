@@ -13,7 +13,13 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   isAnalyzing,
   onMappingAction,
   onMappingChange,
-  onRefresh
+  onRefresh,
+  onApproveMappingWithLearning,
+  onRejectMappingWithLearning,
+  onBulkLearnMappings,
+  learnedMappings,
+  clientAccountId,
+  engagementId
 }) => {
   // Use cached field options instead of fetching every time
   const { availableFields, isLoading: fieldsLoading } = useFieldOptions();
@@ -54,6 +60,13 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
         onMappingAction={onMappingAction}
         onMappingChange={onMappingChange}
         onRefresh={onRefresh}
+        // Pass learning props to the mapper
+        onApproveMappingWithLearning={onApproveMappingWithLearning}
+        onRejectMappingWithLearning={onRejectMappingWithLearning}
+        onBulkLearnMappings={onBulkLearnMappings}
+        learnedMappings={learnedMappings}
+        clientAccountId={clientAccountId}
+        engagementId={engagementId}
       />
     </div>
   );

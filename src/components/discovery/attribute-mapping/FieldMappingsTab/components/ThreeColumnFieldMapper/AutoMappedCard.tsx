@@ -10,7 +10,14 @@ import type { CardProps } from './types';
 import { getAgentReasoningForMapping, getAgentTypeForMapping, getConfidenceDisplay } from './agentHelpers';
 import { formatFieldValue, formatTargetAttribute } from './mappingUtils';
 import { EnhancedFieldDropdown } from '../EnhancedFieldDropdown';
+import FieldMappingLearningControls from '../FieldMappingLearningControls';
+import MappingSourceIndicator from '../MappingSourceIndicator';
+import { useLearningToasts } from '../../../../../../hooks/useLearningToasts';
 import type { TargetField } from '../../types';
+import type {
+  FieldMappingLearningApprovalRequest,
+  FieldMappingLearningRejectionRequest
+} from '../../../../../../services/api/discoveryFlowService';
 
 interface AutoMappedCardProps extends CardProps {
   onApprove: (mappingId: string) => void;
@@ -20,6 +27,11 @@ interface AutoMappedCardProps extends CardProps {
   onToggleReasoning: (mappingId: string) => void;
   availableFields?: TargetField[];
   onMappingChange?: (mappingId: string, newTarget: string) => void;
+  // Learning-related props
+  onApproveMappingWithLearning?: (mappingId: string, request: FieldMappingLearningApprovalRequest) => Promise<void>;
+  onRejectMappingWithLearning?: (mappingId: string, request: FieldMappingLearningRejectionRequest) => Promise<void>;
+  isLearned?: boolean;
+  showLearningControls?: boolean;
 }
 
 const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
@@ -30,7 +42,11 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
   expandedReasonings,
   onToggleReasoning,
   availableFields,
-  onMappingChange
+  onMappingChange,
+  onApproveMappingWithLearning,
+  onRejectMappingWithLearning,
+  isLearned = false,
+  showLearningControls = true
 }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState(mapping.target_field || '');
@@ -40,6 +56,31 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
   const confidence = getConfidenceDisplay(confidenceValue);
   const reasoning = getAgentReasoningForMapping(mapping);
   const isExpanded = expandedReasonings.has(mapping.id);
+
+  // Learning hooks and handlers
+  const { showApprovalSuccess, showApprovalError, showRejectionSuccess, showRejectionError } = useLearningToasts();
+
+  const handleApproveWithLearning = useCallback(async (mappingId: string, request: FieldMappingLearningApprovalRequest) => {
+    try {
+      if (onApproveMappingWithLearning) {
+        await onApproveMappingWithLearning(mappingId, request);
+        showApprovalSuccess({ success: true, mapping_id: mappingId, patterns_created: 1 }, mapping.source_field);
+      }
+    } catch (error) {
+      showApprovalError(error, mapping.source_field);
+    }
+  }, [onApproveMappingWithLearning, showApprovalSuccess, showApprovalError, mapping.source_field]);
+
+  const handleRejectWithLearning = useCallback(async (mappingId: string, request: FieldMappingLearningRejectionRequest) => {
+    try {
+      if (onRejectMappingWithLearning) {
+        await onRejectMappingWithLearning(mappingId, request);
+        showRejectionSuccess({ success: true, mapping_id: mappingId, patterns_created: 1 }, mapping.source_field);
+      }
+    } catch (error) {
+      showRejectionError(error, mapping.source_field);
+    }
+  }, [onRejectMappingWithLearning, showRejectionSuccess, showRejectionError, mapping.source_field]);
 
   const handleEditClick = useCallback(() => {
     setIsEditMode(true);
@@ -115,18 +156,14 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
         )}
       </div>
 
-      {/* AGENTIC UI: Agent type and confidence display */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${agentType.color}`}>
-          {agentType.icon}
-          {agentType.type} Agent
-        </div>
-        {typeof mapping.confidence_score === 'number' && (
-          <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${confidence.colorClass}`}>
-            {confidence.icon}
-            {confidence.percentage}% confidence
-          </div>
-        )}
+      {/* Mapping Source Indicator with Learning Status */}
+      <div className="mb-3">
+        <MappingSourceIndicator
+          mapping={mapping}
+          showConfidence={true}
+          showDetails={false}
+          compact={false}
+        />
       </div>
 
       {/* AGENTIC UI: Agent reasoning toggle */}
@@ -150,46 +187,60 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {/* Status indicator for agent suggestions */}
-          {!isPlaceholder && (
-            <span className="text-xs text-gray-500">
-              {confidenceValue > 0.8 ? '✨ High confidence' :
-               confidenceValue > 0.6 ? '⚡ Moderate confidence' :
-               '🔍 Needs review'}
-            </span>
-          )}
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            onClick={() => onApprove(mapping.id)}
-            disabled={isProcessing || isPlaceholder}
-            className={`flex items-center gap-1 px-3 py-1 rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed ${
-              isPlaceholder
-                ? 'bg-gray-400 text-white cursor-not-allowed'
-                : 'bg-green-600 text-white hover:bg-green-700'
-            }`}
-            title={isPlaceholder ? 'Configure target field before approval' : 'Approve agent suggestion'}
-          >
-            {isProcessing ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            ) : (
-              <CheckCircle className="h-4 w-4" />
+      {/* Learning Controls or Legacy Buttons */}
+      {showLearningControls && onApproveMappingWithLearning && onRejectMappingWithLearning && !isPlaceholder ? (
+        <FieldMappingLearningControls
+          mapping={mapping}
+          onApprove={handleApproveWithLearning}
+          onReject={handleRejectWithLearning}
+          isProcessing={isProcessing}
+          isLearned={isLearned}
+          compact={false}
+          showConfidenceAdjustment={true}
+        />
+      ) : (
+        /* Legacy buttons for backward compatibility */
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {/* Status indicator for agent suggestions */}
+            {!isPlaceholder && (
+              <span className="text-xs text-gray-500">
+                {confidenceValue > 0.8 ? '✨ High confidence' :
+                 confidenceValue > 0.6 ? '⚡ Moderate confidence' :
+                 '🔍 Needs review'}
+              </span>
             )}
-            {isPlaceholder ? 'Configure' : 'Approve'}
-          </button>
-          <button
-            onClick={() => onReject(mapping.id)}
-            disabled={isProcessing}
-            className="flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Reject agent suggestion"
-          >
-            <XCircle className="h-4 w-4" />
-          </button>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => onApprove(mapping.id)}
+              disabled={isProcessing || isPlaceholder}
+              className={`flex items-center gap-1 px-3 py-1 rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed ${
+                isPlaceholder
+                  ? 'bg-gray-400 text-white cursor-not-allowed'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
+              title={isPlaceholder ? 'Configure target field before approval' : 'Approve agent suggestion'}
+            >
+              {isProcessing ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+              {isPlaceholder ? 'Configure' : 'Approve'}
+            </button>
+            <button
+              onClick={() => onReject(mapping.id)}
+              disabled={isProcessing}
+              className="flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Reject agent suggestion"
+            >
+              <XCircle className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
   </div>
   );
 };

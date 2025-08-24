@@ -12,11 +12,10 @@ maintainability and reduced complexity.
 
 import asyncio
 import logging
-from typing import Dict, Any, List
 from datetime import datetime
 
 # Use late import pattern to avoid circular dependencies
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
     pass
@@ -24,21 +23,19 @@ from app.schemas.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 
 # from app.models.discovery_flows import DiscoveryFlow  # Currently unused
 # from app.db.session import get_db  # Currently unused
-
 from .exceptions import (
+    CrewExecutionError,
     FieldMappingExecutorError,
     MappingParseError,
-    ValidationError,
-    CrewExecutionError,
     TransformationError,
+    ValidationError,
 )
-from .parsers import CompositeMappingParser
-from .validation import CompositeValidator
-from .mapping_engine import IntelligentMappingEngine
-from .transformation import MappingTransformer
-from .rules_engine import MappingRulesEngine
 from .formatters import MappingResponseFormatter
-
+from .mapping_engine import IntelligentMappingEngine
+from .parsers import CompositeMappingParser
+from .rules_engine import MappingRulesEngine
+from .transformation import MappingTransformer
+from .validation import CompositeValidator
 
 logger = logging.getLogger(__name__)
 
@@ -208,26 +205,57 @@ class FieldMappingExecutor:
         """Generate a mock agent response for testing/fallback."""
         detected_columns = state.metadata.get("detected_columns", [])
 
-        # Generate basic mappings
+        # If no detected columns, try to get from raw data
+        if not detected_columns and state.raw_data:
+            if isinstance(state.raw_data, list) and len(state.raw_data) > 0:
+                first_record = state.raw_data[0]
+                if isinstance(first_record, dict):
+                    detected_columns = list(first_record.keys())
+
+        # Generate basic mappings with standard field name transformations
         mappings = []
+        confidence_scores = {}
+
         for col in detected_columns:
-            # Simple mapping logic
+            # Map common variations to standard field names
             target_field = col.lower().replace(" ", "_")
+
+            # Common field mappings
+            field_map = {
+                "os": "operating_system",
+                "owner": "owner",
+                "status": "status",
+                "hostname": "hostname",
+                "application": "application_name",
+                "environment": "environment",
+                "ip": "ip_address",
+                "cpu": "cpu_cores",
+                "ram": "memory_gb",
+                "memory": "memory_gb",
+                "disk": "disk_gb",
+                "storage": "disk_gb",
+            }
+
+            # Use mapped name if available, otherwise use original
+            target_field = field_map.get(col.lower(), target_field)
+            confidence = 0.85 if col.lower() in field_map else 0.75
+
             mappings.append(
                 {
                     "source_field": col,
                     "target_field": target_field,
-                    "confidence": 0.75,
+                    "confidence": confidence,
                     "status": "suggested",
                 }
             )
+            confidence_scores[col] = confidence
 
         import json
 
         return json.dumps(
             {
                 "mappings": mappings,
-                "confidence_scores": {col: 0.75 for col in detected_columns},
+                "confidence_scores": confidence_scores,
                 "clarifications": [],
             }
         )

@@ -9,8 +9,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
-from app.core.security.secure_logging import safe_log_format
 from app.core.database import get_db
+from app.core.security.secure_logging import safe_log_format
 
 from ...models.mapping_schemas import (
     MappingValidationRequest,
@@ -93,7 +93,9 @@ async def cleanup_json_artifacts(
 
         # Get the data import
         from uuid import UUID
+
         from sqlalchemy import select
+
         from app.models.data_import import DataImport
 
         # Convert string UUID to UUID object if needed

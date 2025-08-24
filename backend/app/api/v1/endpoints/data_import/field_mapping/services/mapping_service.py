@@ -12,8 +12,8 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.utils.json_utils import safe_json_dumps
 from app.models.data_import import ImportFieldMapping
+from app.utils.json_utils import safe_json_dumps
 
 from ..models.mapping_schemas import (
     FieldMappingCreate,
@@ -54,7 +54,9 @@ class MappingService:
         self.context = context
         self.validator = MappingValidator()
 
-    async def get_field_mappings(self, import_id: str) -> List[FieldMappingResponse]:
+    async def get_field_mappings(
+        self, import_id: str
+    ) -> List[FieldMappingResponse]:  # noqa: C901
         """Get all field mappings for an import."""
 
         # Convert string UUIDs to UUID objects if needed
@@ -125,10 +127,10 @@ class MappingService:
                     f"🔍 Trying master_flow_id lookup: {discovery_flow.master_flow_id}"
                 )
 
-                from app.models.data_import import DataImport
                 from app.models.crewai_flow_state_extensions import (
                     CrewAIFlowStateExtensions,
                 )
+                from app.models.data_import import DataImport
 
                 # Get the database ID for this master_flow_id (FK references id, not flow_id)
                 db_id_query = select(CrewAIFlowStateExtensions.id).where(

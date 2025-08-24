@@ -138,6 +138,72 @@ export interface DiscoveryFlowStatusResponse {
   warnings?: string[];
 }
 
+// Learning-related interfaces for field mapping feedback
+export interface FieldMappingLearningApprovalRequest {
+  confidence_score?: number;
+  approval_metadata?: Record<string, unknown>;
+  learning_enabled?: boolean;
+}
+
+export interface FieldMappingLearningRejectionRequest {
+  rejection_reason: string;
+  alternative_suggestion?: string;
+  rejection_metadata?: Record<string, unknown>;
+  learning_enabled?: boolean;
+}
+
+export interface BulkFieldMappingLearningAction {
+  mapping_id: string;
+  action_type: 'approve' | 'reject';
+  approval_request?: FieldMappingLearningApprovalRequest;
+  rejection_request?: FieldMappingLearningRejectionRequest;
+}
+
+export interface BulkFieldMappingLearningRequest {
+  actions: BulkFieldMappingLearningAction[];
+  continue_on_error?: boolean;
+}
+
+export interface FieldMappingLearningResponse {
+  success: boolean;
+  mapping_id: string;
+  message?: string;
+  error_message?: string;
+  patterns_created?: number;
+  patterns_updated?: number;
+  learning_metadata?: Record<string, unknown>;
+}
+
+export interface BulkFieldMappingLearningResponse {
+  success: boolean;
+  total_actions: number;
+  successful_actions: number;
+  failed_actions: number;
+  results: FieldMappingLearningResponse[];
+  global_patterns_created: number;
+  global_patterns_updated: number;
+  errors?: string[];
+}
+
+export interface LearnedFieldMappingPattern {
+  id: string;
+  pattern_type: string;
+  insight_type: string;
+  source_field_pattern: string;
+  target_field_suggestion: string | null;
+  confidence_adjustment: number;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LearnedFieldMappingPatternsResponse {
+  success: boolean;
+  total_patterns: number;
+  patterns: LearnedFieldMappingPattern[];
+  context_summary?: Record<string, unknown>;
+}
+
 export interface DiscoveryFlowService {
   /**
    * Get operational discovery flow status
@@ -159,6 +225,35 @@ export interface DiscoveryFlowService {
    * Retry a failed discovery flow
    */
   retryFlow(flowId: string, clientAccountId: string, engagementId: string): Promise<ApiResponse<{ success: boolean; message?: string }>>;
+
+  /**
+   * Field Mapping Learning Endpoints
+   */
+
+  /**
+   * Approve a field mapping and learn from the approval
+   */
+  approveFieldMapping(mappingId: string, request: FieldMappingLearningApprovalRequest, clientAccountId: string, engagementId: string): Promise<FieldMappingLearningResponse>;
+
+  /**
+   * Reject a field mapping and learn from the rejection
+   */
+  rejectFieldMapping(mappingId: string, request: FieldMappingLearningRejectionRequest, clientAccountId: string, engagementId: string): Promise<FieldMappingLearningResponse>;
+
+  /**
+   * Bulk learn from multiple field mappings
+   */
+  bulkLearnFieldMappings(request: BulkFieldMappingLearningRequest, clientAccountId: string, engagementId: string): Promise<BulkFieldMappingLearningResponse>;
+
+  /**
+   * Get learned field mapping patterns
+   */
+  getLearnedFieldMappingPatterns(clientAccountId: string, engagementId: string, patternType?: string, insightType?: string, limit?: number): Promise<LearnedFieldMappingPatternsResponse>;
+
+  /**
+   * Refresh learned patterns cache
+   */
+  refreshLearnedPatternsCache(clientAccountId: string, engagementId: string): Promise<{ success: boolean; message: string }>;
 }
 
 class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
@@ -241,6 +336,105 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
     );
 
     console.log(`✅ [DiscoveryFlowService] Flow retry result:`, response);
+    return response;
+  }
+
+  // Field Mapping Learning Methods
+
+  async approveFieldMapping(mappingId: string, request: FieldMappingLearningApprovalRequest, clientAccountId: string, engagementId: string): Promise<FieldMappingLearningResponse> {
+    console.log(`✅ [DiscoveryFlowService] Approving field mapping with learning: ${mappingId}`);
+
+    const response = await apiClient.post<FieldMappingLearningResponse>(
+      `/data-import/field-mapping/${mappingId}/approve`,  // Use existing field mapping learning endpoint
+      request,
+      {
+        headers: {
+          'X-Client-Account-Id': clientAccountId,
+          'X-Engagement-ID': engagementId
+        }
+      }
+    );
+
+    console.log(`✅ [DiscoveryFlowService] Field mapping approval result:`, response);
+    return response;
+  }
+
+  async rejectFieldMapping(mappingId: string, request: FieldMappingLearningRejectionRequest, clientAccountId: string, engagementId: string): Promise<FieldMappingLearningResponse> {
+    console.log(`❌ [DiscoveryFlowService] Rejecting field mapping with learning: ${mappingId}`);
+
+    const response = await apiClient.post<FieldMappingLearningResponse>(
+      `/data-import/field-mapping/${mappingId}/reject`,  // Use existing field mapping learning endpoint
+      request,
+      {
+        headers: {
+          'X-Client-Account-Id': clientAccountId,
+          'X-Engagement-ID': engagementId
+        }
+      }
+    );
+
+    console.log(`✅ [DiscoveryFlowService] Field mapping rejection result:`, response);
+    return response;
+  }
+
+  async bulkLearnFieldMappings(request: BulkFieldMappingLearningRequest, clientAccountId: string, engagementId: string): Promise<BulkFieldMappingLearningResponse> {
+    console.log(`📚 [DiscoveryFlowService] Bulk learning from ${request.actions.length} field mappings`);
+
+    const response = await apiClient.post<BulkFieldMappingLearningResponse>(
+      `/data-import/field-mapping/learn`,  // Use existing bulk learning endpoint
+      request,
+      {
+        headers: {
+          'X-Client-Account-Id': clientAccountId,
+          'X-Engagement-ID': engagementId
+        }
+      }
+    );
+
+    console.log(`✅ [DiscoveryFlowService] Bulk learning result:`, response);
+    return response;
+  }
+
+  async getLearnedFieldMappingPatterns(clientAccountId: string, engagementId: string, patternType?: string, insightType?: string, limit = 100): Promise<LearnedFieldMappingPatternsResponse> {
+    console.log(`🔍 [DiscoveryFlowService] Getting learned field mapping patterns`);
+
+    const params = new URLSearchParams();
+    if (patternType) params.append('pattern_type', patternType);
+    if (insightType) params.append('insight_type', insightType);
+    params.append('limit', limit.toString());
+
+    const queryString = params.toString();
+    const url = `/data-import/field-mapping/learned${queryString ? `?${queryString}` : ''}`;
+
+    const response = await apiClient.get<LearnedFieldMappingPatternsResponse>(
+      url,  // Use existing learned patterns endpoint
+      {
+        headers: {
+          'X-Client-Account-Id': clientAccountId,
+          'X-Engagement-ID': engagementId
+        }
+      }
+    );
+
+    console.log(`✅ [DiscoveryFlowService] Learned patterns result:`, response);
+    return response;
+  }
+
+  async refreshLearnedPatternsCache(clientAccountId: string, engagementId: string): Promise<{ success: boolean; message: string }> {
+    console.log(`🔄 [DiscoveryFlowService] Refreshing learned patterns cache`);
+
+    const response = await apiClient.post<{ success: boolean; message: string }>(
+      `/data-import/field-mapping/learned/refresh`,  // Use existing cache refresh endpoint
+      {},
+      {
+        headers: {
+          'X-Client-Account-Id': clientAccountId,
+          'X-Engagement-ID': engagementId
+        }
+      }
+    );
+
+    console.log(`✅ [DiscoveryFlowService] Cache refresh result:`, response);
     return response;
   }
 }

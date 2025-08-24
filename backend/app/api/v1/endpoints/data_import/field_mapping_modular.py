@@ -51,6 +51,12 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "field_mapping_modular",
-        "modules": ["mapping", "suggestions", "validation", "transformation"],
+        "modules": [
+            "mapping",
+            "suggestions",
+            "validation",
+            "transformation",
+            "learning",
+        ],
         "legacy_compatibility": False,  # Changed to False since legacy routes removed
     }
