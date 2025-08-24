@@ -18,7 +18,7 @@ const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD || ""; // Demo password
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, register } = useAuth();
+  const { login, register, error: authError } = useAuth();
   const { toast } = useToast();
 
   const [isLogin, setIsLogin] = useState(true);
@@ -226,10 +226,10 @@ const Login: React.FC = () => {
                 {loading ? 'Signing In...' : 'Sign In'}
               </Button>
 
-              {error && (
+              {(error || authError) && (
                 <div className="flex items-center text-red-600 text-sm mt-2">
                   <AlertCircle className="w-4 h-4 mr-1" />
-                  <span>{error}</span>
+                  <span>{error || authError}</span>
                 </div>
               )}
             </form>

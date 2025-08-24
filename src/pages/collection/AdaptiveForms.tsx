@@ -9,10 +9,12 @@ import { toast } from '@/components/ui/use-toast';
 import CollectionPageLayout from '@/components/collection/layout/CollectionPageLayout';
 import AdaptiveFormContainer from '@/components/collection/forms/AdaptiveFormContainer';
 import { CollectionUploadBlocker } from '@/components/collection/CollectionUploadBlocker';
+import { CollectionWorkflowError } from '@/components/collection/CollectionWorkflowError';
 
 // Import custom hooks
 import { useAdaptiveFormFlow } from '@/hooks/collection/useAdaptiveFormFlow';
 import { useIncompleteCollectionFlows, useCollectionFlowManagement } from '@/hooks/collection/useCollectionFlowManagement';
+import { useCollectionWorkflowWebSocket } from '@/hooks/collection/useCollectionWorkflowWebSocket';
 import { useQuery } from '@tanstack/react-query';
 import { apiCall } from '@/config/api';
 
@@ -96,6 +98,34 @@ const AdaptiveForms: React.FC = () => {
     applicationId,
     flowId,
     autoInitialize: !checkingFlows && (!hasBlockingFlows || hasJustDeleted)
+  });
+
+  // Use WebSocket for real-time updates during workflow initialization
+  const { isWebSocketActive, requestStatusUpdate } = useCollectionWorkflowWebSocket({
+    flowId: activeFlowId,
+    enabled: !!activeFlowId && isLoading,
+    onQuestionnaireReady: (event) => {
+      console.log('🎉 WebSocket: Questionnaire ready, triggering re-initialization');
+      // Trigger a re-fetch when questionnaire is ready
+      if (!formData) {
+        initializeFlow();
+      }
+    },
+    onWorkflowUpdate: (event) => {
+      console.log('📊 WebSocket: Workflow status update:', event.data);
+      // Request status update for more details
+      if (event.data.status === 'completed' || event.data.phase === 'questionnaire_generation') {
+        requestStatusUpdate();
+      }
+    },
+    onError: (error) => {
+      console.error('❌ WebSocket: Collection workflow error:', error);
+      toast({
+        title: 'Workflow Error',
+        description: `Collection workflow encountered an error: ${error}`,
+        variant: 'destructive'
+      });
+    }
   });
 
   // Check if the current Collection flow has application selection
@@ -361,75 +391,13 @@ const AdaptiveForms: React.FC = () => {
           title="Adaptive Data Collection"
           description="Error initializing collection form"
         >
-          <div className="max-w-2xl mx-auto mt-8">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-red-800 mb-2">Failed to Load Adaptive Forms</h3>
-              <p className="text-red-700 mb-4">{error.message || 'An unexpected error occurred while loading the adaptive forms.'}</p>
-
-              {/* Show more detailed error information in development */}
-              {process.env.NODE_ENV === 'development' && error.cause && (
-                <details className="mt-4">
-                  <summary className="text-sm text-red-600 cursor-pointer">Technical Details (Development)</summary>
-                  <pre className="text-xs text-red-500 mt-2 overflow-auto bg-red-100 p-2 rounded">
-                    {error.cause.message || error.cause.toString()}
-                  </pre>
-                </details>
-              )}
-
-              {/* Handle 409 Conflict errors - existing active flows */}
-              {(error.message?.includes('Multiple active collection flows') ||
-                error.message?.includes('Active collection flow already exists') ||
-                error.message?.includes('409') ||
-                error.message?.includes('Conflict')) && (
-                <div className="mt-4">
-                  <p className="text-sm text-red-600 mb-3">
-                    An active collection flow already exists. Please manage existing flows before creating a new one.
-                  </p>
-                  <Button
-                    onClick={() => navigate('/collection/overview')}
-                    variant="outline"
-                    className="mr-2"
-                  >
-                    View Collection Overview
-                  </Button>
-                  <Button onClick={() => window.location.reload()} variant="outline">
-                    Refresh Page
-                  </Button>
-                </div>
-              )}
-
-              {/* Handle 500 errors - backend issues */}
-              {error.message?.includes('500') && (
-                <div className="mt-4">
-                  <p className="text-sm text-red-600 mb-3">
-                    Server error detected. Please contact support if this persists.
-                  </p>
-                  <Button onClick={() => window.location.reload()} variant="outline">
-                    Refresh Page
-                  </Button>
-                </div>
-              )}
-
-              {/* Only allow retry for non-critical errors */}
-              {!error.message?.includes('Multiple active collection flows') &&
-               !error.message?.includes('Active collection flow already exists') &&
-               !error.message?.includes('409') &&
-               !error.message?.includes('Conflict') &&
-               !error.message?.includes('500') && (
-                <div className="mt-4 space-x-2">
-                  <Button onClick={() => initializeFlow()} variant="default">
-                    Retry Initialization
-                  </Button>
-                  <Button
-                    onClick={() => window.location.reload()}
-                    variant="outline"
-                  >
-                    Refresh Page
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
+          <CollectionWorkflowError
+            error={error}
+            flowId={activeFlowId}
+            isWebSocketActive={isWebSocketActive}
+            onRetry={() => initializeFlow()}
+            onRefresh={() => window.location.reload()}
+          />
         </CollectionPageLayout>
       );
     }
@@ -440,7 +408,11 @@ const AdaptiveForms: React.FC = () => {
         description="Generating personalized collection form"
         isLoading={isLoading}
         loadingMessage={isLoading ? "CrewAI agents are analyzing your requirements..." : "Preparing collection form..."}
-        loadingSubMessage={isLoading ? "Generating adaptive questionnaire based on your specific needs" : "Initializing workflow"}
+        loadingSubMessage={
+          isLoading
+            ? `Generating adaptive questionnaire based on your specific needs${isWebSocketActive ? ' (Real-time updates active)' : ' (Polling for updates)'}`
+            : "Initializing workflow"
+        }
       >
         {!isLoading && (
           <div className="flex justify-center mt-8">

@@ -82,7 +82,15 @@ export const authApi = {
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.detail || 'Login failed');
+      // Handle backend error format: { error: { details: { original_message: "..." }, message: "..." } }
+      let errorMessage = 'Login failed';
+      if (errorData.error) {
+        errorMessage = errorData.error.details?.original_message || errorData.error.message || errorMessage;
+      } else if (errorData.detail) {
+        // Fallback for other potential error formats
+        errorMessage = errorData.detail;
+      }
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -99,7 +107,15 @@ export const authApi = {
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.detail || 'Registration failed');
+      // Handle backend error format: { error: { details: { original_message: "..." }, message: "..." } }
+      let errorMessage = 'Registration failed';
+      if (errorData.error) {
+        errorMessage = errorData.error.details?.original_message || errorData.error.message || errorMessage;
+      } else if (errorData.detail) {
+        // Fallback for other potential error formats
+        errorMessage = errorData.detail;
+      }
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -141,7 +157,15 @@ export const authApi = {
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.detail || 'Password change failed');
+      // Handle backend error format: { error: { details: { original_message: "..." }, message: "..." } }
+      let errorMessage = 'Password change failed';
+      if (errorData.error) {
+        errorMessage = errorData.error.details?.original_message || errorData.error.message || errorMessage;
+      } else if (errorData.detail) {
+        // Fallback for other potential error formats
+        errorMessage = errorData.detail;
+      }
+      throw new Error(errorMessage);
     }
 
     return response.json();
