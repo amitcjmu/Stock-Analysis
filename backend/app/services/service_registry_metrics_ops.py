@@ -116,7 +116,7 @@ class ServiceRegistryMetricsOps:
                     )
                     return
                 self._registry._metrics_flush_task = asyncio.create_task(
-                    self._registry._flush_metrics(),
+                    self.flush_metrics(),
                     name=f"metrics_flush_{self._registry._registry_id}",
                 )
 

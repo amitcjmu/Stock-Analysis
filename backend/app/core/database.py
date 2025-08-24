@@ -374,13 +374,17 @@ class DatabaseManager:
                 "configured_pool_recycle": settings.DB_POOL_RECYCLE,
                 "max_possible_connections": settings.DB_POOL_SIZE
                 + settings.DB_MAX_OVERFLOW,
-                "pool_utilization_percent": round(
-                    (
-                        pool_status.get("checked_out_connections", 0)
-                        / (settings.DB_POOL_SIZE + settings.DB_MAX_OVERFLOW)
+                "pool_utilization_percent": (
+                    round(
+                        (
+                            pool_status.get("checked_out_connections", 0)
+                            / (settings.DB_POOL_SIZE + settings.DB_MAX_OVERFLOW)
+                        )
+                        * 100,
+                        2,
                     )
-                    * 100,
-                    2,
+                    if (settings.DB_POOL_SIZE + settings.DB_MAX_OVERFLOW) > 0
+                    else 0.0
                 ),
             }
 
