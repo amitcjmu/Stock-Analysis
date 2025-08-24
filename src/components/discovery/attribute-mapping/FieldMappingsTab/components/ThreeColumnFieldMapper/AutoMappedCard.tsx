@@ -33,29 +33,29 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
   onMappingChange
 }) => {
   const [isEditMode, setIsEditMode] = useState(false);
-  const [selectedTarget, setSelectedTarget] = useState(mapping.targetAttribute || '');
+  const [selectedTarget, setSelectedTarget] = useState(mapping.target_field || '');
   const isPlaceholder = mapping.is_placeholder || mapping.is_fallback;
   const agentType = getAgentTypeForMapping(mapping);
-  const confidence = getConfidenceDisplay(mapping.confidence || 0);
+  const confidence = getConfidenceDisplay(mapping.confidence_score || 0);
   const reasoning = getAgentReasoningForMapping(mapping);
   const isExpanded = expandedReasonings.has(mapping.id);
 
   const handleEditClick = useCallback(() => {
     setIsEditMode(true);
-    setSelectedTarget(mapping.targetAttribute || '');
-  }, [mapping.targetAttribute]);
+    setSelectedTarget(mapping.target_field || '');
+  }, [mapping.target_field]);
 
   const handleSaveEdit = useCallback(() => {
-    if (onMappingChange && selectedTarget !== mapping.targetAttribute) {
+    if (onMappingChange && selectedTarget !== mapping.target_field) {
       onMappingChange(mapping.id, selectedTarget);
     }
     setIsEditMode(false);
-  }, [mapping.id, mapping.targetAttribute, onMappingChange, selectedTarget]);
+  }, [mapping.id, mapping.target_field, onMappingChange, selectedTarget]);
 
   const handleCancelEdit = useCallback(() => {
     setIsEditMode(false);
-    setSelectedTarget(mapping.targetAttribute || '');
-  }, [mapping.targetAttribute]);
+    setSelectedTarget(mapping.target_field || '');
+  }, [mapping.target_field]);
 
   const handleFieldChange = useCallback((newValue: string) => {
     setSelectedTarget(newValue);
@@ -65,7 +65,7 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
     <div className={`p-4 border rounded-lg transition-all duration-200 hover:shadow-md ${isPlaceholder ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-gray-200'}`}>
       <div className="flex items-center gap-2 mb-3">
         <span className="font-medium text-gray-900">
-          {formatFieldValue(mapping.sourceField)}
+          {formatFieldValue(mapping.source_field)}
         </span>
         <ArrowRight className="h-4 w-4 text-gray-400" />
         {isEditMode && availableFields ? (
@@ -94,7 +94,7 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
         ) : (
           <>
             <span className={`font-medium ${isPlaceholder ? 'text-yellow-600' : 'text-blue-600'}`}>
-              {formatTargetAttribute(mapping.targetAttribute)}
+              {formatTargetAttribute(mapping.target_field)}
             </span>
             {availableFields && onMappingChange && (
               <button
@@ -120,7 +120,7 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
           {agentType.icon}
           {agentType.type} Agent
         </div>
-        {mapping.confidence && (
+        {mapping.confidence_score && (
           <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${confidence.colorClass}`}>
             {confidence.icon}
             {confidence.percentage}% confidence
@@ -154,8 +154,8 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
           {/* Status indicator for agent suggestions */}
           {!isPlaceholder && (
             <span className="text-xs text-gray-500">
-              {mapping.confidence && mapping.confidence > 0.8 ? '✨ High confidence' :
-               mapping.confidence && mapping.confidence > 0.6 ? '⚡ Moderate confidence' :
+              {mapping.confidence_score && mapping.confidence_score > 0.8 ? '✨ High confidence' :
+               mapping.confidence_score && mapping.confidence_score > 0.6 ? '⚡ Moderate confidence' :
                '🔍 Needs review'}
             </span>
           )}

@@ -25,10 +25,10 @@ const NeedsReviewCard: React.FC<NeedsReviewCardProps> = ({
   onMappingChange,
   onApprove
 }) => {
-  const [selectedTarget, setSelectedTarget] = useState(mapping.targetAttribute || '');
+  const [selectedTarget, setSelectedTarget] = useState(mapping.target_field || '');
 
   const handleConfirmMapping = (): void => {
-    if (onMappingChange && selectedTarget !== mapping.targetAttribute) {
+    if (onMappingChange && selectedTarget !== mapping.target_field) {
       onMappingChange(mapping.id, selectedTarget);
     }
     onApprove(mapping.id);
@@ -44,7 +44,7 @@ const NeedsReviewCard: React.FC<NeedsReviewCardProps> = ({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Source Field:</label>
           <div className="px-3 py-2 bg-gray-50 rounded border text-sm font-medium">
-            {formatFieldValue(mapping.sourceField)}
+            {formatFieldValue(mapping.source_field)}
           </div>
         </div>
 

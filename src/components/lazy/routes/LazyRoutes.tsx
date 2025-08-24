@@ -258,6 +258,11 @@ export const LazyPlanIndex = createLazyRoute(
   'Plan Overview'
 );
 
+export const LazySixRAnalysis = createLazyRoute(
+  () => import('@/pages/planning/SixRAnalysis'),
+  '6R Analysis'
+);
+
 export const LazyTimeline = createLazyRoute(
   () => import('@/pages/plan/Timeline'),
   'Timeline'
