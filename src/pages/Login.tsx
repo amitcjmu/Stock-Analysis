@@ -212,6 +212,13 @@ const Login: React.FC = () => {
                 </div>
               </div>
 
+              {error && (
+                <div className="flex items-center p-3 bg-red-50 border border-red-200 rounded-lg text-red-600">
+                  <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
+
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <h4 className="font-medium text-blue-900 text-sm mb-2">Demo Credentials:</h4>
                 <div className="text-xs text-blue-800 space-y-1">
@@ -225,13 +232,6 @@ const Login: React.FC = () => {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Signing In...' : 'Sign In'}
               </Button>
-
-              {(error || authError) && (
-                <div className="flex items-center text-red-600 text-sm mt-2">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  <span>{error || authError}</span>
-                </div>
-              )}
             </form>
           ) : (
             <form onSubmit={handleRegister} className="space-y-4">
