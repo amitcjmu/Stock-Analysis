@@ -245,7 +245,7 @@ export const createBulkRejectHandler = ({
         // Call bulk rejection API
         const { apiCall } = await import('../../../../../../config/api');
 
-        const response = await apiCall('/api/v1/data-import/field-mappings/approval/approve-mappings', {
+        const response = await apiCall('/api/v1/data-import/field-mappings/approval/reject-mappings', {
           method: 'POST',
           includeContext: true, // Use centralized context handling
           body: JSON.stringify({
