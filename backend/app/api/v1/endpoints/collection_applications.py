@@ -4,17 +4,21 @@ This module handles application selection for collection flows,
 enabling targeted questionnaire generation based on selected applications.
 """
 
+import logging
 from typing import Dict, Any
 from datetime import datetime
 
 from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_db, get_current_user, get_request_context
-from app.models.user import User
+from app.api.v1.auth.auth_utils import get_current_user
+from app.core.context import get_request_context
+from app.core.database import get_db
+from app.models import User
 from app.schemas.collection_flow import CollectionFlowUpdate
-from app.services import collection_crud
-from app.core.logging import logger
+from app.api.v1.endpoints import collection_crud
+
+logger = logging.getLogger(__name__)
 
 
 async def update_flow_applications(
