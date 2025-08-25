@@ -144,7 +144,7 @@ const AdaptiveForms: React.FC = () => {
 
   // Check if the current Collection flow has application selection
   // Now that formData is available from useAdaptiveFormFlow
-  const { data: currentCollectionFlow, isLoading: isLoadingFlow } = useQuery({
+  const { data: currentCollectionFlow, isLoading: isLoadingFlow, refetch: refetchCollectionFlow } = useQuery({
     queryKey: ["collection-flow", activeFlowId],
     queryFn: async () => {
       if (!activeFlowId) return null;
@@ -160,6 +160,10 @@ const AdaptiveForms: React.FC = () => {
       }
     },
     enabled: !!activeFlowId,
+    // Set cache time to 30 seconds to reduce stale data issues
+    staleTime: 30 * 1000,
+    // Refetch on window focus to catch updates from application selection
+    refetchOnWindowFocus: true,
   });
 
   // Detect if we need to redirect to application selection
@@ -329,6 +333,36 @@ const AdaptiveForms: React.FC = () => {
     }
   }, [hasJustDeleted, hasBlockingFlows, checkingFlows]);
 
+  // Add window focus listener to refetch collection flow data when returning from application selection
+  // This ensures we have the latest application selection status when users navigate back
+  useEffect(() => {
+    const handleWindowFocus = async () => {
+      if (activeFlowId && !isLoadingFlow) {
+        console.log(
+          "🔄 Window focused - refetching collection flow data to check for application updates",
+        );
+        await refetchCollectionFlow();
+      }
+    };
+
+    window.addEventListener("focus", handleWindowFocus);
+    return () => {
+      window.removeEventListener("focus", handleWindowFocus);
+    };
+  }, [activeFlowId, isLoadingFlow, refetchCollectionFlow]);
+
+  // Refetch collection flow data when flowId changes or when we first get an activeFlowId
+  // This handles navigation back from application selection page
+  useEffect(() => {
+    if (activeFlowId && activeFlowId === flowId) {
+      console.log(
+        "🔄 Flow ID matched - refetching collection flow data for latest application status",
+        { activeFlowId, flowId },
+      );
+      refetchCollectionFlow();
+    }
+  }, [activeFlowId, flowId, refetchCollectionFlow]);
+
   // Show loading state while checking for incomplete flows
   if (checkingFlows) {
     return (
@@ -354,7 +388,7 @@ const AdaptiveForms: React.FC = () => {
 
     const handleRestartFlow = () => {
       // Clear the current flow and start fresh
-      navigate("/collection/forms");
+      navigate("/collection");
       setShowAppSelectionPrompt(false);
     };
 

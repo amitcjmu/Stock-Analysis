@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -19,6 +20,8 @@ import {
   Cpu,
   ArrowLeft,
   ArrowRight,
+  Search,
+  Filter,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiCall } from "@/config/api";
@@ -34,6 +37,7 @@ const ApplicationSelection: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { client, engagement } = useAuth();
+  const queryClient = useQueryClient();
 
   // Get flow ID from URL params
   const flowId = searchParams.get("flowId");
@@ -44,6 +48,13 @@ const ApplicationSelection: React.FC = () => {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [environmentFilter, setEnvironmentFilter] = useState("");
+  const [criticalityFilter, setCriticalityFilter] = useState("");
+  
+  // Refs for infinite scroll
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Redirect if no flow ID provided
   useEffect(() => {
@@ -58,35 +69,64 @@ const ApplicationSelection: React.FC = () => {
     }
   }, [flowId, navigate]);
 
-  // Fetch applications from the inventory
+  // Build query parameters for API calls
+  const buildQueryParams = useCallback((page: number) => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      page_size: "50", // Optimal page size for smooth scrolling
+      asset_type: "application", // Backend filter for applications only
+    });
+    
+    return params.toString();
+  }, []);
+
+  // Fetch applications with infinite scroll support
   const {
-    data: applications,
+    data: applicationsData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
     isLoading: applicationsLoading,
     error: applicationsError,
-  } = useQuery({
+    refetch: refetchApplications,
+  } = useInfiniteQuery({
     queryKey: ["applications-for-collection", client?.id, engagement?.id],
-    queryFn: async () => {
+    queryFn: async ({ pageParam = 1 }) => {
       try {
+        const queryParams = buildQueryParams(pageParam);
         const response = await apiCall(
-          "/unified-discovery/assets?page=1&page_size=100",
+          `/unified-discovery/assets?${queryParams}`,
         );
 
-        // Filter only application assets (case-insensitive)
-        const apps = (response?.assets || []).filter(
-          (asset: Asset) => asset.asset_type?.toLowerCase() === "application",
-        );
+        if (!response || !response.assets) {
+          throw new Error("Invalid API response structure");
+        }
 
         console.log(
-          `📋 Fetched ${apps.length} applications for collection flow selection`,
+          `📋 Fetched page ${pageParam}: ${response.assets.length} applications (total: ${response.pagination?.total_count || 'unknown'})`,
         );
-        return apps;
+        
+        return {
+          assets: response.assets,
+          pagination: response.pagination,
+          currentPage: pageParam,
+        };
       } catch (error) {
         console.error("❌ Failed to fetch applications:", error);
         throw error;
       }
     },
+    getNextPageParam: (lastPage) => {
+      const { pagination } = lastPage;
+      return pagination?.has_next ? pagination.page + 1 : undefined;
+    },
     enabled: !!client && !!engagement && !!flowId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  // Flatten all pages into a single array of applications
+  const applications = applicationsData?.pages?.flatMap(page => page.assets) || [];
+  const totalApplicationsCount = applicationsData?.pages?.[0]?.pagination?.total_count || 0;
 
   // Fetch current collection flow details to check existing selections
   const { data: collectionFlow, isLoading: flowLoading } = useQuery({
@@ -115,6 +155,33 @@ const ApplicationSelection: React.FC = () => {
     }
   }, [collectionFlow]);
 
+  // Setup intersection observer for infinite scroll
+  useEffect(() => {
+    if (!loadMoreRef.current || !hasNextPage || isFetchingNextPage) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          console.log("📄 Loading next page of applications...");
+          fetchNextPage();
+        }
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '100px',
+      }
+    );
+
+    observerRef.current.observe(loadMoreRef.current);
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
   // Handle application selection toggle
   const handleToggleApplication = (appId: string) => {
     const newSelection = new Set(selectedApplications);
@@ -126,18 +193,35 @@ const ApplicationSelection: React.FC = () => {
     setSelectedApplications(newSelection);
   };
 
-  // Handle select all applications
-  const handleSelectAll = () => {
-    if (applications) {
-      if (selectedApplications.size === applications.length) {
-        setSelectedApplications(new Set());
-      } else {
-        setSelectedApplications(
-          new Set(applications.map((app: Asset) => app.id)),
-        );
-      }
-    }
+  // Filter applications based on search and filters
+  const filteredApplications = applications.filter((app: Asset) => {
+    const matchesSearch = !searchTerm || 
+      app.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesEnvironment = !environmentFilter || 
+      app.environment?.toLowerCase() === environmentFilter.toLowerCase();
+    
+    const matchesCriticality = !criticalityFilter ||
+      app.business_criticality?.toLowerCase() === criticalityFilter.toLowerCase();
+    
+    return matchesSearch && matchesEnvironment && matchesCriticality;
+  });
+
+  // Handle select all applications (filtered)
+  const handleSelectAll = (checked?: boolean) => {
+    if (!filteredApplications) return;
+    const shouldSelectAll = typeof checked === "boolean"
+      ? checked
+      : selectedApplications.size !== filteredApplications.length;
+    setSelectedApplications(
+      shouldSelectAll ? new Set(filteredApplications.map((app: Asset) => app.id)) : new Set()
+    );
   };
+
+  // Get unique filter options from all loaded applications
+  const environmentOptions = [...new Set(applications.map(app => app.environment).filter(Boolean))];
+  const criticalityOptions = [...new Set(applications.map(app => app.business_criticality).filter(Boolean))];
 
   // Handle form submission
   const handleSubmit = async () => {
@@ -176,6 +260,21 @@ const ApplicationSelection: React.FC = () => {
         response &&
         (response.success || response.status === "success" || response.id)
       ) {
+        // CRITICAL: Invalidate collection flow cache so AdaptiveForms fetches updated data
+        await queryClient.invalidateQueries({
+          queryKey: ["collection-flow", flowId],
+          exact: true,
+        });
+
+        // Also invalidate any related collection flow queries
+        await queryClient.invalidateQueries({
+          queryKey: ["collection-flows"],
+        });
+
+        console.log(
+          `✅ Cache invalidated for flow ${flowId} after application selection`,
+        );
+
         toast({
           title: "Applications Selected",
           description: `Successfully selected ${selectedApplications.size} application${selectedApplications.size > 1 ? "s" : ""} for collection.`,
@@ -244,7 +343,7 @@ const ApplicationSelection: React.FC = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Collection
           </Button>
-          <Button onClick={() => window.location.reload()}>Retry</Button>
+          <Button onClick={() => refetchApplications()}>Retry</Button>
         </div>
       </CollectionPageLayout>
     );
@@ -273,73 +372,175 @@ const ApplicationSelection: React.FC = () => {
           <CardContent className="space-y-6">
             {applications && applications.length > 0 ? (
               <>
+                {/* Search and Filter Controls */}
+                <div className="space-y-4 pb-4 border-b">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    {/* Search */}
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        type="text"
+                        placeholder="Search applications..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    
+                    {/* Environment Filter */}
+                    <div className="sm:w-48">
+                      <select
+                        value={environmentFilter}
+                        onChange={(e) => setEnvironmentFilter(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="">All Environments</option>
+                        {environmentOptions.map((env) => (
+                          <option key={env} value={env}>{env}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {/* Criticality Filter */}
+                    <div className="sm:w-48">
+                      <select
+                        value={criticalityFilter}
+                        onChange={(e) => setCriticalityFilter(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="">All Criticalities</option>
+                        {criticalityOptions.map((crit) => (
+                          <option key={crit} value={crit}>{crit}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  
+                  {/* Results Summary */}
+                  <div className="flex justify-between items-center text-sm text-gray-600">
+                    <span>
+                      Showing {filteredApplications.length} of {totalApplicationsCount} applications
+                      {(searchTerm || environmentFilter || criticalityFilter) && ' (filtered)'}
+                    </span>
+                    {(searchTerm || environmentFilter || criticalityFilter) && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => {
+                          setSearchTerm('');
+                          setEnvironmentFilter('');
+                          setCriticalityFilter('');
+                        }}
+                      >
+                        Clear Filters
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
                 {/* Select All Checkbox */}
                 <div className="pb-4 border-b">
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <Checkbox
                       checked={
-                        selectedApplications.size === applications.length
+                        filteredApplications.length > 0 && selectedApplications.size === filteredApplications.length
                       }
-                      onCheckedChange={handleSelectAll}
+                      onCheckedChange={(val) => handleSelectAll(!!val)}
                     />
                     <span className="font-medium">
-                      Select All ({applications.length} applications available)
+                      Select All ({filteredApplications.length} applications {(searchTerm || environmentFilter || criticalityFilter) ? 'shown' : 'available'})
                     </span>
                   </label>
                 </div>
 
-                {/* Application List */}
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {applications.map((app: Asset) => (
-                    <div
-                      key={app.id}
-                      className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
-                        selectedApplications.has(app.id)
-                          ? "border-blue-200 bg-blue-50"
-                          : "border-gray-200 hover:bg-gray-50"
-                      }`}
-                    >
-                      <label className="flex items-center space-x-3 cursor-pointer flex-1">
-                        <Checkbox
-                          checked={selectedApplications.has(app.id)}
-                          onCheckedChange={() =>
-                            handleToggleApplication(app.id)
-                          }
-                        />
-                        <div className="flex-1">
-                          <div className="font-medium">{app.name}</div>
-                          {app.environment && (
-                            <div className="text-sm text-gray-600">
-                              Environment: {app.environment}
+                {/* Application List with Infinite Scroll */}
+                <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                  {filteredApplications.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      {searchTerm || environmentFilter || criticalityFilter ? (
+                        <div>
+                          <Filter className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                          <p>No applications match your current filters.</p>
+                          <p className="text-sm mt-2">Try adjusting your search criteria.</p>
+                        </div>
+                      ) : (
+                        <div>
+                          <Cpu className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                          <p>No applications available.</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      {filteredApplications.map((app: Asset) => (
+                        <div
+                          key={app.id}
+                          className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                            selectedApplications.has(app.id)
+                              ? "border-blue-200 bg-blue-50"
+                              : "border-gray-200 hover:bg-gray-50"
+                          }`}
+                        >
+                          <label className="flex items-center space-x-3 cursor-pointer flex-1">
+                            <Checkbox
+                              checked={selectedApplications.has(app.id)}
+                              onCheckedChange={() =>
+                                handleToggleApplication(app.id)
+                              }
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium">{app.name || 'Unnamed Application'}</div>
+                              {app.environment && (
+                                <div className="text-sm text-gray-600">
+                                  Environment: {app.environment}
+                                </div>
+                              )}
+                              {app.description && (
+                                <div className="text-sm text-gray-500 mt-1 max-h-10 overflow-hidden">
+                                  {app.description.length > 100 ? `${app.description.substring(0, 100)}...` : app.description}
+                                </div>
+                              )}
+                            </div>
+                          </label>
+                          <div className="flex items-center gap-2">
+                            {app.business_criticality && (
+                              <Badge
+                                variant={
+                                  app.business_criticality.toLowerCase() === "critical" || app.business_criticality.toLowerCase() === "high"
+                                    ? "destructive"
+                                    : app.business_criticality.toLowerCase() === "medium"
+                                      ? "secondary"
+                                      : "default"
+                                }
+                              >
+                                {app.business_criticality}
+                              </Badge>
+                            )}
+                            {app.six_r_strategy && (
+                              <Badge variant="outline">{app.six_r_strategy}</Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {/* Infinite Scroll Trigger - only show if not filtering */}
+                      {!searchTerm && !environmentFilter && !criticalityFilter && (
+                        <div ref={loadMoreRef} className="py-4">
+                          {isFetchingNextPage && (
+                            <div className="flex items-center justify-center py-4">
+                              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                              <span className="ml-2 text-sm text-gray-600">Loading more applications...</span>
                             </div>
                           )}
-                          {app.description && (
-                            <div className="text-sm text-gray-500 mt-1">
-                              {app.description}
+                          {!hasNextPage && applications.length > 50 && (
+                            <div className="text-center py-4 text-gray-500 text-sm">
+                              All applications loaded ({applications.length} total)
                             </div>
                           )}
                         </div>
-                      </label>
-                      <div className="flex items-center gap-2">
-                        {app.criticality && (
-                          <Badge
-                            variant={
-                              app.criticality === "High"
-                                ? "destructive"
-                                : app.criticality === "Medium"
-                                  ? "secondary"
-                                  : "default"
-                            }
-                          >
-                            {app.criticality}
-                          </Badge>
-                        )}
-                        {app.six_r_strategy && (
-                          <Badge variant="outline">{app.six_r_strategy}</Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                      )}
+                    </>
+                  )}
                 </div>
 
                 {/* Selection Summary */}
