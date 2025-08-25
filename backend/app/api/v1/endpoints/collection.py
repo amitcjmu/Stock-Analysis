@@ -27,6 +27,7 @@ from app.schemas.collection_flow import (
 
 # Import all modular functions to maintain backward compatibility
 from app.api.v1.endpoints import collection_crud
+from app.api.v1.endpoints.collection_applications import update_flow_applications
 
 logger = logging.getLogger(__name__)
 
@@ -261,6 +262,16 @@ async def get_incomplete_flows(
         current_user=current_user,
         context=context,
     )
+
+
+# Register the application selection endpoint
+router.add_api_route(
+    "/flows/{flow_id}/applications",
+    update_flow_applications,
+    methods=["POST"],
+    tags=["collection"],
+    summary="Update collection flow with selected applications",
+)
 
 
 @router.post("/flows/{flow_id}/continue")

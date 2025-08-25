@@ -1,29 +1,32 @@
-import React from 'react'
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { useNavigate } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query';
-import { toast } from '@/components/ui/use-toast';
+import React from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/components/ui/use-toast";
 
 // Import modular components
-import CollectionPageLayout from '@/components/collection/layout/CollectionPageLayout';
-import AdaptiveFormContainer from '@/components/collection/forms/AdaptiveFormContainer';
-import { CollectionUploadBlocker } from '@/components/collection/CollectionUploadBlocker';
-import { CollectionWorkflowError } from '@/components/collection/CollectionWorkflowError';
+import CollectionPageLayout from "@/components/collection/layout/CollectionPageLayout";
+import AdaptiveFormContainer from "@/components/collection/forms/AdaptiveFormContainer";
+import { CollectionUploadBlocker } from "@/components/collection/CollectionUploadBlocker";
+import { CollectionWorkflowError } from "@/components/collection/CollectionWorkflowError";
 
 // Import custom hooks
-import { useAdaptiveFormFlow } from '@/hooks/collection/useAdaptiveFormFlow';
-import { useIncompleteCollectionFlows, useCollectionFlowManagement } from '@/hooks/collection/useCollectionFlowManagement';
-import { useCollectionWorkflowWebSocket } from '@/hooks/collection/useCollectionWorkflowWebSocket';
-import { useQuery } from '@tanstack/react-query';
-import { apiCall } from '@/config/api';
+import { useAdaptiveFormFlow } from "@/hooks/collection/useAdaptiveFormFlow";
+import {
+  useIncompleteCollectionFlows,
+  useCollectionFlowManagement,
+} from "@/hooks/collection/useCollectionFlowManagement";
+import { useCollectionWorkflowWebSocket } from "@/hooks/collection/useCollectionWorkflowWebSocket";
+import { useQuery } from "@tanstack/react-query";
+import { apiCall } from "@/config/api";
 
 // Import types
-import type { ProgressMilestone } from '@/components/collection/types';
+import type { ProgressMilestone } from "@/components/collection/types";
 
 // Import UI components
-import { Button } from '@/components/ui/button';
-import { ROUTES } from '@/constants/routes';
+import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/constants/routes";
 
 /**
  * Adaptive Forms collection page
@@ -35,8 +38,8 @@ const AdaptiveForms: React.FC = () => {
   const queryClient = useQueryClient();
 
   // Get application ID and flow ID from URL params
-  const applicationId = searchParams.get('applicationId');
-  const flowId = searchParams.get('flowId');
+  const applicationId = searchParams.get("applicationId");
+  const flowId = searchParams.get("flowId");
 
   // State to track flows being deleted
   const [deletingFlows, setDeletingFlows] = useState<Set<string>>(new Set());
@@ -51,7 +54,11 @@ const AdaptiveForms: React.FC = () => {
 
     // Check collection_config for selected applications
     const config = collectionFlow.collection_config || {};
-    const selectedApps = config.selected_application_ids || config.applications || config.application_ids || [];
+    const selectedApps =
+      config.selected_application_ids ||
+      config.applications ||
+      config.application_ids ||
+      [];
 
     // Check if applications are selected
     const hasApps = Array.isArray(selectedApps) && selectedApps.length > 0;
@@ -67,11 +74,11 @@ const AdaptiveForms: React.FC = () => {
   const {
     data: incompleteFlows = [],
     isLoading: checkingFlows,
-    refetch: refetchFlows
+    refetch: refetchFlows,
   } = useIncompleteCollectionFlows();
 
   // Filter out the current flow and flows being deleted from the blocking check
-  const blockingFlows = incompleteFlows.filter(flow => {
+  const blockingFlows = incompleteFlows.filter((flow) => {
     const id = flow.flow_id || flow.id;
     return id !== flowId && !deletingFlows.has(id);
   });
@@ -94,56 +101,65 @@ const AdaptiveForms: React.FC = () => {
     handleValidationChange,
     handleSave,
     handleSubmit,
-    initializeFlow
+    initializeFlow,
   } = useAdaptiveFormFlow({
     applicationId,
     flowId,
-    autoInitialize: !checkingFlows && (!hasBlockingFlows || hasJustDeleted)
+    autoInitialize: !checkingFlows && (!hasBlockingFlows || hasJustDeleted),
   });
 
   // Use WebSocket for real-time updates during workflow initialization
-  const { isWebSocketActive, requestStatusUpdate } = useCollectionWorkflowWebSocket({
-    flowId: activeFlowId,
-    enabled: !!activeFlowId && isLoading,
-    onQuestionnaireReady: (event) => {
-      console.log('🎉 WebSocket: Questionnaire ready, triggering re-initialization');
-      // Trigger a re-fetch when questionnaire is ready
-      if (!formData) {
-        initializeFlow();
-      }
-    },
-    onWorkflowUpdate: (event) => {
-      console.log('📊 WebSocket: Workflow status update:', event.data);
-      // Request status update for more details
-      if (event.data.status === 'completed' || event.data.phase === 'questionnaire_generation') {
-        requestStatusUpdate();
-      }
-    },
-    onError: (error) => {
-      console.error('❌ WebSocket: Collection workflow error:', error);
-      toast({
-        title: 'Workflow Error',
-        description: `Collection workflow encountered an error: ${error}`,
-        variant: 'destructive'
-      });
-    }
-  });
+  const { isWebSocketActive, requestStatusUpdate } =
+    useCollectionWorkflowWebSocket({
+      flowId: activeFlowId,
+      enabled: !!activeFlowId && isLoading,
+      onQuestionnaireReady: (event) => {
+        console.log(
+          "🎉 WebSocket: Questionnaire ready, triggering re-initialization",
+        );
+        // Trigger a re-fetch when questionnaire is ready
+        if (!formData) {
+          initializeFlow();
+        }
+      },
+      onWorkflowUpdate: (event) => {
+        console.log("📊 WebSocket: Workflow status update:", event.data);
+        // Request status update for more details
+        if (
+          event.data.status === "completed" ||
+          event.data.phase === "questionnaire_generation"
+        ) {
+          requestStatusUpdate();
+        }
+      },
+      onError: (error) => {
+        console.error("❌ WebSocket: Collection workflow error:", error);
+        toast({
+          title: "Workflow Error",
+          description: `Collection workflow encountered an error: ${error}`,
+          variant: "destructive",
+        });
+      },
+    });
 
   // Check if the current Collection flow has application selection
   // Now that formData is available from useAdaptiveFormFlow
   const { data: currentCollectionFlow, isLoading: isLoadingFlow } = useQuery({
-    queryKey: ['collection-flow', activeFlowId],
+    queryKey: ["collection-flow", activeFlowId],
     queryFn: async () => {
       if (!activeFlowId) return null;
       try {
-        console.log('🔍 Fetching collection flow details for application check:', activeFlowId);
+        console.log(
+          "🔍 Fetching collection flow details for application check:",
+          activeFlowId,
+        );
         return await apiCall(`/collection/flows/${activeFlowId}`);
       } catch (error) {
-        console.error('Failed to fetch collection flow:', error);
+        console.error("Failed to fetch collection flow:", error);
         return null;
       }
     },
-    enabled: !!activeFlowId
+    enabled: !!activeFlowId,
   });
 
   // Detect if we need to redirect to application selection
@@ -157,29 +173,52 @@ const AdaptiveForms: React.FC = () => {
     const isExistingFlowContinuation = flowId !== null && flowId !== undefined;
 
     // Also check if the flow has already progressed beyond initial state
-    const hasProgressed = currentCollectionFlow.progress > 0 ||
-                         currentCollectionFlow.current_phase !== 'initialization';
+    const hasProgressed =
+      currentCollectionFlow.progress > 0 ||
+      currentCollectionFlow.current_phase !== "initialization";
 
-    if (!hasApps && (isExistingFlowContinuation || hasProgressed)) {
+    if (!hasApps && !isExistingFlowContinuation && !hasProgressed) {
+      // For NEW flows without apps, redirect to application selection
+      console.log(
+        "🔄 New collection flow has no applications selected, redirecting to application selection",
+        {
+          flowId: activeFlowId,
+        },
+      );
+
+      navigate(`/collection/select-applications?flowId=${activeFlowId}`);
+      return;
+    } else if (!hasApps && (isExistingFlowContinuation || hasProgressed)) {
       // For existing flows without apps, show a warning but don't redirect
-      console.log('⚠️ Existing collection flow has no applications selected, but not redirecting to avoid loop', {
-        flowId: activeFlowId,
-        isExistingFlowContinuation,
-        hasProgressed
-      });
+      console.log(
+        "⚠️ Existing collection flow has no applications selected, but not redirecting to avoid loop",
+        {
+          flowId: activeFlowId,
+          isExistingFlowContinuation,
+          hasProgressed,
+        },
+      );
 
       // Show app selection prompt to give users a path forward
       setShowAppSelectionPrompt(true);
 
       // Show a warning toast
       toast({
-        title: 'No Applications Selected',
-        description: 'This collection flow does not have any applications selected. You may need to restart the flow.',
-        variant: 'destructive',
-        duration: 7000
+        title: "No Applications Selected",
+        description:
+          "This collection flow does not have any applications selected. You may need to restart the flow.",
+        variant: "destructive",
+        duration: 7000,
       });
     }
-  }, [currentCollectionFlow, isLoadingFlow, activeFlowId, flowId, navigate, toast]);
+  }, [
+    currentCollectionFlow,
+    isLoadingFlow,
+    activeFlowId,
+    flowId,
+    navigate,
+    toast,
+  ]);
 
   // Flow management handlers for incomplete flows
   const handleContinueFlow = async (flowId: string): void => {
@@ -187,25 +226,25 @@ const AdaptiveForms: React.FC = () => {
       // Navigate to appropriate collection phase
       navigate(`/collection/progress/${flowId}`);
     } catch (error) {
-      console.error('Failed to continue collection flow:', error);
+      console.error("Failed to continue collection flow:", error);
     }
   };
 
   const handleDeleteFlow = async (flowId: string): void => {
     // Mark this flow as being deleted to hide it from UI immediately
-    setDeletingFlows(prev => new Set(prev).add(flowId));
+    setDeletingFlows((prev) => new Set(prev).add(flowId));
 
     try {
       // Force delete the flow since it's stuck
       await deleteFlow(flowId, true);
 
       // Wait a bit for backend to process
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Manually invalidate and refetch the specific query
       await queryClient.invalidateQueries({
-        queryKey: ['collection-flows', 'incomplete'],
-        exact: true
+        queryKey: ["collection-flows", "incomplete"],
+        exact: true,
       });
 
       // Also refetch to ensure UI updates
@@ -213,12 +252,11 @@ const AdaptiveForms: React.FC = () => {
 
       // Mark that we just deleted a flow to trigger re-initialization
       setHasJustDeleted(true);
-
     } catch (error: unknown) {
-      console.error('Failed to delete collection flow:', error);
+      console.error("Failed to delete collection flow:", error);
 
       // If deletion failed, remove from deleting set to show it again
-      setDeletingFlows(prev => {
+      setDeletingFlows((prev) => {
         const newSet = new Set(prev);
         newSet.delete(flowId);
         return newSet;
@@ -227,9 +265,9 @@ const AdaptiveForms: React.FC = () => {
       // Show error toast if it's not a 404 (which means it was already deleted)
       if (error?.status !== 404) {
         toast({
-          title: 'Delete Failed',
-          description: error?.message || 'Failed to delete collection flow',
-          variant: 'destructive'
+          title: "Delete Failed",
+          description: error?.message || "Failed to delete collection flow",
+          variant: "destructive",
         });
       }
     }
@@ -240,44 +278,44 @@ const AdaptiveForms: React.FC = () => {
   };
 
   const handleManageFlows = (): void => {
-    navigate('/collection/overview');
+    navigate("/collection/overview");
   };
 
   // Mock progress milestones - in a real implementation these would be dynamic
   const progressMilestones: ProgressMilestone[] = [
     {
-      id: 'form-start',
-      title: 'Form Started',
-      description: 'Begin adaptive data collection',
+      id: "form-start",
+      title: "Form Started",
+      description: "Begin adaptive data collection",
       achieved: true,
       achievedAt: new Date().toISOString(),
       weight: 0.1,
-      required: true
+      required: true,
     },
     {
-      id: 'basic-complete',
-      title: 'Basic Information',
-      description: 'Complete core application details',
+      id: "basic-complete",
+      title: "Basic Information",
+      description: "Complete core application details",
       achieved: false,
       weight: 0.3,
-      required: true
+      required: true,
     },
     {
-      id: 'technical-complete',
-      title: 'Technical Details',
-      description: 'Complete technical architecture information',
+      id: "technical-complete",
+      title: "Technical Details",
+      description: "Complete technical architecture information",
       achieved: false,
       weight: 0.4,
-      required: true
+      required: true,
     },
     {
-      id: 'validation-passed',
-      title: 'Validation Passed',
-      description: 'All validation checks completed successfully',
+      id: "validation-passed",
+      title: "Validation Passed",
+      description: "All validation checks completed successfully",
       achieved: false,
       weight: 0.2,
-      required: true
-    }
+      required: true,
+    },
   ];
 
   // Reset the hasJustDeleted flag after auto-initialization triggers
@@ -290,7 +328,6 @@ const AdaptiveForms: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [hasJustDeleted, hasBlockingFlows, checkingFlows]);
-
 
   // Show loading state while checking for incomplete flows
   if (checkingFlows) {
@@ -310,12 +347,14 @@ const AdaptiveForms: React.FC = () => {
   // Show app selection prompt if no applications are selected for the current flow
   if (showAppSelectionPrompt && activeFlowId) {
     const handleGoToAppSelection = () => {
-      navigate(`${ROUTES.DISCOVERY.APPLICATIONS}?continueFlow=${activeFlowId}`);
+      navigate(
+        `${ROUTES.COLLECTION.SELECT_APPLICATIONS}?flowId=${activeFlowId}`,
+      );
     };
 
     const handleRestartFlow = () => {
       // Clear the current flow and start fresh
-      navigate('/collection/forms');
+      navigate("/collection/forms");
       setShowAppSelectionPrompt(false);
     };
 
@@ -326,10 +365,13 @@ const AdaptiveForms: React.FC = () => {
       >
         <div className="max-w-2xl mx-auto mt-8">
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-yellow-800 mb-2">No Applications Selected</h3>
+            <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+              No Applications Selected
+            </h3>
             <p className="text-yellow-700 mb-4">
-              This collection flow does not have any applications selected. You need to select applications
-              before proceeding with data collection.
+              This collection flow does not have any applications selected. You
+              need to select applications before proceeding with data
+              collection.
             </p>
 
             <div className="space-y-3">
@@ -350,7 +392,7 @@ const AdaptiveForms: React.FC = () => {
               </Button>
 
               <Button
-                onClick={() => navigate('/collection/overview')}
+                onClick={() => navigate("/collection/overview")}
                 variant="outline"
                 className="w-full"
               >
@@ -408,10 +450,14 @@ const AdaptiveForms: React.FC = () => {
         title="Adaptive Data Collection"
         description="Generating personalized collection form"
         isLoading={isLoading}
-        loadingMessage={isLoading ? "CrewAI agents are analyzing your requirements..." : "Preparing collection form..."}
+        loadingMessage={
+          isLoading
+            ? "CrewAI agents are analyzing your requirements..."
+            : "Preparing collection form..."
+        }
         loadingSubMessage={
           isLoading
-            ? `Generating adaptive questionnaire based on your specific needs${isWebSocketActive ? ' (Real-time updates active)' : ' (Polling for updates)'}`
+            ? `Generating adaptive questionnaire based on your specific needs${isWebSocketActive ? " (Real-time updates active)" : " (Polling for updates)"}`
             : "Initializing workflow"
         }
       >
@@ -430,7 +476,11 @@ const AdaptiveForms: React.FC = () => {
   return (
     <CollectionPageLayout
       title="Adaptive Data Collection"
-      description={applicationId ? `Collecting data for application ${applicationId}` : 'New application data collection'}
+      description={
+        applicationId
+          ? `Collecting data for application ${applicationId}`
+          : "New application data collection"
+      }
     >
       <AdaptiveFormContainer
         formData={formData}
@@ -443,7 +493,7 @@ const AdaptiveForms: React.FC = () => {
         onValidationChange={handleValidationChange}
         onSave={handleSave}
         onSubmit={handleSubmit}
-        onCancel={() => navigate('/collection')}
+        onCancel={() => navigate("/collection")}
       />
     </CollectionPageLayout>
   );
