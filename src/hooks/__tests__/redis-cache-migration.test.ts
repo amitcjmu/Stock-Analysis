@@ -324,7 +324,7 @@ describe('Redis Cache Migration - Week 4 Implementation', () => {
 
       // Verify the new API client is used (no custom cache headers)
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/data-import/field-mapping/imports/test-import/field-mappings'),
+        expect.stringContaining('/data-import/field-mappings/imports/test-import/field-mappings'),
         expect.objectContaining({
           method: 'GET',
           cache: 'no-store'

@@ -31,6 +31,25 @@ from .flows_handlers.schemas import (
 
 logger = logging.getLogger(__name__)
 
+
+def safe_get_flow_field(
+    flow_data: dict, field_name: str, fallback_name: str = None, default=None
+):
+    """
+    Safely get field from flow data, handling both snake_case and legacy camelCase variants.
+
+    Args:
+        flow_data: The flow dictionary
+        field_name: Primary field name (snake_case)
+        fallback_name: Legacy field name (camelCase) for backward compatibility
+        default: Default value if field not found
+    """
+    value = flow_data.get(field_name, default)
+    if value is default and fallback_name:
+        value = flow_data.get(fallback_name, default)
+    return value
+
+
 # Create main router
 router = APIRouter()
 
@@ -72,8 +91,8 @@ async def get_active_flows(
                 flow_id=flow["flow_id"],
                 flow_type=flow["flow_type"],
                 flow_name=flow.get("flow_name"),
-                status=flow["status"],
-                phase=flow.get("phase"),
+                status=safe_get_flow_field(flow, "status", "flow_status", "unknown"),
+                phase=safe_get_flow_field(flow, "phase", "current_phase"),
                 progress_percentage=flow.get("progress_percentage", 0.0),
                 created_at=flow["created_at"],
                 updated_at=flow["updated_at"],
@@ -126,8 +145,8 @@ async def get_flow_status(
             flow_id=status["flow_id"],
             flow_type=status["flow_type"],
             flow_name=status.get("flow_name"),
-            status=status["status"],
-            phase=status.get("phase"),
+            status=safe_get_flow_field(status, "status", "flow_status", "unknown"),
+            phase=safe_get_flow_field(status, "phase", "current_phase"),
             progress_percentage=status.get("progress_percentage", 0.0),
             created_at=status["created_at"],
             updated_at=status["updated_at"],
@@ -247,8 +266,8 @@ async def create_discovery_flow_legacy(
         flow_id=flow["flow_id"],
         flow_type=flow["flow_type"],
         flow_name=flow.get("flow_name"),
-        status=flow["status"],
-        phase=flow.get("phase"),
+        status=safe_get_flow_field(flow, "status", "flow_status", "unknown"),
+        phase=safe_get_flow_field(flow, "phase", "current_phase"),
         progress_percentage=flow.get("progress_percentage", 0.0),
         created_at=flow["created_at"],
         updated_at=flow["updated_at"],

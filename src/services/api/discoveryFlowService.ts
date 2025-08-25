@@ -303,7 +303,7 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
     console.log(`📝 [DiscoveryFlowService] Submitting clarification answers for flow: ${flowId}`);
 
     const response = await apiClient.post<ClarificationSubmissionResponse>(
-      `/unified-discovery/flows/${flowId}/clarifications/submit`,  // Updated to unified-discovery endpoint as part of API migration
+      `/unified-discovery/flow/${flowId}/clarifications/submit`,  // Updated to unified-discovery endpoint as part of API migration
       {
         answers,
         client_account_id: clientAccountId,
@@ -345,7 +345,7 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
     console.log(`✅ [DiscoveryFlowService] Approving field mapping with learning: ${mappingId}`);
 
     const response = await apiClient.post<FieldMappingLearningResponse>(
-      `/data-import/field-mapping/${mappingId}/approve`,  // Use existing field mapping learning endpoint
+      `/data-import/field-mappings/${mappingId}/approve`,  // Use corrected field mappings learning endpoint
       request,
       {
         headers: {
@@ -363,7 +363,7 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
     console.log(`❌ [DiscoveryFlowService] Rejecting field mapping with learning: ${mappingId}`);
 
     const response = await apiClient.post<FieldMappingLearningResponse>(
-      `/data-import/field-mapping/${mappingId}/reject`,  // Use existing field mapping learning endpoint
+      `/data-import/field-mappings/${mappingId}/reject`,  // Use corrected field mappings learning endpoint
       request,
       {
         headers: {
@@ -381,7 +381,7 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
     console.log(`📚 [DiscoveryFlowService] Bulk learning from ${request.actions.length} field mappings`);
 
     const response = await apiClient.post<BulkFieldMappingLearningResponse>(
-      `/data-import/field-mapping/learn`,  // Use existing bulk learning endpoint
+      `/data-import/field-mappings/learn`,  // Use corrected bulk learning endpoint
       request,
       {
         headers: {
@@ -404,7 +404,7 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
     params.append('limit', limit.toString());
 
     const queryString = params.toString();
-    const url = `/data-import/field-mapping/learned${queryString ? `?${queryString}` : ''}`;
+    const url = `/data-import/field-mappings/learned${queryString ? `?${queryString}` : ''}`;
 
     const response = await apiClient.get<LearnedFieldMappingPatternsResponse>(
       url,  // Use existing learned patterns endpoint
@@ -424,7 +424,7 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
     console.log(`🔄 [DiscoveryFlowService] Refreshing learned patterns cache`);
 
     const response = await apiClient.post<{ success: boolean; message: string }>(
-      `/data-import/field-mapping/learned/refresh`,  // Use existing cache refresh endpoint
+      `/data-import/field-mappings/learned/refresh`,  // Use corrected cache refresh endpoint
       {},
       {
         headers: {

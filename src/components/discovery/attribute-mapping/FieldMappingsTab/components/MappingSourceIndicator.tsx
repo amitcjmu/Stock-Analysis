@@ -87,7 +87,16 @@ const getSourceType = (mapping: FieldMapping): string => {
   return 'ai_suggested';
 };
 
-const getConfidenceLevel = (score: number): { level: string; color: string; icon: React.ComponentType<{ className?: string }> } => {
+const getConfidenceLevel = (score: number | undefined | null): { level: string; color: string; icon: React.ComponentType<{ className?: string }> } => {
+  // Guard against undefined, null, or NaN values
+  if (typeof score !== 'number' || isNaN(score)) {
+    return {
+      level: 'Unknown',
+      color: 'text-gray-500',
+      icon: AlertTriangle
+    };
+  }
+
   if (score >= 0.8) {
     return {
       level: 'High',
@@ -130,7 +139,12 @@ const MappingSourceIndicator: React.FC<MappingSourceIndicatorProps> = ({
         {showConfidence && (
           <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-gray-100 ${confidence.color}`}>
             <confidence.icon className="h-3 w-3" />
-            <span>{(mapping.confidence_score * 100).toFixed(0)}%</span>
+            <span>
+              {typeof mapping.confidence_score === 'number' && !isNaN(mapping.confidence_score)
+                ? `${(mapping.confidence_score * 100).toFixed(0)}%`
+                : 'N/A'
+              }
+            </span>
           </div>
         )}
       </div>
@@ -153,7 +167,11 @@ const MappingSourceIndicator: React.FC<MappingSourceIndicatorProps> = ({
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-gray-50">
             <confidence.icon className={`h-4 w-4 ${confidence.color}`} />
             <span className="text-sm text-gray-700">
-              {confidence.level} ({(mapping.confidence_score * 100).toFixed(0)}%)
+              {confidence.level} ({
+                typeof mapping.confidence_score === 'number' && !isNaN(mapping.confidence_score)
+                  ? `${(mapping.confidence_score * 100).toFixed(0)}%`
+                  : 'N/A'
+              })
             </span>
           </div>
         )}

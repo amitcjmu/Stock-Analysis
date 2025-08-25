@@ -16,7 +16,7 @@ from app.core.security.cache_encryption import secure_setattr
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 
 from .data_utilities import DataUtilities
-from .defensive_method_resolver import DefensiveMethodResolver, create_method_resolver
+from .defensive_method_resolver import create_method_resolver
 from .flow_finalization import FlowFinalizer
 from .flow_initialization import FlowInitializer
 from .flow_management import FlowManager

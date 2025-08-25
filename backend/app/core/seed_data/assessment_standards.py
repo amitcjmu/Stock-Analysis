@@ -458,12 +458,15 @@ async def initialize_assessment_standards(db: AsyncSession, engagement_id: str) 
         try:
             standard_record = EngagementArchitectureStandard(
                 engagement_id=engagement_id,
+                client_account_id=client_account_id,  # Add required field
                 requirement_type=standard["requirement_type"],
+                standard_name=standard.get("standard_name", standard["requirement_type"]),  # Add required field
                 description=standard["description"],
-                mandatory=standard["mandatory"],
-                supported_versions=standard.get("supported_versions"),
-                requirement_details=standard["requirement_details"],
-                created_by="system_init",
+                is_mandatory=standard["mandatory"],
+                minimum_requirements=standard.get("requirement_details", {}),  # Map to correct field
+                preferred_patterns=standard.get("supported_versions", {}),  # Map to correct field
+                priority=standard.get("priority", 5),
+                business_impact=standard.get("business_impact", "medium"),
             )
             db.add(standard_record)
             standards_created += 1

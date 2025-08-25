@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from app.services.embeddings.embedding_service import EmbeddingService
+from app.services.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
 

@@ -72,7 +72,7 @@ export const useFlowProgress = ({
     try {
       // Fixed: Use unified-discovery endpoint instead of legacy discovery endpoint (Issue #222)
       // This ensures we call the correct API that's registered in router_registry.py
-      const response = await apiCall<any>(`/api/v1/unified-discovery/flows/${flowId}/status`, {
+      const response = await apiCall<{ status?: string; phase?: string; progress?: number; error?: string }>(`/api/v1/unified-discovery/flow/${flowId}/status`, {
         method: 'GET'
       });
 
@@ -251,7 +251,7 @@ export const useFlowProgress = ({
     const registered = pollingManager.register({
       id: pollId,
       component: 'useFlowProgress',
-      endpoint: `/api/v1/unified-discovery/flows/${flowId}/status`,
+      endpoint: `/api/v1/unified-discovery/flow/${flowId}/status`,
       interval: 5000, // Start with 5 second polling
       maxRetries: 3,
       enabled: true

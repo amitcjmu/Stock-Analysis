@@ -33,6 +33,25 @@ interface LearningState {
   rejection_metadata?: Record<string, unknown>;
 }
 
+// Utility function to clamp confidence score to valid range [0, 1]
+const clampConfidenceScore = (score: number | undefined | null): number => {
+  if (typeof score !== 'number' || isNaN(score)) {
+    return 0.5; // Default to 50% for undefined/null/NaN values
+  }
+  return Math.max(0, Math.min(1, score));
+};
+
+// Utility function to get safe confidence score with fallback to mapping default
+const getSafeConfidenceScore = (score: number | undefined | null, fallback: number | undefined | null): number => {
+  if (typeof score === 'number' && !isNaN(score)) {
+    return clampConfidenceScore(score);
+  }
+  if (typeof fallback === 'number' && !isNaN(fallback)) {
+    return clampConfidenceScore(fallback);
+  }
+  return 0.5; // Default to 50% if both are invalid
+};
+
 const FieldMappingLearningControls: React.FC<FieldMappingLearningControlsProps> = ({
   mapping,
   onApprove,
@@ -45,7 +64,7 @@ const FieldMappingLearningControls: React.FC<FieldMappingLearningControlsProps> 
   const [learningState, setLearningState] = useState<LearningState>({
     showApprovalDialog: false,
     showRejectionDialog: false,
-    confidence_score: mapping.confidence_score,
+    confidence_score: getSafeConfidenceScore(mapping.confidence_score, mapping.confidence_score),
     rejection_reason: '',
     alternative_suggestion: ''
   });
@@ -55,11 +74,14 @@ const FieldMappingLearningControls: React.FC<FieldMappingLearningControlsProps> 
   const handleConfirmApproval = useCallback(async () => {
     setIsSubmitting(true);
     try {
+      // Ensure confidence score is properly clamped before sending
+      const safeConfidenceScore = getSafeConfidenceScore(learningState.confidence_score, mapping.confidence_score);
+
       const request: FieldMappingLearningApprovalRequest = {
-        confidence_score: learningState.confidence_score,
+        confidence_score: safeConfidenceScore,
         approval_metadata: {
-          original_confidence: mapping.confidence_score,
-          user_adjusted: learningState.confidence_score !== mapping.confidence_score,
+          original_confidence: getSafeConfidenceScore(mapping.confidence_score, mapping.confidence_score),
+          user_adjusted: safeConfidenceScore !== getSafeConfidenceScore(mapping.confidence_score, mapping.confidence_score),
           mapping_type: mapping.mapping_type,
           source_field: mapping.source_field,
           target_field: mapping.target_field,
@@ -147,7 +169,9 @@ const FieldMappingLearningControls: React.FC<FieldMappingLearningControlsProps> 
   }, []);
 
   const updateConfidenceScore = useCallback((score: number) => {
-    setLearningState(prev => ({ ...prev, confidence_score: score }));
+    // Clamp the score to [0, 1] range and handle NaN cases
+    const clampedScore = clampConfidenceScore(score);
+    setLearningState(prev => ({ ...prev, confidence_score: clampedScore }));
   }, []);
 
   const updateRejectionReason = useCallback((reason: string) => {

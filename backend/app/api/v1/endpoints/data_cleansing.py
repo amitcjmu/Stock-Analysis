@@ -145,8 +145,6 @@ async def get_data_cleansing_analysis(
         # This endpoint should never modify flow status or trigger execution
 
         # Get data import for this flow using the same logic as import storage handler
-        from sqlalchemy import select
-
         from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
         # First try to get data import via discovery flow's data_import_id
@@ -403,7 +401,6 @@ async def _validate_and_get_flow(
 
 async def _get_data_import_for_flow(flow_id: str, flow: Any, db: AsyncSession) -> Any:
     """Get data import for the given flow."""
-    from sqlalchemy import select
     from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
     # First try to get data import via discovery flow's data_import_id
@@ -563,8 +560,6 @@ async def trigger_data_cleansing_analysis(
             data_import = await _get_data_import_for_flow(flow_id, flow, db)
 
             if data_import:
-                from sqlalchemy import select
-
                 data_imports = [data_import]
                 field_mapping_query = select(ImportFieldMapping).where(
                     ImportFieldMapping.data_import_id == data_imports[0].id
@@ -634,7 +629,7 @@ async def _perform_data_cleansing_analysis(
     """
     import uuid
     from datetime import datetime
-    from sqlalchemy import select, func
+    from sqlalchemy import func
     from app.models.data_import import RawImportRecord
 
     # Get the first data import (primary)

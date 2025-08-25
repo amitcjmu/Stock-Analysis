@@ -85,7 +85,7 @@ export class MappingService {
 
   static async getFieldMappings(importId: string): Promise<unknown> {
     try {
-      const response = await apiCall(`/data-import/field-mapping/imports/${importId}/field-mappings`);
+      const response = await apiCall(`/data-import/field-mappings/imports/${importId}/field-mappings`);
 
       return response;
     } catch (error) {

@@ -145,7 +145,7 @@ export const API_CONFIG = {
       LATEST_IMPORT_TEMP: '/data-import/latest-import-temp',
       GET_IMPORT: '/data-import/import',
       LIST_IMPORTS: '/data-import/imports',
-      AVAILABLE_TARGET_FIELDS: '/data-import/field-mapping/suggestions/available-target-fields',
+      AVAILABLE_TARGET_FIELDS: '/data-import/field-mappings/suggestions/available-target-fields',
       CRITICAL_ATTRIBUTES_STATUS: '/data-import/critical-attributes-status',
       CONTEXT_FIELD_MAPPINGS: '/data-import/context-field-mappings',
       SIMPLE_FIELD_MAPPINGS: '/data-import/simple-field-mappings',
@@ -235,7 +235,7 @@ const rateLimitTracker = new Map<string, RateLimitEntry>();
 // Rate limit configuration
 const RATE_LIMITS = {
   // Removed available-target-fields as it's now deprecated (using hardcoded list)
-  'GET:/api/v1/data-import/field-mapping': { maxRequests: 5, windowMs: 30000 }, // 5 requests per 30s
+  'GET:/api/v1/data-import/field-mappings': { maxRequests: 5, windowMs: 30000 }, // 5 requests per 30s
   'GET:/api/v1/data-import/latest': { maxRequests: 10, windowMs: 60000 }, // 10 requests per minute
   'default': { maxRequests: 30, windowMs: 60000 } // Default: 30 requests per minute
 };
@@ -243,7 +243,7 @@ const RATE_LIMITS = {
 // Cache configuration per endpoint
 const CACHE_CONFIG = {
   // Removed available-target-fields as it's now deprecated (using hardcoded list)
-  'GET:/api/v1/data-import/field-mapping': 60000, // 1 minute
+  'GET:/api/v1/data-import/field-mappings': 60000, // 1 minute
   'GET:/api/v1/data-import/latest': 30000, // 30 seconds
   'default': 120000 // 2 minutes default
 };

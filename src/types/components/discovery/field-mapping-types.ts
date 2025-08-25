@@ -9,7 +9,7 @@ import type { BaseDiscoveryProps, FieldMapping, ValidationError } from './base-t
 
 // Field Mappings component types
 export interface FieldMappingsTabProps extends BaseDiscoveryProps {
-  flowId: string;
+  flow_id: string;
   onMappingUpdate?: (mapping: FieldMapping) => void;
   showAdvanced?: boolean;
   readonly?: boolean;

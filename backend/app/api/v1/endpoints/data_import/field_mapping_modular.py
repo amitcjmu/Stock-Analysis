@@ -31,8 +31,8 @@ def get_mapping_service(
     return MappingService(db, context)
 
 
-# Create main router
-router = APIRouter(prefix="/field-mapping")
+# Create main router - no prefix needed as mapping_routes has /field-mappings prefix
+router = APIRouter()
 
 # Include all sub-routers
 router.include_router(mapping_router)

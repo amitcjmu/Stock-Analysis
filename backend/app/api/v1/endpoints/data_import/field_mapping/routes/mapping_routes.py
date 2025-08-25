@@ -7,7 +7,7 @@ import logging
 
 from fastapi import APIRouter
 
-from backend.app.api.v1.api_tags import APITags
+from app.api.v1.api_tags import APITags
 from .mapping_modules.analysis_operations import router as analysis_router
 
 # Import modularized route groups
