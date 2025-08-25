@@ -89,7 +89,8 @@ class FieldSimilarityCalculator:
                                     cosine_sim + 1.0
                                 ) / 2.0  # Normalize to 0-1
                             else:
-                                # Fall back to fuzzy matching if cosine similarity is invalid
+                                # Fall back to fuzzy matching if cosine
+                                # similarity is invalid
                                 similarity = difflib.SequenceMatcher(
                                     None, norm_field1, norm_field2
                                 ).ratio()
@@ -100,7 +101,8 @@ class FieldSimilarityCalculator:
                             ).ratio()
                     except Exception as e:
                         logger.warning(
-                            f"Embedding calculation failed: {e}. Falling back to fuzzy matching."
+                            f"Embedding calculation failed: {e}. "
+                            "Falling back to fuzzy matching."
                         )
                         # Fall back to fuzzy matching if embedding process fails
                         similarity = difflib.SequenceMatcher(

@@ -1,0 +1,9 @@
+hostname,ip_address,operating_system,owner,status,location,environment
+web-server-01,192.168.1.10,Ubuntu 20.04 LTS,john.doe@company.com,running,datacenter-1,production
+db-server-01,192.168.1.11,Windows Server 2019,jane.smith@company.com,running,datacenter-1,production
+app-server-01,192.168.1.12,CentOS 8,mike.wilson@company.com,running,datacenter-2,production
+backup-server,192.168.1.13,Ubuntu 18.04 LTS,sarah.jones@company.com,stopped,datacenter-1,production
+test-server-01,192.168.1.20,Windows Server 2016,dev.team@company.com,running,datacenter-2,test
+staging-web,192.168.1.21,Ubuntu 22.04 LTS,qa.team@company.com,running,datacenter-1,staging
+cache-server,192.168.1.15,Redis on Ubuntu,ops.team@company.com,running,datacenter-2,production
+mail-server,192.168.1.16,Exchange Server 2019,admin@company.com,running,datacenter-1,production

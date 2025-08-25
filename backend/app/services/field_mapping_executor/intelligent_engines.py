@@ -144,7 +144,8 @@ class IntelligentMappingEngine:
                 except Exception:
                     # Final fallback - filter in Python to avoid SQL injection
                     self.logger.warning(
-                        "Using Python filtering for pattern matching as database JSON operators are not available"
+                        "Using Python filtering for pattern matching as database "
+                        "JSON operators are not available"
                     )
                     use_python_filtering = True
                     query = (

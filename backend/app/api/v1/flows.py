@@ -1,7 +1,8 @@
 """
 Unified Flow API Layer
 Task MFO-059 through MFO-073: Unified API endpoints for all flow types
-Provides a single, consistent API for creating, managing, and monitoring all CrewAI flows
+Provides a single, consistent API for creating, managing, and monitoring
+all CrewAI flows
 
 This file has been modularized to stay within 400 lines.
 All functionality is preserved through modular imports.
@@ -36,7 +37,8 @@ def safe_get_flow_field(
     flow_data: dict, field_name: str, fallback_name: str = None, default=None
 ):
     """
-    Safely get field from flow data, handling both snake_case and legacy camelCase variants.
+    Safely get field from flow data, handling both snake_case and legacy
+    camelCase variants.
 
     Args:
         flow_data: The flow dictionary

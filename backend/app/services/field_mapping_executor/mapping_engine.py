@@ -11,8 +11,7 @@ The actual implementations are modularized into separate files for maintainabili
 import logging
 from typing import Any, Dict
 
-# Import engine implementations from separate modules
-from .intelligent_engines import IntelligentMappingEngine
+# Import utility classes directly
 from .mapping_utilities import (
     FieldMappingRule,
     FieldSimilarityCalculator,
@@ -21,6 +20,27 @@ from .mapping_utilities import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _get_intelligent_mapping_engine():
+    """Lazy import of IntelligentMappingEngine to prevent import-time errors"""
+    try:
+        from .intelligent_engines import IntelligentMappingEngine
+        return IntelligentMappingEngine
+    except ImportError as e:
+        logger.warning(f"Could not import IntelligentMappingEngine: {e}")
+        return None
+
+
+# Make IntelligentMappingEngine available through lazy loading
+def __getattr__(name):
+    """Lazy loading of IntelligentMappingEngine for backward compatibility"""
+    if name == "IntelligentMappingEngine":
+        engine_class = _get_intelligent_mapping_engine()
+        if engine_class is None:
+            raise ImportError(f"Could not import {name}. Check if required dependencies are installed.")
+        return engine_class
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
 class MappingEngine:
@@ -101,9 +121,9 @@ class FallbackMappingEngine(MappingEngine):
 
 
 # Export all classes for backward compatibility
+# Note: IntelligentMappingEngine is available through lazy loading via __getattr__
 __all__ = [
     "MappingEngine",
-    "IntelligentMappingEngine",
     "FallbackMappingEngine",
     "FieldMappingRule",
     "MappingContext",

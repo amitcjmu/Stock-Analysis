@@ -38,9 +38,14 @@ test.describe('Field Mapping Backend Validation', () => {
     expect(learnedData).toHaveProperty('patterns');
     expect(Array.isArray(learnedData.patterns)).toBeTruthy();
     
-    // Context type should match query parameter when provided
-    if (learnedData.context_type) {
-      expect(learnedData.context_type).toBe('field_mapping');
+    // Pattern types in individual patterns should match query parameter when provided
+    if (learnedData.patterns && learnedData.patterns.length > 0) {
+      // Check that returned patterns match the requested pattern_type
+      learnedData.patterns.forEach(pattern => {
+        if (pattern.pattern_type) {
+          expect(pattern.pattern_type).toBe('field_mapping');
+        }
+      });
     }
     
     // Engagement ID should match request when present (not guaranteed to be returned)
@@ -135,7 +140,8 @@ test.describe('Field Mapping Backend Validation', () => {
       test_improvements: {
         header_consistency: 'FIXED - Using consistent X-Client-Account-ID format',
         assertion_resilience: 'IMPROVED - Removed brittle exact value checks',
-        response_validation: 'ENHANCED - Added type checking and flexible field validation'
+        response_validation: 'ENHANCED - Added type checking and flexible field validation',
+        pattern_type_assertion: 'FIXED - Now correctly asserts pattern_type in patterns array instead of context_type'
       },
       results: {
         api_endpoints: {
@@ -165,6 +171,8 @@ test.describe('Field Mapping Backend Validation', () => {
         'Header format consistency resolved',
         'Multi-tenant security is properly implemented',
         'Response validation is comprehensive but flexible',
+        'Pattern type assertions now correctly validate individual pattern data',
+        'Fixed false negative potential from incorrect context_type assertion',
         'Ready for frontend integration testing'
       ]
     };
