@@ -28,7 +28,9 @@ class FieldMappingAutoTrigger:
         self.check_interval = 30  # Check every 30 seconds
         self.running = False
         self.max_attempts_per_flow = 10  # Maximum attempts per flow (5 minutes total)
-        self.flow_tracking = {}  # Track attempts per flow: {flow_id: {"first_seen": datetime, "attempts": int}}
+        self.flow_tracking = (
+            {}
+        )  # Track attempts per flow: {flow_id: {"first_seen": datetime, "attempts": int}}
         self.cleanup_interval_hours = 1  # Clean up old entries every hour
 
     async def start(self):
@@ -68,7 +70,9 @@ class FieldMappingAutoTrigger:
             stmt = select(DiscoveryFlow).where(
                 and_(
                     DiscoveryFlow.current_phase == "field_mapping",
-                    DiscoveryFlow.status.in_(["waiting_for_approval", "active", "processing"]),
+                    DiscoveryFlow.status.in_(
+                        ["waiting_for_approval", "active", "processing"]
+                    ),
                 )
             )
 
@@ -82,14 +86,18 @@ class FieldMappingAutoTrigger:
                 if self._should_monitor_flow(flow_id):
                     await self._process_flow(flow, db)
                 else:
-                    logger.info(f"⏹️ Stopped monitoring flow {flow_id} after {self.max_attempts_per_flow} attempts")
+                    logger.info(
+                        f"⏹️ Stopped monitoring flow {flow_id} after {self.max_attempts_per_flow} attempts"
+                    )
 
     def _should_monitor_flow(self, flow_id: str) -> bool:
         """Check if we should continue monitoring this flow based on attempt count"""
         if flow_id not in self.flow_tracking:
             # First time seeing this flow
             self.flow_tracking[flow_id] = {"first_seen": datetime.now(), "attempts": 0}
-            logger.info(f"🔍 Started monitoring flow {flow_id} (0/{self.max_attempts_per_flow} attempts)")
+            logger.info(
+                f"🔍 Started monitoring flow {flow_id} (0/{self.max_attempts_per_flow} attempts)"
+            )
             return True
 
         tracking_data = self.flow_tracking[flow_id]
@@ -100,7 +108,9 @@ class FieldMappingAutoTrigger:
 
         # Increment attempt count
         tracking_data["attempts"] += 1
-        logger.info(f"🔄 Monitoring flow {flow_id} ({tracking_data['attempts']}/{self.max_attempts_per_flow} attempts)")
+        logger.info(
+            f"🔄 Monitoring flow {flow_id} ({tracking_data['attempts']}/{self.max_attempts_per_flow} attempts)"
+        )
 
         return True
 
@@ -118,7 +128,9 @@ class FieldMappingAutoTrigger:
             logger.debug(f"🧹 Cleaned up tracking data for old flow {flow_id}")
 
         if flow_ids_to_remove:
-            logger.info(f"🧹 Cleaned up tracking data for {len(flow_ids_to_remove)} old flows")
+            logger.info(
+                f"🧹 Cleaned up tracking data for {len(flow_ids_to_remove)} old flows"
+            )
 
     def get_monitoring_status(self) -> Dict[str, Dict]:
         """Get current monitoring status for all tracked flows"""
@@ -127,8 +139,17 @@ class FieldMappingAutoTrigger:
     async def _process_flow(self, flow: DiscoveryFlow, db: AsyncSession):  # noqa: C901
         """Process a single flow for field mapping generation"""
         try:
+            # Validate flow_id before proceeding
+            if flow.flow_id is None:
+                logger.warning("Flow has None flow_id, skipping processing")
+                return
+
             # Check if field mappings already exist
-            mappings_stmt = select(ImportFieldMapping).where(ImportFieldMapping.master_flow_id == flow.flow_id).limit(1)
+            mappings_stmt = (
+                select(ImportFieldMapping)
+                .where(ImportFieldMapping.master_flow_id == flow.flow_id)
+                .limit(1)
+            )
 
             result = await db.execute(mappings_stmt)
             existing_mappings = result.scalar_one_or_none()
@@ -138,7 +159,9 @@ class FieldMappingAutoTrigger:
                 flow_id = str(flow.flow_id)
                 if flow_id in self.flow_tracking:
                     del self.flow_tracking[flow_id]
-                    logger.info(f"✅ Field mappings already exist for flow {flow_id}, removed from monitoring")
+                    logger.info(
+                        f"✅ Field mappings already exist for flow {flow_id}, removed from monitoring"
+                    )
                 return
 
             logger.info(f"🚀 Auto-triggering field mapping for flow {flow.flow_id}")
@@ -174,10 +197,14 @@ class FieldMappingAutoTrigger:
                     first_record = state.raw_data[0]
                     if isinstance(first_record, dict):
                         state.metadata["detected_columns"] = list(first_record.keys())
-                        logger.info(f"Detected {len(state.metadata['detected_columns'])} columns from raw data")
+                        logger.info(
+                            f"Detected {len(state.metadata['detected_columns'])} columns from raw data"
+                        )
 
             if not state.metadata.get("detected_columns"):
-                logger.warning(f"No detected columns for flow {flow.flow_id}, skipping auto-trigger")
+                logger.warning(
+                    f"No detected columns for flow {flow.flow_id}, skipping auto-trigger"
+                )
                 return
 
             # Initialize field mapping executor
@@ -191,7 +218,9 @@ class FieldMappingAutoTrigger:
                 result = await executor.execute_phase(state, db)
 
                 if result.get("success") or result.get("mappings"):
-                    logger.info(f"✅ Field mapping auto-generated for flow {flow.flow_id}")
+                    logger.info(
+                        f"✅ Field mapping auto-generated for flow {flow.flow_id}"
+                    )
 
                     # Remove flow from tracking since we successfully generated mappings
                     flow_id = str(flow.flow_id)
@@ -199,7 +228,8 @@ class FieldMappingAutoTrigger:
                         attempts = self.flow_tracking[flow_id]["attempts"]
                         del self.flow_tracking[flow_id]
                         logger.info(
-                            f"✅ Successfully generated mappings for flow {flow_id} after {attempts} attempts, removed from monitoring"
+                            f"✅ Successfully generated mappings for flow {flow_id} "
+                            f"after {attempts} attempts, removed from monitoring"
                         )
 
                     # Extract mappings from result
@@ -223,17 +253,23 @@ class FieldMappingAutoTrigger:
                         confidence_scores = result.get("confidence_scores", {})
 
                     if mappings:
-                        await self._save_mappings_to_db(flow, mappings, confidence_scores, db)
+                        await self._save_mappings_to_db(
+                            flow, mappings, confidence_scores, db
+                        )
 
                     # Update flow status if needed
                     if flow.status == "processing":
                         flow.status = "waiting_for_approval"
                         await db.commit()
                 else:
-                    logger.warning(f"Field mapping generation failed for flow {flow.flow_id}: {result.get('error')}")
+                    logger.warning(
+                        f"Field mapping generation failed for flow {flow.flow_id}: {result.get('error')}"
+                    )
 
             except Exception as e:
-                logger.error(f"Failed to execute field mapping for flow {flow.flow_id}: {e}")
+                logger.error(
+                    f"Failed to execute field mapping for flow {flow.flow_id}: {e}"
+                )
 
         except Exception as e:
             logger.error(f"Error processing flow {flow.flow_id}: {e}")
@@ -248,7 +284,11 @@ class FieldMappingAutoTrigger:
         """Save field mappings to the database"""
         try:
             # First, try to find the data_import for this flow
-            data_import_stmt = select(DataImport).where(DataImport.master_flow_id == flow.flow_id).limit(1)
+            data_import_stmt = (
+                select(DataImport)
+                .where(DataImport.master_flow_id == flow.flow_id)
+                .limit(1)
+            )
             result = await db.execute(data_import_stmt)
             data_import = result.scalar_one_or_none()
 
@@ -264,7 +304,9 @@ class FieldMappingAutoTrigger:
                 data_import = result.scalar_one_or_none()
 
             if not data_import:
-                logger.warning(f"No data_import found for flow {flow.flow_id}, creating one")
+                logger.warning(
+                    f"No data_import found for flow {flow.flow_id}, creating one"
+                )
                 # Create a data_import if needed
                 data_import = DataImport(
                     id=uuid.uuid4(),
@@ -316,10 +358,14 @@ class FieldMappingAutoTrigger:
                     existing.suggested_by = "ai_mapper"
                     # Update timestamp to reflect the change
                     existing.updated_at = datetime.now()
-                    logger.info(f"Updated existing mapping for {source_field} -> {target_field}")
+                    logger.info(
+                        f"Updated existing mapping for {source_field} -> {target_field}"
+                    )
 
             await db.commit()
-            logger.info(f"✅ Saved {len(mappings)} field mappings for flow {flow.flow_id}")
+            logger.info(
+                f"✅ Saved {len(mappings)} field mappings for flow {flow.flow_id}"
+            )
 
         except Exception as e:
             logger.error(f"Failed to save mappings for flow {flow.flow_id}: {e}")
