@@ -18,7 +18,10 @@ class AgentMemory:
     def __init__(self, data_dir: str = "data"):
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(exist_ok=True)
-        self.memory_file = self.data_dir / "agent_memory.pkl"
+        self.memory_file = self.data_dir / "agent_memory.json"
+
+        # Handle legacy pickle file migration
+        self._migrate_pickle_to_json()
 
         # Memory structure
         self.experiences = {
@@ -294,6 +297,57 @@ class AgentMemory:
             "pattern_recognition_success": 0,
             "last_updated": datetime.utcnow().isoformat(),
         }
+
+    def _migrate_pickle_to_json(self):
+        """Migrate old pickle file to JSON format if it exists."""
+        old_pickle_file = self.data_dir / "agent_memory.pkl"
+
+        if old_pickle_file.exists() and not self.memory_file.exists():
+            logger.info("Found legacy pickle file, attempting migration to JSON...")
+            try:
+                import pickle
+
+                # Try to load the pickle file
+                with open(old_pickle_file, "rb") as f:
+                    data = pickle.load(f)
+
+                # Save as JSON
+                memory_data = {
+                    "experiences": data.get("experiences", {}),
+                    "learning_metrics": data.get("learning_metrics", {}),
+                    "version": "1.0",
+                    "saved_at": datetime.utcnow().isoformat(),
+                }
+
+                with open(self.memory_file, "w", encoding="utf-8") as f:
+                    json.dump(memory_data, f, indent=2, default=str)
+
+                # Rename old file to backup
+                backup_file = old_pickle_file.with_suffix(".pkl.backup")
+                old_pickle_file.rename(backup_file)
+
+                logger.info(
+                    f"Successfully migrated pickle file to JSON. Backup saved as {backup_file}"
+                )
+
+            except Exception as e:
+                logger.warning(
+                    f"Could not migrate pickle file: {e}. Starting with fresh memory."
+                )
+                # If migration fails, just delete the corrupt pickle file
+                try:
+                    old_pickle_file.unlink()
+                    logger.info("Removed corrupt pickle file")
+                except Exception:
+                    pass
+        elif old_pickle_file.exists() and self.memory_file.exists():
+            # Both files exist, remove the old pickle file
+            try:
+                backup_file = old_pickle_file.with_suffix(".pkl.old")
+                old_pickle_file.rename(backup_file)
+                logger.info(f"Renamed old pickle file to {backup_file}")
+            except Exception:
+                pass
 
     def cleanup_old_experiences(self, days_to_keep: int = 90):
         """Clean up old experiences to prevent memory bloat."""
