@@ -88,6 +88,30 @@ def create_index_if_not_exists(index_name, table_name, columns, **kwargs):
         )
 
 
+def column_exists(table_name, column_name):
+    """Check if a column exists in a table in the migration schema"""
+    bind = op.get_bind()
+    try:
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.columns
+                    WHERE table_schema = 'migration'
+                    AND table_name = :table_name
+                    AND column_name = :column_name
+                )
+            """
+            ).bindparams(table_name=table_name, column_name=column_name)
+        ).scalar()
+        return result
+    except Exception as e:
+        print(
+            f"Error checking if column {column_name} exists in table {table_name}: {e}"
+        )
+        return False
+
+
 def constraint_exists(constraint_name, table_name):
     """Check if a constraint exists on a table in the migration schema"""
     bind = op.get_bind()
@@ -839,89 +863,111 @@ def upgrade():
     # Set default values for existing configurations if any
     try:
         bind = op.get_bind()
-        bind.execute(
-            sa.text(
-                """
-            UPDATE migration.cache_metadata
-            SET
-                is_active = COALESCE(is_active, true),
-                access_count = COALESCE(access_count, 0),
-                hit_count = COALESCE(hit_count, 0),
-                miss_count = COALESCE(miss_count, 0),
-                parent_cache_keys = COALESCE(parent_cache_keys, '[]'::json),
-                child_cache_keys = COALESCE(child_cache_keys, '[]'::json),
-                invalidation_triggers = COALESCE(invalidation_triggers, '[]'::json),
-                cache_tags = COALESCE(cache_tags, '[]'::json),
-                metadata = COALESCE(metadata, '{}'::json)
-            WHERE
-                is_active IS NULL OR
-                access_count IS NULL OR
-                hit_count IS NULL OR
-                miss_count IS NULL OR
-                parent_cache_keys IS NULL OR
-                child_cache_keys IS NULL OR
-                invalidation_triggers IS NULL OR
-                cache_tags IS NULL OR
-                metadata IS NULL
-            """
-            )
-        )
 
-        bind.execute(
-            sa.text(
-                """
-            UPDATE migration.cache_configurations
-            SET
-                cache_enabled = COALESCE(cache_enabled, true),
-                distributed_cache_enabled = COALESCE(distributed_cache_enabled, true),
-                cache_analytics_enabled = COALESCE(cache_analytics_enabled, true),
-                eviction_policy = COALESCE(eviction_policy, 'LRU'),
-                encryption_enabled = COALESCE(encryption_enabled, false),
-                pii_cache_enabled = COALESCE(pii_cache_enabled, false),
-                custom_settings = COALESCE(custom_settings, '{}'::json),
-                alert_hit_ratio_threshold = COALESCE(alert_hit_ratio_threshold, 0.7),
-                alert_response_time_threshold_ms = COALESCE(alert_response_time_threshold_ms, 100.0)
-            WHERE
-                cache_enabled IS NULL OR
-                distributed_cache_enabled IS NULL OR
-                cache_analytics_enabled IS NULL OR
-                eviction_policy IS NULL OR
-                encryption_enabled IS NULL OR
-                pii_cache_enabled IS NULL OR
-                custom_settings IS NULL OR
-                alert_hit_ratio_threshold IS NULL OR
-                alert_response_time_threshold_ms IS NULL
-            """
-            )
-        )
+        # Only update cache_metadata if table exists and has columns
+        if table_exists("cache_metadata"):
+            # Build the SET clause dynamically based on existing columns
+            set_clauses = []
+            where_clauses = []
 
-        bind.execute(
-            sa.text(
-                """
-            UPDATE migration.cache_invalidation_logs
-            SET
-                keys_invalidated_count = COALESCE(keys_invalidated_count, 1),
-                cascade_depth = COALESCE(cascade_depth, 0),
-                metadata = COALESCE(metadata, '{}'::json)
-            WHERE
-                keys_invalidated_count IS NULL OR
-                cascade_depth IS NULL OR
-                metadata IS NULL
-            """
-            )
-        )
+            column_defaults = {
+                "is_active": "true",
+                "access_count": "0",
+                "hit_count": "0",
+                "miss_count": "0",
+                "parent_cache_keys": "'[]'::json",
+                "child_cache_keys": "'[]'::json",
+                "invalidation_triggers": "'[]'::json",
+                "cache_tags": "'[]'::json",
+                "metadata": "'{}'::json",
+            }
 
-        bind.execute(
-            sa.text(
+            for column, default_value in column_defaults.items():
+                if column_exists("cache_metadata", column):
+                    set_clauses.append(
+                        f"{column} = COALESCE({column}, {default_value})"
+                    )
+                    where_clauses.append(f"{column} IS NULL")
+
+            if set_clauses and where_clauses:
+                update_sql = f"""
+                    UPDATE migration.cache_metadata
+                    SET {', '.join(set_clauses)}
+                    WHERE {' OR '.join(where_clauses)}
                 """
-            UPDATE migration.cache_performance_logs
-            SET
-                metadata = COALESCE(metadata, '{}'::json)
-            WHERE
-                metadata IS NULL
-            """
+                bind.execute(sa.text(update_sql))
+
+        # Update cache_configurations if table exists
+        if table_exists("cache_configurations"):
+            config_defaults = {
+                "cache_enabled": "true",
+                "distributed_cache_enabled": "true",
+                "cache_analytics_enabled": "true",
+                "eviction_policy": "'LRU'",
+                "encryption_enabled": "false",
+                "pii_cache_enabled": "false",
+                "custom_settings": "'{}'::json",
+                "alert_hit_ratio_threshold": "0.7",
+                "alert_response_time_threshold_ms": "100.0",
+            }
+
+            set_clauses = []
+            where_clauses = []
+
+            for column, default_value in config_defaults.items():
+                if column_exists("cache_configurations", column):
+                    set_clauses.append(
+                        f"{column} = COALESCE({column}, {default_value})"
+                    )
+                    where_clauses.append(f"{column} IS NULL")
+
+            if set_clauses and where_clauses:
+                update_sql = f"""
+                    UPDATE migration.cache_configurations
+                    SET {', '.join(set_clauses)}
+                    WHERE {' OR '.join(where_clauses)}
+                """
+                bind.execute(sa.text(update_sql))
+
+        # Update cache_invalidation_logs if table exists
+        if table_exists("cache_invalidation_logs"):
+            invalidation_defaults = {
+                "keys_invalidated_count": "1",
+                "cascade_depth": "0",
+                "metadata": "'{}'::json",
+            }
+
+            set_clauses = []
+            where_clauses = []
+
+            for column, default_value in invalidation_defaults.items():
+                if column_exists("cache_invalidation_logs", column):
+                    set_clauses.append(
+                        f"{column} = COALESCE({column}, {default_value})"
+                    )
+                    where_clauses.append(f"{column} IS NULL")
+
+            if set_clauses and where_clauses:
+                update_sql = f"""
+                    UPDATE migration.cache_invalidation_logs
+                    SET {', '.join(set_clauses)}
+                    WHERE {' OR '.join(where_clauses)}
+                """
+                bind.execute(sa.text(update_sql))
+
+        # Update cache_performance_logs if table exists
+        if table_exists("cache_performance_logs") and column_exists(
+            "cache_performance_logs", "metadata"
+        ):
+            bind.execute(
+                sa.text(
+                    """
+                    UPDATE migration.cache_performance_logs
+                    SET metadata = COALESCE(metadata, '{}'::json)
+                    WHERE metadata IS NULL
+                    """
+                )
             )
-        )
 
     except Exception as e:
         print(f"Error setting default values: {e}")
