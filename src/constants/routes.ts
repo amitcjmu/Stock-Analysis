@@ -32,7 +32,7 @@ export const ROUTES = {
   DISCOVERY: {
     ROOT: '/discovery',
     ASSETS: '/discovery/assets',
-    APPLICATIONS: '/discovery/applications',
+    APPLICATIONS: '/discovery/inventory', // Fixed: Use correct inventory endpoint
     DEPENDENCIES: '/discovery/dependencies',
     ANALYSIS: '/discovery/analysis',
     TECH_DEBT: '/discovery/tech-debt',

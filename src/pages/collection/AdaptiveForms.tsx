@@ -23,6 +23,7 @@ import type { ProgressMilestone } from '@/components/collection/types';
 
 // Import UI components
 import { Button } from '@/components/ui/button';
+import { ROUTES } from '@/constants/routes';
 
 /**
  * Adaptive Forms collection page
@@ -309,7 +310,7 @@ const AdaptiveForms: React.FC = () => {
   // Show app selection prompt if no applications are selected for the current flow
   if (showAppSelectionPrompt && activeFlowId) {
     const handleGoToAppSelection = () => {
-      navigate(`/discovery/applications?continueFlow=${activeFlowId}`);
+      navigate(`${ROUTES.DISCOVERY.APPLICATIONS}?continueFlow=${activeFlowId}`);
     };
 
     const handleRestartFlow = () => {
