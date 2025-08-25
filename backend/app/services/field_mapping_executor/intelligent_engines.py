@@ -95,29 +95,90 @@ class IntelligentMappingEngine:
             return None
 
         try:
-            query = (
-                select(AgentDiscoveredPatterns)
-                .where(
-                    and_(
-                        AgentDiscoveredPatterns.pattern_type
-                        == "field_mapping_approval",
-                        AgentDiscoveredPatterns.client_account_id
-                        == self.context.client_account_id,
-                        AgentDiscoveredPatterns.engagement_id
-                        == self.context.engagement_id,
-                        AgentDiscoveredPatterns.pattern_data.like(
-                            f'%"source_field": "{source_field}"%'
-                        ),
+            use_python_filtering = False
+
+            # Use JSON operators for better performance and safety
+            try:
+                # PostgreSQL JSONB operators - preferred method
+                query = (
+                    select(AgentDiscoveredPatterns)
+                    .where(
+                        and_(
+                            AgentDiscoveredPatterns.pattern_type
+                            == "field_mapping_approval",
+                            AgentDiscoveredPatterns.client_account_id
+                            == self.context.client_account_id,
+                            AgentDiscoveredPatterns.engagement_id
+                            == self.context.engagement_id,
+                            AgentDiscoveredPatterns.pattern_data["source_field"].astext
+                            == source_field,
+                        )
                     )
+                    .order_by(AgentDiscoveredPatterns.confidence_score.desc())
                 )
-                .order_by(AgentDiscoveredPatterns.confidence_score.desc())
-            )
+            except Exception:
+                # Fallback using proper JSON path operators
+                self.logger.warning(
+                    f"Falling back to JSON path query for source_field: {source_field}"
+                )
+                try:
+                    # Try standard JSON path operators
+                    query = (
+                        select(AgentDiscoveredPatterns)
+                        .where(
+                            and_(
+                                AgentDiscoveredPatterns.pattern_type
+                                == "field_mapping_approval",
+                                AgentDiscoveredPatterns.client_account_id
+                                == self.context.client_account_id,
+                                AgentDiscoveredPatterns.engagement_id
+                                == self.context.engagement_id,
+                                AgentDiscoveredPatterns.pattern_data[
+                                    "source_field"
+                                ].as_string()
+                                == source_field,
+                            )
+                        )
+                        .order_by(AgentDiscoveredPatterns.confidence_score.desc())
+                    )
+                except Exception:
+                    # Final fallback - filter in Python to avoid SQL injection
+                    self.logger.warning(
+                        "Using Python filtering for pattern matching as database JSON operators are not available"
+                    )
+                    use_python_filtering = True
+                    query = (
+                        select(AgentDiscoveredPatterns)
+                        .where(
+                            and_(
+                                AgentDiscoveredPatterns.pattern_type
+                                == "field_mapping_approval",
+                                AgentDiscoveredPatterns.client_account_id
+                                == self.context.client_account_id,
+                                AgentDiscoveredPatterns.engagement_id
+                                == self.context.engagement_id,
+                            )
+                        )
+                        .order_by(AgentDiscoveredPatterns.confidence_score.desc())
+                    )
 
             result = await self.db_session.execute(query)
-            pattern = result.scalar_one_or_none()
 
-            if pattern and pattern.pattern_data:
-                return pattern.pattern_data.get("target_field")
+            # Handle Python filtering if we used the final fallback query
+            if use_python_filtering:
+                patterns = result.scalars().all()
+                for pattern in patterns:
+                    if (
+                        pattern.pattern_data
+                        and isinstance(pattern.pattern_data, dict)
+                        and pattern.pattern_data.get("source_field") == source_field
+                    ):
+                        return pattern.pattern_data.get("target_field")
+                return None
+            else:
+                pattern = result.scalar_one_or_none()
+                if pattern and pattern.pattern_data:
+                    return pattern.pattern_data.get("target_field")
 
         except Exception as e:
             self.logger.error(f"Error retrieving learned mapping: {e}")

@@ -8,7 +8,7 @@ All functionality is preserved through modular imports.
 """
 
 import logging
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -65,6 +65,8 @@ router.include_router(execution_router)
 
 @router.get("/active", response_model=List[FlowResponse])
 async def get_active_flows(
+    flow_type: Optional[str] = None,
+    limit: int = 10,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     context: RequestContext = Depends(get_current_context_dependency),
@@ -84,19 +86,19 @@ async def get_active_flows(
             is_admin=is_admin,
         )
 
-        active_flows = await orchestrator.get_active_flows()
+        active_flows = await orchestrator.get_active_flows(flow_type, limit)
 
         return [
             FlowResponse(
-                flow_id=flow["flow_id"],
-                flow_type=flow["flow_type"],
+                flow_id=safe_get_flow_field(flow, "flow_id", "flowId", ""),
+                flow_type=safe_get_flow_field(flow, "flow_type", "flowType", ""),
                 flow_name=flow.get("flow_name"),
                 status=safe_get_flow_field(flow, "status", "flow_status", "unknown"),
                 phase=safe_get_flow_field(flow, "phase", "current_phase"),
                 progress_percentage=flow.get("progress_percentage", 0.0),
-                created_at=flow["created_at"],
-                updated_at=flow["updated_at"],
-                created_by=flow["created_by"],
+                created_at=safe_get_flow_field(flow, "created_at", "createdAt"),
+                updated_at=safe_get_flow_field(flow, "updated_at", "updatedAt"),
+                created_by=safe_get_flow_field(flow, "created_by", "createdBy"),
                 configuration=flow.get("configuration", {}),
                 metadata=flow.get("metadata", {}),
             )
@@ -142,14 +144,14 @@ async def get_flow_status(
             )
 
         return FlowStatusResponse(
-            flow_id=status["flow_id"],
-            flow_type=status["flow_type"],
+            flow_id=safe_get_flow_field(status, "flow_id", "flowId", ""),
+            flow_type=safe_get_flow_field(status, "flow_type", "flowType", ""),
             flow_name=status.get("flow_name"),
             status=safe_get_flow_field(status, "status", "flow_status", "unknown"),
             phase=safe_get_flow_field(status, "phase", "current_phase"),
             progress_percentage=status.get("progress_percentage", 0.0),
-            created_at=status["created_at"],
-            updated_at=status["updated_at"],
+            created_at=safe_get_flow_field(status, "created_at", "createdAt"),
+            updated_at=safe_get_flow_field(status, "updated_at", "updatedAt"),
             execution_history=status.get("execution_history", []),
             current_state=status.get("current_state", {}),
             error_details=status.get("error_details"),
@@ -166,7 +168,7 @@ async def get_flow_status(
         )
 
 
-@router.get("/analytics/summary", response_model=FlowAnalyticsResponse)
+@router.get("/{flow_id}/analytics/summary", response_model=FlowAnalyticsResponse)
 async def get_flow_analytics(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
@@ -197,8 +199,8 @@ async def get_flow_analytics(
             )
 
         return FlowAnalyticsResponse(
-            flow_id=analytics["flow_id"],
-            flow_type=analytics["flow_type"],
+            flow_id=safe_get_flow_field(analytics, "flow_id", "flowId", ""),
+            flow_type=safe_get_flow_field(analytics, "flow_type", "flowType", ""),
             phase_durations=analytics.get("phase_durations", {}),
             success_rate=analytics.get("success_rate", 0.0),
             error_count=analytics.get("error_count", 0),
@@ -263,15 +265,15 @@ async def create_discovery_flow_legacy(
     )
 
     return FlowResponse(
-        flow_id=flow["flow_id"],
-        flow_type=flow["flow_type"],
+        flow_id=safe_get_flow_field(flow, "flow_id", "flowId", ""),
+        flow_type=safe_get_flow_field(flow, "flow_type", "flowType", ""),
         flow_name=flow.get("flow_name"),
         status=safe_get_flow_field(flow, "status", "flow_status", "unknown"),
         phase=safe_get_flow_field(flow, "phase", "current_phase"),
         progress_percentage=flow.get("progress_percentage", 0.0),
-        created_at=flow["created_at"],
-        updated_at=flow["updated_at"],
-        created_by=flow["created_by"],
+        created_at=safe_get_flow_field(flow, "created_at", "createdAt"),
+        updated_at=safe_get_flow_field(flow, "updated_at", "updatedAt"),
+        created_by=safe_get_flow_field(flow, "created_by", "createdBy"),
         configuration=flow.get("configuration", {}),
         metadata=flow.get("metadata", {}),
     )

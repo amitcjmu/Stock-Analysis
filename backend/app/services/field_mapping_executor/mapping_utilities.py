@@ -69,12 +69,43 @@ class FieldSimilarityCalculator:
             else:
                 # Try embedding similarity first
                 if self.embedding_service.ai_available:
-                    embedding1 = await self.embedding_service.embed_text(field1)
-                    embedding2 = await self.embedding_service.embed_text(field2)
-                    cosine_sim = self.embedding_service.calculate_cosine_similarity(
-                        embedding1, embedding2
-                    )
-                    similarity = (cosine_sim + 1.0) / 2.0  # Normalize to 0-1
+                    try:
+                        embedding1 = await self.embedding_service.embed_text(field1)
+                        embedding2 = await self.embedding_service.embed_text(field2)
+
+                        # Check if embeddings are valid
+                        if embedding1 is not None and embedding2 is not None:
+                            cosine_sim = (
+                                self.embedding_service.calculate_cosine_similarity(
+                                    embedding1, embedding2
+                                )
+                            )
+                            # Additional check for valid cosine similarity result
+                            if cosine_sim is not None and not (
+                                isinstance(cosine_sim, float)
+                                and (cosine_sim != cosine_sim)
+                            ):  # NaN check
+                                similarity = (
+                                    cosine_sim + 1.0
+                                ) / 2.0  # Normalize to 0-1
+                            else:
+                                # Fall back to fuzzy matching if cosine similarity is invalid
+                                similarity = difflib.SequenceMatcher(
+                                    None, norm_field1, norm_field2
+                                ).ratio()
+                        else:
+                            # Fall back to fuzzy matching if embeddings are None
+                            similarity = difflib.SequenceMatcher(
+                                None, norm_field1, norm_field2
+                            ).ratio()
+                    except Exception as e:
+                        logger.warning(
+                            f"Embedding calculation failed: {e}. Falling back to fuzzy matching."
+                        )
+                        # Fall back to fuzzy matching if embedding process fails
+                        similarity = difflib.SequenceMatcher(
+                            None, norm_field1, norm_field2
+                        ).ratio()
                 else:
                     # Fall back to fuzzy string matching
                     similarity = difflib.SequenceMatcher(
