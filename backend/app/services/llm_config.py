@@ -288,6 +288,25 @@ except Exception as e:
     logging.warning(f"Could not load DeepInfra response fixer: {e}")
 
 
+def get_embedding_llm():
+    """
+    Returns a configured embedding client for DeepInfra thenlper/gte-large model.
+    This is used by the EmbeddingService for generating vector embeddings.
+    """
+    api_key = os.getenv("DEEPINFRA_API_KEY")
+    if not api_key:
+        logging.error("DEEPINFRA_API_KEY environment variable not set.")
+        raise ValueError("DEEPINFRA_API_KEY is required for embeddings.")
+    
+    # Return configuration for DeepInfra embeddings
+    # The embedding service will use this to make direct API calls
+    return {
+        "api_key": api_key,
+        "model": DEEPINFRA_EMBEDDINGS_MODEL,
+        "base_url": "https://api.deepinfra.com/v1/openai",
+    }
+
+
 def get_crewai_embeddings():
     """
     Configures and returns embeddings configuration for CrewAI.
