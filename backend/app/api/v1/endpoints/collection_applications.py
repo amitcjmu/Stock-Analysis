@@ -6,7 +6,7 @@ enabling targeted questionnaire generation based on selected applications.
 
 import logging
 from typing import Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,15 +15,19 @@ from app.api.v1.auth.auth_utils import get_current_user
 from app.core.context import get_request_context
 from app.core.database import get_db
 from app.models import User
-from app.schemas.collection_flow import CollectionFlowUpdate
+from app.schemas.collection_flow import (
+    CollectionFlowUpdate,
+    CollectionApplicationSelectionRequest,
+)
 from app.api.v1.endpoints import collection_crud
+from app.api.v1.endpoints import collection_validators
 
 logger = logging.getLogger(__name__)
 
 
 async def update_flow_applications(
     flow_id: str,
-    request_data: Dict[str, Any],
+    request_data: CollectionApplicationSelectionRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     context=Depends(get_request_context),
@@ -33,34 +37,63 @@ async def update_flow_applications(
     This endpoint allows users to specify which applications should be included
     in a collection flow, enabling targeted questionnaire generation and gap analysis.
 
+    SECURITY: Validates that all selected applications belong to the current user's engagement.
+
     Args:
         flow_id: The collection flow ID to update
-        request_data: Request containing selected_application_ids and optional action
+        request_data: Validated request containing selected_application_ids and optional action
 
     Returns:
         Dict indicating success/failure and updated flow status
+
+    Raises:
+        HTTPException: If applications don't belong to the engagement or validation fails
     """
     try:
-        selected_application_ids = request_data.get("selected_application_ids", [])
-        action = request_data.get("action", "update_applications")
+        # Extract validated data from Pydantic model
+        selected_application_ids = request_data.selected_application_ids
+        action = request_data.action
 
-        if not selected_application_ids:
+        # SECURITY VALIDATION: Validate that all applications belong to this engagement
+        # This prevents authorization bypass where users could specify arbitrary application IDs
+        logger.info(
+            f"Validating {len(selected_application_ids)} applications for engagement {context.engagement_id}"
+        )
+
+        try:
+            validated_applications = (
+                await collection_validators.validate_applications_exist(
+                    db, selected_application_ids, context.engagement_id
+                )
+            )
+            logger.info(
+                f"Successfully validated {len(validated_applications)} applications for collection flow {flow_id}"
+            )
+        except Exception as validation_error:
+            logger.error(
+                f"Application validation failed for flow {flow_id}: {validation_error}"
+            )
             raise HTTPException(
-                status_code=400,
-                detail="selected_application_ids is required and cannot be empty",
+                status_code=403,
+                detail=(
+                    "Authorization failed: Some applications don't belong to your engagement. "
+                    f"{str(validation_error)}"
+                ),
             )
 
         logger.info(
             f"Updating collection flow {flow_id} with {len(selected_application_ids)} applications"
         )
 
-        # Create update data for the collection flow
+        # Create update data for the collection flow with timezone-aware timestamp
         update_data = CollectionFlowUpdate(
             collection_config={
                 "selected_application_ids": selected_application_ids,
                 "has_applications": True,
                 "application_count": len(selected_application_ids),
-                "updated_at": str(datetime.utcnow()),
+                "updated_at": datetime.now(
+                    timezone.utc
+                ).isoformat(),  # Fix: Use timezone-aware UTC timestamp
                 "action": action,
             },
             trigger_questionnaire_generation=True,  # Trigger questionnaire generation after application selection
