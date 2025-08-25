@@ -297,7 +297,7 @@ def get_embedding_llm():
     if not api_key:
         logging.error("DEEPINFRA_API_KEY environment variable not set.")
         raise ValueError("DEEPINFRA_API_KEY is required for embeddings.")
-    
+
     # Return configuration for DeepInfra embeddings
     # The embedding service will use this to make direct API calls
     return {

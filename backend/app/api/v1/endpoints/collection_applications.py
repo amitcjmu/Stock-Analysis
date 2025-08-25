@@ -54,48 +54,98 @@ async def update_flow_applications(
         selected_application_ids = request_data.selected_application_ids
         action = request_data.action
 
+        # CC: Normalize and deduplicate application IDs while preserving order
+        normalized_ids = []
+        seen_ids = set()
+        for app_id in selected_application_ids:
+            # Validate non-empty strings
+            if not app_id or not isinstance(app_id, str) or not app_id.strip():
+                logger.warning(
+                    f"Skipping invalid application ID: {repr(app_id)} for flow {flow_id}"
+                )
+                continue
+
+            normalized_id = app_id.strip()
+            if normalized_id not in seen_ids:
+                normalized_ids.append(normalized_id)
+                seen_ids.add(normalized_id)
+
+        if not normalized_ids:
+            logger.warning(f"No valid application IDs provided for flow {flow_id}")
+            raise HTTPException(
+                status_code=400,
+                detail="No valid application IDs provided. Please select at least one valid application.",
+            )
+
         # SECURITY VALIDATION: Validate that all applications belong to this engagement
         # This prevents authorization bypass where users could specify arbitrary application IDs
         logger.info(
-            f"Validating {len(selected_application_ids)} applications for engagement {context.engagement_id}"
+            f"Validating {len(normalized_ids)} applications for engagement {context.engagement_id}"
         )
 
         try:
             validated_applications = (
                 await collection_validators.validate_applications_exist(
-                    db, selected_application_ids, context.engagement_id
+                    db, normalized_ids, context.engagement_id
                 )
             )
             logger.info(
                 f"Successfully validated {len(validated_applications)} applications for collection flow {flow_id}"
             )
         except Exception as validation_error:
-            logger.error(
-                f"Application validation failed for flow {flow_id}: {validation_error}"
+            logger.warning(
+                f"Application validation failed for flow {flow_id}: validation error occurred"
             )
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    "Authorization failed: Some applications don't belong to your engagement. "
-                    f"{str(validation_error)}"
-                ),
-            )
+            # CC: Check if it's a validation failure vs permission issue
+            error_msg = str(validation_error).lower()
+            if (
+                "engagement" in error_msg
+                or "permission" in error_msg
+                or "authorization" in error_msg
+            ):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Authorization failed: Some applications don't belong to your engagement.",
+                )
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Validation failed: Some selected applications are invalid or not found.",
+                )
 
         logger.info(
-            f"Updating collection flow {flow_id} with {len(selected_application_ids)} applications"
+            f"Updating collection flow {flow_id} with {len(normalized_ids)} applications"
+        )
+
+        # CC: Fetch current flow's collection_config to preserve existing settings
+        current_flow_result = await collection_crud.get_collection_flow(
+            flow_id=flow_id, db=db, current_user=current_user, context=context
+        )
+
+        # Preserve existing config and merge with new application selections
+        existing_config = (
+            current_flow_result.collection_config
+            if hasattr(current_flow_result, "collection_config")
+            and current_flow_result.collection_config
+            else {}
         )
 
         # Create update data for the collection flow with timezone-aware timestamp
-        update_data = CollectionFlowUpdate(
-            collection_config={
-                "selected_application_ids": selected_application_ids,
+        merged_config = existing_config.copy()  # Preserve existing settings
+        merged_config.update(
+            {
+                "selected_application_ids": normalized_ids,
                 "has_applications": True,
-                "application_count": len(selected_application_ids),
+                "application_count": len(normalized_ids),
                 "updated_at": datetime.now(
                     timezone.utc
                 ).isoformat(),  # Fix: Use timezone-aware UTC timestamp
                 "action": action,
-            },
+            }
+        )
+
+        update_data = CollectionFlowUpdate(
+            collection_config=merged_config,
             trigger_questionnaire_generation=True,  # Trigger questionnaire generation after application selection
         )
 
@@ -110,17 +160,23 @@ async def update_flow_applications(
 
         return {
             "success": True,
-            "message": f"Successfully updated collection flow with {len(selected_application_ids)} applications",
+            "message": f"Successfully updated collection flow with {len(normalized_ids)} applications",
             "flow_id": flow_id,
-            "selected_application_count": len(selected_application_ids),
+            "selected_application_count": len(normalized_ids),
             "flow": result.model_dump() if hasattr(result, "model_dump") else result,
         }
 
     except HTTPException:
         raise
-    except Exception as error:
-        logger.error(f"Error updating collection flow {flow_id} applications: {error}")
+    except Exception:
+        logger.error(
+            f"Error updating collection flow {flow_id} applications: internal error occurred"
+        )
+        # CC: Don't echo exception text in responses (security concern)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to update collection flow applications: {str(error)}",
+            detail=(
+                "Failed to update collection flow applications. "
+                "Please try again or contact support if the issue persists."
+            ),
         )

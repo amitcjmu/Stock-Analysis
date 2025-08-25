@@ -51,7 +51,7 @@ const ApplicationSelection: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [environmentFilter, setEnvironmentFilter] = useState("");
   const [criticalityFilter, setCriticalityFilter] = useState("");
-  
+
   // Refs for infinite scroll
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -69,16 +69,27 @@ const ApplicationSelection: React.FC = () => {
     }
   }, [flowId, navigate]);
 
-  // Build query parameters for API calls
+  // Build query parameters for API calls including filters
   const buildQueryParams = useCallback((page: number) => {
     const params = new URLSearchParams({
       page: page.toString(),
       page_size: "50", // Optimal page size for smooth scrolling
       asset_type: "application", // Backend filter for applications only
     });
-    
+
+    // Add client-side filters to server request for proper pagination
+    if (searchTerm.trim()) {
+      params.append("search", searchTerm.trim());
+    }
+    if (environmentFilter) {
+      params.append("environment", environmentFilter);
+    }
+    if (criticalityFilter) {
+      params.append("business_criticality", criticalityFilter);
+    }
+
     return params.toString();
-  }, []);
+  }, [searchTerm, environmentFilter, criticalityFilter]);
 
   // Fetch applications with infinite scroll support
   const {
@@ -90,7 +101,14 @@ const ApplicationSelection: React.FC = () => {
     error: applicationsError,
     refetch: refetchApplications,
   } = useInfiniteQuery({
-    queryKey: ["applications-for-collection", client?.id, engagement?.id],
+    queryKey: [
+      "applications-for-collection",
+      client?.id,
+      engagement?.id,
+      searchTerm,
+      environmentFilter,
+      criticalityFilter
+    ],
     queryFn: async ({ pageParam = 1 }) => {
       try {
         const queryParams = buildQueryParams(pageParam);
@@ -105,7 +123,7 @@ const ApplicationSelection: React.FC = () => {
         console.log(
           `📋 Fetched page ${pageParam}: ${response.assets.length} applications (total: ${response.pagination?.total_count || 'unknown'})`,
         );
-        
+
         return {
           assets: response.assets,
           pagination: response.pagination,
@@ -127,6 +145,9 @@ const ApplicationSelection: React.FC = () => {
   // Flatten all pages into a single array of applications
   const applications = applicationsData?.pages?.flatMap(page => page.assets) || [];
   const totalApplicationsCount = applicationsData?.pages?.[0]?.pagination?.total_count || 0;
+
+  // Since server-side filtering is now applied, we use applications directly without client-side filtering
+  const filteredApplications = applications;
 
   // Fetch current collection flow details to check existing selections
   const { data: collectionFlow, isLoading: flowLoading } = useQuery({
@@ -193,20 +214,6 @@ const ApplicationSelection: React.FC = () => {
     setSelectedApplications(newSelection);
   };
 
-  // Filter applications based on search and filters
-  const filteredApplications = applications.filter((app: Asset) => {
-    const matchesSearch = !searchTerm || 
-      app.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesEnvironment = !environmentFilter || 
-      app.environment?.toLowerCase() === environmentFilter.toLowerCase();
-    
-    const matchesCriticality = !criticalityFilter ||
-      app.business_criticality?.toLowerCase() === criticalityFilter.toLowerCase();
-    
-    return matchesSearch && matchesEnvironment && matchesCriticality;
-  });
 
   // Handle select all applications (filtered)
   const handleSelectAll = (checked?: boolean) => {
@@ -221,7 +228,22 @@ const ApplicationSelection: React.FC = () => {
 
   // Get unique filter options from all loaded applications
   const environmentOptions = [...new Set(applications.map(app => app.environment).filter(Boolean))];
-  const criticalityOptions = [...new Set(applications.map(app => app.business_criticality).filter(Boolean))];
+  const criticalityOptions = [...new Set(applications.map(app => app.business_criticality).filter(Boolean)));
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    // Invalidate and refetch when filters change to reset pagination
+    queryClient.invalidateQueries({
+      queryKey: [
+        "applications-for-collection",
+        client?.id,
+        engagement?.id,
+        searchTerm,
+        environmentFilter,
+        criticalityFilter
+      ]
+    });
+  }, [searchTerm, environmentFilter, criticalityFilter, queryClient, client?.id, engagement?.id]);
 
   // Handle form submission
   const handleSubmit = async () => {
@@ -386,7 +408,7 @@ const ApplicationSelection: React.FC = () => {
                         className="pl-10"
                       />
                     </div>
-                    
+
                     {/* Environment Filter */}
                     <div className="sm:w-48">
                       <select
@@ -400,7 +422,7 @@ const ApplicationSelection: React.FC = () => {
                         ))}
                       </select>
                     </div>
-                    
+
                     {/* Criticality Filter */}
                     <div className="sm:w-48">
                       <select
@@ -415,7 +437,7 @@ const ApplicationSelection: React.FC = () => {
                       </select>
                     </div>
                   </div>
-                  
+
                   {/* Results Summary */}
                   <div className="flex justify-between items-center text-sm text-gray-600">
                     <span>
@@ -423,9 +445,9 @@ const ApplicationSelection: React.FC = () => {
                       {(searchTerm || environmentFilter || criticalityFilter) && ' (filtered)'}
                     </span>
                     {(searchTerm || environmentFilter || criticalityFilter) && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => {
                           setSearchTerm('');
                           setEnvironmentFilter('');
@@ -522,23 +544,24 @@ const ApplicationSelection: React.FC = () => {
                           </div>
                         </div>
                       ))}
-                      
-                      {/* Infinite Scroll Trigger - only show if not filtering */}
-                      {!searchTerm && !environmentFilter && !criticalityFilter && (
-                        <div ref={loadMoreRef} className="py-4">
-                          {isFetchingNextPage && (
-                            <div className="flex items-center justify-center py-4">
-                              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                              <span className="ml-2 text-sm text-gray-600">Loading more applications...</span>
-                            </div>
-                          )}
-                          {!hasNextPage && applications.length > 50 && (
-                            <div className="text-center py-4 text-gray-500 text-sm">
-                              All applications loaded ({applications.length} total)
-                            </div>
-                          )}
-                        </div>
-                      )}
+
+                      {/* Infinite Scroll Trigger - now works with server-side filtering */}
+                      <div ref={loadMoreRef} className="py-4">
+                        {isFetchingNextPage && (
+                          <div className="flex items-center justify-center py-4">
+                            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                            <span className="ml-2 text-sm text-gray-600">Loading more applications...</span>
+                          </div>
+                        )}
+                        {!hasNextPage && applications.length > 0 && (
+                          <div className="text-center py-4 text-gray-500 text-sm">
+                            {(searchTerm || environmentFilter || criticalityFilter)
+                              ? `Showing all ${applications.length} matching applications`
+                              : `All applications loaded (${applications.length} total)`
+                            }
+                          </div>
+                        )}
+                      </div>
                     </>
                   )}
                 </div>

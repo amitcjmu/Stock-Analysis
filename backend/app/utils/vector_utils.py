@@ -128,7 +128,7 @@ class VectorUtils:
                 # Use pgvector cosine similarity search
                 query = text(
                     f"""
-                    SELECT 
+                    SELECT
                         id,
                         pattern_id,
                         pattern_type,
@@ -145,7 +145,7 @@ class VectorUtils:
                         created_at,
                         updated_at,
                         (embedding <=> :embedding::vector) as similarity_distance
-                    FROM migration.agent_discovered_patterns 
+                    FROM migration.agent_discovered_patterns
                     WHERE client_account_id = :client_account_id
                     {type_filter}
                     AND is_active = true
@@ -203,9 +203,7 @@ class VectorUtils:
 
                     patterns_with_similarity.append((pattern, similarity))
 
-                logger.debug(
-                    f"Found {len(patterns_with_similarity)} similar patterns"
-                )
+                logger.debug(f"Found {len(patterns_with_similarity)} similar patterns")
                 return patterns_with_similarity
 
         except Exception as e:
@@ -269,7 +267,7 @@ class VectorUtils:
             async with AsyncSessionLocal() as session:
                 query = text(
                     """
-                    SELECT 
+                    SELECT
                         id,
                         pattern_id,
                         pattern_type,
@@ -285,7 +283,7 @@ class VectorUtils:
                         is_validated,
                         created_at,
                         updated_at
-                    FROM migration.agent_discovered_patterns 
+                    FROM migration.agent_discovered_patterns
                     WHERE id = :id
                     AND client_account_id = :client_account_id
                 """
@@ -350,12 +348,12 @@ class VectorUtils:
                 if is_positive:
                     update_query = text(
                         """
-                        UPDATE migration.agent_discovered_patterns 
-                        SET 
+                        UPDATE migration.agent_discovered_patterns
+                        SET
                             evidence_count = evidence_count + 1,
                             times_referenced = times_referenced + 1,
                             confidence_score = LEAST(1.0, confidence_score + 0.05),
-                            pattern_effectiveness_score = CASE 
+                            pattern_effectiveness_score = CASE
                                 WHEN pattern_effectiveness_score IS NULL THEN 0.8
                                 ELSE LEAST(1.0, pattern_effectiveness_score + 0.02)
                             END,
@@ -365,8 +363,8 @@ class VectorUtils:
                     """
                         if update_confidence
                         else """
-                        UPDATE migration.agent_discovered_patterns 
-                        SET 
+                        UPDATE migration.agent_discovered_patterns
+                        SET
                             evidence_count = evidence_count + 1,
                             times_referenced = times_referenced + 1,
                             updated_at = CURRENT_TIMESTAMP
@@ -377,11 +375,11 @@ class VectorUtils:
                 else:
                     update_query = text(
                         """
-                        UPDATE migration.agent_discovered_patterns 
-                        SET 
+                        UPDATE migration.agent_discovered_patterns
+                        SET
                             times_referenced = times_referenced + 1,
                             confidence_score = GREATEST(0.0, confidence_score - 0.1),
-                            pattern_effectiveness_score = CASE 
+                            pattern_effectiveness_score = CASE
                                 WHEN pattern_effectiveness_score IS NULL THEN 0.4
                                 ELSE GREATEST(0.0, pattern_effectiveness_score - 0.05)
                             END,
@@ -391,8 +389,8 @@ class VectorUtils:
                     """
                         if update_confidence
                         else """
-                        UPDATE migration.agent_discovered_patterns 
-                        SET 
+                        UPDATE migration.agent_discovered_patterns
+                        SET
                             times_referenced = times_referenced + 1,
                             updated_at = CURRENT_TIMESTAMP
                         WHERE id = :id

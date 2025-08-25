@@ -29,15 +29,15 @@ test.describe('Field Mapping Backend Validation', () => {
     const learnedData = await learnedResponse.json();
 
     console.log('✅ Learned patterns API:', learnedData);
-    
+
     // Essential field assertions - more resilient to API changes
     expect(learnedData).toHaveProperty('total_patterns');
     expect(typeof learnedData.total_patterns).toBe('number');
     expect(learnedData.total_patterns).toBeGreaterThanOrEqual(0);
-    
+
     expect(learnedData).toHaveProperty('patterns');
     expect(Array.isArray(learnedData.patterns)).toBeTruthy();
-    
+
     // Pattern types in individual patterns should match query parameter when provided
     if (learnedData.patterns && learnedData.patterns.length > 0) {
       // Check that returned patterns match the requested pattern_type
@@ -47,7 +47,7 @@ test.describe('Field Mapping Backend Validation', () => {
         }
       });
     }
-    
+
     // Engagement ID should match request when present (not guaranteed to be returned)
     if (learnedData.engagement_id) {
       expect(learnedData.engagement_id).toBe(TEST_ENGAGEMENT_ID);
@@ -103,10 +103,10 @@ test.describe('Field Mapping Backend Validation', () => {
       expect(data).toHaveProperty('total_patterns');
       expect(typeof data.total_patterns).toBe('number');
       expect(data.total_patterns).toBeGreaterThanOrEqual(0);
-      
+
       expect(data).toHaveProperty('patterns');
       expect(Array.isArray(data.patterns)).toBeTruthy();
-      
+
       console.log(`✅ Pattern type "${patternType}":`, {
         total_patterns: data.total_patterns,
         context_type: data.context_type,

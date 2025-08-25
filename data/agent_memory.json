@@ -1,0 +1,230 @@
+{
+  "experiences": {
+    "analysis_attempt": [
+      {
+        "timestamp": "2025-05-27T15:59:23.507730",
+        "type": "analysis_attempt",
+        "filename": "monitor_integration_test.csv",
+        "data_structure": {
+          "columns": [
+            "Name",
+            "CI_Type",
+            "Environment"
+          ],
+          "total_rows": 2,
+          "total_columns": 3
+        }
+      },
+      {
+        "timestamp": "2025-05-27T16:00:21.555079",
+        "type": "analysis_attempt",
+        "filename": "monitor_integration_test.csv",
+        "data_structure": {
+          "columns": [
+            "Name",
+            "CI_Type",
+            "Environment"
+          ],
+          "total_rows": 2,
+          "total_columns": 3
+        }
+      },
+      {
+        "timestamp": "2025-05-27T16:01:13.918594",
+        "type": "analysis_attempt",
+        "filename": "monitor_integration_test.csv",
+        "data_structure": {
+          "columns": [
+            "Name",
+            "CI_Type",
+            "Environment"
+          ],
+          "total_rows": 2,
+          "total_columns": 3
+        }
+      },
+      {
+        "timestamp": "2025-05-27T16:02:29.917552",
+        "type": "analysis_attempt",
+        "filename": "monitor_integration_test.csv",
+        "data_structure": {
+          "columns": [
+            "Name",
+            "CI_Type",
+            "Environment"
+          ],
+          "total_rows": 2,
+          "total_columns": 3
+        }
+      },
+      {
+        "timestamp": "2025-05-27T16:03:02.469305",
+        "type": "analysis_attempt",
+        "filename": "monitor_integration_test.csv",
+        "data_structure": {
+          "columns": [
+            "Name",
+            "CI_Type",
+            "Environment"
+          ],
+          "total_rows": 2,
+          "total_columns": 3
+        }
+      }
+    ],
+    "user_feedback": [],
+    "learned_patterns": [],
+    "successful_analysis": [
+      {
+        "timestamp": "2025-05-27T15:59:33.028667",
+        "type": "successful_analysis",
+        "filename": "monitor_integration_test.csv",
+        "result": {
+          "asset_type_detected": "mixed",
+          "confidence_level": 0.9,
+          "data_quality_score": 60,
+          "issues": [
+            "Lack of infrastructure details for Server CI_Types",
+            "Potential missing dependency fields"
+          ],
+          "recommendations": [
+            "Segregate data by CI_Type for migration planning",
+            "Gather infrastructure details for Server CI_Types"
+          ],
+          "missing_fields_relevant": [
+            "CPU",
+            "Memory",
+            "IP Address"
+          ],
+          "migration_readiness": "needs_work",
+          "learning_notes": "The dataset contains a mix of Server and Application CI_Types with varying levels of detail"
+        }
+      },
+      {
+        "timestamp": "2025-05-27T16:00:30.956404",
+        "type": "successful_analysis",
+        "filename": "monitor_integration_test.csv",
+        "result": {
+          "asset_type_detected": "mixed",
+          "confidence_level": 0.9,
+          "data_quality_score": 60,
+          "issues": [
+            "Missing infrastructure details for Server CI_Type",
+            "Potential missing dependency information for Application CI_Type"
+          ],
+          "recommendations": [
+            "Enhance data with infrastructure details for Server CI_Type",
+            "Consider adding dependency information for Application CI_Type"
+          ],
+          "missing_fields_relevant": [
+            "CPU",
+            "Memory",
+            "IP Address",
+            "Related_CI or Depends_On"
+          ],
+          "migration_readiness": "needs_work",
+          "learning_notes": "Recognized a mixed dataset with CI_Type indicating asset types; Servers and Applications have different required fields."
+        }
+      },
+      {
+        "timestamp": "2025-05-27T16:01:22.216657",
+        "type": "successful_analysis",
+        "filename": "monitor_integration_test.csv",
+        "result": {
+          "asset_type_detected": "mixed",
+          "confidence_level": 0.8,
+          "data_quality_score": 60,
+          "issues": [
+            "Lack of infrastructure details for Server CI_Type",
+            "No dependency information for both Server and Application CI_Types"
+          ],
+          "recommendations": [
+            "Enhance Server CI_Type records with infrastructure details",
+            "Consider adding dependency fields for both Server and Application CI_Types"
+          ],
+          "missing_fields_relevant": [
+            "CPU",
+            "Memory",
+            "IP Address",
+            "Related_CI",
+            "Depends_On"
+          ],
+          "migration_readiness": "needs_work",
+          "learning_notes": "The dataset contains a mix of Server and Application CI_Types. While basic information is available, critical details for migration planning are missing."
+        }
+      },
+      {
+        "timestamp": "2025-05-27T16:02:39.775015",
+        "type": "successful_analysis",
+        "filename": "monitor_integration_test.csv",
+        "result": {
+          "asset_type_detected": "mixed",
+          "confidence_level": 0.9,
+          "data_quality_score": 60,
+          "issues": [
+            "Missing infrastructure details for Server CI_Type",
+            "Potential dependency fields missing for Application CI_Type"
+          ],
+          "recommendations": [
+            "Enhance data with infrastructure details for Server CI_Type",
+            "Check for dependency fields for Application CI_Type"
+          ],
+          "missing_fields_relevant": [
+            "CPU",
+            "Memory",
+            "Related_CI",
+            "Depends_On"
+          ],
+          "migration_readiness": "needs_work",
+          "learning_notes": "Recognized a mix of Server and Application asset types with specific fields present or absent accordingly"
+        }
+      },
+      {
+        "timestamp": "2025-05-27T16:03:08.982751",
+        "type": "successful_analysis",
+        "filename": "monitor_integration_test.csv",
+        "result": {
+          "asset_type_detected": "mixed",
+          "confidence_level": 0.8,
+          "data_quality_score": 60,
+          "issues": [
+            "Mixed asset types in a single dataset",
+            "Missing infrastructure details for Server CI_Type"
+          ],
+          "recommendations": [
+            "Split the dataset by CI_Type for migration planning",
+            "Enrich Server CI_Type records with infrastructure details"
+          ],
+          "missing_fields_relevant": [
+            "CPU",
+            "Memory",
+            "IP Address"
+          ],
+          "migration_readiness": "needs_work",
+          "learning_notes": "The dataset contains mixed CI_Types (Server and Application). Data quality and relevance vary by CI_Type. Server records lack infrastructure details necessary for migration planning."
+        }
+      }
+    ],
+    "placeholder_analysis": [
+      {
+        "timestamp": "2025-05-28T21:33:38.123046",
+        "type": "placeholder_analysis",
+        "filename": "test_servers.csv",
+        "asset_type_detected": "application",
+        "confidence_level": 0.95,
+        "quality_score": 100,
+        "experiences_used": 10
+      }
+    ]
+  },
+  "learning_metrics": {
+    "total_analyses": 5,
+    "user_corrections": 0,
+    "accuracy_improvements": 0.0,
+    "confidence_evolution": [],
+    "pattern_recognition_success": 0,
+    "last_updated": "2025-05-27T16:03:08.982998"
+  },
+  "version": "1.0",
+  "saved_at": "2025-08-25T18:16:51.584083"
+}
