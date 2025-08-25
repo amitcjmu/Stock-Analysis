@@ -1,5 +1,6 @@
 """Field mapping services."""
 
+from .learning_service import FieldMappingLearningService
 from .mapping_service import MappingService
 from .suggestion_service import SuggestionService
 from .transformation_service import TransformationService
@@ -10,4 +11,5 @@ __all__ = [
     "ValidationService",
     "SuggestionService",
     "TransformationService",
+    "FieldMappingLearningService",
 ]

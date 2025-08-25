@@ -13,7 +13,7 @@ import logging
 from typing import Any, Dict
 
 # SECURITY FIX: Add required SQLAlchemy imports at top of file
-from sqlalchemy import select, and_
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
@@ -120,8 +120,9 @@ class MappingTransformer(TransformationEngine):
                 }
 
             # CRITICAL: Use the storage manager to create field mappings with correct import_id
-            from app.models.data_import import DataImport
             from uuid import UUID
+
+            from app.models.data_import import DataImport
 
             # Get the data import record
             data_import_query = select(DataImport).where(

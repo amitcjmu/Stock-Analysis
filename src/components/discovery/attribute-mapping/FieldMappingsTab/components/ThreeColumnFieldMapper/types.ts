@@ -6,6 +6,11 @@
 
 import type { FC, ReactNode, MouseEvent } from 'react';
 import type { TargetField, FieldMapping } from '../../types';
+import type {
+  FieldMappingLearningApprovalRequest,
+  FieldMappingLearningRejectionRequest,
+  BulkFieldMappingLearningRequest
+} from '../../../../../../services/api/discoveryFlowService';
 
 export interface ThreeColumnFieldMapperProps {
   fieldMappings: FieldMapping[];
@@ -19,6 +24,13 @@ export interface ThreeColumnFieldMapperProps {
   error?: string | null;
   theme?: 'light' | 'dark';
   onError?: (error: Error) => void;
+  // New learning-related props
+  onApproveMappingWithLearning?: (mappingId: string, request: FieldMappingLearningApprovalRequest) => Promise<void>;
+  onRejectMappingWithLearning?: (mappingId: string, request: FieldMappingLearningRejectionRequest) => Promise<void>;
+  onBulkLearnMappings?: (request: BulkFieldMappingLearningRequest) => Promise<void>;
+  learnedMappings?: Set<string>;
+  clientAccountId?: string;
+  engagementId?: string;
 }
 
 export interface MappingBuckets {

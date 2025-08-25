@@ -31,8 +31,8 @@ def get_mapping_service(
     return MappingService(db, context)
 
 
-# Create main router
-router = APIRouter(prefix="/field-mapping")
+# Create main router - no prefix needed as mapping_routes has /field-mappings prefix
+router = APIRouter()
 
 # Include all sub-routers
 router.include_router(mapping_router)
@@ -51,6 +51,12 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "field_mapping_modular",
-        "modules": ["mapping", "suggestions", "validation", "transformation"],
+        "modules": [
+            "mapping",
+            "suggestions",
+            "validation",
+            "transformation",
+            "learning",
+        ],
         "legacy_compatibility": False,  # Changed to False since legacy routes removed
     }

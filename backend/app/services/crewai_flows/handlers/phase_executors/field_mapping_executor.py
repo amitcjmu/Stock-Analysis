@@ -52,9 +52,7 @@ from .field_mapping_utils import (
 from .field_mapping_converters import (
     convert_crew_input_to_state,
     convert_result_to_crew_format,
-    convert_flow_state_to_crew_input,
 )
-from .field_mapping_fallback import execute_with_crew_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +131,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
             mock_state = convert_crew_input_to_state(crew_input, self.state)
 
             # Get async database session with proper lifecycle management
-            from app.db.session import get_db
+            from app.core.database.session import get_db
 
             # SECURITY FIX: Proper async context management for database sessions
             # Support both async and sync generators with defensive handling

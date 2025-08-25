@@ -4,9 +4,9 @@ Parsing logic for extracting field mappings and confidence scores from various i
 """
 
 import json
-import re
 import logging
-from typing import Dict, List, Tuple, Optional, Any
+import re
+from typing import Any, Dict, List, Optional, Tuple
 
 from .exceptions import MappingParseError
 
@@ -43,24 +43,39 @@ class JSONMappingParser(MappingParser):
             confidence_scores = {}
 
             # Extract mappings from JSON structure
-            if "mappings" in json_data and isinstance(json_data["mappings"], dict):
-                for source_field, mapping_info in json_data["mappings"].items():
-                    if isinstance(mapping_info, dict):
-                        target_field = mapping_info.get("target_field", "")
-                        confidence = mapping_info.get("confidence", 0.7)
-                        if target_field:
-                            mappings[source_field] = target_field
-                            confidence_scores[source_field] = confidence
+            if "mappings" in json_data:
+                if isinstance(json_data["mappings"], list):
+                    # Handle list of mapping objects
+                    for mapping in json_data["mappings"]:
+                        if isinstance(mapping, dict):
+                            source_field = mapping.get("source_field", "")
+                            target_field = mapping.get("target_field", "")
+                            confidence = mapping.get("confidence", 0.7)
+                            if source_field and target_field:
+                                mappings[source_field] = target_field
+                                confidence_scores[source_field] = confidence
+                                logger.info(
+                                    f"✅ JSON mapping: {source_field} -> {target_field} (confidence: {confidence})"
+                                )
+                elif isinstance(json_data["mappings"], dict):
+                    # Handle dict format
+                    for source_field, mapping_info in json_data["mappings"].items():
+                        if isinstance(mapping_info, dict):
+                            target_field = mapping_info.get("target_field", "")
+                            confidence = mapping_info.get("confidence", 0.7)
+                            if target_field:
+                                mappings[source_field] = target_field
+                                confidence_scores[source_field] = confidence
+                                logger.info(
+                                    f"✅ JSON mapping: {source_field} -> {target_field} (confidence: {confidence})"
+                                )
+                        elif isinstance(mapping_info, str):
+                            # Simple string mapping
+                            mappings[source_field] = mapping_info
+                            confidence_scores[source_field] = 0.7
                             logger.info(
-                                f"✅ JSON mapping: {source_field} -> {target_field} (confidence: {confidence})"
+                                f"✅ JSON mapping: {source_field} -> {mapping_info}"
                             )
-                    elif isinstance(mapping_info, str):
-                        # Simple string mapping
-                        mappings[source_field] = mapping_info
-                        confidence_scores[source_field] = 0.7
-                        logger.info(
-                            f"✅ JSON mapping: {source_field} -> {mapping_info}"
-                        )
 
             return mappings, confidence_scores
 

@@ -11,9 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.models.data_import import DataImport, RawImportRecord
-from .pattern_builder import FieldPatternBuilder
+
 from .mapping_creator import FieldMappingCreator
 from .mapping_summarizer import MappingSummarizer
+from .pattern_builder import FieldPatternBuilder
 
 logger = logging.getLogger(__name__)
 

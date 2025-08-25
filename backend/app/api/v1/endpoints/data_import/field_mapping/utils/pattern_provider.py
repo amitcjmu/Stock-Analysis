@@ -3,9 +3,9 @@ Pluggable pattern provider for field mapping heuristics.
 Allows for configurable and extensible field pattern matching strategies.
 """
 
+import logging
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
-import logging
 
 logger = logging.getLogger(__name__)
 

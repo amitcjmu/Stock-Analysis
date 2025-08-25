@@ -10,8 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
-from app.core.security.secure_logging import safe_log_format
 from app.core.database import get_db
+from app.core.security.secure_logging import safe_log_format
 
 from ...models.mapping_schemas import FieldMappingCreate
 from ...services.mapping_service import MappingService
@@ -50,7 +50,9 @@ async def trigger_field_mapping_reanalysis(
 
         # Get the data import
         from uuid import UUID
+
         from sqlalchemy import select
+
         from app.models.data_import import DataImport
 
         # Convert string UUID to UUID object if needed
@@ -187,6 +189,7 @@ async def _cleanup_existing_mappings(import_id: str, service: MappingService):
     """Clean up existing mappings and JSON artifacts."""
     # CRITICAL FIX: Clean up JSON artifacts first, then delete all existing mappings
     from sqlalchemy import and_, delete, select
+
     from app.models.data_import import DataImport, ImportFieldMapping
 
     # Get the data import record for cleanup
@@ -243,6 +246,7 @@ async def _cleanup_existing_mappings(import_id: str, service: MappingService):
 async def _get_latest_import(service: MappingService):
     """Get the latest processed import for the current context."""
     from sqlalchemy import and_, select
+
     from app.models.data_import import DataImport
 
     latest_query = (

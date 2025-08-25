@@ -360,7 +360,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
         isValid: totalValid === totalFields && totalFields > 0,
         fieldResults: Object.keys(fieldResults).length
       });
-      
+
       const newValidation: FormValidationResult = {
         formId: formData.formId,
         isValid: totalValid === totalFields && totalFields > 0,

@@ -41,7 +41,13 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
   availableFields,
   onMappingAction,
   onMappingChange,
-  onRefresh
+  onRefresh,
+  onApproveMappingWithLearning,
+  onRejectMappingWithLearning,
+  onBulkLearnMappings,
+  learnedMappings,
+  clientAccountId,
+  engagementId
 }) => {
   const { client, engagement } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -248,6 +254,11 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
                 onToggleReasoning={toggleReasoningExpansion}
                 availableFields={availableFields}
                 onMappingChange={onMappingChange}
+                // Learning props
+                onApproveMappingWithLearning={onApproveMappingWithLearning}
+                onRejectMappingWithLearning={onRejectMappingWithLearning}
+                isLearned={learnedMappings?.has(mapping.id) || false}
+                showLearningControls={true}
               />
             ))}
             {filteredBuckets.autoMapped.length === 0 && (

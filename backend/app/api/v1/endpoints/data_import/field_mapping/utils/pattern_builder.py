@@ -3,12 +3,13 @@ Field pattern builder utility for intelligent field mapping.
 Now uses pluggable pattern providers for extensible field mapping strategies.
 """
 
-from typing import Dict, List, Optional
 import logging
+from typing import Dict, List, Optional
+
 from .pattern_provider import (
-    get_pattern_manager,
-    configure_pattern_manager,
     FieldPatternProvider,
+    configure_pattern_manager,
+    get_pattern_manager,
 )
 
 logger = logging.getLogger(__name__)

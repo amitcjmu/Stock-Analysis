@@ -177,7 +177,8 @@ async def get_adaptive_questionnaires(
                 collection_flow_id=flow_id,
                 title="Comprehensive Application Data Collection",
                 description=(
-                    "Please provide comprehensive information about your application to complete the adaptive collection process."
+                    "Please provide comprehensive information about your application "
+                    "to complete the adaptive collection process."
                 ),
                 target_gaps=[
                     "application_selection",
