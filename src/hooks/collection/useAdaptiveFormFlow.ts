@@ -641,7 +641,7 @@ export const useAdaptiveFormFlow = (
       // Re-fetch questionnaires to get the next set
       if (state.flowId) {
         try {
-          const updatedQuestionnaires = await collectionFlowApi.getAdaptiveQuestionnaires(state.flowId);
+          const updatedQuestionnaires = await collectionFlowApi.getFlowQuestionnaires(state.flowId);
           console.log(`📋 Retrieved ${updatedQuestionnaires.length} questionnaires after submission`);
 
           setState(prev => ({
@@ -676,7 +676,7 @@ export const useAdaptiveFormFlow = (
             }
           } else {
             // Check if collection is complete
-            const flowStatus = await collectionFlowApi.getCollectionFlow(state.flowId);
+            const flowStatus = await collectionFlowApi.getFlowDetails(state.flowId);
             if (flowStatus.status === 'completed' || flowStatus.progress >= 100) {
               toast({
                 title: 'Collection Complete',
@@ -687,6 +687,11 @@ export const useAdaptiveFormFlow = (
           }
         } catch (refreshError) {
           console.error('Failed to refresh questionnaires:', refreshError);
+          toast({
+            title: 'Warning',
+            description: 'Form submitted successfully, but unable to load next section. Please refresh the page.',
+            variant: 'default'
+          });
         }
       }
 

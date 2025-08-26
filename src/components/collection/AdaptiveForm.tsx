@@ -353,13 +353,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
         });
       });
 
-      // Debug validation state
-      console.log('Validation Debug:', {
-        totalValid,
-        totalFields,
-        isValid: totalValid === totalFields && totalFields > 0,
-        fieldResults: Object.keys(fieldResults).length
-      });
+      // Validation state calculated silently (removed debug log)
 
       const newValidation: FormValidationResult = {
         formId: formData.formId,
