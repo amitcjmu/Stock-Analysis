@@ -7,7 +7,7 @@ modularity and maintainability.
 """
 
 # Re-export the main components for backward compatibility
-from app.services.application_deduplication import (
+from app.services.application_deduplication import (  # noqa: F401
     ApplicationDeduplicationService,
     create_deduplication_service,
     DeduplicationConfig,
