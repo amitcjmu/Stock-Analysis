@@ -170,16 +170,22 @@ export const ValidationDisplay: React.FC<ValidationDisplayProps> = ({
 
           <div className="flex flex-col items-end gap-2">
             <Badge variant="outline" className="text-xs">
-              {Math.round(validation.overall_confidence_score * 100)}% confidence
+              {validation.overall_confidence_score != null && !isNaN(validation.overall_confidence_score)
+                ? Math.round(validation.overall_confidence_score * 100)
+                : 0}% confidence
             </Badge>
 
             <div className="flex items-center gap-2">
               <Progress
-                value={validation.completion_percentage}
+                value={validation.completion_percentage != null && !isNaN(validation.completion_percentage)
+                  ? validation.completion_percentage
+                  : 0}
                 className="w-20"
               />
               <span className="text-xs text-muted-foreground">
-                {Math.round(validation.completion_percentage)}%
+                {validation.completion_percentage != null && !isNaN(validation.completion_percentage)
+                  ? Math.round(validation.completion_percentage)
+                  : 0}%
               </span>
             </div>
           </div>
@@ -189,7 +195,7 @@ export const ValidationDisplay: React.FC<ValidationDisplayProps> = ({
         <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-200">
           <div className="flex items-center gap-1 text-sm">
             <Target className="h-4 w-4 text-muted-foreground" />
-            <span>{stats.validFields}/{stats.totalFields} fields valid</span>
+            <span>{stats.validFields || 0}/{stats.totalFields || 0} fields valid</span>
           </div>
 
           {stats.errorCount > 0 && (
@@ -206,7 +212,9 @@ export const ValidationDisplay: React.FC<ValidationDisplayProps> = ({
 
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <TrendingUp className="h-4 w-4" />
-            <span>+{Math.round(validation.estimated_6r_confidence_impact * 100)}% 6R confidence</span>
+            <span>+{validation.estimated_6r_confidence_impact != null && !isNaN(validation.estimated_6r_confidence_impact)
+              ? Math.round(validation.estimated_6r_confidence_impact * 100)
+              : 0}% 6R confidence</span>
           </div>
 
           {(stats.errorCount > 0 || (stats.warningCount > 0 && showWarnings)) && (

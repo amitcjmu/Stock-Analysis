@@ -1,5 +1,21 @@
 # AI Modernize Migration Platform - Changelog
 
+## [2025-08-26] - Discovery Field Mapping Flow Simplification
+### 🚀 Enhancement: In-flow Field Mapping Execution (No Timers)
+- Removed backend field mapping auto-trigger service and startup/shutdown hooks; eliminated polling-based generation.
+- Ensured discovery flow creates `raw_data` as a list-of-records and sets `metadata.detected_columns` at creation time to remove races.
+- Wired Data Import “Continue” action to call unified discovery execute endpoint so the field-mapping phase runs automatically before navigation.
+- Standardized manual trigger to the unified execute endpoint with explicit JSON body.
+
+### 🔧 Files Changed (Highlights)
+- Backend: `backend/app/services/data_import/import_service.py`, `backend/main.py` (auto-trigger removed), deleted `backend/app/services/field_mapping_auto_trigger.py`
+- Frontend: `src/pages/discovery/CMDBImport/hooks/useCMDBImport.ts`, `src/hooks/discovery/attribute-mapping/useAttributeMappingActions.ts`
+- Docs: `docs/development/discovery-flow/FIELD_MAPPING_FIXES_SUMMARY.md` updated to reflect new flow
+
+### 📊 Impact
+- Field mappings are generated deterministically within the discovery flow (phase controller) with no background timers.
+- Attribute Mapping page loads with mappings after Continue, reducing user confusion and race conditions.
+
 ## [2025-08-19] - Attribute Mapping Architecture Fix (PR #127)
 ## [2025-08-23] - Collection Flow Bug Batch (PR TBD)
 ### 🐛 Fixes: Adaptive Forms Initialization and Questionnaire Generation

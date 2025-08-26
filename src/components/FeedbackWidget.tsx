@@ -62,6 +62,13 @@ const FeedbackWidget = (): JSX.Element => {
 
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault();
+
+    // Validate required fields
+    if (!newFeedback.title.trim() || !newFeedback.description.trim()) {
+      // Don't submit if required fields are empty
+      return;
+    }
+
     createFeedback(newFeedback);
     setIsCreateOpen(false);
     setNewFeedback({ type: 'Feature', title: '', description: '' });
@@ -190,7 +197,7 @@ const FeedbackWidget = (): JSX.Element => {
                 <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isCreating}>
+                <Button type="submit" disabled={isCreating || !newFeedback.title.trim() || !newFeedback.description.trim()}>
                   {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Submit'}
                 </Button>
               </div>

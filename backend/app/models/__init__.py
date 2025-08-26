@@ -74,6 +74,15 @@ from app.models.collection_flow import (
 )
 from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
 
+# Canonical Applications Models
+from app.models.canonical_applications import (
+    CanonicalApplication,
+    ApplicationNameVariant,
+    CollectionFlowApplication,
+    MatchMethod,
+    VerificationSource,
+)
+
 # CrewAI Flow Models
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
@@ -212,6 +221,12 @@ __all__ = [
     "CollectedDataInventory",
     "CollectionDataGap",
     "CollectionQuestionnaireResponse",
+    # Canonical Applications Models
+    "CanonicalApplication",
+    "ApplicationNameVariant",
+    "CollectionFlowApplication",
+    "MatchMethod",
+    "VerificationSource",
     # Platform Models
     "PlatformAdapter",
     "AdapterStatus",

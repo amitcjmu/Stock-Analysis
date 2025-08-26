@@ -285,6 +285,17 @@ export const useCMDBImport = (): JSX.Element => {
       current_phase: uploadedFile.current_phase
     });
 
+    // Resume/execute discovery flow so field mapping runs before navigation
+    try {
+      await apiCall(`/api/v1/unified-discovery/flow/${uploadedFile.flow_id}/execute`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ phase: 'field_mapping_suggestions', phase_input: {}, force: false })
+      });
+    } catch (e) {
+      console.warn('Flow execute call failed (will still navigate):', e);
+    }
+
     // Navigate to attribute mapping phase (next step after data import)
     const route = getDiscoveryPhaseRoute('attribute_mapping', uploadedFile.flow_id);
     console.log('🔗 Navigation: Navigating to route:', route);

@@ -120,21 +120,21 @@ export const useAttributeMappingActions = (
       console.log('📋 Flow object:', flow);
 
       // Fix: Use flow_id instead of id (property name mismatch)
-      const flowId = flow?.flow_id || flow?.id;
+      const flowId = (flow as any)?.flow_id || (flow as any)?.id;
       console.log('🆔 Flow ID:', flowId);
 
       if (flowId) {
-        // ALWAYS use execute to trigger/re-trigger field mapping phase
-        // This ensures field mappings are generated or regenerated as needed
+        // Keep manual trigger available, but do not auto-trigger on navigation
         console.log('🔁 Executing field mapping phase');
         console.log('📊 Current mappings:', fieldMappings?.slice(0, 3));
 
-        const result = await apiCall(`/unified-discovery/flow/${flowId}/execute`, {
+        const result = await apiCall(`/api/v1/unified-discovery/flow/${flowId}/execute`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             ...getAuthHeaders()
-          }
+          },
+          body: JSON.stringify({ phase: 'field_mapping_suggestions', phase_input: {}, force: false })
         });
 
         console.log('✅ Field mapping phase execution triggered:', result);

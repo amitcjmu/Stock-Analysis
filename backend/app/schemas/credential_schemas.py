@@ -100,7 +100,7 @@ class CredentialPermissionRequest(BaseModel):
 
     user_id: Optional[uuid.UUID] = None
     role: Optional[str] = None
-    permission_type: str = Field(..., regex="^(read|write|delete|rotate|grant)$")
+    permission_type: str = Field(..., pattern="^(read|write|delete|rotate|grant)$")
     expires_at: Optional[datetime] = None
 
     @validator("role")

@@ -146,7 +146,7 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
           </TabsContent>
         </Tabs>
 
-        {/* Submit Actions */}
+        {/* Save and Cancel Actions */}
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <Button
@@ -165,13 +165,6 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
               onClick={onCancel}
             >
               Cancel
-            </Button>
-            <Button
-              onClick={handleFormSubmit}
-              disabled={isSubmitting || !validation?.isValid}
-            >
-              <Send className="h-4 w-4 mr-2" />
-              {isSubmitting ? 'Submitting...' : 'Submit Collection Data'}
             </Button>
           </div>
         </div>
