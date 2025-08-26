@@ -13,6 +13,12 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# Import modular functions
+from app.api.v1.endpoints import (
+    collection_serializers,
+    collection_utils,
+    collection_validators,
+)
 from app.core.context import RequestContext
 from app.core.rbac_utils import (
     COLLECTION_CREATE_ROLES,
@@ -29,11 +35,6 @@ from app.schemas.collection_flow import (
     CollectionFlowCreate,
     CollectionFlowResponse,
 )
-
-# Import modular functions
-from app.api.v1.endpoints import collection_utils
-from app.api.v1.endpoints import collection_validators
-from app.api.v1.endpoints import collection_serializers
 
 logger = logging.getLogger(__name__)
 
@@ -199,17 +200,30 @@ async def create_collection_from_discovery(
         return serialized_flow
 
     except HTTPException:
+        # Ensure rollback on HTTP exceptions that might leave partial state
+        try:
+            await db.rollback()
+            logger.info("🔄 Database transaction rolled back due to HTTP exception")
+        except Exception as rollback_error:
+            logger.error(f"❌ Failed to rollback transaction: {rollback_error}")
         raise
     except Exception as e:
+        # Rollback transaction on any unexpected errors
+        try:
+            await db.rollback()
+            logger.info("🔄 Database transaction rolled back due to unexpected error")
+        except Exception as rollback_error:
+            logger.error(f"❌ Failed to rollback transaction: {rollback_error}")
+
         logger.error(
             safe_log_format(
                 "Error creating collection from discovery: "
-                "discovery_flow_id={discovery_flow_id}, error={e}",
+                "discovery_flow_id={discovery_flow_id}, error_type={error_type}",
                 discovery_flow_id=discovery_flow_id,
-                e=e,
+                error_type=type(e).__name__,
             )
         )
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Collection creation failed")
 
 
 async def create_collection_flow(
@@ -451,13 +465,25 @@ async def create_collection_flow(
         return serialized_flow
 
     except HTTPException:
+        # Ensure rollback on HTTP exceptions that might leave partial state
+        try:
+            await db.rollback()
+            logger.info("🔄 Database transaction rolled back due to HTTP exception")
+        except Exception as rollback_error:
+            logger.error(f"❌ Failed to rollback transaction: {rollback_error}")
         raise
     except Exception as e:
+        # Rollback transaction on any unexpected errors
+        try:
+            await db.rollback()
+            logger.info("🔄 Database transaction rolled back due to unexpected error")
+        except Exception as rollback_error:
+            logger.error(f"❌ Failed to rollback transaction: {rollback_error}")
+
         logger.error(
             safe_log_format(
-                "Error creating collection flow: flow_data={flow_data}, error={e}",
-                flow_data=flow_data.model_dump(),
-                e=e,
+                "Error creating collection flow: error_type={error_type}",
+                error_type=type(e).__name__,
             )
         )
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Collection flow creation failed")

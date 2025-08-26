@@ -32,12 +32,17 @@ interface UseApplicationSuggestionsReturn {
 export const useApplicationSuggestions = (
   options: UseApplicationSuggestionsOptions = {}
 ): UseApplicationSuggestionsReturn => {
+  // Safely extract options with proper validation
   const {
     maxResults = 8,
     debounceMs = 300,
     confidenceThresholds,
     cacheResults = true,
-  } = options;
+  } = options || {};
+
+  // Validate numeric options
+  const safeMaxResults = typeof maxResults === 'number' && isFinite(maxResults) && maxResults > 0 ? maxResults : 8;
+  const safeDebounceMs = typeof debounceMs === 'number' && isFinite(debounceMs) && debounceMs >= 0 ? debounceMs : 300;
 
   const { client, engagement } = useAuth();
   const [suggestions, setSuggestions] = useState<ApplicationSuggestion[]>([]);
@@ -46,7 +51,7 @@ export const useApplicationSuggestions = (
   const [currentQuery, setCurrentQuery] = useState<string>('');
 
   // Refs for managing debouncing and cancellation
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const cacheRef = useRef<Map<string, { suggestions: ApplicationSuggestion[]; timestamp: number }>>(
     new Map()
@@ -55,14 +60,27 @@ export const useApplicationSuggestions = (
   // Cache duration (5 minutes)
   const CACHE_DURATION = 5 * 60 * 1000;
 
-  // Clear any pending timeouts on unmount
+  // Clear any pending timeouts on unmount and ensure proper cleanup
   useEffect(() => {
+    // Capture ref values at effect setup time
+    const currentCache = cacheRef.current;
+
     return () => {
+      // Clear debounce timeout
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
+        debounceTimeoutRef.current = null;
       }
+
+      // Abort any pending requests
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+
+      // Clear cache if needed
+      if (currentCache) {
+        currentCache.clear();
       }
     };
   }, []);
@@ -79,7 +97,7 @@ export const useApplicationSuggestions = (
     }
 
     return null;
-  }, [cacheResults]);
+  }, [cacheResults, CACHE_DURATION]);
 
   // Cache suggestions
   const cacheSuggestions = useCallback((query: string, suggestions: ApplicationSuggestion[]) => {
@@ -102,15 +120,19 @@ export const useApplicationSuggestions = (
     }
   }, [cacheResults]);
 
-  // Perform the actual search
+  // Perform the actual search with enhanced validation
   const performSearch = useCallback(async (query: string): Promise<ApplicationSuggestion[]> => {
-    if (!client || !engagement) {
+    // Validate authentication context
+    if (!client?.id || !engagement?.id) {
       throw new Error('Client and engagement must be available');
     }
 
-    if (query.length < 2) {
+    // Validate query
+    if (!query || typeof query !== 'string' || query.trim().length < 2) {
       return [];
     }
+
+    const trimmedQuery = query.trim();
 
     // Cancel any existing request
     if (abortControllerRef.current) {
@@ -122,49 +144,63 @@ export const useApplicationSuggestions = (
 
     try {
       // Check cache first
-      const cached = getCachedSuggestions(query);
+      const cached = getCachedSuggestions(trimmedQuery);
       if (cached) {
         return cached;
       }
 
       // Perform API search
       const searchRequest: SimilaritySearchRequest = {
-        query: query.trim(),
+        query: trimmedQuery,
         client_account_id: client.id,
         engagement_id: engagement.id,
         min_confidence: confidenceThresholds?.min_confidence || 0.4,
-        max_results: maxResults,
+        max_results: safeMaxResults,
         include_variants: true,
       };
 
       const response = await canonicalApplicationsApi.searchSimilar(searchRequest);
 
-      // Convert similarity matches to suggestions
-      const suggestions: ApplicationSuggestion[] = response.suggestions || [];
+      // Safely extract suggestions with validation
+      const suggestions: ApplicationSuggestion[] = Array.isArray(response?.suggestions) ? response.suggestions : [];
 
       // Filter by confidence if thresholds are provided
       const filteredSuggestions = confidenceThresholds
-        ? suggestions.filter(s => s.confidence_score >= (confidenceThresholds.suggestion_dropdown || 0.6))
-        : suggestions;
+        ? suggestions.filter(s => {
+            return s && typeof s.confidence_score === 'number' &&
+                   s.confidence_score >= (confidenceThresholds.suggestion_dropdown || 0.6);
+          })
+        : suggestions.filter(s => s && typeof s.confidence_score === 'number');
 
       // Cache the results
-      cacheSuggestions(query, filteredSuggestions);
+      cacheSuggestions(trimmedQuery, filteredSuggestions);
 
       return filteredSuggestions;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Don't treat aborted requests as errors
-      if (error.name === 'AbortError') {
+      const isAbortError = (error instanceof Error && error.name === 'AbortError') ||
+                          (error && typeof error === 'object' && 'code' in error && error.code === 'AbortError');
+      if (isAbortError) {
         return [];
       }
-      throw error;
+      // Re-throw with more context
+      const errorMessage = error instanceof Error ? error.message : 'Failed to search for application suggestions';
+      throw new Error(errorMessage);
     }
-  }, [client, engagement, maxResults, confidenceThresholds, getCachedSuggestions, cacheSuggestions]);
+  }, [client, engagement, safeMaxResults, confidenceThresholds, getCachedSuggestions, cacheSuggestions]);
 
-  // Debounced search function
+  // Debounced search function with enhanced validation
   const searchSuggestions = useCallback(async (query: string): Promise<void> => {
+    // Validate query parameter
+    if (typeof query !== 'string') {
+      console.warn('useApplicationSuggestions: searchSuggestions called with non-string query');
+      return;
+    }
+
     // Clear existing timeout
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = null;
     }
 
     // Clear error state
@@ -172,7 +208,8 @@ export const useApplicationSuggestions = (
     setCurrentQuery(query);
 
     // If query is too short, clear suggestions immediately
-    if (query.trim().length < 2) {
+    const trimmedQuery = query.trim();
+    if (trimmedQuery.length < 2) {
       setSuggestions([]);
       setIsLoading(false);
       return;
@@ -194,34 +231,39 @@ export const useApplicationSuggestions = (
           }
           return current;
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Failed to fetch application suggestions:', error);
 
         setCurrentQuery(current => {
           if (current === query) {
-            setError(error.message || 'Failed to load suggestions');
+            const errorMessage = error instanceof Error ? error.message : 'Failed to load suggestions';
+            setError(errorMessage);
             setSuggestions([]);
             setIsLoading(false);
           }
           return current;
         });
       }
-    }, debounceMs);
-  }, [debounceMs, performSearch]);
+    }, safeDebounceMs);
+  }, [safeDebounceMs, performSearch]);
 
-  // Clear suggestions
+  // Clear suggestions with proper cleanup
   const clearSuggestions = useCallback(() => {
     setSuggestions([]);
     setError(null);
     setIsLoading(false);
     setCurrentQuery('');
 
+    // Clear debounce timeout
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = null;
     }
 
+    // Abort any pending requests
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
   }, []);
 

@@ -12,32 +12,37 @@ This service provides comprehensive application identity management for collecti
 import logging
 import uuid
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.canonical_applications import (
-    CanonicalApplication,
     ApplicationNameVariant,
+    CanonicalApplication,
     MatchMethod,
 )
 
-from .config import DeduplicationConfig, VECTOR_AVAILABLE
-from .types import DeduplicationResult
+from .bulk_operations import bulk_deduplicate_applications
+from .canonical_operations import (
+    create_collection_flow_link,
+    create_new_canonical_application,
+)
+from .config import VECTOR_AVAILABLE, DeduplicationConfig
 from .matching import FuzzyMatcher
-from .vector_ops import VectorOperations
-from .validators import validate_deduplication_inputs
-from .tenant_scoped_operations import enforce_tenant_scope
 from .matching_strategies import (
     try_exact_match,
     try_fuzzy_text_match,
     try_vector_similarity_match,
 )
-from .canonical_operations import (
-    create_new_canonical_application,
-    create_collection_flow_link,
+from .tenant_scoped_operations import enforce_tenant_scope
+from .types import DeduplicationResult
+from .validators import (
+    sanitize_application_name,
+    validate_bulk_application_list,
+    validate_deduplication_inputs,
+    validate_deduplication_metadata,
 )
-from .bulk_operations import bulk_deduplicate_applications
+from .vector_ops import VectorOperations
 
 logger = logging.getLogger(__name__)
 
@@ -90,17 +95,23 @@ class ApplicationDeduplicationService:
         start_time = datetime.utcnow()
 
         try:
-            # Step 1: Input validation
+            # Step 1: Input validation and sanitization
             validate_deduplication_inputs(
                 application_name, client_account_id, engagement_id
             )
 
+            # Sanitize application name for security
+            sanitized_name = sanitize_application_name(application_name)
+
+            # Validate and sanitize metadata
+            validate_deduplication_metadata(additional_metadata)
+
             # Step 2: Normalize application name
-            normalized_name = CanonicalApplication.normalize_name(application_name)
+            normalized_name = CanonicalApplication.normalize_name(sanitized_name)
             name_hash = CanonicalApplication.generate_name_hash(normalized_name)
 
             logger.info(
-                f"🔍 Starting deduplication for '{application_name}' "
+                f"🔍 Starting deduplication for '{sanitized_name}' "
                 f"(normalized: '{normalized_name}', engagement: {engagement_id})"
             )
 
@@ -231,7 +242,7 @@ class ApplicationDeduplicationService:
 
                     # Create collection flow application link if provided
                     if collection_flow_id:
-                        await self._create_collection_flow_link(
+                        await create_collection_flow_link(
                             db,
                             collection_flow_id,
                             canonical_app,
@@ -306,9 +317,24 @@ class ApplicationDeduplicationService:
             )
 
         except Exception as e:
+            # Rollback any pending database changes
+            try:
+                await db.rollback()
+                logger.info(
+                    "🔄 Database transaction rolled back due to deduplication error"
+                )
+            except Exception as rollback_error:
+                logger.error(f"❌ Failed to rollback transaction: {rollback_error}")
+
+            # Use secure logging for errors
+            from app.core.security.secure_logging import safe_log_format
+
             logger.error(
-                f"❌ Deduplication failed for '{application_name}' "
-                f"in engagement {engagement_id}: {str(e)}"
+                safe_log_format(
+                    "❌ Deduplication failed for application in engagement {engagement_id}: {error_type}",
+                    engagement_id=str(engagement_id),
+                    error_type=type(e).__name__,
+                )
             )
             raise
 
@@ -323,18 +349,30 @@ class ApplicationDeduplicationService:
         batch_size: int = 50,
     ) -> List[DeduplicationResult]:
         """
-        Bulk deduplication for multiple applications with optimizations.
+        Bulk deduplication for multiple applications with enhanced security validation.
         """
-        return await bulk_deduplicate_applications(
-            self,
-            db,
-            applications,
-            client_account_id,
-            engagement_id,
-            user_id,
-            collection_flow_id,
-            batch_size,
-        )
+        try:
+            # Validate and sanitize input list
+            validated_applications = validate_bulk_application_list(applications)
+
+            # Validate batch size to prevent DoS
+            if batch_size > 100:
+                batch_size = 100  # Maximum batch size for security
+                logger.warning("Batch size capped at 100 for security")
+
+            return await bulk_deduplicate_applications(
+                self,
+                db,
+                validated_applications,
+                client_account_id,
+                engagement_id,
+                user_id,
+                collection_flow_id,
+                batch_size,
+            )
+        except Exception as e:
+            logger.error(f"❌ Bulk deduplication validation failed: {str(e)}")
+            raise
 
 
 # Factory function for easy service instantiation

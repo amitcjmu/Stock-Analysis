@@ -27,6 +27,7 @@ from .base import (
     generate_name_hash,
     uuid,
 )
+from sqlalchemy import ARRAY
 from .enums import MatchMethod
 
 
@@ -85,7 +86,7 @@ class ApplicationNameVariant(Base, TimestampMixin):
 
     # Vector embedding for this variant
     variant_embedding = Column(
-        Vector(384) if PGVECTOR_AVAILABLE else list, nullable=True
+        Vector(384) if PGVECTOR_AVAILABLE else ARRAY(Float), nullable=True
     )
 
     # Matching metadata

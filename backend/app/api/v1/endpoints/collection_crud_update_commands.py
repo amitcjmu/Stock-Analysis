@@ -7,6 +7,3 @@ modularity and maintainability.
 """
 
 # Re-export the main components for backward compatibility
-from app.api.v1.endpoints.collection_crud import (
-    submit_questionnaire_response,
-)

@@ -17,6 +17,14 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 from sqlalchemy import text
 
+# CC: Import pgvector types with fallback for environments without pgvector
+try:
+    from pgvector.sqlalchemy import Vector
+
+    PGVECTOR_AVAILABLE = True
+except ImportError:
+    PGVECTOR_AVAILABLE = False
+
 # revision identifiers, used by Alembic.
 revision = "canonical_apps_001"
 down_revision = "add_collection_apps_001"
@@ -59,8 +67,12 @@ def upgrade() -> None:
             "engagement_id", postgresql.UUID(as_uuid=True), nullable=False, index=True
         ),
         # Vector embedding for fuzzy matching (384 dimensions for sentence-transformers)
-        # Using NULLABLE initially in case pgvector isn't available
-        sa.Column("name_embedding", postgresql.ARRAY(sa.Float), nullable=True),
+        # Using proper Vector type if pgvector available, fallback to ARRAY(Float)
+        sa.Column(
+            "name_embedding",
+            Vector(384) if PGVECTOR_AVAILABLE else postgresql.ARRAY(sa.Float),
+            nullable=True,
+        ),
         # Application metadata
         sa.Column("description", sa.Text, nullable=True),
         sa.Column("application_type", sa.String(100), nullable=True),
@@ -121,7 +133,11 @@ def upgrade() -> None:
             "engagement_id", postgresql.UUID(as_uuid=True), nullable=False, index=True
         ),
         # Vector embedding for this variant
-        sa.Column("variant_embedding", postgresql.ARRAY(sa.Float), nullable=True),
+        sa.Column(
+            "variant_embedding",
+            Vector(384) if PGVECTOR_AVAILABLE else postgresql.ARRAY(sa.Float),
+            nullable=True,
+        ),
         # Similarity scores and matching metadata
         sa.Column(
             "similarity_score", sa.Float, nullable=True

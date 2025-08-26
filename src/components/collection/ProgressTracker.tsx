@@ -36,20 +36,74 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
   estimatedTimeRemaining,
   className
 }) => {
-  const formatTime = (seconds: number): string => {
+  // Type safety checks for props with user-friendly error UI
+  if (!formId || typeof formId !== 'string') {
+    console.warn('ProgressTracker: Invalid formId provided');
+    return (
+      <Card className={cn('w-full max-w-sm', className)}>
+        <CardContent className="p-4">
+          <div className="text-center text-muted-foreground">
+            <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+            <p className="text-sm">Unable to load progress tracker</p>
+            <p className="text-xs mt-1">Invalid form configuration</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Ensure numeric values are valid
+  const safeTotalSections = typeof totalSections === 'number' && isFinite(totalSections) ? totalSections : 0;
+  const safeCompletedSections = typeof completedSections === 'number' && isFinite(completedSections) ? completedSections : 0;
+  const safeOverallCompletion = typeof overallCompletion === 'number' && isFinite(overallCompletion) ? overallCompletion : 0;
+  const safeConfidenceScore = typeof confidenceScore === 'number' && isFinite(confidenceScore) ? confidenceScore : 0;
+  const safeTimeSpent = typeof timeSpent === 'number' && isFinite(timeSpent) ? timeSpent : 0;
+  const safeEstimatedTimeRemaining = typeof estimatedTimeRemaining === 'number' && isFinite(estimatedTimeRemaining) ? estimatedTimeRemaining : 0;
+  const safeMilestones = Array.isArray(milestones) ? milestones : [];
+  const formatTime = (milliseconds: number): string => {
+    // Handle invalid inputs
+    if (!milliseconds || milliseconds < 0 || !isFinite(milliseconds)) {
+      return '0s';
+    }
+
+    const seconds = Math.floor(milliseconds / 1000);
     if (seconds < 60) return `${seconds}s`;
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-    return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+
+    // Handle extremely large values
+    if (hours > 9999) {
+      return 'N/A';
+    }
+
+    return `${hours}h ${minutes}m`;
   };
 
   const getProgressColor = (percentage: number): string => {
+    // Handle invalid percentages
+    if (!isFinite(percentage) || isNaN(percentage)) {
+      return 'text-gray-500';
+    }
     if (percentage >= 80) return 'text-green-600';
     if (percentage >= 50) return 'text-amber-600';
     return 'text-red-600';
   };
 
-  const completedMilestones = milestones.filter(m => m.achieved);
-  const nextMilestone = milestones.find(m => !m.achieved);
+  // Utility function to safely calculate percentages
+  const safePercentage = (value: number): number => {
+    if (!isFinite(value) || isNaN(value)) return 0;
+    return Math.max(0, Math.min(100, Math.round(value)));
+  };
+
+  // Utility function to safely calculate confidence score percentage
+  const safeConfidencePercentage = (score: number): number => {
+    if (!isFinite(score) || isNaN(score)) return 0;
+    return Math.max(0, Math.min(100, Math.round(score * 100)));
+  };
+
+  const completedMilestones = safeMilestones.filter(m => m?.achieved === true);
+  const nextMilestone = safeMilestones.find(m => m?.achieved !== true);
 
   return (
     <Card className={cn('w-full max-w-sm', className)}>
@@ -68,15 +122,15 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium">Overall Progress</span>
-            <span className={cn('font-semibold', getProgressColor(overallCompletion))}>
-              {Math.round(overallCompletion)}%
+            <span className={cn('font-semibold', getProgressColor(safeOverallCompletion))}>
+              {safePercentage(safeOverallCompletion)}%
             </span>
           </div>
-          <Progress value={overallCompletion} className="h-2" />
+          <Progress value={safePercentage(safeOverallCompletion)} className="h-2" />
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>{completedSections}/{totalSections} sections</span>
+            <span>{safeCompletedSections}/{safeTotalSections} sections</span>
             <span>
-              {overallCompletion >= 100 ? 'Complete!' : `${Math.round(100 - overallCompletion)}% remaining`}
+              {safePercentage(safeOverallCompletion) >= 100 ? 'Complete!' : `${safePercentage(100 - safeOverallCompletion)}% remaining`}
             </span>
           </div>
         </div>
@@ -88,19 +142,21 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
             <Badge
               variant="outline"
               className={cn(
-                confidenceScore >= 0.8 && 'border-green-500 text-green-700',
-                confidenceScore >= 0.6 && confidenceScore < 0.8 && 'border-amber-500 text-amber-700',
-                confidenceScore < 0.6 && 'border-red-500 text-red-700'
+                safeConfidenceScore >= 0.8 && 'border-green-500 text-green-700',
+                safeConfidenceScore >= 0.6 && safeConfidenceScore < 0.8 && 'border-amber-500 text-amber-700',
+                safeConfidenceScore < 0.6 && 'border-red-500 text-red-700'
               )}
             >
-              {Math.round(confidenceScore * 100)}%
+              {safeConfidencePercentage(safeConfidenceScore)}%
             </Badge>
           </div>
-          <Progress value={confidenceScore * 100} className="h-2" />
+          <Progress value={safeConfidencePercentage(safeConfidenceScore)} className="h-2" />
           <p className="text-xs text-muted-foreground">
-            {confidenceScore >= 0.8
+            {!isFinite(safeConfidenceScore) || isNaN(safeConfidenceScore)
+              ? 'Calculating data quality...'
+              : safeConfidenceScore >= 0.8
               ? 'Excellent data quality for 6R analysis'
-              : confidenceScore >= 0.6
+              : safeConfidenceScore >= 0.6
               ? 'Good quality, some improvements possible'
               : 'More data needed for reliable analysis'
             }
@@ -115,7 +171,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
               Time Spent
             </div>
             <div className="text-lg font-semibold text-primary">
-              {formatTime(timeSpent)}
+              {formatTime(safeTimeSpent)}
             </div>
           </div>
 
@@ -125,17 +181,17 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
               Remaining
             </div>
             <div className="text-lg font-semibold text-muted-foreground">
-              {formatTime(estimatedTimeRemaining)}
+              {formatTime(safeEstimatedTimeRemaining)}
             </div>
           </div>
         </div>
 
         {/* Next Milestone */}
-        {nextMilestone && (
+        {nextMilestone && nextMilestone.title && (
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-start gap-2">
               <div className="mt-0.5">
-                {nextMilestone.required ? (
+                {nextMilestone.required === true ? (
                   <AlertCircle className="h-4 w-4 text-blue-600" />
                 ) : (
                   <Trophy className="h-4 w-4 text-blue-600" />
@@ -145,9 +201,11 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                 <p className="text-sm font-medium text-blue-900">
                   Next: {nextMilestone.title}
                 </p>
-                <p className="text-xs text-blue-700">
-                  {nextMilestone.description}
-                </p>
+                {nextMilestone.description && (
+                  <p className="text-xs text-blue-700">
+                    {nextMilestone.description}
+                  </p>
+                )}
                 {nextMilestone.targetDate && (
                   <p className="text-xs text-blue-600 mt-1">
                     Target: {new Date(nextMilestone.targetDate).toLocaleDateString()}
@@ -166,52 +224,69 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
           </h4>
 
           <div className="space-y-1 max-h-32 overflow-y-auto">
-            {milestones.map((milestone) => (
-              <div
-                key={milestone.id}
-                className={cn(
-                  'flex items-center gap-2 p-2 rounded text-sm',
-                  milestone.achieved
-                    ? 'bg-green-50 text-green-800'
-                    : 'bg-gray-50 text-gray-600'
-                )}
-              >
-                {milestone.achieved ? (
-                  <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                ) : (
-                  <Circle className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                )}
+            {safeMilestones.map((milestone) => {
+              if (!milestone?.id || !milestone?.title) {
+                return null;
+              }
+              return (
+                <div
+                  key={milestone.id}
+                  className={cn(
+                    'flex items-center gap-2 p-2 rounded text-sm',
+                    milestone.achieved === true
+                      ? 'bg-green-50 text-green-800'
+                      : 'bg-gray-50 text-gray-600'
+                  )}
+                >
+                  {milestone.achieved === true ? (
+                    <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                  ) : (
+                    <Circle className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                  )}
 
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">
-                    {milestone.title}
-                  </p>
-                  {milestone.achieved && milestone.achievedAt && (
-                    <p className="text-xs opacity-75">
-                      Completed {new Date(milestone.achievedAt).toLocaleDateString()}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">
+                      {milestone.title}
                     </p>
+                    {milestone.achieved === true && milestone.achievedAt && (
+                      <p className="text-xs opacity-75">
+                        Completed {new Date(milestone.achievedAt).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+
+                  {milestone.required === true && (
+                    <Badge variant="outline" className="text-xs">
+                      Required
+                    </Badge>
                   )}
                 </div>
-
-                {milestone.required && (
-                  <Badge variant="outline" className="text-xs">
-                    Required
-                  </Badge>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         {/* Quick Actions */}
         <div className="pt-2 border-t space-y-2">
-          <Button variant="outline" size="sm" className="w-full">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full transition-colors hover:bg-primary/5"
+            disabled={!formId}
+            aria-label="View detailed progress analytics"
+          >
             <TrendingUp className="h-4 w-4 mr-2" />
             View Detailed Progress
           </Button>
 
-          {overallCompletion < 100 && (
-            <Button variant="ghost" size="sm" className="w-full text-muted-foreground">
+          {safePercentage(safeOverallCompletion) < 100 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-muted-foreground transition-colors hover:bg-muted/50"
+              disabled={!formId}
+              aria-label="Save current progress and continue later"
+            >
               Save Progress & Continue Later
             </Button>
           )}

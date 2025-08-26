@@ -6,25 +6,30 @@ enhanced workflow progression and bootstrap questionnaire prevention.
 """
 
 import logging
-from datetime import datetime
 from typing import Any, Dict, Optional
 
 from app.core.context import RequestContext
-from app.models.collection_flow import (
-    AutomationTier,
-    CollectionFlowError,
-    CollectionFlowState,
-    CollectionPhase,
-    CollectionStatus,
-)
-from app.services.crewai_flows.handlers.enhanced_error_handler import (
-    enhanced_error_handler,
-)
-from app.services.crewai_flows.unified_collection_flow_modules.flow_utilities import (
-    save_questionnaires_to_db,
-)
+from app.models.collection_flow import CollectionFlowState
 from app.services.unified_discovery.collection_orchestrator import (
     CollectionOrchestrator,
+)
+
+# Import utility functions
+from .questionnaire_utilities import (
+    check_loop_prevention,
+    check_should_generate,
+    prepare_questionnaire_config,
+    generate_questionnaires_core,
+    create_adaptive_forms,
+    save_and_update_state,
+    record_orchestrator_submission,
+    commit_database_transaction,
+    finalize_generation,
+    handle_generation_error,
+    handle_no_questionnaires_generated,
+    should_skip_detailed_questionnaire,
+    determine_questionnaire_type,
+    update_state_for_generation,
 )
 
 logger = logging.getLogger(__name__)
@@ -76,196 +81,95 @@ class QuestionnaireGenerationHandler:
             logger.info("📝 Starting questionnaire generation phase with orchestration")
 
             # Check for infinite loop prevention
-            if not await self.collection_orchestrator.prevent_infinite_loops(
-                state, "questionnaire_generation", max_iterations=2
-            ):
-                logger.warning(
-                    f"Skipping questionnaire generation due to loop prevention for flow {state.flow_id}"
-                )
-                return {
-                    "phase": "questionnaire_generation",
-                    "status": "skipped",
-                    "reason": "infinite_loop_prevention",
-                    "next_phase": "manual_collection",
-                }
+            loop_check = await check_loop_prevention(
+                self.collection_orchestrator, state, gap_result
+            )
+            if loop_check:
+                return loop_check
 
             # Determine questionnaire type based on gap analysis
             identified_gaps = (
                 gap_result.get("identified_gaps", []) if gap_result else []
             )
-            questionnaire_type = "bootstrap" if not identified_gaps else "detailed"
+            questionnaire_type = determine_questionnaire_type(identified_gaps)
 
-            # Check if questionnaire should be generated using orchestrator
-            should_generate, reason = (
-                await self.collection_orchestrator.should_generate_questionnaire(
-                    state, gap_result, questionnaire_type
-                )
+            # Check if questionnaire should be generated
+            should_generate_check = await check_should_generate(
+                self.collection_orchestrator, state, gap_result, questionnaire_type
             )
-
-            if not should_generate:
-                logger.info(f"Skipping questionnaire generation: {reason}")
-
-                # If bootstrap already exists, advance workflow and continue to next phase
-                if questionnaire_type == "bootstrap":
-                    advancement_result = (
-                        await self.collection_orchestrator.advance_to_next_phase(state)
-                    )
-                    logger.info(
-                        f"Advanced workflow after bootstrap check: {advancement_result}"
-                    )
-
-                return {
-                    "phase": "questionnaire_generation",
-                    "status": "skipped",
-                    "reason": reason,
-                    "questionnaires_generated": 0,
-                    "next_phase": "manual_collection",
-                    "workflow_advanced": questionnaire_type == "bootstrap",
-                }
+            if should_generate_check:
+                return should_generate_check
 
             # Skip only for Tier 1 (manual/template) flows for non-bootstrap questionnaires
-            if (
-                state.automation_tier == AutomationTier.TIER_1
-                and questionnaire_type != "bootstrap"
-            ):
+            if should_skip_detailed_questionnaire(state, questionnaire_type):
                 logger.info(
                     "Skipping detailed questionnaire generation for Tier 1 flow"
                 )
                 return None  # Signal to skip to validation
 
             # Update state
-            state.status = CollectionStatus.GENERATING_QUESTIONNAIRES
-            state.current_phase = CollectionPhase.QUESTIONNAIRE_GENERATION
-            state.updated_at = datetime.utcnow()
+            update_state_for_generation(state)
 
             # Get gap analysis results - use both sources for identified gaps
-            identified_gaps = (
-                gap_result.get("identified_gaps", []) if gap_result else []
-            )
             if not identified_gaps:
                 identified_gaps = state.gap_analysis_results.get("identified_gaps", [])
 
-            # Generate questionnaires with enhanced metadata
-            questionnaire_config = {
-                "data_gaps": identified_gaps,
-                "business_context": config.get("client_requirements", {}).get(
-                    "business_context", {}
-                ),
-                "automation_tier": state.automation_tier.value,
-                "collection_flow_id": state.flow_id,
-                "questionnaire_type": questionnaire_type,  # Include type metadata
-                "workflow_context": {
-                    "phase": state.current_phase.value,
-                    "progress": state.progress,
-                    "generation_timestamp": datetime.utcnow().isoformat(),
-                },
-            }
-
-            questionnaires = (
-                await self.services.questionnaire_generator.generate_questionnaires(
-                    **questionnaire_config
-                )
+            # Prepare questionnaire configuration
+            questionnaire_config = prepare_questionnaire_config(
+                state, config, identified_gaps, questionnaire_type
             )
+
+            # Generate questionnaires
+            questionnaires = await generate_questionnaires_core(
+                self.services, questionnaire_config
+            )
+
+            # Handle case of no questionnaires generated
+            if len(questionnaires) == 0:
+                return handle_no_questionnaires_generated(state, questionnaire_type)
 
             # Create adaptive forms
-            form_configs = []
-            for questionnaire in questionnaires:
-                form_config = (
-                    await self.services.adaptive_form_service.create_adaptive_form(
-                        questionnaire_data=questionnaire,
-                        gap_context=identified_gaps,
-                        template_preferences=config.get("client_requirements", {}).get(
-                            "form_preferences", {}
-                        ),
-                    )
-                )
-                form_configs.append(form_config)
+            form_configs = await create_adaptive_forms(
+                self.services, questionnaires, identified_gaps, config
+            )
 
-            # Save questionnaires to database
-            saved_questionnaires = await save_questionnaires_to_db(
-                questionnaires,
+            # Save and update state
+            await save_and_update_state(
                 self.flow_context,
-                state.flow_id,
-                state.automation_tier,
-                state.detected_platforms,
-            )
-
-            # Store in state with enhanced metadata
-            state.questionnaires = saved_questionnaires
-            state.phase_results["questionnaire_generation"] = {
-                "questionnaires": saved_questionnaires,
-                "form_configs": form_configs,
-                "questionnaire_type": questionnaire_type,
-                "generated_at": datetime.utcnow().isoformat(),
-                "gap_count": len(identified_gaps),
-                "orchestrated": True,  # Mark as orchestrated generation
-            }
-
-            # Update progress based on questionnaire type
-            if questionnaire_type == "bootstrap":
-                state.progress = 40.0  # Bootstrap is earlier in process
-            else:
-                state.progress = 70.0  # Detailed questionnaires are later
-
-            state.next_phase = CollectionPhase.MANUAL_COLLECTION
-
-            # Record questionnaire generation with orchestrator
-            from app.services.unified_discovery.workflow_models import (
-                QuestionnaireType,
-            )
-
-            q_type = (
-                QuestionnaireType.BOOTSTRAP
-                if questionnaire_type == "bootstrap"
-                else QuestionnaireType.DETAILED
-            )
-
-            await self.collection_orchestrator.enhanced_orchestrator.record_questionnaire_submission(
+                self.state_manager,
                 state,
-                q_type,
-                {
-                    "questionnaires_generated": len(questionnaires),
-                    "responses": {},  # Empty for generation, not submission
-                    "completion_percentage": 0.0,  # Generation complete, not submission
-                    "generation_metadata": {
-                        "type": questionnaire_type,
-                        "gaps_addressed": len(identified_gaps),
-                        "forms_created": len(form_configs),
-                    },
-                },
+                questionnaires,
+                form_configs,
+                questionnaire_type,
+                identified_gaps,
             )
 
-            # Persist state
+            # Record with orchestrator
+            await record_orchestrator_submission(
+                self.collection_orchestrator,
+                state,
+                questionnaire_type,
+                questionnaires,
+                identified_gaps,
+                form_configs,
+            )
+
+            # Persist state and commit transaction
             await self.state_manager.save_state(state.to_dict())
+            await commit_database_transaction(self.flow_context)
 
-            # Advance workflow if appropriate
-            advancement_result = (
-                await self.collection_orchestrator.advance_to_next_phase(state)
+            # Finalize generation
+            result = await finalize_generation(
+                self.collection_orchestrator,
+                self.unified_flow_management,
+                state,
+                questionnaire_type,
             )
-
-            # Pause for user input
-            state.pause_points.append("manual_collection_required")
-            await self.unified_flow_management.pause_flow(
-                reason=f"{questionnaire_type.title()} questionnaires generated - manual collection required",
-                phase="questionnaire_generation",
-            )
-
-            return {
-                "phase": "questionnaire_generation",
-                "status": "completed",
-                "questionnaire_type": questionnaire_type,
-                "questionnaires_generated": len(questionnaires),
-                "next_phase": "manual_collection",
-                "requires_user_input": True,
-                "workflow_advanced": advancement_result.get("advanced", False),
-                "orchestration_applied": True,
-            }
+            result["questionnaires_generated"] = len(questionnaires)
+            return result
 
         except Exception as e:
-            logger.error(f"❌ Questionnaire generation failed: {e}")
-            state.add_error("questionnaire_generation", str(e))
-            await enhanced_error_handler.handle_error(e, self.flow_context)
-            raise CollectionFlowError(f"Questionnaire generation failed: {e}")
+            await handle_generation_error(self.flow_context, state, e)
 
     async def check_bootstrap_questionnaire_exists(
         self, state: CollectionFlowState

@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from .application_variant import ApplicationNameVariant
 from datetime import datetime
 
-from sqlalchemy import and_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .base import (
@@ -35,6 +35,7 @@ from .base import (
     calculate_text_similarity,
     uuid,
 )
+from sqlalchemy import ARRAY
 from .enums import MatchMethod, VerificationSource
 
 
@@ -98,7 +99,7 @@ class CanonicalApplication(Base, TimestampMixin):
 
     # Vector embedding for fuzzy matching (sentence-transformers all-MiniLM-L6-v2: 384 dimensions)
     name_embedding = Column(
-        Vector(384) if PGVECTOR_AVAILABLE else list,
+        Vector(384) if PGVECTOR_AVAILABLE else ARRAY(Float),
         nullable=True,
         comment="Vector embedding for semantic similarity search",
     )
