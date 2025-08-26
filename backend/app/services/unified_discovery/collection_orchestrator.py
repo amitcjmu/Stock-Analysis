@@ -492,4 +492,3 @@ class CollectionOrchestrator:
         except Exception as e:
             logger.error(f"Error getting orchestration status: {e}")
             raise CollectionFlowError(f"Failed to get orchestration status: {e}")
-

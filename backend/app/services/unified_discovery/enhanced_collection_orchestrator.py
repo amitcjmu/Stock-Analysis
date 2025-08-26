@@ -28,7 +28,7 @@ from app.services.application_deduplication_service import (
     ApplicationDeduplicationService,
 )
 
-from .workflow_models import QuestionnaireType, WorkflowPhase, WorkflowProgress
+from .workflow_models import QuestionnaireType, WorkflowPhase
 from .workflow_phase_manager import WorkflowPhaseManager
 from .workflow_state_manager import WorkflowStateManager
 

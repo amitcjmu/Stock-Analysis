@@ -13,7 +13,7 @@ from .workflow_state_manager import WorkflowStateManager
 
 __all__ = [
     "CollectionOrchestrator",
-    "EnhancedCollectionOrchestrator", 
+    "EnhancedCollectionOrchestrator",
     "QuestionnaireType",
     "WorkflowPhase",
     "WorkflowProgress",

@@ -10,7 +10,6 @@ from datetime import datetime
 from typing import Optional
 
 from app.models.collection_flow import (
-    CollectionFlowError,
     CollectionFlowState,
     CollectionPhase,
     CollectionStatus,

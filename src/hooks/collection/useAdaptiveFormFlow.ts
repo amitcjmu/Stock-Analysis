@@ -38,6 +38,73 @@ import { useAuth } from '@/contexts/AuthContext';
 // Import RBAC utilities
 import { canCreateCollectionFlow } from '@/utils/rbac';
 
+/**
+ * Extract existing responses from questionnaire to populate form values
+ * Handles both array and object response formats for backward compatibility
+ */
+function extractExistingResponses(questionnaire: CollectionQuestionnaire): CollectionFormData {
+  const responses: CollectionFormData = {};
+
+  try {
+    // Check if questionnaire has responses_collected field
+    const responsesData = (questionnaire as any).responses_collected;
+
+    if (!responsesData) {
+      console.log('📝 No existing responses found in questionnaire');
+      return responses;
+    }
+
+    let latestPayload: any = null;
+
+    // Handle different response formats
+    if (Array.isArray(responsesData)) {
+      // Array format: get the latest submission
+      const latestSubmission = responsesData[responsesData.length - 1];
+      latestPayload = latestSubmission?.payload;
+    } else if (typeof responsesData === 'object') {
+      // Object format: check for latest_submission or history
+      if (responsesData.latest_submission?.payload) {
+        latestPayload = responsesData.latest_submission.payload;
+      } else if (responsesData.history && Array.isArray(responsesData.history)) {
+        const latestFromHistory = responsesData.history[responsesData.history.length - 1];
+        latestPayload = latestFromHistory?.payload;
+      } else {
+        // Direct payload format
+        latestPayload = responsesData;
+      }
+    }
+
+    if (latestPayload && typeof latestPayload === 'object') {
+      // Convert the payload to form values format
+      Object.keys(latestPayload).forEach(fieldId => {
+        const value = latestPayload[fieldId];
+
+        // Handle different value types appropriately
+        if (value !== null && value !== undefined) {
+          // Convert to the expected FormFieldValue type
+          if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+            responses[fieldId] = value;
+          } else if (Array.isArray(value)) {
+            // Handle array values (e.g., multi-select)
+            responses[fieldId] = value;
+          } else if (typeof value === 'object') {
+            // Handle object values (convert to JSON string for text fields)
+            responses[fieldId] = JSON.stringify(value);
+          }
+        }
+      });
+
+      console.log(`📝 Extracted ${Object.keys(responses).length} existing responses from questionnaire`);
+    }
+
+  } catch (error) {
+    console.error('❌ Failed to extract existing responses:', error);
+    // Return empty responses if extraction fails
+  }
+
+  return responses;
+}
+
 interface FormQuestion {
   id: string;
   question: string;
@@ -72,6 +139,7 @@ export interface AdaptiveFormFlowState {
   questionnaires: CollectionQuestionnaire[];
   isLoading: boolean;
   isSaving: boolean;
+  isCompleted: boolean;
   error: Error | null;
 }
 
@@ -108,6 +176,7 @@ export const useAdaptiveFormFlow = (
     questionnaires: [],
     isLoading: false,
     isSaving: false,
+    isCompleted: false,
     error: null
   });
 
@@ -176,16 +245,20 @@ export const useAdaptiveFormFlow = (
               const adaptiveFormData = convertQuestionnairesToFormData(existingQuestionnaires[0], applicationId);
 
               if (validateFormDataStructure(adaptiveFormData)) {
+                // Extract existing responses to populate formValues
+                const existingResponses = extractExistingResponses(existingQuestionnaires[0]);
+
                 setState(prev => ({
                   ...prev,
                   formData: adaptiveFormData,
+                  formValues: existingResponses, // Load existing responses into form values
                   questionnaires: existingQuestionnaires,
                   isLoading: false
                 }));
 
                 toast({
                   title: 'Form Loaded',
-                  description: 'Loaded existing questionnaire for this flow'
+                  description: 'Loaded existing questionnaire with saved responses'
                 });
 
                 return; // Skip waiting for agents
@@ -662,10 +735,13 @@ export const useAdaptiveFormFlow = (
               // Convert the questionnaire to form data format
               const nextFormData = convertQuestionnaireToFormData(nextQuestionnaire);
 
+              // Extract any existing responses for this questionnaire
+              const existingResponses = extractExistingResponses(nextQuestionnaire);
+
               setState(prev => ({
                 ...prev,
                 formData: nextFormData,
-                formValues: {},
+                formValues: existingResponses, // Load existing responses if available
                 validation: null
               }));
 
@@ -678,9 +754,18 @@ export const useAdaptiveFormFlow = (
             // Check if collection is complete
             const flowStatus = await collectionFlowApi.getFlowDetails(state.flowId);
             if (flowStatus.status === 'completed' || flowStatus.progress >= 100) {
+              setState(prev => ({ ...prev, isCompleted: true }));
               toast({
                 title: 'Collection Complete',
                 description: 'All required information has been collected successfully!',
+                variant: 'default'
+              });
+            } else {
+              // No more questionnaires but flow not marked complete
+              setState(prev => ({ ...prev, isCompleted: true }));
+              toast({
+                title: 'Section Complete',
+                description: 'This section has been completed successfully!',
                 variant: 'default'
               });
             }
@@ -726,6 +811,7 @@ export const useAdaptiveFormFlow = (
       questionnaires: [],
       isLoading: false,
       isSaving: false,
+      isCompleted: false,
       error: null
     });
     setCurrentFlow(null);

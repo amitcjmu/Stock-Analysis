@@ -8,7 +8,7 @@ existence checking for the enhanced collection orchestrator.
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from app.core.context import RequestContext
 from app.models.collection_flow import (

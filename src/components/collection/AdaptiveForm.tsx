@@ -159,6 +159,11 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
     e.preventDefault();
 
     if (!validation?.isValid) {
+      // Mark form as interacted to show validation errors
+      if (!hasInteracted) {
+        setHasInteracted(true);
+      }
+
       // Focus first invalid field
       const firstError = Object.values(validation?.fieldResults || {}).find(
         result => !result.isValid
@@ -208,23 +213,8 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
 
   // Validate form whenever values change
   useEffect(() => {
-    // Don't validate until user has interacted with form
-    if (!hasInteracted) {
-      // Still call validation change with neutral state for initial load
-      if (onValidationChange) {
-        const neutralValidation: FormValidationResult = {
-          formId: formData.formId,
-          isValid: false, // Not valid but not showing errors
-          overallConfidenceScore: 0,
-          completionPercentage: 0,
-          fieldResults: {},
-          crossFieldErrors: [],
-          businessRuleViolations: []
-        };
-        onValidationChange(neutralValidation);
-      }
-      return;
-    }
+    // Always validate, but only show errors after user interaction
+    const isShowingErrors = hasInteracted;
 
     const validateForm = (): FormValidationResult => {
       const fieldResults: Record<string, FieldValidationResult> = {};
@@ -248,36 +238,43 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
           // Required field validation
           if (isRequired && !hasValue) {
             isValid = false;
-            errors.push({
-              fieldId: field.id,
-              fieldLabel: field.label,
-              errorCode: 'required',
-              errorMessage: `${field.label} is required`,
-              severity: 'error'
-            });
+            // Only show error if user has interacted with form
+            if (isShowingErrors) {
+              errors.push({
+                fieldId: field.id,
+                fieldLabel: field.label,
+                errorCode: 'required',
+                errorMessage: `${field.label} is required`,
+                severity: 'error'
+              });
+            }
           }
 
           // Length validation
           if (hasValue && field.validation?.minLength && String(value).length < field.validation.minLength) {
             isValid = false;
-            errors.push({
-              fieldId: field.id,
-              fieldLabel: field.label,
-              errorCode: 'minLength',
-              errorMessage: `${field.label} must be at least ${field.validation.minLength} characters`,
-              severity: 'error'
-            });
+            if (isShowingErrors) {
+              errors.push({
+                fieldId: field.id,
+                fieldLabel: field.label,
+                errorCode: 'minLength',
+                errorMessage: `${field.label} must be at least ${field.validation.minLength} characters`,
+                severity: 'error'
+              });
+            }
           }
 
           if (hasValue && field.validation?.maxLength && String(value).length > field.validation.maxLength) {
             isValid = false;
-            errors.push({
-              fieldId: field.id,
-              fieldLabel: field.label,
-              errorCode: 'maxLength',
-              errorMessage: `${field.label} must not exceed ${field.validation.maxLength} characters`,
-              severity: 'error'
-            });
+            if (isShowingErrors) {
+              errors.push({
+                fieldId: field.id,
+                fieldLabel: field.label,
+                errorCode: 'maxLength',
+                errorMessage: `${field.label} must not exceed ${field.validation.maxLength} characters`,
+                severity: 'error'
+              });
+            }
           }
 
           // Pattern validation
@@ -286,22 +283,26 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
             if (!isValidRegexPattern(field.validation.pattern)) {
               console.warn('Invalid or potentially dangerous regex pattern detected:', field.validation.pattern);
               isValid = false;
-              errors.push({
-                fieldId: field.id,
-                message: 'Invalid validation pattern configuration'
-              });
+              if (isShowingErrors) {
+                errors.push({
+                  fieldId: field.id,
+                  message: 'Invalid validation pattern configuration'
+                });
+              }
               return; // Skip further validation for this field
             }
             const regex = new RegExp(field.validation.pattern);
             if (!regex.test(String(value))) {
               isValid = false;
-              errors.push({
-                fieldId: field.id,
-                fieldLabel: field.label,
-                errorCode: 'pattern',
-                errorMessage: `${field.label} format is invalid`,
-                severity: 'error'
-              });
+              if (isShowingErrors) {
+                errors.push({
+                  fieldId: field.id,
+                  fieldLabel: field.label,
+                  errorCode: 'pattern',
+                  errorMessage: `${field.label} format is invalid`,
+                  severity: 'error'
+                });
+              }
             }
           }
 
@@ -310,13 +311,15 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(String(value))) {
               isValid = false;
-              errors.push({
-                fieldId: field.id,
-                fieldLabel: field.label,
-                errorCode: 'invalidEmail',
-                errorMessage: 'Please enter a valid email address',
-                severity: 'error'
-              });
+              if (isShowingErrors) {
+                errors.push({
+                  fieldId: field.id,
+                  fieldLabel: field.label,
+                  errorCode: 'invalidEmail',
+                  errorMessage: 'Please enter a valid email address',
+                  severity: 'error'
+                });
+              }
             }
           }
 
@@ -326,13 +329,15 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
               new URL(String(value));
             } catch {
               isValid = false;
-              errors.push({
-                fieldId: field.id,
-                fieldLabel: field.label,
-                errorCode: 'invalidUrl',
-                errorMessage: 'Please enter a valid URL',
-                severity: 'error'
-              });
+              if (isShowingErrors) {
+                errors.push({
+                  fieldId: field.id,
+                  fieldLabel: field.label,
+                  errorCode: 'invalidUrl',
+                  errorMessage: 'Please enter a valid URL',
+                  severity: 'error'
+                });
+              }
             }
           }
 
@@ -463,8 +468,8 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
         </CardHeader>
       </Card>
 
-      {/* Validation Display - Only show after interaction */}
-      {validation && hasInteracted && Object.keys(validation.fieldResults).length > 0 && (
+      {/* Validation Display - Only show after interaction and when there are errors */}
+      {validation && hasInteracted && Object.values(validation.fieldResults).some(result => result.errors.length > 0) && (
         <ValidationDisplay
           validation={validation}
           onErrorClick={(fieldId) => {
@@ -540,7 +545,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
 
                 <Button
                   type="submit"
-                  disabled={!validation?.isValid || isSubmitting}
+                  disabled={isSubmitting}
                   className="min-w-[120px]"
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Form'}
