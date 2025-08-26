@@ -228,7 +228,7 @@ const ApplicationSelection: React.FC = () => {
 
   // Get unique filter options from all loaded applications
   const environmentOptions = [...new Set(applications.map(app => app.environment).filter(Boolean))];
-  const criticalityOptions = [...new Set(applications.map(app => app.business_criticality).filter(Boolean)));
+  const criticalityOptions = [...new Set(applications.map(app => app.business_criticality).filter(Boolean))];
 
   // Reset to first page when filters change
   useEffect(() => {
