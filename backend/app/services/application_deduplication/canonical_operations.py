@@ -88,6 +88,7 @@ async def create_collection_flow_link(
         # Update existing link
         existing_link.name_variant_id = variant.id if variant else None
         existing_link.updated_at = datetime.utcnow()
+        await db.flush()  # Ensure changes are persisted
         return existing_link
 
     # Create new link

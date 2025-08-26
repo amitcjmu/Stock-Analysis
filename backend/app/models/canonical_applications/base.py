@@ -5,25 +5,24 @@ Base utilities and imports for canonical applications models
 import hashlib
 import re
 import uuid
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import (
     ARRAY,
-    Boolean,
-    Column,
-    DateTime,
     Float,
-    ForeignKey,
-    Index,
-    Integer,
+    Column,
     String,
     Text,
+    Boolean,
+    Integer,
+    DateTime,
+    ForeignKey,
+    Index,
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship, validates
 
+# Import Base and TimestampMixin from the main models base
 from app.models.base import Base, TimestampMixin
 
 # CC: Import pgvector types with fallback for environments without pgvector
@@ -47,7 +46,7 @@ def normalize_name(name: str) -> str:
     - Convert to lowercase
     - Strip whitespace
     - Replace multiple spaces with single space
-    - Remove special characters except alphanumeric, spaces, hyphens, underscores
+    - Remove special characters except alphanumeric, spaces, hyphens, underscores, periods
     """
     if not name:
         return ""
@@ -58,8 +57,8 @@ def normalize_name(name: str) -> str:
     # Replace multiple whitespace with single space
     normalized = re.sub(r"\s+", " ", normalized)
 
-    # Keep only alphanumeric, spaces, hyphens, underscores
-    normalized = re.sub(r"[^a-z0-9\s\-_]", "", normalized)
+    # Keep only alphanumeric, spaces, hyphens, underscores, and periods (preserve version numbers)
+    normalized = re.sub(r"[^a-z0-9\s\-_.]", "", normalized)
 
     # Final trim
     return normalized.strip()
@@ -104,3 +103,36 @@ def calculate_text_similarity(str1: str, str2: str) -> float:
     distance = levenshtein_distance(str1, str2)
     max_len = max(len(str1), len(str2))
     return 1.0 - (distance / max_len)
+
+
+# Export all necessary imports for other modules
+__all__ = [
+    # SQLAlchemy base classes
+    "Base",
+    "TimestampMixin",
+    # Column types
+    "Column",
+    "String",
+    "Text",
+    "Boolean",
+    "Integer",
+    "Float",
+    "DateTime",
+    "ForeignKey",
+    "Index",
+    "UniqueConstraint",
+    "UUID",
+    "JSONB",
+    "Vector",
+    # ORM utilities
+    "relationship",
+    "validates",
+    # Constants
+    "PGVECTOR_AVAILABLE",
+    # Utility functions
+    "normalize_name",
+    "generate_name_hash",
+    "calculate_text_similarity",
+    # UUID
+    "uuid",
+]

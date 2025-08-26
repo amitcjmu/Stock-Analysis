@@ -22,6 +22,45 @@ class WorkflowPhase(str, Enum):
     REVIEWING = "reviewing"
     COMPLETE = "complete"
 
+    @classmethod
+    def get_phase_order(cls) -> Dict[str, int]:
+        """Get explicit phase ordering to avoid string comparison brittleness"""
+        return {
+            cls.INITIAL: 0,
+            cls.COLLECTING_BASIC: 1,
+            cls.COLLECTING_DETAILED: 2,
+            cls.REVIEWING: 3,
+            cls.COMPLETE: 4,
+        }
+
+    def get_order_index(self) -> int:
+        """Get the order index for this phase"""
+        return self.get_phase_order().get(self, -1)
+
+    def __le__(self, other) -> bool:
+        """Less than or equal comparison based on explicit phase ordering"""
+        if not isinstance(other, WorkflowPhase):
+            return NotImplemented
+        return self.get_order_index() <= other.get_order_index()
+
+    def __lt__(self, other) -> bool:
+        """Less than comparison based on explicit phase ordering"""
+        if not isinstance(other, WorkflowPhase):
+            return NotImplemented
+        return self.get_order_index() < other.get_order_index()
+
+    def __ge__(self, other) -> bool:
+        """Greater than or equal comparison based on explicit phase ordering"""
+        if not isinstance(other, WorkflowPhase):
+            return NotImplemented
+        return self.get_order_index() >= other.get_order_index()
+
+    def __gt__(self, other) -> bool:
+        """Greater than comparison based on explicit phase ordering"""
+        if not isinstance(other, WorkflowPhase):
+            return NotImplemented
+        return self.get_order_index() > other.get_order_index()
+
 
 class QuestionnaireType(str, Enum):
     """Types of questionnaires in the collection workflow"""

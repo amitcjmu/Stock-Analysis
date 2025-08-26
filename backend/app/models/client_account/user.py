@@ -122,7 +122,7 @@ class User(Base):
     )
     # Define association proxy with deferred import to avoid circular imports
 
-    def _create_association(client_account):
+    def _create_association(self, client_account):
         from .associations import UserAccountAssociation
 
         return UserAccountAssociation(client_account=client_account)

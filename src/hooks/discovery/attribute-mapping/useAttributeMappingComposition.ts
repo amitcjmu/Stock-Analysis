@@ -82,6 +82,7 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
 
 
   // Debug import data loading - removed to prevent console spam
+  // Avoid auto-refetch cascades on navigation; let user-triggered actions control refresh
   const refetchAgentic = useCallback(() => {
     return Promise.all([refresh(), fieldMappingsHook.refetchFieldMappings()]);
   }, [refresh, fieldMappingsHook]);

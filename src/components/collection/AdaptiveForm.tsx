@@ -24,9 +24,9 @@ const isValidRegexPattern = (pattern: string): boolean => {
   try {
     // Check for common dangerous patterns that could lead to ReDoS
     const dangerousPatterns = [
-      /\(\?\![^\)]*\+/,    // Negative lookahead with quantifiers
-      /\([^\)]*\+[^\)]*\+/,  // Nested quantifiers
-      /\([^\)]*\*[^\)]*\*/,  // Nested star quantifiers
+      /\(\?![^)]*\+/,    // Negative lookahead with quantifiers
+      /\([^)]*\+[^)]*\+/,  // Nested quantifiers
+      /\([^)]*\*[^)]*\*/,  // Nested star quantifiers
       /\{\d+,\}/,         // Open-ended quantifiers
     ];
 
@@ -184,7 +184,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [formValues, onSubmit, validation]);
+  }, [formValues, onSubmit, validation, hasInteracted]);
 
   // Progressive disclosure - determine visible fields
   const getVisibleFields = useCallback((section: FormSection) => {
@@ -545,7 +545,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
 
                 <Button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !validation?.isValid}
                   className="min-w-[120px]"
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Form'}

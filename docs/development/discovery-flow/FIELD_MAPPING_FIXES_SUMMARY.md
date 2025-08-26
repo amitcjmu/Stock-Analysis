@@ -21,9 +21,10 @@
   - Parser extracting wrong fields from JSON response
 - **Fixes Implemented**:
   1. Fixed deferred dependency injection in `field_mapping_executor/base.py`
-  2. Created `field_mapping_auto_trigger.py` service to monitor and auto-generate mappings
+  2. Removed `field_mapping_auto_trigger.py` and startup hooks; mapping now occurs within the Controlled Phase Execution only
   3. Fixed JSON parser to handle list format mappings correctly
-  4. Added database persistence with proper `data_import_id` linkage
+  4. Ensured database persistence includes both `data_import_id` and `master_flow_id`
+  5. Normalized discovery flow creation to store `raw_data` as list-of-records and set `metadata.detected_columns`
 
 ## Key Files Modified
 
