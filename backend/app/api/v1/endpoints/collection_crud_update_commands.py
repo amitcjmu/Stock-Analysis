@@ -231,15 +231,21 @@ async def update_collection_flow(
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         logger.error(
             safe_log_format(
-                "Error updating collection flow: flow_id={flow_id}, error={e}",
+                "Error updating collection flow: flow_id={flow_id}, error occurred",
                 flow_id=flow_id,
-                e=e,
             )
         )
-        raise HTTPException(status_code=500, detail=str(e))
+        # CC: Don't echo exception text in responses (security concern)
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Failed to update collection flow. "
+                "Please try again or contact support if the issue persists."
+            ),
+        )
 
 
 async def _handle_update_applications_action(
@@ -460,14 +466,20 @@ async def submit_questionnaire_response(
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         logger.error(
             safe_log_format(
                 "Error submitting questionnaire response: "
-                "flow_id={flow_id}, questionnaire_id={questionnaire_id}, error={e}",
+                "flow_id={flow_id}, questionnaire_id={questionnaire_id}, error occurred",
                 flow_id=flow_id,
                 questionnaire_id=questionnaire_id,
-                e=e,
             )
         )
-        raise HTTPException(status_code=500, detail=str(e))
+        # CC: Don't echo exception text in responses (security concern)
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Failed to submit questionnaire response. "
+                "Please try again or contact support if the issue persists."
+            ),
+        )

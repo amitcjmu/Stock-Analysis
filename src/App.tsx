@@ -1,23 +1,23 @@
-import { useState } from 'react';
-import { useEffect } from 'react';
-import { Toaster } from '@/components/ui/toaster';
-import { Toaster as Sonner } from '@/components/ui/sonner';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import { Route } from 'react-router-dom';
-import { Routes } from 'react-router-dom';
-import { ChatFeedbackProvider } from './contexts/ChatFeedbackContext';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ClientProvider } from './contexts/ClientContext';
-import { FieldOptionsProvider } from './contexts/FieldOptionsContext';
-import { DialogProvider } from './contexts/DialogContext';
-import GlobalChatFeedback from './components/GlobalChatFeedback';
-import { AppInitializer } from './services/appInitializer';
-import { useGlobalErrorHandler } from './hooks/useGlobalErrorHandler';
-import { ErrorBoundary } from './components/ErrorBoundary';
+import { useState } from "react";
+import { useEffect } from "react";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Route } from "react-router-dom";
+import { Routes } from "react-router-dom";
+import { ChatFeedbackProvider } from "./contexts/ChatFeedbackContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ClientProvider } from "./contexts/ClientContext";
+import { FieldOptionsProvider } from "./contexts/FieldOptionsContext";
+import { DialogProvider } from "./contexts/DialogContext";
+import GlobalChatFeedback from "./components/GlobalChatFeedback";
+import { AppInitializer } from "./services/appInitializer";
+import { useGlobalErrorHandler } from "./hooks/useGlobalErrorHandler";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // Lazy Loading Infrastructure
-import { LazyLoadingProvider, LoadingPriority } from './components/lazy';
-import { routePreloader } from './utils/lazy/routePreloader';
+import { LazyLoadingProvider, LoadingPriority } from "./components/lazy";
+import { routePreloader } from "./utils/lazy/routePreloader";
 
 // Lazy-loaded route components (organized by priority)
 import {
@@ -27,7 +27,7 @@ import {
   LazyClientDetails,
   LazyEngagementDetails,
   LazyDebugContext,
-} from './components/lazy';
+} from "./components/lazy";
 import {
   LazyIndex,
   LazyLogin,
@@ -52,6 +52,7 @@ import {
   LazyDataIntegration,
   LazyCollectionProgress,
   LazyCollectionFlowManagement,
+  LazyApplicationSelection,
   LazyTreatment,
   LazyWavePlanning,
   LazyRoadmap,
@@ -100,11 +101,11 @@ import {
   LazyCreateEngagement,
   LazyUserProfile,
   LazyPlatformAdmin,
-} from './components/lazy';
+} from "./components/lazy";
 
 // Non-lazy components that are always needed
-import AdminLayout from './components/admin/AdminLayout';
-import AdminRoute from './components/admin/AdminRoute';
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminRoute from "./components/admin/AdminRoute";
 
 // Component to handle authenticated routes
 const AuthenticatedApp = (): JSX.Element => {
@@ -128,33 +129,33 @@ const AuthenticatedApp = (): JSX.Element => {
     if (isAuthenticated) {
       // Register critical routes for preloading
       routePreloader.registerRoute({
-        path: '/',
-        importFn: () => import('./pages/Index'),
+        path: "/",
+        importFn: () => import("./pages/Index"),
         priority: LoadingPriority.CRITICAL,
       });
 
       routePreloader.registerRoute({
-        path: '/discovery',
-        importFn: () => import('./pages/Discovery'),
+        path: "/discovery",
+        importFn: () => import("./pages/Discovery"),
         priority: LoadingPriority.HIGH,
       });
 
       routePreloader.registerRoute({
-        path: '/assess',
-        importFn: () => import('./pages/Assess'),
+        path: "/assess",
+        importFn: () => import("./pages/Assess"),
         priority: LoadingPriority.HIGH,
       });
 
       // Register collection routes for preloading
       routePreloader.registerRoute({
-        path: '/collection',
-        importFn: () => import('./pages/collection/Index'),
+        path: "/collection",
+        importFn: () => import("./pages/collection/Index"),
         priority: LoadingPriority.HIGH,
       });
 
       routePreloader.registerRoute({
-        path: '/collection/adaptive-forms',
-        importFn: () => import('./pages/collection/AdaptiveForms'),
+        path: "/collection/adaptive-forms",
+        importFn: () => import("./pages/collection/AdaptiveForms"),
         priority: LoadingPriority.HIGH,
       });
 
@@ -203,32 +204,75 @@ const AuthenticatedApp = (): JSX.Element => {
       {/* NORMAL PRIORITY - Discovery sub-routes */}
       <Route path="/discovery/overview" element={<LazyDiscoveryDashboard />} />
       <Route path="/discovery/dashboard" element={<LazyDiscoveryDashboard />} />
-      <Route path="/discovery/enhanced-dashboard" element={<LazyDiscoveryDashboard />} />
-      <Route path="/discovery/monitor/:flowId" element={<LazyDiscoveryDashboard />} />
+      <Route
+        path="/discovery/enhanced-dashboard"
+        element={<LazyDiscoveryDashboard />}
+      />
+      <Route
+        path="/discovery/monitor/:flowId"
+        element={<LazyDiscoveryDashboard />}
+      />
       <Route path="/discovery/cmdb-import" element={<LazyDataImport />} />
       <Route path="/discovery/data-import" element={<LazyDataImport />} />
       <Route path="/discovery/inventory" element={<LazyInventory />} />
       <Route path="/discovery/inventory/:flowId" element={<LazyInventory />} />
       <Route path="/discovery/dependencies" element={<LazyDependencies />} />
-      <Route path="/discovery/dependencies/:flowId" element={<LazyDependencies />} />
+      <Route
+        path="/discovery/dependencies/:flowId"
+        element={<LazyDependencies />}
+      />
       <Route path="/discovery/data-cleansing" element={<LazyDataCleansing />} />
-      <Route path="/discovery/data-cleansing/:flowId" element={<LazyDataCleansing />} />
-      <Route path="/discovery/attribute-mapping" element={<LazyAttributeMapping />} />
-      <Route path="/discovery/attribute-mapping/:flowId" element={<LazyAttributeMapping />} />
+      <Route
+        path="/discovery/data-cleansing/:flowId"
+        element={<LazyDataCleansing />}
+      />
+      <Route
+        path="/discovery/attribute-mapping"
+        element={<LazyAttributeMapping />}
+      />
+      <Route
+        path="/discovery/attribute-mapping/:flowId"
+        element={<LazyAttributeMapping />}
+      />
       {/* Redirect for backward compatibility - field-mapping to attribute-mapping */}
-      <Route path="/discovery/field-mapping" element={<LazyAttributeMapping />} />
-      <Route path="/discovery/field-mapping/:flowId" element={<LazyAttributeMapping />} />
+      <Route
+        path="/discovery/field-mapping"
+        element={<LazyAttributeMapping />}
+      />
+      <Route
+        path="/discovery/field-mapping/:flowId"
+        element={<LazyAttributeMapping />}
+      />
 
       {/* Collection workflow routes */}
       <Route path="/collection" element={<LazyCollectionIndex />} />
       <Route path="/collection/overview" element={<LazyCollectionIndex />} />
-      <Route path="/collection/adaptive-forms" element={<LazyAdaptiveForms />} />
-      <Route path="/collection/adaptive-forms/:applicationId" element={<LazyAdaptiveForms />} />
+      <Route
+        path="/collection/adaptive-forms"
+        element={<LazyAdaptiveForms />}
+      />
+      <Route
+        path="/collection/adaptive-forms/:applicationId"
+        element={<LazyAdaptiveForms />}
+      />
       <Route path="/collection/bulk-upload" element={<LazyBulkUpload />} />
-      <Route path="/collection/data-integration" element={<LazyDataIntegration />} />
+      <Route
+        path="/collection/data-integration"
+        element={<LazyDataIntegration />}
+      />
+      <Route
+        path="/collection/select-applications"
+        element={<LazyApplicationSelection />}
+      />
       <Route path="/collection/progress" element={<LazyCollectionProgress />} />
-      <Route path="/collection/progress/:flowId" element={<LazyCollectionProgress />} />
-      <Route path="/collection/flow-management" element={<LazyCollectionFlowManagement />} />
+      <Route
+        path="/collection/progress/:flowId"
+        element={<LazyCollectionProgress />}
+      />
+      <Route
+        path="/collection/flow-management"
+        element={<LazyCollectionFlowManagement />}
+      />
 
       {/* Assessment sub-routes */}
       <Route path="/assess/overview" element={<LazyAssessmentFlowOverview />} />
@@ -238,13 +282,34 @@ const AuthenticatedApp = (): JSX.Element => {
 
       {/* Assessment Flow Routes */}
       <Route path="/assessment" element={<LazyAssessmentFlowOverview />} />
-      <Route path="/assessment/overview" element={<LazyAssessmentFlowOverview />} />
-      <Route path="/assessment/initialize" element={<LazyInitializeFlowWithInventory />} />
-      <Route path="/assessment/:flowId/architecture" element={<LazyAssessmentArchitecture />} />
-      <Route path="/assessment/:flowId/tech-debt" element={<LazyAssessmentTechDebt />} />
-      <Route path="/assessment/:flowId/sixr-review" element={<LazyAssessmentSixRReview />} />
-      <Route path="/assessment/:flowId/app-on-page" element={<LazyAssessmentAppOnPage />} />
-      <Route path="/assessment/:flowId/summary" element={<LazyAssessmentSummary />} />
+      <Route
+        path="/assessment/overview"
+        element={<LazyAssessmentFlowOverview />}
+      />
+      <Route
+        path="/assessment/initialize"
+        element={<LazyInitializeFlowWithInventory />}
+      />
+      <Route
+        path="/assessment/:flowId/architecture"
+        element={<LazyAssessmentArchitecture />}
+      />
+      <Route
+        path="/assessment/:flowId/tech-debt"
+        element={<LazyAssessmentTechDebt />}
+      />
+      <Route
+        path="/assessment/:flowId/sixr-review"
+        element={<LazyAssessmentSixRReview />}
+      />
+      <Route
+        path="/assessment/:flowId/app-on-page"
+        element={<LazyAssessmentAppOnPage />}
+      />
+      <Route
+        path="/assessment/:flowId/summary"
+        element={<LazyAssessmentSummary />}
+      />
 
       {/* Plan sub-routes */}
       <Route path="/plan/overview" element={<LazyPlanIndex />} />
@@ -272,15 +337,36 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route path="/modernize/progress" element={<LazyProgress />} />
 
       <Route path="/decommission" element={<LazyDecommission />} />
-      <Route path="/decommission/overview" element={<LazyDecommissionIndex />} />
-      <Route path="/decommission/planning" element={<LazyDecommissionPlanning />} />
-      <Route path="/decommission/data-retention" element={<LazyDataRetention />} />
-      <Route path="/decommission/execution" element={<LazyDecommissionExecution />} />
-      <Route path="/decommission/validation" element={<LazyDecommissionValidation />} />
+      <Route
+        path="/decommission/overview"
+        element={<LazyDecommissionIndex />}
+      />
+      <Route
+        path="/decommission/planning"
+        element={<LazyDecommissionPlanning />}
+      />
+      <Route
+        path="/decommission/data-retention"
+        element={<LazyDataRetention />}
+      />
+      <Route
+        path="/decommission/execution"
+        element={<LazyDecommissionExecution />}
+      />
+      <Route
+        path="/decommission/validation"
+        element={<LazyDecommissionValidation />}
+      />
 
       <Route path="/finops" element={<LazyFinOps />} />
-      <Route path="/finops/cloud-comparison" element={<LazyCloudComparison />} />
-      <Route path="/finops/savings-analysis" element={<LazySavingsAnalysis />} />
+      <Route
+        path="/finops/cloud-comparison"
+        element={<LazyCloudComparison />}
+      />
+      <Route
+        path="/finops/savings-analysis"
+        element={<LazySavingsAnalysis />}
+      />
       <Route path="/finops/cost-analysis" element={<LazyCostAnalysis />} />
       <Route path="/finops/llm-costs" element={<LazyLLMCosts />} />
       <Route path="/finops/wave-breakdown" element={<LazyWaveBreakdown />} />
@@ -288,8 +374,14 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route path="/finops/budget-alerts" element={<LazyBudgetAlerts />} />
 
       <Route path="/observability" element={<LazyObservability />} />
-      <Route path="/observability/enhanced" element={<LazyEnhancedObservabilityDashboard />} />
-      <Route path="/observability/agent/:agentName" element={<LazyAgentDetailPage />} />
+      <Route
+        path="/observability/enhanced"
+        element={<LazyEnhancedObservabilityDashboard />}
+      />
+      <Route
+        path="/observability/agent/:agentName"
+        element={<LazyAgentDetailPage />}
+      />
       <Route
         path="/observability/agent-monitoring"
         element={<LazyEnhancedObservabilityDashboard />}
@@ -476,7 +568,7 @@ const App = (): JSX.Element => (
           priority: LoadingPriority.NORMAL,
           timeout: 30000,
           retryAttempts: 3,
-          cacheStrategy: 'memory',
+          cacheStrategy: "memory",
         }}
       >
         <AuthProvider>

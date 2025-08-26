@@ -127,3 +127,17 @@ class ManageFlowRequest(BaseModel):
             "Multiple flow IDs for batch actions " "(required for 'cancel_multiple')"
         ),
     )
+
+
+class CollectionApplicationSelectionRequest(BaseModel):
+    """Schema for collection flow application selection request"""
+
+    selected_application_ids: List[str] = Field(
+        ...,
+        description="List of application IDs to include in the collection flow",
+        min_items=1,
+    )
+    action: Optional[str] = Field(
+        default="update_applications",
+        description="Action to perform (default: update_applications)",
+    )

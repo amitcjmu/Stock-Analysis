@@ -26,6 +26,7 @@ def _get_intelligent_mapping_engine():
     """Lazy import of IntelligentMappingEngine to prevent import-time errors"""
     try:
         from .intelligent_engines import IntelligentMappingEngine
+
         return IntelligentMappingEngine
     except ImportError as e:
         logger.warning(f"Could not import IntelligentMappingEngine: {e}")
@@ -38,7 +39,9 @@ def __getattr__(name):
     if name == "IntelligentMappingEngine":
         engine_class = _get_intelligent_mapping_engine()
         if engine_class is None:
-            raise ImportError(f"Could not import {name}. Check if required dependencies are installed.")
+            raise ImportError(
+                f"Could not import {name}. Check if required dependencies are installed."
+            )
         return engine_class
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 

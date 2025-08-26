@@ -23,10 +23,12 @@ from app.schemas.collection_flow import (
     CollectionFlowUpdate,
     CollectionGapAnalysisResponse,
     ManageFlowRequest,
+    CollectionApplicationSelectionRequest,
 )
 
 # Import all modular functions to maintain backward compatibility
 from app.api.v1.endpoints import collection_crud
+from app.api.v1.endpoints.collection_applications import update_flow_applications
 
 logger = logging.getLogger(__name__)
 
@@ -257,6 +259,30 @@ async def get_incomplete_flows(
 ) -> List[CollectionFlowResponse]:
     """Get all incomplete collection flows for the current engagement"""
     return await collection_crud.get_incomplete_flows(
+        db=db,
+        current_user=current_user,
+        context=context,
+    )
+
+
+@router.post("/flows/{flow_id}/applications", response_model=Dict[str, Any])
+async def update_collection_flow_applications(
+    flow_id: str,
+    request_data: CollectionApplicationSelectionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Update collection flow with selected applications for questionnaire generation.
+
+    This endpoint allows users to specify which applications should be included
+    in a collection flow, enabling targeted questionnaire generation and gap analysis.
+
+    SECURITY: Validates that all selected applications belong to the current user's engagement.
+    """
+    return await update_flow_applications(
+        flow_id=flow_id,
+        request_data=request_data,
         db=db,
         current_user=current_user,
         context=context,
