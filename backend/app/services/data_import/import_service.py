@@ -230,9 +230,34 @@ class DataImportService:
                 "master_flow_id": master_flow_id,
                 "import_timestamp": datetime.utcnow().isoformat(),
             }
+
+            # Derive detected columns early to remove timing/race conditions
+            try:
+                detected_columns = []
+                if isinstance(parsed_data, list) and parsed_data:
+                    first_row = parsed_data[0]
+                    if isinstance(first_row, dict):
+                        detected_columns = [
+                            k for k in first_row.keys() if str(k).strip()
+                        ]
+                elif isinstance(parsed_data, dict) and "data" in parsed_data:
+                    data_list = parsed_data.get("data", [])
+                    if isinstance(data_list, list) and data_list:
+                        first_row = data_list[0]
+                        if isinstance(first_row, dict):
+                            detected_columns = [
+                                k for k in first_row.keys() if str(k).strip()
+                            ]
+
+                if detected_columns:
+                    metadata["detected_columns"] = detected_columns
+            except Exception:
+                # Non-fatal; proceed without detected_columns if parsing fails
+                pass
             await discovery_service.create_discovery_flow(
                 flow_id=str(master_flow_id),
-                raw_data=file_data,
+                # Store the actual list of records in raw_data for downstream phases
+                raw_data=file_data["data"],
                 metadata=convert_uuids_to_str(metadata),
                 data_import_id=str(data_import.id),
                 user_id=str(self.context.user_id),
