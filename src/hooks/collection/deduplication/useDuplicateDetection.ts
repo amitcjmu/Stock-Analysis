@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { canonicalApplicationsApi } from '@/services/api/canonical-applications';
 import type {
@@ -112,14 +112,15 @@ export const useDuplicateDetection = (
       }
 
       return sortedMatches;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Don't treat aborted requests as errors
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         return [];
       }
 
       console.error('Error checking for duplicates:', error);
-      setError(error.message || 'Failed to check for duplicates');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to check for duplicates';
+      setError(errorMessage);
       return [];
     } finally {
       setIsChecking(false);
@@ -162,15 +163,16 @@ export const useDuplicateDetection = (
 
       // Clear the duplicate state after processing
       clearDuplicateState();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error processing duplicate decision:', error);
-      setError(error.message || 'Failed to process duplicate decision');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process duplicate decision';
+      setError(errorMessage);
       throw error;
     }
   }, [duplicateMatches, onDecisionMade, clearDuplicateState]);
 
   // Clean up on unmount
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -179,7 +181,7 @@ export const useDuplicateDetection = (
   }, []);
 
   // Clear state when client or engagement changes
-  React.useEffect(() => {
+  useEffect(() => {
     clearDuplicateState();
   }, [client?.id, engagement?.id, clearDuplicateState]);
 

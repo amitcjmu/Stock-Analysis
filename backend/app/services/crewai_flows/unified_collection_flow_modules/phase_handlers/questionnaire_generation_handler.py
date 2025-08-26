@@ -18,17 +18,17 @@ from app.services.unified_discovery.collection_orchestrator import (
 from .questionnaire_utilities import (
     check_loop_prevention,
     check_should_generate,
-    prepare_questionnaire_config,
-    generate_questionnaires_core,
-    create_adaptive_forms,
-    save_and_update_state,
-    record_orchestrator_submission,
     commit_database_transaction,
+    create_adaptive_forms,
+    determine_questionnaire_type,
     finalize_generation,
+    generate_questionnaires_core,
     handle_generation_error,
     handle_no_questionnaires_generated,
+    prepare_questionnaire_config,
+    record_orchestrator_submission,
+    save_and_update_state,
     should_skip_detailed_questionnaire,
-    determine_questionnaire_type,
     update_state_for_generation,
 )
 
@@ -126,7 +126,9 @@ class QuestionnaireGenerationHandler:
 
             # Handle case of no questionnaires generated
             if len(questionnaires) == 0:
-                return handle_no_questionnaires_generated(state, questionnaire_type)
+                return await handle_no_questionnaires_generated(
+                    state, questionnaire_type, self.flow_context, self.state_manager
+                )
 
             # Create adaptive forms
             form_configs = await create_adaptive_forms(

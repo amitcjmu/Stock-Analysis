@@ -21,10 +21,11 @@ from app.services.application_deduplication_service import (
     DeduplicationConfig,
     create_deduplication_service,
 )
+
 from .schemas import (
+    BulkDeduplicationRequest,
     CanonicalApplicationRequest,
     CanonicalApplicationResponse,
-    BulkDeduplicationRequest,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,7 +44,7 @@ async def process_canonical_applications(
     try:
         # Create deduplication service with request configuration
         config = DeduplicationConfig(
-            fuzzy_text_threshold=request_data.similarity_threshold,
+            fuzzy_text_threshold=request_data.similarity_threshold or 0.85,
             enable_vector_search=request_data.enable_vector_search,
             auto_merge_high_confidence=request_data.auto_merge_high_confidence,
         )
@@ -59,8 +60,9 @@ async def process_canonical_applications(
             idempotency_keys[app_name] = idempotency_key
 
         logger.info(
-            f"🔄 Processing {len(request_data.application_names)} applications "
-            f"for canonical deduplication in engagement {context.engagement_id}"
+            "🔄 Processing %d applications for canonical deduplication in engagement %s",
+            len(request_data.application_names),
+            context.engagement_id,
         )
 
         results = []
@@ -80,7 +82,7 @@ async def process_canonical_applications(
                     application_name=app_name,
                     client_account_id=context.client_account_id,
                     engagement_id=context.engagement_id,
-                    user_id=current_user.id,
+                    user_id=current_user.id,  # type: ignore[arg-type]
                 )
 
                 response = CanonicalApplicationResponse(
@@ -114,17 +116,32 @@ async def process_canonical_applications(
 
             except Exception as app_error:
                 logger.warning(
-                    f"Failed to process application '{app_name}': {str(app_error)}"
+                    "Failed to process application '%s': %s",
+                    app_name,
+                    str(app_error),
                 )
+                # CC: Rollback the database session to restore clean transaction boundary
+                # This ensures that partial failures don't affect subsequent operations
+                try:
+                    await db.rollback()
+                    logger.debug(
+                        "Database session rolled back after application '%s' processing failure",
+                        app_name,
+                    )
+                except Exception as rollback_error:
+                    logger.error(
+                        "Failed to rollback database session: %s",
+                        str(rollback_error),
+                    )
                 # Continue processing other applications
                 continue
 
         logger.info(
-            f"✅ Canonical application processing completed: "
-            f"{processing_stats['total_processed']} processed, "
-            f"{processing_stats['new_canonical_created']} new canonical, "
-            f"{processing_stats['existing_matched']} matched existing, "
-            f"{processing_stats['variants_created']} variants created"
+            "✅ Canonical application processing completed: %d processed, %d new canonical, %d matched existing, %d variants created",  # noqa: E501
+            processing_stats["total_processed"],
+            processing_stats["new_canonical_created"],
+            processing_stats["existing_matched"],
+            processing_stats["variants_created"],
         )
 
         return {
@@ -137,7 +154,9 @@ async def process_canonical_applications(
 
     except Exception as e:
         logger.error(
-            f"❌ Canonical application processing failed for engagement {context.engagement_id}: {str(e)}"
+            "❌ Canonical application processing failed for engagement %s: %s",
+            context.engagement_id,
+            str(e),
         )
         raise HTTPException(
             status_code=500,
@@ -173,8 +192,9 @@ async def bulk_deduplicate_applications(
         )
 
         logger.info(
-            f"🔄 Starting bulk deduplication for {len(request_data.applications)} applications "
-            f"in engagement {context.engagement_id}"
+            "🔄 Starting bulk deduplication for %d applications in engagement %s",
+            len(request_data.applications),
+            context.engagement_id,
         )
 
         # Process applications in bulk with optimizations
@@ -183,7 +203,7 @@ async def bulk_deduplicate_applications(
             applications=request_data.applications,
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
-            user_id=current_user.id,
+            user_id=current_user.id,  # type: ignore[arg-type]
             collection_flow_id=collection_flow_uuid,
             batch_size=request_data.batch_size,
         )
@@ -202,7 +222,9 @@ async def bulk_deduplicate_applications(
         # Analyze match methods distribution
         for result in results:
             method = result.match_method.value
-            stats["match_methods"][method] = stats["match_methods"].get(method, 0) + 1
+            match_methods = stats["match_methods"]
+            if isinstance(match_methods, dict):
+                match_methods[method] = match_methods.get(method, 0) + 1
 
         # Convert results to dict format for API response
         result_dicts = []
@@ -223,7 +245,9 @@ async def bulk_deduplicate_applications(
             )
 
         logger.info(
-            f"✅ Bulk deduplication completed: {stats['successfully_processed']}/{stats['total_requested']} successful"
+            "✅ Bulk deduplication completed: %d/%d successful",
+            stats["successfully_processed"],
+            stats["total_requested"],
         )
 
         return {
@@ -236,7 +260,9 @@ async def bulk_deduplicate_applications(
 
     except Exception as e:
         logger.error(
-            f"❌ Bulk deduplication failed for engagement {context.engagement_id}: {str(e)}"
+            "❌ Bulk deduplication failed for engagement %s: %s",
+            context.engagement_id,
+            str(e),
         )
         raise HTTPException(
             status_code=500, detail=f"Bulk deduplication failed: {str(e)}"

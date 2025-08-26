@@ -6,6 +6,7 @@ particularly for index creation and optimization tasks.
 """
 
 import logging
+
 from alembic import op
 from sqlalchemy import text
 
@@ -15,11 +16,20 @@ logger = logging.getLogger(__name__)
 def check_pgvector_availability(conn) -> bool:
     """Check if pgvector extension is available for vector indexes"""
     try:
-        conn.execute(text("SELECT 1 FROM pg_extension WHERE extname = 'vector'"))
-        logger.info("✅ pgvector extension detected - will create vector indexes")
-        return True
-    except Exception:
+        result = conn.execute(
+            text("SELECT 1 FROM pg_extension WHERE extname = 'vector'")
+        )
+        # CC: Fetch result and check if any rows were returned to verify pgvector extension exists
+        row = result.fetchone()
+        if row:
+            logger.info("✅ pgvector extension detected - will create vector indexes")
+            return True
         logger.info("ℹ️ pgvector extension not available - skipping vector indexes")
+        return False
+    except Exception as e:
+        logger.info(
+            f"ℹ️ pgvector extension not available (error: {e}) - skipping vector indexes"
+        )
         return False
 
 

@@ -143,6 +143,11 @@ export const ApplicationDeduplicationManager: React.FC<ApplicationDeduplicationM
 
   // Create a new canonical application
   const createNewCanonicalApplication = useCallback(async (applicationName: string) => {
+    // Validate authentication context first
+    if (!client?.id || !engagement?.id) {
+      throw new Error('Authentication context is required. Please ensure you are logged in and try again.');
+    }
+
     if (!applicationName || typeof applicationName !== 'string' || !applicationName.trim()) {
       throw new Error('Valid application name is required to create canonical application');
     }
@@ -174,10 +179,12 @@ export const ApplicationDeduplicationManager: React.FC<ApplicationDeduplicationM
     setSelectedApplications(prev => [...prev, newSelection]);
     setCurrentInput('');
 
-    // Refresh canonical applications data
-    queryClient.invalidateQueries({
-      queryKey: ['canonical-applications', client?.id, engagement?.id],
-    });
+    // Refresh canonical applications data - only if client and engagement are available
+    if (client?.id && engagement?.id) {
+      queryClient.invalidateQueries({
+        queryKey: ['canonical-applications', client.id, engagement.id],
+      });
+    }
 
     toast({
       title: 'New Application Created',
@@ -290,10 +297,12 @@ export const ApplicationDeduplicationManager: React.FC<ApplicationDeduplicationM
         setSelectedApplications(prev => [...prev, newSelection]);
         setCurrentInput('');
 
-        // Refresh canonical applications data
-        queryClient.invalidateQueries({
-          queryKey: ['canonical-applications', client?.id, engagement?.id],
-        });
+        // Refresh canonical applications data - only if client and engagement are available
+        if (client?.id && engagement?.id) {
+          queryClient.invalidateQueries({
+            queryKey: ['canonical-applications', client.id, engagement.id],
+          });
+        }
 
         toast({
           title: 'Application Added',
@@ -364,10 +373,12 @@ export const ApplicationDeduplicationManager: React.FC<ApplicationDeduplicationM
         detectedMatches: [],
       });
 
-      // Refresh data
-      queryClient.invalidateQueries({
-        queryKey: ['canonical-applications', client?.id, engagement?.id],
-      });
+      // Refresh data - only if client and engagement are available
+      if (client?.id && engagement?.id) {
+        queryClient.invalidateQueries({
+          queryKey: ['canonical-applications', client.id, engagement.id],
+        });
+      }
     } catch (error: unknown) {
       console.error('Error processing duplicate decision:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to process duplicate decision.';

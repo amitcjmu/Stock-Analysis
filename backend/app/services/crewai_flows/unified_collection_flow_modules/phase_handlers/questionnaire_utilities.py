@@ -35,9 +35,8 @@ def get_next_phase_name(state: CollectionFlowState, questionnaire_type: str) -> 
     # For bootstrap questionnaires, typically advance to basic collection
     if questionnaire_type == "bootstrap":
         return "manual_collection"  # Bootstrap leads to manual data collection
-    else:
-        # For detailed questionnaires, usually continue with manual collection
-        return "manual_collection"
+    # For detailed questionnaires, usually continue with manual collection
+    return "manual_collection"
 
 
 async def check_loop_prevention(
@@ -71,10 +70,11 @@ async def check_should_generate(
     questionnaire_type: str,
 ) -> Optional[Dict[str, Any]]:
     """Check if questionnaire should be generated and return early exit if not"""
-    should_generate, reason = (
-        await collection_orchestrator.should_generate_questionnaire(
-            state, gap_result, questionnaire_type
-        )
+    (
+        should_generate,
+        reason,
+    ) = await collection_orchestrator.should_generate_questionnaire(
+        state, gap_result, questionnaire_type
     )
 
     if not should_generate:
@@ -381,11 +381,33 @@ async def handle_generation_error(
     raise CollectionFlowError(f"Questionnaire generation failed: {type(e).__name__}")
 
 
-def handle_no_questionnaires_generated(
-    state: CollectionFlowState, questionnaire_type: str
+async def handle_no_questionnaires_generated(
+    state: CollectionFlowState,
+    questionnaire_type: str,
+    flow_context=None,
+    state_manager=None,
 ) -> Dict[str, Any]:
     """Handle the case when no questionnaires are generated"""
     logger.warning(f"No questionnaires generated for flow {state.flow_id}")
+
+    # CC: Update state to mark questionnaire generation as completed with 0 questionnaires
+    if hasattr(state, "set_phase_status"):
+        state.set_phase_status("questionnaire_generation", "completed")
+
+    # CC: Persist state changes before returning to maintain workflow consistency
+    if flow_context and state_manager:
+        try:
+            await state_manager.save_state(state)
+            # Commit database transaction if available
+            if hasattr(flow_context, "db_session") and flow_context.db_session:
+                await flow_context.db_session.commit()
+                logger.debug("✅ State persisted after no questionnaires generated")
+        except Exception as save_error:
+            logger.error(
+                f"❌ Failed to persist state before early return: {save_error}"
+            )
+            # Continue execution - this is not critical enough to fail the entire operation
+
     return {
         "phase": "questionnaire_generation",
         "status": "completed",
