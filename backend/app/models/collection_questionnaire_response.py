@@ -38,14 +38,14 @@ class CollectionQuestionnaireResponse(Base, TimestampMixin):
         index=True,
     )
     responded_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    
+
     # Asset relationship - CRITICAL: Links responses to specific assets
     asset_id = Column(
         UUID(as_uuid=True),
         ForeignKey("assets.id", ondelete="CASCADE"),
         nullable=True,  # Allow null for legacy responses
         index=True,
-        comment="Foreign key to the asset this questionnaire response is about"
+        comment="Foreign key to the asset this questionnaire response is about",
     )
 
     # Question details

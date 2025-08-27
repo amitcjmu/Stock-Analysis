@@ -55,31 +55,31 @@ class MemoryMonitoring:
         def run_cleanup():
             while cls._monitoring_active:
                 try:
-                    # Run async cleanup in sync context
+                    # Run async cleanup in background thread with proper event loop handling
                     import asyncio
-
-                    loop = None
-                    try:
-                        loop = asyncio.get_event_loop()
-                    except RuntimeError:
-                        # Create new event loop if none exists
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
 
                     # Import here to avoid circular imports
                     from .tenant_scoped_agent_pool import TenantScopedAgentPool
 
-                    # Schedule cleanup
-                    if loop.is_running():
-                        # If loop is already running, schedule as a task
-                        asyncio.create_task(TenantScopedAgentPool.cleanup_idle_pools())
-                    else:
-                        # If loop is not running, run until complete
+                    # Create a new event loop for this background thread
+                    # This is the proper way to handle async code in background threads
+                    loop = asyncio.new_event_loop()
+                    try:
+                        # Set the event loop for this thread
+                        asyncio.set_event_loop(loop)
+
+                        # Run the async cleanup function
                         loop.run_until_complete(
                             TenantScopedAgentPool.cleanup_idle_pools()
                         )
 
-                    logger.info("✅ Automatic agent pool cleanup completed")
+                        logger.info("✅ Automatic agent pool cleanup completed")
+
+                    finally:
+                        # Always close the loop to prevent resource leaks
+                        loop.close()
+                        # Clear the event loop for this thread
+                        asyncio.set_event_loop(None)
 
                 except Exception as e:
                     logger.error(f"❌ Automatic cleanup failed: {e}")

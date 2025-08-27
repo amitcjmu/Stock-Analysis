@@ -162,7 +162,17 @@ def get_simple_field_mappings(raw_data: List[Dict[str, Any]]) -> Dict[str, Any]:
             "synthesis_required": [],
         }
 
-    headers = list(raw_data[0].keys())
+    # Extract headers from multiple records for robustness
+    header_set = set()
+    sample_size = min(5, len(raw_data))
+
+    for i in range(sample_size):
+        if isinstance(raw_data[i], dict):
+            for key in raw_data[i].keys():
+                if key is not None and str(key).strip():
+                    header_set.add(str(key).strip())
+
+    headers = sorted(list(header_set))
     mapper = SimpleFieldMapper()
 
     return mapper.map_fields(headers)

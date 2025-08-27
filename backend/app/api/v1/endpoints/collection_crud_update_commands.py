@@ -34,11 +34,12 @@ async def update_collection_flow(
 ) -> Dict[str, Any]:
     """Update an existing collection flow."""
     try:
-        # Fetch the flow by flow_id (not id)
+        # Fetch the flow by flow_id (not id) with proper multi-tenant validation
         result = await db.execute(
             select(CollectionFlow)
             .where(CollectionFlow.flow_id == flow_id)
             .where(CollectionFlow.engagement_id == context.engagement_id)
+            .where(CollectionFlow.client_account_id == context.client_account_id)
             .options(selectinload(CollectionFlow.questionnaire_responses))
         )
         flow = result.scalar_one_or_none()
@@ -94,11 +95,12 @@ async def get_questionnaire_responses(
 ) -> Dict[str, Any]:
     """Retrieve saved questionnaire responses for a flow."""
     try:
-        # First get the collection flow to get the internal ID
+        # First get the collection flow to get the internal ID with proper multi-tenant validation
         flow_result = await db.execute(
             select(CollectionFlow)
             .where(CollectionFlow.flow_id == flow_id)
             .where(CollectionFlow.engagement_id == context.engagement_id)
+            .where(CollectionFlow.client_account_id == context.client_account_id)
         )
         flow = flow_result.scalar_one_or_none()
 
@@ -178,11 +180,12 @@ async def submit_questionnaire_response(
             f"Engagement ID: {context.engagement_id}"
         )
 
-        # Verify flow exists and belongs to engagement
+        # Verify flow exists and belongs to engagement with proper multi-tenant validation
         flow_result = await db.execute(
             select(CollectionFlow)
             .where(CollectionFlow.flow_id == flow_id)  # Fixed: Use flow_id not id
             .where(CollectionFlow.engagement_id == context.engagement_id)
+            .where(CollectionFlow.client_account_id == context.client_account_id)
         )
         flow = flow_result.scalar_one_or_none()
 
@@ -200,14 +203,15 @@ async def submit_questionnaire_response(
         form_responses = request_data.responses
         form_metadata = request_data.form_metadata or {}
         validation_results = request_data.validation_results or {}
-        
+
         # Extract asset_id for optional linking to asset inventory
         asset_id = form_metadata.get("application_id") or form_metadata.get("asset_id")
         validated_asset = None
-        
+
         if asset_id:
             # If asset_id is provided, validate it exists and belongs to the engagement
             from app.models.asset import Asset
+
             try:
                 asset_result = await db.execute(
                     select(Asset)
@@ -216,19 +220,27 @@ async def submit_questionnaire_response(
                     .where(Asset.client_account_id == context.client_account_id)
                 )
                 validated_asset = asset_result.scalar_one_or_none()
-                
+
                 if validated_asset:
-                    logger.info(f"Linking questionnaire responses to existing asset: {validated_asset.name} (ID: {asset_id})")
+                    logger.info(
+                        f"Linking questionnaire responses to existing asset: {validated_asset.name} (ID: {asset_id})"
+                    )
                 else:
-                    logger.warning(f"Asset {asset_id} not found or not accessible - proceeding without asset linkage")
+                    logger.warning(
+                        f"Asset {asset_id} not found or not accessible - proceeding without asset linkage"
+                    )
                     asset_id = None  # Clear invalid asset_id
-                    
+
             except Exception as e:
-                logger.warning(f"Failed to validate asset {asset_id}: {e} - proceeding without asset linkage")
+                logger.warning(
+                    f"Failed to validate asset {asset_id}: {e} - proceeding without asset linkage"
+                )
                 asset_id = None
         else:
-            logger.info(f"No asset_id provided - questionnaire responses will be flow-level only (new/manual application entry)")
-        
+            logger.info(
+                "No asset_id provided - questionnaire responses will be flow-level only (new/manual application entry)"
+            )
+
         # FUTURE: Could create a new asset record here based on questionnaire responses
         # if no asset_id provided and application_name is filled in the responses
 
@@ -267,7 +279,9 @@ async def submit_questionnaire_response(
                 responded_at=datetime.utcnow(),
                 response_metadata={
                     "questionnaire_id": questionnaire_id,
-                    "application_id": form_metadata.get("application_id"),  # Keep for backward compatibility
+                    "application_id": form_metadata.get(
+                        "application_id"
+                    ),  # Keep for backward compatibility
                     "asset_id": asset_id,  # Also store in metadata for redundancy
                     "completion_percentage": form_metadata.get("completion_percentage"),
                     "submitted_at": form_metadata.get("submitted_at"),
@@ -340,24 +354,56 @@ async def batch_update_questionnaire_responses(
 ) -> Dict[str, Any]:
     """Submit multiple questionnaire responses in batch."""
     try:
-        # Verify flow exists
+        # Verify flow exists and belongs to engagement
         flow_result = await db.execute(
             select(CollectionFlow)
             .where(CollectionFlow.id == flow_id)
             .where(CollectionFlow.engagement_id == context.engagement_id)
+            .where(CollectionFlow.client_account_id == context.client_account_id)
         )
         flow = flow_result.scalar_one_or_none()
 
         if not flow:
             raise HTTPException(
-                status_code=404, detail=f"Collection flow {flow_id} not found"
+                status_code=404,
+                detail=f"Collection flow {flow_id} not found or access denied",
             )
 
         response_records = []
 
         for response_data in responses:
+            # Validate asset ownership if asset_id is provided
+            asset_id = response_data.get("asset_id")
+            validated_asset = None
+
+            if asset_id:
+                from app.models.asset import Asset
+
+                try:
+                    asset_result = await db.execute(
+                        select(Asset)
+                        .where(Asset.id == asset_id)
+                        .where(Asset.engagement_id == context.engagement_id)
+                        .where(Asset.client_account_id == context.client_account_id)
+                    )
+                    validated_asset = asset_result.scalar_one_or_none()
+
+                    if not validated_asset:
+                        logger.warning(
+                            f"Asset {asset_id} not found or not accessible for user {current_user.id} "
+                            f"in engagement {context.engagement_id} - skipping response"
+                        )
+                        continue  # Skip this response if asset doesn't belong to user's context
+
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to validate asset {asset_id}: {e} - skipping response"
+                    )
+                    continue  # Skip this response on validation error
+
             response = CollectionQuestionnaireResponse(
                 collection_flow_id=flow.id,
+                asset_id=asset_id if validated_asset else None,
                 questionnaire_type=response_data.get(
                     "questionnaire_type", "adaptive_form"
                 ),
