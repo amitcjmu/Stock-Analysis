@@ -124,15 +124,30 @@ class DataUtilities:
                     "record_count": 0,
                 }
 
-            # Extract headers from first record
+            # Extract headers from multiple records for robustness (handle heterogeneous datasets)
             headers = []
-            if raw_data and "data" in raw_data[0]:
-                first_record_data = raw_data[0]["data"]
-                if isinstance(first_record_data, dict):
-                    headers = list(first_record_data.keys())
-                elif isinstance(first_record_data, list) and first_record_data:
-                    # Assume first row contains headers
-                    headers = first_record_data
+            header_set = set()
+
+            # Sample up to 10 records to detect all possible columns
+            sample_size = min(10, len(raw_data))
+
+            for i in range(sample_size):
+                if i < len(raw_data) and "data" in raw_data[i]:
+                    record_data = raw_data[i]["data"]
+                    if isinstance(record_data, dict):
+                        # Collect all keys from this record
+                        for key in record_data.keys():
+                            if key is not None and str(key).strip():
+                                header_set.add(str(key).strip())
+                    elif isinstance(record_data, list) and record_data and i == 0:
+                        # Only treat as headers if it's the first record and contains string values
+                        if all(isinstance(item, str) for item in record_data):
+                            headers = record_data
+                            break
+
+            # Convert set to sorted list for consistency (if we collected from dicts)
+            if not headers and header_set:
+                headers = sorted(list(header_set))
 
             # Basic data statistics
             total_records = len(raw_data)

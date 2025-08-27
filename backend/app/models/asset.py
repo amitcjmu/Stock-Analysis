@@ -489,6 +489,9 @@ class Asset(Base):
         foreign_keys=[flow_id],
         primaryjoin="Asset.flow_id == DiscoveryFlow.flow_id",
     )
+    questionnaire_responses = relationship(
+        "CollectionQuestionnaireResponse", back_populates="asset"
+    )
 
     def __repr__(self):
         return f"<Asset(id={self.id}, name='{self.name}', type='{self.asset_type}')>"

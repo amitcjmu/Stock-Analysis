@@ -171,6 +171,44 @@ async def get_adaptive_questionnaires(
                 context.engagement_id,
             )
 
+            # Check if we have selected applications to pre-populate data
+            selected_application_name = None
+            selected_application_id = None
+
+            if flow.collection_config and flow.collection_config.get(
+                "selected_application_ids"
+            ):
+                selected_app_ids = flow.collection_config.get(
+                    "selected_application_ids", []
+                )
+                if selected_app_ids:
+                    selected_application_id = selected_app_ids[
+                        0
+                    ]  # Use first selected app
+
+                    # Fetch the asset details to get the application name
+                    from app.models.asset import Asset
+
+                    asset_result = await db.execute(
+                        select(Asset)
+                        .where(Asset.id == selected_application_id)
+                        .where(Asset.engagement_id == context.engagement_id)
+                    )
+                    selected_asset = asset_result.scalar_one_or_none()
+
+                    if selected_asset:
+                        selected_application_name = (
+                            selected_asset.name or selected_asset.application_name
+                        )
+                        logger.info(
+                            f"Pre-populating questionnaire with application: "
+                            f"{selected_application_name} (ID: {selected_application_id})"
+                        )
+                    else:
+                        logger.warning(
+                            f"Selected application {selected_application_id} not found in asset inventory"
+                        )
+
             # Comprehensive bootstrap questionnaire with all sections needed for collection
             bootstrap_questionnaire = AdaptiveQuestionnaireResponse(
                 id=f"bootstrap_{flow_id}",
@@ -196,6 +234,7 @@ async def get_adaptive_questionnaires(
                         "required": True,
                         "category": "basic",
                         "help_text": "Enter the official application name",
+                        "default_value": selected_application_name,  # Pre-fill if available
                     },
                     {
                         "field_id": "application_type",
@@ -384,7 +423,18 @@ async def get_adaptive_questionnaires(
                     "required": ["application_name", "application_type"],
                 },
                 completion_status="pending",
-                responses_collected={},
+                responses_collected=(
+                    {
+                        # Pre-populate with selected application data if available
+                        "application_name": selected_application_name,
+                        "_metadata": {
+                            "selected_application_id": selected_application_id,
+                            "pre_filled_from_asset": bool(selected_application_name),
+                        },
+                    }
+                    if selected_application_name
+                    else {}
+                ),
                 created_at=datetime.utcnow(),
                 completed_at=None,
             )

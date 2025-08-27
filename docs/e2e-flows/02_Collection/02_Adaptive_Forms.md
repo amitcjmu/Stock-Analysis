@@ -2,12 +2,19 @@
 
 This document provides a complete, end-to-end data flow analysis for the `Adaptive Forms` page in the Collection phase of the AI Modernize Migration Platform.
 
-**Analysis Date:** 2024-08-01 (Updated)
+**Analysis Date:** 2025-08-27 (Updated for Asset-Questionnaire Architecture)
+
+**Key Architectural Changes:**
+*   Questionnaire responses now properly link to specific assets via `asset_id` foreign key
+*   Application name pre-filling from asset inventory when users navigate from application selection
+*   Flexible questionnaire system supports both asset-linked and standalone responses
+*   Bootstrap questionnaire generation with smart pre-population from collection flow config
 
 **Assumptions:**
 *   The analysis focuses on the `src/pages/collection/AdaptiveForms.tsx` page and its core hook, `useAdaptiveFormFlow`.
 *   The platform operates entirely within a Docker environment.
 *   All API calls require authentication and multi-tenant context headers.
+*   Users may arrive via asset selection (with applicationId) or direct navigation (new applications).
 
 ---
 
@@ -17,66 +24,129 @@ The Adaptive Forms page provides a dynamic, questionnaire-based approach to data
 
 ### Key Components & Hooks
 *   **Page Component:** `src/pages/collection/AdaptiveForms.tsx`
-*   **Core Logic Hook:** `useAdaptiveFormFlow` from `src/hooks/collection/useAdaptiveFormFlow.ts` encapsulates all the logic for managing the adaptive form flow.
+*   **Core Logic Hook:** `useAdaptiveFormFlow` from `src/hooks/collection/useAdaptiveFormFlow.ts` encapsulates all the logic for managing the adaptive form flow with asset pre-population.
+*   **Form Components:**
+    *   `AdaptiveFormContainer`: Main form container with Save Progress functionality 
+    *   `AdaptiveForm`: Dynamic form renderer with question numbering
+    *   `FormField`: Individual form field component with pre-populated values
 *   **API Client:** `collectionFlowApi` from `src/services/api/collection-flow.ts` is used for all API interactions.
-*   **UI Components:**
-    *   `CollectionPageLayout`: Provides the basic layout for the page.
-    *   `AdaptiveFormContainer`: Renders the dynamic form based on the data received from the backend.
-    *   `CollectionUploadBlocker`: A UI component that blocks the user from proceeding if there are other incomplete collection flows.
+*   **Data Architecture:**
+    *   Asset selection flow: URL param `applicationId` → collection flow `selected_application_ids` → questionnaire pre-population
+    *   Response persistence: form values → `CollectionQuestionnaireResponse` with optional `asset_id` linkage
 
 ### API Call Summary
 
 | # | Method | Endpoint                                      | Trigger                                   | Description                                      |
 |---|--------|-----------------------------------------------|-------------------------------------------|--------------------------------------------------|
-| 1 | `GET`  | `/collection/flows/incomplete`                | `useIncompleteCollectionFlows` hook       | Fetches a list of incomplete flows to check for blockers. |
-| 2 | `POST` | `/collection/flows`                           | `initializeFlow` in `useAdaptiveFormFlow` | Creates a new collection flow if one doesn't exist. |
-| 3 | `GET`  | `/collection/flows/{flow_id}`                 | `initializeFlow` in `useAdaptiveFormFlow` | Fetches the details of an existing flow.         |
-| 4 | `GET`  | `/collection/flows/status`                    | `initializeFlow` in `useAdaptiveFormFlow` | Gets the status of the current collection flow.  |
-| 5 | `GET`  | `/collection/flows/{flow_id}/questionnaires`  | Polling in `initializeFlow`               | Fetches the adaptive questionnaires for the flow.|
-| 6 | `POST` | `/collection/flows/{flow_id}/questionnaires/{questionnaire_id}/submit` | `handleSubmit` in `useAdaptiveFormFlow` | Submits the user's answers to the questionnaire. |
-| 7 | `DELETE`| `/collection/flows/{flow_id}`                 | `handleDeleteFlow` in `AdaptiveForms.tsx` | Deletes a collection flow.                       |
+| 1 | `GET`  | `/api/v1/collection/incomplete`              | `useIncompleteCollectionFlows` hook       | Fetches incomplete flows to check for blockers |
+| 2 | `GET`  | `/api/v1/collection/status`                  | `initializeFlow` in `useAdaptiveFormFlow` | Gets current collection flow status             |
+| 3 | `POST` | `/api/v1/collection/flows/ensure`            | `initializeFlow` if no active flow        | Creates or returns active collection flow       |
+| 4 | `POST` | `/api/v1/collection/flows`                   | `initializeFlow` (flow creation)          | Creates new collection flow with selected apps  |
+| 5 | `GET`  | `/api/v1/collection/flows/{flow_id}`         | `initializeFlow` (flow details)           | Fetches existing flow details                   |
+| 6 | `POST` | `/api/v1/collection/flows/{flow_id}/execute` | `initializeFlow` (MFO trigger)            | Triggers CrewAI agents for questionnaire generation |
+| 7 | `GET`  | `/api/v1/collection/flows/{flow_id}/questionnaires` | Polling in `initializeFlow`        | Fetches adaptive questionnaires (with bootstrap fallback) |
+| 8 | `POST` | `/api/v1/collection/flows/{flow_id}/questionnaires/{questionnaire_id}/responses` | `handleSave` in `useAdaptiveFormFlow` | Saves form progress with asset linkage |
+| 9 | `GET`  | `/api/v1/collection/flows/{flow_id}/questionnaires/{questionnaire_id}/responses` | Form initialization | Retrieves saved responses for pre-population |
 
 ---
 
 ## 2. Backend, CrewAI, ORM, and Database Trace
 
-The backend for the Adaptive Forms page is responsible for generating the questionnaires in the background, processing the responses, and managing the overall state of the collection flow.
+The backend implements a sophisticated asset-questionnaire architecture with flexible data collection and proper multi-tenant isolation.
 
-### CrewAI Phase: `QUESTIONNAIRE_GENERATION`
+### Core Backend Files
 
-*   **Trigger:** This phase is triggered in the background as part of the `UnifiedCollectionFlow` after the `GAP_ANALYSIS` is complete.
-*   **CrewAI Interaction:** A `QuestionnaireGenerator` agent is tasked with creating the `AdaptiveQuestionnaire` based on the identified data gaps.
-*   **ORM Layer:**
-    *   **Operation:** Creates a new `AdaptiveQuestionnaire` record.
-    *   **Model:** `app.models.collection_flow.AdaptiveQuestionnaire`
-*   **Database:**
-    *   **Table:** `adaptive_questionnaires`
-    *   **Query:** `INSERT INTO adaptive_questionnaires (...) VALUES (...);`
+*   **Router:** `app/api/v1/endpoints/collection.py` - Main collection flow API endpoints
+*   **CRUD Operations:** `app/api/v1/endpoints/collection_crud.py` - Core collection flow logic  
+*   **Questionnaire Queries:** `app/api/v1/endpoints/collection_crud_questionnaires.py` - Bootstrap questionnaire generation with asset pre-population
+*   **Response Management:** `app/api/v1/endpoints/collection_crud_update_commands.py` - Questionnaire response submission with asset validation
+*   **Models:** 
+    *   `app/models/collection_flow.py` - Collection flow state and configuration
+    *   `app/models/collection_questionnaire_response.py` - Individual response records with asset linkage
+    *   `app/models/asset.py` - Asset inventory with questionnaire relationships
 
-### API Endpoint: `POST /flows/{flow_id}/questionnaires/{questionnaire_id}/submit`
+### Database Architecture: Asset-Questionnaire Relationships
 
-*   **FastAPI Route:** `submit_questionnaire_response` function in `collection_crud_update_commands.py`.
-*   **CrewAI Interaction:**
-    *   **Resume Flow:** This call resumes the `MasterFlow` using the `resume_mfo_flow` utility. The submitted responses are passed as part of the `resume_context`.
-    *   **Next Phase:** This triggers the `DATA_VALIDATION` phase of the `UnifiedCollectionFlow`, where CrewAI agents will process and validate the submitted data.
-*   **ORM Layer:**
-    *   **Operation:** Updates the `responses_collected`, `completion_status`, and `completed_at` fields of the `AdaptiveQuestionnaire` record.
-*   **Database:**
-    *   **Table:** `adaptive_questionnaires`
-    *   **Query:** `UPDATE adaptive_questionnaires SET responses_collected = ?, ... WHERE id = ?;`
+*   **Core Tables:**
+    *   `migration.collection_flows` - Flow state and selected application IDs
+    *   `migration.collection_questionnaire_responses` - Individual responses with optional `asset_id` FK
+    *   `migration.assets` - Asset inventory with proper multi-tenant isolation
+*   **Key Relationships:**
+    ```sql
+    -- Asset to Questionnaire Responses (1:Many, Optional)
+    collection_questionnaire_responses.asset_id → assets.id
+    
+    -- Collection Flow to Responses (1:Many, Required)  
+    collection_questionnaire_responses.collection_flow_id → collection_flows.id
+    
+    -- Multi-tenant Isolation (All tables scoped by)
+    *.client_account_id → client_accounts.id
+    *.engagement_id → engagements.id
+    ```
+
+### CrewAI Integration: Master Flow Orchestrator (MFO)
+
+*   **Flow Trigger:** `POST /api/v1/collection/flows/{flow_id}/execute` starts MFO processing
+*   **Phase Sequence:** `PLATFORM_DETECTION` → `AUTOMATED_COLLECTION` → `GAP_ANALYSIS` → `QUESTIONNAIRE_GENERATION`
+*   **Persistence:** Questionnaires stored in `crewai_flow_state_extensions.flow_persistence_data` JSON field
+*   **Fallback Strategy:** Bootstrap questionnaire generated if MFO fails or times out (10s limit)
+
+### API Endpoint: `POST /api/v1/collection/flows/{flow_id}/questionnaires/{questionnaire_id}/responses`
+
+*   **FastAPI Route:** `submit_questionnaire_response` function in `collection_crud_update_commands.py`
+*   **Asset Validation Logic:**
+    ```python
+    # Extract asset_id from form_metadata (optional)
+    asset_id = form_metadata.get("application_id") or form_metadata.get("asset_id")
+    
+    # Validate asset exists and belongs to engagement (if provided)
+    if asset_id:
+        validate_asset_in_engagement_scope()
+    
+    # Create response records with optional asset linkage
+    response = CollectionQuestionnaireResponse(
+        collection_flow_id=flow.id,
+        asset_id=asset_id,  # Optional FK to assets table
+        question_id=field_id,
+        response_value=value,
+        ...
+    )
+    ```
+*   **Database Operations:**
+    *   **Table:** `migration.collection_questionnaire_responses`
+    *   **Query:** `INSERT INTO collection_questionnaire_responses (collection_flow_id, asset_id, ...) VALUES (...);`
 
 ---
 
-## 3. End-to-End Flow Sequence: Filling Out an Adaptive Form
+## 3. End-to-End Flow Sequence: Asset-Linked Adaptive Forms
 
-1.  **Page Load:** The `AdaptiveForms.tsx` component mounts and calls the `useAdaptiveFormFlow` hook.
-2.  **Blocker Check:** The `useIncompleteCollectionFlows` hook is called to check for any other active flows that might block the current one.
-3.  **Flow Initialization:** If no `flowId` is in the URL, `initializeFlow` creates a new collection flow via `POST /collection/flows`. The backend starts the flow as a background process.
-4.  **Fetch Questionnaires (Polling):** The frontend polls the `GET /collection/flows/{flow_id}/questionnaires` endpoint until the background CrewAI process has generated the questionnaires.
-5.  **Render Form:** Once the questionnaires are fetched, the `AdaptiveFormContainer` component renders the dynamic form.
-6.  **User Submits Form:** The user fills out the form and clicks "Submit," which triggers the `handleSubmit` function.
-7.  **API Call:** A `POST` request is sent to `/collection/flows/{flow_id}/questionnaires/{questionnaire_id}/submit`.
-8.  **Backend Processes Responses:** The backend updates the questionnaire record and resumes the background CrewAI flow, which proceeds to the data validation phase.
+### Scenario A: User Navigates from Asset Selection 
+
+1.  **Asset Selection:** User selects application from discovery inventory → navigates to `/collection/adaptive-forms?applicationId={asset_id}`
+2.  **Page Load:** `AdaptiveForms.tsx` component mounts, extracts `applicationId` from URL parameters
+3.  **Blocker Check:** `useIncompleteCollectionFlows` hook checks for conflicting active flows
+4.  **Flow Initialization:** `useAdaptiveFormFlow` creates collection flow with `selected_application_ids: [applicationId]`
+5.  **MFO Trigger:** `POST /api/v1/collection/flows/{flow_id}/execute` starts CrewAI agents
+6.  **Questionnaire Generation:** System attempts MFO questionnaire generation (10s timeout)
+7.  **Bootstrap Fallback:** If MFO times out, generates bootstrap questionnaire with asset pre-population:
+    ```python
+    # Backend fetches asset details and pre-fills questionnaire
+    selected_asset = get_asset_by_id(applicationId)
+    bootstrap_questionnaire.questions["application_name"].default_value = selected_asset.name
+    bootstrap_questionnaire.responses_collected["application_name"] = selected_asset.name
+    ```
+8.  **Form Rendering:** `AdaptiveFormContainer` renders form with pre-populated application name
+9.  **Save Progress:** User clicks "Save Progress" → `POST /api/v1/collection/.../responses` with `asset_id` linkage
+10. **Form Completion:** User submits final form → responses saved with proper asset relationship
+
+### Scenario B: User Enters New Application Data
+
+1.  **Direct Navigation:** User navigates directly to `/collection/adaptive-forms` (no applicationId)
+2.  **Flow Creation:** Collection flow created without `selected_application_ids`
+3.  **Bootstrap Questionnaire:** Generated without pre-population (empty application_name field)
+4.  **Manual Entry:** User manually enters new application information
+5.  **Response Storage:** Responses saved without `asset_id` linkage (flow-level only)
+6.  **Future Enhancement:** Could auto-create asset record from questionnaire responses
 
 ---
 
@@ -84,6 +154,58 @@ The backend for the Adaptive Forms page is responsible for generating the questi
 
 | Breakpoint                        | Diagnostic Check                                                                                               | Platform-Specific Fix                                                                                             |
 |-----------------------------------|----------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|
-| **Page is Stuck Loading**         | Check the network tab for polling requests to `/questionnaires`. If these requests are failing or returning empty after a long time, the background process may have failed. | Check the logs for the `migration_backend` container. Look for errors in the `UnifiedCollectionFlow`, specifically in the `GAP_ANALYSIS` or `QUESTIONNAIRE_GENERATION` phases. The new `flow_health_monitor` should also provide insights. |
-| **Form Submission Fails**         | Look for errors in the console on the `POST .../submit` call. A 400 error might indicate invalid data, while a 500 error suggests a problem with the backend processing. | Verify that the data being submitted matches the expected format. For backend errors, check the logs to see why the `resume_mfo_flow` call failed. |
-| **"Multiple active flows" error** | This error indicates that the database contains more than one non-completed collection flow for the current engagement. | Use the "Manage Flows" button to navigate to the flow management page and delete any unnecessary or stuck flows. If the issue persists, there may be a bug in the flow cleanup logic. |
+| **Application Name Not Pre-filled** | Check browser developer tools: URL should contain `?applicationId={uuid}`. Check network tab for `/questionnaires` response - should include `responses_collected.application_name`. | Verify asset exists in database with correct `engagement_id`. Check backend logs for asset lookup failures in `get_adaptive_questionnaires`. Ensure collection flow has `selected_application_ids` in `collection_config`. |
+| **Save Progress Button Not Working** | Check console for "Save Progress" debug logs and network tab for `POST .../responses` calls. Verify response includes asset validation messages. | Check backend logs in `submit_questionnaire_response` for asset validation errors. Ensure `applicationId` is passed in `form_metadata`. If asset_id validation fails, responses saved without asset linkage (not an error). |
+| **Page Stuck Loading Questionnaires** | Check network tab for `/questionnaires` polling requests. Should fallback to bootstrap questionnaire within 10s if MFO times out. | Check MFO execution logs for CrewAI agent failures. Bootstrap questionnaire should always be returned as fallback - if not, check `get_adaptive_questionnaires` function errors. |
+| **Form Submission 404 Asset Error** | Error indicates asset_id provided but asset not found or not accessible in current engagement scope. | Verify asset exists: `SELECT * FROM assets WHERE id = '{asset_id}' AND engagement_id = '{engagement_id}'`. Check multi-tenant isolation - asset must belong to same client_account_id and engagement_id. |
+| **Responses Not Persisting** | Check that responses are being saved to `collection_questionnaire_responses` table with correct `collection_flow_id` and optional `asset_id`. | Verify database schema has `asset_id` column (migration 017). Check foreign key constraints. Ensure transaction commits in `submit_questionnaire_response`. |
+| **Multiple Active Flows Error** | Database contains multiple non-completed collection flows for current engagement, blocking new flow creation. | Use flow management endpoints to clean up: `GET /api/v1/collection/flows/analysis` then `POST /api/v1/collection/flows/manage` with appropriate cleanup action. |
+
+### Key Backend Log Patterns
+
+```bash
+# Asset pre-population success
+"Pre-populating questionnaire with application: MyApp (ID: uuid-here)"
+
+# Asset validation during save
+"Linking questionnaire responses to existing asset: MyApp (ID: uuid-here)"
+"No asset_id provided - questionnaire responses will be flow-level only"
+
+# Bootstrap questionnaire fallback
+"No questionnaires found yet for flow {flow_id}"
+"Returning bootstrap questionnaire to enable in-form application selection"
+```
+
+---
+
+## 5. Database Migration Requirements
+
+### Required Migration: Add Asset-Questionnaire Relationship
+
+**Migration File:** `backend/alembic/versions/017_add_asset_id_to_questionnaire_responses.py`
+
+```sql
+-- Add asset_id foreign key to collection_questionnaire_responses
+ALTER TABLE migration.collection_questionnaire_responses 
+ADD COLUMN asset_id UUID REFERENCES migration.assets(id) ON DELETE CASCADE;
+
+-- Add performance indexes
+CREATE INDEX ix_collection_questionnaire_responses_asset_id 
+ON migration.collection_questionnaire_responses(asset_id);
+
+CREATE INDEX ix_collection_questionnaire_responses_flow_asset 
+ON migration.collection_questionnaire_responses(collection_flow_id, asset_id);
+```
+
+**Model Updates:**
+- ✅ `CollectionQuestionnaireResponse.asset_id` - Optional foreign key to assets table
+- ✅ `Asset.questionnaire_responses` - Back-reference to response records  
+- ✅ Proper SQLAlchemy relationships for ORM queries
+
+### Deployment Checklist
+
+1. **Run Migration:** `alembic upgrade head` to add `asset_id` column
+2. **Test Asset Linkage:** Verify responses can be linked to existing assets
+3. **Test Standalone Mode:** Verify responses work without asset_id for new applications
+4. **Verify Indexes:** Check query performance for asset-scoped response lookups
+5. **Multi-tenant Validation:** Ensure asset validation respects client/engagement boundaries

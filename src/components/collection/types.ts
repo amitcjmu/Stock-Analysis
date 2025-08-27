@@ -115,9 +115,11 @@ export interface AdaptiveFormProps {
   initialValues?: CollectionFormData;
   onFieldChange: (fieldId: string, value: FieldValue) => void;
   onSubmit: (data: CollectionFormData) => Promise<void>;
+  onSave?: () => void;
   onValidationChange?: (validation: FormValidationResult) => void;
   bulkMode?: boolean;
   onBulkToggle?: (enabled: boolean) => void;
+  resetTrigger?: number; // Optional prop to trigger form reset (increment to reset)
   className?: string;
 }
 
@@ -196,6 +198,7 @@ export interface FormFieldProps {
   validation?: FieldValidationResult;
   disabled?: boolean;
   className?: string;
+  questionNumber?: number;
 }
 
 export interface SectionCardProps {

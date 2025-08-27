@@ -167,7 +167,7 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
     progress: flow.progress || 0
   }));
 
-  console.log('🔍 Collection Flow Debug Info:', debugInfo);
+  // CC: Collection flow debug info calculated
 
   return (
     <div className="space-y-4">

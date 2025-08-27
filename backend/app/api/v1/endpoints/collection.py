@@ -24,10 +24,15 @@ from app.schemas.collection_flow import (
     CollectionGapAnalysisResponse,
     ManageFlowRequest,
     CollectionApplicationSelectionRequest,
+    QuestionnaireSubmissionRequest,
 )
 
 # Import all modular functions to maintain backward compatibility
 from app.api.v1.endpoints import collection_crud
+from app.api.v1.endpoints.collection_batch_operations import (
+    cleanup_flows as batch_cleanup_flows,
+    batch_delete_flows as batch_delete,
+)
 from app.api.v1.endpoints.collection_applications import update_flow_applications
 
 logger = logging.getLogger(__name__)
@@ -206,11 +211,29 @@ async def get_adaptive_questionnaires(
     )
 
 
-@router.post("/flows/{flow_id}/questionnaires/{questionnaire_id}/submit")
+@router.get("/flows/{flow_id}/questionnaires/{questionnaire_id}/responses")
+async def get_questionnaire_responses(
+    flow_id: str,
+    questionnaire_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Get saved questionnaire responses for a specific flow and questionnaire"""
+    return await collection_crud.get_questionnaire_responses(
+        flow_id=flow_id,
+        questionnaire_id=questionnaire_id,
+        db=db,
+        current_user=current_user,
+        context=context,
+    )
+
+
+@router.post("/flows/{flow_id}/questionnaires/{questionnaire_id}/responses")
 async def submit_questionnaire_response(
     flow_id: str,
     questionnaire_id: str,
-    responses: Dict[str, Any],
+    request_data: QuestionnaireSubmissionRequest,  # FastAPI will parse and validate JSON body
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     context=Depends(get_request_context),
@@ -219,7 +242,32 @@ async def submit_questionnaire_response(
     return await collection_crud.submit_questionnaire_response(
         flow_id=flow_id,
         questionnaire_id=questionnaire_id,
-        responses=responses,
+        request_data=request_data,
+        db=db,
+        current_user=current_user,
+        context=context,
+    )
+
+
+@router.post("/flows/{flow_id}/questionnaires/{questionnaire_id}/submit")
+async def submit_questionnaire_response_legacy(
+    flow_id: str,
+    questionnaire_id: str,
+    request_data: QuestionnaireSubmissionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """LEGACY: Submit responses to an adaptive questionnaire
+
+    This endpoint is provided for backward compatibility.
+    New integrations should use /flows/{flow_id}/questionnaires/{questionnaire_id}/responses
+    """
+    # Forward to the new endpoint implementation
+    return await collection_crud.submit_questionnaire_response(
+        flow_id=flow_id,
+        questionnaire_id=questionnaire_id,
+        request_data=request_data,
         db=db,
         current_user=current_user,
         context=context,
@@ -339,7 +387,7 @@ async def cleanup_flows(
     context=Depends(get_request_context),
 ) -> Dict[str, Any]:
     """Clean up expired collection flows"""
-    return await collection_crud.cleanup_flows(
+    return await batch_cleanup_flows(
         expiration_hours=expiration_hours,
         dry_run=dry_run,
         include_failed=include_failed,
@@ -357,8 +405,8 @@ async def batch_delete_flows(
     current_user: User = Depends(get_current_user),
     context=Depends(get_request_context),
 ) -> Dict[str, Any]:
-    """Delete multiple collection flows in batch"""
-    return await collection_crud.batch_delete_flows(
+    """Batch delete multiple collection flows"""
+    return await batch_delete(
         flow_ids=flow_ids,
         force=force,
         db=db,

@@ -109,6 +109,22 @@ const AdaptiveForms: React.FC = () => {
     autoInitialize: !checkingFlows && (!hasBlockingFlows || hasJustDeleted),
   });
 
+  // CC: Debugging - Log handleSave function only when it changes
+  React.useEffect(() => {
+    console.log('🔍 AdaptiveForms handleSave initialized:', typeof handleSave === 'function');
+  }, [typeof handleSave]); // Only log when handleSave type changes
+
+  // CC: Create a direct save handler to bypass potential prop passing issues
+  const directSaveHandler = React.useCallback(() => {
+    console.log('🟢 DIRECT SAVE HANDLER CALLED - Bypassing prop chain');
+    if (typeof handleSave === 'function') {
+      console.log('🟢 Calling handleSave from direct handler');
+      handleSave();
+    } else {
+      console.error('❌ handleSave is not available in AdaptiveForms');
+    }
+  }, [handleSave]);
+
   // Use WebSocket for real-time updates during workflow initialization
   const { isWebSocketActive, requestStatusUpdate } =
     useCollectionWorkflowWebSocket({
@@ -610,7 +626,8 @@ const AdaptiveForms: React.FC = () => {
     );
   }
 
-  // Main component render
+  // Main component render - removed console.log to prevent performance issues
+
   return (
     <CollectionPageLayout
       title="Adaptive Data Collection"
@@ -629,7 +646,7 @@ const AdaptiveForms: React.FC = () => {
         isSubmitting={isLoading}
         onFieldChange={handleFieldChange}
         onValidationChange={handleValidationChange}
-        onSave={handleSave}
+        onSave={directSaveHandler || handleSave}
         onSubmit={handleSubmit}
         onCancel={() => navigate("/collection")}
       />

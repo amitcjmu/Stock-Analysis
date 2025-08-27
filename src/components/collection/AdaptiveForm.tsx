@@ -67,9 +67,11 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
   initialValues = {},
   onFieldChange,
   onSubmit,
+  onSave,
   onValidationChange,
   bulkMode = false,
   onBulkToggle,
+  resetTrigger,
   className
 }) => {
   const [formValues, setFormValues] = useState<CollectionFormData>(initialValues);
@@ -78,6 +80,33 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [hasInteracted, setHasInteracted] = useState(false); // Track if user has interacted with form
+
+  // Sync formValues with initialValues when initialValues prop changes
+  // CRITICAL FIX: Prevent overwriting user edits unless explicitly reset
+  useEffect(() => {
+    // Only sync if user hasn't interacted with the form yet
+    // This prevents accidentally overwriting user changes when parent components re-render
+    if (!hasInteracted) {
+      console.log('📝 AdaptiveForm: Initial sync - setting form values from initial values:', {
+        initialValues,
+        hasValues: Object.keys(initialValues || {}).length > 0
+      });
+      setFormValues(initialValues || {});
+    } else {
+      console.log('📝 AdaptiveForm: User has interacted - preserving form values, skipping initialValues sync');
+    }
+  }, [initialValues, hasInteracted]);
+
+  // Handle explicit form reset via resetTrigger prop
+  useEffect(() => {
+    if (resetTrigger !== undefined && resetTrigger > 0) {
+      console.log('📝 AdaptiveForm: Explicit reset triggered via resetTrigger:', resetTrigger);
+      setFormValues(initialValues || {});
+      setHasInteracted(false); // Reset interaction flag to allow future syncs
+      setValidation(null);
+      setExpandedSections(new Set());
+    }
+  }, [resetTrigger, initialValues]);
 
   // Calculate form progress and metrics
   const formMetrics = useMemo(() => {
@@ -498,16 +527,31 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
               validationStatus={sectionProgress?.validationStatus || 'pending'}
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {visibleFields.map(field => (
-                  <FormField
-                    key={field.id}
-                    field={field}
-                    value={formValues[field.id]}
-                    onChange={(value) => handleFieldChange(field.id, value)}
-                    validation={validation?.fieldResults[field.id]}
-                    className={field.fieldType === 'textarea' ? 'md:col-span-2' : ''}
-                  />
-                ))}
+                {visibleFields.map((field, fieldIndex) => {
+                  // Calculate question number across all sections
+                  let questionNumber = 0;
+                  for (let i = 0; i <= index; i++) {
+                    const sectionFields = getVisibleFields(formData.sections[i]);
+                    if (i === index) {
+                      questionNumber += fieldIndex + 1;
+                      break;
+                    } else {
+                      questionNumber += sectionFields.length;
+                    }
+                  }
+
+                  return (
+                    <FormField
+                      key={field.id}
+                      field={field}
+                      value={formValues[field.id]}
+                      onChange={(value) => handleFieldChange(field.id, value)}
+                      validation={validation?.fieldResults[field.id]}
+                      className={field.fieldType === 'textarea' ? 'md:col-span-2' : ''}
+                      questionNumber={questionNumber}
+                    />
+                  );
+                })}
               </div>
             </SectionCard>
           );
@@ -532,16 +576,19 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
               </div>
 
               <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    // Save as draft functionality
-                    console.log('Saving draft...', formValues);
-                  }}
-                >
-                  Save Draft
-                </Button>
+                {onSave && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (onSave) {
+                        onSave();
+                      }
+                    }}
+                  >
+                    Save Progress
+                  </Button>
+                )}
 
                 <Button
                   type="submit"

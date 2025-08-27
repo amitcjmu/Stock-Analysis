@@ -29,7 +29,8 @@ export const FormField: React.FC<FormFieldProps> = ({
   onChange,
   validation,
   disabled = false,
-  className
+  className,
+  questionNumber
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -280,6 +281,11 @@ export const FormField: React.FC<FormFieldProps> = ({
               isRequired && 'after:content-["*"] after:ml-0.5 after:text-red-500'
             )}
           >
+            {(questionNumber !== undefined && questionNumber !== null && questionNumber >= 0) && (
+              <span className="text-muted-foreground mr-2">
+                {questionNumber}.
+              </span>
+            )}
             {field.label}
           </Label>
 

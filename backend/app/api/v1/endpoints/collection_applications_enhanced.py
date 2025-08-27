@@ -7,7 +7,7 @@ for better modularity and maintainability.
 """
 
 # Re-export the main components for backward compatibility
-from app.api.v1.endpoints.collection_applications.enhanced import (
+from app.api.v1.endpoints.collection_apps_enhanced.enhanced import (  # noqa: F401
     process_canonical_applications,
     bulk_deduplicate_applications,
 )

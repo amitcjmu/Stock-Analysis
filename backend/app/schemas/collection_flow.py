@@ -85,6 +85,22 @@ class CollectionGapAnalysisResponse(BaseModel):
         from_attributes = True
 
 
+class QuestionnaireSubmissionRequest(BaseModel):
+    """Schema for submitting questionnaire responses"""
+
+    responses: Dict[str, Any] = Field(
+        ..., description="Form responses with field_id -> value mapping"
+    )
+    form_metadata: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Form metadata including application_id, completion_percentage, etc.",
+    )
+    validation_results: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Validation results including isValid flag and field-level errors",
+    )
+
+
 class AdaptiveQuestionnaireResponse(BaseModel):
     """Schema for adaptive questionnaire response"""
 

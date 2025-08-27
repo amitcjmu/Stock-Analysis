@@ -17,9 +17,9 @@ import logging
 import sys
 import os
 
-# Add parent directory to path to import migration utilities
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-from alembic.migration_utilities import (
+# Add alembic directory to path to import migration utilities
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from migration_utilities import (
     check_pgvector_availability,
     create_tenant_isolation_indexes,
     create_performance_indexes,

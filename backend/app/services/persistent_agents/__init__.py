@@ -13,6 +13,8 @@ from .tenant_scoped_agent_pool import (
     AgentHealth,
     TenantPoolStats,
     TenantScopedAgentPool,
+)
+from .memory_monitoring import (
     validate_agent_pool_health,
 )
 

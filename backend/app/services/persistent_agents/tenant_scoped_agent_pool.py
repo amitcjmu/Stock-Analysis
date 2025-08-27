@@ -49,6 +49,9 @@ except ImportError:
 
 from app.services.agentic_memory.three_tier_memory_manager import ThreeTierMemoryManager
 
+# Import extracted modules for modularization
+from .memory_monitoring import MemoryMonitoring  # noqa: F401
+
 # Move all tool imports to module level to avoid per-call dynamic imports
 # This improves performance and avoids repeated import overhead
 try:
@@ -257,9 +260,21 @@ class TenantScopedAgentPool:
 
             try:
                 # Initialize memory manager for this tenant
+                # Handle both string and UUID types for client_id and engagement_id
+                client_uuid = (
+                    client_id
+                    if isinstance(client_id, uuid.UUID)
+                    else uuid.UUID(str(client_id))
+                )
+                engagement_uuid = (
+                    engagement_id
+                    if isinstance(engagement_id, uuid.UUID)
+                    else uuid.UUID(str(engagement_id))
+                )
+
                 memory_manager = ThreeTierMemoryManager(
-                    client_account_id=uuid.UUID(client_id),
-                    engagement_id=uuid.UUID(engagement_id),
+                    client_account_id=client_uuid,
+                    engagement_id=engagement_uuid,
                 )
 
                 # Create agent with memory enabled and ServiceRegistry if available
@@ -321,9 +336,9 @@ class TenantScopedAgentPool:
         for agent_type in required_agents:
             try:
                 agent = await cls.get_or_create_agent(
-                    client_id,
-                    engagement_id,
-                    agent_type,
+                    client_id=client_id,
+                    engagement_id=engagement_id,
+                    agent_type=agent_type,
                     service_registry=service_registry,
                 )
                 await cls._warm_up_agent(agent, agent_type)
@@ -978,7 +993,7 @@ class TenantScopedAgentPool:
 
 
 # Utility functions for testing and debugging
-async def validate_agent_pool_health(
+async def validate_agent_pool_health_deprecated(
     client_id: str, engagement_id: str
 ) -> Dict[str, Any]:
     """

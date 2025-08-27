@@ -16,7 +16,7 @@ from .base import (
     relationship,
     uuid,
 )
-from .enums import MatchMethod
+from .enums import MatchMethod  # noqa: F401
 
 
 class CollectionFlowApplication(Base, TimestampMixin):

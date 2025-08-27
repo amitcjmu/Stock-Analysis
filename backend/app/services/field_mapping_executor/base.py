@@ -205,12 +205,21 @@ class FieldMappingExecutor:
         """Generate a mock agent response for testing/fallback."""
         detected_columns = state.metadata.get("detected_columns", [])
 
-        # If no detected columns, try to get from raw data
+        # If no detected columns, try to get from raw data using multi-row sampling
         if not detected_columns and state.raw_data:
             if isinstance(state.raw_data, list) and len(state.raw_data) > 0:
-                first_record = state.raw_data[0]
-                if isinstance(first_record, dict):
-                    detected_columns = list(first_record.keys())
+                # Sample multiple rows for robust column detection
+                column_set = set()
+                sample_size = min(5, len(state.raw_data))
+
+                for i in range(sample_size):
+                    record = state.raw_data[i]
+                    if isinstance(record, dict):
+                        for key in record.keys():
+                            if key is not None and str(key).strip():
+                                column_set.add(str(key).strip())
+
+                detected_columns = sorted(list(column_set))
 
         # Generate basic mappings with standard field name transformations
         mappings = []

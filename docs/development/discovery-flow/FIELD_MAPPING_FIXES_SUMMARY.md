@@ -36,8 +36,8 @@
 - `backend/app/services/field_mapping_executor/base.py` - Fixed state validation and mock response
 - `backend/app/services/field_mapping_executor/parsers.py` - Fixed JSON parser for list format
 - `backend/app/services/field_mapping_executor/rules_engine.py` - Added async apply_rules method
-- `backend/app/services/field_mapping_auto_trigger.py` - NEW: Auto-trigger service
-- `backend/main.py` - Integrated auto-trigger service into app lifecycle
+- `backend/app/services/field_mapping_auto_trigger.py` - Removed (no longer used)
+- `backend/main.py` - Auto-trigger integration removed; modular app_setup used
 - `backend/app/api/v1/flows.py` - Fixed phase transition logic
 
 ## Verification Results
@@ -53,8 +53,8 @@
 ## How It Works Now
 
 1. **Flow enters field_mapping phase** → Status set to "waiting_for_approval"
-2. **Auto-trigger service detects flow** → Runs every 30 seconds
-3. **Field mapping executor generates mappings** → Uses mock response or real agents
+2. **Discovery execute endpoint runs field mapping phase** → No timers or background polling
+3. **Field mapping executor generates mappings** → Uses agentic analysis
 4. **Mappings are persisted to database** → With proper confidence scores
 5. **UI shows auto-mapped fields** → Instead of "Needs Review"
 

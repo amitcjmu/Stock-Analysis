@@ -136,7 +136,20 @@ class FieldMappingExecutor(CrewExecutionBase):
             return False
 
         mapped_count = len(field_mappings.get("mappings", {}))
-        total_fields = len(raw_data[0].keys()) if raw_data else 0
+
+        # Calculate total fields from multiple records for robustness
+        total_fields = 0
+        if raw_data:
+            field_set = set()
+            sample_size = min(5, len(raw_data))
+
+            for i in range(sample_size):
+                if isinstance(raw_data[i], dict):
+                    for key in raw_data[i].keys():
+                        if key is not None and str(key).strip():
+                            field_set.add(str(key).strip())
+
+            total_fields = len(field_set)
 
         # Consider successful if at least 50% of fields are mapped
         success_threshold = 0.5

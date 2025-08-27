@@ -56,6 +56,10 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
   onCancel,
   className = ''
 }) => {
+  // CC: Component initialization effect
+  React.useEffect(() => {
+    // AdaptiveFormContainer initialized with save functionality
+  }, [typeof onSave]);
   // Defensive checks
   if (!formData) {
     return (
@@ -117,6 +121,7 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
                   initialValues={formValues}
                   onFieldChange={onFieldChange}
                   onSubmit={handleFormSubmit}
+                  onSave={onSave}
                   onValidationChange={onValidationChange}
                   bulkMode={false}
                   className="space-y-6"
@@ -135,10 +140,10 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
                   applications={[]}
                   fields={formData.sections.flatMap(section => section.fields)}
                   onDataChange={(appId, fieldId, value) => {
-                    console.log('Bulk data change:', { appId, fieldId, value });
+                    // Handle bulk data changes
                   }}
                   onBulkUpload={async (file) => {
-                    console.log('Bulk upload:', file.name);
+                    // Handle bulk file upload
                   }}
                 />
               </CardContent>
@@ -150,9 +155,18 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <Button
+              type="button"
               variant="outline"
-              onClick={onSave}
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (typeof onSave === 'function') {
+                  onSave();
+                }
+              }}
               disabled={isSaving}
+              className="border-2 border-blue-500 bg-blue-50 hover:bg-blue-100"
             >
               <Save className="h-4 w-4 mr-2" />
               {isSaving ? 'Saving...' : 'Save Progress'}
