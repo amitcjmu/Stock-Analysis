@@ -56,6 +56,10 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
   onCancel,
   className = ''
 }) => {
+  // CC: Debugging - Log props only when onSave changes to avoid infinite re-renders
+  React.useEffect(() => {
+    console.log('🔍 AdaptiveFormContainer initialized with save handler:', typeof onSave === 'function');
+  }, [typeof onSave]); // Only log when onSave type changes
   // Defensive checks
   if (!formData) {
     return (
@@ -147,12 +151,81 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
         </Tabs>
 
         {/* Save and Cancel Actions */}
+        {/* CC: Debug Test Button to verify event handling */}
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded">
+          <p className="text-sm text-yellow-800 mb-2">Debug: Click to test if buttons work</p>
+          <button
+            type="button"
+            onClick={() => {
+              console.log('🟡 TEST: Plain HTML button clicked!');
+              alert('Plain HTML button works!');
+            }}
+            className="px-4 py-2 bg-yellow-500 text-white rounded mr-2"
+          >
+            Test HTML Button
+          </button>
+          <Button
+            type="button"
+            onClick={() => {
+              console.log('🟡 TEST: UI Button component clicked!');
+              alert('UI Button component works!');
+            }}
+            variant="default"
+          >
+            Test UI Button
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              console.log('🔵 TEST: Direct onSave call!');
+              if (typeof onSave === 'function') {
+                console.log('🔵 Calling onSave directly from test button');
+                onSave();
+              } else {
+                console.log('🔴 onSave is not a function in test button');
+              }
+            }}
+            variant="destructive"
+          >
+            Test Direct Save Call
+          </Button>
+        </div>
+
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <Button
+              type="button"
               variant="outline"
-              onClick={onSave}
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                console.log('🔴 Save Progress button clicked - Event fired!');
+                console.log('🔍 Button event:', e);
+                console.log('🔍 onSave type:', typeof onSave);
+                console.log('🔍 onSave value:', onSave);
+
+                // CC: Prevent any form submission or event bubbling
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (typeof onSave === 'function') {
+                  console.log('✅ Calling onSave function NOW...');
+                  try {
+                    // Call onSave directly
+                    const result = onSave();
+                    console.log('✅ onSave called successfully, result:', result);
+                  } catch (error) {
+                    console.error('❌ Error calling onSave:', error);
+                  }
+                } else {
+                  console.error('❌ onSave prop is not a function!', {
+                    onSave,
+                    typeOf: typeof onSave,
+                    isNull: onSave === null,
+                    isUndefined: onSave === undefined
+                  });
+                }
+              }}
               disabled={isSaving}
+              className="border-2 border-blue-500 bg-blue-50 hover:bg-blue-100"
             >
               <Save className="h-4 w-4 mr-2" />
               {isSaving ? 'Saving...' : 'Save Progress'}

@@ -5,7 +5,7 @@
  * for collection workflows with CrewAI integration.
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -14,6 +14,7 @@ import { useCollectionFlowManagement, useIncompleteCollectionFlows } from './use
 
 // Import API services
 import { collectionFlowApi } from '@/services/api/collection-flow';
+import { apiCall } from '@/config/api';
 
 // Import form data transformation utilities
 import { convertQuestionnairesToFormData, convertQuestionnaireToFormData, validateFormDataStructure, createFallbackFormData } from '@/utils/collection/formDataTransformation'
@@ -245,8 +246,28 @@ export const useAdaptiveFormFlow = (
               const adaptiveFormData = convertQuestionnairesToFormData(existingQuestionnaires[0], applicationId);
 
               if (validateFormDataStructure(adaptiveFormData)) {
-                // Extract existing responses to populate formValues
-                const existingResponses = extractExistingResponses(existingQuestionnaires[0]);
+                // Fetch saved responses from the backend
+                let existingResponses: CollectionFormData = {};
+
+                const questionnaireId = existingQuestionnaires[0]?.id || 'default-questionnaire';
+                try {
+                  const savedResponsesData = await collectionFlowApi.getQuestionnaireResponses(
+                    flowResponse.id,
+                    questionnaireId
+                  );
+
+                  if (savedResponsesData?.responses && Object.keys(savedResponsesData.responses).length > 0) {
+                    existingResponses = savedResponsesData.responses;
+                    console.log(`📝 Loaded ${Object.keys(existingResponses).length} saved responses from backend`);
+                  } else {
+                    // Fallback to extracting from questionnaire if backend doesn't have responses
+                    existingResponses = extractExistingResponses(existingQuestionnaires[0]);
+                  }
+                } catch (err) {
+                  console.warn('Failed to fetch saved responses, using fallback:', err);
+                  // Fallback to extracting from questionnaire
+                  existingResponses = extractExistingResponses(existingQuestionnaires[0]);
+                }
 
                 setState(prev => ({
                   ...prev,
@@ -604,9 +625,9 @@ export const useAdaptiveFormFlow = (
   }, [checkingFlows, hasBlockingFlows, state.isLoading, flowIdFromUrl, setCurrentFlow, applicationId, user, toast]);
 
   /**
-   * Handle field value changes
+   * Handle field value changes - wrapped in useCallback for performance
    */
-  const handleFieldChange = (fieldId: string, value: FormFieldValue): void => {
+  const handleFieldChange = useCallback((fieldId: string, value: FormFieldValue): void => {
     setState(prev => ({
       ...prev,
       formValues: {
@@ -614,26 +635,76 @@ export const useAdaptiveFormFlow = (
         [fieldId]: value
       }
     }));
-  };
+  }, []); // No dependencies needed as setState is stable
 
   /**
-   * Handle validation result changes
+   * Handle validation result changes - wrapped in useCallback for performance
    */
-  const handleValidationChange = (newValidation: FormValidationResult): void => {
+  const handleValidationChange = useCallback((newValidation: FormValidationResult): void => {
     setState(prev => ({ ...prev, validation: newValidation }));
-  };
+  }, []); // No dependencies needed as setState is stable
 
   /**
-   * Save form progress
+   * Save form progress - wrapped in useCallback to prevent unnecessary re-renders
    */
-  const handleSave = async (): Promise<void> => {
-    if (!state.formData) return;
+  const handleSave = useCallback(async (): Promise<void> => {
+    console.log('🔴 SAVE BUTTON CLICKED - handleSave triggered', {
+      hasFormData: !!state.formData,
+      hasFlowId: !!state.flowId,
+      flowId: state.flowId,
+      formValues: state.formValues,
+      timestamp: new Date().toISOString()
+    });
+
+    if (!state.formData || !state.flowId) {
+      console.error('❌ Cannot save: Missing formData or flowId', {
+        formData: state.formData,
+        flowId: state.flowId
+      });
+      return;
+    }
 
     setState(prev => ({ ...prev, isSaving: true }));
 
     try {
-      // Simulate API call to save progress
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Get the first questionnaire (assuming single questionnaire for now)
+      const questionnaire = state.questionnaires?.[0];
+      const questionnaireId = questionnaire?.id || 'default-questionnaire';
+
+      console.log('📋 Preparing to save questionnaire:', {
+        questionnaireId,
+        hasQuestionnaire: !!questionnaire,
+        totalQuestionnaires: state.questionnaires?.length || 0
+      });
+
+      // Prepare the submission data in the format expected by the backend
+      const submissionData = {
+        responses: state.formValues,
+        form_metadata: {
+          form_id: state.formData.formId,
+          application_id: applicationId || null,
+          completion_percentage: state.validation?.completionPercentage || 0,
+          confidence_score: state.validation?.overallConfidenceScore || 0,
+          submitted_at: new Date().toISOString(),
+        },
+        validation_results: {
+          isValid: state.validation?.isValid || false,
+          fieldResults: state.validation?.fieldResults || {},
+        },
+      };
+
+      // Submit the questionnaire responses to the backend
+      const endpoint = `/collection/flows/${state.flowId}/questionnaires/${questionnaireId}/responses`;
+      console.log('🚀 Submitting to endpoint:', endpoint, {
+        submissionData
+      });
+
+      const response = await apiCall(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(submissionData),
+      });
+
+      console.log('💾 Questionnaire responses saved successfully:', response);
 
       toast({
         title: 'Progress Saved',
@@ -649,7 +720,7 @@ export const useAdaptiveFormFlow = (
     } finally {
       setState(prev => ({ ...prev, isSaving: false }));
     }
-  };
+  }, [state.formData, state.flowId, state.formValues, state.validation, state.questionnaires, applicationId, toast]); // Dependencies for useCallback
 
   /**
    * Submit the completed form
@@ -817,7 +888,7 @@ export const useAdaptiveFormFlow = (
     setCurrentFlow(null);
   };
 
-  // Auto-initialize effect
+  // Auto-initialize effect - Fixed to prevent infinite loops
   useEffect(() => {
     // STOP INFINITE LOOPS: Only initialize once and handle errors gracefully
     // Only initialize if:
@@ -840,7 +911,7 @@ export const useAdaptiveFormFlow = (
         setState(prev => ({ ...prev, error, isLoading: false }));
       });
     }
-  }, [applicationId, flowIdFromUrl, checkingFlows, hasBlockingFlows, autoInitialize, state.formData, state.isLoading, state.error, initializeFlow]);
+  }, [applicationId, flowIdFromUrl, checkingFlows, hasBlockingFlows, autoInitialize, state.formData, state.isLoading, state.error]); // Removed initializeFlow from dependencies to prevent infinite loop
 
   // Cleanup effect
   useEffect(() => {
@@ -852,6 +923,15 @@ export const useAdaptiveFormFlow = (
       console.log('🧹 Cleaning up collection workflow state');
     };
   }, [setCurrentFlow]);
+
+  // CC: Debugging - Log hook return only when key values change
+  React.useEffect(() => {
+    console.log('🔍 useAdaptiveFormFlow state updated:', {
+      hasHandleSave: typeof handleSave === 'function',
+      flowId: state.flowId,
+      hasFormData: !!state.formData,
+    });
+  }, [state.flowId, !!state.formData, typeof handleSave]); // Only log when key values change
 
   return {
     // State

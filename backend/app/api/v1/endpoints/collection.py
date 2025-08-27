@@ -28,6 +28,10 @@ from app.schemas.collection_flow import (
 
 # Import all modular functions to maintain backward compatibility
 from app.api.v1.endpoints import collection_crud
+from app.api.v1.endpoints.collection_batch_operations import (
+    cleanup_flows as batch_cleanup_flows,
+    batch_delete_flows as batch_delete,
+)
 from app.api.v1.endpoints.collection_applications import update_flow_applications
 
 logger = logging.getLogger(__name__)
@@ -206,24 +210,8 @@ async def get_adaptive_questionnaires(
     )
 
 
-@router.post("/flows/{flow_id}/questionnaires/{questionnaire_id}/submit")
-async def submit_questionnaire_response(
-    flow_id: str,
-    questionnaire_id: str,
-    responses: Dict[str, Any],
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    context=Depends(get_request_context),
-) -> Dict[str, Any]:
-    """Submit responses to an adaptive questionnaire"""
-    return await collection_crud.submit_questionnaire_response(
-        flow_id=flow_id,
-        questionnaire_id=questionnaire_id,
-        responses=responses,
-        db=db,
-        current_user=current_user,
-        context=context,
-    )
+# Note: Questionnaire response endpoints moved to collection_crud_update_commands.py
+# They are still available through collection_crud imports
 
 
 @router.get("/flows/{flow_id}/readiness")
@@ -339,7 +327,7 @@ async def cleanup_flows(
     context=Depends(get_request_context),
 ) -> Dict[str, Any]:
     """Clean up expired collection flows"""
-    return await collection_crud.cleanup_flows(
+    return await batch_cleanup_flows(
         expiration_hours=expiration_hours,
         dry_run=dry_run,
         include_failed=include_failed,
@@ -357,8 +345,8 @@ async def batch_delete_flows(
     current_user: User = Depends(get_current_user),
     context=Depends(get_request_context),
 ) -> Dict[str, Any]:
-    """Delete multiple collection flows in batch"""
-    return await collection_crud.batch_delete_flows(
+    """Batch delete multiple collection flows"""
+    return await batch_delete(
         flow_ids=flow_ids,
         force=force,
         db=db,

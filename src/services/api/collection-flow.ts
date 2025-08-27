@@ -209,6 +209,24 @@ class CollectionFlowApi {
     );
   }
 
+  async getQuestionnaireResponses(
+    flowId: string,
+    questionnaireId: string
+  ): Promise<any> {
+    try {
+      return await apiCall(
+        `${this.baseUrl}/flows/${flowId}/questionnaires/${questionnaireId}/responses`,
+        {
+          method: 'GET'
+        }
+      );
+    } catch (err: any) {
+      console.error('Failed to get questionnaire responses:', err);
+      // Return empty responses on error to allow form to still function
+      return { responses: {} };
+    }
+  }
+
   async executeFlowPhase(flowId: string, phaseInput?: Record<string, unknown>): Promise<{
     phase: string;
     status: string;

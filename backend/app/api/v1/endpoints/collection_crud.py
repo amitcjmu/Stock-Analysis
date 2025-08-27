@@ -17,6 +17,7 @@ from app.api.v1.endpoints.collection_crud_commands import (
 from app.api.v1.endpoints.collection_crud_update_commands import (
     update_collection_flow,
     submit_questionnaire_response,
+    get_questionnaire_responses,
     batch_update_questionnaire_responses,
 )
 from app.api.v1.endpoints.collection_crud_execution import (
@@ -45,8 +46,10 @@ __all__ = [
     # Command operations
     "create_collection_from_discovery",
     "create_collection_flow",
-    # "update_collection_flow",       # Defined in collection.py
-    # "submit_questionnaire_response",  # Defined in collection.py
+    "update_collection_flow",
+    "submit_questionnaire_response",
+    "get_questionnaire_responses",
+    "batch_update_questionnaire_responses",
     "delete_flow",
     "cleanup_flows",
     "batch_delete_flows",

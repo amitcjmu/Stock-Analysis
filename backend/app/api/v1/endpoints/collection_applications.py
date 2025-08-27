@@ -152,7 +152,7 @@ async def update_flow_applications(
         # Update the collection flow
         result = await collection_crud.update_collection_flow(
             flow_id=flow_id,
-            flow_data=update_data,
+            flow_update=update_data,
             db=db,
             current_user=current_user,
             context=context,
