@@ -200,6 +200,37 @@ async def submit_questionnaire_response(
         form_responses = request_data.responses
         form_metadata = request_data.form_metadata or {}
         validation_results = request_data.validation_results or {}
+        
+        # Extract asset_id for optional linking to asset inventory
+        asset_id = form_metadata.get("application_id") or form_metadata.get("asset_id")
+        validated_asset = None
+        
+        if asset_id:
+            # If asset_id is provided, validate it exists and belongs to the engagement
+            from app.models.asset import Asset
+            try:
+                asset_result = await db.execute(
+                    select(Asset)
+                    .where(Asset.id == asset_id)
+                    .where(Asset.engagement_id == context.engagement_id)
+                    .where(Asset.client_account_id == context.client_account_id)
+                )
+                validated_asset = asset_result.scalar_one_or_none()
+                
+                if validated_asset:
+                    logger.info(f"Linking questionnaire responses to existing asset: {validated_asset.name} (ID: {asset_id})")
+                else:
+                    logger.warning(f"Asset {asset_id} not found or not accessible - proceeding without asset linkage")
+                    asset_id = None  # Clear invalid asset_id
+                    
+            except Exception as e:
+                logger.warning(f"Failed to validate asset {asset_id}: {e} - proceeding without asset linkage")
+                asset_id = None
+        else:
+            logger.info(f"No asset_id provided - questionnaire responses will be flow-level only (new/manual application entry)")
+        
+        # FUTURE: Could create a new asset record here based on questionnaire responses
+        # if no asset_id provided and application_name is filled in the responses
 
         # Create response records for each submitted field
         response_records = []
@@ -219,6 +250,7 @@ async def submit_questionnaire_response(
             # Create response record
             response = CollectionQuestionnaireResponse(
                 collection_flow_id=flow.id,
+                asset_id=asset_id,  # CRITICAL: Link response directly to asset
                 questionnaire_type="adaptive_form",
                 question_category=form_metadata.get("form_id", "general"),
                 question_id=field_id,
@@ -235,7 +267,8 @@ async def submit_questionnaire_response(
                 responded_at=datetime.utcnow(),
                 response_metadata={
                     "questionnaire_id": questionnaire_id,
-                    "application_id": form_metadata.get("application_id"),
+                    "application_id": form_metadata.get("application_id"),  # Keep for backward compatibility
+                    "asset_id": asset_id,  # Also store in metadata for redundancy
                     "completion_percentage": form_metadata.get("completion_percentage"),
                     "submitted_at": form_metadata.get("submitted_at"),
                 },

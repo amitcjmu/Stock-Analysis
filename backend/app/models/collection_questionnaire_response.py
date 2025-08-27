@@ -38,6 +38,15 @@ class CollectionQuestionnaireResponse(Base, TimestampMixin):
         index=True,
     )
     responded_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    
+    # Asset relationship - CRITICAL: Links responses to specific assets
+    asset_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("assets.id", ondelete="CASCADE"),
+        nullable=True,  # Allow null for legacy responses
+        index=True,
+        comment="Foreign key to the asset this questionnaire response is about"
+    )
 
     # Question details
     questionnaire_type = Column(String(50), nullable=False, index=True)
@@ -71,6 +80,7 @@ class CollectionQuestionnaireResponse(Base, TimestampMixin):
     )
     gap = relationship("CollectionDataGap", back_populates="questionnaire_responses")
     user = relationship("User", back_populates="questionnaire_responses")
+    asset = relationship("Asset", back_populates="questionnaire_responses")
 
     def __repr__(self):
         return f"<CollectionQuestionnaireResponse(id={self.id}, question_id='{self.question_id}')>"

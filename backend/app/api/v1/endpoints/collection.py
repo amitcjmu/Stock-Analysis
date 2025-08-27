@@ -24,6 +24,7 @@ from app.schemas.collection_flow import (
     CollectionGapAnalysisResponse,
     ManageFlowRequest,
     CollectionApplicationSelectionRequest,
+    QuestionnaireSubmissionRequest,
 )
 
 # Import all modular functions to maintain backward compatibility
@@ -210,8 +211,42 @@ async def get_adaptive_questionnaires(
     )
 
 
-# Note: Questionnaire response endpoints moved to collection_crud_update_commands.py
-# They are still available through collection_crud imports
+@router.get("/flows/{flow_id}/questionnaires/{questionnaire_id}/responses")
+async def get_questionnaire_responses(
+    flow_id: str,
+    questionnaire_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Get saved questionnaire responses for a specific flow and questionnaire"""
+    return await collection_crud.get_questionnaire_responses(
+        flow_id=flow_id,
+        questionnaire_id=questionnaire_id,
+        db=db,
+        current_user=current_user,
+        context=context,
+    )
+
+
+@router.post("/flows/{flow_id}/questionnaires/{questionnaire_id}/responses")
+async def submit_questionnaire_response(
+    flow_id: str,
+    questionnaire_id: str,
+    request_data: QuestionnaireSubmissionRequest,  # FastAPI will parse and validate JSON body
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Submit responses to an adaptive questionnaire"""
+    return await collection_crud.submit_questionnaire_response(
+        flow_id=flow_id,
+        questionnaire_id=questionnaire_id,
+        request_data=request_data,
+        db=db,
+        current_user=current_user,
+        context=context,
+    )
 
 
 @router.get("/flows/{flow_id}/readiness")

@@ -56,10 +56,10 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
   onCancel,
   className = ''
 }) => {
-  // CC: Debugging - Log props only when onSave changes to avoid infinite re-renders
+  // CC: Component initialization effect
   React.useEffect(() => {
-    console.log('🔍 AdaptiveFormContainer initialized with save handler:', typeof onSave === 'function');
-  }, [typeof onSave]); // Only log when onSave type changes
+    // AdaptiveFormContainer initialized with save functionality
+  }, [typeof onSave]);
   // Defensive checks
   if (!formData) {
     return (
@@ -121,6 +121,7 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
                   initialValues={formValues}
                   onFieldChange={onFieldChange}
                   onSubmit={handleFormSubmit}
+                  onSave={onSave}
                   onValidationChange={onValidationChange}
                   bulkMode={false}
                   className="space-y-6"
@@ -139,10 +140,10 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
                   applications={[]}
                   fields={formData.sections.flatMap(section => section.fields)}
                   onDataChange={(appId, fieldId, value) => {
-                    console.log('Bulk data change:', { appId, fieldId, value });
+                    // Handle bulk data changes
                   }}
                   onBulkUpload={async (file) => {
-                    console.log('Bulk upload:', file.name);
+                    // Handle bulk file upload
                   }}
                 />
               </CardContent>
@@ -151,77 +152,17 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
         </Tabs>
 
         {/* Save and Cancel Actions */}
-        {/* CC: Debug Test Button to verify event handling */}
-        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded">
-          <p className="text-sm text-yellow-800 mb-2">Debug: Click to test if buttons work</p>
-          <button
-            type="button"
-            onClick={() => {
-              console.log('🟡 TEST: Plain HTML button clicked!');
-              alert('Plain HTML button works!');
-            }}
-            className="px-4 py-2 bg-yellow-500 text-white rounded mr-2"
-          >
-            Test HTML Button
-          </button>
-          <Button
-            type="button"
-            onClick={() => {
-              console.log('🟡 TEST: UI Button component clicked!');
-              alert('UI Button component works!');
-            }}
-            variant="default"
-          >
-            Test UI Button
-          </Button>
-          <Button
-            type="button"
-            onClick={() => {
-              console.log('🔵 TEST: Direct onSave call!');
-              if (typeof onSave === 'function') {
-                console.log('🔵 Calling onSave directly from test button');
-                onSave();
-              } else {
-                console.log('🔴 onSave is not a function in test button');
-              }
-            }}
-            variant="destructive"
-          >
-            Test Direct Save Call
-          </Button>
-        </div>
-
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <Button
               type="button"
               variant="outline"
               onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                console.log('🔴 Save Progress button clicked - Event fired!');
-                console.log('🔍 Button event:', e);
-                console.log('🔍 onSave type:', typeof onSave);
-                console.log('🔍 onSave value:', onSave);
-
-                // CC: Prevent any form submission or event bubbling
                 e.preventDefault();
                 e.stopPropagation();
-
+                
                 if (typeof onSave === 'function') {
-                  console.log('✅ Calling onSave function NOW...');
-                  try {
-                    // Call onSave directly
-                    const result = onSave();
-                    console.log('✅ onSave called successfully, result:', result);
-                  } catch (error) {
-                    console.error('❌ Error calling onSave:', error);
-                  }
-                } else {
-                  console.error('❌ onSave prop is not a function!', {
-                    onSave,
-                    typeOf: typeof onSave,
-                    isNull: onSave === null,
-                    isUndefined: onSave === undefined
-                  });
+                  onSave();
                 }
               }}
               disabled={isSaving}
