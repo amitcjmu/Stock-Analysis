@@ -85,6 +85,10 @@ class NavigationDecisionTool(BaseTool):
 
     def _run(self, flow_status: str, validation_results: str, flow_type: str) -> str:
         """Make intelligent navigation decision with actionable guidance"""
+        # Initialize variables before try block to avoid UnboundLocalError
+        status_data = {}
+        validation_data = {}
+
         try:
             status_data = (
                 json.loads(flow_status) if isinstance(flow_status, str) else flow_status

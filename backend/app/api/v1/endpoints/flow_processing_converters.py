@@ -1,0 +1,323 @@
+"""
+Flow Processing Response Converters
+Utilities for converting between different response formats
+"""
+
+import logging
+from typing import Any, Dict, List
+
+from .flow_processing_models import (
+    FlowContinuationResponse,
+    PhaseStatus,
+    RoutingContext,
+    TaskResult,
+    UserGuidance,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def convert_fast_path_to_api_response(
+    fast_response: Dict[str, Any], flow_data: Dict[str, Any], execution_time: float
+) -> FlowContinuationResponse:
+    """Convert fast path response to proper API response format"""
+    try:
+        flow_id = flow_data.get("flow_id", "unknown")
+        flow_type = flow_data.get("flow_type", "discovery")
+        current_phase = flow_data.get("current_phase", "data_import")
+
+        # Create routing context
+        routing_context = RoutingContext(
+            target_page=fast_response.get("routing_decision", f"/{flow_type}/overview"),
+            recommended_page=fast_response.get(
+                "routing_decision", f"/{flow_type}/overview"
+            ),
+            flow_id=flow_id,
+            phase=current_phase,
+            flow_type=flow_type,
+        )
+
+        # Create user guidance
+        user_guidance = UserGuidance(
+            primary_message=fast_response.get(
+                "user_guidance", "Continue with next step"
+            ),
+            action_items=[
+                fast_response.get("user_guidance", "Continue with next step")
+            ],
+            user_actions=[
+                fast_response.get("user_guidance", "Continue with next step")
+            ],
+            system_actions=["Fast path processing complete"],
+            estimated_completion_time=1,  # Fast path
+        )
+
+        # Determine completion status
+        is_complete = fast_response.get("completion_status") == "phase_complete"
+
+        # Create minimal checklist status for fast path
+        checklist_status = [
+            PhaseStatus(
+                phase_id=current_phase,
+                phase_name=current_phase.replace("_", " ").title(),
+                status="completed" if is_complete else "in_progress",
+                completion_percentage=100.0 if is_complete else 50.0,
+                tasks=[
+                    TaskResult(
+                        task_id=f"{current_phase}_main",
+                        task_name=f"{current_phase.replace('_', ' ').title()} phase",
+                        status="completed" if is_complete else "in_progress",
+                        confidence=fast_response.get("confidence", 0.95),
+                        next_steps=[],
+                    )
+                ],
+                estimated_time_remaining=None if is_complete else 5,
+            )
+        ]
+
+        return FlowContinuationResponse(
+            success=True,
+            flow_id=flow_id,
+            flow_type=flow_type,
+            current_phase=current_phase,
+            routing_context=routing_context,
+            user_guidance=user_guidance,
+            checklist_status=checklist_status,
+            agent_insights=[
+                {
+                    "agent": "Fast Path Processor",
+                    "analysis": (
+                        f"Simple transition detected - "
+                        f"{fast_response.get('completion_status', 'processing')}"
+                    ),
+                    "confidence": fast_response.get("confidence", 0.95),
+                    "execution_time": execution_time,
+                }
+            ],
+            confidence=fast_response.get("confidence", 0.95),
+            reasoning="Fast path processing - no AI analysis required",
+            execution_time=execution_time,
+        )
+
+    except Exception as e:
+        logger.error(f"Error converting fast path response: {e}")
+        return create_fallback_response(
+            flow_data.get("flow_id", "unknown"),
+            f"Fast path conversion failed: {str(e)}",
+        )
+
+
+def create_simple_transition_response(flow_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Create simple transition response without AI analysis"""
+    flow_id = flow_data.get("flow_id", "unknown")
+    flow_type = flow_data.get("flow_type", "discovery")
+
+    return {
+        "routing_decision": f"/{flow_type}/overview/{flow_id}",
+        "user_guidance": f"Continue with {flow_type} flow processing",
+        "action_type": "navigation",
+        "confidence": 0.9,
+        "completion_status": "processing",
+        "fast_path": True,
+    }
+
+
+def convert_to_api_response(
+    result: Any, execution_time: float
+) -> FlowContinuationResponse:
+    """Convert agent result to API response format"""
+    try:
+        # Parse routing decision
+        routing_path = result.routing_decision
+
+        # Create routing context
+        routing_context = RoutingContext(
+            target_page=routing_path,
+            recommended_page=routing_path,
+            flow_id=result.flow_id,
+            phase=result.current_phase,
+            flow_type=result.flow_type,
+        )
+
+        # Create user guidance
+        user_guidance = UserGuidance(
+            primary_message=result.user_guidance,
+            action_items=[result.user_guidance],
+            user_actions=(
+                result.next_actions if result.next_actions else [result.user_guidance]
+            ),
+            system_actions=["Continue background processing"],
+            estimated_completion_time=30,  # Fast single agent
+        )
+
+        # Create checklist status based on current phase
+        checklist_status = create_checklist_status(result)
+
+        return FlowContinuationResponse(
+            success=result.success,
+            flow_id=result.flow_id,
+            flow_type=result.flow_type,
+            current_phase=result.current_phase,
+            routing_context=routing_context,
+            user_guidance=user_guidance,
+            checklist_status=checklist_status,
+            agent_insights=[
+                {
+                    "agent": "Single Intelligent Flow Agent",
+                    "analysis": result.reasoning,
+                    "confidence": result.confidence,
+                    "issues_found": result.issues_found,
+                }
+            ],
+            confidence=result.confidence,
+            reasoning=result.reasoning,
+            execution_time=execution_time,
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to convert agent result: {e}")
+        return create_fallback_response(
+            result.flow_id, f"Response conversion failed: {str(e)}"
+        )
+
+
+def create_checklist_status(result: Any) -> List[PhaseStatus]:
+    """Create checklist status based on agent analysis"""
+    try:
+        phases = [
+            "data_import",
+            "attribute_mapping",
+            "data_cleansing",
+            "inventory",
+            "dependencies",
+            "tech_debt",
+        ]
+        checklist_status = []
+
+        current_phase_index = 0
+        try:
+            current_phase_index = phases.index(result.current_phase)
+        except ValueError:
+            current_phase_index = 0
+
+        for i, phase in enumerate(phases):
+            if i < current_phase_index:
+                status = "completed"
+                completion = 100.0
+                tasks = [
+                    TaskResult(
+                        task_id=f"{phase}_main",
+                        task_name=f"{phase.replace('_', ' ').title()} Complete",
+                        status="completed",
+                        confidence=0.9,
+                        next_steps=[],
+                    )
+                ]
+            elif i == current_phase_index:
+                # Current phase - determine status from agent result
+                if result.success and "completed successfully" in result.user_guidance:
+                    status = "completed"
+                    completion = 100.0
+                    task_status = "completed"
+                elif "ISSUE:" in result.user_guidance or not result.success:
+                    status = (
+                        "not_started"
+                        if "No data" in result.user_guidance
+                        else "in_progress"
+                    )
+                    completion = 0.0 if "No data" in result.user_guidance else 25.0
+                    task_status = (
+                        "not_started"
+                        if "No data" in result.user_guidance
+                        else "in_progress"
+                    )
+                else:
+                    status = "in_progress"
+                    completion = 50.0
+                    task_status = "in_progress"
+
+                # Create task based on agent guidance
+                task_name = (
+                    result.user_guidance.split(":")[1].strip()
+                    if ":" in result.user_guidance
+                    else phase.replace("_", " ").title()
+                )
+                if "ACTION NEEDED:" in result.user_guidance:
+                    task_name = result.user_guidance.split("ACTION NEEDED:")[1].strip()
+
+                tasks = [
+                    TaskResult(
+                        task_id=f"{phase}_main",
+                        task_name=task_name,
+                        status=task_status,
+                        confidence=result.confidence,
+                        next_steps=result.next_actions,
+                    )
+                ]
+            else:
+                status = "not_started"
+                completion = 0.0
+                tasks = [
+                    TaskResult(
+                        task_id=f"{phase}_main",
+                        task_name=f"{phase.replace('_', ' ').title()}",
+                        status="not_started",
+                        confidence=0.0,
+                        next_steps=[],
+                    )
+                ]
+
+            checklist_status.append(
+                PhaseStatus(
+                    phase_id=phase,
+                    phase_name=phase.replace("_", " ").title(),
+                    status=status,
+                    completion_percentage=completion,
+                    tasks=tasks,
+                    estimated_time_remaining=5 if status != "completed" else None,
+                )
+            )
+
+        return checklist_status
+
+    except Exception as e:
+        logger.error(f"Failed to create checklist status: {e}")
+        return []
+
+
+def create_fallback_response(
+    flow_id: str, error_message: str
+) -> FlowContinuationResponse:
+    """Create fallback response when agent fails"""
+    return FlowContinuationResponse(
+        success=False,
+        flow_id=flow_id,
+        flow_type="discovery",
+        current_phase="data_import",
+        routing_context=RoutingContext(
+            target_page="/discovery/data-import",
+            recommended_page="/discovery/data-import",
+            flow_id=flow_id,
+            phase="data_import",
+            flow_type="discovery",
+        ),
+        user_guidance=UserGuidance(
+            primary_message=f"System error: {error_message}",
+            action_items=["Check system logs", "Retry flow processing"],
+            user_actions=["Upload data file if needed"],
+            system_actions=["Fix agent system"],
+            estimated_completion_time=None,
+        ),
+        checklist_status=[],
+        agent_insights=[
+            {
+                "agent": "Fallback System",
+                "analysis": error_message,
+                "confidence": 0.0,
+                "issues_found": [error_message],
+            }
+        ],
+        confidence=0.0,
+        reasoning=f"Fallback response due to: {error_message}",
+        execution_time=0.0,
+    )
