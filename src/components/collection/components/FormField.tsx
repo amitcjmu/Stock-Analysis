@@ -281,7 +281,7 @@ export const FormField: React.FC<FormFieldProps> = ({
               isRequired && 'after:content-["*"] after:ml-0.5 after:text-red-500'
             )}
           >
-            {questionNumber && (
+            {(questionNumber !== undefined && questionNumber !== null && questionNumber >= 0) && (
               <span className="text-muted-foreground mr-2">
                 {questionNumber}.
               </span>

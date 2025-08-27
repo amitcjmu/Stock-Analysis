@@ -83,7 +83,8 @@ async def initialize_flow_with_persistent_agents(
         logger.info("📋 Step 1: Initializing tenant agent pool")
         try:
             agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
-                context.client_account_id, context.engagement_id
+                client_id=str(context.client_account_id),
+                engagement_id=str(context.engagement_id),
             )
 
             if not agent_pool:

@@ -71,6 +71,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
   onValidationChange,
   bulkMode = false,
   onBulkToggle,
+  resetTrigger,
   className
 }) => {
   const [formValues, setFormValues] = useState<CollectionFormData>(initialValues);
@@ -81,14 +82,31 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
   const [hasInteracted, setHasInteracted] = useState(false); // Track if user has interacted with form
 
   // Sync formValues with initialValues when initialValues prop changes
+  // CRITICAL FIX: Prevent overwriting user edits unless explicitly reset
   useEffect(() => {
-    // Always sync initialValues to formValues, even if empty (to reset form)
-    console.log('📝 AdaptiveForm: Syncing form values with initial values:', { 
-      initialValues, 
-      hasValues: Object.keys(initialValues || {}).length > 0 
-    });
-    setFormValues(initialValues || {});
-  }, [initialValues]);
+    // Only sync if user hasn't interacted with the form yet
+    // This prevents accidentally overwriting user changes when parent components re-render
+    if (!hasInteracted) {
+      console.log('📝 AdaptiveForm: Initial sync - setting form values from initial values:', {
+        initialValues,
+        hasValues: Object.keys(initialValues || {}).length > 0
+      });
+      setFormValues(initialValues || {});
+    } else {
+      console.log('📝 AdaptiveForm: User has interacted - preserving form values, skipping initialValues sync');
+    }
+  }, [initialValues, hasInteracted]);
+
+  // Handle explicit form reset via resetTrigger prop
+  useEffect(() => {
+    if (resetTrigger !== undefined && resetTrigger > 0) {
+      console.log('📝 AdaptiveForm: Explicit reset triggered via resetTrigger:', resetTrigger);
+      setFormValues(initialValues || {});
+      setHasInteracted(false); // Reset interaction flag to allow future syncs
+      setValidation(null);
+      setExpandedSections(new Set());
+    }
+  }, [resetTrigger, initialValues]);
 
   // Calculate form progress and metrics
   const formMetrics = useMemo(() => {
@@ -521,7 +539,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
                       questionNumber += sectionFields.length;
                     }
                   }
-                  
+
                   return (
                     <FormField
                       key={field.id}

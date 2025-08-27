@@ -33,6 +33,17 @@ def get_host_for_environment() -> str:
 
     # SECURITY FIX: More explicit container detection
     # Check for explicit container environment indicators
+    def check_cgroup_for_docker():
+        """Safely check /proc/1/cgroup for docker indicators."""
+        try:
+            if os.path.exists("/proc/1/cgroup"):
+                with open("/proc/1/cgroup", "r", encoding="utf-8") as f:
+                    content = f.read()
+                    return "docker" in content or "containerd" in content
+        except (OSError, IOError, UnicodeDecodeError) as e:
+            logger.debug(f"Could not read /proc/1/cgroup: {e}")
+        return False
+
     container_indicators = [
         os.getenv("RAILWAY_ENVIRONMENT"),
         os.getenv("RAILWAY_PROJECT_NAME"),
@@ -40,8 +51,7 @@ def get_host_for_environment() -> str:
         os.getenv("KUBERNETES_SERVICE_HOST"),  # Kubernetes
         os.getenv("DOCKER_CONTAINER"),  # Docker indicator
         os.path.exists("/.dockerenv"),  # Docker container file
-        os.path.exists("/proc/1/cgroup")
-        and "docker" in open("/proc/1/cgroup", "r").read(),
+        check_cgroup_for_docker(),  # Safe cgroup check
     ]
 
     # Check database URL for hosted services

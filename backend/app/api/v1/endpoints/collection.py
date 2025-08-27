@@ -249,6 +249,31 @@ async def submit_questionnaire_response(
     )
 
 
+@router.post("/flows/{flow_id}/questionnaires/{questionnaire_id}/submit")
+async def submit_questionnaire_response_legacy(
+    flow_id: str,
+    questionnaire_id: str,
+    request_data: QuestionnaireSubmissionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """LEGACY: Submit responses to an adaptive questionnaire
+
+    This endpoint is provided for backward compatibility.
+    New integrations should use /flows/{flow_id}/questionnaires/{questionnaire_id}/responses
+    """
+    # Forward to the new endpoint implementation
+    return await collection_crud.submit_questionnaire_response(
+        flow_id=flow_id,
+        questionnaire_id=questionnaire_id,
+        request_data=request_data,
+        db=db,
+        current_user=current_user,
+        context=context,
+    )
+
+
 @router.get("/flows/{flow_id}/readiness")
 async def get_collection_readiness(
     flow_id: str,

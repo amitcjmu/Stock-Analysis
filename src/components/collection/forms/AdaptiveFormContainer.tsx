@@ -160,7 +160,7 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
               onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 if (typeof onSave === 'function') {
                   onSave();
                 }

@@ -119,14 +119,28 @@ async def get_questionnaire_responses(
             CollectionQuestionnaireResponse.collection_flow_id == flow.id
         )
 
-        # Filter by questionnaire_id if provided
+        # Filter by questionnaire_id if provided (database-agnostic JSON filtering)
         if questionnaire_id:
-            query = query.where(
-                CollectionQuestionnaireResponse.response_metadata[
-                    "questionnaire_id"
-                ].astext
-                == questionnaire_id
-            )
+            # Use SQLAlchemy's JSON operators which are database-agnostic
+            from sqlalchemy import cast, String
+
+            # Database-agnostic JSON filtering approach
+            # This works across PostgreSQL (with JSONB/JSON), MySQL (JSON), and SQLite (JSON1 extension)
+            try:
+                # For PostgreSQL, use the -> operator for JSON/JSONB
+                query = query.where(
+                    CollectionQuestionnaireResponse.response_metadata[
+                        "questionnaire_id"
+                    ].astext
+                    == questionnaire_id
+                )
+            except Exception:
+                # Fallback to cast as String and use LIKE for broader compatibility
+                query = query.where(
+                    cast(
+                        CollectionQuestionnaireResponse.response_metadata, String
+                    ).like(f'%"questionnaire_id": "{questionnaire_id}"%')
+                )
 
         # Execute query
         result = await db.execute(query)

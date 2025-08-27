@@ -1,159 +1,97 @@
 #!/usr/bin/env python3
 """
-Test script to verify questionnaire response persistence
+Test script to debug questionnaire persistence issues
 """
-
+import asyncio
 import json
-import requests
 from datetime import datetime
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine
 
-# Test configuration
-BASE_URL = "http://localhost:8000/api/v1"
-AUTH_TOKEN = "YOUR_AUTH_TOKEN_HERE"  # Replace with actual token from login
-FLOW_ID = "0e1c2420-a529-402b-a28f-98b1773dbf2d"
-QUESTIONNAIRE_ID = "test-questionnaire-001"
+# Import the models and functions we need to test
+import sys
+import os
+sys.path.append('/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend')
 
-# Headers
-headers = {
-    "Authorization": f"Bearer {AUTH_TOKEN}",
-    "X-Client-Account-ID": "11111111-1111-1111-1111-111111111111",
-    "X-Engagement-ID": "22222222-2222-2222-2222-222222222222",
-    "Content-Type": "application/json"
-}
+from app.models.collection_flow import CollectionFlow
+from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
 
+async def test_questionnaire_persistence():
+    """Test the questionnaire response storage and retrieval"""
 
-def test_submit_responses():
-    """Submit test questionnaire responses"""
-    print("\n=== Testing Submit Questionnaire Responses ===")
+    # Create async engine - use Docker database
+    DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/migration_platform"
+    engine = create_async_engine(DATABASE_URL, echo=True)
 
-    # Test data matching the format from frontend
-    test_responses = {
-        "responses": {
-            "app_name": "Test Application",
-            "app_description": "This is a test application for verifying persistence",
-            "business_criticality": "High",
-            "technical_stack": "Python, React, PostgreSQL",
-            "deployment_environment": "AWS Cloud",
-            "data_sensitivity": "Confidential",
-            "compliance_requirements": "GDPR, SOC2"
-        },
-        "form_metadata": {
-            "form_id": "adaptive_collection_form",
-            "application_id": "test-app-001",
-            "completion_percentage": 75,
-            "confidence_score": 0.85,
-            "submitted_at": datetime.now().isoformat()
-        },
-        "validation_results": {
-            "isValid": True,
-            "completionPercentage": 75,
-            "overallConfidenceScore": 0.85
-        }
-    }
+    # Create async session
+    async_session = sessionmaker(
+        engine,
+        class_=AsyncSession,
+        expire_on_commit=False
+    )
 
-    # Submit responses
-    url = f"{BASE_URL}/collection/flows/{FLOW_ID}/questionnaires/{QUESTIONNAIRE_ID}/submit"
-    response = requests.post(url, headers=headers, json=test_responses)
+    async with async_session() as session:
+        # Test 1: Check if we can query collection flows
+        print("\n=== Test 1: Query Collection Flows ===")
+        result = await session.execute(
+            select(CollectionFlow).limit(5)
+        )
+        flows = result.scalars().all()
+        print(f"Found {len(flows)} collection flows")
+        for flow in flows:
+            print(f"  - Flow ID: {flow.flow_id}, Status: {flow.status}")
 
-    print(f"Status Code: {response.status_code}")
-    if response.status_code == 200:
-        result = response.json()
-        print(f"✅ Success: {result.get('message')}")
-        print(f"   Responses Saved: {result.get('responses_saved')}")
-        print(f"   Flow Progress: {result.get('progress')}%")
-        return True
-    else:
-        print(f"❌ Error: {response.text}")
-        return False
+        # Test 2: Check if we can query questionnaire responses
+        print("\n=== Test 2: Query Questionnaire Responses ===")
+        result = await session.execute(
+            select(CollectionQuestionnaireResponse).limit(10)
+        )
+        responses = result.scalars().all()
+        print(f"Found {len(responses)} questionnaire responses")
+        for response in responses:
+            print(f"  - Question: {response.question_id}, Value: {response.response_value}")
 
+        # Test 3: Check the table structure
+        print("\n=== Test 3: Check CollectionQuestionnaireResponse columns ===")
+        if responses:
+            sample = responses[0]
+            print(f"Sample response attributes:")
+            attrs_to_check = ['id', 'collection_flow_id', 'asset_id', 'questionnaire_type',
+                             'question_id', 'response_value', 'response_metadata']
+            for attr in attrs_to_check:
+                if hasattr(sample, attr):
+                    try:
+                        value = getattr(sample, attr)
+                        print(f"  - {attr}: {value}")
+                    except:
+                        print(f"  - {attr}: <error reading>")
 
-def test_retrieve_responses():
-    """Retrieve saved questionnaire responses"""
-    print("\n=== Testing Retrieve Questionnaire Responses ===")
+        # Test 4: Check for specific flow
+        print("\n=== Test 4: Check for specific flow responses ===")
+        test_flow_id = "117381a0-21e0-46d6-8737-3eba06496046"  # From the Playwright test
 
-    # Retrieve responses
-    url = f"{BASE_URL}/collection/flows/{FLOW_ID}/questionnaires/{QUESTIONNAIRE_ID}/responses"
-    response = requests.get(url, headers=headers)
+        # First find the collection flow by flow_id
+        flow_result = await session.execute(
+            select(CollectionFlow).where(CollectionFlow.flow_id == test_flow_id)
+        )
+        flow = flow_result.scalar_one_or_none()
 
-    print(f"Status Code: {response.status_code}")
-    if response.status_code == 200:
-        result = response.json()
-        print(f"✅ Retrieved {result.get('response_count')} responses")
-        print(f"   Last Updated: {result.get('last_updated')}")
-        print("\nSaved Responses:")
-        for field_id, value in result.get('responses', {}).items():
-            print(f"   - {field_id}: {value}")
-        return True
-    else:
-        print(f"❌ Error: {response.text}")
-        return False
+        if flow:
+            print(f"Found flow: {flow.id} (flow_id: {flow.flow_id})")
 
-
-def test_database_verification():
-    """Verify responses are in the database"""
-    print("\n=== Verifying Database Persistence ===")
-
-    import subprocess
-
-    # Check database directly
-    cmd = f"""docker exec migration_postgres psql -U postgres -d migration_db -c "
-        SELECT
-            question_id,
-            response_value->>'value' as value,
-            confidence_score,
-            validation_status,
-            responded_at
-        FROM migration.collection_questionnaire_responses
-        WHERE collection_flow_id = '{FLOW_ID}'
-        ORDER BY responded_at DESC
-        LIMIT 10;
-    " """
-
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    if result.returncode == 0:
-        print("Database records found:")
-        print(result.stdout)
-        return True
-    else:
-        print(f"❌ Database query failed: {result.stderr}")
-        return False
-
-
-def main():
-    """Run all tests"""
-    print("=" * 60)
-    print("QUESTIONNAIRE RESPONSE PERSISTENCE TEST")
-    print("=" * 60)
-
-    # Run tests
-    tests_passed = []
-
-    # Test 1: Submit responses
-    tests_passed.append(test_submit_responses())
-
-    # Test 2: Retrieve responses
-    tests_passed.append(test_retrieve_responses())
-
-    # Test 3: Verify database
-    tests_passed.append(test_database_verification())
-
-    # Summary
-    print("\n" + "=" * 60)
-    print("TEST SUMMARY")
-    print("=" * 60)
-    passed = sum(tests_passed)
-    total = len(tests_passed)
-
-    if passed == total:
-        print(f"✅ ALL TESTS PASSED ({passed}/{total})")
-        print("\n🎉 Questionnaire response persistence is working correctly!")
-        print("Responses are being saved to the database and can be retrieved.")
-    else:
-        print(f"❌ SOME TESTS FAILED ({passed}/{total} passed)")
-        print("\nPlease check the error messages above for details.")
-
-    return passed == total
-
+            # Now query responses for this flow
+            resp_result = await session.execute(
+                select(CollectionQuestionnaireResponse)
+                .where(CollectionQuestionnaireResponse.collection_flow_id == flow.id)
+            )
+            flow_responses = resp_result.scalars().all()
+            print(f"Found {len(flow_responses)} responses for this flow")
+            for resp in flow_responses:
+                print(f"  - {resp.question_id}: {resp.response_value}")
+        else:
+            print(f"Flow {test_flow_id} not found")
 
 if __name__ == "__main__":
-    exit(0 if main() else 1)
+    asyncio.run(test_questionnaire_persistence())

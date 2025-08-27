@@ -336,9 +336,9 @@ class TenantScopedAgentPool:
         for agent_type in required_agents:
             try:
                 agent = await cls.get_or_create_agent(
-                    client_id,
-                    engagement_id,
-                    agent_type,
+                    client_id=client_id,
+                    engagement_id=engagement_id,
+                    agent_type=agent_type,
                     service_registry=service_registry,
                 )
                 await cls._warm_up_agent(agent, agent_type)

@@ -179,7 +179,8 @@ class FieldMappingExecutor(BasePhaseExecutor):
                         from app.services.persistent_agents import TenantScopedAgentPool
 
                         agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
-                            self.client_account_id, self.engagement_id
+                            client_id=str(self.client_account_id),
+                            engagement_id=str(self.engagement_id),
                         )
                         self._modular_executor.agent_pool = agent_pool
                         logger.info("Agent pool initialized for modular executor")
@@ -282,7 +283,8 @@ class FieldMappingExecutor(BasePhaseExecutor):
                     from app.services.persistent_agents import TenantScopedAgentPool
 
                     agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
-                        self.client_account_id, self.engagement_id
+                        client_id=str(self.client_account_id),
+                        engagement_id=str(self.engagement_id),
                     )
                     self._modular_executor.agent_pool = agent_pool
                     logger.info("Agent pool initialized for direct execution")

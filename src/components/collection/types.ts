@@ -119,6 +119,7 @@ export interface AdaptiveFormProps {
   onValidationChange?: (validation: FormValidationResult) => void;
   bulkMode?: boolean;
   onBulkToggle?: (enabled: boolean) => void;
+  resetTrigger?: number; // Optional prop to trigger form reset (increment to reset)
   className?: string;
 }
 
