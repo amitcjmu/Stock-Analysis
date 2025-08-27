@@ -60,10 +60,12 @@ class DataImportService:
         """
         try:
             detected_columns = []
-            actual_sample_size = min(sample_size, 1)  # Minimum 1 row sample
+            # Default to at least 1 row; refine per-branch using real lengths
+            actual_sample_size = 1
 
             if isinstance(parsed_data, list) and parsed_data:
                 # Sample multiple rows for more robust column detection
+                actual_sample_size = min(sample_size, len(parsed_data))
                 rows_to_sample = parsed_data[:actual_sample_size]
                 column_set = set()
 
@@ -80,6 +82,7 @@ class DataImportService:
                 data_list = parsed_data.get("data", [])
                 if isinstance(data_list, list) and data_list:
                     # Sample multiple rows for more robust column detection
+                    actual_sample_size = min(sample_size, len(data_list))
                     rows_to_sample = data_list[:actual_sample_size]
                     column_set = set()
 
