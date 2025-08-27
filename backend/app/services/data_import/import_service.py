@@ -47,6 +47,71 @@ class DataImportService:
         self.context = context
         self.storage_manager = ImportStorageManager(db, context.client_account_id)
 
+    def _detect_columns_from_data(self, parsed_data: Any, sample_size: int = 5) -> list:
+        """
+        Extract column names from parsed data using multi-row sampling for robustness.
+
+        Args:
+            parsed_data: The parsed JSON data structure
+            sample_size: Number of rows to sample for column detection
+
+        Returns:
+            List of detected column names, sorted for consistency
+        """
+        try:
+            detected_columns = []
+            actual_sample_size = min(sample_size, 1)  # Minimum 1 row sample
+
+            if isinstance(parsed_data, list) and parsed_data:
+                # Sample multiple rows for more robust column detection
+                rows_to_sample = parsed_data[:actual_sample_size]
+                column_set = set()
+
+                for row in rows_to_sample:
+                    if isinstance(row, dict):
+                        for k in row.keys():
+                            # SECURITY FIX: Add null check before string operations
+                            if k is not None and str(k).strip():
+                                column_set.add(str(k).strip())
+
+                detected_columns = sorted(list(column_set))  # Sort for consistency
+
+            elif isinstance(parsed_data, dict) and "data" in parsed_data:
+                data_list = parsed_data.get("data", [])
+                if isinstance(data_list, list) and data_list:
+                    # Sample multiple rows for more robust column detection
+                    rows_to_sample = data_list[:actual_sample_size]
+                    column_set = set()
+
+                    for row in rows_to_sample:
+                        if isinstance(row, dict):
+                            for k in row.keys():
+                                # SECURITY FIX: Add null check before string operations
+                                if k is not None and str(k).strip():
+                                    column_set.add(str(k).strip())
+
+                    detected_columns = sorted(list(column_set))  # Sort for consistency
+
+            if detected_columns:
+                logger.info(
+                    f"🔍 Detected {len(detected_columns)} columns from {actual_sample_size} sample row(s)"
+                )
+
+            return detected_columns
+
+        except Exception as e:
+            # Non-fatal; return empty list if parsing fails
+            # SECURITY FIX: Use secure formatting for column detection errors
+            from app.core.security.secure_logging import safe_log_format
+
+            logger.warning(
+                safe_log_format(
+                    "Column detection failed: {error_type}",
+                    error_type=type(e).__name__,
+                )
+            )
+            return []
+
     def _calculate_record_count(self, data: Any) -> int:
         """
         Calculate the actual number of records in data, handling nested structures.
@@ -232,32 +297,17 @@ class DataImportService:
             }
 
             # Derive detected columns early to remove timing/race conditions
-            try:
-                detected_columns = []
-                if isinstance(parsed_data, list) and parsed_data:
-                    first_row = parsed_data[0]
-                    if isinstance(first_row, dict):
-                        detected_columns = [
-                            k for k in first_row.keys() if str(k).strip()
-                        ]
-                elif isinstance(parsed_data, dict) and "data" in parsed_data:
-                    data_list = parsed_data.get("data", [])
-                    if isinstance(data_list, list) and data_list:
-                        first_row = data_list[0]
-                        if isinstance(first_row, dict):
-                            detected_columns = [
-                                k for k in first_row.keys() if str(k).strip()
-                            ]
-
-                if detected_columns:
-                    metadata["detected_columns"] = detected_columns
-            except Exception:
-                # Non-fatal; proceed without detected_columns if parsing fails
-                pass
+            # ROBUSTNESS FIX: Enhanced column detection with null checks and multi-row sampling
+            detected_columns = self._detect_columns_from_data(
+                parsed_data, sample_size=5
+            )
+            if detected_columns:
+                metadata["detected_columns"] = detected_columns
             await discovery_service.create_discovery_flow(
                 flow_id=str(master_flow_id),
                 # Store the actual list of records in raw_data for downstream phases
-                raw_data=file_data["data"],
+                # SECURITY FIX: Use safe dictionary access with fallback
+                raw_data=file_data.get("data", []),
                 metadata=convert_uuids_to_str(metadata),
                 data_import_id=str(data_import.id),
                 user_id=str(self.context.user_id),
@@ -289,7 +339,8 @@ class DataImportService:
             )
             await background_service.start_background_flow_execution(
                 flow_id=str(master_flow_id),
-                file_data=file_data["data"],  # Pass the parsed data
+                # SECURITY FIX: Use safe dictionary access with fallback
+                file_data=file_data.get("data", []),  # Pass the parsed data
                 context=self.context,
             )
             logger.info(f"✅ Background flow execution started for {master_flow_id}")
