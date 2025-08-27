@@ -13,12 +13,13 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
 
 from .analysis_handler import AnalysisHandler
 from .communication_utils import CommunicationUtils
 from .data_processing_handler import DataProcessingHandler
 from .data_validation_handler import DataValidationHandler
+from .field_mapping_generator import FieldMappingGenerator
+from .field_mapping_persistence import FieldMappingPersistence
 from .state_utils import StateUtils
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,8 @@ class PhaseHandlers:
         self.analysis_handler = AnalysisHandler(flow_instance)
         self.communication = CommunicationUtils(flow_instance)
         self.state_utils = StateUtils(flow_instance)
+        self.field_mapping_generator = FieldMappingGenerator(flow_instance)
+        self.field_mapping_persistence = FieldMappingPersistence(flow_instance)
 
     # Data validation phase delegation
     async def execute_data_import_validation(self):
@@ -98,7 +101,9 @@ class PhaseHandlers:
         return await self.state_utils.append_agent_collaboration(entry)
 
     # Apply approved field mappings with defensive programming
-    async def apply_approved_field_mappings(self, field_mapping_approval_result):
+    async def apply_approved_field_mappings(  # noqa: C901
+        self, field_mapping_approval_result
+    ):
         """Apply approved field mappings with comprehensive error handling"""
         self.logger.info(
             f"✅ [PhaseHandlers] Applying approved field mappings for flow {self.flow._flow_id}"
@@ -146,7 +151,16 @@ class PhaseHandlers:
                         continue
 
                     # Apply individual mapping with defensive checks
-                    applied_mapping = await self._apply_single_field_mapping(mapping, i)
+                    applied_mapping_result = (
+                        await self.field_mapping_generator.apply_single_field_mapping(
+                            mapping, field_mapping_approval_result, {}
+                        )
+                    )
+                    applied_mapping = (
+                        applied_mapping_result.get("applied_mapping")
+                        if applied_mapping_result.get("status") == "success"
+                        else None
+                    )
                     if applied_mapping:
                         applied_mappings.append(applied_mapping)
                     else:
@@ -234,453 +248,43 @@ class PhaseHandlers:
                 "timestamp": datetime.now().isoformat(),
             }
 
-    async def _apply_single_field_mapping(
-        self, mapping: Dict[str, Any], index: int
-    ) -> Optional[Dict[str, Any]]:
-        """Apply a single field mapping with validation and error handling"""
-        try:
-            # Validate required fields
-            required_fields = ["source_field", "target_field"]
-            missing_fields = [
-                field for field in required_fields if field not in mapping
-            ]
-
-            if missing_fields:
-                self.logger.warning(
-                    f"⚠️ Mapping at index {index} missing required fields: {missing_fields}"
-                )
-                return None
-
-            source_field = mapping["source_field"]
-            target_field = mapping["target_field"]
-
-            # Validate field names
-            if not isinstance(source_field, str) or not isinstance(target_field, str):
-                self.logger.warning(
-                    f"⚠️ Invalid field types at index {index}: source={type(source_field)}, target={type(target_field)}"
-                )
-                return None
-
-            if not source_field.strip() or not target_field.strip():
-                self.logger.warning(f"⚠️ Empty field names at index {index}")
-                return None
-
-            # Create applied mapping record
-            applied_mapping = {
-                "source_field": source_field,
-                "target_field": target_field,
-                "mapping_type": mapping.get("mapping_type", "direct"),
-                "confidence": mapping.get("confidence", 1.0),
-                "applied_at": datetime.now().isoformat(),
-                "index": index,
-                "status": "applied",
-            }
-
-            self.logger.debug(
-                f"✅ Successfully processed mapping {index}: {source_field} -> {target_field}"
-            )
-            return applied_mapping
-
-        except Exception as e:
-            self.logger.error(f"❌ Error applying mapping at index {index}: {e}")
-            return None
-
     async def generate_field_mapping_suggestions(self, data_validation_agent_result):
-        """Generate field mapping suggestions with comprehensive defensive programming"""
+        """Generate field mapping suggestions - delegated to specialized handler"""
         self.logger.info(
             f"🗺️ [PhaseHandlers] Generating field mapping suggestions for flow {self.flow._flow_id}"
         )
 
-        # DEFENSIVE PROGRAMMING: Handle various error scenarios gracefully
         try:
-            return await self._safe_generate_field_mapping_suggestions(
-                data_validation_agent_result
-            )
-        except Exception as primary_error:
-            self.logger.error(
-                f"❌ Primary field mapping generation failed: {primary_error}"
-            )
-
-            # Try alternative approaches
-            alternative_result = await self._try_alternative_field_mapping_approaches(
-                data_validation_agent_result, str(primary_error)
-            )
-
-            if alternative_result:
-                return alternative_result
-
-            # If all approaches fail, send error notification and return structured error
-            try:
-                await self.communication.send_phase_error(
-                    "field_mapping", str(primary_error)
+            # Delegate to the field mapping generator
+            result = (
+                await self.field_mapping_generator.generate_field_mapping_suggestions(
+                    data_validation_agent_result
                 )
-            except Exception as notification_error:
-                self.logger.warning(
-                    f"Failed to send error notification: {notification_error}"
-                )
-
-            # Return structured error response instead of raising
-            return {
-                "status": "failed",
-                "phase": "field_mapping",
-                "error": str(primary_error),
-                "field_mappings": [],
-                "suggestions": [],
-                "clarifications": [],
-                "message": "Field mapping generation failed after trying all available methods",
-                "timestamp": datetime.now().isoformat(),
-            }
-
-    async def _safe_generate_field_mapping_suggestions(
-        self, data_validation_agent_result
-    ):
-        """Primary method for generating field mapping suggestions with safety checks"""
-        # Check if flow instance is available
-        if not hasattr(self, "flow") or not self.flow:
-            raise RuntimeError("Flow instance not available in phase handlers")
-
-        # Initialize phase executors if not already done with defensive checks
-        if (
-            not hasattr(self.flow, "field_mapping_phase")
-            or not self.flow.field_mapping_phase
-        ):
-            if hasattr(self.flow, "_initialize_phase_executors_with_state"):
-                try:
-                    self.logger.info(
-                        "🔄 Initializing phase executors for field mapping"
-                    )
-                    self.flow._initialize_phase_executors_with_state()
-                except Exception as init_error:
-                    self.logger.error(
-                        f"Failed to initialize phase executors: {init_error}"
-                    )
-                    raise RuntimeError(
-                        f"Phase executor initialization failed: {init_error}"
-                    )
-            else:
-                raise RuntimeError("Phase executor initialization method not available")
-
-        # Verify field mapping phase executor exists
-        if (
-            not hasattr(self.flow, "field_mapping_phase")
-            or not self.flow.field_mapping_phase
-        ):
-            raise RuntimeError(
-                "Field mapping phase executor is not initialized after initialization attempt"
             )
 
-        # Prepare input data with comprehensive validation
-        input_data = self._prepare_field_mapping_input_data(
-            data_validation_agent_result
-        )
-
-        # DEFENSIVE PROGRAMMING: Try multiple execution methods
-        execution_methods = [
-            ("execute_suggestions_only", "Standard suggestions execution"),
-            ("execute_with_crew", "Crew-based execution"),
-            ("execute_field_mapping", "Direct field mapping execution"),
-        ]
-
-        last_error = None
-        for method_name, description in execution_methods:
-            try:
-                self.logger.info(f"🔄 Attempting {description} ({method_name})")
-
-                # Check if method exists on executor
-                if hasattr(self.flow.field_mapping_phase, method_name):
-                    method = getattr(self.flow.field_mapping_phase, method_name)
-                    if callable(method):
-                        # Execute the method
-                        mapping_result = await method(input_data)
-
-                        # Validate and process result
-                        processed_result = self._process_field_mapping_result(
-                            mapping_result, method_name
-                        )
-                        if processed_result:
-                            self.logger.info(
-                                f"✅ Field mapping completed via {method_name}"
-                            )
-                            return processed_result
-                        else:
-                            self.logger.warning(
-                                f"⚠️ {method_name} returned invalid result"
-                            )
-                    else:
-                        self.logger.warning(
-                            f"⚠️ {method_name} exists but is not callable"
-                        )
-                else:
-                    self.logger.debug(f"🔍 Method {method_name} not found on executor")
-
-            except Exception as method_error:
-                last_error = method_error
-                self.logger.warning(f"⚠️ {method_name} failed: {method_error}")
-                continue
-
-        # If we reach here, all methods failed
-        raise RuntimeError(
-            f"All field mapping execution methods failed. Last error: {last_error}"
-        )
-
-    def _prepare_field_mapping_input_data(
-        self, data_validation_result
-    ) -> Dict[str, Any]:
-        """Prepare comprehensive input data for field mapping with validation"""
-        # Basic input data structure
-        input_data = {
-            "validation_result": data_validation_result,
-            "phase": "field_mapping",
-            "suggestions_only": True,
-        }
-
-        # Add flow ID if available
-        if hasattr(self.flow, "_flow_id") and self.flow._flow_id:
-            input_data["flow_id"] = self.flow._flow_id
-        else:
-            self.logger.warning("⚠️ Flow ID not available for field mapping input")
-
-        # Add state data if available
-        if hasattr(self.flow, "state") and self.flow.state:
-            try:
-                # Add raw data if available
-                if hasattr(self.flow.state, "raw_data"):
-                    input_data["raw_data"] = getattr(self.flow.state, "raw_data", {})
-
-                # Add engagement context if available
-                if hasattr(self.flow.state, "engagement_id"):
-                    input_data["engagement_id"] = getattr(
-                        self.flow.state, "engagement_id", ""
-                    )
-
-                if hasattr(self.flow.state, "client_account_id"):
-                    input_data["client_account_id"] = getattr(
-                        self.flow.state, "client_account_id", ""
-                    )
-
-            except Exception as state_error:
-                self.logger.warning(f"⚠️ Error accessing flow state: {state_error}")
-
-        self.logger.debug(
-            f"📋 Prepared field mapping input with keys: {list(input_data.keys())}"
-        )
-        return input_data
-
-    def _process_field_mapping_result(
-        self, mapping_result: Any, method_name: str
-    ) -> Optional[Dict[str, Any]]:
-        """Process and validate field mapping result with comprehensive error handling"""
-        if not mapping_result:
-            self.logger.warning(f"⚠️ {method_name} returned empty result")
-            return None
-
-        if not isinstance(mapping_result, dict):
-            self.logger.warning(
-                f"⚠️ {method_name} returned non-dict result: {type(mapping_result)}"
-            )
-            return None
-
-        # Check for success indicators
-        success_indicators = ["success", "status", "mappings", "suggestions"]
-        has_success_indicator = any(key in mapping_result for key in success_indicators)
-
-        if not has_success_indicator:
-            self.logger.warning(f"⚠️ {method_name} result missing success indicators")
-            return None
-
-        # Determine if the result indicates success
-        is_successful = True
-
-        if "success" in mapping_result:
-            is_successful = mapping_result["success"]
-        elif "status" in mapping_result:
-            is_successful = mapping_result["status"] in ["success", "completed"]
-        elif "error" in mapping_result:
-            is_successful = False
-
-        # Process successful result
-        if is_successful:
-            self.logger.info("✅ Field mapping suggestions generated successfully")
-
-            # Store results in flow state with defensive access
-            try:
-                if hasattr(self.flow, "state") and self.flow.state:
-                    # Store with defensive setattr
-                    if "mappings" in mapping_result:
-                        setattr(
-                            self.flow.state,
-                            "field_mappings",
-                            mapping_result.get("mappings", []),
-                        )
-                    if "suggestions" in mapping_result:
-                        setattr(
-                            self.flow.state,
-                            "mapping_suggestions",
-                            mapping_result.get("suggestions", []),
-                        )
-                    if "clarifications" in mapping_result:
-                        setattr(
-                            self.flow.state,
-                            "clarifications",
-                            mapping_result.get("clarifications", []),
-                        )
-            except Exception as storage_error:
-                self.logger.warning(
-                    f"⚠️ Failed to store results in state: {storage_error}"
-                )
-
-            # Return standardized successful result
-            return {
-                "status": "success",
-                "phase": "field_mapping",
-                "field_mappings": mapping_result.get(
-                    "mappings", mapping_result.get("field_mappings", [])
-                ),
-                "suggestions": mapping_result.get("suggestions", []),
-                "clarifications": mapping_result.get("clarifications", []),
-                "message": "Field mapping suggestions generated successfully",
-                "execution_method": method_name,
-                "timestamp": datetime.now().isoformat(),
-            }
-        else:
-            # Process failed result
-            error_msg = mapping_result.get("error", "Field mapping suggestions failed")
-            self.logger.error(f"❌ Field mapping suggestions failed: {error_msg}")
-            return {
-                "status": "failed",
-                "phase": "field_mapping",
-                "error": error_msg,
-                "field_mappings": [],
-                "suggestions": [],
-                "clarifications": [],
-                "execution_method": method_name,
-            }
-
-    async def _try_alternative_field_mapping_approaches(
-        self, data_validation_result: Any, primary_error: str
-    ) -> Optional[Dict[str, Any]]:
-        """Try alternative approaches when primary field mapping fails"""
-        self.logger.info("🔄 Attempting alternative field mapping approaches")
-
-        alternatives = [
-            self._try_direct_crew_execution,
-            self._try_basic_field_extraction,
-            self._try_minimal_fallback,
-        ]
-
-        for i, alternative_method in enumerate(alternatives, 1):
-            try:
-                self.logger.info(
-                    f"🔄 Trying alternative approach {i}: {alternative_method.__name__}"
-                )
-                result = await alternative_method(data_validation_result)
-
-                if result and result.get("status") == "success":
-                    self.logger.info(f"✅ Alternative approach {i} succeeded")
-                    return result
-                else:
-                    self.logger.warning(
-                        f"⚠️ Alternative approach {i} failed or returned invalid result"
-                    )
-
-            except Exception as alt_error:
-                self.logger.warning(f"⚠️ Alternative approach {i} failed: {alt_error}")
-                continue
-
-        self.logger.error("❌ All alternative field mapping approaches failed")
-        return None
-
-    async def _try_direct_crew_execution(
-        self, data_validation_result: Any
-    ) -> Dict[str, Any]:
-        """Try direct crew execution as alternative approach"""
-        self.logger.info("🎯 Attempting direct crew execution")
-
-        if not hasattr(self.flow, "crew_manager") or not self.flow.crew_manager:
-            raise RuntimeError("Crew manager not available")
-
-        # This is a placeholder - would need actual crew execution logic
-        # Return failed status to ensure proper fallback handling
-        return {
-            "status": "failed",
-            "error": "not_implemented",
-            "phase": "field_mapping",
-            "field_mappings": [],
-            "suggestions": [],
-            "clarifications": [],
-            "message": "Direct crew execution not implemented, falling back to alternative method",
-            "execution_method": "direct_crew",
-        }
-
-    async def _try_basic_field_extraction(
-        self, data_validation_result: Any
-    ) -> Dict[str, Any]:
-        """Try basic field extraction from validation result"""
-        self.logger.info("📋 Attempting basic field extraction")
-
-        extracted_fields = []
-
-        # Try to extract fields from validation result
-        if isinstance(data_validation_result, dict):
-            if "fields" in data_validation_result:
-                extracted_fields = data_validation_result["fields"]
-            elif "columns" in data_validation_result:
-                extracted_fields = data_validation_result["columns"]
-            elif "data" in data_validation_result and isinstance(
-                data_validation_result["data"], list
+            # Persist field mappings if generation was successful
+            if (
+                result
+                and result.get("status") in ["completed", "success"]
+                and result.get("field_mappings")
             ):
-                if data_validation_result["data"]:
-                    first_record = data_validation_result["data"][0]
-                    if isinstance(first_record, dict):
-                        extracted_fields = list(first_record.keys())
+                await self.field_mapping_persistence.persist_field_mappings_to_database(
+                    result
+                )
 
-        # Generate basic mappings
-        basic_mappings = []
-        suggestions = []
+            return result
 
-        for field in extracted_fields[:10]:  # Limit to 10 fields
-            if isinstance(field, str) and field.lower() not in [
-                "mappings",
-                "skipped_fields",
-            ]:
-                mapping = {
-                    "source_field": field,
-                    "target_field": field,
-                    "mapping_type": "direct",
-                    "confidence": 0.7,
-                }
-                basic_mappings.append(mapping)
+        except Exception as e:
+            self.logger.error(f"❌ Field mapping generation failed: {e}")
 
-                suggestion = {
-                    "field": field,
-                    "suggested_mapping": field,
-                    "confidence": 0.7,
-                    "reason": "Basic field extraction",
-                }
-                suggestions.append(suggestion)
-
-        return {
-            "status": "success",
-            "phase": "field_mapping",
-            "field_mappings": basic_mappings,
-            "suggestions": suggestions,
-            "clarifications": [],
-            "message": f"Basic field extraction completed with {len(basic_mappings)} fields",
-            "execution_method": "basic_extraction",
-        }
-
-    async def _try_minimal_fallback(
-        self, data_validation_result: Any
-    ) -> Dict[str, Any]:
-        """Minimal fallback that always succeeds"""
-        self.logger.info("🛟 Using minimal fallback approach")
-
-        return {
-            "status": "success",
-            "phase": "field_mapping",
-            "field_mappings": [],
-            "suggestions": [],
-            "clarifications": [],
-            "message": "Minimal fallback - proceeding with empty field mappings",
-            "execution_method": "minimal_fallback",
-        }
+            # Return structured error response
+            return {
+                "status": "failed",
+                "phase": "field_mapping",
+                "error": str(e),
+                "field_mappings": [],
+                "suggestions": [],
+                "clarifications": [],
+                "message": "Field mapping generation failed",
+                "timestamp": self.field_mapping_generator._get_current_timestamp(),
+            }

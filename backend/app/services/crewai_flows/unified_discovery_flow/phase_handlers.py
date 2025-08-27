@@ -7,7 +7,7 @@ to improve maintainability and code organization.
 This module re-exports the PhaseHandlers class from the handlers package for backward compatibility.
 """
 
-# Re-export from handlers package for backward compatibility
-from .handlers import PhaseHandlers
+# Re-export from handlers.phase_handlers directly to avoid circular import
+from .handlers.phase_handlers import PhaseHandlers
 
 __all__ = ["PhaseHandlers"]

@@ -7,6 +7,7 @@ from typing import Any, Dict
 
 from app.core.logging import get_logger
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from .field_mapping_logic import FieldMappingLogic
 
 logger = get_logger(__name__)
 
@@ -16,6 +17,7 @@ class ExecutionEngineDiscoveryCrews:
 
     def __init__(self, crew_utils):
         self.crew_utils = crew_utils
+        self.field_mapping_logic = FieldMappingLogic()
 
     async def execute_discovery_phase(
         self,
@@ -98,7 +100,7 @@ class ExecutionEngineDiscoveryCrews:
             )
 
             agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
-                tenant_id=master_flow.client_account_id,
+                client_id=master_flow.client_account_id,
                 engagement_id=master_flow.engagement_id,
             )
 
@@ -154,16 +156,10 @@ class ExecutionEngineDiscoveryCrews:
     async def _execute_discovery_field_mapping(
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Execute field mapping phase"""
-        logger.info("🗺️ Executing discovery field mapping")
-
-        # Placeholder implementation for field mapping
-        return {
-            "phase": "field_mapping",
-            "status": "completed",
-            "mappings": {},
-            "agent": "field_mapping_agent",
-        }
+        """Execute field mapping phase - delegated to specialized handler"""
+        return await self.field_mapping_logic.execute_discovery_field_mapping(
+            agent_pool, phase_input
+        )
 
     async def _execute_discovery_data_cleansing(
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
