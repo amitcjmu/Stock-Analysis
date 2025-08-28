@@ -199,13 +199,19 @@ export const useFlowResumption = (): unknown => {
         console.log('📍 [DEBUG] Using routing context:', data.routing_context);
         navigate(data.routing_context.target_page);
       } else if (data.current_phase) {
-        const route = getDiscoveryPhaseRoute(data.current_phase, flowId);
-        console.log('📍 [DEBUG] Navigating to phase route:', route);
-        navigate(route);
+        // For field_mapping phase, navigate to attribute-mapping without flow ID
+        // The page will auto-detect the correct flow
+        if (data.current_phase === 'field_mapping' || data.current_phase === 'attribute_mapping') {
+          console.log('📍 [DEBUG] Navigating to attribute mapping (auto-detect flow)');
+          navigate('/discovery/attribute-mapping');
+        } else {
+          const route = getDiscoveryPhaseRoute(data.current_phase, flowId);
+          console.log('📍 [DEBUG] Navigating to phase route:', route);
+          navigate(route);
+        }
       } else {
-        console.log('📍 [DEBUG] No routing info, defaulting to attribute mapping');
-        const route = getDiscoveryPhaseRoute('field_mapping', flowId);
-        navigate(route);
+        console.log('📍 [DEBUG] No routing info, defaulting to attribute mapping (auto-detect)');
+        navigate('/discovery/attribute-mapping');
       }
     },
     onError: (error: unknown) => {

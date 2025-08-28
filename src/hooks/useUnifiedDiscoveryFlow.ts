@@ -417,7 +417,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
   const [pollingEnabled, setPollingEnabled] = useState(true);
   const MAX_POLLING_ATTEMPTS = 15; // 15 attempts * 5 seconds = 75 seconds max
 
-  // Flow state query
+  // Flow state query with 404 error handling
   const {
     data: flowState,
     isLoading,
@@ -425,7 +425,12 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     refetch: refreshFlow,
   } = useQuery({
     queryKey: ['unifiedDiscoveryFlow', flowId, client?.id, engagement?.id],
-    queryFn: () => flowId && unifiedDiscoveryAPI ? unifiedDiscoveryAPI.getFlowStatus(flowId) : null,
+    queryFn: async () => {
+      if (!flowId || !unifiedDiscoveryAPI) return null;
+
+      // Simply return the API call result, handle errors in onError callback
+      return await unifiedDiscoveryAPI.getFlowStatus(flowId);
+    },
     enabled: !!flowId && !!unifiedDiscoveryAPI && !!client?.id && !!engagement?.id && flowId !== 'none' &&
              // Ensure flow ID is a valid UUID format (not an import ID)
              /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(flowId),
@@ -480,10 +485,21 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       setPollingEnabled(false);
 
       // Clear invalid flow ID from localStorage on 404 error
-      if (error?.status === 404 || error?.message?.includes('404') || error?.message?.includes('Not Found')) {
-        SecureLogger.warn('Flow ID not found, clearing from storage');
+      const errorObj = error as any;
+      if (errorObj?.status === 404 || errorObj?.response?.status === 404 ||
+          errorObj?.message?.includes('404') || errorObj?.message?.includes('Not Found')) {
+        SecureLogger.warn(`Flow ${flowId} not found (404), clearing from storage`);
+
+        // Clear from SecureStorage
         if (flowId) {
           SecureStorage.removeFlowId();
+        }
+
+        // Also clear all flow-related items from localStorage
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('currentFlowId');
+          localStorage.removeItem('lastActiveFlowId');
+          localStorage.removeItem('auth_flow');
         }
       }
     }

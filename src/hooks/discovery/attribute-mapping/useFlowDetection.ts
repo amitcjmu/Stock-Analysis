@@ -71,14 +71,8 @@ export const useFlowDetection = (): FlowDetectionResult => {
       return flowIdMatch[0];
     }
 
-    // Check localStorage for recent flow context (still tenant-scoped by backend)
-    if (typeof window !== 'undefined') {
-      const storedFlowId = localStorage.getItem('lastActiveFlowId');
-      if (storedFlowId) {
-        console.log('🆘 Emergency flow ID from localStorage (will be tenant-validated):', storedFlowId);
-        return storedFlowId;
-      }
-    }
+    // Don't use localStorage for flow IDs - they might be from different contexts
+    // localStorage is cleared when 404 errors occur in useUnifiedDiscoveryFlow
 
     // SECURITY: No hardcoded flow IDs - let the system gracefully handle no flow
     // All flow access must go through proper tenant-scoped APIs
