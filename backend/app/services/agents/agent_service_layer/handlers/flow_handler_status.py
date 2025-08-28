@@ -149,6 +149,18 @@ class FlowHandlerStatus:
         # TODO: Implement CollectionFlowRepository when collection-specific
         # data model is ready
         logger.info(f"[ADR-012] Collection flow using master flow data: {flow_id}")
+
+        # Determine current phase - collection flows typically use questionnaires phase
+        current_phase = "questionnaires"  # Default phase for collection flows
+        if hasattr(master_flow, "get_current_phase"):
+            # Try to get phase from method if available
+            try:
+                phase = master_flow.get_current_phase()
+                if phase:
+                    current_phase = phase
+            except Exception:
+                pass  # Use default
+
         return {
             "status": "success",
             "flow_exists": True,
@@ -156,7 +168,7 @@ class FlowHandlerStatus:
                 "flow_id": flow_id,
                 "flow_type": "collection",
                 "status": master_flow.flow_status,
-                "current_phase": master_flow.current_phase,
+                "current_phase": current_phase,
                 "progress": 0.0,  # Default progress for collection flows
                 "phases_completed": {},  # Empty phases for now
                 "message": "Collection flow status from master flow",
