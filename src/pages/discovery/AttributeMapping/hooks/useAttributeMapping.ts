@@ -81,7 +81,8 @@ export const useAttributeMapping = (): JSX.Element => {
 
   // Enhanced flow detection - more lenient approach
   const isFlowNotFound = (errorMessage?.includes('Flow not found') ||
-                        errorMessage?.includes('404')) ||
+                        errorMessage?.includes('404') ||
+                        errorMessage?.includes('not found')) ||
                         // Only consider flow not found if we have completed loading AND explicitly no flows found AND no effective flow
                         (!isLoading && !isAgenticLoading && !isFlowStateLoading &&
                          flowList !== undefined && flowList.length === 0 &&

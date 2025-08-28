@@ -102,3 +102,5 @@ When modifying API endpoints, **ALWAYS**:
 - ❌ Change backend without frontend
 - ❌ Use fallbacks to hide broken endpoints
 - ❌ Skip browser console check for 404s
+
+- Never start with adding new code to fix any issue however critical it may be. Always check existing code or Git history for such functionality and see if it can be adjusted to meet our needs, and only if none such exists then you'll create new code

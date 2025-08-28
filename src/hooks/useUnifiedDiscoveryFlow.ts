@@ -417,7 +417,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
   const [pollingEnabled, setPollingEnabled] = useState(true);
   const MAX_POLLING_ATTEMPTS = 15; // 15 attempts * 5 seconds = 75 seconds max
 
-  // Flow state query
+  // Flow state query with 404 error handling
   const {
     data: flowState,
     isLoading,
@@ -425,7 +425,28 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     refetch: refreshFlow,
   } = useQuery({
     queryKey: ['unifiedDiscoveryFlow', flowId, client?.id, engagement?.id],
-    queryFn: () => flowId && unifiedDiscoveryAPI ? unifiedDiscoveryAPI.getFlowStatus(flowId) : null,
+    queryFn: async () => {
+      if (!flowId || !unifiedDiscoveryAPI) return null;
+
+      try {
+        return await unifiedDiscoveryAPI.getFlowStatus(flowId);
+      } catch (error: any) {
+        // If flow not found (404), clear the invalid flow ID from storage
+        if (error?.status === 404 || error?.response?.status === 404 ||
+            (error?.message && error.message.includes('404'))) {
+          SecureLogger.warn(`Flow ${flowId} not found (404), clearing from storage`);
+          SecureStorage.clearFlowId();
+
+          // Also clear from localStorage if it exists there
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('currentFlowId');
+            localStorage.removeItem('lastActiveFlowId');
+            localStorage.removeItem('auth_flow');
+          }
+        }
+        throw error;
+      }
+    },
     enabled: !!flowId && !!unifiedDiscoveryAPI && !!client?.id && !!engagement?.id && flowId !== 'none' &&
              // Ensure flow ID is a valid UUID format (not an import ID)
              /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(flowId),

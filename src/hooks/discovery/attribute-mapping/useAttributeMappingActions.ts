@@ -179,9 +179,9 @@ export const useAttributeMappingActions = (
         return;
       }
 
-      // Create URL with proper query parameters - using simplified endpoint
+      // Create URL with proper query parameters - using data-import approval endpoint
       const approvalNote = encodeURIComponent('User approved mapping from UI');
-      const approvalUrl = `/api/v1/field-mapping/approve/${mappingId}?approved=true&approval_note=${approvalNote}`;
+      const approvalUrl = `/api/v1/data-import/approval/approve-mapping/${mappingId}?approved=true&approval_note=${approvalNote}`;
 
       // Make API call to approve the specific mapping
       const approvalResult = await apiCall(approvalUrl, {
@@ -232,41 +232,47 @@ export const useAttributeMappingActions = (
         return;
       }
 
-      // For discovery flow, we can remove the mapping or mark it as rejected
-      // Option 1: Remove the mapping from the list (clear the target field)
-      if (onMappingChange) {
-        // Clear the target field to mark as unmapped
-        onMappingChange(mappingId, '');
-        console.log('✅ Mapping rejected - target field cleared');
+      // Create URL with proper query parameters - using data-import approval endpoint for rejection
+      const approvalNote = encodeURIComponent(rejectionReason || 'User rejected mapping from UI');
+      const rejectUrl = `/api/v1/data-import/approval/approve-mapping/${mappingId}?approved=false&approval_note=${approvalNote}`;
 
-        // Show success message
-        if (typeof window !== 'undefined' && (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast) {
-          (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast(`Mapping rejected: ${mapping.source_field}`);
+      // Make API call to reject the specific mapping
+      const rejectResult = await apiCall(rejectUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
         }
-      } else {
-        // Fallback: Just log the rejection
-        console.log('⚠️ No onMappingChange handler available to clear mapping');
+      });
 
-        // Show warning message
-        if (typeof window !== 'undefined' && (window as Window & { showWarningToast?: (message: string) => void }).showWarningToast) {
-          (window as Window & { showWarningToast?: (message: string) => void }).showWarningToast('Mapping marked for rejection. Please update manually.');
-        }
+      console.log('✅ Mapping rejected successfully:', rejectResult);
+
+      // Show success feedback
+      if (typeof window !== 'undefined' && (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast) {
+        (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast(`Mapping rejected: ${mapping.source_field}`);
       }
 
-      // Trigger a refresh to update the UI
-      if (refetchFieldMappings) {
-        await refetchFieldMappings();
-      }
+      // Add delay before refetching to prevent rate limiting
+      setTimeout(async () => {
+        try {
+          console.log('🔄 Refetching field mappings to update UI...');
+          // Force a fresh refetch by invalidating the query cache
+          await refetchFieldMappings();
+        } catch (refetchError) {
+          console.error('⚠️ Failed to refetch mappings:', refetchError);
+        }
+      }, 1000); // 1 second delay
 
     } catch (error) {
       console.error('❌ Error in reject handler:', error);
 
       // Show error toast if available
       if (typeof window !== 'undefined' && (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast) {
-        (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast('Failed to reject mapping. Please try again.');
+        const errorMessage = error instanceof Error ? error.message : 'Failed to reject mapping';
+        (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast(errorMessage);
       }
     }
-  }, [fieldMappings, onMappingChange, refetchFieldMappings]);
+  }, [fieldMappings, getAuthHeaders, refetchFieldMappings]);
 
   const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
     try {

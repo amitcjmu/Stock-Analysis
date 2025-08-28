@@ -13,6 +13,16 @@ interface ErrorAndStatusAlertsProps {
   effectiveFlowId: string | null;
   isAnalyzing: boolean;
   onTriggerFieldMappingCrew: () => void;
+  // Additional props for flow recovery
+  isRecovering?: boolean;
+  recoveryProgress?: number;
+  recoveryError?: string | null;
+  recoveredFlowId?: string | null;
+  onTriggerFlowRecovery?: () => void;
+  // Multi-flow blocking props
+  blockingFlows?: unknown[];
+  hasMultipleBlockingFlows?: boolean;
+  onRefresh?: () => void;
 }
 
 export const ErrorAndStatusAlerts: React.FC<ErrorAndStatusAlertsProps> = ({
