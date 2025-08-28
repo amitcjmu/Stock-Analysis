@@ -4,14 +4,45 @@ Handles flow continuation and routing decisions using intelligent agents
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+import asyncio
+from typing import Any, Dict
+from collections import defaultdict
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_request_context
 from app.core.database import get_db
+from app.services.flow_orchestration.transition_utils import (
+    is_simple_transition,
+    needs_ai_analysis,
+    get_fast_path_response,
+)
+from app.services.agents.agent_service_layer.handlers.flow_handler import FlowHandler
+
+# Import modularized components
+from .flow_processing_models import (
+    FlowContinuationRequest,
+    FlowContinuationResponse,
+)
+from .flow_processing_converters import (
+    convert_fast_path_to_api_response,
+    create_simple_transition_response,
+    convert_to_api_response,
+    create_fallback_response,
+)
+
+# Legacy validation functions available in flow_processing_legacy.py if needed
+
+# Import TenantScopedAgentPool for optimized AI operations (ADR-015)
+try:
+    from app.services.persistent_agents.tenant_scoped_agent_pool import (
+        TenantScopedAgentPool,
+    )
+
+    TENANT_AGENT_POOL_AVAILABLE = True
+except ImportError:
+    TENANT_AGENT_POOL_AVAILABLE = False
 
 # Import the REAL single intelligent CrewAI agent
 try:
@@ -55,55 +86,103 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-class FlowContinuationRequest(BaseModel):
-    user_context: Optional[Dict[str, Any]] = None
+# Observability Metrics (FIX for Issue #9 with async locking per Qodo review)
+class FlowProcessingMetrics:
+    """Track performance metrics for flow processing with thread-safe async operations"""
+
+    def __init__(self):
+        self.fast_path_count = 0
+        self.ai_path_count = 0
+        self.simple_logic_count = 0
+        self.error_count = 0
+        self.execution_times: Dict[str, list] = defaultdict(list)
+        self._lock = asyncio.Lock()  # Add async lock for thread safety
+
+    async def record_fast_path(self, execution_time: float):
+        async with self._lock:
+            self.fast_path_count += 1
+            self.execution_times["fast_path"].append(execution_time)
+
+    async def record_ai_path(self, execution_time: float):
+        async with self._lock:
+            self.ai_path_count += 1
+            self.execution_times["ai_path"].append(execution_time)
+
+    async def record_simple_logic(self, execution_time: float):
+        async with self._lock:
+            self.simple_logic_count += 1
+            self.execution_times["simple_logic"].append(execution_time)
+
+    async def record_error(self, execution_time: float):
+        async with self._lock:
+            self.error_count += 1
+            self.execution_times["errors"].append(execution_time)
+
+    async def get_p95(self, path_type: str) -> float:
+        """Get P95 latency for a given path type"""
+        async with self._lock:
+            times = sorted(self.execution_times.get(path_type, []))
+        if not times:
+            return 0.0
+        idx = int(len(times) * 0.95)
+        return times[min(idx, len(times) - 1)]
+
+    async def get_stats(self) -> Dict[str, Any]:
+        """Get current performance statistics"""
+        async with self._lock:
+            total = self.fast_path_count + self.ai_path_count + self.simple_logic_count
+            fast_path_count = self.fast_path_count
+            simple_logic_count = self.simple_logic_count
+            ai_path_count = self.ai_path_count
+            error_count = self.error_count
+            fast_path_times = list(self.execution_times["fast_path"])
+            simple_logic_times = list(self.execution_times["simple_logic"])
+            ai_path_times = list(self.execution_times["ai_path"])
+
+        # Calculate p95 values outside the lock
+        fast_p95 = await self.get_p95("fast_path")
+        simple_p95 = await self.get_p95("simple_logic")
+        ai_p95 = await self.get_p95("ai_path")
+
+        return {
+            "total_requests": total,
+            "fast_path": {
+                "count": fast_path_count,
+                "percentage": (fast_path_count / total * 100) if total > 0 else 0,
+                "p95_latency": fast_p95,
+                "avg_latency": (
+                    sum(fast_path_times) / len(fast_path_times)
+                    if fast_path_times
+                    else 0
+                ),
+            },
+            "simple_logic": {
+                "count": simple_logic_count,
+                "percentage": ((simple_logic_count / total * 100) if total > 0 else 0),
+                "p95_latency": simple_p95,
+                "avg_latency": (
+                    sum(simple_logic_times) / len(simple_logic_times)
+                    if simple_logic_times
+                    else 0
+                ),
+            },
+            "ai_path": {
+                "count": ai_path_count,
+                "percentage": (ai_path_count / total * 100) if total > 0 else 0,
+                "p95_latency": ai_p95,
+                "avg_latency": (
+                    sum(ai_path_times) / len(ai_path_times) if ai_path_times else 0
+                ),
+            },
+            "errors": error_count,
+        }
 
 
-class TaskResult(BaseModel):
-    task_id: str
-    task_name: str
-    status: str  # 'completed', 'in_progress', 'not_started', 'failed'
-    confidence: float
-    next_steps: List[str] = []
+# Global metrics instance
+flow_metrics = FlowProcessingMetrics()
 
 
-class PhaseStatus(BaseModel):
-    phase_id: str
-    phase_name: str
-    status: str  # 'completed', 'in_progress', 'not_started', 'blocked'
-    completion_percentage: float
-    tasks: List[TaskResult]
-    estimated_time_remaining: Optional[int] = None
-
-
-class RoutingContext(BaseModel):
-    target_page: str
-    recommended_page: str
-    flow_id: str
-    phase: str
-    flow_type: str
-
-
-class UserGuidance(BaseModel):
-    primary_message: str
-    action_items: List[str]
-    user_actions: List[str]
-    system_actions: List[str]
-    estimated_completion_time: Optional[int] = None
-
-
-class FlowContinuationResponse(BaseModel):
-    success: bool
-    flow_id: str
-    flow_type: str
-    current_phase: str
-    routing_context: RoutingContext
-    user_guidance: UserGuidance
-    checklist_status: List[PhaseStatus]
-    agent_insights: List[Dict[str, Any]] = []
-    confidence: float
-    reasoning: str
-    execution_time: float
+# Models are now imported from flow_processing_models.py
 
 
 @router.post("/continue/{flow_id}", response_model=FlowContinuationResponse)
@@ -114,316 +193,198 @@ async def continue_flow_processing(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Continue flow processing using single intelligent CrewAI agent
+    Optimized flow processing with fast path detection
 
-    This endpoint uses a single, intelligent agent that:
-    - Analyzes flow status using multiple tools
-    - Validates phase completion against success criteria
-    - Makes intelligent routing decisions
-    - Provides specific, actionable user guidance
+    FAST PATH (< 1 second): Simple phase transitions without AI
+    INTELLIGENT PATH (when needed): AI analysis for complex scenarios
+
+    Performance goals:
+    - Simple transitions: < 1 second response time
+    - AI-required scenarios: Only when needed (field mapping, errors, etc.)
+    - Uses TenantScopedAgentPool (ADR-015) for persistent agents
     """
     import time
 
     start_time = time.time()
 
     try:
-        logger.info(
-            f"🧠 SINGLE INTELLIGENT AGENT: Starting flow continuation for {flow_id}"
-        )
+        logger.info(f"🚀 OPTIMIZED FLOW PROCESSING: Starting for {flow_id}")
 
-        if not INTELLIGENT_AGENT_AVAILABLE:
-            logger.error("❌ Intelligent agent not available - using fallback")
-            return _create_fallback_response(flow_id, "Intelligent agent not available")
+        # Step 1: Get flow status using FlowHandler
+        flow_handler = FlowHandler(context)
+        flow_status_result = await flow_handler.get_flow_status(flow_id)
 
-        # Create single intelligent agent
-        intelligent_agent = IntelligentFlowAgent()
+        if not flow_status_result.get("flow_exists", False):
+            logger.warning(f"Flow not found: {flow_id}")
+            return create_fallback_response(flow_id, "Flow not found")
 
-        # Analyze flow using single agent with multiple tools
-        result = await intelligent_agent.analyze_flow_continuation(
-            flow_id=flow_id,
-            client_account_id=context.client_account_id,
-            engagement_id=context.engagement_id,
-            user_id=context.user_id,
-        )
+        flow_data = flow_status_result.get("flow", {})
+
+        # Step 2: Derive validation from actual flow completion data (FIX for Issue #1)
+        # ADR-012: Use child flow truth for phase completion status
+        phases_completed = flow_data.get("phases_completed", {})
+        current_phase = flow_data.get("current_phase", "data_import")
+        flow_type = flow_data.get("flow_type", "discovery")
+
+        # Determine if current phase is actually complete based on flow type
+        phase_valid = False
+        if flow_type == "discovery" and isinstance(phases_completed, dict):
+            # For discovery flows, check the phases_completed dictionary
+            phase_valid = phases_completed.get(current_phase, False)
+        elif flow_type == "collection":
+            # For collection flows, check if questionnaires phase is complete
+            # TODO: Map to actual collection phase completion once repository is ready
+            phase_valid = (
+                current_phase == "questionnaires"
+                and flow_data.get("status") == "completed"
+            )
+
+        validation_data = {
+            "phase_valid": phase_valid,  # Derived from actual flow data per ADR-012
+            "issues": [],
+            "error": None,
+            "completion_status": "phase_complete" if phase_valid else "in_progress",
+        }
+
+        # Step 3: Check if this can be a fast path (simple) transition
+        if is_simple_transition(flow_data, validation_data):
+            logger.info(f"⚡ FAST PATH: Simple transition detected for {flow_id}")
+
+            # Get fast path response without AI (< 1 second)
+            fast_response = get_fast_path_response(flow_data, validation_data)
+
+            if fast_response:
+                execution_time = time.time() - start_time
+                logger.info(
+                    f"✅ FAST PATH COMPLETE: {flow_id} in {execution_time:.3f}s"
+                )
+
+                # Record metrics for observability
+                await flow_metrics.record_fast_path(execution_time)
+
+                # Convert to proper API response format
+                return convert_fast_path_to_api_response(
+                    fast_response, flow_data, execution_time
+                )
+
+        # Step 4: Check if AI analysis is actually needed
+        requires_ai, ai_reason = needs_ai_analysis(flow_data, validation_data)
+
+        if not requires_ai:
+            logger.info(f"⚡ SIMPLE LOGIC: No AI needed for {flow_id} - {ai_reason}")
+            # Use simple logic without AI but with proper response format
+            simple_response = create_simple_transition_response(flow_data)
+            execution_time = time.time() - start_time
+
+            # Record metrics for observability
+            await flow_metrics.record_simple_logic(execution_time)
+
+            return convert_fast_path_to_api_response(
+                simple_response, flow_data, execution_time
+            )
+
+        # Step 5: AI analysis is needed - use TenantScopedAgentPool (ADR-015)
+        logger.info(f"🧠 AI ANALYSIS NEEDED: {ai_reason} for {flow_id}")
+
+        if TENANT_AGENT_POOL_AVAILABLE:
+            # Use persistent tenant-scoped agent for better performance
+            try:
+                # Get the actual agent from the pool (FIX for Issue #3 per ADR-015)
+                agent = await TenantScopedAgentPool.get_agent(
+                    context=context,
+                    agent_type="IntelligentFlowAgent",
+                    force_recreate=False,
+                )
+
+                logger.info(f"🧠 TENANT AGENT: Using persistent agent for {flow_id}")
+
+                # Use the pooled agent's analyze_flow_continuation method
+                if hasattr(agent, "analyze_flow_continuation"):
+                    result = await agent.analyze_flow_continuation(
+                        flow_id=flow_id,
+                        client_account_id=context.client_account_id,
+                        engagement_id=context.engagement_id,
+                        user_id=context.user_id,
+                    )
+                else:
+                    # Fallback if agent doesn't have expected method
+                    logger.warning(
+                        "Pooled agent lacks analyze_flow_continuation, using new instance"
+                    )
+                    result = await use_intelligent_agent(flow_id, context)
+
+            except Exception as e:
+                logger.warning(f"Tenant agent failed, using intelligent agent: {e}")
+                result = await use_intelligent_agent(flow_id, context)
+        else:
+            # Fallback to single intelligent agent
+            logger.info(f"🧠 INTELLIGENT AGENT: TenantPool unavailable for {flow_id}")
+            result = await use_intelligent_agent(flow_id, context)
 
         execution_time = time.time() - start_time
-        logger.info(
-            f"✅ SINGLE AGENT COMPLETE: {flow_id} analyzed in {execution_time:.3f}s"
-        )
+        logger.info(f"✅ AI ANALYSIS COMPLETE: {flow_id} in {execution_time:.3f}s")
 
-        # Convert result to API response format
-        return _convert_to_api_response(result, execution_time)
+        # Record metrics for AI path
+        await flow_metrics.record_ai_path(execution_time)
+
+        return convert_to_api_response(result, execution_time)
 
     except Exception as e:
         execution_time = time.time() - start_time
         logger.error(
-            f"❌ SINGLE AGENT ERROR: {flow_id} failed after {execution_time:.3f}s - {str(e)}"
+            f"❌ FLOW PROCESSING ERROR: {flow_id} failed after "
+            f"{execution_time:.3f}s - {str(e)}"
         )
 
-        return _create_fallback_response(flow_id, f"Agent analysis failed: {str(e)}")
+        # Record error metrics
+        await flow_metrics.record_error(execution_time)
+
+        return create_fallback_response(flow_id, f"Processing failed: {str(e)}")
 
 
-def _convert_to_api_response(
-    result: FlowIntelligenceResult, execution_time: float
-) -> FlowContinuationResponse:
-    """Convert agent result to API response format"""
-    try:
-        # Parse routing decision
-        routing_path = result.routing_decision
+async def use_intelligent_agent(flow_id: str, context: RequestContext) -> Any:
+    """Use the intelligent agent for flow analysis"""
+    if not INTELLIGENT_AGENT_AVAILABLE:
+        raise Exception("Intelligent agent not available")
 
-        # Create routing context
-        routing_context = RoutingContext(
-            target_page=routing_path,
-            recommended_page=routing_path,
-            flow_id=result.flow_id,
-            phase=result.current_phase,
-            flow_type=result.flow_type,
-        )
+    # Create single intelligent agent
+    intelligent_agent = IntelligentFlowAgent()
 
-        # Create user guidance
-        user_guidance = UserGuidance(
-            primary_message=result.user_guidance,
-            action_items=[result.user_guidance],
-            user_actions=(
-                result.next_actions if result.next_actions else [result.user_guidance]
-            ),
-            system_actions=["Continue background processing"],
-            estimated_completion_time=30,  # Fast single agent
-        )
-
-        # Create checklist status based on current phase
-        checklist_status = _create_checklist_status(result)
-
-        return FlowContinuationResponse(
-            success=result.success,
-            flow_id=result.flow_id,
-            flow_type=result.flow_type,
-            current_phase=result.current_phase,
-            routing_context=routing_context,
-            user_guidance=user_guidance,
-            checklist_status=checklist_status,
-            agent_insights=[
-                {
-                    "agent": "Single Intelligent Flow Agent",
-                    "analysis": result.reasoning,
-                    "confidence": result.confidence,
-                    "issues_found": result.issues_found,
-                }
-            ],
-            confidence=result.confidence,
-            reasoning=result.reasoning,
-            execution_time=execution_time,
-        )
-
-    except Exception as e:
-        logger.error(f"Failed to convert agent result: {e}")
-        return _create_fallback_response(
-            result.flow_id, f"Response conversion failed: {str(e)}"
-        )
-
-
-def _create_checklist_status(result: FlowIntelligenceResult) -> List[PhaseStatus]:
-    """Create checklist status based on agent analysis"""
-    try:
-        phases = [
-            "data_import",
-            "attribute_mapping",
-            "data_cleansing",
-            "inventory",
-            "dependencies",
-            "tech_debt",
-        ]
-        checklist_status = []
-
-        current_phase_index = 0
-        try:
-            current_phase_index = phases.index(result.current_phase)
-        except ValueError:
-            current_phase_index = 0
-
-        for i, phase in enumerate(phases):
-            if i < current_phase_index:
-                status = "completed"
-                completion = 100.0
-                tasks = [
-                    TaskResult(
-                        task_id=f"{phase}_main",
-                        task_name=f"{phase.replace('_', ' ').title()} Complete",
-                        status="completed",
-                        confidence=0.9,
-                        next_steps=[],
-                    )
-                ]
-            elif i == current_phase_index:
-                # Current phase - determine status from agent result
-                if result.success and "completed successfully" in result.user_guidance:
-                    status = "completed"
-                    completion = 100.0
-                    task_status = "completed"
-                elif "ISSUE:" in result.user_guidance or not result.success:
-                    status = (
-                        "not_started"
-                        if "No data" in result.user_guidance
-                        else "in_progress"
-                    )
-                    completion = 0.0 if "No data" in result.user_guidance else 25.0
-                    task_status = (
-                        "not_started"
-                        if "No data" in result.user_guidance
-                        else "in_progress"
-                    )
-                else:
-                    status = "in_progress"
-                    completion = 50.0
-                    task_status = "in_progress"
-
-                # Create task based on agent guidance
-                task_name = (
-                    result.user_guidance.split(":")[1].strip()
-                    if ":" in result.user_guidance
-                    else phase.replace("_", " ").title()
-                )
-                if "ACTION NEEDED:" in result.user_guidance:
-                    task_name = result.user_guidance.split("ACTION NEEDED:")[1].strip()
-
-                tasks = [
-                    TaskResult(
-                        task_id=f"{phase}_main",
-                        task_name=task_name,
-                        status=task_status,
-                        confidence=result.confidence,
-                        next_steps=result.next_actions,
-                    )
-                ]
-            else:
-                status = "not_started"
-                completion = 0.0
-                tasks = [
-                    TaskResult(
-                        task_id=f"{phase}_main",
-                        task_name=f"{phase.replace('_', ' ').title()}",
-                        status="not_started",
-                        confidence=0.0,
-                        next_steps=[],
-                    )
-                ]
-
-            checklist_status.append(
-                PhaseStatus(
-                    phase_id=phase,
-                    phase_name=phase.replace("_", " ").title(),
-                    status=status,
-                    completion_percentage=completion,
-                    tasks=tasks,
-                    estimated_time_remaining=5 if status != "completed" else None,
-                )
-            )
-
-        return checklist_status
-
-    except Exception as e:
-        logger.error(f"Failed to create checklist status: {e}")
-        return []
-
-
-def _create_fallback_response(
-    flow_id: str, error_message: str
-) -> FlowContinuationResponse:
-    """Create fallback response when agent fails"""
-    return FlowContinuationResponse(
-        success=False,
+    # Analyze flow using single agent with multiple tools
+    result = await intelligent_agent.analyze_flow_continuation(
         flow_id=flow_id,
-        flow_type="discovery",
-        current_phase="data_import",
-        routing_context=RoutingContext(
-            target_page="/discovery/data-import",
-            recommended_page="/discovery/data-import",
-            flow_id=flow_id,
-            phase="data_import",
-            flow_type="discovery",
-        ),
-        user_guidance=UserGuidance(
-            primary_message=f"System error: {error_message}",
-            action_items=["Check system logs", "Retry flow processing"],
-            user_actions=["Upload data file if needed"],
-            system_actions=["Fix agent system"],
-            estimated_completion_time=None,
-        ),
-        checklist_status=[],
-        agent_insights=[
-            {
-                "agent": "Fallback System",
-                "analysis": error_message,
-                "confidence": 0.0,
-                "issues_found": [error_message],
-            }
-        ],
-        confidence=0.0,
-        reasoning=f"Fallback response due to: {error_message}",
-        execution_time=0.0,
+        client_account_id=context.client_account_id,
+        engagement_id=context.engagement_id,
+        user_id=context.user_id,
     )
 
-
-# Legacy validation endpoints - kept for compatibility but simplified
-
-
-async def validate_flow_phases(
-    flow_id: str, db: AsyncSession, context: RequestContext
-) -> Dict[str, Any]:
-    """Legacy validation function - simplified for compatibility"""
-    try:
-        # Use the intelligent agent for validation too
-        intelligent_agent = IntelligentFlowAgent()
-        result = await intelligent_agent.analyze_flow_continuation(flow_id)
-
-        return {
-            "current_phase": result.current_phase,
-            "status": result.phase_status,
-            "validation_details": {
-                "data": {
-                    "import_sessions": 1,  # Simplified for compatibility
-                    "raw_records": 0,  # Will be updated by agent analysis
-                    "threshold_met": False,
-                }
-            },
-        }
-
-    except Exception as e:
-        logger.error(f"Legacy validation failed: {e}")
-        return {
-            "current_phase": "data_import",
-            "status": "INCOMPLETE",
-            "validation_details": {"error": str(e)},
-        }
+    return result
 
 
-async def validate_phase_data(
-    flow_id: str, phase: str, db: AsyncSession, context: RequestContext
-) -> Dict[str, Any]:
-    """Legacy phase validation function - simplified for compatibility"""
-    try:
-        # Use the intelligent agent for phase validation
-        intelligent_agent = IntelligentFlowAgent()
-        result = await intelligent_agent.analyze_flow_continuation(flow_id)
+@router.get("/metrics")
+async def get_flow_processing_metrics():
+    """
+    Get flow processing performance metrics (FIX for Issue #9)
 
-        return {
-            "phase": phase,
-            "status": result.phase_status,
-            "complete": result.phase_status == "COMPLETE",
-            "data": {"import_sessions": 1, "raw_records": 0, "threshold_met": False},
-            "actionable_guidance": (
-                result.specific_issues[0]
-                if result.specific_issues
-                else "No specific issues"
-            ),
-        }
+    Returns statistics on fast-path vs AI-path usage and latencies
+    """
+    stats = await flow_metrics.get_stats()
 
-    except Exception as e:
-        logger.error(f"Legacy phase validation failed: {e}")
-        return {
-            "phase": phase,
-            "status": "ERROR",
-            "complete": False,
-            "data": {},
-            "actionable_guidance": f"Validation error: {str(e)}",
-        }
+    # Log current performance stats
+    if stats["total_requests"] > 0:
+        logger.info(
+            f"📊 PERFORMANCE METRICS: "
+            f"Total: {stats['total_requests']}, "
+            f"Fast Path: {stats['fast_path']['percentage']:.1f}%, "
+            f"Simple Logic: {stats['simple_logic']['percentage']:.1f}%, "
+            f"AI Path: {stats['ai_path']['percentage']:.1f}%, "
+            f"Fast P95: {stats['fast_path']['p95_latency']:.3f}s, "
+            f"AI P95: {stats['ai_path']['p95_latency']:.3f}s"
+        )
+
+    return stats
+
+
+# Response conversion functions moved to flow_processing_converters.py
+
+# Legacy validation functions moved to flow_processing_legacy.py

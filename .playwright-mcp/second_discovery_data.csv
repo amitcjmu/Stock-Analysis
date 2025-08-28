@@ -1,9 +1,0 @@
-server_name,server_ip,os_version,responsible_owner,current_status,site_location,env_type
-api-server-01,10.0.1.50,Ubuntu 20.04 LTS,alice.brown@company.com,active,cloud-east,production
-database-01,10.0.1.51,PostgreSQL on Ubuntu,bob.martin@company.com,active,cloud-west,production
-worker-node-01,10.0.1.52,Docker on CentOS,charlie.davis@company.com,active,cloud-east,production
-analytics-srv,10.0.1.53,Python on Ubuntu,data.team@company.com,maintenance,cloud-west,production
-dev-api-01,10.0.1.60,Node.js on Ubuntu,dev.team@company.com,active,cloud-east,development
-qa-database,10.0.1.61,MySQL on Ubuntu,qa.team@company.com,active,cloud-west,testing
-logging-server,10.0.1.55,ELK Stack on Ubuntu,monitoring@company.com,active,cloud-east,production
-proxy-server,10.0.1.56,Nginx on Ubuntu,network.team@company.com,active,cloud-west,production

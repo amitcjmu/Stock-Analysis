@@ -85,6 +85,10 @@ class NavigationDecisionTool(BaseTool):
 
     def _run(self, flow_status: str, validation_results: str, flow_type: str) -> str:
         """Make intelligent navigation decision with actionable guidance"""
+        # Initialize variables before try block to avoid UnboundLocalError
+        status_data = {}
+        validation_data = {}
+
         try:
             status_data = (
                 json.loads(flow_status) if isinstance(flow_status, str) else flow_status
@@ -136,22 +140,54 @@ class NavigationDecisionTool(BaseTool):
     ) -> Dict[str, Any]:
         """Make intelligent routing decision"""
         try:
-            # Handle not_found flows first
+            # Handle not_found flows first (FIX for Issue #2)
             if current_phase == "not_found" or status_data.get("status") == "not_found":
-                return {
-                    "routing_decision": "/discovery/cmdb-import",
-                    "user_guidance": (
+                # Route based on flow_type, not hardcoded to discovery
+                if flow_type == "collection":
+                    routing_path = (
+                        "/collection/start"  # FIX: Use correct collection start route
+                    )
+                    guidance = (
+                        "The collection flow was not found. Please start a new "
+                        "collection flow by selecting applications."
+                    )
+                    next_actions = [
+                        "Navigate to the Application Selection page",
+                        "Select the applications you want to collect data for",
+                        "Choose the collection method",
+                        "Begin the collection process",
+                    ]
+                elif flow_type == "assessment":
+                    routing_path = "/assessment/start"
+                    guidance = (
+                        "The assessment flow was not found. Please start a new "
+                        "assessment flow."
+                    )
+                    next_actions = [
+                        "Navigate to the Assessment Start page",
+                        "Select the assessment type",
+                        "Configure assessment parameters",
+                        "Begin the assessment",
+                    ]
+                else:  # Default to discovery for backward compatibility
+                    routing_path = "/discovery/cmdb-import"
+                    guidance = (
                         "The discovery flow was not found. Please start a new "
                         "discovery flow by uploading your data."
-                    ),
-                    "action_type": "user_action",
-                    "confidence": 1.0,
-                    "next_actions": [
+                    )
+                    next_actions = [
                         "Navigate to the CMDB Import page",
                         "Click on 'Upload Data' button",
                         "Select your CMDB or asset data file (CSV/Excel)",
                         "Wait for the upload to complete",
-                    ],
+                    ]
+
+                return {
+                    "routing_decision": routing_path,
+                    "user_guidance": guidance,
+                    "action_type": "user_action",
+                    "confidence": 1.0,
+                    "next_actions": next_actions,
                     "completion_status": "flow_not_found",
                 }
 
@@ -182,9 +218,16 @@ class NavigationDecisionTool(BaseTool):
                         "completion_status": "phase_complete",
                     }
                 else:
-                    # Flow complete
+                    # Flow complete - use appropriate completion route
+                    if flow_type == "collection":
+                        completion_route = f"/{flow_type}/progress/{flow_id}"
+                    elif flow_type == "discovery":
+                        completion_route = f"/{flow_type}/overview"
+                    else:
+                        completion_route = f"/{flow_type}/overview"
+
                     return {
-                        "routing_decision": f"/{flow_type}/results/{flow_id}",
+                        "routing_decision": completion_route,
                         "user_guidance": (
                             f"All phases of the {flow_type} flow have been "
                             f"completed successfully. Review the results and "
