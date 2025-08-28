@@ -15,7 +15,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 # All rate limiting admin endpoints require admin privileges
-router = APIRouter(prefix="/rate-limiting", dependencies=[Depends(require_admin)])
+router = APIRouter(
+    prefix="/rate-limiting",
+    dependencies=[Depends(require_admin)],
+    tags=["admin", "rate-limiting"],
+)
 
 
 class RateLimitConfig(BaseModel):
@@ -94,15 +98,15 @@ async def get_rate_limit_status(
     now = datetime.utcnow()
 
     if endpoint:
-        # Return status for specific endpoint
-        return RateLimitStatus(
-            endpoint=endpoint,
-            current_count=15,
-            limit=50,
-            window_seconds=60,
-            reset_at=now + timedelta(seconds=45),
-            is_limited=False,
-        )
+        # Return status for specific endpoint (serialize datetime consistently)
+        return {
+            "endpoint": endpoint,
+            "current_count": 15,
+            "limit": 50,
+            "window_seconds": 60,
+            "reset_at": (now + timedelta(seconds=45)).isoformat(),
+            "is_limited": False,
+        }
 
     # Return status for all monitored endpoints
     return {

@@ -48,7 +48,7 @@ class FieldMappingLogic:
                 }
 
             # Use the actual field mapping executor with AI agents
-            from app.services.crewai_flows.handlers.phase_executors.field_mapping_executor import (
+            from app.services.crewai_flows.handlers.phase_executors.field_mapping_executor import (  # noqa: E501
                 FieldMappingExecutor,
             )
             from app.schemas.unified_discovery_flow_state import (
@@ -78,36 +78,36 @@ class FieldMappingLogic:
 
             # Use provided session or get one from outside
             if db_session:
-                # Execute field mapping with AI
-                result = await executor.execute_field_mapping(flow_state, db_session)
+                # Execute field mapping with AI - guard against None result
+                result = (
+                    await executor.execute_field_mapping(flow_state, db_session)
+                ) or {}
 
-                # The executor should handle persistence internally
-                # but we can also persist to ensure it's saved
-                if result and result.get("success") and result.get("mappings"):
-                    # Extract the mappings from the result
-                    field_mappings = result.get("mappings", [])
-
-                    # Convert to the format needed for persistence
-                    mappings_dict = {}
-                    for mapping in field_mappings:
+                # Normalize mappings into dict keyed by source_field
+                mappings_dict: Dict[str, Any] = {}
+                raw_mappings = result.get("mappings") or []
+                if isinstance(raw_mappings, dict):
+                    mappings_dict = raw_mappings
+                elif isinstance(raw_mappings, list):
+                    for mapping in raw_mappings:
                         if isinstance(mapping, dict):
                             source = mapping.get("source_field")
                             if source:
                                 mappings_dict[source] = mapping
 
-                    if mappings_dict:
-                        await self._persist_field_mappings(
-                            mappings_dict, phase_input, db_session
-                        )
+                if mappings_dict:
+                    await self._persist_field_mappings(
+                        mappings_dict, phase_input, db_session
+                    )
 
                 logger.info("✅ AI agents processed field mappings")
 
                 return {
                     "phase": "field_mapping",
                     "status": "completed",
-                    "mappings": result.get("mappings", {}),
+                    "mappings": mappings_dict,
                     "field_count": len(flow_state.metadata.get("detected_columns", [])),
-                    "mapped_count": len(result.get("mappings", [])),
+                    "mapped_count": len(mappings_dict),
                     "agent": "field_mapping_agent",
                     "ai_confidence": result.get("confidence", 0),
                 }
@@ -138,7 +138,9 @@ class FieldMappingLogic:
         phase_input: Dict[str, Any],
         db_session: "AsyncSession",
     ) -> None:
-        """Persist AI-generated field mappings to both the flow state and ImportFieldMapping table"""
+        """
+        Persist AI-generated field mappings to flow state and ImportFieldMapping table
+        """
         try:
             # Import required modules
             from app.models.discovery_flows import DiscoveryFlow
@@ -154,6 +156,14 @@ class FieldMappingLogic:
 
             if not flow_id:
                 logger.warning("⚠️ No flow_id available, cannot persist field mappings")
+                return
+            # Validate flow_id is a UUID string
+            try:
+                from uuid import UUID as _UUID
+
+                _ = _UUID(str(flow_id))
+            except (ValueError, TypeError):
+                logger.error(f"❌ Invalid flow_id format: {flow_id}")
                 return
 
             # Validate UUIDs
@@ -189,7 +199,8 @@ class FieldMappingLogic:
 
             if not discovery_flow:
                 logger.warning(
-                    f"⚠️ Discovery flow {flow_id} not found or access denied for tenant {client_uuid}"
+                    f"⚠️ Discovery flow {flow_id} not found or access denied "
+                    f"for tenant {client_uuid}"
                 )
                 return
 
@@ -201,7 +212,8 @@ class FieldMappingLogic:
 
             if not data_import_id:
                 logger.warning(
-                    "⚠️ No data_import_id available, cannot persist to ImportFieldMapping table"
+                    "⚠️ No data_import_id available, cannot persist to "
+                    "ImportFieldMapping table"
                 )
             else:
                 try:
@@ -210,77 +222,83 @@ class FieldMappingLogic:
                     logger.error(f"❌ Invalid data_import_id format: {data_import_id}")
                     return
 
-                # Clear existing field mappings for this import WITH tenant scoping
-                delete_query = delete(ImportFieldMapping).where(
-                    ImportFieldMapping.data_import_id == data_import_uuid
-                )
-                # Add tenant scoping to delete
-                if client_uuid:
-                    delete_query = delete_query.where(
-                        ImportFieldMapping.client_account_id == client_uuid
+                # Perform delete and inserts atomically to ensure data integrity
+                async with db_session.begin_nested():
+                    # Clear existing field mappings for this import WITH tenant scoping
+                    delete_query = delete(ImportFieldMapping).where(
+                        ImportFieldMapping.data_import_id == data_import_uuid
                     )
-                await db_session.execute(delete_query)
+                    # Add tenant scoping to delete
+                    if client_uuid:
+                        delete_query = delete_query.where(
+                            ImportFieldMapping.client_account_id == client_uuid
+                        )
+                    await db_session.execute(delete_query)
 
-                # Create new ImportFieldMapping records from AI-generated mappings
-                created_count = 0
-                for source_field, mapping_info in field_mappings.items():
-                    # Handle both dict and direct value formats
-                    if isinstance(mapping_info, dict):
-                        # Always use target_field and confidence_score for consistency
-                        target_field = mapping_info.get("target_field")
-                        # Read compatibility but don't write target_attribute
-                        if not target_field:
-                            target_field = mapping_info.get("target_attribute")
+                    # Create new ImportFieldMapping records from AI-generated mappings
+                    created_count = 0
+                    for source_field, mapping_info in field_mappings.items():
+                        # Handle both dict and direct value formats
+                        if isinstance(mapping_info, dict):
+                            # Always use target_field and confidence_score for
+                            # consistency
+                            target_field = mapping_info.get("target_field")
+                            # Read compatibility but don't write target_attribute
+                            if not target_field:
+                                target_field = mapping_info.get("target_attribute")
 
-                        # Always use confidence_score, normalize invalid values
-                        confidence = mapping_info.get("confidence_score", 0.0)
-                        if not confidence:
-                            confidence = mapping_info.get("confidence", 0.0)
+                            # Always use confidence_score, normalize invalid values
+                            confidence = mapping_info.get("confidence_score", 0.0)
+                            if not confidence:
+                                confidence = mapping_info.get("confidence", 0.0)
 
-                        # Normalize confidence to valid range
-                        try:
-                            confidence = float(confidence)
-                            if (
-                                confidence < 0
-                                or confidence > 1
-                                or confidence != confidence
-                            ):  # NaN check
+                            # Normalize confidence to valid range
+                            try:
+                                confidence = float(confidence)
+                                if (
+                                    confidence < 0
+                                    or confidence > 1
+                                    or confidence != confidence
+                                ):  # NaN check
+                                    confidence = 0.0
+                            except (ValueError, TypeError):
                                 confidence = 0.0
-                        except (ValueError, TypeError):
-                            confidence = 0.0
 
-                        mapping_type = mapping_info.get("mapping_type", "ai_suggested")
-                        is_critical = mapping_info.get("is_critical", False)
-                    else:
-                        # Simple string mapping
-                        target_field = (
-                            mapping_info if isinstance(mapping_info, str) else None
-                        )
-                        confidence = 0.8
-                        mapping_type = "ai_suggested"
-                        is_critical = False
+                            mapping_type = mapping_info.get(
+                                "mapping_type", "ai_suggested"
+                            )
+                            is_critical = mapping_info.get("is_critical", False)
+                        else:
+                            # Simple string mapping
+                            target_field = (
+                                mapping_info if isinstance(mapping_info, str) else None
+                            )
+                            confidence = 0.8
+                            mapping_type = "ai_suggested"
+                            is_critical = False
 
-                    # Only create mapping if we have a valid target field
-                    if target_field and target_field != "unmapped":
-                        field_mapping = ImportFieldMapping(
-                            data_import_id=data_import_uuid,
-                            client_account_id=client_uuid,
-                            source_field=source_field,
-                            target_field=target_field,
-                            match_type=mapping_type,
-                            confidence_score=confidence,
-                            status="suggested",  # AI suggested, needs approval
-                            suggested_by="ai_mapper",
-                            transformation_rules={
-                                "is_critical": is_critical,
-                                "ai_generated": True,
-                            },
-                        )
-                        db_session.add(field_mapping)
-                        created_count += 1
+                        # Only create mapping if we have a valid target field
+                        if target_field and target_field != "unmapped":
+                            field_mapping = ImportFieldMapping(
+                                data_import_id=data_import_uuid,
+                                client_account_id=client_uuid,
+                                source_field=source_field,
+                                target_field=target_field,
+                                match_type=mapping_type,
+                                confidence_score=confidence,
+                                status="suggested",  # AI suggested, needs approval
+                                suggested_by="ai_mapper",
+                                transformation_rules={
+                                    "is_critical": is_critical,
+                                    "ai_generated": True,
+                                },
+                            )
+                            db_session.add(field_mapping)
+                            created_count += 1
 
                 logger.info(
-                    f"✅ Created {created_count} ImportFieldMapping records for import {data_import_id}"
+                    f"✅ Created {created_count} ImportFieldMapping records "
+                    f"for import {data_import_id}"
                 )
 
             if discovery_flow:
@@ -318,14 +336,16 @@ class FieldMappingLogic:
                 discovery_flow.metadata["data_import_id"] = data_import_id
 
                 logger.info(
-                    f"✅ Updated discovery flow {flow_id} with AI-generated field mappings"
+                    f"✅ Updated discovery flow {flow_id} with AI-generated "
+                    f"field mappings"
                 )
             else:
                 logger.warning(f"⚠️ Discovery flow {flow_id} not found in database")
 
             await db_session.commit()
             logger.info(
-                f"✅ Successfully persisted {len(field_mappings)} AI-generated field mappings"
+                f"✅ Successfully persisted {len(field_mappings)} "
+                f"AI-generated field mappings"
             )
 
         except Exception as e:

@@ -15,17 +15,23 @@ async def require_admin(current_user: User = Depends(get_current_user)) -> User:
     Dependency to ensure the current user has admin privileges.
     Raises 403 Forbidden if the user is not an admin.
     """
-    # Check if user has admin role or is_admin flag
-    if not getattr(current_user, "is_admin", False):
-        # Also check if user has admin role
-        if hasattr(current_user, "role") and current_user.role != "admin":
-            logger.warning(
-                f"Non-admin user {current_user.id} attempted to access admin endpoint"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admin privileges required for this operation",
-            )
+    # User is admin if they have is_admin=True OR role="admin"
+    is_admin_by_flag = getattr(current_user, "is_admin", False)
+    user_role = (
+        getattr(current_user, "role", None) if hasattr(current_user, "role") else None
+    )
+    is_admin_by_role = user_role == "admin"
+
+    # Allow access only if either condition is true
+    if not (is_admin_by_flag or is_admin_by_role):
+        # Deny access - user is neither is_admin=True nor has role="admin"
+        logger.warning(
+            f"Non-admin user {current_user.id} attempted to access admin endpoint"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required for this operation",
+        )
 
     return current_user
 

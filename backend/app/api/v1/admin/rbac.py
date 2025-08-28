@@ -9,7 +9,9 @@ from app.api.v1.auth.admin_dependencies import require_admin
 from app.models.client_account import User
 
 # All RBAC admin endpoints require admin privileges
-router = APIRouter(prefix="/rbac-admin", dependencies=[Depends(require_admin)])
+router = APIRouter(
+    prefix="/rbac-admin", dependencies=[Depends(require_admin)], tags=["admin", "rbac"]
+)
 
 
 @router.get("/roles")
