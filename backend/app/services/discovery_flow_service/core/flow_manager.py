@@ -69,83 +69,106 @@ class FlowManager:
         Create a new discovery flow and ensure corresponding crewai_flow_state_extensions record.
 
         Architecture:
-        1. Create discovery flow in discovery_flows table with flow_id = X
-        2. Create crewai_flow_state_extensions record with same flow_id = X
-        3. Both tables linked by having the same flow_id value
+        1. Create master flow record in crewai_flow_state_extensions with flow_id = X (atomic transaction)
+        2. Create discovery flow in discovery_flows table with flow_id = X and master_flow_id = X
+        3. Both operations wrapped in single transaction for atomicity
         """
-        try:
-            logger.info(f"🚀 Creating discovery flow and extensions record: {flow_id}")
-
-            # Validate input
-            if not flow_id:
-                raise ValueError("CrewAI Flow ID is required")
-
-            if not raw_data:
-                raise ValueError("Raw data is required for discovery flow")
-
-            # Check if flow already exists (global check to handle duplicates)
-            existing_flow = await self.flow_repo.get_by_flow_id_global(flow_id)
-            if existing_flow:
+        # 🔧 CC FIX: Wrap entire operation in atomic transaction
+        async with self.db.begin():
+            try:
                 logger.info(
-                    f"✅ Discovery flow already exists globally, returning existing: {flow_id}"
+                    f"🚀 Creating discovery flow and extensions record: {flow_id}"
                 )
-                return existing_flow
 
-            # Step 1: Create discovery flow in discovery_flows table
-            logger.info(f"🔧 Creating discovery flow: {flow_id}")
+                # Validate input
+                if not flow_id:
+                    raise ValueError("CrewAI Flow ID is required")
 
-            # 🔧 CC FIX: Convert UUIDs to strings in metadata to prevent JSON serialization errors
-            safe_metadata = convert_uuids_to_str(metadata or {})
+                if not raw_data:
+                    raise ValueError("Raw data is required for discovery flow")
 
-            discovery_flow = await self.flow_repo.create_discovery_flow(
-                flow_id=flow_id,
-                data_import_id=data_import_id,
-                user_id=user_id
-                or (str(self.context.user_id) if self.context.user_id else "system"),
-                raw_data=raw_data,
-                metadata=safe_metadata,
-            )
-
-            # Step 2: Handle master flow (either use existing or create new)
-            if master_flow_id:
-                # 🔧 CC FIX: If master_flow_id is provided, verify it exists
-                logger.info(f"🔧 Using existing master flow: {master_flow_id}")
-                # Check if master flow exists
-                master_flow_check = await self.master_flow_repo.get_master_flow_by_id(
-                    master_flow_id
-                )
-                if not master_flow_check:
-                    logger.warning(
-                        f"⚠️ Provided master_flow_id {master_flow_id} not found, creating new one"
-                    )
-                    await self._create_extensions_record(
-                        flow_id, data_import_id, user_id, raw_data, metadata
-                    )
-                else:
+                # Check if flow already exists (global check to handle duplicates)
+                existing_flow = await self.flow_repo.get_by_flow_id_global(flow_id)
+                if existing_flow:
                     logger.info(
-                        f"✅ Master flow {master_flow_id} verified and will be used"
+                        f"✅ Discovery flow already exists globally, returning existing: {flow_id}"
                     )
-                    # No need to create new extensions record, using existing master flow
-            else:
-                # Create new crewai_flow_state_extensions record
-                await self._create_extensions_record(
-                    flow_id, data_import_id, user_id, raw_data, metadata
+                    return existing_flow
+
+                # 🔧 CC FIX: Convert UUIDs to strings in metadata to prevent JSON serialization errors
+                safe_metadata = convert_uuids_to_str(metadata or {})
+
+                # Step 1: Handle master flow (create new or verify existing)
+                actual_master_flow_id = master_flow_id or flow_id
+
+                if master_flow_id:
+                    # 🔧 CC FIX: If master_flow_id is provided, verify it exists
+                    logger.info(f"🔧 Using existing master flow: {master_flow_id}")
+                    master_flow_check = (
+                        await self.master_flow_repo.get_master_flow_by_id(
+                            master_flow_id
+                        )
+                    )
+                    if not master_flow_check:
+                        logger.warning(
+                            f"⚠️ Provided master_flow_id {master_flow_id} not found, creating new one"
+                        )
+                        await self._create_extensions_record(
+                            flow_id,
+                            data_import_id,
+                            user_id,
+                            raw_data,
+                            metadata,
+                            auto_commit=False,
+                        )
+                        # 🔧 CC FIX: Flush to ensure master flow persists in transaction
+                        await self.db.flush()
+                        actual_master_flow_id = flow_id
+                    else:
+                        logger.info(
+                            f"✅ Master flow {master_flow_id} verified and will be used"
+                        )
+                else:
+                    # Create new crewai_flow_state_extensions record
+                    await self._create_extensions_record(
+                        flow_id,
+                        data_import_id,
+                        user_id,
+                        raw_data,
+                        metadata,
+                        auto_commit=False,
+                    )
+                    # 🔧 CC FIX: Flush to ensure master flow persists in transaction
+                    await self.db.flush()
+
+                # Step 2: Create discovery flow in discovery_flows table
+                logger.info(f"🔧 Creating discovery flow: {flow_id}")
+
+                discovery_flow = await self.flow_repo.create_discovery_flow(
+                    flow_id=flow_id,
+                    master_flow_id=actual_master_flow_id,  # 🔧 CC FIX: Always pass master_flow_id
+                    data_import_id=data_import_id,
+                    user_id=user_id
+                    or (
+                        str(self.context.user_id) if self.context.user_id else "system"
+                    ),
+                    raw_data=raw_data,
+                    metadata=safe_metadata,
+                    auto_commit=False,  # 🔧 CC FIX: Don't commit within transaction
                 )
 
-            logger.info(f"✅ Discovery flow created successfully: {flow_id}")
-            logger.info(f"   Discovery flow: discovery_flows.flow_id = {flow_id}")
-            if master_flow_id:
-                logger.info(f"   Using existing master flow: {master_flow_id}")
-            else:
+                logger.info(f"✅ Discovery flow created successfully: {flow_id}")
+                logger.info(f"   Discovery flow: discovery_flows.flow_id = {flow_id}")
                 logger.info(
-                    f"   Extensions: crewai_flow_state_extensions.flow_id = {flow_id}"
+                    f"   Master flow: crewai_flow_state_extensions.flow_id = {actual_master_flow_id}"
                 )
 
-            return discovery_flow
+                return discovery_flow
 
-        except Exception as e:
-            logger.error(f"❌ Failed to create discovery flow: {e}")
-            raise
+            except Exception as e:
+                logger.error(f"❌ Failed to create discovery flow: {e}")
+                # Transaction will be automatically rolled back due to async with self.db.begin()
+                raise
 
     async def create_or_get_discovery_flow(
         self,
@@ -308,6 +331,7 @@ class FlowManager:
         user_id: str,
         raw_data: List[Dict[str, Any]],
         metadata: Dict[str, Any],
+        auto_commit: bool = True,  # 🔧 CC FIX: Add auto_commit parameter
     ) -> None:
         """Create corresponding crewai_flow_state_extensions record."""
         logger.info(f"🔧 Creating crewai_flow_state_extensions record: {flow_id}")
@@ -330,6 +354,7 @@ class FlowManager:
                 }
             )
 
+            # 🔧 CC FIX: Pass auto_commit parameter to master flow creation
             extensions_record = await self.master_flow_repo.create_master_flow(
                 flow_id=flow_id,  # Same flow_id as discovery flow
                 flow_type="discovery",
@@ -338,13 +363,13 @@ class FlowManager:
                 flow_name=f"Discovery Flow {flow_id[:8]}",
                 flow_configuration=flow_configuration,
                 initial_state=initial_state,
+                auto_commit=auto_commit,
             )
             logger.info(f"✅ Extensions record created: {extensions_record.flow_id}")
         except Exception as ext_error:
-            logger.warning(
-                f"⚠️ Failed to create extensions record (non-critical): {ext_error}"
-            )
-            # Don't fail the whole operation if extensions creation fails
+            logger.error(f"❌ Failed to create extensions record: {ext_error}")
+            # 🔧 CC FIX: Raise the error instead of just warning (critical for transaction integrity)
+            raise
 
     async def _create_assets_from_inventory(
         self, flow: DiscoveryFlow, asset_data_list: List[Dict[str, Any]]
