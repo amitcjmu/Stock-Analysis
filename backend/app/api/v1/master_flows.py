@@ -122,8 +122,9 @@ async def get_cross_phase_analytics(
 
 @router.get("/active", response_model=List[Dict[str, Any]])
 async def get_active_master_flows(
-    flowType: Optional[str] = Query(
+    flow_type: Optional[str] = Query(
         None,
+        alias="flow_type",  # Accept snake_case from frontend
         description="Filter by flow type (discovery, assessment, planning, execution, etc.)",
     ),
     db: AsyncSession = Depends(get_db),
@@ -166,8 +167,8 @@ async def get_active_master_flows(
         ]
 
         # Add flow type filter if provided
-        if flowType:
-            conditions.append(CrewAIFlowStateExtensions.flow_type == flowType)
+        if flow_type:
+            conditions.append(CrewAIFlowStateExtensions.flow_type == flow_type)
 
         # Query for active master flows
         stmt = (
@@ -201,8 +202,8 @@ async def get_active_master_flows(
         logger.info(
             f"Found {len(active_flows)} active master flows"
             + (
-                f" (filtered by flowType: {flowType})"
-                if flowType
+                f" (filtered by flow_type: {flow_type})"
+                if flow_type
                 else " (all flow types)"
             )
         )

@@ -330,8 +330,8 @@ NAVIGATION_RULES = {
     },
     "flow_complete": {
         "description": "Entire flow is complete, user can view results or start next flow",
-        "routing_pattern": "/flow_type/results/{flow_id}",
-        "examples": ["/discovery/results/123", "/assess/results/123"],
+        "routing_pattern": "/discovery/overview or /collection/progress/{flow_id}",
+        "examples": ["/discovery/overview", "/collection/progress/123"],
     },
 }
 
