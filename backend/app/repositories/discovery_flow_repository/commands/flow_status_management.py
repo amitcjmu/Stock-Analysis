@@ -6,12 +6,30 @@ Handles flow status updates and state transitions.
 
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy import and_, update
 
 from app.models.discovery_flow import DiscoveryFlow
 from .flow_base import FlowCommandsBase
+
+
+# 🔧 CC FIX: Import UUID conversion utility for JSON serialization safety
+def convert_uuids_to_str(obj: Any) -> Any:
+    """
+    Recursively convert UUID objects to strings for JSON serialization.
+    🔧 CC FIX: Prevents 'Object of type UUID is not JSON serializable' errors
+    """
+    import uuid
+
+    if isinstance(obj, uuid.UUID):
+        return str(obj)
+    elif isinstance(obj, dict):
+        return {k: convert_uuids_to_str(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_uuids_to_str(item) for item in obj]
+    return obj
+
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +64,15 @@ class FlowStatusManagementCommands(FlowCommandsBase):
             update_values = {
                 "status": status,
                 "current_phase": "field_mapping",
-                "crewai_state_data": state_data,
+                # 🔧 CC FIX: Convert UUIDs to strings before storing in JSON field
+                "crewai_state_data": convert_uuids_to_str(state_data),
             }
         else:
-            update_values = {"status": status, "crewai_state_data": state_data}
+            # 🔧 CC FIX: Convert UUIDs to strings before storing in JSON field
+            update_values = {
+                "status": status,
+                "crewai_state_data": convert_uuids_to_str(state_data),
+            }
 
         # Update progress if provided
         if progress_percentage is not None:

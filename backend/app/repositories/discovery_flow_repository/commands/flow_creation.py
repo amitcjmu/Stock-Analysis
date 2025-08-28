@@ -37,7 +37,10 @@ class FlowCreationCommands(FlowCommandsBase):
         parsed_flow_id = self._ensure_uuid(flow_id)
 
         # Parse optional UUIDs
-        master_uuid = self._ensure_uuid(master_flow_id) if master_flow_id else None
+        # 🔧 CC FIX: Default master_uuid to parsed_flow_id when master_flow_id is None
+        master_uuid = (
+            self._ensure_uuid(master_flow_id) if master_flow_id else parsed_flow_id
+        )
 
         # Prepare initial state data including raw_data and metadata
         state_data = initial_state_data or {}

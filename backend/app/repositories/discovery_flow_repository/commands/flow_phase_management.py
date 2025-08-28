@@ -13,6 +13,24 @@ from sqlalchemy import and_, update
 from app.models.discovery_flow import DiscoveryFlow
 from .flow_base import FlowCommandsBase
 
+
+# 🔧 CC FIX: Import UUID conversion utility for JSON serialization safety
+def convert_uuids_to_str(obj: Any) -> Any:
+    """
+    Recursively convert UUID objects to strings for JSON serialization.
+    🔧 CC FIX: Prevents 'Object of type UUID is not JSON serializable' errors
+    """
+    import uuid
+
+    if isinstance(obj, uuid.UUID):
+        return str(obj)
+    elif isinstance(obj, dict):
+        return {k: convert_uuids_to_str(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_uuids_to_str(item) for item in obj]
+    return obj
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -81,7 +99,8 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
                     if data and field in data:
                         state_data[field] = data[field]
 
-                update_values["crewai_state_data"] = state_data
+                # 🔧 CC FIX: Convert UUIDs to strings before storing in JSON field
+                update_values["crewai_state_data"] = convert_uuids_to_str(state_data)
 
         # Calculate progress
         progress = await self._calculate_progress(flow_id, phase, completed)
