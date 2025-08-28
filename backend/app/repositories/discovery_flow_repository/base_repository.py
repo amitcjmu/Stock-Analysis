@@ -135,6 +135,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         user_id: Optional[str] = None,
         raw_data: Optional[List[Dict[str, Any]]] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        auto_commit: bool = True,  # 🔧 CC FIX: Add auto_commit parameter
     ) -> DiscoveryFlow:
         """Create a new discovery flow"""
         return await self.flow_commands.create_discovery_flow(
@@ -147,6 +148,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
             user_id=user_id,
             raw_data=raw_data,
             metadata=metadata,
+            auto_commit=auto_commit,  # 🔧 CC FIX: Pass through auto_commit parameter
         )
 
     async def update_phase_completion(

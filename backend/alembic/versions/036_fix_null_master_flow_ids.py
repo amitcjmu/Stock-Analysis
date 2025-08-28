@@ -1,0 +1,435 @@
+"""Fix NULL master_flow_ids and add proper FK constraints
+
+Revision ID: 036_fix_null_master_flow_ids
+Revises: 035_fix_engagement_architecture_standards_schema
+Create Date: 2025-08-28 12:00:00.000000
+
+"""
+
+from typing import Sequence, Union
+
+from alembic import op
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import text
+
+# revision identifiers, used by Alembic.
+revision: str = "036_fix_null_master_flow_ids"
+down_revision: Union[str, None] = "035_fix_engagement_architecture_standards_schema"
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:  # noqa: C901
+    """
+    Fix NULL master_flow_ids with self-referential pattern and add proper FK constraints.
+    🔧 CC FIX: Creates stub master records for orphaned flows to prevent FK violations.
+    """
+    # Step 1: Create stub master records for orphaned discovery flows
+    print("🔧 CC FIX: Creating stub master records for orphaned discovery flows")
+
+    # Find orphaned flows that need master records
+    orphaned_flows_query = text(
+        """
+        SELECT DISTINCT df.flow_id, df.client_account_id, df.engagement_id, df.created_at
+        FROM discovery_flows df
+        LEFT JOIN crewai_flow_state_extensions cfse ON df.flow_id = cfse.flow_id
+            AND df.client_account_id = cfse.client_account_id
+            AND df.engagement_id = cfse.engagement_id
+        WHERE df.master_flow_id IS NULL
+            AND cfse.flow_id IS NULL
+    """
+    )
+
+    orphaned_flows = op.get_bind().execute(orphaned_flows_query).fetchall()
+    print(f"📊 Found {len(orphaned_flows)} orphaned flows needing stub master records")
+
+    # Create stub master records for orphaned flows
+    if orphaned_flows:
+        for flow in orphaned_flows:
+            print(f"   Creating stub master record for flow_id: {flow.flow_id}")
+            op.execute(
+                text(
+                    """
+                    INSERT INTO crewai_flow_state_extensions (
+                        id, flow_id, client_account_id, engagement_id,
+                        flow_type, flow_name, flow_status,
+                        flow_configuration, initial_state, current_state,
+                        created_at, updated_at
+                    )
+                    VALUES (
+                        gen_random_uuid(), :flow_id, :client_account_id, :engagement_id,
+                        'discovery', 'Discovery Flow ' || LEFT(:flow_id::text, 8),
+                        'initialized',
+                        '{"created_from": "migration_036_stub"}',
+                        '{"migration_created": true}',
+                        '{"migration_created": true}',
+                        :created_at, NOW()
+                    )
+                    ON CONFLICT (flow_id, client_account_id, engagement_id) DO NOTHING
+                """
+                ),
+                {
+                    "flow_id": flow.flow_id,
+                    "client_account_id": flow.client_account_id,
+                    "engagement_id": flow.engagement_id,
+                    "created_at": flow.created_at,
+                },
+            )
+
+    # Step 2: Backfill all NULL master_flow_ids in discovery_flows
+    print(
+        "🔧 CC FIX: Backfilling NULL master_flow_ids in discovery_flows with self-referential pattern"
+    )
+    result = op.execute(
+        text(
+            """
+            UPDATE discovery_flows
+            SET master_flow_id = flow_id, updated_at = NOW()
+            WHERE master_flow_id IS NULL
+        """
+        )
+    )
+    updated_count = result.rowcount
+    print(f"✅ Updated {updated_count} discovery_flows records")
+
+    # Step 3: Backfill all NULL master_flow_ids in assessment_flows (if table exists)
+    try:
+        # First create stub master records for orphaned assessment flows
+        orphaned_assessment_query = text(
+            """
+            SELECT DISTINCT af.flow_id, af.client_account_id, af.engagement_id, af.created_at
+            FROM assessment_flows af
+            LEFT JOIN crewai_flow_state_extensions cfse ON af.flow_id = cfse.flow_id
+                AND af.client_account_id = cfse.client_account_id
+                AND af.engagement_id = cfse.engagement_id
+            WHERE af.master_flow_id IS NULL
+                AND cfse.flow_id IS NULL
+        """
+        )
+
+        orphaned_assessments = (
+            op.get_bind().execute(orphaned_assessment_query).fetchall()
+        )
+        print(
+            f"📊 Found {len(orphaned_assessments)} orphaned assessment flows needing stub master records"
+        )
+
+        if orphaned_assessments:
+            for flow in orphaned_assessments:
+                op.execute(
+                    text(
+                        """
+                        INSERT INTO crewai_flow_state_extensions (
+                            id, flow_id, client_account_id, engagement_id,
+                            flow_type, flow_name, flow_status,
+                            flow_configuration, initial_state, current_state,
+                            created_at, updated_at
+                        )
+                        VALUES (
+                            gen_random_uuid(), :flow_id, :client_account_id, :engagement_id,
+                            'assessment', 'Assessment Flow ' || LEFT(:flow_id::text, 8),
+                            'initialized',
+                            '{"created_from": "migration_036_stub"}',
+                            '{"migration_created": true}',
+                            '{"migration_created": true}',
+                            :created_at, NOW()
+                        )
+                        ON CONFLICT (flow_id, client_account_id, engagement_id) DO NOTHING
+                    """
+                    ),
+                    {
+                        "flow_id": flow.flow_id,
+                        "client_account_id": flow.client_account_id,
+                        "engagement_id": flow.engagement_id,
+                        "created_at": flow.created_at,
+                    },
+                )
+
+        result = op.execute(
+            text(
+                """
+                UPDATE assessment_flows
+                SET master_flow_id = flow_id, updated_at = NOW()
+                WHERE master_flow_id IS NULL
+            """
+            )
+        )
+        updated_count = result.rowcount
+        print(f"✅ Updated {updated_count} assessment_flows records")
+    except Exception as e:
+        print(f"⚠️ assessment_flows table not found or accessible: {e}")
+
+    # Step 4: Backfill all NULL master_flow_ids in collection_flows (if table exists)
+    try:
+        # First create stub master records for orphaned collection flows
+        orphaned_collection_query = text(
+            """
+            SELECT DISTINCT cf.flow_id, cf.client_account_id, cf.engagement_id, cf.created_at
+            FROM collection_flows cf
+            LEFT JOIN crewai_flow_state_extensions cfse ON cf.flow_id = cfse.flow_id
+                AND cf.client_account_id = cfse.client_account_id
+                AND cf.engagement_id = cfse.engagement_id
+            WHERE cf.master_flow_id IS NULL
+                AND cfse.flow_id IS NULL
+        """
+        )
+
+        orphaned_collections = (
+            op.get_bind().execute(orphaned_collection_query).fetchall()
+        )
+        print(
+            f"📊 Found {len(orphaned_collections)} orphaned collection flows needing stub master records"
+        )
+
+        if orphaned_collections:
+            for flow in orphaned_collections:
+                op.execute(
+                    text(
+                        """
+                        INSERT INTO crewai_flow_state_extensions (
+                            id, flow_id, client_account_id, engagement_id,
+                            flow_type, flow_name, flow_status,
+                            flow_configuration, initial_state, current_state,
+                            created_at, updated_at
+                        )
+                        VALUES (
+                            gen_random_uuid(), :flow_id, :client_account_id, :engagement_id,
+                            'collection', 'Collection Flow ' || LEFT(:flow_id::text, 8),
+                            'initialized',
+                            '{"created_from": "migration_036_stub"}',
+                            '{"migration_created": true}',
+                            '{"migration_created": true}',
+                            :created_at, NOW()
+                        )
+                        ON CONFLICT (flow_id, client_account_id, engagement_id) DO NOTHING
+                    """
+                    ),
+                    {
+                        "flow_id": flow.flow_id,
+                        "client_account_id": flow.client_account_id,
+                        "engagement_id": flow.engagement_id,
+                        "created_at": flow.created_at,
+                    },
+                )
+
+        result = op.execute(
+            text(
+                """
+                UPDATE collection_flows
+                SET master_flow_id = flow_id, updated_at = NOW()
+                WHERE master_flow_id IS NULL
+            """
+            )
+        )
+        updated_count = result.rowcount
+        print(f"✅ Updated {updated_count} collection_flows records")
+    except Exception as e:
+        print(f"⚠️ collection_flows table not found or accessible: {e}")
+
+    # Step 5: Make master_flow_id NOT NULL on discovery_flows
+    print("🔧 CC FIX: Making master_flow_id NOT NULL on discovery_flows")
+    op.alter_column(
+        "discovery_flows", "master_flow_id", existing_type=UUID(), nullable=False
+    )
+
+    # Step 6: Make master_flow_id NOT NULL on assessment_flows (if exists)
+    try:
+        print("🔧 CC FIX: Making master_flow_id NOT NULL on assessment_flows")
+        op.alter_column(
+            "assessment_flows", "master_flow_id", existing_type=UUID(), nullable=False
+        )
+    except Exception as e:
+        print(f"⚠️ Could not update assessment_flows: {e}")
+
+    # Step 7: Make master_flow_id NOT NULL on collection_flows (if exists)
+    try:
+        print("🔧 CC FIX: Making master_flow_id NOT NULL on collection_flows")
+        op.alter_column(
+            "collection_flows", "master_flow_id", existing_type=UUID(), nullable=False
+        )
+    except Exception as e:
+        print(f"⚠️ Could not update collection_flows: {e}")
+
+    # Step 8: Drop existing FK constraint and recreate as DEFERRABLE INITIALLY DEFERRED
+    print("🔧 CC FIX: Updating FK constraints to be DEFERRABLE INITIALLY DEFERRED")
+
+    # Discovery flows FK constraint
+    try:
+        # First, try to drop the existing constraint (name might vary)
+        op.execute(
+            text(
+                """
+            ALTER TABLE discovery_flows
+            DROP CONSTRAINT IF EXISTS discovery_flows_master_flow_id_fkey
+        """
+            )
+        )
+    except Exception as e:
+        print(f"⚠️ Could not drop existing FK constraint on discovery_flows: {e}")
+
+    # Create new deferrable FK constraint for discovery_flows
+    op.execute(
+        text(
+            """
+        ALTER TABLE discovery_flows
+        ADD CONSTRAINT discovery_flows_master_flow_id_fkey
+        FOREIGN KEY (master_flow_id)
+        REFERENCES crewai_flow_state_extensions (flow_id)
+        ON DELETE CASCADE
+        DEFERRABLE INITIALLY DEFERRED
+    """
+        )
+    )
+
+    # Assessment flows FK constraint (if table exists)
+    try:
+        op.execute(
+            text(
+                """
+            ALTER TABLE assessment_flows
+            DROP CONSTRAINT IF EXISTS assessment_flows_master_flow_id_fkey
+        """
+            )
+        )
+
+        op.execute(
+            text(
+                """
+            ALTER TABLE assessment_flows
+            ADD CONSTRAINT assessment_flows_master_flow_id_fkey
+            FOREIGN KEY (master_flow_id)
+            REFERENCES crewai_flow_state_extensions (flow_id)
+            ON DELETE CASCADE
+            DEFERRABLE INITIALLY DEFERRED
+        """
+            )
+        )
+        print("✅ Updated assessment_flows FK constraint")
+    except Exception as e:
+        print(f"⚠️ Could not update assessment_flows FK constraint: {e}")
+
+    # Collection flows FK constraint (if table exists)
+    try:
+        op.execute(
+            text(
+                """
+            ALTER TABLE collection_flows
+            DROP CONSTRAINT IF EXISTS collection_flows_master_flow_id_fkey
+        """
+            )
+        )
+
+        op.execute(
+            text(
+                """
+            ALTER TABLE collection_flows
+            ADD CONSTRAINT collection_flows_master_flow_id_fkey
+            FOREIGN KEY (master_flow_id)
+            REFERENCES crewai_flow_state_extensions (flow_id)
+            ON DELETE CASCADE
+            DEFERRABLE INITIALLY DEFERRED
+        """
+            )
+        )
+        print("✅ Updated collection_flows FK constraint")
+    except Exception as e:
+        print(f"⚠️ Could not update collection_flows FK constraint: {e}")
+
+    print(
+        "✅ Migration completed successfully - master_flow_id constraints updated for better transaction control"
+    )
+
+
+def downgrade() -> None:
+    """
+    Revert the changes - make master_flow_id nullable again and remove deferrable constraints
+    """
+    print("🔄 CC FIX: Reverting master_flow_id constraint changes")
+
+    # Step 1: Drop deferrable FK constraints and recreate as regular constraints
+    # Discovery flows
+    try:
+        op.execute(
+            text(
+                """
+            ALTER TABLE discovery_flows
+            DROP CONSTRAINT IF EXISTS discovery_flows_master_flow_id_fkey
+        """
+            )
+        )
+
+        op.create_foreign_key(
+            "discovery_flows_master_flow_id_fkey",
+            "discovery_flows",
+            "crewai_flow_state_extensions",
+            ["master_flow_id"],
+            ["flow_id"],
+            ondelete="CASCADE",
+        )
+    except Exception as e:
+        print(f"⚠️ Could not revert discovery_flows FK constraint: {e}")
+
+    # Assessment flows
+    try:
+        op.execute(
+            text(
+                """
+            ALTER TABLE assessment_flows
+            DROP CONSTRAINT IF EXISTS assessment_flows_master_flow_id_fkey
+        """
+            )
+        )
+
+        op.create_foreign_key(
+            "assessment_flows_master_flow_id_fkey",
+            "assessment_flows",
+            "crewai_flow_state_extensions",
+            ["master_flow_id"],
+            ["flow_id"],
+            ondelete="CASCADE",
+        )
+    except Exception as e:
+        print(f"⚠️ Could not revert assessment_flows FK constraint: {e}")
+
+    # Collection flows
+    try:
+        op.execute(
+            text(
+                """
+            ALTER TABLE collection_flows
+            DROP CONSTRAINT IF EXISTS collection_flows_master_flow_id_fkey
+        """
+            )
+        )
+
+        op.create_foreign_key(
+            "collection_flows_master_flow_id_fkey",
+            "collection_flows",
+            "crewai_flow_state_extensions",
+            ["master_flow_id"],
+            ["flow_id"],
+            ondelete="CASCADE",
+        )
+    except Exception as e:
+        print(f"⚠️ Could not revert collection_flows FK constraint: {e}")
+
+    # Step 2: Make master_flow_id nullable again
+    op.alter_column(
+        "discovery_flows", "master_flow_id", existing_type=UUID(), nullable=True
+    )
+
+    try:
+        op.alter_column(
+            "assessment_flows", "master_flow_id", existing_type=UUID(), nullable=True
+        )
+    except Exception:
+        pass
+
+    try:
+        op.alter_column(
+            "collection_flows", "master_flow_id", existing_type=UUID(), nullable=True
+        )
+    except Exception:
+        pass
+
+    print("✅ Downgrade completed - reverted to nullable master_flow_id")
