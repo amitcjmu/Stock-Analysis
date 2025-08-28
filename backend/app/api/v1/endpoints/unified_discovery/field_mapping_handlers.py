@@ -19,6 +19,7 @@ from app.schemas.field_mapping_schemas import (
     FieldMappingType,
 )
 from .field_mapping_schemas import (
+    FieldMappingItem,
     FieldMappingsResponse,
     FieldMappingApprovalResponse,
 )
@@ -58,13 +59,20 @@ async def get_field_mappings(
         flow = result.scalar_one_or_none()
 
         if not flow:
-            raise HTTPException(status_code=404, detail="Flow not found")
+            raise HTTPException(
+                status_code=404,
+                detail="Flow not found or not accessible in current context",
+            )
 
         # Get field mappings from the database using data_import_id
-        # If flow has a data_import_id, use it to get mappings
+        # CRITICAL: Ensure tenant-scoped query to prevent cross-tenant data leakage
         if flow.data_import_id:
             mapping_stmt = select(ImportFieldMapping).where(
-                ImportFieldMapping.data_import_id == flow.data_import_id
+                and_(
+                    ImportFieldMapping.data_import_id == flow.data_import_id,
+                    ImportFieldMapping.client_account_id == context.client_account_id,
+                    ImportFieldMapping.engagement_id == context.engagement_id,
+                )
             )
             mapping_result = await db.execute(mapping_stmt)
             mappings = mapping_result.scalars().all()
@@ -94,29 +102,22 @@ async def get_field_mappings(
 
                 # Get transformation rules from SQLAlchemy JSON field
                 transformation_rules = getattr(m, "transformation_rules", None)
-                transformation = None
-                if transformation_rules and isinstance(transformation_rules, dict):
-                    # Extract transformation logic from JSON structure
-                    transformation = transformation_rules.get(
-                        "rule"
-                    ) or transformation_rules.get("logic")
 
-                # Create a dictionary with the mapping data including the ID
-                field_mapping_dict = {
-                    "id": str(m.id),  # Add the mapping ID for approval operations
-                    "source_field": m.source_field,
-                    "target_field": m.target_field,
-                    "confidence_score": confidence_score,
-                    "mapping_type": mapping_type,
-                    "transformation": transformation,
-                    "validation_rules": None,  # SQLAlchemy model doesn't have validation_rules field
-                    "status": getattr(
-                        m, "status", "suggested"
-                    ),  # Include status for UI
-                    "approved_by": getattr(m, "approved_by", None),
-                    "approved_at": getattr(m, "approved_at", None),
-                }
-                field_mapping_items.append(field_mapping_dict)
+                # Create a proper Pydantic FieldMappingItem instance
+                field_mapping_item = FieldMappingItem(
+                    id=str(m.id),
+                    source_field=m.source_field,
+                    target_field=m.target_field,
+                    confidence_score=confidence_score,
+                    field_type=getattr(m, "field_type", None),
+                    status=getattr(m, "status", "suggested"),
+                    approved_by=getattr(m, "approved_by", None),
+                    approved_at=getattr(m, "approved_at", None),
+                    agent_reasoning=getattr(m, "agent_reasoning", None),
+                    # Use transformation_rules field name to match Pydantic schema
+                    transformation_rules=transformation_rules,
+                )
+                field_mapping_items.append(field_mapping_item)
 
             except ValueError as validation_error:
                 # Log validation errors but continue processing other mappings
