@@ -18,6 +18,10 @@ from app.core.database import get_db
 from app.schemas.field_mapping_schemas import (
     FieldMappingType,
 )
+from .field_mapping_schemas import (
+    FieldMappingsResponse,
+    FieldMappingApprovalResponse,
+)
 from app.core.security.secure_logging import safe_log_format
 from app.models.data_import.mapping import ImportFieldMapping
 from app.models.discovery_flow import DiscoveryFlow
@@ -28,12 +32,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/flows/{flow_id}/field-mappings")
+@router.get("/flows/{flow_id}/field-mappings", response_model=FieldMappingsResponse)
 async def get_field_mappings(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
-):
+) -> FieldMappingsResponse:
     """Get field mappings for a discovery flow."""
     try:
         logger.info(
@@ -135,13 +139,13 @@ async def get_field_mappings(
                 )
                 continue
 
-        # Return the response as a dictionary to support additional fields
-        return {
-            "success": True,
-            "flow_id": flow_id,
-            "field_mappings": field_mapping_items,
-            "count": len(field_mapping_items),
-        }
+        # Return the response using Pydantic model
+        return FieldMappingsResponse(
+            success=True,
+            flow_id=flow_id,
+            field_mappings=field_mapping_items,
+            count=len(field_mapping_items),
+        )
 
     except HTTPException:
         raise
@@ -150,7 +154,10 @@ async def get_field_mappings(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/field-mapping/approve/{mapping_id}")
+@router.post(
+    "/field-mapping/approve/{mapping_id}",
+    response_model=FieldMappingApprovalResponse,
+)
 async def approve_field_mapping(
     mapping_id: str,
     approved: bool = Query(
@@ -160,7 +167,7 @@ async def approve_field_mapping(
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
     current_user: User = Depends(get_current_user),
-):
+) -> FieldMappingApprovalResponse:
     """Approve or reject a field mapping."""
     try:
         logger.info(
@@ -171,18 +178,22 @@ async def approve_field_mapping(
             )
         )
 
-        # Get the field mapping
+        # Get the field mapping with proper authorization checks
         stmt = select(ImportFieldMapping).where(
             and_(
                 ImportFieldMapping.id == mapping_id,
                 ImportFieldMapping.client_account_id == context.client_account_id,
+                ImportFieldMapping.engagement_id == context.engagement_id,
             )
         )
         result = await db.execute(stmt)
         mapping = result.scalar_one_or_none()
 
         if not mapping:
-            raise HTTPException(status_code=404, detail="Field mapping not found")
+            raise HTTPException(
+                status_code=404,
+                detail="Field mapping not found or not accessible in current context",
+            )
 
         # Update the mapping status
         if approved:
@@ -198,23 +209,24 @@ async def approve_field_mapping(
         if approval_note:
             if not mapping.transformation_rules:
                 mapping.transformation_rules = {}
+            elif not isinstance(mapping.transformation_rules, dict):
+                # Ensure it's a mutable dictionary
+                mapping.transformation_rules = dict(mapping.transformation_rules)
             mapping.transformation_rules["approval_note"] = approval_note
 
         await db.commit()
         await db.refresh(mapping)
 
-        return {
-            "success": True,
-            "mapping_id": str(mapping.id),
-            "status": mapping.status,
-            "source_field": mapping.source_field,
-            "target_field": mapping.target_field,
-            "approved_by": mapping.approved_by,
-            "approved_at": (
-                mapping.approved_at.isoformat() if mapping.approved_at else None
-            ),
-            "message": f"Field mapping {mapping.source_field} -> {mapping.target_field} has been {mapping.status}",
-        }
+        return FieldMappingApprovalResponse(
+            success=True,
+            mapping_id=str(mapping.id),
+            status=mapping.status,
+            source_field=mapping.source_field,
+            target_field=mapping.target_field,
+            approved_by=mapping.approved_by,
+            approved_at=mapping.approved_at,
+            message=f"Field mapping {mapping.source_field} -> {mapping.target_field} has been {mapping.status}",
+        )
 
     except HTTPException:
         raise

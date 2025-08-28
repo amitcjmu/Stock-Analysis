@@ -181,7 +181,7 @@ export const useAttributeMappingActions = (
 
       // Create URL with proper query parameters - using data-import approval endpoint
       const approvalNote = encodeURIComponent('User approved mapping from UI');
-      const approvalUrl = `/api/v1/data-import/approval/approve-mapping/${mappingId}?approved=true&approval_note=${approvalNote}`;
+      const approvalUrl = `/api/v1/unified-discovery/field-mapping/approve/${mappingId}?approved=true&approval_note=${approvalNote}`;
 
       // Make API call to approve the specific mapping
       const approvalResult = await apiCall(approvalUrl, {
@@ -234,7 +234,7 @@ export const useAttributeMappingActions = (
 
       // Create URL with proper query parameters - using data-import approval endpoint for rejection
       const approvalNote = encodeURIComponent(rejectionReason || 'User rejected mapping from UI');
-      const rejectUrl = `/api/v1/data-import/approval/approve-mapping/${mappingId}?approved=false&approval_note=${approvalNote}`;
+      const rejectUrl = `/api/v1/unified-discovery/field-mapping/approve/${mappingId}?approved=false&approval_note=${approvalNote}`;
 
       // Make API call to reject the specific mapping
       const rejectResult = await apiCall(rejectUrl, {
