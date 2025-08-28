@@ -156,8 +156,8 @@ export const useFlowResumption = (): unknown => {
       queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
       queryClient.invalidateQueries({ queryKey: ['discovery-flows'] });
 
-      // Extract the flow continuation data
-      const data = response.data as FlowContinuationResponse;
+      // The response is already FlowContinuationResponse from the API
+      const data = response as FlowContinuationResponse;
 
       // Display the intelligent agent's user guidance
       if (data.user_guidance) {
