@@ -186,9 +186,16 @@ class NavigationDecisionTool(BaseTool):
                         "completion_status": "phase_complete",
                     }
                 else:
-                    # Flow complete
+                    # Flow complete - use appropriate completion route
+                    if flow_type == "collection":
+                        completion_route = f"/{flow_type}/progress/{flow_id}"
+                    elif flow_type == "discovery":
+                        completion_route = f"/{flow_type}/overview"
+                    else:
+                        completion_route = f"/{flow_type}/overview"
+
                     return {
-                        "routing_decision": f"/{flow_type}/results/{flow_id}",
+                        "routing_decision": completion_route,
                         "user_guidance": (
                             f"All phases of the {flow_type} flow have been "
                             f"completed successfully. Review the results and "

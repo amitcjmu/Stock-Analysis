@@ -275,9 +275,16 @@ def get_fast_path_response(
                 "execution_time": 0.1,  # Fast path indicator
             }
         else:
-            # Flow complete
+            # Flow complete - route to progress page to show completion status
+            # Note: /collection/results doesn't exist, use /collection/progress instead
+            if flow_type == "collection":
+                routing_path = f"/{flow_type}/progress/{flow_id}"
+            else:
+                # Discovery flows can use overview or a similar completion page
+                routing_path = f"/{flow_type}/overview"
+
             return {
-                "routing_decision": f"/{flow_type}/results/{flow_id}",
+                "routing_decision": routing_path,
                 "user_guidance": f"{flow_type.title()} flow completed successfully.",
                 "action_type": "navigation",
                 "confidence": 0.98,
@@ -304,13 +311,13 @@ def _get_next_phase_simple(flow_type: str, current_phase: str) -> Optional[str]:
         "tech_debt_assessment",
     ]
 
-    # Collection flow phase progression (basic)
+    # Collection flow phase progression (aligned with actual routes)
     collection_phases = [
-        "planning",
-        "questionnaire",
-        "execution",
-        "validation",
-        "completion",
+        "select-applications",  # Start with application selection
+        "adaptive-forms",  # Then adaptive forms
+        "bulk-upload",  # Or bulk upload
+        "data-integration",  # Data integration phase
+        "progress",  # Final progress/completion phase
     ]
 
     # Assessment flow phase progression (basic)
