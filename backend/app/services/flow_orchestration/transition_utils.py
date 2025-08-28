@@ -263,9 +263,31 @@ def get_fast_path_response(
         next_phase = _get_next_phase_simple(flow_type, current_phase)
 
         if next_phase:
-            # Continue to next phase
+            # Continue to next phase - FIX: Don't append flow_id to phase routes
+            # Map phase names to proper route paths
+            phase_routes = {
+                "discovery": {
+                    "data_import": "/discovery/data-import",
+                    "field_mapping": "/discovery/attribute-mapping",  # UI uses attribute-mapping route
+                    "data_cleansing": "/discovery/data-cleansing",
+                    "asset_inventory": "/discovery/inventory",
+                    "dependency_analysis": "/discovery/dependencies",
+                    "tech_debt_assessment": "/discovery/tech-debt",
+                },
+                "collection": {
+                    "questionnaires": "/collection/questionnaires",
+                    "validation": "/collection/validation",
+                    "review": "/collection/review",
+                },
+            }
+
+            # Get proper route for the phase
+            routing_decision = phase_routes.get(flow_type, {}).get(
+                next_phase, f"/{flow_type}/overview"
+            )
+
             return {
-                "routing_decision": f"/{flow_type}/{next_phase}/{flow_id}",
+                "routing_decision": routing_decision,
                 "user_guidance": f"Phase '{current_phase}' completed. Continue to {next_phase}.",
                 "action_type": "navigation",
                 "confidence": 0.95,
@@ -276,11 +298,14 @@ def get_fast_path_response(
             }
         else:
             # Flow complete - route to progress page to show completion status
-            # Note: /collection/results doesn't exist, use /collection/progress instead
+            # Guard against missing flow_id (FIX for Qodo review)
             if flow_type == "collection":
-                routing_path = f"/{flow_type}/progress/{flow_id}"
+                if flow_id and str(flow_id).strip() not in ["None", "", "unknown"]:
+                    routing_path = f"/{flow_type}/progress/{flow_id}"
+                else:
+                    routing_path = f"/{flow_type}/progress"  # Fallback without flow_id
             else:
-                # Discovery flows can use overview or a similar completion page
+                # Discovery flows can use overview
                 routing_path = f"/{flow_type}/overview"
 
             return {

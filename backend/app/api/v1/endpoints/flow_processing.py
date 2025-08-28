@@ -4,6 +4,7 @@ Handles flow continuation and routing decisions using intelligent agents
 """
 
 import logging
+import asyncio
 from typing import Any, Dict
 from collections import defaultdict
 
@@ -85,9 +86,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# Observability Metrics (FIX for Issue #9)
+# Observability Metrics (FIX for Issue #9 with async locking per Qodo review)
 class FlowProcessingMetrics:
-    """Track performance metrics for flow processing"""
+    """Track performance metrics for flow processing with thread-safe async operations"""
 
     def __init__(self):
         self.fast_path_count = 0
@@ -95,72 +96,85 @@ class FlowProcessingMetrics:
         self.simple_logic_count = 0
         self.error_count = 0
         self.execution_times: Dict[str, list] = defaultdict(list)
+        self._lock = asyncio.Lock()  # Add async lock for thread safety
 
-    def record_fast_path(self, execution_time: float):
-        self.fast_path_count += 1
-        self.execution_times["fast_path"].append(execution_time)
+    async def record_fast_path(self, execution_time: float):
+        async with self._lock:
+            self.fast_path_count += 1
+            self.execution_times["fast_path"].append(execution_time)
 
-    def record_ai_path(self, execution_time: float):
-        self.ai_path_count += 1
-        self.execution_times["ai_path"].append(execution_time)
+    async def record_ai_path(self, execution_time: float):
+        async with self._lock:
+            self.ai_path_count += 1
+            self.execution_times["ai_path"].append(execution_time)
 
-    def record_simple_logic(self, execution_time: float):
-        self.simple_logic_count += 1
-        self.execution_times["simple_logic"].append(execution_time)
+    async def record_simple_logic(self, execution_time: float):
+        async with self._lock:
+            self.simple_logic_count += 1
+            self.execution_times["simple_logic"].append(execution_time)
 
-    def record_error(self, execution_time: float):
-        self.error_count += 1
-        self.execution_times["errors"].append(execution_time)
+    async def record_error(self, execution_time: float):
+        async with self._lock:
+            self.error_count += 1
+            self.execution_times["errors"].append(execution_time)
 
-    def get_p95(self, path_type: str) -> float:
+    async def get_p95(self, path_type: str) -> float:
         """Get P95 latency for a given path type"""
-        times = sorted(self.execution_times.get(path_type, []))
+        async with self._lock:
+            times = sorted(self.execution_times.get(path_type, []))
         if not times:
             return 0.0
         idx = int(len(times) * 0.95)
         return times[min(idx, len(times) - 1)]
 
-    def get_stats(self) -> Dict[str, Any]:
+    async def get_stats(self) -> Dict[str, Any]:
         """Get current performance statistics"""
-        total = self.fast_path_count + self.ai_path_count + self.simple_logic_count
+        async with self._lock:
+            total = self.fast_path_count + self.ai_path_count + self.simple_logic_count
+            fast_path_count = self.fast_path_count
+            simple_logic_count = self.simple_logic_count
+            ai_path_count = self.ai_path_count
+            error_count = self.error_count
+            fast_path_times = list(self.execution_times["fast_path"])
+            simple_logic_times = list(self.execution_times["simple_logic"])
+            ai_path_times = list(self.execution_times["ai_path"])
+
+        # Calculate p95 values outside the lock
+        fast_p95 = await self.get_p95("fast_path")
+        simple_p95 = await self.get_p95("simple_logic")
+        ai_p95 = await self.get_p95("ai_path")
+
         return {
             "total_requests": total,
             "fast_path": {
-                "count": self.fast_path_count,
-                "percentage": (self.fast_path_count / total * 100) if total > 0 else 0,
-                "p95_latency": self.get_p95("fast_path"),
+                "count": fast_path_count,
+                "percentage": (fast_path_count / total * 100) if total > 0 else 0,
+                "p95_latency": fast_p95,
                 "avg_latency": (
-                    sum(self.execution_times["fast_path"])
-                    / len(self.execution_times["fast_path"])
-                    if self.execution_times["fast_path"]
+                    sum(fast_path_times) / len(fast_path_times)
+                    if fast_path_times
                     else 0
                 ),
             },
             "simple_logic": {
-                "count": self.simple_logic_count,
-                "percentage": (
-                    (self.simple_logic_count / total * 100) if total > 0 else 0
-                ),
-                "p95_latency": self.get_p95("simple_logic"),
+                "count": simple_logic_count,
+                "percentage": ((simple_logic_count / total * 100) if total > 0 else 0),
+                "p95_latency": simple_p95,
                 "avg_latency": (
-                    sum(self.execution_times["simple_logic"])
-                    / len(self.execution_times["simple_logic"])
-                    if self.execution_times["simple_logic"]
+                    sum(simple_logic_times) / len(simple_logic_times)
+                    if simple_logic_times
                     else 0
                 ),
             },
             "ai_path": {
-                "count": self.ai_path_count,
-                "percentage": (self.ai_path_count / total * 100) if total > 0 else 0,
-                "p95_latency": self.get_p95("ai_path"),
+                "count": ai_path_count,
+                "percentage": (ai_path_count / total * 100) if total > 0 else 0,
+                "p95_latency": ai_p95,
                 "avg_latency": (
-                    sum(self.execution_times["ai_path"])
-                    / len(self.execution_times["ai_path"])
-                    if self.execution_times["ai_path"]
-                    else 0
+                    sum(ai_path_times) / len(ai_path_times) if ai_path_times else 0
                 ),
             },
-            "errors": self.error_count,
+            "errors": error_count,
         }
 
 
@@ -246,7 +260,7 @@ async def continue_flow_processing(
                 )
 
                 # Record metrics for observability
-                flow_metrics.record_fast_path(execution_time)
+                await flow_metrics.record_fast_path(execution_time)
 
                 # Convert to proper API response format
                 return convert_fast_path_to_api_response(
@@ -263,7 +277,7 @@ async def continue_flow_processing(
             execution_time = time.time() - start_time
 
             # Record metrics for observability
-            flow_metrics.record_simple_logic(execution_time)
+            await flow_metrics.record_simple_logic(execution_time)
 
             return convert_fast_path_to_api_response(
                 simple_response, flow_data, execution_time
@@ -311,7 +325,7 @@ async def continue_flow_processing(
         logger.info(f"✅ AI ANALYSIS COMPLETE: {flow_id} in {execution_time:.3f}s")
 
         # Record metrics for AI path
-        flow_metrics.record_ai_path(execution_time)
+        await flow_metrics.record_ai_path(execution_time)
 
         return convert_to_api_response(result, execution_time)
 
@@ -323,7 +337,7 @@ async def continue_flow_processing(
         )
 
         # Record error metrics
-        flow_metrics.record_error(execution_time)
+        await flow_metrics.record_error(execution_time)
 
         return create_fallback_response(flow_id, f"Processing failed: {str(e)}")
 
@@ -354,7 +368,7 @@ async def get_flow_processing_metrics():
 
     Returns statistics on fast-path vs AI-path usage and latencies
     """
-    stats = flow_metrics.get_stats()
+    stats = await flow_metrics.get_stats()
 
     # Log current performance stats
     if stats["total_requests"] > 0:

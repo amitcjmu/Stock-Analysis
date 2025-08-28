@@ -144,7 +144,9 @@ class NavigationDecisionTool(BaseTool):
             if current_phase == "not_found" or status_data.get("status") == "not_found":
                 # Route based on flow_type, not hardcoded to discovery
                 if flow_type == "collection":
-                    routing_path = "/collection/select-applications"
+                    routing_path = (
+                        "/collection/start"  # FIX: Use correct collection start route
+                    )
                     guidance = (
                         "The collection flow was not found. Please start a new "
                         "collection flow by selecting applications."
