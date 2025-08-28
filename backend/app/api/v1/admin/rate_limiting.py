@@ -7,13 +7,15 @@ from fastapi import APIRouter, Depends
 from typing import Optional
 from datetime import datetime, timedelta
 from app.api.v1.auth.auth_utils import get_current_user
+from app.api.v1.auth.admin_dependencies import require_admin
 from app.models.client_account import User
 from pydantic import BaseModel
 import logging
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/rate-limiting")
+# All rate limiting admin endpoints require admin privileges
+router = APIRouter(prefix="/rate-limiting", dependencies=[Depends(require_admin)])
 
 
 class RateLimitConfig(BaseModel):

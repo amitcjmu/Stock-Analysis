@@ -13,6 +13,7 @@ import uuid
 
 from app.core.database import get_db
 from app.api.v1.auth.auth_utils import get_current_user
+from app.api.v1.auth.admin_dependencies import require_admin
 from app.models.client_account import User, ClientAccount, Engagement
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ class SimpleEngagementCreate(BaseModel):
 async def create_simple_client(
     client_data: SimpleClientCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    admin_user: User = Depends(require_admin),
 ):
     """Create a simple client account that matches the actual database schema."""
     try:
@@ -70,7 +71,7 @@ async def create_simple_client(
         await db.refresh(client)
 
         logger.info(
-            f"Simple client account created: {client_data.name} by user {current_user.id}"
+            f"Simple client account created: {client_data.name} by admin {admin_user.id}"
         )
 
         return {
@@ -104,14 +105,20 @@ async def create_simple_client(
 async def create_simple_engagement(
     engagement_data: SimpleEngagementCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    admin_user: User = Depends(require_admin),
 ):
     """Create a simple engagement for a client."""
     try:
+        # Validate and convert client_account_id to UUID
+        try:
+            client_uuid = uuid.UUID(engagement_data.client_account_id)
+        except (ValueError, AttributeError):
+            raise HTTPException(
+                status_code=400, detail="Invalid client_account_id format"
+            )
+
         # Verify client exists
-        client_query = select(ClientAccount).where(
-            ClientAccount.id == engagement_data.client_account_id
-        )
+        client_query = select(ClientAccount).where(ClientAccount.id == client_uuid)
         client_result = await db.execute(client_query)
         client = client_result.scalar_one_or_none()
 
@@ -126,7 +133,7 @@ async def create_simple_engagement(
             id=uuid.uuid4(),
             name=engagement_data.name,
             description=engagement_data.description,
-            client_account_id=uuid.UUID(engagement_data.client_account_id),
+            client_account_id=client_uuid,
             is_active=True,
         )
 
@@ -135,7 +142,7 @@ async def create_simple_engagement(
         await db.refresh(engagement)
 
         logger.info(
-            f"Simple engagement created: {engagement_data.name} for client {client.name} by user {current_user.id}"
+            f"Simple engagement created: {engagement_data.name} for client {client.name} by admin {admin_user.id}"
         )
 
         return {
@@ -173,7 +180,7 @@ async def list_simple_clients(
 ):
     """List all client accounts."""
     try:
-        query = select(ClientAccount).where(ClientAccount.is_active is True)
+        query = select(ClientAccount).where(ClientAccount.is_active.is_(True))
         result = await db.execute(query)
         clients = result.scalars().all()
 
@@ -212,11 +219,15 @@ async def list_simple_engagements(
         query = (
             select(Engagement, ClientAccount)
             .join(ClientAccount, Engagement.client_account_id == ClientAccount.id)
-            .where(Engagement.is_active is True)
+            .where(Engagement.is_active.is_(True))
         )
 
         if client_id:
-            query = query.where(Engagement.client_account_id == client_id)
+            try:
+                client_uuid = uuid.UUID(client_id)
+                query = query.where(Engagement.client_account_id == client_uuid)
+            except (ValueError, AttributeError):
+                raise HTTPException(status_code=400, detail="Invalid client_id format")
 
         result = await db.execute(query)
         engagements_with_clients = result.all()

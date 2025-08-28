@@ -5,9 +5,11 @@ Role-Based Access Control administration endpoints
 
 from fastapi import APIRouter, Depends
 from app.api.v1.auth.auth_utils import get_current_user
+from app.api.v1.auth.admin_dependencies import require_admin
 from app.models.client_account import User
 
-router = APIRouter(prefix="/rbac-admin")
+# All RBAC admin endpoints require admin privileges
+router = APIRouter(prefix="/rbac-admin", dependencies=[Depends(require_admin)])
 
 
 @router.get("/roles")
