@@ -26,12 +26,15 @@ def convert_fast_path_to_api_response(
         flow_type = flow_data.get("flow_type", "discovery")
         current_phase = flow_data.get("current_phase", "data_import")
 
-        # Create routing context
+        # Create routing context (FIX for Issue #6: collection uses /progress)
+        default_route = (
+            f"/{flow_type}/progress/{flow_id}"
+            if flow_type == "collection"
+            else f"/{flow_type}/overview"
+        )
         routing_context = RoutingContext(
-            target_page=fast_response.get("routing_decision", f"/{flow_type}/overview"),
-            recommended_page=fast_response.get(
-                "routing_decision", f"/{flow_type}/overview"
-            ),
+            target_page=fast_response.get("routing_decision", default_route),
+            recommended_page=fast_response.get("routing_decision", default_route),
             flow_id=flow_id,
             phase=current_phase,
             flow_type=flow_type,
@@ -112,8 +115,14 @@ def create_simple_transition_response(flow_data: Dict[str, Any]) -> Dict[str, An
     flow_id = flow_data.get("flow_id", "unknown")
     flow_type = flow_data.get("flow_type", "discovery")
 
+    # FIX for Issue #6: Use correct routing path based on flow type
+    if flow_type == "collection":
+        routing_decision = f"/{flow_type}/progress/{flow_id}"
+    else:
+        routing_decision = f"/{flow_type}/overview/{flow_id}"
+
     return {
-        "routing_decision": f"/{flow_type}/overview/{flow_id}",
+        "routing_decision": routing_decision,
         "user_guidance": f"Continue with {flow_type} flow processing",
         "action_type": "navigation",
         "confidence": 0.9,

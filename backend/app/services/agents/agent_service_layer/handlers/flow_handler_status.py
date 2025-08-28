@@ -185,6 +185,16 @@ class FlowHandlerStatus:
             f"[ADR-012] Unsupported flow type, using master flow: "
             f"{master_flow.flow_type}"
         )
+
+        # FIX for Issue #7: Safely access current_phase attribute
+        current_phase = getattr(master_flow, "current_phase", None)
+        if not current_phase:
+            # Default phase based on flow type if not available
+            if master_flow.flow_type == "assessment":
+                current_phase = "assessment_start"
+            else:
+                current_phase = "initial"
+
         return {
             "status": "success",
             "flow_exists": True,
@@ -192,7 +202,7 @@ class FlowHandlerStatus:
                 "flow_id": flow_id,
                 "flow_type": master_flow.flow_type,
                 "status": master_flow.flow_status,  # Using master status
-                "current_phase": master_flow.current_phase,
+                "current_phase": current_phase,
                 "message": (
                     f"Using master flow status for unsupported type: "
                     f"{master_flow.flow_type}"

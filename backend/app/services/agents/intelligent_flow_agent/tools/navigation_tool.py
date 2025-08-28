@@ -140,22 +140,52 @@ class NavigationDecisionTool(BaseTool):
     ) -> Dict[str, Any]:
         """Make intelligent routing decision"""
         try:
-            # Handle not_found flows first
+            # Handle not_found flows first (FIX for Issue #2)
             if current_phase == "not_found" or status_data.get("status") == "not_found":
-                return {
-                    "routing_decision": "/discovery/cmdb-import",
-                    "user_guidance": (
+                # Route based on flow_type, not hardcoded to discovery
+                if flow_type == "collection":
+                    routing_path = "/collection/select-applications"
+                    guidance = (
+                        "The collection flow was not found. Please start a new "
+                        "collection flow by selecting applications."
+                    )
+                    next_actions = [
+                        "Navigate to the Application Selection page",
+                        "Select the applications you want to collect data for",
+                        "Choose the collection method",
+                        "Begin the collection process",
+                    ]
+                elif flow_type == "assessment":
+                    routing_path = "/assessment/start"
+                    guidance = (
+                        "The assessment flow was not found. Please start a new "
+                        "assessment flow."
+                    )
+                    next_actions = [
+                        "Navigate to the Assessment Start page",
+                        "Select the assessment type",
+                        "Configure assessment parameters",
+                        "Begin the assessment",
+                    ]
+                else:  # Default to discovery for backward compatibility
+                    routing_path = "/discovery/cmdb-import"
+                    guidance = (
                         "The discovery flow was not found. Please start a new "
                         "discovery flow by uploading your data."
-                    ),
-                    "action_type": "user_action",
-                    "confidence": 1.0,
-                    "next_actions": [
+                    )
+                    next_actions = [
                         "Navigate to the CMDB Import page",
                         "Click on 'Upload Data' button",
                         "Select your CMDB or asset data file (CSV/Excel)",
                         "Wait for the upload to complete",
-                    ],
+                    ]
+
+                return {
+                    "routing_decision": routing_path,
+                    "user_guidance": guidance,
+                    "action_type": "user_action",
+                    "confidence": 1.0,
+                    "next_actions": next_actions,
                     "completion_status": "flow_not_found",
                 }
 
