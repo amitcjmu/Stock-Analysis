@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAttributeMappingLogic } from '../../../../hooks/discovery/attribute-mapping';
 import { useAttributeMappingNavigation } from '../../../../hooks/discovery/useAttributeMappingNavigation';
 import type { AttributeMappingState, AttributeMappingActions, NavigationState, SessionInfo } from '../types';
@@ -8,6 +8,7 @@ export const useAttributeMapping = (): JSX.Element => {
   // Navigation state
   const [activeTab, setActiveTab] = useState<'mappings' | 'data' | 'critical'>('mappings');
   const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
+  const navigate = useNavigate();
 
   // Business logic hooks
   const {
@@ -91,6 +92,23 @@ export const useAttributeMapping = (): JSX.Element => {
 
   const hasSessionData = flowId || flowState;
   const hasUploadedData = agenticData?.attributes && agenticData.attributes.length > 0;
+
+  // Redirect to CMDB import if flow not found and we have a flow ID in URL
+  useEffect(() => {
+    if (isFlowNotFound && urlFlowId && !isLoading && !isAgenticLoading && !isFlowStateLoading) {
+      console.log('🔄 Flow not found, redirecting to CMDB import page');
+      // Clear the invalid flow ID from localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('currentFlowId');
+        localStorage.removeItem('lastActiveFlowId');
+        localStorage.removeItem('auth_flow');
+      }
+      // Redirect to CMDB import page
+      setTimeout(() => {
+        navigate('/discovery/cmdb-import');
+      }, 2000); // Give user time to see the error message
+    }
+  }, [isFlowNotFound, urlFlowId, isLoading, isAgenticLoading, isFlowStateLoading, navigate]);
 
   // Session info object
   const sessionInfo: SessionInfo = {
