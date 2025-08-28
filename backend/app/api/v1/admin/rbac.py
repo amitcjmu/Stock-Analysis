@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 from app.api.v1.auth.auth_utils import get_current_user
 from app.models.client_account import User
 
-router = APIRouter(prefix="/rbac-admin", tags=["RBAC Admin"])
+router = APIRouter(prefix="/rbac-admin")
 
 
 @router.get("/roles")

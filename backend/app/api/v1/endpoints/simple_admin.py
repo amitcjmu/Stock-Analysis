@@ -18,7 +18,7 @@ from app.models.client_account import User, ClientAccount, Engagement
 logger = logging.getLogger(__name__)
 
 # Create simple admin router
-simple_admin_router = APIRouter(prefix="/simple-admin", tags=["Simple Admin"])
+simple_admin_router = APIRouter(prefix="/simple-admin")
 
 
 class SimpleClientCreate(BaseModel):

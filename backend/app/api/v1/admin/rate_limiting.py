@@ -13,7 +13,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/rate-limiting", tags=["Rate Limiting"])
+router = APIRouter(prefix="/rate-limiting")
 
 
 class RateLimitConfig(BaseModel):
@@ -49,7 +49,7 @@ async def get_rate_limit_config(admin_user: User = Depends(get_current_user)):
         },
         "endpoints": [
             {
-                "endpoint": "/api/v1/discovery/*",
+                "endpoint": "/api/v1/unified-discovery/*",
                 "max_requests": 50,
                 "window_seconds": 60,
                 "enabled": True,
@@ -106,7 +106,7 @@ async def get_rate_limit_status(
     return {
         "endpoints": [
             {
-                "endpoint": "/api/v1/discovery/flows",
+                "endpoint": "/api/v1/unified-discovery/flows",
                 "current_count": 23,
                 "limit": 50,
                 "window_seconds": 60,

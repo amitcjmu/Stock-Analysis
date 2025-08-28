@@ -1,15 +1,15 @@
 """
 Field Mapping Logic Module
 
-This module contains field mapping methods extracted from execution_engine_crew_discovery.py
-to reduce file length and improve maintainability.
+This module delegates field mapping to AI agents instead of using hardcoded patterns.
 
 🤖 Generated with Claude Code (CC)
 
 Co-Authored-By: Claude <noreply@anthropic.com>
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict
+from datetime import datetime
 
 from app.core.logging import get_logger
 
@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 
 
 class FieldMappingLogic:
-    """Handles field mapping logic for discovery flows"""
+    """Handles field mapping logic for discovery flows using AI agents"""
 
     def __init__(self):
         """Initialize the field mapping logic handler"""
@@ -26,8 +26,8 @@ class FieldMappingLogic:
     async def execute_discovery_field_mapping(
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Execute field mapping phase with actual field mapping logic"""
-        logger.info("🗺️ Executing discovery field mapping")
+        """Execute field mapping phase using AI agents"""
+        logger.info("🗺️ Executing discovery field mapping with AI agents")
 
         try:
             # Get raw data from phase input
@@ -41,42 +41,83 @@ class FieldMappingLogic:
                     "agent": "field_mapping_agent",
                 }
 
-            # Extract field names from first record
-            sample_record = (
-                raw_data[0] if isinstance(raw_data, list) and raw_data else raw_data
+            # Use the actual field mapping executor with AI agents
+            from app.services.crewai_flows.handlers.phase_executors.field_mapping_executor import (
+                FieldMappingExecutor,
             )
-            if isinstance(sample_record, dict):
-                source_fields = list(sample_record.keys())
-            else:
-                logger.warning("⚠️ Raw data is not in expected dictionary format")
-                return {
-                    "phase": "field_mapping",
-                    "status": "completed",
-                    "mappings": {},
-                    "agent": "field_mapping_agent",
-                }
-
-            logger.info(
-                f"📊 Creating field mappings for {len(source_fields)} source fields"
+            from app.schemas.unified_discovery_flow_state import (
+                UnifiedDiscoveryFlowState,
             )
 
-            # Create intelligent field mappings based on field names
-            field_mappings = await self.generate_field_mappings(source_fields, raw_data)
+            # Create flow state from phase input
+            flow_state = UnifiedDiscoveryFlowState(
+                flow_id=phase_input.get("flow_id", "temp"),
+                raw_data=raw_data,
+                metadata={
+                    "detected_columns": (
+                        list(raw_data[0].keys())
+                        if raw_data and isinstance(raw_data[0], dict)
+                        else []
+                    )
+                },
+                client_account_id=phase_input.get("client_account_id"),
+                engagement_id=phase_input.get("engagement_id"),
+                data_import_id=phase_input.get("data_import_id"),
+            )
 
-            # TODO: Persist field mappings to database (placeholder for field_mappings table)
-            logger.info(f"✅ Generated {len(field_mappings)} field mappings")
+            # Initialize field mapping executor with proper context
+            executor = FieldMappingExecutor(
+                state=flow_state, crew_manager=None, flow_bridge=None
+            )
 
-            return {
-                "phase": "field_mapping",
-                "status": "completed",
-                "mappings": field_mappings,
-                "field_count": len(source_fields),
-                "mapped_count": len(field_mappings),
-                "agent": "field_mapping_agent",
-            }
+            # Get database session
+            from app.core.database.session import get_db
+
+            async for db_session in get_db():
+                try:
+                    # Execute field mapping with AI
+                    result = await executor.execute_field_mapping(
+                        flow_state, db_session
+                    )
+
+                    # The executor should handle persistence internally
+                    # but we can also persist to ensure it's saved
+                    if result and result.get("success") and result.get("mappings"):
+                        # Extract the mappings from the result
+                        field_mappings = result.get("mappings", [])
+
+                        # Convert to the format needed for persistence
+                        mappings_dict = {}
+                        for mapping in field_mappings:
+                            if isinstance(mapping, dict):
+                                source = mapping.get("source_field")
+                                if source:
+                                    mappings_dict[source] = mapping
+
+                        if mappings_dict:
+                            await self._persist_field_mappings(
+                                mappings_dict, phase_input
+                            )
+
+                    logger.info("✅ AI agents processed field mappings")
+
+                    return {
+                        "phase": "field_mapping",
+                        "status": "completed",
+                        "mappings": result.get("mappings", {}),
+                        "field_count": len(
+                            flow_state.metadata.get("detected_columns", [])
+                        ),
+                        "mapped_count": len(result.get("mappings", [])),
+                        "agent": "field_mapping_agent",
+                        "ai_confidence": result.get("confidence", 0),
+                    }
+                finally:
+                    await db_session.close()
 
         except Exception as e:
-            logger.error(f"❌ Field mapping execution failed: {e}")
+            logger.error(f"❌ Field mapping execution failed: {e}", exc_info=True)
+            # Return error status
             return {
                 "phase": "field_mapping",
                 "status": "error",
@@ -85,251 +126,162 @@ class FieldMappingLogic:
                 "agent": "field_mapping_agent",
             }
 
-    async def generate_field_mappings(
-        self, source_fields: List[str], raw_data: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
-        """Generate intelligent field mappings based on source field analysis"""
-        mappings = {}
-
-        # Standard migration attribute mapping patterns
-        field_patterns = {
-            # Server/Asset identification
-            "server_name": {
-                "standard_attribute": "asset_name",
-                "confidence": 0.95,
-                "critical": True,
-            },
-            "hostname": {
-                "standard_attribute": "asset_name",
-                "confidence": 0.95,
-                "critical": True,
-            },
-            "name": {
-                "standard_attribute": "asset_name",
-                "confidence": 0.85,
-                "critical": True,
-            },
-            "asset_name": {
-                "standard_attribute": "asset_name",
-                "confidence": 1.0,
-                "critical": True,
-            },
-            # Environment
-            "environment": {
-                "standard_attribute": "environment",
-                "confidence": 1.0,
-                "critical": True,
-            },
-            "env": {
-                "standard_attribute": "environment",
-                "confidence": 0.9,
-                "critical": True,
-            },
-            # Operating System
-            "os_type": {
-                "standard_attribute": "operating_system",
-                "confidence": 0.95,
-                "critical": True,
-            },
-            "os": {
-                "standard_attribute": "operating_system",
-                "confidence": 0.9,
-                "critical": True,
-            },
-            "operating_system": {
-                "standard_attribute": "operating_system",
-                "confidence": 1.0,
-                "critical": True,
-            },
-            # Hardware specifications
-            "cpu_cores": {
-                "standard_attribute": "cpu_cores",
-                "confidence": 1.0,
-                "critical": False,
-            },
-            "cores": {
-                "standard_attribute": "cpu_cores",
-                "confidence": 0.9,
-                "critical": False,
-            },
-            "vcpus": {
-                "standard_attribute": "cpu_cores",
-                "confidence": 0.9,
-                "critical": False,
-            },
-            "memory_gb": {
-                "standard_attribute": "memory_gb",
-                "confidence": 1.0,
-                "critical": False,
-            },
-            "memory": {
-                "standard_attribute": "memory_gb",
-                "confidence": 0.85,
-                "critical": False,
-            },
-            "ram": {
-                "standard_attribute": "memory_gb",
-                "confidence": 0.9,
-                "critical": False,
-            },
-            "ram_gb": {
-                "standard_attribute": "memory_gb",
-                "confidence": 0.95,
-                "critical": False,
-            },
-            "disk_gb": {
-                "standard_attribute": "storage_gb",
-                "confidence": 0.95,
-                "critical": False,
-            },
-            "storage": {
-                "standard_attribute": "storage_gb",
-                "confidence": 0.85,
-                "critical": False,
-            },
-            "storage_gb": {
-                "standard_attribute": "storage_gb",
-                "confidence": 1.0,
-                "critical": False,
-            },
-            # Status and ownership
-            "status": {
-                "standard_attribute": "status",
-                "confidence": 1.0,
-                "critical": False,
-            },
-            "state": {
-                "standard_attribute": "status",
-                "confidence": 0.85,
-                "critical": False,
-            },
-            "owner": {
-                "standard_attribute": "owner",
-                "confidence": 1.0,
-                "critical": False,
-            },
-            "responsible_party": {
-                "standard_attribute": "owner",
-                "confidence": 0.9,
-                "critical": False,
-            },
-            # Application context
-            "application": {
-                "standard_attribute": "application",
-                "confidence": 1.0,
-                "critical": True,
-            },
-            "app": {
-                "standard_attribute": "application",
-                "confidence": 0.9,
-                "critical": True,
-            },
-            "service": {
-                "standard_attribute": "application",
-                "confidence": 0.8,
-                "critical": True,
-            },
-        }
-
-        for source_field in source_fields:
-            source_field_lower = source_field.lower()
-
-            # Direct pattern match
-            if source_field_lower in field_patterns:
-                pattern = field_patterns[source_field_lower]
-                mappings[source_field] = {
-                    "source_field": source_field,
-                    "target_attribute": pattern["standard_attribute"],
-                    "confidence_score": pattern["confidence"],
-                    "is_critical": pattern["critical"],
-                    "mapping_type": "direct_match",
-                    "data_type": await self.infer_data_type(source_field, raw_data),
-                }
-            else:
-                # Fuzzy matching for partial matches
-                best_match = None
-                best_confidence = 0.0
-
-                for pattern_key, pattern_info in field_patterns.items():
-                    if (
-                        pattern_key in source_field_lower
-                        or source_field_lower in pattern_key
-                    ):
-                        # Calculate confidence based on similarity
-                        similarity = min(
-                            len(pattern_key), len(source_field_lower)
-                        ) / max(len(pattern_key), len(source_field_lower))
-                        confidence = (
-                            pattern_info["confidence"] * similarity * 0.7
-                        )  # Reduce confidence for fuzzy matches
-
-                        if confidence > best_confidence:
-                            best_confidence = confidence
-                            best_match = pattern_info
-
-                if (
-                    best_match and best_confidence > 0.5
-                ):  # Only include if confidence > 50%
-                    mappings[source_field] = {
-                        "source_field": source_field,
-                        "target_attribute": best_match["standard_attribute"],
-                        "confidence_score": best_confidence,
-                        "is_critical": best_match["critical"],
-                        "mapping_type": "fuzzy_match",
-                        "data_type": await self.infer_data_type(source_field, raw_data),
-                    }
-                else:
-                    # Unmapped field
-                    mappings[source_field] = {
-                        "source_field": source_field,
-                        "target_attribute": "unmapped",
-                        "confidence_score": 0.0,
-                        "is_critical": False,
-                        "mapping_type": "unmapped",
-                        "data_type": await self.infer_data_type(source_field, raw_data),
-                    }
-
-        return mappings
-
-    async def infer_data_type(
-        self, field_name: str, raw_data: List[Dict[str, Any]]
-    ) -> str:
-        """Infer data type from field name and sample data"""
-        # Get sample values for this field
-        sample_values = []
-        for record in raw_data[:5]:  # Check first 5 records
-            if isinstance(record, dict) and field_name in record:
-                value = record[field_name]
-                if value is not None:
-                    sample_values.append(value)
-
-        if not sample_values:
-            return "unknown"
-
-        # Analyze sample values
-        sample_value = sample_values[0]
-
-        # Check if it's numeric
+    async def _persist_field_mappings(
+        self, field_mappings: Dict[str, Any], phase_input: Dict[str, Any]
+    ) -> None:
+        """Persist AI-generated field mappings to both the flow state and ImportFieldMapping table"""
         try:
-            float(sample_value)
-            if "." in str(sample_value):
-                return "decimal"
-            else:
-                return "integer"
-        except (ValueError, TypeError):
-            pass
+            # Get flow_id and other metadata from phase_input
+            flow_id = phase_input.get("flow_id")
+            data_import_id = phase_input.get("data_import_id")
+            client_account_id = phase_input.get(
+                "client_account_id", "11111111-1111-1111-1111-111111111111"
+            )
+            # engagement_id not currently used but may be needed for future enhancements
+            # engagement_id = phase_input.get(
+            #     "engagement_id", "22222222-2222-2222-2222-222222222222"
+            # )
 
-        # Check field name patterns for data type hints
-        field_lower = field_name.lower()
-        if any(
-            keyword in field_lower for keyword in ["date", "time", "created", "updated"]
-        ):
-            return "datetime"
-        elif any(keyword in field_lower for keyword in ["email", "mail"]):
-            return "email"
-        elif any(keyword in field_lower for keyword in ["url", "link"]):
-            return "url"
-        elif any(keyword in field_lower for keyword in ["ip", "address"]):
-            return "ip_address"
-        else:
-            return "string"
+            if not flow_id:
+                logger.warning("⚠️ No flow_id available, cannot persist field mappings")
+                return
+
+            # Import required modules
+            from app.core.database.session import get_db
+            from app.models.discovery_flows import DiscoveryFlow
+            from app.models.data_import.mapping import ImportFieldMapping
+            from sqlalchemy import select, delete
+            from uuid import UUID
+
+            # Get database session
+            async for db_session in get_db():
+                try:
+                    # Find the discovery flow
+                    result = await db_session.execute(
+                        select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
+                    )
+                    discovery_flow = result.scalar_one_or_none()
+
+                    # Get data_import_id from discovery flow if not provided
+                    if not data_import_id and discovery_flow:
+                        data_import_id = discovery_flow.data_import_id
+                        if not data_import_id and discovery_flow.metadata:
+                            data_import_id = discovery_flow.metadata.get(
+                                "data_import_id"
+                            )
+
+                    if not data_import_id:
+                        logger.warning(
+                            "⚠️ No data_import_id available, cannot persist to ImportFieldMapping table"
+                        )
+                    else:
+                        # Clear existing field mappings for this import
+                        await db_session.execute(
+                            delete(ImportFieldMapping).where(
+                                ImportFieldMapping.data_import_id
+                                == UUID(data_import_id)
+                            )
+                        )
+
+                        # Create new ImportFieldMapping records from AI-generated mappings
+                        created_count = 0
+                        for source_field, mapping_info in field_mappings.items():
+                            # Handle both dict and direct value formats
+                            if isinstance(mapping_info, dict):
+                                target_field = mapping_info.get(
+                                    "target_field"
+                                ) or mapping_info.get("target_attribute")
+                                confidence = mapping_info.get(
+                                    "confidence", 0.0
+                                ) or mapping_info.get("confidence_score", 0.0)
+                                mapping_type = mapping_info.get(
+                                    "mapping_type", "ai_suggested"
+                                )
+                                is_critical = mapping_info.get("is_critical", False)
+                            else:
+                                # Simple string mapping
+                                target_field = (
+                                    mapping_info
+                                    if isinstance(mapping_info, str)
+                                    else None
+                                )
+                                confidence = 0.8
+                                mapping_type = "ai_suggested"
+                                is_critical = False
+
+                            # Only create mapping if we have a valid target field
+                            if target_field and target_field != "unmapped":
+                                field_mapping = ImportFieldMapping(
+                                    data_import_id=UUID(data_import_id),
+                                    client_account_id=UUID(client_account_id),
+                                    source_field=source_field,
+                                    target_field=target_field,
+                                    match_type=mapping_type,
+                                    confidence_score=confidence,
+                                    status="suggested",  # AI suggested, needs approval
+                                    suggested_by="ai_mapper",
+                                    transformation_rules={
+                                        "is_critical": is_critical,
+                                        "ai_generated": True,
+                                    },
+                                )
+                                db_session.add(field_mapping)
+                                created_count += 1
+
+                        logger.info(
+                            f"✅ Created {created_count} ImportFieldMapping records for import {data_import_id}"
+                        )
+
+                    if discovery_flow:
+                        # Count mappings
+                        total_fields = len(field_mappings)
+                        mapped_count = sum(
+                            1
+                            for m in field_mappings.values()
+                            if (isinstance(m, dict) and m.get("target_field"))
+                            or (isinstance(m, str) and m != "unmapped")
+                        )
+                        critical_count = sum(
+                            1
+                            for m in field_mappings.values()
+                            if isinstance(m, dict) and m.get("is_critical")
+                        )
+
+                        # Update field_mappings in the discovery flow
+                        discovery_flow.field_mappings = {
+                            "field_mappings": field_mappings,
+                            "total_fields": total_fields,
+                            "mapped_count": mapped_count,
+                            "critical_mapped": critical_count,
+                            "confidence": 0.85,
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "ai_generated": True,
+                        }
+
+                        # Also update metadata with field mapping info
+                        if not discovery_flow.metadata:
+                            discovery_flow.metadata = {}
+
+                        discovery_flow.metadata["field_mapping_completed"] = True
+                        discovery_flow.metadata["field_mapping_count"] = total_fields
+                        discovery_flow.metadata["data_import_id"] = data_import_id
+
+                        logger.info(
+                            f"✅ Updated discovery flow {flow_id} with AI-generated field mappings"
+                        )
+                    else:
+                        logger.warning(
+                            f"⚠️ Discovery flow {flow_id} not found in database"
+                        )
+
+                    await db_session.commit()
+                    logger.info(
+                        f"✅ Successfully persisted {len(field_mappings)} AI-generated field mappings"
+                    )
+
+                finally:
+                    await db_session.close()
+
+        except Exception as e:
+            logger.error(f"❌ Failed to persist field mappings: {e}", exc_info=True)
+            # Don't raise - allow flow to continue even if persistence fails

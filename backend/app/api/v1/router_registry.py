@@ -324,22 +324,6 @@ def register_special_routers(api_router: APIRouter):
     else:
         logger.warning("⚠️ Emergency System Control router not available")
 
-    # Websocket Cache
-    if routers_with_flags.get("WEBSOCKET_CACHE", (False, None))[0]:
-        websocket_cache_router = routers_with_flags["WEBSOCKET_CACHE"][1]
-        api_router.include_router(websocket_cache_router, prefix="/websocket-cache")
-        logger.info("✅ Websocket Cache router included")
-    else:
-        logger.warning("⚠️ Websocket Cache router not available")
-
-    # Cached Context
-    if routers_with_flags.get("CACHED_CONTEXT", (False, None))[0]:
-        cached_context_router = routers_with_flags["CACHED_CONTEXT"][1]
-        api_router.include_router(cached_context_router, prefix="/cached-context")
-        logger.info("✅ Cached Context router included")
-    else:
-        logger.warning("⚠️ Cached Context router not available")
-
     # Flow Health
     if routers_with_flags.get("FLOW_HEALTH", (False, None))[0]:
         flow_health_router = routers_with_flags["FLOW_HEALTH"][1]
