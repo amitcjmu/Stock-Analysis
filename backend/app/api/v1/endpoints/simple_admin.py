@@ -176,7 +176,7 @@ async def create_simple_engagement(
 
 @simple_admin_router.get("/clients")
 async def list_simple_clients(
-    db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
+    db: AsyncSession = Depends(get_db), admin_user: User = Depends(require_admin)
 ):
     """List all client accounts."""
     try:
@@ -212,7 +212,7 @@ async def list_simple_clients(
 async def list_simple_engagements(
     client_id: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    admin_user: User = Depends(require_admin),
 ):
     """List engagements, optionally filtered by client."""
     try:
