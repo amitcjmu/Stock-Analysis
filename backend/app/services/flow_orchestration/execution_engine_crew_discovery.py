@@ -30,6 +30,15 @@ class ExecutionEngineDiscoveryCrews:
         # ADR-015: Use ONLY persistent agents - no fallback to service pattern
         logger.info(f"🔄 Executing phase '{phase_config.name}' with persistent agents")
 
+        # Add flow context to phase_input for proper persistence
+        phase_input["flow_id"] = master_flow.id
+        phase_input["client_account_id"] = master_flow.client_account_id
+        phase_input["engagement_id"] = master_flow.engagement_id
+
+        # Get data_import_id from metadata if available
+        if hasattr(master_flow, "metadata") and master_flow.metadata:
+            phase_input["data_import_id"] = master_flow.metadata.get("data_import_id")
+
         # Retrieve flow data from persistence to ensure raw_data is available
         if master_flow.flow_persistence_data:
             # Add raw_data from flow persistence if not already in phase_input

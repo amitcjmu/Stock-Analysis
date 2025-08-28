@@ -318,6 +318,15 @@ try:
 except ImportError:
     routers_with_flags["FINOPS"] = (False, None)
 
+
+# RBAC Admin router
+try:
+    from app.api.v1.admin.rbac import router as rbac_admin_router
+
+    routers_with_flags["RBAC_ADMIN"] = (True, rbac_admin_router)
+except ImportError:
+    routers_with_flags["RBAC_ADMIN"] = (False, None)
+
 # Initialize logger after all imports
 logger = logging.getLogger(__name__)
 
