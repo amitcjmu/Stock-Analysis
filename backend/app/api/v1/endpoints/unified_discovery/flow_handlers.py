@@ -71,7 +71,7 @@ class FlowInitializationResponse(BaseModel):
     metadata: Dict[str, Any]
 
 
-@router.post("/flow/initialize", response_model=FlowInitializationResponse)
+@router.post("/flows/initialize", response_model=FlowInitializationResponse)
 async def initialize_discovery_flow(
     request: FlowInitializationRequest,
     db: AsyncSession = Depends(get_db),
@@ -164,7 +164,7 @@ async def initialize_discovery_flow(
         )
 
 
-@router.get("/flow/{flow_id}/status")
+@router.get("/flows/{flow_id}/status")
 async def get_flow_status(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
@@ -202,7 +202,7 @@ async def get_active_flows(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/flow/{flow_id}/execute")
+@router.post("/flows/{flow_id}/execute")
 async def execute_flow(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
