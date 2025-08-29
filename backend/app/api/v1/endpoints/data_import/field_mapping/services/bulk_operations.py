@@ -149,12 +149,12 @@ class BulkLearningOperations:
             )
 
             if pattern_type:
-                # Use cast for PostgreSQL enum comparison
-                from sqlalchemy import cast, text
+                # Use literal SQL for PostgreSQL enum comparison
+                from sqlalchemy import literal_column
 
                 query = query.where(
                     AgentDiscoveredPatterns.pattern_type
-                    == cast(pattern_type, text("patterntype"))
+                    == literal_column(f"'{pattern_type}'::patterntype")
                 )
 
             if insight_type:
