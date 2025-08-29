@@ -174,6 +174,10 @@ async def get_flow_status(
     try:
         status = await get_flow_status_service(flow_id, db, context)
         return status
+    except ValueError as e:
+        # Flow not found or context mismatch - return 404
+        logger.warning(safe_log_format("Flow not found: {e}", e=e))
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error(safe_log_format("Flow status check failed: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))
