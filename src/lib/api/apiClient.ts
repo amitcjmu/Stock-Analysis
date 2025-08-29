@@ -231,8 +231,14 @@ class ApiClient {
 
     // CRITICAL FIX FOR ISSUE #306: Enforce Flow ID for all discovery endpoints
     // Check if this is a discovery endpoint that requires Flow ID
-    const isDiscoveryEndpoint = normalizedEndpoint.startsWith('/api/v1/unified-discovery/') ||
-                                normalizedEndpoint.startsWith('/api/v1/discovery/');
+    const isDiscoveryEndpoint = (normalizedEndpoint.startsWith('/api/v1/unified-discovery/') ||
+                                normalizedEndpoint.startsWith('/api/v1/discovery/')) &&
+                                // Exempt endpoints that don't require Flow ID
+                                !normalizedEndpoint.includes('/overview') &&
+                                !normalizedEndpoint.includes('/flows') &&
+                                !normalizedEndpoint.includes('/flow/create') &&
+                                !normalizedEndpoint.includes('/flow/health') &&
+                                !normalizedEndpoint.includes('/flow/status');
 
     if (isDiscoveryEndpoint) {
       // Merge auth headers with caller's headers to check for Flow ID

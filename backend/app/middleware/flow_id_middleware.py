@@ -39,6 +39,8 @@ class FlowIDRequirementMiddleware(BaseHTTPMiddleware):
             "/api/v1/unified-discovery/flow/status",
             "/api/v1/unified-discovery/flows",  # Flow listing
             "/api/v1/discovery/flows",  # Legacy flow listing
+            "/api/v1/discovery/overview",  # Discovery overview page - users select flows here
+            "/api/v1/unified-discovery/overview",  # Unified discovery overview
         ]
 
     async def dispatch(self, request: Request, call_next):
