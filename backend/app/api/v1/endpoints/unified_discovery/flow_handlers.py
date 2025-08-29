@@ -71,7 +71,7 @@ class FlowInitializationResponse(BaseModel):
     metadata: Dict[str, Any]
 
 
-@router.post("/flows/initialize", response_model=FlowInitializationResponse)
+@router.post("/flow/initialize", response_model=FlowInitializationResponse)
 async def initialize_discovery_flow(
     request: FlowInitializationRequest,
     db: AsyncSession = Depends(get_db),

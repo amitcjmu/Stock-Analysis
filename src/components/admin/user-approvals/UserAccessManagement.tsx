@@ -74,14 +74,14 @@ export const UserAccessManagement: React.FC = () => {
     loadClients();
     loadEngagements(); // Load all engagements initially
     loadAccessGrants();
-  }, [loadUsers, loadClients, loadEngagements, loadAccessGrants]);
+  }, []); // Run only once on mount
 
   // Reload engagements when selected client changes
   useEffect(() => {
     if (selectedClient) {
       loadEngagements(selectedClient);
     }
-  }, [selectedClient, loadEngagements]);
+  }, [selectedClient]); // Only depend on selectedClient
 
   const loadUsers = useCallback(async () => {
     try {
@@ -101,7 +101,7 @@ export const UserAccessManagement: React.FC = () => {
         variant: "destructive"
       });
     }
-  }, [toast]);
+  }, []); // Remove toast dependency to prevent re-creation
 
   const loadClients = useCallback(async () => {
     try {
@@ -121,7 +121,7 @@ export const UserAccessManagement: React.FC = () => {
     } catch (error) {
       console.error('Error loading clients:', error);
     }
-  }, []);
+  }, []); // Keep empty dependency array
 
   const loadEngagements = useCallback(async (clientId?: string) => {
     try {
@@ -144,7 +144,7 @@ export const UserAccessManagement: React.FC = () => {
     } catch (error) {
       console.error('Error loading engagements:', error);
     }
-  }, []);
+  }, []); // Keep empty dependency array
 
   const loadAccessGrants = useCallback(async () => {
     try {
@@ -155,7 +155,7 @@ export const UserAccessManagement: React.FC = () => {
     } catch (error) {
       console.error('Error loading access grants:', error);
     }
-  }, []);
+  }, []); // Keep empty dependency array
 
   const handleGrantAccess = async (): void => {
     if (!selectedUser || !selectedResource || !selectedAccessLevel) {
