@@ -94,9 +94,6 @@ try:
     from app.api.v1.endpoints.clarifications import (
         router as clarifications_router,
     )
-    from app.api.v1.endpoints.flow_management import (
-        router as flow_management_router,
-    )
 
     UNIFIED_DISCOVERY_AVAILABLE = True
 except ImportError:
@@ -105,7 +102,6 @@ except ImportError:
     dependency_analysis_router = None
     agent_insights_router = None
     clarifications_router = None
-    flow_management_router = None
 
 # Assessment endpoints
 assess_router: Optional[APIRouter]
@@ -381,7 +377,6 @@ __all__ = [
     "dependency_analysis_router",
     "agent_insights_router",
     "clarifications_router",
-    "flow_management_router",
     "ASSESS_AVAILABLE",
     "assess_router",
     "WAVE_PLANNING_AVAILABLE",

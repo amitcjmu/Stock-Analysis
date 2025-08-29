@@ -285,7 +285,7 @@ export class DashboardService {
         if (dataImport.id && !allFlows.find(f => f.flow_id === dataImport.id)) {
           try {
             // Get flow status for this import session with retry logic
-            const flowStatusResponse = await makeApiCallWithRetry<FlowStatusResponse>(`/api/v1/unified-discovery/flow/${dataImport.id}/status`, {
+            const flowStatusResponse = await makeApiCallWithRetry<FlowStatusResponse>(`/api/v1/unified-discovery/flows/${dataImport.id}/status`, {
               method: 'GET',
               headers: getAuthHeaders({ user, client, engagement })
             });

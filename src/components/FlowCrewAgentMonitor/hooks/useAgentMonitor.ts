@@ -98,7 +98,7 @@ export const useAgentMonitor = (): AgentMonitorState & {
           for (const flow of discoveryFlows) {
             try {
               // Get detailed crew monitoring for this flow
-              const crewResponse = await fetch(`/api/v1/unified-discovery/flow/crews/monitoring/${flow.flow_id}`, {
+              const crewResponse = await fetch(`/api/v1/unified-discovery/flows/crews/monitoring/${flow.flow_id}`, {
                 headers: getAuthHeaders()
               });
 
@@ -137,7 +137,7 @@ export const useAgentMonitor = (): AgentMonitorState & {
           for (const flow of flowsData.crewai_flows.active_flows) {
             try {
               // Get detailed crew monitoring for this flow
-              const crewResponse = await fetch(`/api/v1/unified-discovery/flow/crews/monitoring/${flow.flow_id}`, {
+              const crewResponse = await fetch(`/api/v1/unified-discovery/flows/crews/monitoring/${flow.flow_id}`, {
                 headers: getAuthHeaders()
               });
 
