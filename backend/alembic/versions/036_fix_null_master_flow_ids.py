@@ -6,10 +6,13 @@ Create Date: 2025-08-28 12:00:00.000000
 
 """
 
+import logging
 from typing import Sequence, Union
 
 from alembic import op
 from sqlalchemy import text
+
+logger = logging.getLogger(__name__)
 
 # revision identifiers, used by Alembic.
 revision: str = "036_fix_null_master_flow_ids"
@@ -38,19 +41,21 @@ def upgrade() -> None:  # noqa: C901
     ).fetchall()
 
     existing_tables = [row[0] for row in tables_exist]
-    print(f"🔍 Found existing tables: {existing_tables}")
+    logger.info(f"Found existing tables: {existing_tables}")
 
     if "discovery_flows" not in existing_tables:
-        print("⚠️ discovery_flows table not found, skipping migration")
+        logger.warning("discovery_flows table not found, skipping migration")
         return
 
     if "crewai_flow_state_extensions" not in existing_tables:
-        print("⚠️ crewai_flow_state_extensions table not found, skipping migration")
+        logger.warning(
+            "crewai_flow_state_extensions table not found, skipping migration"
+        )
         return
 
     try:
         # Step 2: Create stub master records for orphaned discovery flows
-        print("🔧 CC FIX: Creating stub master records for orphaned discovery flows")
+        logger.info("Creating stub master records for orphaned discovery flows")
 
         # Find orphaned flows that need master records
         orphaned_flows_query = text(
@@ -60,18 +65,17 @@ def upgrade() -> None:  # noqa: C901
             LEFT JOIN crewai_flow_state_extensions cfse ON df.flow_id = cfse.flow_id
             WHERE df.master_flow_id IS NULL
                 AND cfse.flow_id IS NULL
-            LIMIT 100
         """
         )
 
         orphaned_flows = bind.execute(orphaned_flows_query).fetchall()
-        print(
-            f"📊 Found {len(orphaned_flows)} orphaned flows needing stub master records"
+        logger.info(
+            f"Found {len(orphaned_flows)} orphaned flows needing stub master records"
         )
 
         # Create stub master records for orphaned flows
         for flow in orphaned_flows:
-            print(f"   Creating stub master record for flow_id: {flow.flow_id}")
+            logger.debug(f"Creating stub master record for flow_id: {flow.flow_id}")
             try:
                 bind.execute(
                     text(
@@ -101,11 +105,13 @@ def upgrade() -> None:  # noqa: C901
                     },
                 )
             except Exception as e:
-                print(f"⚠️ Failed to create stub record for flow {flow.flow_id}: {e}")
+                logger.warning(
+                    f"Failed to create stub record for flow {flow.flow_id}: {e}"
+                )
 
         # Step 3: Backfill all NULL master_flow_ids in discovery_flows
-        print(
-            "🔧 CC FIX: Backfilling NULL master_flow_ids in discovery_flows with self-referential pattern"
+        logger.info(
+            "Backfilling NULL master_flow_ids in discovery_flows with self-referential pattern"
         )
         try:
             result = bind.execute(
@@ -118,12 +124,12 @@ def upgrade() -> None:  # noqa: C901
                 )
             )
             updated_count = result.rowcount if result else 0
-            print(f"✅ Updated {updated_count} discovery_flows records")
+            logger.info(f"Updated {updated_count} discovery_flows records")
         except Exception as e:
-            print(f"⚠️ Failed to update discovery_flows: {e}")
+            logger.warning(f"Failed to update discovery_flows: {e}")
 
     except Exception as e:
-        print(f"⚠️ Error in discovery_flows processing: {e}")
+        logger.error(f"Error in discovery_flows processing: {e}")
 
     # Step 4: Handle other flow types if they exist
     for table_name, flow_type in [
@@ -131,7 +137,7 @@ def upgrade() -> None:  # noqa: C901
         ("collection_flows", "collection"),
     ]:
         if table_name in existing_tables:
-            print(f"🔧 CC FIX: Processing {table_name}")
+            logger.info(f"Processing {table_name}")
             try:
                 # Create stub master records for orphaned flows
                 orphaned_query = text(
@@ -141,12 +147,11 @@ def upgrade() -> None:  # noqa: C901
                     LEFT JOIN crewai_flow_state_extensions cfse ON f.flow_id = cfse.flow_id
                     WHERE f.master_flow_id IS NULL
                         AND cfse.flow_id IS NULL
-                    LIMIT 100
                 """
                 )
 
                 orphaned_flows = bind.execute(orphaned_query).fetchall()
-                print(f"📊 Found {len(orphaned_flows)} orphaned {table_name} flows")
+                logger.info(f"Found {len(orphaned_flows)} orphaned {table_name} flows")
 
                 for flow in orphaned_flows:
                     try:
@@ -181,8 +186,8 @@ def upgrade() -> None:  # noqa: C901
                             },
                         )
                     except Exception as e:
-                        print(
-                            f"⚠️ Failed to create stub record for {table_name} flow {flow.flow_id}: {e}"
+                        logger.warning(
+                            f"Failed to create stub record for {table_name} flow {flow.flow_id}: {e}"
                         )
 
                 # Update NULL master_flow_ids
@@ -197,15 +202,15 @@ def upgrade() -> None:  # noqa: C901
                         )
                     )
                     updated_count = result.rowcount if result else 0
-                    print(f"✅ Updated {updated_count} {table_name} records")
+                    logger.info(f"Updated {updated_count} {table_name} records")
                 except Exception as e:
-                    print(f"⚠️ Failed to update {table_name}: {e}")
+                    logger.warning(f"Failed to update {table_name}: {e}")
 
             except Exception as e:
-                print(f"⚠️ Error processing {table_name}: {e}")
+                logger.error(f"Error processing {table_name}: {e}")
 
-    print(
-        "✅ Migration completed successfully - Fixed NULL master_flow_ids with stub records"
+    logger.info(
+        "Migration completed successfully - Fixed NULL master_flow_ids with stub records"
     )
 
 
@@ -213,7 +218,8 @@ def downgrade() -> None:
     """
     Revert the changes - remove migration stub records and set master_flow_id back to NULL
     """
-    print("🔄 CC FIX: Reverting migration stub records")
+    # Using print in downgrade as logger may not be available in all Alembic contexts
+    print("Reverting migration stub records")
 
     bind = op.get_bind()
 
@@ -228,7 +234,7 @@ def downgrade() -> None:
             )
         )
         deleted_count = result.rowcount if result else 0
-        print(f"✅ Removed {deleted_count} migration stub records")
+        print(f"Removed {deleted_count} migration stub records")
 
         # Reset master_flow_id to NULL for self-referential records
         for table_name in ["discovery_flows", "assessment_flows", "collection_flows"]:
@@ -244,12 +250,12 @@ def downgrade() -> None:
                 )
                 reset_count = result.rowcount if result else 0
                 print(
-                    f"✅ Reset {reset_count} {table_name} self-referential master_flow_ids to NULL"
+                    f"Reset {reset_count} {table_name} self-referential master_flow_ids to NULL"
                 )
             except Exception as e:
-                print(f"⚠️ Could not reset {table_name}: {e}")
+                print(f"Could not reset {table_name}: {e}")
 
     except Exception as e:
-        print(f"⚠️ Error during downgrade: {e}")
+        print(f"Error during downgrade: {e}")
 
-    print("✅ Downgrade completed - reverted migration changes")
+    print("Downgrade completed - reverted migration changes")

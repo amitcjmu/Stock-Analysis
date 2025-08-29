@@ -72,9 +72,16 @@ export const UserAccessManagement: React.FC = () => {
   useEffect(() => {
     loadUsers();
     loadClients();
-    loadEngagements();
+    loadEngagements(); // Load all engagements initially
     loadAccessGrants();
   }, [loadUsers, loadClients, loadEngagements, loadAccessGrants]);
+
+  // Reload engagements when selected client changes
+  useEffect(() => {
+    if (selectedClient) {
+      loadEngagements(selectedClient);
+    }
+  }, [selectedClient, loadEngagements]);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -116,9 +123,12 @@ export const UserAccessManagement: React.FC = () => {
     }
   }, []);
 
-  const loadEngagements = useCallback(async () => {
+  const loadEngagements = useCallback(async (clientId?: string) => {
     try {
-      const response = await apiCall('/api/v1/admin/engagements/?page_size=100&client_account_id=11111111-1111-1111-1111-111111111111');
+      const queryParams = clientId
+        ? `?page_size=100&client_account_id=${clientId}`
+        : '?page_size=100';
+      const response = await apiCall(`/api/v1/admin/engagements/${queryParams}`);
 
       if (response.items) {
         setEngagements(response.items.map((engagement: Record<string, unknown>) => ({
