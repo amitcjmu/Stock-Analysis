@@ -101,7 +101,9 @@ async def get_flow_status(
             "flow_id": flow.flow_id,
             "status": flow.status,
             "current_phase": flow.current_phase,
-            "next_phase": flow.next_phase,
+            "next_phase": getattr(
+                flow, "next_phase", None
+            ),  # Safe access - may not exist
             "progress_percentage": flow.progress_percentage or 0,
             "created_at": flow.created_at.isoformat() if flow.created_at else None,
             "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
@@ -116,8 +118,10 @@ async def get_flow_status(
                     "data_import_id": flow.data_import_id,
                     "master_flow_id": flow.master_flow_id,
                     "field_mappings": flow.field_mappings,
-                    "phases": flow.phases or {},
-                    "error_details": flow.error_details,
+                    "phases": getattr(flow, "phases", {}) or {},  # Safe access
+                    "error_details": getattr(
+                        flow, "error_details", None
+                    ),  # Safe access
                     "metadata": {
                         "total_assets": getattr(flow, "total_assets", 0),
                         "processed_assets": getattr(flow, "processed_assets", 0),
