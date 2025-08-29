@@ -194,6 +194,34 @@ async def execute_field_mapping_phase(
 
         logger.info(f"✅ Field mapping phase executed successfully for flow {flow_id}")
 
+        # Auto-generate field mappings if data_import_id exists
+        if discovery_flow.data_import_id:
+            logger.info(
+                f"🔄 Auto-generating field mappings for import {discovery_flow.data_import_id}"
+            )
+            try:
+                from app.api.v1.endpoints.data_import.field_mapping.services.mapping_service import (
+                    MappingService,
+                )
+
+                # Create mapping service with context
+                mapping_service = MappingService(db, context)
+
+                # Generate mappings for the import
+                mapping_result = await mapping_service.generate_mappings_for_import(
+                    str(discovery_flow.data_import_id)
+                )
+
+                logger.info(
+                    f"✅ Auto-generated {mapping_result.get('mappings_created', 0)} field mappings"
+                )
+
+            except Exception as mapping_error:
+                logger.warning(
+                    f"⚠️ Failed to auto-generate field mappings: {mapping_error}"
+                )
+                # Don't fail the phase if mapping generation fails
+
         # Update discovery flow status
         discovery_flow.status = "processing"
         discovery_flow.current_phase = "field_mapping_suggestions"
