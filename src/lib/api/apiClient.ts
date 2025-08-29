@@ -229,6 +229,35 @@ class ApiClient {
       url = `${this.baseUrl}${normalizedEndpoint}`;
     }
 
+    // CRITICAL FIX FOR ISSUE #306: Enforce Flow ID for all discovery endpoints
+    // Check if this is a discovery endpoint that requires Flow ID
+    const isDiscoveryEndpoint = (normalizedEndpoint.startsWith('/api/v1/unified-discovery/') ||
+                                normalizedEndpoint.startsWith('/api/v1/discovery/')) &&
+                                // Exempt endpoints that don't require Flow ID
+                                !normalizedEndpoint.includes('/overview') &&
+                                !normalizedEndpoint.includes('/flows') &&
+                                !normalizedEndpoint.includes('/flow/create') &&
+                                !normalizedEndpoint.includes('/flow/health') &&
+                                !normalizedEndpoint.includes('/flow/status');
+
+    if (isDiscoveryEndpoint) {
+      // Merge auth headers with caller's headers to check for Flow ID
+      const authHeaders = getAuthHeaders();
+      const callerHeaders = (options.headers || {}) as Record<string, string>;
+      const combinedHeaders = { ...authHeaders, ...callerHeaders };
+
+      if (!combinedHeaders['X-Flow-ID']) {
+        console.warn(`🚫 Blocking discovery request without Flow ID: ${normalizedEndpoint}`);
+        throw new ApiError(400, 'Flow ID required for discovery operations. Please ensure a discovery flow is selected.', {
+          code: 'FLOW_ID_REQUIRED',
+          endpoint: normalizedEndpoint,
+          message: 'Discovery operations require an active discovery flow context'
+        }, requestId);
+      }
+      // Remove sensitive logging - just use debug if needed
+      // console.debug('Discovery request allowed with Flow context');
+    }
+
     const method = (options.method || 'GET').toUpperCase();
 
     try {

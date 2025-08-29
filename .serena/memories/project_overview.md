@@ -16,7 +16,8 @@ The AI Modernize Migration Platform is a comprehensive cloud migration managemen
 - **Container Services**:
   - Frontend: `migration_frontend` - Next.js application
   - Backend: `migration_backend` - FastAPI with 17 CrewAI agents
-  - Database: `migration_db` - PostgreSQL with async support
+  - Database: `migration_postgres` - PostgreSQL with async support
+  - Cache: `migration_redis` - Redis cache
 - **Development Workflow**: All development happens within Docker containers
 - **Multi-tenant Architecture**: Client/engagement/session isolation with RBAC
 

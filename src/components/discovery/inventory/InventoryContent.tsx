@@ -79,6 +79,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   }, []);
 
   // Get assets data - fetch from API endpoint that returns all assets for the client/engagement
+  // CRITICAL FIX FOR ISSUE #306: Only enable query when Flow ID is available
   const { data: assetsData, isLoading: assetsLoading, refetch: refetchAssets } = useQuery({
     queryKey: ['discovery-assets', client?.id, engagement?.id, flowId],
     queryFn: async () => {
@@ -145,7 +146,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         return [];
       }
     },
-    enabled: !!client && !!engagement,
+    // CRITICAL: Only enable query when Flow ID is available to prevent demo data
+    enabled: !!client && !!engagement && !!flowId,
     staleTime: 30000,
     refetchOnWindowFocus: false
   });

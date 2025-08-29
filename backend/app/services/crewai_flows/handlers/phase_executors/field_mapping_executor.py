@@ -131,7 +131,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
             mock_state = convert_crew_input_to_state(crew_input, self.state)
 
             # Get async database session with proper lifecycle management
-            from app.core.database.session import get_db
+            from app.core.database import get_db
 
             # SECURITY FIX: Proper async context management for database sessions
             # Support both async and sync generators with defensive handling

@@ -119,7 +119,9 @@ def create_simple_transition_response(flow_data: Dict[str, Any]) -> Dict[str, An
     if flow_type == "collection":
         routing_decision = f"/{flow_type}/progress/{flow_id}"
     else:
-        routing_decision = f"/{flow_type}/overview/{flow_id}"
+        # For discovery flows, route to attribute-mapping (the typical starting point)
+        # The frontend will auto-detect the flow from context
+        routing_decision = "/discovery/attribute-mapping"
 
     return {
         "routing_decision": routing_decision,

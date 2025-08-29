@@ -78,6 +78,22 @@ def add_middlewares(app, settings):  # noqa: C901
     except Exception as e:  # pragma: no cover
         logger.warning("Could not add cache middleware: %s", e)
 
+    # Flow ID requirement middleware for discovery endpoints
+    try:
+        from app.middleware.flow_id_middleware import FlowIDRequirementMiddleware
+
+        app.add_middleware(
+            FlowIDRequirementMiddleware,
+            exempt_paths=[
+                "/api/v1/unified-discovery/flow/create",
+                "/api/v1/unified-discovery/flow/list",
+                "/api/v1/discovery/flow/create",
+            ],
+        )
+        logger.info("✅ Flow ID requirement middleware added for discovery endpoints")
+    except Exception as e:  # pragma: no cover
+        logger.warning("Could not add Flow ID middleware: %s", e)
+
     # Legacy endpoint guard
     try:
         from app.middleware.legacy_endpoint_guard import (

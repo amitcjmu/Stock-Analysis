@@ -31,7 +31,7 @@ import { AlertTriangle } from 'lucide-react'
 import { Download, FileText, CheckCircle, Activity } from 'lucide-react'
 
 const DataCleansing: React.FC = () => {
-  const { user, client, engagement, isLoading: isAuthLoading } = useAuth();
+  const { user, client, engagement, isLoading: isAuthLoading, setCurrentFlow } = useAuth();
   const [pendingQuestions, setPendingQuestions] = useState(0);
 
   // Get URL flow ID from params
@@ -206,6 +206,43 @@ const DataCleansing: React.FC = () => {
       if (flow && !flow.phase_completion?.data_cleansing) {
         SecureLogger.info('Marking data cleansing phase as complete');
         await executeFlowPhase('data_cleansing', { complete: true });
+      }
+
+      // CRITICAL FIX FOR ISSUE #306: Ensure flow ID is properly set in AuthContext
+      // before navigation to prevent race condition
+      if (effectiveFlowId && flow && setCurrentFlow) {
+        SecureLogger.info('Setting flow context before navigation', { flowId: effectiveFlowId });
+
+        // Update localStorage first for immediate availability
+        const flowContext = {
+          id: effectiveFlowId,
+          name: flow.name || 'Discovery Flow',
+          status: flow.status || 'active',
+          engagement_id: engagement?.id
+        };
+
+        // Synchronously update localStorage to ensure it's available immediately
+        localStorage.setItem('auth_flow', JSON.stringify({
+          id: effectiveFlowId,
+          name: flow.name || 'Discovery Flow',
+          status: flow.status || 'active'
+        }));
+
+        // Then update the auth context (this should be synchronous)
+        setCurrentFlow(flowContext);
+
+        // Verify the context was set properly
+        const storedFlow = localStorage.getItem('auth_flow');
+        if (!storedFlow || !JSON.parse(storedFlow).id) {
+          SecureLogger.error('Flow context not properly stored, retrying');
+          localStorage.setItem('auth_flow', JSON.stringify({
+            id: effectiveFlowId,
+            name: flow.name || 'Discovery Flow',
+            status: flow.status || 'active'
+          }));
+        }
+
+        SecureLogger.info('Flow context set successfully before navigation');
       }
 
       // Secure navigation to asset inventory
