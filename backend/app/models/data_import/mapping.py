@@ -4,7 +4,7 @@ Data Import Field Mapping Model
 
 from __future__ import annotations
 
-from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, String
+from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -100,6 +100,18 @@ class ImportFieldMapping(Base):
         nullable=True,
         comment="A JSON blob defining any transformation logic to be applied to the data "
         "(e.g., data type casting, value replacements).",
+    )
+
+    # Additional fields for enhanced mapping
+    field_type = Column(
+        String(50),
+        nullable=True,
+        comment="Data type of the field (e.g., string, number, date).",
+    )
+    agent_reasoning = Column(
+        Text,
+        nullable=True,
+        comment="AI agent reasoning for the mapping suggestion.",
     )
 
     # Timestamps

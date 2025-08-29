@@ -31,7 +31,6 @@ interface RawFieldMapping {
   transformation_rule?: string;
   validation_rule?: string;
   is_required?: boolean;
-  is_placeholder?: boolean;
 }
 
 interface ImportData {
@@ -182,28 +181,27 @@ export const useFieldMappings = (
             const frontendResult = transformToFrontendResponse(response);
 
             // Convert to legacy format for backward compatibility
-            const legacyMappings = frontendResult.fieldMappings.map(mapping => ({
+            const legacyMappings = frontendResult.field_mappings.map(mapping => ({
               id: mapping.id,
               // Include both camelCase and snake_case for compatibility
-              sourceField: mapping.sourceField,
-              source_field: mapping.sourceField,
-              targetAttribute: mapping.targetField,
-              target_field: mapping.targetField,
-              target_attribute: mapping.targetField,
-              confidence: mapping.confidenceScore,
+              sourceField: mapping.source_field,
+              source_field: mapping.source_field,
+              targetAttribute: mapping.target_field,
+              target_field: mapping.target_field,
+              target_attribute: mapping.target_field,
+              confidence: mapping.confidence_score,
               is_approved: mapping.status === 'approved',
               status: mapping.status,
-              mapping_type: mapping.mappingType,
+              mapping_type: mapping.mapping_type,
               transformation_rule: mapping.transformation,
-              validation_rule: mapping.validationRules,
+              validation_rule: mapping.validation_rules,
               // Legacy fields for compatibility
-              sample_values: mapping.sampleValues || [],
-              ai_reasoning: mapping.aiReasoning || '',
-              is_user_defined: mapping.isUserDefined || false,
-              user_feedback: mapping.userFeedback,
-              validation_method: mapping.validationMethod || 'semantic_analysis',
-              is_validated: mapping.isValidated || false,
-              is_placeholder: mapping.isPlaceholder || false
+              sample_values: mapping.sample_values || [],
+              ai_reasoning: mapping.ai_reasoning || '',
+              is_user_defined: mapping.is_user_defined || false,
+              user_feedback: mapping.user_feedback,
+              validation_method: mapping.validation_method || 'semantic_analysis',
+              is_validated: mapping.is_validated || false
             }));
 
             debugLog('✅ Transformed unified discovery mappings with type safety:', {
@@ -230,8 +228,8 @@ export const useFieldMappings = (
                 target_field: mapping.target_field,
                 target_attribute: mapping.target_field,
                 confidence: confidenceScore,
-                is_approved: false,
-                status: mapping.target_field ? 'pending' : 'unmapped',
+                is_approved: mapping.status === 'approved',
+                status: mapping.status || (mapping.target_field ? 'pending' : 'unmapped'),
                 mapping_type: mapping.mapping_type || 'auto',
                 transformation_rule: mapping.transformation,
                 validation_rule: mapping.validation_rules,
@@ -240,8 +238,7 @@ export const useFieldMappings = (
                 is_user_defined: false,
                 user_feedback: null,
                 validation_method: 'semantic_analysis',
-                is_validated: false,
-                is_placeholder: !m.target_field
+                is_validated: false
               };
             });
 
@@ -381,56 +378,12 @@ export const useFieldMappings = (
             const allCsvFields = Object.keys(sampleRecord);
             const mappedFieldNames = (mappings || []).map(m => m.source_field);
 
-            // Create mappings for fields that don't exist in the API response
+            // Log unmapped fields but don't create placeholder mappings
             const missingFields = allCsvFields.filter(field => !mappedFieldNames.includes(field));
 
             if (missingFields.length > 0) {
-              debugLog(`📋 Found ${missingFields.length} unmapped CSV fields:`, missingFields);
-
-              // Create placeholder mappings for unmapped fields
-              const additionalMappings = missingFields.map(sourceField => ({
-                id: crypto.randomUUID(), // Generate proper UUID for unmapped fields
-                source_field: sourceField,
-                target_field: 'UNMAPPED', // Use UNMAPPED placeholder
-                confidence: 0,
-                is_approved: false,
-                status: 'unmapped',
-                match_type: 'unmapped',
-                is_placeholder: true // Mark as placeholder to prevent approval attempts
-              }));
-
-              const enhancedMappings = [...(mappings || []), ...additionalMappings];
-
-              debugLog('✅ Enhanced field mappings with all CSV fields:', {
-                original_mappings: mappings?.length || 0,
-                additional_mappings: additionalMappings.length,
-                total_mappings: enhancedMappings.length,
-                total_csv_fields: allCsvFields.length
-              });
-
-              // Transform enhanced mappings to frontend format before returning
-              const transformedEnhancedMappings = enhancedMappings.map((mapping: RawFieldMapping) => ({
-                id: mapping.id,
-                sourceField: mapping.source_field,
-                targetAttribute: mapping.target_field === 'UNMAPPED' ? null : mapping.target_field,
-                confidence: mapping.confidence || 0,
-                mapping_type: mapping.is_approved ? 'approved' : (mapping.status === 'unmapped' ? 'unmapped' : 'ai_suggested'),
-                sample_values: [],
-                status: mapping.is_approved ? 'approved' : (mapping.status === 'unmapped' ? 'unmapped' : 'pending'),
-                ai_reasoning: '',
-                transformation_rule: mapping.transformation_rule,
-                validation_rule: mapping.validation_rule,
-                is_required: mapping.is_required,
-                is_placeholder: mapping.is_placeholder
-              }));
-
-              debugLog('✅ Transformed enhanced field mappings:', {
-                enhanced_count: enhancedMappings.length,
-                transformed_count: transformedEnhancedMappings.length,
-                sample_transformed: transformedEnhancedMappings.slice(0, 3)
-              });
-
-              return transformedEnhancedMappings;
+              console.warn(`⚠️ Found ${missingFields.length} unmapped CSV fields - backend should handle these:`, missingFields);
+              // Don't create placeholder mappings - let the backend be the single source of truth
             }
           }
         } catch (rawDataError) {
@@ -618,7 +571,6 @@ export const useFieldMappings = (
           user_feedback: mapping.user_feedback || null,
           validation_method: mapping.validation_method || 'semantic_analysis',
           is_validated: mapping.is_validated || mapping.is_approved === true,
-          is_placeholder: mapping.is_placeholder || isUnmapped,
           metadata: {
             legacyMapping: true,
             originalData: mapping
@@ -743,24 +695,27 @@ export const useFieldMappings = (
 
   // Set up WebSocket cache invalidation listener
   useEffect(() => {
-    const importId = importData?.import_metadata?.import_id;
-    if (!importId) return;
+    // Use the same cache key that the query uses (flow ID takes precedence)
+    const cacheKey = effectiveFlowId || importData?.import_metadata?.import_id;
+    if (!cacheKey) return;
 
     // WebSocket cache invalidation (if enabled)
     let unsubscribeWebSocket: (() => void) | null = null;
 
     if (isCacheFeatureEnabled('ENABLE_WEBSOCKET_CACHE') && subscribe) {
-      console.log('🔗 Setting up WebSocket cache invalidation for field mappings:', importId);
+      console.log('🔗 Setting up WebSocket cache invalidation for field mappings:', cacheKey);
 
       unsubscribeWebSocket = subscribe('field_mappings_updated', (event) => {
         console.log('🔄 WebSocket cache invalidation event received:', event);
 
-        // Check if the event is for this specific import
-        if (event.entity_id === importId || event.metadata?.import_id === importId) {
-          console.log('🔄 Invalidating field mappings cache for import:', importId);
+        // Check if the event is for this specific flow/import
+        if (event.entity_id === cacheKey ||
+            event.metadata?.import_id === cacheKey ||
+            event.metadata?.flow_id === cacheKey) {
+          console.log('🔄 Invalidating field mappings cache for:', cacheKey);
 
           queryClient.invalidateQueries({
-            queryKey: ['field-mappings', importId],
+            queryKey: ['field-mappings', cacheKey],
             exact: true
           });
         }
@@ -769,11 +724,13 @@ export const useFieldMappings = (
 
     // Legacy cache invalidation function for bulk operations
     const invalidateFieldMappings = async () => {
-      console.log('🔄 Manual invalidation of field mappings cache for import:', importId);
+      console.log('🔄 Manual invalidation of field mappings cache for:', cacheKey);
       await queryClient.invalidateQueries({
-        queryKey: ['field-mappings', importId],
+        queryKey: ['field-mappings', cacheKey],
         exact: true
       });
+      // Also trigger a refetch to ensure fresh data
+      await refetchFieldMappings();
     };
 
     // Attach to window for bulk operations to use (backward compatibility)
@@ -796,7 +753,7 @@ export const useFieldMappings = (
         delete (window as WindowWithInvalidate).__invalidateFieldMappings;
       }
     };
-  }, [importData?.import_metadata?.import_id, queryClient, subscribe]);
+  }, [effectiveFlowId, importData?.import_metadata?.import_id, queryClient, subscribe, refetchFieldMappings]);
 
   return {
     fieldMappings,

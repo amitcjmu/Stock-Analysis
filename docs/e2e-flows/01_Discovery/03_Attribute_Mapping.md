@@ -1,8 +1,8 @@
 
 # E2E Data Flow Analysis: Attribute Mapping
 
-**Analysis Date:** 2025-08-19
-**Status:** Fixed Architecture - Frontend now uses MFO endpoint with flow_id for all field mappings
+**Analysis Date:** 2025-08-29  
+**Status:** Fully Operational - Field mapping approval workflow restored with database schema fixes
 
 This document provides a complete, end-to-end data flow analysis for the `Attribute Mapping` page, a critical phase in the discovery workflow where AI-powered agents:
 1. Suggest mappings between source data and the platform's schema
@@ -18,7 +18,18 @@ This document provides a complete, end-to-end data flow analysis for the `Attrib
 *   **Phase Controller Execution:** Uses PhaseController to manage phase execution with pause/resume capabilities for user approval
 *   **Asynchronous Suggestion & Approval:** The flow first runs in a "suggestions-only" mode to populate the UI, then pauses for user approval
 
-**RECENT FIXES (2025-08-19):**
+**CRITICAL FIXES (2025-08-29):**
+1. **✅ Field Mapping Status Issue**: Fixed approved mappings not appearing in "Approved" column
+   - **Root Cause**: Frontend transformation functions were hardcoding status as 'pending' instead of using backend response
+   - **Database Fix**: Added missing `field_type` and `agent_reasoning` columns via migration 040
+   - **Frontend Fix**: Updated `transformToFrontendMapping()` to use actual `status` field from backend
+   - **Result**: Approved mappings now properly display in correct UI columns
+2. **✅ Backend Enum Casting**: Fixed PostgreSQL enum comparison errors in learned patterns queries
+   - **Root Cause**: SQLAlchemy comparing enum columns with string parameters without casting
+   - **Fix**: Added `::patterntype` casting and updated model imports to use correct enum types
+   - **Result**: Eliminated 500 errors in pattern learning endpoints
+
+**PREVIOUS FIXES (2025-08-19):**
 1. Fixed attribute mapping showing 0 fields issue by updating frontend to use Master Flow Orchestrator (MFO) endpoint
 2. Eliminated frontend/backend duplication by having frontend use `/api/v1/unified-discovery/flows/{flow_id}/field-mappings`
 3. Fixed flow detection to include 'waiting_for_approval' status as active
@@ -143,10 +154,11 @@ The backend execution is a multi-step process orchestrated by the `MasterFlowOrc
 
 | ORM Model         | PostgreSQL Table            | Relevant Columns                                                                     | Purpose in This Flow                                                                       | Current Status |
 |-------------------|-----------------------------|--------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|----------------|
-| `ImportFieldMapping`| `import_field_mappings`     | `source_field`, `target_field`, `confidence_score`, `status`, `master_flow_id` | Stores the suggestions from the agents and tracks user approvals.                           | ✅ Working     |
+| `ImportFieldMapping`| `migration.import_field_mappings`     | `source_field`, `target_field`, `confidence_score`, `status`, `master_flow_id`, `field_type`, `agent_reasoning` | Stores the suggestions from the agents and tracks user approvals. **Updated 2025-08-29**: Added missing `field_type` and `agent_reasoning` columns via migration 040 | ✅ Working (Fixed) |
 | `CrewAIFlowStateExtensions`| `crewai_flow_state_extensions` | `flow_id`, `flow_status` (`processing`, `waiting_for_approval`), `current_phase`, `phase_data` | The master record for the flow, used by the orchestrator to manage state.                  | ✅ Working     |
 | `DiscoveryFlow`   | `discovery_flows`           | `flow_id`, `data_import_id`, `master_flow_id`, `field_mapping_completed` | Discovery-specific tracking table - part of MFO two-table design                           | ✅ Working     |
 | `DataImport`      | `data_imports`              | `id`, `master_flow_id`, `status`                                                    | Links import data to the master flow                                                        | ✅ Working     |
+| `AgentDiscoveredPattern`| `migration.agent_discovered_patterns` | `pattern_type` (enum), `pattern_name`, `confidence_score`, `insight_type` | Stores learned patterns from AI agents. **Updated 2025-08-29**: Fixed enum casting issues | ✅ Working (Fixed) |
 
 ### Migration Readiness Scoring
 
@@ -199,13 +211,87 @@ The system calculates readiness scores for each 6R strategy based on attribute c
 
 | Stage      | Potential Failure Point                                                                                               | Diagnostic Checks                                                                                                                                                                                                                                                                                  |
 |------------|-----------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Frontend (FIXED)** | **~~No Suggestions Shown~~:** ✅ RESOLVED - The page now correctly loads all field mappings using MFO endpoint. <br/> **~~"Discovery flow not found" errors~~:** ✅ RESOLVED - Frontend now uses proper flow_id with MFO endpoint.                                                                  | **Browser DevTools (Network Tab):** Check responses from `/api/v1/unified-discovery/flows/{flow_id}/field-mappings` - should return 200 with properly formatted field mappings including target_field and confidence_score. |
-| **Backend (IMPROVED)**  | **Flow status detection:** Fixed to include 'waiting_for_approval' as active flow status. <br/> **Field name consistency:** Backend now returns target_field and confidence_score matching frontend expectations. | **Docker Logs:** Should show successful field mapping retrieval from MFO endpoint. <br/> **Database:** Check `import_field_mappings` table for mappings linked to master_flow_id. |
-| **Database** | **Mappings Not Saved:** The suggestions from the agent crew are not correctly written to the `import_field_mappings` table. | **Direct DB Query:** Connect to the database (`docker exec -it migration_db psql ...`) and run `SELECT * FROM import_field_mappings WHERE master_flow_id = 'your-flow-id';` to see if the suggestions exist. |
+| **Frontend (FIXED)** | **✅ Approved Mappings Not Showing:** RESOLVED - Status field was hardcoded as 'pending' instead of using backend response. <br/> **~~No Suggestions Shown~~:** ✅ RESOLVED - The page now correctly loads all field mappings using MFO endpoint. <br/> **~~"Discovery flow not found" errors~~:** ✅ RESOLVED - Frontend now uses proper flow_id with MFO endpoint. | **Browser DevTools (Network Tab):** Check responses from `/api/v1/unified-discovery/flows/{flow_id}/field-mappings` - should return 200 with field mappings showing actual status values ('approved', 'pending', 'rejected'). **Fixed Files**: `src/types/api/discovery/field-mapping-types.ts` and `src/hooks/discovery/attribute-mapping/useFieldMappings.ts` |
+| **Backend (FIXED)**  | **✅ Database Column Errors:** RESOLVED - Missing `field_type` and `agent_reasoning` columns in `import_field_mappings` table. <br/> **✅ Enum Casting Errors:** RESOLVED - PostgreSQL enum comparison failing without proper type casting. <br/> **Flow status detection:** Fixed to include 'waiting_for_approval' as active flow status. | **Docker Logs:** Check for 500 errors related to missing columns or enum casting. **Database Schema Check**: `docker exec migration_postgres psql -U postgres -d migration_db -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'import_field_mappings';"` **Fixed Migration**: `040_add_missing_field_mapping_columns.py` |
+| **Database** | **✅ Schema Consistency:** RESOLVED - Database table and SQLAlchemy model mismatch for missing columns. <br/> **Mappings Not Saved:** The suggestions from the agent crew are not correctly written to the `import_field_mappings` table. | **Direct DB Query:** `docker exec migration_postgres psql -U postgres -d migration_db -c "SELECT source_field, target_field, status FROM migration.import_field_mappings WHERE client_account_id = '11111111-1111-1111-1111-111111111111';"` **Status Check**: Look for 'approved', 'pending', 'rejected' values in status column. |
 
 ---
 
-## 6. Technical Implementation Details
+## 6. Recent Critical Fixes (2025-08-29)
+
+### Field Mapping Status Workflow Fix
+
+**Problem**: Approved field mappings were not appearing in the "Approved" column despite being correctly stored in the database with status 'approved'.
+
+**Root Cause Analysis**:
+1. Database correctly stored mappings with status 'approved' after user approval
+2. Backend API correctly returned status field from database
+3. Frontend transformation functions were hardcoding status as 'pending'/'unmapped' instead of using backend response
+4. Missing database columns (`field_type`, `agent_reasoning`) caused backend getattr() calls to fail silently
+
+**Files Modified**:
+```
+📁 backend/
+├── alembic/versions/040_add_missing_field_mapping_columns.py (NEW)
+├── app/models/data_import/mapping.py (Updated - Added missing columns)
+├── app/api/v1/endpoints/unified_discovery/field_mapping_handlers.py (Cleaned up debug logs)
+└── app/utils/vector_utils.py (Fixed enum casting)
+
+📁 frontend/src/
+├── types/api/discovery/field-mapping-types.ts (Fixed transformToFrontendMapping status)
+└── hooks/discovery/attribute-mapping/useFieldMappings.ts (Fixed fallback transformation)
+```
+
+**Technical Changes**:
+
+1. **Database Migration 040**:
+   ```sql
+   -- Added missing columns
+   ALTER TABLE migration.import_field_mappings 
+   ADD COLUMN field_type VARCHAR(50),
+   ADD COLUMN agent_reasoning TEXT;
+   ```
+
+2. **Frontend Transformation Fix**:
+   ```typescript
+   // BEFORE (hardcoded status)
+   status: backendItem.target_field ? 'pending' : 'unmapped',
+   
+   // AFTER (uses actual backend status)
+   status: backendItem.status || (backendItem.target_field ? 'pending' : 'unmapped'),
+   ```
+
+3. **Enum Casting Fix**:
+   ```python
+   # BEFORE (enum comparison error)
+   type_filter = "AND pattern_type = :pattern_type"
+   
+   # AFTER (proper type casting)
+   type_filter = "AND pattern_type = :pattern_type::patterntype"
+   ```
+
+**Validation Steps**:
+```bash
+# 1. Check approved mappings in database
+docker exec migration_postgres psql -U postgres -d migration_db -c \
+  "SELECT source_field, target_field, status FROM migration.import_field_mappings 
+   WHERE status = 'approved' LIMIT 5;"
+
+# 2. Test API endpoint response
+curl -s http://localhost:8081/api/v1/unified-discovery/flows/{flow_id}/field-mappings \
+  -H "X-Client-Account-ID: 11111111-1111-1111-1111-111111111111" \
+  -H "X-Engagement-ID: 22222222-2222-2222-2222-222222222222" | \
+  jq '.field_mappings | map(select(.status == "approved")) | length'
+
+# 3. Verify no enum casting errors
+docker logs migration_backend 2>&1 | grep -E "ERROR.*patterntype" | tail -5
+```
+
+**Result**: Field mappings now correctly display in their respective columns based on actual database status, and enum comparison errors are eliminated.
+
+---
+
+## 7. Technical Implementation Details
 
 ### Critical Attributes Tool Implementation
 

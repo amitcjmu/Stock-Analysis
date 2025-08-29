@@ -100,13 +100,10 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
       return; // Already processing this mapping
     }
 
-    // Check if this is a placeholder or fallback mapping that shouldn't be approved via API
+    // Find the mapping to validate it exists
     const mapping = fieldMappings.find(m => m.id === mappingId);
-    if (mapping && (mapping.is_placeholder || mapping.is_fallback)) {
-      console.warn('Cannot approve placeholder or fallback mapping via API:', mappingId);
-      if (typeof window !== 'undefined' && window.showWarningToast) {
-        window.showWarningToast('This field mapping needs to be configured before approval.');
-      }
+    if (!mapping) {
+      console.error('Mapping not found:', mappingId);
       return;
     }
 
@@ -114,6 +111,17 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
       setProcessingMappings(prev => new Set(prev).add(mappingId));
       // IMPORTANT: Await the onMappingAction to ensure it completes before continuing
       await onMappingAction(mappingId, 'approve');
+
+      // Trigger cache invalidation and refresh after successful approval
+      if (typeof window !== 'undefined' && (window as any).__invalidateFieldMappings) {
+        console.log('🔄 Invalidating cache after individual approval');
+        await (window as any).__invalidateFieldMappings();
+      }
+
+      // Also trigger onRefresh to update the UI
+      if (onRefresh) {
+        await onRefresh();
+      }
 
       // Remove from processing set after a short delay
       setTimeout(() => {
@@ -133,15 +141,23 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     }
   };
 
-  const handleReject = (mappingId: string): void => {
+  const handleReject = async (mappingId: string): Promise<void> => {
     if (showRejectionInput === mappingId) {
       try {
-        onMappingAction(mappingId, 'reject', rejectionReason);
+        await onMappingAction(mappingId, 'reject', rejectionReason);
         setShowRejectionInput(null);
         setRejectionReason('');
 
-        // Note: Removed automatic refresh - let user manually refresh if needed
-        // This prevents page refresh and data loss issues
+        // Trigger cache invalidation and refresh after successful rejection
+        if (typeof window !== 'undefined' && (window as any).__invalidateFieldMappings) {
+          console.log('🔄 Invalidating cache after individual rejection');
+          await (window as any).__invalidateFieldMappings();
+        }
+
+        // Also trigger onRefresh to update the UI
+        if (onRefresh) {
+          await onRefresh();
+        }
       } catch (error) {
         console.error('Error rejecting mapping:', error);
       }

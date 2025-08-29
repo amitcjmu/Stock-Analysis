@@ -30,6 +30,9 @@ class PatternType(str, Enum):
     SECURITY_VULNERABILITY = "security_vulnerability"
     PERFORMANCE_BOTTLENECK = "performance_bottleneck"
     COMPLIANCE_REQUIREMENT = "compliance_requirement"
+    FIELD_MAPPING_APPROVAL = "field_mapping_approval"
+    FIELD_MAPPING_REJECTION = "field_mapping_rejection"
+    FIELD_MAPPING_SUGGESTION = "field_mapping_suggestion"
 
 
 class AgentDiscoveredPattern(Base):

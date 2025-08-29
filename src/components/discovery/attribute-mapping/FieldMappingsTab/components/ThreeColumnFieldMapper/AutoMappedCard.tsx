@@ -50,7 +50,6 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
 }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState(mapping.target_field || '');
-  const isPlaceholder = mapping.is_placeholder || mapping.is_fallback;
   const agentType = getAgentTypeForMapping(mapping);
   const confidenceValue = typeof mapping.confidence_score === 'number' ? mapping.confidence_score : 0;
   const confidence = getConfidenceDisplay(confidenceValue);
@@ -104,7 +103,7 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
   }, []);
 
   return (
-    <div className={`p-4 border rounded-lg transition-all duration-200 hover:shadow-md ${isPlaceholder ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-gray-200'}`}>
+    <div className="p-4 border rounded-lg transition-all duration-200 hover:shadow-md bg-white border-gray-200">
       <div className="flex items-center gap-2 mb-3">
         <span className="font-medium text-gray-900">
           {formatFieldValue(mapping.source_field)}
@@ -135,7 +134,7 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
           </div>
         ) : (
           <>
-            <span className={`font-medium ${isPlaceholder ? 'text-yellow-600' : 'text-blue-600'}`}>
+            <span className="font-medium text-blue-600">
               {formatTargetAttribute(mapping.target_field)}
             </span>
             {availableFields && onMappingChange && (
@@ -148,11 +147,6 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
               </button>
             )}
           </>
-        )}
-        {isPlaceholder && !isEditMode && (
-          <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full">
-            Needs Configuration
-          </span>
         )}
       </div>
 
@@ -167,10 +161,9 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
       </div>
 
       {/* AGENTIC UI: Agent reasoning toggle */}
-      {!isPlaceholder && (
-        <div className="mb-3">
-          <button
-            onClick={() => onToggleReasoning(mapping.id)}
+      <div className="mb-3">
+        <button
+          onClick={() => onToggleReasoning(mapping.id)}
             className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800 transition-colors"
           >
             <Zap className="w-3 h-3" />
@@ -183,12 +176,11 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
                 <strong>Agent Analysis:</strong> {reasoning}
               </div>
             </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Learning Controls or Legacy Buttons */}
-      {showLearningControls && onApproveMappingWithLearning && onRejectMappingWithLearning && !isPlaceholder ? (
+      {showLearningControls && onApproveMappingWithLearning && onRejectMappingWithLearning ? (
         <FieldMappingLearningControls
           mapping={mapping}
           onApprove={handleApproveWithLearning}
@@ -203,32 +195,26 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {/* Status indicator for agent suggestions */}
-            {!isPlaceholder && (
-              <span className="text-xs text-gray-500">
-                {confidenceValue > 0.8 ? '✨ High confidence' :
-                 confidenceValue > 0.6 ? '⚡ Moderate confidence' :
-                 '🔍 Needs review'}
-              </span>
-            )}
+            <span className="text-xs text-gray-500">
+              {confidenceValue > 0.8 ? '✨ High confidence' :
+               confidenceValue > 0.6 ? '⚡ Moderate confidence' :
+               '🔍 Needs review'}
+            </span>
           </div>
 
           <div className="flex gap-2">
             <button
               onClick={() => onApprove(mapping.id)}
-              disabled={isProcessing || isPlaceholder}
-              className={`flex items-center gap-1 px-3 py-1 rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed ${
-                isPlaceholder
-                  ? 'bg-gray-400 text-white cursor-not-allowed'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
-              title={isPlaceholder ? 'Configure target field before approval' : 'Approve agent suggestion'}
+              disabled={isProcessing}
+              className="flex items-center gap-1 px-3 py-1 rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed bg-green-600 text-white hover:bg-green-700"
+              title="Approve agent suggestion"
             >
               {isProcessing ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
               ) : (
                 <CheckCircle className="h-4 w-4" />
               )}
-              {isPlaceholder ? 'Configure' : 'Approve'}
+              Approve
             </button>
             <button
               onClick={() => onReject(mapping.id)}

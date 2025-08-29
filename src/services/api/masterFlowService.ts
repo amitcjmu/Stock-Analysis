@@ -28,6 +28,7 @@ const FLOW_ENDPOINTS = {
   resume: (id: string) => `/unified-discovery/flows/${id}/resume`,
   retry: (id: string) => `/unified-discovery/flows/${id}/retry`,
   delete: (id: string) => `/unified-discovery/flows/${id}`,
+  config: (id: string) => `/unified-discovery/flows/${id}/config`,
   fieldMappings: (id: string) => `/unified-discovery/flows/${id}/field-mappings`,
 
   // Data Import
@@ -613,7 +614,7 @@ export const masterFlowService = {
     engagementId?: string,
   ): Promise<void> {
     try {
-      await apiClient.put(`/flows/${flowId}/config`, config, {
+      await apiClient.put(FLOW_ENDPOINTS.config(flowId), config, {
         headers: getMultiTenantHeaders(clientAccountId, engagementId),
       });
     } catch (error) {
@@ -632,7 +633,7 @@ export const masterFlowService = {
   ): Promise<void> {
     try {
       await apiClient.post(
-        `/flows/${flowId}/pause`,
+        FLOW_ENDPOINTS.pause(flowId),
         {},
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
@@ -720,7 +721,7 @@ export const masterFlowService = {
         data?: Record<string, unknown>;
         errors?: string[];
       }>(
-        `/flows/${flowId}/execute`,
+        FLOW_ENDPOINTS.execute(flowId),
         {
           phase,
           phase_input: data,

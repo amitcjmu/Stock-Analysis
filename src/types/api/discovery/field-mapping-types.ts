@@ -354,9 +354,6 @@ export interface FieldMapping {
   /** Whether mapping is validated */
   is_validated?: boolean;
 
-  /** Whether this is a placeholder/fallback */
-  is_placeholder?: boolean;
-
   /** Additional metadata */
   metadata?: Record<string, unknown>;
 }
@@ -520,7 +517,7 @@ export function transformToFrontendMapping(backendItem: FieldMappingItem, id?: s
     mapping_type: isValidMappingType(backendItem.mapping_type) ? backendItem.mapping_type : 'auto',
     transformation: backendItem.transformation,
     validation_rules: backendItem.validation_rules,
-    status: backendItem.target_field ? 'pending' : 'unmapped',
+    status: backendItem.status || (backendItem.target_field ? 'pending' : 'unmapped'),
     sample_values: [],
     ai_reasoning: backendItem.target_field
       ? `AI suggested mapping to ${backendItem.target_field}`
