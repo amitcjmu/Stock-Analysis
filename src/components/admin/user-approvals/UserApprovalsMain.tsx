@@ -122,35 +122,8 @@ export const UserApprovalsMain: React.FC = () => {
       if (response.status === 'success') {
         setActiveUsers(response.active_users || []);
       } else {
-        // Enhanced demo active users with more realistic data
-        setActiveUsers([
-          {
-            user_id: '2a0de3df-7484-4fab-98b9-2ca126e2ab21',
-            email: 'admin@aiforce.com',
-            full_name: 'Platform Administrator',
-            username: 'admin',
-            organization: 'AI Modernize Platform',
-            role_description: 'System Administrator',
-            access_level: 'admin',
-            role_name: 'Administrator',
-            is_active: true,
-            approved_at: '2025-01-01T00:00:00Z',
-            last_login: '2025-01-28T10:30:00Z'
-          },
-          {
-            user_id: 'demo-user-12345678-1234-5678-9012-123456789012',
-            email: 'user@demo.com',
-            full_name: 'Demo User',
-            username: 'demo_user',
-            organization: 'Demo Organization',
-            role_description: 'Demo Analyst',
-            access_level: 'read_write',
-            role_name: 'Analyst',
-            is_active: true,
-            approved_at: '2025-01-01T12:00:00Z',
-            last_login: '2025-01-28T09:15:00Z'
-          }
-        ]);
+        console.warn('Failed to load active users from API:', response.message);
+        setActiveUsers([]);
       }
     } catch (error) {
       console.error('Error fetching active users:', error);

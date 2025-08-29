@@ -4,6 +4,8 @@ This module centralizes all router imports to reduce complexity in the main api.
 """
 
 import logging
+from typing import Optional, Dict, Tuple
+from fastapi import APIRouter
 
 # Core endpoint imports
 from app.api.v1.endpoints import (
@@ -29,6 +31,7 @@ from app.api.v1.endpoints.context_establishment import (
 from app.api.v1.endpoints.flow_sync_debug import router as flow_sync_debug_router
 
 # Analysis endpoints (including queues)
+analysis_queues_router: Optional[APIRouter]
 try:
     from app.api.v1.endpoints.analysis import router as analysis_queues_router
 
@@ -38,6 +41,7 @@ except ImportError:
     analysis_queues_router = None
 
 # Decommission endpoints
+decommission_router: Optional[APIRouter]
 try:
     from app.api.v1.endpoints.decommission import router as decommission_router
 
@@ -47,6 +51,8 @@ except ImportError:
     decommission_router = None
 
 # Admin endpoints
+platform_admin_router: Optional[APIRouter]
+security_audit_router: Optional[APIRouter]
 try:
     from app.api.v1.admin.platform_admin_handlers import router as platform_admin_router
     from app.api.v1.admin.security_monitoring_handlers.security_audit_handler import (
@@ -60,6 +66,7 @@ except ImportError:
     security_audit_router = None
 
 # Discovery endpoints (separate from unified discovery)
+discovery_router: Optional[APIRouter]
 try:
     from app.api.v1.endpoints.discovery import router as discovery_router
 
@@ -69,6 +76,11 @@ except ImportError:
     discovery_router = None
 
 # Unified Discovery Flow API - Master Flow Orchestrator Integration
+unified_discovery_router: Optional[APIRouter]
+dependency_analysis_router: Optional[APIRouter]
+agent_insights_router: Optional[APIRouter]
+clarifications_router: Optional[APIRouter]
+flow_management_router: Optional[APIRouter]
 try:
     from app.api.v1.endpoints.unified_discovery import (
         router as unified_discovery_router,
@@ -96,6 +108,7 @@ except ImportError:
     flow_management_router = None
 
 # Assessment endpoints
+assess_router: Optional[APIRouter]
 try:
     from app.api.v1.endpoints.assess import router as assess_router
 
@@ -105,6 +118,7 @@ except ImportError:
     assess_router = None
 
 # Wave Planning endpoints
+wave_planning_router: Optional[APIRouter]
 try:
     from app.api.v1.endpoints.wave_planning import router as wave_planning_router
 
@@ -114,6 +128,7 @@ except ImportError:
     wave_planning_router = None
 
 # Plan endpoints
+plan_router: Optional[APIRouter]
 try:
     from app.api.v1.endpoints.plan import router as plan_router
 
@@ -123,6 +138,7 @@ except ImportError:
     plan_router = None
 
 # Collection Flow endpoints
+collection_router: Optional[APIRouter]
 try:
     from app.api.v1.endpoints.collection import router as collection_router
 
@@ -132,6 +148,7 @@ except ImportError:
     collection_router = None
 
 # Flow Processing endpoints
+flow_processing_router: Optional[APIRouter]
 try:
     from app.api.v1.endpoints.flow_processing import router as flow_processing_router
 
@@ -142,6 +159,7 @@ except ImportError:
 
 # Additional routers with availability flags
 # API Health router
+api_health_router: Optional[APIRouter]
 try:
     from app.api.v1.endpoints.api_health import router as api_health_router
 
@@ -150,7 +168,7 @@ except ImportError:
     api_health_router = None
     API_HEALTH_AVAILABLE = False
 
-routers_with_flags = {}
+routers_with_flags: Dict[str, Tuple[bool, Optional[APIRouter]]] = {}
 
 # Migrations
 try:
@@ -258,7 +276,7 @@ except ImportError:
 
 try:
     from app.api.v1.admin.engagement_management import (
-        export_router as engagement_management_router,
+        router as engagement_management_router,
     )
 
     routers_with_flags["ENGAGEMENT_MANAGEMENT"] = (True, engagement_management_router)

@@ -96,7 +96,6 @@ export const useAdminData = <T>(
     error,
     isUsingDemoData,
     refetch,
-    fetchData,
   };
 };
 
@@ -131,7 +130,7 @@ export const useAdminDashboardStats = (): unknown => {
     },
   };
 
-  return useAdminData('/admin/dashboard/stats', demoStats, {
+  return useAdminData('/api/v1/admin/dashboard/stats', demoStats, {
     showDemoWarning: true,
   });
 };
@@ -154,7 +153,7 @@ export const usePendingPurgeItems = (): unknown => {
     },
   ];
 
-  return useAdminData('admin/platform/platform-admin/pending-purge-items', {
+  return useAdminData('/api/v1/admin/platform/platform-admin/pending-purge-items', {
     pending_items: demoItems,
   });
 };

@@ -37,9 +37,13 @@ def extract_user_id(request: Request) -> Optional[str]:
             jwt_service = JWTService()
             payload = jwt_service.verify_token(token)
             if payload:
-                return payload.get("sub")
+                user_id = payload.get("sub")
+                if user_id:
+                    logger.debug(f"Successfully extracted user ID from JWT: {user_id}")
+                    return user_id
         except Exception as jwt_error:
-            logger.debug(f"JWT token verification failed in middleware: {jwt_error}")
+            logger.warning(f"JWT token verification failed in middleware: {jwt_error}")
+            # Continue to try other token formats instead of failing
 
         # Handle db-token format: db-token-{user_id}-{suffix} (backward compatibility)
         if token.startswith("db-token-"):
@@ -81,6 +85,10 @@ async def check_platform_admin(user_id: str) -> bool:
             )
             return False
 
+        # CC Security: Removed hardcoded development backdoor for security
+        # Development access should be granted through proper role assignment in database
+        # If development access is needed, set is_admin=True in the database for test users
+
         async with AsyncSessionLocal() as db:
             # First check if user has is_admin flag
             from app.models.client_account import User
@@ -88,7 +96,11 @@ async def check_platform_admin(user_id: str) -> bool:
             user_result = await db.execute(select(User).where(User.id == user_uuid))
             user = user_result.scalar_one_or_none()
 
-            if user and user.is_admin:
+            if user is None:
+                logger.warning(f"User {user_id} not found in database")
+                return False
+
+            if user.is_admin:
                 logger.info(
                     safe_log_format(
                         "User {user_id} is platform admin (is_admin=True)",

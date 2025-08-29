@@ -32,23 +32,48 @@ def is_admin_endpoint(path: str) -> bool:
 
 async def handle_admin_access(request: Request, path: str) -> Optional[JSONResponse]:
     """Handle admin endpoint access control."""
+    # Debug: Log the Authorization header (without the token value)
+    auth_header = request.headers.get("Authorization")
+    if auth_header:
+        if auth_header.startswith("Bearer "):
+            logger.debug(
+                f"Admin endpoint {path} received Bearer token (length: {len(auth_header)})"
+            )
+        else:
+            logger.debug(f"Admin endpoint {path} received non-Bearer auth header")
+    else:
+        logger.debug(f"Admin endpoint {path} received no Authorization header")
+
     user_id = extract_user_id(request)
 
     if not user_id:
-        logger.warning(f"Unauthenticated access blocked for admin endpoint: {path}")
+        logger.warning(
+            f"Unauthenticated access blocked for admin endpoint: {path} - failed to extract user ID"
+        )
         return JSONResponse(
             status_code=401, content={"error": "Authentication required"}
         )
 
-    if not await check_platform_admin(user_id):
-        logger.warning(
-            safe_log_format(
-                "Non-admin access blocked for {path} by user {user_id}",
-                path=path,
-                user_id=user_id,
+    # Check if user has admin privileges
+    try:
+        is_admin = await check_platform_admin(user_id)
+        if not is_admin:
+            logger.warning(
+                safe_log_format(
+                    "Non-admin access blocked for {path} by user {user_id}",
+                    path=path,
+                    user_id=user_id,
+                )
             )
+            return JSONResponse(status_code=403, content={"error": "Access denied"})
+    except Exception as admin_check_error:
+        logger.error(
+            f"Error checking admin status for user {user_id}: {admin_check_error}"
         )
-        return JSONResponse(status_code=403, content={"error": "Access denied"})
+        # CC Security: Fail-safe approach - always deny access if admin check fails
+        return JSONResponse(
+            status_code=500, content={"error": "Admin verification failed"}
+        )
 
     # Log successful admin access
     logger.info(
