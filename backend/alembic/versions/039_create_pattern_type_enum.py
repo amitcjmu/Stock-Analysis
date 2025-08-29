@@ -60,14 +60,44 @@ def upgrade():
         print("   ✅ Created patterntype enum with 11 pattern types")
 
         # Now we need to update the column type from varchar to the enum
-        # First, we need to temporarily alter the column
-        op.execute(
+        # First, ensure pattern_type column exists and set safe defaults for invalid values
+        result = conn.execute(
+            sa.text(
+                """
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = 'migration'
+                  AND table_name = 'agent_discovered_patterns'
+                  AND column_name = 'pattern_type'
             """
-            ALTER TABLE migration.agent_discovered_patterns
-            ALTER COLUMN pattern_type TYPE migration.patterntype
-            USING pattern_type::text::migration.patterntype
-        """
+            )
         )
+
+        if result.fetchone():
+            # Coerce NULLs and invalid values to a safe default before altering type
+            op.execute(
+                """
+                UPDATE migration.agent_discovered_patterns
+                SET pattern_type = 'technology_correlation'
+                WHERE pattern_type IS NULL
+                   OR pattern_type::text NOT IN (
+                        'field_mapping_approval', 'field_mapping_rejection',
+                        'technology_correlation', 'field_mapping_suggestion',
+                        'data_quality_insight', 'migration_complexity_pattern',
+                        'cost_optimization_pattern', 'security_risk_pattern',
+                        'performance_optimization', 'dependency_mapping',
+                        'compliance_requirement'
+                   )
+            """
+            )
+
+            op.execute(
+                """
+                ALTER TABLE migration.agent_discovered_patterns
+                ALTER COLUMN pattern_type TYPE migration.patterntype
+                USING pattern_type::text::migration.patterntype
+            """
+            )
         print("   ✅ Updated pattern_type column to use patterntype enum")
     else:
         print("   ⏭️ patterntype enum already exists, checking for missing values...")

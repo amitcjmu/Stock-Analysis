@@ -153,7 +153,9 @@ class BulkLearningOperations:
                 from sqlalchemy import text
 
                 query = query.where(
-                    text(f"pattern_type = '{pattern_type}'::patterntype")
+                    text("pattern_type = :pattern_type::patterntype").bindparams(
+                        pattern_type=pattern_type
+                    )
                 )
 
             if insight_type:

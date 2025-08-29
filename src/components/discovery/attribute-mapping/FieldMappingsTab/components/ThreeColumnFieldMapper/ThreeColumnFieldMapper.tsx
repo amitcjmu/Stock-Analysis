@@ -104,11 +104,15 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     const mapping = fieldMappings.find(m => m.id === mappingId);
     if (!mapping) {
       console.error('Mapping not found:', mappingId);
+      if (typeof window !== 'undefined' && (window as any).showWarningToast) {
+        (window as any).showWarningToast('Selected mapping could not be found. Please refresh and try again.');
+      }
       return;
     }
 
+    setProcessingMappings(prev => new Set(prev).add(mappingId));
+
     try {
-      setProcessingMappings(prev => new Set(prev).add(mappingId));
       // IMPORTANT: Await the onMappingAction to ensure it completes before continuing
       await onMappingAction(mappingId, 'approve');
 
@@ -122,22 +126,17 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
       if (onRefresh) {
         await onRefresh();
       }
-
-      // Remove from processing set after a short delay
+    } catch (error) {
+      console.error('Error approving mapping:', error);
+    } finally {
+      // Always remove from processing set after a short delay
       setTimeout(() => {
         setProcessingMappings(prev => {
           const newSet = new Set(prev);
           newSet.delete(mappingId);
           return newSet;
         });
-      }, 1000);
-    } catch (error) {
-      console.error('Error approving mapping:', error);
-      setProcessingMappings(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(mappingId);
-        return newSet;
-      });
+      }, 300);
     }
   };
 
@@ -166,7 +165,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     }
   };
 
-  const handleRefresh = (): JSX.Element => {
+  const handleRefresh = (): void => {
     const now = Date.now();
     if (now - lastRefreshTime < 10000) {
       // Less than 10 seconds since last refresh
@@ -179,7 +178,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     }
   };
 
-  const toggleReasoningExpansion = (mappingId: string): unknown => {
+  const toggleReasoningExpansion = (mappingId: string): void => {
     setExpandedReasonings(prev => {
       const newSet = new Set(prev);
       if (newSet.has(mappingId)) {

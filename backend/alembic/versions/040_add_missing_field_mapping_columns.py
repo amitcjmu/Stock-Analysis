@@ -27,7 +27,8 @@ def upgrade():
             """
         SELECT column_name
         FROM information_schema.columns
-        WHERE table_name = 'import_field_mappings'
+        WHERE table_schema = 'migration'
+        AND table_name = 'import_field_mappings'
         AND column_name IN ('field_type', 'agent_reasoning')
     """
         )
@@ -44,6 +45,7 @@ def upgrade():
                 nullable=True,
                 comment="Data type of the field (e.g., string, number, date)",
             ),
+            schema="migration",
         )
 
     # Add agent_reasoning column if it doesn't exist
@@ -56,10 +58,11 @@ def upgrade():
                 nullable=True,
                 comment="AI agent reasoning for the mapping suggestion",
             ),
+            schema="migration",
         )
 
 
 def downgrade():
     """Remove the added columns."""
-    op.drop_column("import_field_mappings", "agent_reasoning")
-    op.drop_column("import_field_mappings", "field_type")
+    op.drop_column("import_field_mappings", "agent_reasoning", schema="migration")
+    op.drop_column("import_field_mappings", "field_type", schema="migration")
