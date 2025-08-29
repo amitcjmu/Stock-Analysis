@@ -85,11 +85,13 @@ export const EngagementList: React.FC<EngagementListProps> = ({
                   <TableRow key={engagement.id}>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{engagement.engagement_name}</div>
+                        <div className="font-medium">{engagement.engagement_name || engagement.name || 'Unnamed Engagement'}</div>
                         <div className="text-sm text-muted-foreground flex items-center gap-2">
-                          <Badge className={getPhaseColor(engagement.migration_phase)}>
-                            {engagement.migration_phase}
-                          </Badge>
+                          {(engagement.migration_phase || engagement.current_phase || engagement.status) && (
+                            <Badge className={getPhaseColor(engagement.migration_phase || engagement.current_phase || engagement.status || '')}>
+                              {engagement.migration_phase || engagement.current_phase || engagement.status || 'Planning'}
+                            </Badge>
+                          )}
                           <span>
                             {Array.isArray(engagement.migration_scope)
                               ? engagement.migration_scope.join(', ')
@@ -100,7 +102,7 @@ export const EngagementList: React.FC<EngagementListProps> = ({
                           <Target className="w-3 h-3 mr-1" />
                           {engagement.target_cloud_provider
                             ? engagement.target_cloud_provider.toUpperCase()
-                            : 'NOT SPECIFIED'}
+                            : 'TBD'}
                         </div>
                       </div>
                     </TableCell>

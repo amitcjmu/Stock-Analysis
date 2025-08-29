@@ -66,11 +66,16 @@ const EngagementManagementMain: React.FC = () => {
           return result;
         } else if (result && result.items && Array.isArray(result.items)) {
           console.log('✅ Using items array format, length:', result.items.length);
+          console.log('🔍 First item in result.items:', result.items[0]);
+          console.log('🔍 All items:', result.items);
           // Also update pagination if available
           if (result.total_pages) {
             setTotalPages(result.total_pages);
           }
-          return result.items;
+          const itemsToReturn = result.items;
+          console.log('🔍 About to return items:', itemsToReturn);
+          console.log('🔍 Items length:', itemsToReturn.length);
+          return itemsToReturn;
         } else if (result && result.engagements && Array.isArray(result.engagements)) {
           console.log('✅ Using engagements array format, length:', result.engagements.length);
           return result.engagements;
@@ -108,6 +113,12 @@ const EngagementManagementMain: React.FC = () => {
   const engagements = engagementsQuery.data || [];
   const engagementsLoading = engagementsQuery.isLoading;
   const engagementsError = engagementsQuery.isError;
+
+  // Additional debug logging
+  console.log('🔍 Query data directly:', engagementsQuery.data);
+  console.log('🔍 Engagements array:', engagements);
+  console.log('🔍 Is Array?:', Array.isArray(engagements));
+  console.log('🔍 Length:', engagements.length);
 
   // Debug logging to understand component state
   React.useEffect(() => {
@@ -388,12 +399,38 @@ const EngagementManagementMain: React.FC = () => {
   }, []);
 
   // Filter engagements based on search term (already filtered by query, but keep for UI search)
-  const filteredEngagements = engagements.filter(
-    (engagement) =>
-      engagement.engagement_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      engagement.client_account_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      engagement.engagement_manager?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEngagements = Array.isArray(engagements)
+    ? engagements.filter((engagement) => {
+        // Debug each engagement
+        console.log('🔍 Filtering engagement:', engagement);
+
+        // Handle case where engagement might be null or have missing properties
+        if (!engagement) {
+          console.warn('⚠️ Null engagement in filter');
+          return false;
+        }
+
+        // If no search term, include all valid engagements
+        if (!searchTerm) {
+          return true;
+        }
+
+        // Safe property access with optional chaining
+        const name = engagement.engagement_name || engagement.name || '';
+        const clientName = engagement.client_account_name || '';
+        const manager = engagement.engagement_manager || '';
+
+        const matchesSearch =
+          name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          manager.toLowerCase().includes(searchTerm.toLowerCase());
+
+        return matchesSearch;
+      })
+    : [];
+
+  console.log('🔍 Filtered engagements:', filteredEngagements);
+  console.log('🔍 Filtered count:', filteredEngagements.length);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
