@@ -34,6 +34,7 @@ interface Client {
 interface Engagement {
   id: string;
   name: string;
+  engagement_name?: string; // Backend might send this
   client_account_id: string;
   status: string;
 }
@@ -133,9 +134,9 @@ export const UserAccessManagement: React.FC = () => {
       if (response.items) {
         setEngagements(response.items.map((engagement: Record<string, unknown>) => ({
           id: engagement.id,
-          name: engagement.name,
+          name: engagement.engagement_name || engagement.name || 'Unnamed',
           client_account_id: engagement.client_account_id,
-          status: engagement.status
+          status: engagement.status || engagement.migration_phase || 'active'
         })));
       } else {
         console.warn('No engagement data received from API');
