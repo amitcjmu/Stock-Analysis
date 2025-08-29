@@ -153,7 +153,7 @@ class BulkLearningOperations:
                 from sqlalchemy import text
 
                 query = query.where(
-                    text("pattern_type = :pattern_type::patterntype").bindparams(
+                    text("pattern_type = :pattern_type::patterntype").params(
                         pattern_type=pattern_type
                     )
                 )
