@@ -149,13 +149,10 @@ class BulkLearningOperations:
             )
 
             if pattern_type:
-                # Use raw SQL with enum casting for PostgreSQL comparison
-                from sqlalchemy import text
-
+                # For enum comparison, use direct comparison with the enum value
+                # The ORM will handle the enum conversion properly
                 query = query.where(
-                    text("pattern_type = :pattern_type::patterntype").params(
-                        pattern_type=pattern_type
-                    )
+                    AgentDiscoveredPatterns.pattern_type == pattern_type
                 )
 
             if insight_type:
