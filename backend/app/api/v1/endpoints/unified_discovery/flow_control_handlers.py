@@ -5,6 +5,7 @@ Handles flow control operations: pause, resume, delete, and retry.
 """
 
 import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
@@ -27,6 +28,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _validate_flow_id(flow_id: str) -> None:
+    """Validate that flow_id is a valid UUID format."""
+    try:
+        uuid.UUID(flow_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid flow ID format: {flow_id}. Must be a valid UUID.",
+        )
+
+
 @router.post("/flows/{flow_id}/pause")
 async def pause_flow(
     flow_id: str,
@@ -35,6 +47,8 @@ async def pause_flow(
     current_user: User = Depends(get_current_user),
 ):
     """Pause a running discovery flow."""
+    _validate_flow_id(flow_id)
+
     try:
         logger.info(safe_log_format("Pausing flow: {flow_id}", flow_id=flow_id))
 
@@ -62,6 +76,8 @@ async def resume_flow(
     current_user: User = Depends(get_current_user),
 ):
     """Resume a paused discovery flow."""
+    _validate_flow_id(flow_id)
+
     try:
         logger.info(safe_log_format("Resuming flow: {flow_id}", flow_id=flow_id))
 
@@ -112,6 +128,8 @@ async def delete_flow(
     current_user: User = Depends(get_current_user),
 ):
     """Delete a discovery flow."""
+    _validate_flow_id(flow_id)
+
     try:
         logger.info(safe_log_format("Deleting flow: {flow_id}", flow_id=flow_id))
 
@@ -176,6 +194,8 @@ async def retry_flow(
     current_user: User = Depends(get_current_user),
 ):
     """Retry a failed discovery flow phase."""
+    _validate_flow_id(flow_id)
+
     try:
         logger.info(safe_log_format("Retrying flow: {flow_id}", flow_id=flow_id))
 

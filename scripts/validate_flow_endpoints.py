@@ -8,11 +8,15 @@ consolidation from singular /flow/ to plural /flows/ convention.
 Usage:
     python scripts/validate_flow_endpoints.py
 
+Environment Variables:
+    BACKEND_URL: Backend URL to test against (default: http://localhost:8000)
+
 Requirements:
-    - Backend running on localhost:8000
+    - Backend running (default: localhost:8000)
     - requests library (pip install requests)
 """
 
+import os
 import requests
 import sys
 import json
@@ -33,7 +37,8 @@ def main():
     print("=" * 50)
 
     # Define endpoints to test
-    base_url = "http://localhost:8000"
+    base_url = os.environ.get("BACKEND_URL", "http://localhost:8000")
+    print(f"Testing against: {base_url}")
 
     endpoints = [
         EndpointTest(
