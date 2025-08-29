@@ -3,6 +3,7 @@ Mapping generator utility for creating field mappings from import data.
 """
 
 import logging
+import os
 from typing import Any, Dict
 from uuid import UUID
 
@@ -10,7 +11,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.models.data_import import DataImport, RawImportRecord
+from app.models.data_import import DataImport, RawImportRecord, ImportFieldMapping
 
 from .mapping_creator import FieldMappingCreator
 from .mapping_summarizer import MappingSummarizer
@@ -27,7 +28,9 @@ class MappingGenerator:
         self.db = db
         self.context = context
 
-    async def generate_mappings_for_import(self, import_id: str) -> Dict[str, Any]:
+    async def generate_mappings_for_import(
+        self, import_id: str
+    ) -> Dict[str, Any]:  # noqa: C901
         """Generate field mappings for an entire import."""
 
         # Convert string UUID to UUID object if needed
@@ -46,8 +49,6 @@ class MappingGenerator:
             raise ValueError(f"Invalid UUID format for import_id: {import_id}")
 
         # Check if mappings already exist
-        from app.models.data_import import ImportFieldMapping
-
         existing_query = select(ImportFieldMapping).where(
             and_(
                 ImportFieldMapping.data_import_id == import_uuid,
@@ -101,11 +102,127 @@ class MappingGenerator:
         logger.info(f"Found {len(field_names)} fields to map: {field_names}")
 
         # Try to use CrewAI field mapping first if available
-        logger.info("🔍 Checking if discovery flow has generated mappings via CrewAI")
+        logger.info("🔍 Checking if CrewAI field mapping is available")
 
-        # If no CrewAI mappings exist, use data-driven mapping approach
+        # Check if CrewAI is enabled
+        use_crewai = os.getenv("CREWAI_FIELD_MAPPING_ENABLED", "true").lower() == "true"
+        bypass_crewai = (
+            os.getenv("BYPASS_CREWAI_FOR_FIELD_MAPPING", "false").lower() == "true"
+        )
+
+        if use_crewai and not bypass_crewai:
+            try:
+                logger.info(
+                    "🤖 Using persistent field_mapper agent for intelligent field mapping"
+                )
+                logger.info(
+                    f"   Context: client={self.context.client_account_id}, engagement={self.context.engagement_id}"
+                )
+
+                # Use the persistent field_mapper agent from TenantScopedAgentPool
+                # This agent builds intelligence and learns through memory
+                from app.services.crewai_flows.crews.persistent_field_mapping import (
+                    PersistentFieldMapping,
+                )
+
+                # Create persistent field mapping instance
+                # This will get or create the field_mapper agent for this tenant context
+                mapper = PersistentFieldMapping(
+                    crewai_service=None,  # Will be created internally if needed
+                    context=self.context,
+                )
+
+                # Get sample data for CrewAI to analyze
+                sample_data = []
+                sample_query = (
+                    select(RawImportRecord)
+                    .where(RawImportRecord.data_import_id == import_uuid)
+                    .limit(5)  # Get a few samples for analysis
+                )
+                sample_result = await self.db.execute(sample_query)
+                sample_records = sample_result.scalars().all()
+
+                for record in sample_records:
+                    if record.raw_data:
+                        sample_data.append(record.raw_data)
+
+                if sample_data:
+                    # Use CrewAI to map fields
+                    mapping_result = await mapper.map_fields(sample_data)
+
+                    if mapping_result and mapping_result.get("mappings"):
+                        logger.info(
+                            "✅ Persistent field_mapper agent successfully generated field mappings"
+                        )
+                        logger.info(
+                            "   Agent has memory and will improve over time for this client/engagement"
+                        )
+
+                        # Convert CrewAI mappings to database format
+                        mappings_created = []
+                        crewai_mappings = mapping_result.get("mappings", {})
+
+                        # Process all fields, using CrewAI mappings where available
+                        for source_field in field_names:
+                            if source_field in crewai_mappings:
+                                mapping_info = crewai_mappings[source_field]
+                                if isinstance(mapping_info, dict):
+                                    target_field = mapping_info.get(
+                                        "target_field", "UNMAPPED"
+                                    )
+                                    confidence = mapping_info.get("confidence", 0.5)
+                                    reasoning = mapping_info.get("reasoning", "")
+                                else:
+                                    target_field = mapping_info
+                                    confidence = 0.7
+                                    reasoning = "CrewAI mapping"
+                            else:
+                                # Field not mapped by CrewAI
+                                target_field = "UNMAPPED"
+                                confidence = 0.0
+                                reasoning = "No match found by CrewAI"
+
+                            # Create database mapping
+                            mapping = ImportFieldMapping(
+                                data_import_id=import_uuid,
+                                client_account_id=client_account_uuid,
+                                source_field=source_field,
+                                target_field=target_field,
+                                match_type="ai_generated",
+                                confidence_score=confidence,
+                                status="suggested",
+                                suggested_by="crewai_mapper",
+                                transformation_rules=(
+                                    {"agent_reasoning": reasoning}
+                                    if reasoning
+                                    else None
+                                ),
+                            )
+                            self.db.add(mapping)
+                            mappings_created.append(
+                                {
+                                    "source": source_field,
+                                    "target": target_field,
+                                    "confidence": confidence,
+                                    "match_type": "ai_generated",
+                                }
+                            )
+
+                        # Commit all mappings
+                        await self.db.commit()
+
+                        return MappingSummarizer.create_mapping_summary(
+                            mappings_created, import_id
+                        )
+
+            except Exception as e:
+                logger.warning(
+                    f"⚠️ CrewAI field mapping failed: {e}, falling back to heuristics"
+                )
+
+        # If CrewAI not available or failed, use data-driven mapping approach
         logger.warning(
-            "⚠️ CrewAI field mapping not available, using data-driven mapping approach"
+            "⚠️ Using heuristic field mapping approach (CrewAI not available or disabled)"
         )
 
         # Get all available target fields from the assets table schema
