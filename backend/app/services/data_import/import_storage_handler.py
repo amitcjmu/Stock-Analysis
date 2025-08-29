@@ -269,6 +269,29 @@ class ImportStorageHandler:
                     import_type=store_request.upload_context.intended_type,
                 )
 
+            # Start background flow execution AFTER transaction commits
+            # This prevents race conditions where the flow isn't visible to status queries
+            if (
+                hasattr(data_import, "flow_execution_data")
+                and data_import.flow_execution_data
+            ):
+                logger.info(
+                    f"🚀 Starting background flow execution for {data_import.flow_execution_data['flow_id']}"
+                )
+                from app.services.data_import import BackgroundExecutionService
+
+                background_service = BackgroundExecutionService(
+                    self.db, context.client_account_id
+                )
+                await background_service.start_background_flow_execution(
+                    flow_id=data_import.flow_execution_data["flow_id"],
+                    file_data=data_import.flow_execution_data["file_data"],
+                    context=context,
+                )
+                logger.info(
+                    f"✅ Background flow execution started for {data_import.flow_execution_data['flow_id']}"
+                )
+
             return self.response_builder.success_response(
                 data_import_id=str(data_import.id),
                 flow_id=(

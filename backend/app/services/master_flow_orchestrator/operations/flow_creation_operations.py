@@ -57,6 +57,7 @@ class FlowCreationOperations:
         flow_name: Optional[str] = None,
         configuration: Optional[Dict[str, Any]] = None,
         initial_state: Optional[Dict[str, Any]] = None,
+        atomic: bool = False,
     ) -> Tuple[str, Dict[str, Any]]:
         """
         Create a new flow with comprehensive error handling and cleanup
@@ -66,6 +67,7 @@ class FlowCreationOperations:
             flow_name: Optional name for the flow
             configuration: Flow configuration
             initial_state: Initial flow state data
+            atomic: If True, assumes we're already in a transaction (no commits)
 
         Returns:
             Tuple of (flow_id, flow_data)
@@ -306,12 +308,23 @@ class FlowCreationOperations:
             updated_at=flow_data["updated_at"],
         )
 
-        # Add to session and commit
+        # Add to session
         self.db.add(master_flow)
-        await self.db.commit()
+
+        # Check if we're already in a transaction
+        if self.db.in_transaction():
+            # We're in a transaction, just flush to make the object persistent
+            await self.db.flush()
+            logger.info(
+                f"✅ Database record flushed for flow {flow_id} (in transaction)"
+            )
+        else:
+            # Not in a transaction, commit normally
+            await self.db.commit()
+            logger.info(f"✅ Database record committed for flow {flow_id}")
+
         await self.db.refresh(master_flow)
 
-        logger.info(f"✅ Database record created for flow {flow_id}")
         return master_flow
 
     async def _execute_flow_creation(

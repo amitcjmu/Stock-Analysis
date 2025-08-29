@@ -94,11 +94,11 @@ export const UserSearchAndEdit: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []); // Remove toast dependency
 
   const loadClients = useCallback(async (): Promise<void> => {
     try {
-      const response = await apiCall('/admin/clients/?page_size=100');
+      const response = await apiCall('/api/v1/admin/clients/?page_size=100');
       if (response.items) {
         setClients(response.items.map((client: Record<string, unknown>) => ({
           id: client.id,
@@ -114,7 +114,7 @@ export const UserSearchAndEdit: React.FC = () => {
 
   const loadEngagements = useCallback(async (): Promise<void> => {
     try {
-      const response = await apiCall('/admin/engagements/?page_size=100');
+      const response = await apiCall('/api/v1/admin/engagements/?page_size=100');
       if (response.items) {
         setEngagements(response.items.map((engagement: Record<string, unknown>) => ({
           id: engagement.id,
@@ -141,7 +141,7 @@ export const UserSearchAndEdit: React.FC = () => {
     loadUsers();
     loadClients();
     loadEngagements();
-  }, [loadUsers, loadClients, loadEngagements]);
+  }, []); // Run only once on mount
 
   // Reset engagement selection when client changes
   useEffect(() => {

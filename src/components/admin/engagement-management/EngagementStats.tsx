@@ -10,32 +10,34 @@ interface EngagementStatsProps {
 
 export const EngagementStats: React.FC<EngagementStatsProps> = ({ engagements }) => {
   // Calculate statistics from engagements
-  const totalEngagements = engagements.length;
-  const activeEngagements = engagements.filter((e) => e.is_active).length;
-  const completedEngagements = engagements.filter((e) => e.migration_phase === 'completed').length;
-  const totalBudget = engagements.reduce((sum, e) => sum + (e.estimated_budget || 0), 0);
+  const totalEngagements = engagements?.length || 0;
+  const activeEngagements = engagements?.filter((e) => e.is_active !== false).length || 0; // Default to active if not specified
+  const completedEngagements = engagements?.filter((e) => e.migration_phase === 'completed' || e.status === 'completed').length || 0;
+  const totalBudget = engagements?.reduce((sum, e) => sum + (e.estimated_budget || e.budget || 0), 0) || 0;
   const avgProgress =
-    engagements.length > 0
-      ? engagements.reduce((sum, e) => sum + e.completion_percentage, 0) / engagements.length
+    engagements?.length > 0
+      ? engagements.reduce((sum, e) => sum + (e.completion_percentage || 0), 0) / engagements.length
       : 0;
 
   // Phase distribution
-  const phaseDistribution = engagements.reduce(
+  const phaseDistribution = engagements?.reduce(
     (acc, engagement) => {
-      acc[engagement.migration_phase] = (acc[engagement.migration_phase] || 0) + 1;
+      const phase = engagement.migration_phase || engagement.current_phase || engagement.status || 'unknown';
+      acc[phase] = (acc[phase] || 0) + 1;
       return acc;
     },
     {} as Record<string, number>
-  );
+  ) || {};
 
   // Cloud provider distribution
-  const cloudProviderDistribution = engagements.reduce(
+  const cloudProviderDistribution = engagements?.reduce(
     (acc, engagement) => {
-      acc[engagement.target_cloud_provider] = (acc[engagement.target_cloud_provider] || 0) + 1;
+      const provider = engagement.target_cloud_provider || 'unknown';
+      acc[provider] = (acc[provider] || 0) + 1;
       return acc;
     },
     {} as Record<string, number>
-  );
+  ) || {};
 
   const formatCurrency = (amount: number): unknown => {
     return new Intl.NumberFormat('en-US', {

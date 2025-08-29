@@ -257,6 +257,7 @@ class MasterFlowService:
                 deletion_type="user_requested",
                 deletion_reason=f"Soft deleted master flow and {child_flows_deleted} child flows",
                 deletion_method="api",
+                deleted_by=self.user_id,  # Add the required deleted_by field
                 data_deleted={
                     "flow_type": master_flow.flow_type,
                     "child_flows": child_flows_deleted,

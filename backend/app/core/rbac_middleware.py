@@ -362,10 +362,30 @@ async def require_admin_access(request: Request) -> str:
     user_id = await require_authentication(request)
 
     if not RBAC_SERVICE_AVAILABLE:
-        return user_id  # Fallback for development
+        # Fallback: Check if user has admin privileges using the same logic as middleware
+        # CC Security: Removed hardcoded development backdoor for security
+        # Development access should be granted through proper role assignment in database
 
-    # 🚨 SECURITY FIX: Remove demo user bypass - all users must go through RBAC validation
-    # No more blanket admin access for demo users
+        # Try to check admin status using database directly
+        try:
+            from app.core.middleware.auth_utils import check_platform_admin
+
+            if await check_platform_admin(user_id):
+                return user_id
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Admin privileges required",
+                )
+        except Exception as db_error:
+            logger.error(
+                f"Database check failed for admin access validation for user {user_id}: {db_error}"
+            )
+            # CC Security: Fail-safe approach - always deny access if admin check fails
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Admin access validation failed",
+            )
 
     try:
         # Validate admin access for ALL users (including demo users)
@@ -399,6 +419,8 @@ async def require_admin_access(request: Request) -> str:
                 e=e,
             )
         )
+        # CC Security: Fail-safe approach - always deny access if RBAC validation fails
+        # This ensures security by default rather than falling back to permissive mode
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Admin access validation failed",

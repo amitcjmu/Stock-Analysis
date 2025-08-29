@@ -34,6 +34,7 @@ interface Client {
 interface Engagement {
   id: string;
   name: string;
+  engagement_name?: string; // Backend might send this
   client_account_id: string;
   status: string;
 }
@@ -72,9 +73,16 @@ export const UserAccessManagement: React.FC = () => {
   useEffect(() => {
     loadUsers();
     loadClients();
-    loadEngagements();
+    loadEngagements(); // Load all engagements initially
     loadAccessGrants();
-  }, [loadUsers, loadClients, loadEngagements, loadAccessGrants]);
+  }, []); // Run only once on mount
+
+  // Reload engagements when selected client changes
+  useEffect(() => {
+    if (selectedClient) {
+      loadEngagements(selectedClient);
+    }
+  }, [selectedClient]); // Only depend on selectedClient
 
   const loadUsers = useCallback(async () => {
     try {
@@ -83,22 +91,8 @@ export const UserAccessManagement: React.FC = () => {
       if (response.status === 'success') {
         setUsers(response.active_users || []);
       } else {
-        // SECURITY: Removed hardcoded admin demo users
-        // Only show legitimate demo user if API fails
-        setUsers([
-          {
-            user_id: 'demo-user-12345678-1234-5678-9012-123456789012',
-            email: 'demo@democorp.com',
-            full_name: 'Demo User',
-            username: 'demo_user',
-            organization: 'Demo Organization',
-            role_description: 'Demo Analyst',
-            access_level: 'read_write',
-            role_name: 'Analyst',
-            is_active: true
-          }
-          // SECURITY: No admin@aiforce.com or other admin demo accounts
-        ]);
+        console.warn('Failed to load users from API:', response.message);
+        setUsers([]);
       }
     } catch (error) {
       console.error('Error loading users:', error);
@@ -108,11 +102,11 @@ export const UserAccessManagement: React.FC = () => {
         variant: "destructive"
       });
     }
-  }, [toast]);
+  }, []); // Remove toast dependency to prevent re-creation
 
   const loadClients = useCallback(async () => {
     try {
-      const response = await apiCall('/admin/clients/?page_size=100');
+      const response = await apiCall('/api/v1/admin/clients/?page_size=100');
 
       if (response.items) {
         setClients(response.items.map((client: Record<string, unknown>) => ({
@@ -122,78 +116,47 @@ export const UserAccessManagement: React.FC = () => {
           company_size: client.company_size
         })));
       } else {
-        // Demo data fallback
-        setClients([
-          {
-            id: 'cc92315a-4bae-469d-9550-46d1c6e5ab68',
-            account_name: 'Pujyam Corp',
-            industry: 'Technology',
-            company_size: 'Enterprise'
-          }
-        ]);
+        console.warn('No client data received from API');
+        setClients([]);
       }
     } catch (error) {
       console.error('Error loading clients:', error);
     }
-  }, []);
+  }, []); // Keep empty dependency array
 
-  const loadEngagements = useCallback(async () => {
+  const loadEngagements = useCallback(async (clientId?: string) => {
     try {
-      const response = await apiCall('/admin/engagements/?page_size=100&client_account_id=11111111-1111-1111-1111-111111111111');
+      const queryParams = clientId
+        ? `?page_size=100&client_account_id=${clientId}`
+        : '?page_size=100';
+      const response = await apiCall(`/api/v1/admin/engagements/${queryParams}`);
 
       if (response.items) {
         setEngagements(response.items.map((engagement: Record<string, unknown>) => ({
           id: engagement.id,
-          name: engagement.name,
+          name: engagement.engagement_name || engagement.name || 'Unnamed',
           client_account_id: engagement.client_account_id,
-          status: engagement.status
+          status: engagement.status || engagement.migration_phase || 'active'
         })));
       } else {
-        // Demo data fallback
-        setEngagements([
-          {
-            id: '3d4e572d-46b1-4b3c-bfb4-99c50e9aa6ec',
-            name: 'Digital Transformation 2025',
-            client_account_id: 'cc92315a-4bae-469d-9550-46d1c6e5ab68',
-            status: 'active'
-          }
-        ]);
+        console.warn('No engagement data received from API');
+        setEngagements([]);
       }
     } catch (error) {
       console.error('Error loading engagements:', error);
     }
-  }, []);
+  }, []); // Keep empty dependency array
 
   const loadAccessGrants = useCallback(async () => {
     try {
-      // This would be a real API call in production
-      // For now, using demo data
-      setAccessGrants([
-        {
-          id: 'grant_1',
-          user_id: 'demo-user-12345678-1234-5678-9012-123456789012',
-          resource_type: 'client',
-          resource_id: 'cc92315a-4bae-469d-9550-46d1c6e5ab68',
-          access_level: 'read_write',
-          granted_by: '2a0de3df-7484-4fab-98b9-2ca126e2ab21', // Current admin user
-          granted_at: '2025-01-28T10:00:00Z',
-          resource_name: 'Pujyam Corp'
-        },
-        {
-          id: 'grant_2',
-          user_id: 'demo-user-12345678-1234-5678-9012-123456789012',
-          resource_type: 'engagement',
-          resource_id: '3d4e572d-46b1-4b3c-bfb4-99c50e9aa6ec',
-          access_level: 'read_write',
-          granted_by: '2a0de3df-7484-4fab-98b9-2ca126e2ab21',
-          granted_at: '2025-01-28T10:00:00Z',
-          resource_name: 'Digital Transformation 2025'
-        }
-      ]);
+      // TODO: Implement real API call for access grants
+      // const response = await apiCall('/api/v1/admin/access-grants/');
+      // For now, start with empty array until backend endpoint is implemented
+      setAccessGrants([]);
     } catch (error) {
       console.error('Error loading access grants:', error);
     }
-  }, []);
+  }, []); // Keep empty dependency array
 
   const handleGrantAccess = async (): void => {
     if (!selectedUser || !selectedResource || !selectedAccessLevel) {

@@ -404,8 +404,8 @@ class EngagementCRUDHandler:
                     logger.warning(f"Could not check admin status: {e}")
 
             query = select(Engagement).where(
-                Engagement.is_active is True
-            )  # noqa: E712  # Filter out soft-deleted
+                Engagement.is_active.is_(True)
+            )  # Filter out soft-deleted
             # Only filter by client_account_id if it's provided (not None) AND user is not platform admin
             if client_account_id is not None and not is_platform_admin:
                 query = query.where(Engagement.client_account_id == client_account_id)
@@ -414,7 +414,7 @@ class EngagementCRUDHandler:
             count_query = (
                 select(func.count())
                 .select_from(Engagement)
-                .where(Engagement.is_active is True)
+                .where(Engagement.is_active.is_(True))
             )  # noqa: E712
             if client_account_id is not None and not is_platform_admin:
                 count_query = count_query.where(
@@ -475,7 +475,7 @@ class EngagementCRUDHandler:
             # Engagements by type (only active ones)
             type_query = (
                 select(Engagement.engagement_type, func.count())
-                .where(Engagement.is_active == True)  # noqa: E712
+                .where(Engagement.is_active.is_(True))  # noqa: E712
                 .group_by(Engagement.engagement_type)
             )
             engagements_by_type = {
@@ -485,7 +485,7 @@ class EngagementCRUDHandler:
             # Engagements by status (only active ones)
             status_query = (
                 select(Engagement.status, func.count())
-                .where(Engagement.is_active == True)  # noqa: E712
+                .where(Engagement.is_active.is_(True))  # noqa: E712
                 .group_by(Engagement.status)
             )
             engagements_by_status = {

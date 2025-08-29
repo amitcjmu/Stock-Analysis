@@ -102,30 +102,34 @@ export interface Engagement {
   engagement_name: string;
   engagement_description?: string;
   client_account_id: string;
-  client_account_name: string;
-  migration_scope: string;
-  target_cloud_provider: string;
-  migration_phase: string;
+  client_account_name?: string; // Made optional
+  migration_scope?: string; // Made optional
+  target_cloud_provider?: string; // Made optional
+  migration_phase?: string; // Made optional
   current_phase?: string;
-  engagement_manager: string;
-  technical_lead: string;
-  start_date: string;
-  end_date: string;
+  engagement_manager?: string; // Made optional
+  technical_lead?: string; // Made optional
+  start_date?: string; // Made optional
+  end_date?: string; // Made optional
   planned_start_date?: string;
   planned_end_date?: string;
-  budget: number;
+  budget?: number; // Made optional
   estimated_budget?: number;
-  budget_currency: string;
-  completion_percentage: number;
-  created_at: string;
+  budget_currency?: string; // Made optional
+  completion_percentage?: number; // Made optional
+  created_at?: string; // Made optional
   updated_at?: string;
-  is_active: boolean;
-  total_sessions: number;
-  active_sessions: number;
+  is_active?: boolean; // Made optional
+  total_sessions?: number; // Made optional
+  active_sessions?: number; // Made optional
   team_preferences?: TeamPreferences;
   agent_configuration?: AgentConfiguration;
   discovery_preferences?: DiscoveryPreferences;
   assessment_criteria?: AssessmentCriteria;
+  // Additional fields that might come from backend
+  name?: string; // Backend might send 'name' instead of 'engagement_name'
+  status?: string;
+  engagement_type?: string;
 }
 
 // Stakeholder Preferences Interface

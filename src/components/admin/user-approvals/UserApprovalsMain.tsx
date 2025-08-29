@@ -64,48 +64,8 @@ export const UserApprovalsMain: React.FC = () => {
       if (response.status === 'success') {
         setPendingUsers(response.pending_approvals || []);
       } else {
-        // Demo data fallback
-        setPendingUsers([
-          {
-            user_id: 'user_001',
-            email: 'john.analyst@techcorp.com',
-            full_name: 'John Analyst',
-            username: 'john.analyst',
-            organization: 'TechCorp Solutions',
-            role_description: 'Senior Data Analyst',
-            registration_reason: 'Need access to analyze migration readiness for our application portfolio. Will be working on cloud migration assessment project.',
-            requested_access_level: 'read_write',
-            phone_number: '+1-555-0123',
-            manager_email: 'manager@techcorp.com',
-            registration_requested_at: '2025-01-02T10:30:00Z',
-            status: 'pending_approval'
-          },
-          {
-            user_id: 'user_002',
-            email: 'sarah.pm@globalsystems.com',
-            full_name: 'Sarah Project Manager',
-            username: 'sarah.pm',
-            organization: 'Global Systems Inc',
-            role_description: 'Migration Project Manager',
-            registration_reason: 'Leading enterprise cloud migration initiative. Need platform access to coordinate migration activities and track progress.',
-            requested_access_level: 'admin',
-            phone_number: '+1-555-0456',
-            registration_requested_at: '2025-01-01T14:15:00Z',
-            status: 'pending_approval'
-          },
-          {
-            user_id: 'user_003',
-            email: 'mike.consultant@cloudexperts.com',
-            full_name: 'Mike Consultant',
-            username: 'mike.consultant',
-            organization: 'Cloud Experts Consulting',
-            role_description: 'Senior Cloud Architect',
-            registration_reason: 'External consultant supporting client migration project. Need access to review application assessments and provide recommendations.',
-            requested_access_level: 'read_only',
-            registration_requested_at: '2025-01-02T08:45:00Z',
-            status: 'pending_approval'
-          }
-        ]);
+        console.warn('Failed to load pending users from API:', response.message);
+        setPendingUsers([]);
       }
     } catch (error) {
       console.error('Error fetching pending users:', error);
@@ -113,7 +73,7 @@ export const UserApprovalsMain: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [showDataFetchErrorToast]);
+  }, []); // Remove showDataFetchErrorToast dependency
 
   const fetchActiveUsers = useCallback(async () => {
     try {
@@ -122,47 +82,20 @@ export const UserApprovalsMain: React.FC = () => {
       if (response.status === 'success') {
         setActiveUsers(response.active_users || []);
       } else {
-        // Enhanced demo active users with more realistic data
-        setActiveUsers([
-          {
-            user_id: '2a0de3df-7484-4fab-98b9-2ca126e2ab21',
-            email: 'admin@aiforce.com',
-            full_name: 'Platform Administrator',
-            username: 'admin',
-            organization: 'AI Modernize Platform',
-            role_description: 'System Administrator',
-            access_level: 'admin',
-            role_name: 'Administrator',
-            is_active: true,
-            approved_at: '2025-01-01T00:00:00Z',
-            last_login: '2025-01-28T10:30:00Z'
-          },
-          {
-            user_id: 'demo-user-12345678-1234-5678-9012-123456789012',
-            email: 'user@demo.com',
-            full_name: 'Demo User',
-            username: 'demo_user',
-            organization: 'Demo Organization',
-            role_description: 'Demo Analyst',
-            access_level: 'read_write',
-            role_name: 'Analyst',
-            is_active: true,
-            approved_at: '2025-01-01T12:00:00Z',
-            last_login: '2025-01-28T09:15:00Z'
-          }
-        ]);
+        console.warn('Failed to load active users from API:', response.message);
+        setActiveUsers([]);
       }
     } catch (error) {
       console.error('Error fetching active users:', error);
       showDataFetchErrorToast();
     }
-  }, [showDataFetchErrorToast]);
+  }, []); // Remove showDataFetchErrorToast dependency
 
   // Initialize data on component mount
   useEffect(() => {
     fetchPendingUsers();
     fetchActiveUsers();
-  }, [fetchPendingUsers, fetchActiveUsers]);
+  }, []); // Run only once on mount
 
   useEffect(() => {
     // Listen for user creation events

@@ -9,8 +9,8 @@ import type { Client } from '../types';
 export const useClientOperations = (): {
   actionLoading: string | null;
   createClient: (formData: ClientFormData) => Promise<Client | null>;
-  updateClient: (id: string, formData: ClientFormData) => Promise<Client | null>;
-  deleteClient: (id: string) => Promise<boolean>;
+  updateClient: (client: Client, formData: ClientFormData) => Promise<Client | null>;
+  deleteClient: (clientId: string, clientName: string) => Promise<boolean>;
 } => {
   const { toast } = useToast();
   const dialog = useDialog();
@@ -28,7 +28,7 @@ export const useClientOperations = (): {
           description: formData.description?.trim() || null,
         };
 
-        const response = await apiCall('/admin/clients/', {
+        const response = await apiCall('/api/v1/admin/clients/', {
           method: 'POST',
           body: JSON.stringify(cleanedFormData),
         });
@@ -37,6 +37,10 @@ export const useClientOperations = (): {
           const newClient: Client = {
             id: response.data.id,
             ...formData,
+            business_objectives: formData.business_objectives || [],
+            target_cloud_providers: formData.target_cloud_providers || [],
+            business_priorities: formData.business_priorities || [],
+            compliance_requirements: formData.compliance_requirements || [],
             created_at: response.data.created_at,
             updated_at: response.data.updated_at,
             is_active: true,
@@ -106,7 +110,7 @@ export const useClientOperations = (): {
           description: formData.description?.trim() || null,
         };
 
-        const response = await apiCall(`/admin/clients/${client.id}`, {
+        const response = await apiCall(`/api/v1/admin/clients/${client.id}`, {
           method: 'PUT',
           body: JSON.stringify(cleanedFormData),
         });
@@ -177,7 +181,7 @@ export const useClientOperations = (): {
       try {
         setActionLoading(clientId);
 
-        const response = await apiCall(`/admin/clients/${clientId}`, {
+        const response = await apiCall(`/api/v1/admin/clients/${clientId}`, {
           method: 'DELETE',
         });
 

@@ -50,6 +50,7 @@ class ContextMiddleware(BaseHTTPMiddleware):
             "/health",
             "/api/v1/health",  # Health endpoint - no tenant context needed
             "/api/v1/health/database",  # Database health - no tenant context needed
+            "/api/v1/unified-discovery/health",  # Unified discovery health - no tenant context needed
             "/",
             "/docs",
             "/redoc",

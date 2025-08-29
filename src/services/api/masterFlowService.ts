@@ -230,7 +230,7 @@ export const masterFlowService = {
   ): Promise<FlowStatusResponse> {
     try {
       const response = await apiClient.get<FlowStatusResponse>(
-        `/unified-discovery/flow/${flow_id}/status`,
+        `/unified-discovery/flows/${flow_id}/status`,
         {
           headers: getMultiTenantHeaders(client_account_id, engagement_id),
         },

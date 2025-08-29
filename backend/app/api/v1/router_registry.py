@@ -244,9 +244,7 @@ def register_admin_routers(api_router: APIRouter):
     # Client Management Admin
     if routers_with_flags.get("CLIENT_MANAGEMENT", (False, None))[0]:
         client_management_router = routers_with_flags["CLIENT_MANAGEMENT"][1]
-        api_router.include_router(
-            client_management_router, prefix="/admin/client-management"
-        )
+        api_router.include_router(client_management_router, prefix="/admin/clients")
         logger.info("✅ Client Management router included")
     else:
         logger.warning("⚠️ Client Management router not available")
@@ -255,7 +253,7 @@ def register_admin_routers(api_router: APIRouter):
     if routers_with_flags.get("ENGAGEMENT_MANAGEMENT", (False, None))[0]:
         engagement_management_router = routers_with_flags["ENGAGEMENT_MANAGEMENT"][1]
         api_router.include_router(
-            engagement_management_router, prefix="/admin/engagement-management"
+            engagement_management_router, prefix="/admin/engagements"
         )
         logger.info("✅ Engagement Management router included")
     else:

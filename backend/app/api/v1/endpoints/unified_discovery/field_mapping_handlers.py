@@ -27,7 +27,7 @@ from app.core.security.secure_logging import safe_log_format
 from app.models.data_import.mapping import ImportFieldMapping
 from app.models.discovery_flow import DiscoveryFlow
 from app.models import User
-from app.api.auth import get_current_user
+from app.api.v1.auth.auth_utils import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

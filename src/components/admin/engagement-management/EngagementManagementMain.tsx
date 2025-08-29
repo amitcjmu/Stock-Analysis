@@ -39,72 +39,59 @@ const EngagementManagementMain: React.FC = () => {
 
   // Server state: useQuery for API data
   const engagementsQuery = useQuery<Engagement[]>({
-    queryKey: ['engagements', searchTerm, filterClient, filterPhase, currentPage],
+    queryKey: ['engagements', filterClient, filterPhase, currentPage], // Removed searchTerm from key
     queryFn: async () => {
-      try {
-        // Build query parameters
-        const params = new URLSearchParams();
-        if (searchTerm) params.append('search', searchTerm);
-        if (filterClient !== 'all') params.append('client_account_id', filterClient);
-        if (filterPhase !== 'all') params.append('phase', filterPhase);
-        params.append('page', currentPage.toString());
-        params.append('limit', '10');
+      // Build query parameters
+      const params = new URLSearchParams();
+      // Don't include search in API call - handle it client-side
+      if (filterClient !== 'all') params.append('client_account_id', filterClient);
+      if (filterPhase !== 'all') params.append('phase', filterPhase);
+      params.append('page', currentPage.toString());
+      params.append('page_size', '20');
 
-        const queryString = params.toString();
-        console.log('🔍 Fetching engagements with query:', queryString);
+      const queryString = params.toString();
+      console.log('🔍 Fetching engagements with query:', queryString);
 
-        const result = await apiCall(
-          `/api/v1/admin/engagements/${queryString ? '?' + queryString : ''}`
-        );
-        console.log('🔍 Engagements API result:', result);
-        console.log('🔍 Engagements API result type:', typeof result);
-        console.log('🔍 Engagements API result keys:', result ? Object.keys(result) : 'null');
+      const result = await apiCall(
+        `/api/v1/admin/engagements/${queryString ? '?' + queryString : ''}`
+      );
+      console.log('🔍 Engagements API raw result:', result);
 
-        // Handle different response formats
-        if (result && Array.isArray(result)) {
-          console.log('✅ Using direct array format, length:', result.length);
-          return result;
-        } else if (result && result.items && Array.isArray(result.items)) {
-          console.log('✅ Using items array format, length:', result.items.length);
-          return result.items;
-        } else if (result && result.engagements && Array.isArray(result.engagements)) {
-          console.log('✅ Using engagements array format, length:', result.engagements.length);
-          return result.engagements;
-        } else if (result && result.data && Array.isArray(result.data)) {
-          console.log('✅ Using data array format, length:', result.data.length);
-          return result.data;
-        } else {
-          console.warn('⚠️ Unexpected engagements API response format:', result);
-          return [];
+      // Handle paginated response
+      if (result && typeof result === 'object' && 'items' in result) {
+        console.log('✅ Found items in result, count:', result.items?.length || 0);
+        console.log('🔍 Items content:', result.items);
+
+        // Update pagination
+        if (result.total_pages) {
+          setTotalPages(result.total_pages);
         }
-      } catch (error: unknown) {
-        console.error('❌ Error fetching engagements:', {
-          error: error.message || error,
-          status: error.status,
-          endpoint: `/api/v1/admin/engagements/${queryString ? '?' + queryString : ''}`,
-        });
 
-        // If 404 or other error, still try to return empty array but log the issue
-        return [];
+        // Return the items array directly
+        return result.items || [];
       }
-    },
-    initialData: [],
-    retry: (failureCount, error: unknown) => {
-      // Only retry on network errors, not on 404/403 which are expected
-      if (error.status === 404 || error.status === 403) {
-        return false;
+
+      // Handle direct array response
+      if (Array.isArray(result)) {
+        console.log('✅ Direct array result, count:', result.length);
+        return result;
       }
-      return failureCount < 2;
+
+      console.warn('⚠️ Unexpected response format:', result);
+      return [];
     },
-    enabled: true, // Force query to be enabled
-    refetchOnMount: true, // Force refetch on mount
-    refetchOnWindowFocus: false, // Prevent excessive refetches
-    staleTime: 0, // Always consider data stale
-    cacheTime: 0, // Don't cache the data
+    // Simplified configuration
+    refetchOnWindowFocus: false,
   });
   const engagements = engagementsQuery.data || [];
   const engagementsLoading = engagementsQuery.isLoading;
   const engagementsError = engagementsQuery.isError;
+
+  // Additional debug logging
+  console.log('🔍 Query data directly:', engagementsQuery.data);
+  console.log('🔍 Engagements array:', engagements);
+  console.log('🔍 Is Array?:', Array.isArray(engagements));
+  console.log('🔍 Length:', engagements.length);
 
   // Debug logging to understand component state
   React.useEffect(() => {
@@ -132,31 +119,24 @@ const EngagementManagementMain: React.FC = () => {
   const clientsQuery = useQuery<Client[]>({
     queryKey: ['clients'],
     queryFn: async () => {
-      console.log('🔍 Fetching clients for engagement management...');
-      const result = await apiCall('/api/v1/admin/clients/?limit=100');
+      console.log('🔍 Fetching clients...');
+      const result = await apiCall('/api/v1/admin/clients/?page_size=100');
       console.log('🔍 Clients API result:', result);
 
-      // Handle different response formats
-      if (result && Array.isArray(result)) {
-        console.log('✅ Using direct array format for clients');
-        return result;
-      } else if (result && result.items && Array.isArray(result.items)) {
-        console.log('✅ Using items array format for clients');
-        return result.items;
-      } else if (result && result.clients && Array.isArray(result.clients)) {
-        console.log('✅ Using clients array format for clients');
-        return result.clients;
-      } else {
-        console.warn('⚠️ Unexpected clients API response format:', result);
-        return [];
+      // Handle paginated response
+      if (result && typeof result === 'object' && 'items' in result) {
+        console.log('✅ Found items in clients result, count:', result.items?.length || 0);
+        return result.items || [];
       }
+
+      // Handle direct array
+      if (Array.isArray(result)) {
+        return result;
+      }
+
+      return [];
     },
-    initialData: [],
-    retry: 2,
-    enabled: true,
-    refetchOnMount: true,
-    staleTime: 0, // Always consider data stale
-    cacheTime: 0, // Don't cache the data
+    refetchOnWindowFocus: false,
   });
   const clients = clientsQuery.data || [];
   const clientsLoading = clientsQuery.isLoading;
@@ -386,12 +366,38 @@ const EngagementManagementMain: React.FC = () => {
   }, []);
 
   // Filter engagements based on search term (already filtered by query, but keep for UI search)
-  const filteredEngagements = engagements.filter(
-    (engagement) =>
-      engagement.engagement_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      engagement.client_account_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      engagement.engagement_manager?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEngagements = Array.isArray(engagements)
+    ? engagements.filter((engagement) => {
+        // Debug each engagement
+        console.log('🔍 Filtering engagement:', engagement);
+
+        // Handle case where engagement might be null or have missing properties
+        if (!engagement) {
+          console.warn('⚠️ Null engagement in filter');
+          return false;
+        }
+
+        // If no search term, include all valid engagements
+        if (!searchTerm) {
+          return true;
+        }
+
+        // Safe property access with optional chaining
+        const name = engagement.engagement_name || engagement.name || '';
+        const clientName = engagement.client_account_name || '';
+        const manager = engagement.engagement_manager || '';
+
+        const matchesSearch =
+          name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          manager.toLowerCase().includes(searchTerm.toLowerCase());
+
+        return matchesSearch;
+      })
+    : [];
+
+  console.log('🔍 Filtered engagements:', filteredEngagements);
+  console.log('🔍 Filtered count:', filteredEngagements.length);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
