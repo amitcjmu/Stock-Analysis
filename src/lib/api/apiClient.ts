@@ -229,29 +229,27 @@ class ApiClient {
       url = `${this.baseUrl}${normalizedEndpoint}`;
     }
 
-    // CRITICAL FIX FOR ISSUE #306: Block asset calls without Flow ID
-    // Check if this is a flow-dependent asset endpoint
-    const flowDependentEndpoints = [
-      '/api/v1/unified-discovery/assets',
-      '/unified-discovery/assets'
-    ];
+    // CRITICAL FIX FOR ISSUE #306: Enforce Flow ID for all discovery endpoints
+    // Check if this is a discovery endpoint that requires Flow ID
+    const isDiscoveryEndpoint = normalizedEndpoint.startsWith('/api/v1/unified-discovery/') ||
+                                normalizedEndpoint.startsWith('/api/v1/discovery/');
 
-    const isFlowDependentEndpoint = flowDependentEndpoints.some(assetEndpoint =>
-      normalizedEndpoint.includes(assetEndpoint)
-    );
-
-    if (isFlowDependentEndpoint) {
-      // Check if Flow ID is available in headers (will be added by getAuthHeaders)
+    if (isDiscoveryEndpoint) {
+      // Merge auth headers with caller's headers to check for Flow ID
       const authHeaders = getAuthHeaders();
-      if (!authHeaders['X-Flow-ID']) {
-        console.warn(`🚫 Blocking asset request without Flow ID: ${normalizedEndpoint}`);
-        throw new ApiError(400, 'Flow ID required for asset operations. Please ensure a discovery flow is selected.', {
+      const callerHeaders = (options.headers || {}) as Record<string, string>;
+      const combinedHeaders = { ...authHeaders, ...callerHeaders };
+
+      if (!combinedHeaders['X-Flow-ID']) {
+        console.warn(`🚫 Blocking discovery request without Flow ID: ${normalizedEndpoint}`);
+        throw new ApiError(400, 'Flow ID required for discovery operations. Please ensure a discovery flow is selected.', {
           code: 'FLOW_ID_REQUIRED',
           endpoint: normalizedEndpoint,
-          message: 'Asset operations require an active discovery flow context'
+          message: 'Discovery operations require an active discovery flow context'
         }, requestId);
       }
-      console.log(`✅ Asset request with Flow ID: ${authHeaders['X-Flow-ID']}`);
+      // Remove sensitive logging - just use debug if needed
+      // console.debug('Discovery request allowed with Flow context');
     }
 
     const method = (options.method || 'GET').toUpperCase();

@@ -213,23 +213,34 @@ const DataCleansing: React.FC = () => {
       if (effectiveFlowId && flow && setCurrentFlow) {
         SecureLogger.info('Setting flow context before navigation', { flowId: effectiveFlowId });
 
-        // Ensure the flow is set in the auth context
-        setCurrentFlow({
+        // Update localStorage first for immediate availability
+        const flowContext = {
           id: effectiveFlowId,
           name: flow.name || 'Discovery Flow',
           status: flow.status || 'active',
           engagement_id: engagement?.id
-        });
+        };
 
-        // Also update localStorage directly to ensure immediate availability
+        // Synchronously update localStorage to ensure it's available immediately
         localStorage.setItem('auth_flow', JSON.stringify({
           id: effectiveFlowId,
           name: flow.name || 'Discovery Flow',
           status: flow.status || 'active'
         }));
 
-        // Small delay to ensure context propagation
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Then update the auth context (this should be synchronous)
+        setCurrentFlow(flowContext);
+
+        // Verify the context was set properly
+        const storedFlow = localStorage.getItem('auth_flow');
+        if (!storedFlow || !JSON.parse(storedFlow).id) {
+          SecureLogger.error('Flow context not properly stored, retrying');
+          localStorage.setItem('auth_flow', JSON.stringify({
+            id: effectiveFlowId,
+            name: flow.name || 'Discovery Flow',
+            status: flow.status || 'active'
+          }));
+        }
 
         SecureLogger.info('Flow context set successfully before navigation');
       }
