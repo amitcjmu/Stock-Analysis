@@ -27,6 +27,34 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+async def _get_import_raw_data(db: AsyncSession, data_import_id: str):
+    """Helper to get raw data for a data import."""
+    try:
+        from app.models.data_import.core import DataImport, RawImportRecord
+
+        # DataImport uses 'id' as primary key, not 'import_id'
+        import_query = select(DataImport).where(DataImport.id == data_import_id)
+        import_result = await db.execute(import_query)
+        data_import = import_result.scalar_one_or_none()
+
+        if data_import:
+            # Get raw records for this import
+            raw_records_query = (
+                select(RawImportRecord)
+                .where(RawImportRecord.data_import_id == data_import.id)
+                .order_by(RawImportRecord.row_number)
+            )
+            raw_result = await db.execute(raw_records_query)
+            raw_records = raw_result.scalars().all()
+
+            # Extract raw_data from records
+            return [record.raw_data for record in raw_records] if raw_records else []
+    except Exception as e:
+        logger.warning(f"Failed to get raw data for import {data_import_id}: {e}")
+
+    return []
+
+
 @router.get("/flows/{flow_id}/status")
 async def get_flow_status(
     flow_id: str,
@@ -95,8 +123,21 @@ async def get_flow_status(
                         "processed_assets": getattr(flow, "processed_assets", 0),
                         "agent_status": getattr(flow, "agent_status", {}),
                     },
+                    # Add import_metadata for frontend compatibility
+                    "import_metadata": {
+                        "import_id": flow.data_import_id,
+                        "data_import_id": flow.data_import_id,
+                    },
                 }
             )
+
+            # Add raw_data if available from data import
+            if flow.data_import_id:
+                raw_data = await _get_import_raw_data(db, flow.data_import_id)
+                flow_status["raw_data"] = raw_data
+                if raw_data:
+                    flow_status["flow_name"] = f"Discovery Import {flow.data_import_id}"
+                    logger.info(f"✅ Added {len(raw_data)} raw records to flow status")
 
             # Get extended state information if available
             try:
