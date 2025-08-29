@@ -173,7 +173,7 @@ export class DataImportValidationService {
    */
   static async getValidationByFlowId(flowId: string): Promise<ValidationResponse> {
     try {
-      const response = await apiCall(`/data-import/flow/${flowId}/validation`, {
+      const response = await apiCall(`/data-import/flows/${flowId}/validation`, {
         method: 'GET',
       }, true);
 

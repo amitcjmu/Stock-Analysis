@@ -17,6 +17,31 @@ import { tokenStorage } from "../../contexts/AuthContext/storage";
 const apiClient = ApiClient.getInstance();
 import type { AuthService } from "../../contexts/AuthContext/services/authService";
 
+// Centralized flow endpoints - ALL use plural /flows/
+const FLOW_ENDPOINTS = {
+  // Unified Discovery
+  initialize: '/unified-discovery/flows/initialize',
+  list: '/unified-discovery/flows/active',
+  status: (id: string) => `/unified-discovery/flows/${id}/status`,
+  execute: (id: string) => `/unified-discovery/flows/${id}/execute`,
+  pause: (id: string) => `/unified-discovery/flows/${id}/pause`,
+  resume: (id: string) => `/unified-discovery/flows/${id}/resume`,
+  retry: (id: string) => `/unified-discovery/flows/${id}/retry`,
+  delete: (id: string) => `/unified-discovery/flows/${id}`,
+  config: (id: string) => `/unified-discovery/flows/${id}/config`,
+  fieldMappings: (id: string) => `/unified-discovery/flows/${id}/field-mappings`,
+
+  // Data Import
+  importData: (id: string) => `/data-import/flows/${id}/import-data`,
+  validation: (id: string) => `/data-import/flows/${id}/validation`,
+
+  // Agent Insights
+  agentInsights: (id: string) => `/agent-insights/flows/${id}/agent-insights`,
+
+  // Flow Health
+  health: '/flows/health',
+} as const;
+
 export interface FlowConfiguration extends BaseMetadata {
   flow_name?: string;
   auto_retry?: boolean;
@@ -230,7 +255,7 @@ export const masterFlowService = {
   ): Promise<FlowStatusResponse> {
     try {
       const response = await apiClient.get<FlowStatusResponse>(
-        `/unified-discovery/flows/${flow_id}/status`,
+        FLOW_ENDPOINTS.status(flow_id),
         {
           headers: getMultiTenantHeaders(client_account_id, engagement_id),
         },
@@ -368,7 +393,7 @@ export const masterFlowService = {
 
       try {
         // Try unified-discovery endpoint as fallback
-        const fallbackEndpoint = `/unified-discovery/flows/active${params.toString() ? `?${params}` : ""}`;
+        const fallbackEndpoint = `${FLOW_ENDPOINTS.list}${params.toString() ? `?${params}` : ""}`;
 
         if (process.env.NODE_ENV !== 'production') {
           console.log(
@@ -535,7 +560,7 @@ export const masterFlowService = {
 
       try {
         // Try unified-discovery endpoint as fallback
-        const fallbackEndpoint = `/unified-discovery/flows/${flowId}`;
+        const fallbackEndpoint = FLOW_ENDPOINTS.delete(flowId);
 
         if (process.env.NODE_ENV !== 'production') {
           console.log("🔍 MasterFlowService.deleteFlow - Fallback deletion:", {
@@ -589,7 +614,7 @@ export const masterFlowService = {
     engagementId?: string,
   ): Promise<void> {
     try {
-      await apiClient.put(`/flows/${flowId}/config`, config, {
+      await apiClient.put(FLOW_ENDPOINTS.config(flowId), config, {
         headers: getMultiTenantHeaders(clientAccountId, engagementId),
       });
     } catch (error) {
@@ -608,7 +633,7 @@ export const masterFlowService = {
   ): Promise<void> {
     try {
       await apiClient.post(
-        `/flows/${flowId}/pause`,
+        FLOW_ENDPOINTS.pause(flowId),
         {},
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
@@ -696,7 +721,7 @@ export const masterFlowService = {
         data?: Record<string, unknown>;
         errors?: string[];
       }>(
-        `/flows/${flowId}/execute`,
+        FLOW_ENDPOINTS.execute(flowId),
         {
           phase,
           phase_input: data,

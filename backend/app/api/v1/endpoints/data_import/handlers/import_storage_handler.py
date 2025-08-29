@@ -155,7 +155,7 @@ async def get_import_by_id(data_import_id: str, db: AsyncSession = Depends(get_d
         )
 
 
-@router.get("/flow/{flow_id}/import-data")
+@router.get("/flows/{flow_id}/import-data")
 async def get_import_data_by_flow_id(
     flow_id: str, request: Request, db: AsyncSession = Depends(get_db)
 ):

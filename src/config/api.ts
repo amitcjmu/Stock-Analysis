@@ -118,7 +118,7 @@ export const API_CONFIG = {
       // Agent endpoints - Updated to unified-discovery as part of API migration
       AGENT_CLARIFICATION: '/unified-discovery/agents/agent-clarification',  // Updated to unified-discovery endpoint as part of API migration
       AGENT_STATUS: '/agents/discovery/agent-status',
-      AGENTIC_ANALYSIS_STATUS: '/unified-discovery/flow/agent/crew/analysis/status',  // Updated to unified-discovery endpoint as part of API migration
+      AGENTIC_ANALYSIS_STATUS: '/unified-discovery/flows/agent/crew/analysis/status',  // Updated to unified-discovery endpoint as part of API migration
       AGENT_LEARNING: '/agents/discovery/learning/agent-learning',
       APPLICATION_PORTFOLIO: '/unified-discovery/agents/application-portfolio',  // Updated to unified-discovery endpoint as part of API migration
       APPLICATION_VALIDATION: '/unified-discovery/agents/application-validation',  // Updated to unified-discovery endpoint as part of API migration

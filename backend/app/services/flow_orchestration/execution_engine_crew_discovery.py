@@ -35,9 +35,13 @@ class ExecutionEngineDiscoveryCrews:
         phase_input["client_account_id"] = master_flow.client_account_id
         phase_input["engagement_id"] = master_flow.engagement_id
 
-        # Get data_import_id from metadata if available
-        if hasattr(master_flow, "metadata") and master_flow.metadata:
-            phase_input["data_import_id"] = master_flow.metadata.get("data_import_id")
+        # Get data_import_id from flow_metadata if available
+        if hasattr(master_flow, "flow_metadata") and master_flow.flow_metadata:
+            # flow_metadata is a JSONB column, accessed directly
+            if isinstance(master_flow.flow_metadata, dict):
+                phase_input["data_import_id"] = master_flow.flow_metadata.get(
+                    "data_import_id"
+                )
 
         # Retrieve flow data from persistence to ensure raw_data is available
         if master_flow.flow_persistence_data:

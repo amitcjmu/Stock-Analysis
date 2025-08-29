@@ -16,7 +16,7 @@ from ..services.mapping_service import MappingService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/approval")
+router = APIRouter(prefix="/field-mappings/approval")
 
 
 def get_mapping_service(

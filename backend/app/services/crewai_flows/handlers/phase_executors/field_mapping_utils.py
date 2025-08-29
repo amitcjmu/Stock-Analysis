@@ -120,6 +120,7 @@ def prepare_crew_input_from_state(state: Any) -> Dict[str, Any]:
     Security:
         - Provides safe defaults for missing data to prevent execution errors
         - Validates state object structure before accessing attributes
+        - Ensures flow_id is converted to string for compatibility
     """
     try:
         # Extract data from the current state
@@ -127,8 +128,13 @@ def prepare_crew_input_from_state(state: Any) -> Dict[str, Any]:
         field_mappings = getattr(state, "field_mappings", [])
         raw_data = getattr(state, "raw_data", [])
 
+        # Get flow_id and ensure it's a string (not UUID object)
+        flow_id = getattr(state, "flow_id", None)
+        if flow_id and not isinstance(flow_id, str):
+            flow_id = str(flow_id)
+
         crew_input = {
-            "flow_id": getattr(state, "flow_id", None),
+            "flow_id": flow_id,
             "discovery_data": discovery_data,
             "sample_data": discovery_data.get("sample_data", raw_data),
             "detected_columns": discovery_data.get("detected_columns", []),
@@ -144,9 +150,13 @@ def prepare_crew_input_from_state(state: Any) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Failed to prepare crew input: {str(e)}")
-        # Return minimal valid input
+        # Return minimal valid input with flow_id as string
+        flow_id = getattr(state, "flow_id", "unknown")
+        if flow_id and not isinstance(flow_id, str):
+            flow_id = str(flow_id)
+
         return {
-            "flow_id": getattr(state, "flow_id", "unknown"),
+            "flow_id": flow_id,
             "discovery_data": {},
             "sample_data": [],
             "detected_columns": [],

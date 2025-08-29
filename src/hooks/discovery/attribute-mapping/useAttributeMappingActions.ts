@@ -128,7 +128,7 @@ export const useAttributeMappingActions = (
         console.log('🔁 Executing field mapping phase');
         console.log('📊 Current mappings:', fieldMappings?.slice(0, 3));
 
-        const result = await apiCall(`/api/v1/unified-discovery/flow/${flowId}/execute`, {
+        const result = await apiCall(`/api/v1/unified-discovery/flows/${flowId}/execute`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -88,7 +88,6 @@ def register_conditional_routers(api_router: APIRouter):
         dependency_analysis_router,
         agent_insights_router,
         clarifications_router,
-        flow_management_router,
         COLLECTION_AVAILABLE,
         collection_router,
         FLOW_PROCESSING_AVAILABLE,
@@ -156,11 +155,6 @@ def register_conditional_routers(api_router: APIRouter):
 
         api_router.include_router(clarifications_router, prefix="/unified-discovery")
         logger.info("✅ Clarifications router included at /unified-discovery")
-
-        api_router.include_router(
-            flow_management_router, prefix="/unified-discovery/flow"
-        )
-        logger.info("✅ Flow Management router included at /unified-discovery/flow")
     else:
         logger.warning("⚠️ Unified Discovery Flow API router not available")
 
@@ -325,7 +319,7 @@ def register_special_routers(api_router: APIRouter):
     # Flow Health
     if routers_with_flags.get("FLOW_HEALTH", (False, None))[0]:
         flow_health_router = routers_with_flags["FLOW_HEALTH"][1]
-        api_router.include_router(flow_health_router, prefix="/flow/health")
+        api_router.include_router(flow_health_router, prefix="/flows/health")
         logger.info("✅ Flow Health router included")
     else:
         logger.warning("⚠️ Flow Health router not available")

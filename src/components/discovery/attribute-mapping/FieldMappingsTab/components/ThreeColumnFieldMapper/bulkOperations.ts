@@ -8,11 +8,8 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { FieldMapping } from '../../types';
 import type { BulkOperationResult, AuthContext, ApiResponse } from './types';
 
-// CC: Extended field mapping interface for bulk operations
-interface ExtendedFieldMapping extends FieldMapping {
-  is_placeholder?: boolean;
-  is_fallback?: boolean;
-}
+// CC: Use standard FieldMapping interface for bulk operations
+type ExtendedFieldMapping = FieldMapping;
 
 // CC: Global window extensions for toast notifications
 declare global {
@@ -49,11 +46,8 @@ export const createBulkApproveHandler = ({
   return async (mappingIds: string[]) => {
     if (mappingIds.length === 0) return;
 
-    // Filter out placeholder and fallback mappings that shouldn't be approved via API
-    const validMappingIds = mappingIds.filter(id => {
-      const mapping = fieldMappings.find(m => m.id === id);
-      return !(mapping && (mapping.is_placeholder || mapping.is_fallback));
-    });
+    // All mappings are now valid since we removed placeholders/fallbacks
+    const validMappingIds = mappingIds;
 
     if (validMappingIds.length === 0) {
       if (typeof window !== 'undefined' && window.showWarningToast) {

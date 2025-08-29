@@ -123,7 +123,7 @@ class VectorUtils:
                 # Build the query with optional pattern type filter
                 type_filter = ""
                 if pattern_type:
-                    type_filter = "AND pattern_type = :pattern_type"
+                    type_filter = "AND pattern_type = :pattern_type::patterntype"
 
                 # Use pgvector cosine similarity search
                 query = text(

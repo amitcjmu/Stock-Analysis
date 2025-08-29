@@ -204,7 +204,6 @@ class FieldMappingLearningService:
                 and_(
                     ImportFieldMapping.id == mapping_uuid,
                     ImportFieldMapping.client_account_id == self.client_account_id,
-                    ImportFieldMapping.engagement_id == self.engagement_id,
                 )
             )
             result = await self.db.execute(query)

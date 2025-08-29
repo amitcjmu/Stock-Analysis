@@ -182,7 +182,7 @@ export const useCMDBImport = (): JSX.Element => {
 
       for (const file of processingFiles) {
         try {
-          const response = await apiCall(`/api/v1/unified-discovery/flow/${file.flow_id}/status`, {
+          const response = await apiCall(`/api/v1/unified-discovery/flows/${file.flow_id}/status`, {
             headers: getAuthHeaders()
           });
 
@@ -287,7 +287,7 @@ export const useCMDBImport = (): JSX.Element => {
 
     // Resume/execute discovery flow so field mapping runs before navigation
     try {
-      await apiCall(`/api/v1/unified-discovery/flow/${uploadedFile.flow_id}/execute`, {
+      await apiCall(`/api/v1/unified-discovery/flows/${uploadedFile.flow_id}/execute`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ phase: 'field_mapping_suggestions', phase_input: {}, force: false })

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/flow/{flow_id}/agent-insights")
+@router.get("/flows/{flow_id}/agent-insights")
 async def get_agent_insights(
     flow_id: str,
     db: AsyncSession = Depends(get_db),

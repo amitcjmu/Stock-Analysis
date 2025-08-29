@@ -71,7 +71,6 @@ async def get_field_mappings(
                 and_(
                     ImportFieldMapping.data_import_id == flow.data_import_id,
                     ImportFieldMapping.client_account_id == context.client_account_id,
-                    ImportFieldMapping.engagement_id == context.engagement_id,
                 )
             )
             mapping_result = await db.execute(mapping_stmt)
@@ -184,7 +183,6 @@ async def approve_field_mapping(
             and_(
                 ImportFieldMapping.id == mapping_id,
                 ImportFieldMapping.client_account_id == context.client_account_id,
-                ImportFieldMapping.engagement_id == context.engagement_id,
             )
         )
         result = await db.execute(stmt)

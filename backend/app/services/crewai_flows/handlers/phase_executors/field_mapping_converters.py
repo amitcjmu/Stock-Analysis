@@ -39,6 +39,9 @@ def convert_crew_input_to_state(crew_input: Dict[str, Any], state: Any) -> Any:
     engagement_id = getattr(state, "engagement_id", "unknown")
     client_account_id = getattr(state, "client_account_id", "unknown")
     flow_id = crew_input.get("flow_id", f"compat_{engagement_id}")
+    # Ensure flow_id is a string, not a UUID object
+    if not isinstance(flow_id, str):
+        flow_id = str(flow_id)
     discovery_data = crew_input.get("discovery_data", {})
 
     # Ensure discovery_data has required fields
@@ -49,6 +52,14 @@ def convert_crew_input_to_state(crew_input: Dict[str, Any], state: Any) -> Any:
     if "data_source_info" not in discovery_data:
         discovery_data["data_source_info"] = crew_input.get("data_source_info", {})
 
+    # Get field mappings - ensure it's a dict, not a list
+    field_mappings = crew_input.get("previous_mappings", {})
+    if isinstance(field_mappings, list):
+        # Convert list to dict format if needed
+        field_mappings = {"mappings": field_mappings}
+    elif not isinstance(field_mappings, dict):
+        field_mappings = {}
+
     # Create state object
     mock_state = UnifiedDiscoveryFlowState(
         flow_id=flow_id,
@@ -57,7 +68,7 @@ def convert_crew_input_to_state(crew_input: Dict[str, Any], state: Any) -> Any:
         flow_type="unified_discovery",
         current_phase="field_mapping",
         discovery_data=discovery_data,
-        field_mappings=crew_input.get("previous_mappings", []),
+        field_mappings=field_mappings,
     )
 
     logger.info(
@@ -144,12 +155,18 @@ def convert_flow_state_to_crew_input(flow_state: Any) -> Dict[str, Any]:
         - Safely extracts nested data with defaults
         - Handles missing attributes gracefully
         - Validates data structure before access
+        - Ensures flow_id is converted to string for compatibility
     """
     try:
         discovery_data = getattr(flow_state, "discovery_data", {})
 
+        # Get flow_id and ensure it's a string (not UUID object)
+        flow_id = getattr(flow_state, "flow_id", "unknown")
+        if flow_id and not isinstance(flow_id, str):
+            flow_id = str(flow_id)
+
         crew_input = {
-            "flow_id": getattr(flow_state, "flow_id", "unknown"),
+            "flow_id": flow_id,
             "discovery_data": discovery_data,
             "sample_data": discovery_data.get("sample_data", []),
             "detected_columns": discovery_data.get("detected_columns", []),
