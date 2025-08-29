@@ -168,7 +168,7 @@ class FlowOperations:
     ) -> Tuple[str, Dict[str, Any]]:
         """Delegate flow creation to specialized creation operations module"""
         return await self.creation_ops.create_flow(
-            flow_type, flow_name, configuration, initial_state
+            flow_type, flow_name, configuration, initial_state, atomic
         )
 
     async def execute_phase(
