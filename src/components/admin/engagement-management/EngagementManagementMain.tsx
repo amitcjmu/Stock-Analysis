@@ -48,7 +48,7 @@ const EngagementManagementMain: React.FC = () => {
         if (filterClient !== 'all') params.append('client_account_id', filterClient);
         if (filterPhase !== 'all') params.append('phase', filterPhase);
         params.append('page', currentPage.toString());
-        params.append('limit', '10');
+        params.append('page_size', '20'); // Changed from 'limit' to 'page_size' to match backend
 
         const queryString = params.toString();
         console.log('🔍 Fetching engagements with query:', queryString);
@@ -66,6 +66,10 @@ const EngagementManagementMain: React.FC = () => {
           return result;
         } else if (result && result.items && Array.isArray(result.items)) {
           console.log('✅ Using items array format, length:', result.items.length);
+          // Also update pagination if available
+          if (result.total_pages) {
+            setTotalPages(result.total_pages);
+          }
           return result.items;
         } else if (result && result.engagements && Array.isArray(result.engagements)) {
           console.log('✅ Using engagements array format, length:', result.engagements.length);
@@ -88,19 +92,18 @@ const EngagementManagementMain: React.FC = () => {
         return [];
       }
     },
-    initialData: [],
     retry: (failureCount, error: unknown) => {
       // Only retry on network errors, not on 404/403 which are expected
-      if (error.status === 404 || error.status === 403) {
+      if (error?.status === 404 || error?.status === 403) {
         return false;
       }
       return failureCount < 2;
     },
     enabled: true, // Force query to be enabled
-    refetchOnMount: true, // Force refetch on mount
+    refetchOnMount: 'always', // Force refetch on mount
     refetchOnWindowFocus: false, // Prevent excessive refetches
     staleTime: 0, // Always consider data stale
-    cacheTime: 0, // Don't cache the data
+    gcTime: 0, // Don't keep in cache (replacement for deprecated cacheTime)
   });
   const engagements = engagementsQuery.data || [];
   const engagementsLoading = engagementsQuery.isLoading;
@@ -151,12 +154,11 @@ const EngagementManagementMain: React.FC = () => {
         return [];
       }
     },
-    initialData: [],
     retry: 2,
     enabled: true,
-    refetchOnMount: true,
+    refetchOnMount: 'always',
     staleTime: 0, // Always consider data stale
-    cacheTime: 0, // Don't cache the data
+    gcTime: 0, // Don't keep in cache (replacement for deprecated cacheTime)
   });
   const clients = clientsQuery.data || [];
   const clientsLoading = clientsQuery.isLoading;
