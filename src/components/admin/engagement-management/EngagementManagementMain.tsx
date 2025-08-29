@@ -39,76 +39,49 @@ const EngagementManagementMain: React.FC = () => {
 
   // Server state: useQuery for API data
   const engagementsQuery = useQuery<Engagement[]>({
-    queryKey: ['engagements', searchTerm, filterClient, filterPhase, currentPage],
+    queryKey: ['engagements', filterClient, filterPhase, currentPage], // Removed searchTerm from key
     queryFn: async () => {
-      try {
-        // Build query parameters
-        const params = new URLSearchParams();
-        if (searchTerm) params.append('search', searchTerm);
-        if (filterClient !== 'all') params.append('client_account_id', filterClient);
-        if (filterPhase !== 'all') params.append('phase', filterPhase);
-        params.append('page', currentPage.toString());
-        params.append('page_size', '20'); // Changed from 'limit' to 'page_size' to match backend
+      // Build query parameters
+      const params = new URLSearchParams();
+      // Don't include search in API call - handle it client-side
+      if (filterClient !== 'all') params.append('client_account_id', filterClient);
+      if (filterPhase !== 'all') params.append('phase', filterPhase);
+      params.append('page', currentPage.toString());
+      params.append('page_size', '20');
 
-        const queryString = params.toString();
-        console.log('🔍 Fetching engagements with query:', queryString);
+      const queryString = params.toString();
+      console.log('🔍 Fetching engagements with query:', queryString);
 
-        const result = await apiCall(
-          `/api/v1/admin/engagements/${queryString ? '?' + queryString : ''}`
-        );
-        console.log('🔍 Engagements API result:', result);
-        console.log('🔍 Engagements API result type:', typeof result);
-        console.log('🔍 Engagements API result keys:', result ? Object.keys(result) : 'null');
+      const result = await apiCall(
+        `/api/v1/admin/engagements/${queryString ? '?' + queryString : ''}`
+      );
+      console.log('🔍 Engagements API raw result:', result);
 
-        // Handle different response formats
-        if (result && Array.isArray(result)) {
-          console.log('✅ Using direct array format, length:', result.length);
-          return result;
-        } else if (result && result.items && Array.isArray(result.items)) {
-          console.log('✅ Using items array format, length:', result.items.length);
-          console.log('🔍 First item in result.items:', result.items[0]);
-          console.log('🔍 All items:', result.items);
-          // Also update pagination if available
-          if (result.total_pages) {
-            setTotalPages(result.total_pages);
-          }
-          const itemsToReturn = result.items;
-          console.log('🔍 About to return items:', itemsToReturn);
-          console.log('🔍 Items length:', itemsToReturn.length);
-          return itemsToReturn;
-        } else if (result && result.engagements && Array.isArray(result.engagements)) {
-          console.log('✅ Using engagements array format, length:', result.engagements.length);
-          return result.engagements;
-        } else if (result && result.data && Array.isArray(result.data)) {
-          console.log('✅ Using data array format, length:', result.data.length);
-          return result.data;
-        } else {
-          console.warn('⚠️ Unexpected engagements API response format:', result);
-          return [];
+      // Handle paginated response
+      if (result && typeof result === 'object' && 'items' in result) {
+        console.log('✅ Found items in result, count:', result.items?.length || 0);
+        console.log('🔍 Items content:', result.items);
+
+        // Update pagination
+        if (result.total_pages) {
+          setTotalPages(result.total_pages);
         }
-      } catch (error: unknown) {
-        console.error('❌ Error fetching engagements:', {
-          error: error.message || error,
-          status: error.status,
-          endpoint: `/api/v1/admin/engagements/${queryString ? '?' + queryString : ''}`,
-        });
 
-        // If 404 or other error, still try to return empty array but log the issue
-        return [];
+        // Return the items array directly
+        return result.items || [];
       }
-    },
-    retry: (failureCount, error: unknown) => {
-      // Only retry on network errors, not on 404/403 which are expected
-      if (error?.status === 404 || error?.status === 403) {
-        return false;
+
+      // Handle direct array response
+      if (Array.isArray(result)) {
+        console.log('✅ Direct array result, count:', result.length);
+        return result;
       }
-      return failureCount < 2;
+
+      console.warn('⚠️ Unexpected response format:', result);
+      return [];
     },
-    enabled: true, // Force query to be enabled
-    refetchOnMount: 'always', // Force refetch on mount
-    refetchOnWindowFocus: false, // Prevent excessive refetches
-    staleTime: 0, // Always consider data stale
-    gcTime: 0, // Don't keep in cache (replacement for deprecated cacheTime)
+    // Simplified configuration
+    refetchOnWindowFocus: false,
   });
   const engagements = engagementsQuery.data || [];
   const engagementsLoading = engagementsQuery.isLoading;
@@ -146,30 +119,24 @@ const EngagementManagementMain: React.FC = () => {
   const clientsQuery = useQuery<Client[]>({
     queryKey: ['clients'],
     queryFn: async () => {
-      console.log('🔍 Fetching clients for engagement management...');
-      const result = await apiCall('/api/v1/admin/clients/?limit=100');
+      console.log('🔍 Fetching clients...');
+      const result = await apiCall('/api/v1/admin/clients/?page_size=100');
       console.log('🔍 Clients API result:', result);
 
-      // Handle different response formats
-      if (result && Array.isArray(result)) {
-        console.log('✅ Using direct array format for clients');
-        return result;
-      } else if (result && result.items && Array.isArray(result.items)) {
-        console.log('✅ Using items array format for clients');
-        return result.items;
-      } else if (result && result.clients && Array.isArray(result.clients)) {
-        console.log('✅ Using clients array format for clients');
-        return result.clients;
-      } else {
-        console.warn('⚠️ Unexpected clients API response format:', result);
-        return [];
+      // Handle paginated response
+      if (result && typeof result === 'object' && 'items' in result) {
+        console.log('✅ Found items in clients result, count:', result.items?.length || 0);
+        return result.items || [];
       }
+
+      // Handle direct array
+      if (Array.isArray(result)) {
+        return result;
+      }
+
+      return [];
     },
-    retry: 2,
-    enabled: true,
-    refetchOnMount: 'always',
-    staleTime: 0, // Always consider data stale
-    gcTime: 0, // Don't keep in cache (replacement for deprecated cacheTime)
+    refetchOnWindowFocus: false,
   });
   const clients = clientsQuery.data || [];
   const clientsLoading = clientsQuery.isLoading;
