@@ -229,6 +229,31 @@ class ApiClient {
       url = `${this.baseUrl}${normalizedEndpoint}`;
     }
 
+    // CRITICAL FIX FOR ISSUE #306: Block asset calls without Flow ID
+    // Check if this is a flow-dependent asset endpoint
+    const flowDependentEndpoints = [
+      '/api/v1/unified-discovery/assets',
+      '/unified-discovery/assets'
+    ];
+
+    const isFlowDependentEndpoint = flowDependentEndpoints.some(assetEndpoint =>
+      normalizedEndpoint.includes(assetEndpoint)
+    );
+
+    if (isFlowDependentEndpoint) {
+      // Check if Flow ID is available in headers (will be added by getAuthHeaders)
+      const authHeaders = getAuthHeaders();
+      if (!authHeaders['X-Flow-ID']) {
+        console.warn(`🚫 Blocking asset request without Flow ID: ${normalizedEndpoint}`);
+        throw new ApiError(400, 'Flow ID required for asset operations. Please ensure a discovery flow is selected.', {
+          code: 'FLOW_ID_REQUIRED',
+          endpoint: normalizedEndpoint,
+          message: 'Asset operations require an active discovery flow context'
+        }, requestId);
+      }
+      console.log(`✅ Asset request with Flow ID: ${authHeaders['X-Flow-ID']}`);
+    }
+
     const method = (options.method || 'GET').toUpperCase();
 
     try {

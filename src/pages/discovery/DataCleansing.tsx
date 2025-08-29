@@ -31,7 +31,7 @@ import { AlertTriangle } from 'lucide-react'
 import { Download, FileText, CheckCircle, Activity } from 'lucide-react'
 
 const DataCleansing: React.FC = () => {
-  const { user, client, engagement, isLoading: isAuthLoading } = useAuth();
+  const { user, client, engagement, isLoading: isAuthLoading, setCurrentFlow } = useAuth();
   const [pendingQuestions, setPendingQuestions] = useState(0);
 
   // Get URL flow ID from params
@@ -206,6 +206,32 @@ const DataCleansing: React.FC = () => {
       if (flow && !flow.phase_completion?.data_cleansing) {
         SecureLogger.info('Marking data cleansing phase as complete');
         await executeFlowPhase('data_cleansing', { complete: true });
+      }
+
+      // CRITICAL FIX FOR ISSUE #306: Ensure flow ID is properly set in AuthContext
+      // before navigation to prevent race condition
+      if (effectiveFlowId && flow && setCurrentFlow) {
+        SecureLogger.info('Setting flow context before navigation', { flowId: effectiveFlowId });
+
+        // Ensure the flow is set in the auth context
+        setCurrentFlow({
+          id: effectiveFlowId,
+          name: flow.name || 'Discovery Flow',
+          status: flow.status || 'active',
+          engagement_id: engagement?.id
+        });
+
+        // Also update localStorage directly to ensure immediate availability
+        localStorage.setItem('auth_flow', JSON.stringify({
+          id: effectiveFlowId,
+          name: flow.name || 'Discovery Flow',
+          status: flow.status || 'active'
+        }));
+
+        // Small delay to ensure context propagation
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        SecureLogger.info('Flow context set successfully before navigation');
       }
 
       // Secure navigation to asset inventory
