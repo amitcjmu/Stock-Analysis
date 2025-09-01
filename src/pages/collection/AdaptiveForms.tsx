@@ -99,9 +99,16 @@ const AdaptiveForms: React.FC = () => {
       await refetchFlows();
       setHasJustDeleted(true);
       
-      // Remove from deleting set
+      // Remove from deleting set only for successfully deleted flows
       result.results.forEach((res) => {
         if (res.success) {
+          setDeletingFlows((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(res.flowId);
+            return newSet;
+          });
+        } else {
+          // Failed deletion - unhide the flow
           setDeletingFlows((prev) => {
             const newSet = new Set(prev);
             newSet.delete(res.flowId);
@@ -112,6 +119,16 @@ const AdaptiveForms: React.FC = () => {
     },
     (error) => {
       console.error('Flow deletion failed:', error);
+      
+      // On error, unhide all flows that were being deleted
+      deletionState.candidates.forEach((flowId) => {
+        setDeletingFlows((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(flowId);
+          return newSet;
+        });
+      });
+      
       toast({
         title: "Error",
         description: error.message || "Failed to delete flow",
@@ -293,10 +310,7 @@ const AdaptiveForms: React.FC = () => {
       return;
     }
 
-    // Mark this flow as being deleted to hide it from UI immediately
-    setDeletingFlows((prev) => new Set(prev).add(flowId));
-
-    // Request deletion with modal confirmation
+    // Request deletion with modal confirmation (no pre-hiding)
     await deletionActions.requestDeletion(
       [flowId],
       client.id,
@@ -669,8 +683,24 @@ const AdaptiveForms: React.FC = () => {
         candidates={deletionState.candidates}
         deletionSource={deletionState.deletionSource}
         isDeleting={deletionState.isDeleting}
-        onConfirm={deletionActions.confirmDeletion}
-        onCancel={deletionActions.cancelDeletion}
+        onConfirm={async () => {
+          // Hide candidates only after user confirms
+          setDeletingFlows((prev) => {
+            const next = new Set(prev);
+            deletionState.candidates.forEach((id) => next.add(id));
+            return next;
+          });
+          await deletionActions.confirmDeletion();
+        }}
+        onCancel={() => {
+          deletionActions.cancelDeletion();
+          // Ensure items reappear if user cancels
+          setDeletingFlows((prev) => {
+            const next = new Set(prev);
+            deletionState.candidates.forEach((id) => next.delete(id));
+            return next;
+          });
+        }}
       />
     </CollectionPageLayout>
   );
