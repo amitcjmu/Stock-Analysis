@@ -274,7 +274,7 @@ class TenantScopedAgentPool:
             config=config,
             memory=memory,
             context=context,
-            tenant_id=self.client_account_id
+            client_id=self.client_account_id
         )
 ```
 

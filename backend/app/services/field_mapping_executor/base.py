@@ -175,11 +175,11 @@ class FieldMappingExecutor:
                 logger.warning("No agent pool available, using mock response")
                 return self._get_mock_agent_response(state)
 
-            # Get field mapping agent from the pool
-            agent = await self.agent_pool.get_agent(
+            # Get field mapping agent from the pool using correct method signature
+            agent = await self.agent_pool.get_or_create_agent(
+                client_id=str(self.client_account_id),
+                engagement_id=str(self.engagement_id),
                 agent_type="field_mapping",
-                client_account_id=self.client_account_id,
-                engagement_id=self.engagement_id,
             )
 
             if not agent:

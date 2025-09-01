@@ -8,6 +8,7 @@ import uuid
 
 from sqlalchemy import UUID, Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base, TimestampMixin
@@ -69,6 +70,49 @@ class CollectedDataInventory(Base, TimestampMixin):
     # Relationships
     collection_flow = relationship("CollectionFlow", back_populates="collected_data")
     adapter = relationship("PlatformAdapter", back_populates="collected_data")
+
+    # Hybrid properties for common normalized_data fields
+    # These provide direct access to JSONB fields without requiring actual columns
+    @hybrid_property
+    def ip_address(self):
+        """Extract IP address from normalized_data JSONB field."""
+        if self.normalized_data:
+            return self.normalized_data.get("ip_address")
+        return None
+
+    @hybrid_property
+    def server_name(self):
+        """Extract server name from normalized_data JSONB field."""
+        if self.normalized_data:
+            return self.normalized_data.get("server_name") or self.normalized_data.get(
+                "hostname"
+            )
+        return None
+
+    @hybrid_property
+    def os(self):
+        """Extract operating system from normalized_data JSONB field."""
+        if self.normalized_data:
+            return (
+                self.normalized_data.get("os")
+                or self.normalized_data.get("operating_system")
+                or self.normalized_data.get("platform")
+            )
+        return None
+
+    @hybrid_property
+    def hostname(self):
+        """Extract hostname from normalized_data JSONB field."""
+        if self.normalized_data:
+            return self.normalized_data.get("hostname") or self.normalized_data.get(
+                "server_name"
+            )
+        return None
+
+    @hybrid_property
+    def operating_system(self):
+        """Extract operating system from normalized_data JSONB field (alias for os)."""
+        return self.os
 
     def __repr__(self):
         return f"<CollectedDataInventory(id={self.id}, platform='{self.platform}', data_type='{self.data_type}')>"

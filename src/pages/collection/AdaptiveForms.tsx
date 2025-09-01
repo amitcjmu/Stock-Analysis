@@ -17,6 +17,8 @@ import {
   useIncompleteCollectionFlows,
   useCollectionFlowManagement,
 } from "@/hooks/collection/useCollectionFlowManagement";
+import { useFlowDeletion } from "@/hooks/useFlowDeletion";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCollectionWorkflowWebSocket } from "@/hooks/collection/useCollectionWorkflowWebSocket";
 import { useQuery } from "@tanstack/react-query";
 import { apiCall } from "@/config/api";
@@ -27,6 +29,7 @@ import type { ProgressMilestone } from "@/components/collection/types";
 // Import UI components
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
+import { FlowDeletionModal } from "@/components/flows/FlowDeletionModal";
 
 /**
  * Adaptive Forms collection page
@@ -36,6 +39,7 @@ const AdaptiveForms: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const { client, engagement, user } = useAuth();
 
   // Get application ID and flow ID from URL params
   const applicationId = searchParams.get("applicationId");
@@ -87,6 +91,34 @@ const AdaptiveForms: React.FC = () => {
 
   // Use collection flow management hook for flow operations
   const { deleteFlow, isDeleting } = useCollectionFlowManagement();
+
+  // Use the flow deletion hook with modal confirmation
+  const [deletionState, deletionActions] = useFlowDeletion(
+    async (result) => {
+      // Refresh flows after successful deletion
+      await refetchFlows();
+      setHasJustDeleted(true);
+      
+      // Remove from deleting set
+      result.results.forEach((res) => {
+        if (res.success) {
+          setDeletingFlows((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(res.flowId);
+            return newSet;
+          });
+        }
+      });
+    },
+    (error) => {
+      console.error('Flow deletion failed:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete flow",
+        variant: "destructive",
+      });
+    }
+  );
 
   // Use the adaptive form flow hook for all flow management
   const {
@@ -252,46 +284,26 @@ const AdaptiveForms: React.FC = () => {
   };
 
   const handleDeleteFlow = async (flowId: string): void => {
+    if (!client?.id) {
+      toast({
+        title: "Error",
+        description: "Client context is required for flow deletion",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Mark this flow as being deleted to hide it from UI immediately
     setDeletingFlows((prev) => new Set(prev).add(flowId));
 
-    try {
-      // Force delete the flow since it's stuck
-      await deleteFlow(flowId, true);
-
-      // Wait a bit for backend to process
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Manually invalidate and refetch the specific query
-      await queryClient.invalidateQueries({
-        queryKey: ["collection-flows", "incomplete"],
-        exact: true,
-      });
-
-      // Also refetch to ensure UI updates
-      await refetchFlows();
-
-      // Mark that we just deleted a flow to trigger re-initialization
-      setHasJustDeleted(true);
-    } catch (error: unknown) {
-      console.error("Failed to delete collection flow:", error);
-
-      // If deletion failed, remove from deleting set to show it again
-      setDeletingFlows((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(flowId);
-        return newSet;
-      });
-
-      // Show error toast if it's not a 404 (which means it was already deleted)
-      if (error?.status !== 404) {
-        toast({
-          title: "Delete Failed",
-          description: error?.message || "Failed to delete collection flow",
-          variant: "destructive",
-        });
-      }
-    }
+    // Request deletion with modal confirmation
+    await deletionActions.requestDeletion(
+      [flowId],
+      client.id,
+      engagement?.id,
+      'manual',
+      user?.id
+    );
   };
 
   const handleViewFlowDetails = (flowId: string, phase: string): void => {
@@ -649,6 +661,16 @@ const AdaptiveForms: React.FC = () => {
         onSave={directSaveHandler || handleSave}
         onSubmit={handleSubmit}
         onCancel={() => navigate("/collection")}
+      />
+      
+      {/* Flow Deletion Modal */}
+      <FlowDeletionModal
+        open={deletionState.isModalOpen}
+        candidates={deletionState.candidates}
+        deletionSource={deletionState.deletionSource}
+        isDeleting={deletionState.isDeleting}
+        onConfirm={deletionActions.confirmDeletion}
+        onCancel={deletionActions.cancelDeletion}
       />
     </CollectionPageLayout>
   );
