@@ -66,7 +66,7 @@ class CollectionFlowResponse(BaseModel):
 
 
 class CollectionGapAnalysisResponse(BaseModel):
-    """Schema for gap analysis response"""
+    """Schema for gap analysis response (DEPRECATED - for backwards compatibility)"""
 
     id: str
     collection_flow_id: str
@@ -80,6 +80,32 @@ class CollectionGapAnalysisResponse(BaseModel):
     recommended_collection_method: Optional[str] = None
     resolution_status: str
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CollectionGapAnalysisSummaryResponse(BaseModel):
+    """Schema for gap analysis summary response - matches actual database schema"""
+
+    id: str
+    client_account_id: str
+    engagement_id: str
+    collection_flow_id: str
+    total_fields_required: int
+    fields_collected: int
+    fields_missing: int
+    completeness_percentage: float
+    data_quality_score: Optional[float] = None
+    confidence_level: Optional[float] = None
+    automation_coverage: Optional[float] = None
+    critical_gaps: List[Dict[str, Any]] = Field(default_factory=list)  # JSONB list
+    optional_gaps: List[Dict[str, Any]] = Field(default_factory=list)  # JSONB list
+    gap_categories: Dict[str, List[str]] = Field(default_factory=dict)  # JSONB dict
+    recommended_actions: List[str] = Field(default_factory=list)
+    questionnaire_requirements: Dict[str, Any] = Field(default_factory=dict)
+    analyzed_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True

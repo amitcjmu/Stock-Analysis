@@ -98,12 +98,15 @@ class CollectedDataInventory(Base, TimestampMixin):
     def server_name(cls):
         """Enable SQL usage against the JSONB column."""
         from sqlalchemy import func, case
+
         return case(
             [
-                (cls.normalized_data["server_name"].astext.isnot(None), 
-                 cls.normalized_data["server_name"].astext)
+                (
+                    cls.normalized_data["server_name"].astext.isnot(None),
+                    cls.normalized_data["server_name"].astext,
+                )
             ],
-            else_=cls.normalized_data["hostname"].astext
+            else_=cls.normalized_data["hostname"].astext,
         )
 
     @hybrid_property
@@ -121,14 +124,19 @@ class CollectedDataInventory(Base, TimestampMixin):
     def os(cls):
         """Enable SQL usage against the JSONB column."""
         from sqlalchemy import func, case
+
         return case(
             [
-                (cls.normalized_data["os"].astext.isnot(None), 
-                 cls.normalized_data["os"].astext),
-                (cls.normalized_data["operating_system"].astext.isnot(None), 
-                 cls.normalized_data["operating_system"].astext)
+                (
+                    cls.normalized_data["os"].astext.isnot(None),
+                    cls.normalized_data["os"].astext,
+                ),
+                (
+                    cls.normalized_data["operating_system"].astext.isnot(None),
+                    cls.normalized_data["operating_system"].astext,
+                ),
             ],
-            else_=cls.normalized_data["platform"].astext
+            else_=cls.normalized_data["platform"].astext,
         )
 
     @hybrid_property
@@ -144,12 +152,15 @@ class CollectedDataInventory(Base, TimestampMixin):
     def hostname(cls):
         """Enable SQL usage against the JSONB column."""
         from sqlalchemy import func, case
+
         return case(
             [
-                (cls.normalized_data["hostname"].astext.isnot(None), 
-                 cls.normalized_data["hostname"].astext)
+                (
+                    cls.normalized_data["hostname"].astext.isnot(None),
+                    cls.normalized_data["hostname"].astext,
+                )
             ],
-            else_=cls.normalized_data["server_name"].astext
+            else_=cls.normalized_data["server_name"].astext,
         )
 
     @hybrid_property

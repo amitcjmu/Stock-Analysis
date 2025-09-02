@@ -411,91 +411,70 @@ export const useAdaptiveFormFlow = (
       }
 
       // Wait for CrewAI agents to complete gap analysis and generate questionnaires
-      // Implement robust timeout handling to prevent infinite loading
+      // Using HTTP polling instead of WebSocket for Vercel/Railway compatibility
       const INITIALIZATION_TIMEOUT = 10000; // 10 seconds max wait time
-      const POLL_INTERVAL = 1000; // Check every 1 second
-      const MAX_ATTEMPTS = Math.floor(INITIALIZATION_TIMEOUT / POLL_INTERVAL);
 
-      let attempts = 0;
       let agentQuestionnaires = [];
-      let flowFailed = false;
       let timeoutReached = false;
 
       console.log('⏳ Waiting for CrewAI agents to process through phases and generate questionnaires...');
       console.log('   Expected phases: PLATFORM_DETECTION -> AUTOMATED_COLLECTION -> GAP_ANALYSIS -> QUESTIONNAIRE_GENERATION');
-      console.log(`   Max wait time: ${INITIALIZATION_TIMEOUT / 1000} seconds with ${MAX_ATTEMPTS} attempts`);
+      console.log(`   Using HTTP polling with ${INITIALIZATION_TIMEOUT / 1000}s timeout`);
 
-      // Setup timeout to prevent infinite loading
-      let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
-      const timeoutPromise = new Promise<void>((_, reject) => {
-        timeoutHandle = setTimeout(() => {
-          timeoutReached = true;
-          reject(new Error(`Initialization timeout: CrewAI agents did not complete within ${INITIALIZATION_TIMEOUT / 1000} seconds`));
-        }, INITIALIZATION_TIMEOUT);
-      });
+      // Setup HTTP polling with timeout
+      const startTime = Date.now();
 
-      // Setup polling promise
-      const pollingPromise = new Promise<void>(async (resolve, reject) => {
-        while (agentQuestionnaires.length === 0 && !flowFailed && attempts < MAX_ATTEMPTS && !timeoutReached) {
-          await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
-          attempts++;
+      const pollForQuestionnaires = async (): Promise<void> => {
+        while (agentQuestionnaires.length === 0 && !timeoutReached) {
+          const elapsed = Date.now() - startTime;
+
+          if (elapsed >= INITIALIZATION_TIMEOUT) {
+            timeoutReached = true;
+            console.warn(`⚠️ HTTP polling timeout after ${elapsed}ms`);
+            break;
+          }
 
           try {
             // Check flow status to monitor phase progression
-            if (attempts % 3 === 0 || attempts === 1) {
-              flowStatus = await collectionFlowApi.getFlowStatus();
-              console.log(`📊 Flow status check (attempt ${attempts}/${MAX_ATTEMPTS}):`, {
-                status: flowStatus.status,
-                current_phase: flowStatus.current_phase,
-                message: flowStatus.message
-              });
+            flowStatus = await collectionFlowApi.getFlowStatus();
+            console.log(`📊 Flow status check (${elapsed}ms elapsed):`, {
+              status: flowStatus.status,
+              current_phase: flowStatus.current_phase,
+              message: flowStatus.message
+            });
 
-              if (flowStatus.status === 'error' || flowStatus.status === 'failed') {
-                console.error('❌ Collection flow failed:', flowStatus.message);
-                flowFailed = true;
-                reject(new Error(`Collection flow failed: ${flowStatus.message}`));
-                return;
-              }
+            if (flowStatus.status === 'error' || flowStatus.status === 'failed') {
+              console.error('❌ Collection flow failed:', flowStatus.message);
+              throw new Error(`Collection flow failed: ${flowStatus.message}`);
             }
 
             // Try to fetch questionnaires
             agentQuestionnaires = await collectionFlowApi.getFlowQuestionnaires(flowResponse.id);
             if (agentQuestionnaires.length > 0) {
-              console.log(`✅ Found ${agentQuestionnaires.length} agent-generated questionnaires after ${attempts} attempts`);
-              resolve();
+              console.log(`✅ Found ${agentQuestionnaires.length} agent-generated questionnaires after ${elapsed}ms`);
               return;
             }
           } catch (error) {
-            // This is expected while agents are still processing
-            if (attempts % 5 === 0) {
-              console.log(`⏳ Still waiting for questionnaires... (${attempts} seconds elapsed)`);
+            // Re-throw flow errors, but continue polling on questionnaire fetch errors
+            if (error?.message?.includes('Collection flow failed')) {
+              throw error;
             }
+
+            console.log(`⏳ Still waiting for questionnaires... (${elapsed}ms elapsed)`);
           }
-        }
 
-        // If we exit the loop without success, it means timeout or max attempts reached
-        if (agentQuestionnaires.length === 0 && !flowFailed) {
-          reject(new Error('Max polling attempts reached without questionnaire generation'));
+          // Smart polling interval based on flow state
+          const isActive = flowStatus?.status === 'running' || flowStatus?.current_phase === 'processing';
+          const pollInterval = isActive ? 2000 : 5000; // 2s for active, 5s for waiting
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
         }
-      });
+      };
 
-      // Race between timeout and polling
       try {
-        await Promise.race([timeoutPromise, pollingPromise]);
+        await pollForQuestionnaires();
       } catch (error) {
-        console.warn('⚠️ Agent processing timeout/failure, proceeding with fallback:', error.message);
+        console.warn('⚠️ Agent processing failure, proceeding with fallback:', error.message);
         // Don't throw here - let the fallback logic handle it below
-      } finally {
-        // Clean up timeout to prevent memory leaks
-        if (timeoutHandle) {
-          clearTimeout(timeoutHandle);
-          timeoutHandle = null;
-        }
-      }
-
-      // Handle flow failure
-      if (flowFailed) {
-        throw new Error('Collection flow failed during processing. Check backend logs for details.');
       }
 
       // Handle timeout or no questionnaires generated
@@ -556,7 +535,7 @@ export const useAdaptiveFormFlow = (
       let shouldUseFallback = false;
 
       if (error?.message) {
-        if (error.message.includes('timeout') || error.message.includes('Initialization timeout')) {
+        if (error.message.includes('timeout') || error.message.includes('HTTP polling timeout')) {
           userMessage = `Collection initialization timed out after ${INITIALIZATION_TIMEOUT / 1000} seconds. Using fallback form to allow you to proceed.`;
           shouldUseFallback = true;
         } else if (error.message.includes('questionnaire')) {
@@ -749,12 +728,17 @@ export const useAdaptiveFormFlow = (
     try {
       // Submit responses to the CrewAI-generated questionnaire
       const questionnaireId = state.questionnaires[0].id;
+
+      // For bootstrap questionnaires, when submitted, mark as 100% complete
+      const isBootstrapForm = questionnaireId.startsWith('bootstrap_');
+      const completionPercentage = isBootstrapForm ? 100 : (state.validation?.completionPercentage || 0);
+
       const submissionData = {
         responses: data,
         form_metadata: {
           form_id: state.formData?.formId,
           application_id: applicationId,
-          completion_percentage: state.validation?.completionPercentage,
+          completion_percentage: completionPercentage,
           confidence_score: state.validation?.overallConfidenceScore,
           submitted_at: new Date().toISOString()
         },
@@ -822,21 +806,21 @@ export const useAdaptiveFormFlow = (
               });
             }
           } else {
-            // Check if collection is complete
-            const flowStatus = await collectionFlowApi.getFlowDetails(state.flowId);
-            if (flowStatus.status === 'completed' || flowStatus.progress >= 100) {
-              setState(prev => ({ ...prev, isCompleted: true }));
+            // No more questionnaires returned - collection is complete
+            console.log('✅ No more questionnaires - collection flow is complete');
+            setState(prev => ({ ...prev, isCompleted: true }));
+
+            // Check if this was a bootstrap form completion
+            if (isBootstrapForm) {
               toast({
-                title: 'Collection Complete',
-                description: 'All required information has been collected successfully!',
+                title: 'Application Details Saved',
+                description: 'Application information has been saved successfully! You can now proceed to the next phase.',
                 variant: 'default'
               });
             } else {
-              // No more questionnaires but flow not marked complete
-              setState(prev => ({ ...prev, isCompleted: true }));
               toast({
-                title: 'Section Complete',
-                description: 'This section has been completed successfully!',
+                title: 'Collection Complete',
+                description: 'All required information has been collected successfully!',
                 variant: 'default'
               });
             }

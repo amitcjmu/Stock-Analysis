@@ -104,6 +104,94 @@ class ManualCollectionHandler:
             # Persist state
             await self.state_manager.save_state(state.to_dict())
 
+            # NEW: Populate collected_data_inventory table for manual responses
+            try:
+                from app.services.collected_data_inventory_service import (
+                    CollectedDataInventoryService,
+                )
+
+                # Get database session from state manager
+                if hasattr(self.state_manager, "db"):
+                    db = self.state_manager.db
+                else:
+                    # Fallback - get from flow context if available
+                    db = getattr(self.flow_context, "db", None)
+
+                if db:
+                    inventory_service = CollectedDataInventoryService(db)
+
+                    # Create request context from flow_context
+                    from app.api.dependencies import RequestContext
+
+                    context = RequestContext(
+                        client_account_id=self.flow_context.client_account_id,
+                        engagement_id=self.flow_context.engagement_id,
+                        user_id=getattr(self.flow_context, "user_id", None),
+                        tenant_id=getattr(self.flow_context, "tenant_id", None),
+                    )
+
+                    # Get collection flow ID from flow context
+                    collection_flow_id = getattr(
+                        self.flow_context, "collection_flow_id", None
+                    )
+
+                    if collection_flow_id and validated_responses:
+                        # Transform manual responses into inventory format
+                        inventory_data = []
+                        for response in validated_responses:
+                            inventory_item = {
+                                "platform": "manual_input",
+                                "data_type": response.get(
+                                    "question_type", "questionnaire_response"
+                                ),
+                                "raw_data": response,
+                                "normalized_data": response.get("normalized_data"),
+                                "quality_score": response.get("validation_score"),
+                                "validation_status": (
+                                    "valid"
+                                    if response.get("is_valid", True)
+                                    else "invalid"
+                                ),
+                                "validation_errors": response.get("validation_errors"),
+                                "metadata": {
+                                    "questionnaire_id": response.get(
+                                        "questionnaire_id"
+                                    ),
+                                    "question_id": response.get("question_id"),
+                                    "gap_context": identified_gaps,
+                                },
+                            }
+                            inventory_data.append(inventory_item)
+
+                        # Populate inventory table
+                        await inventory_service.populate_collected_data(
+                            collection_flow_id=collection_flow_id,
+                            collected_data=inventory_data,
+                            collection_method="manual",
+                            context=context,
+                            adapter_id=None,  # Manual collection doesn't use adapters
+                        )
+                        # Commit the inventory data - use flush pattern for atomicity
+                        await db.flush()
+                        logger.info(
+                            f"✅ Populated collected data inventory with {len(inventory_data)} manual responses for collection flow {collection_flow_id}"
+                        )
+                    else:
+                        logger.warning(
+                            f"Collection flow ID not found or no responses collected - skipping manual inventory population"
+                        )
+                else:
+                    logger.warning(
+                        "Database session not available - skipping manual collected data inventory population"
+                    )
+
+            except Exception as inventory_error:
+                # Don't fail the entire collection if inventory population fails
+                logger.error(
+                    f"Failed to populate manual collected data inventory: {str(inventory_error)}"
+                )
+                # Continue with normal flow execution
+
             return {
                 "phase": "manual_collection",
                 "status": "completed",

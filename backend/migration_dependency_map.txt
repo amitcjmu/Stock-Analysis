@@ -1,0 +1,250 @@
+Migration Dependency Map
+==================================================
+
+001_comprehensive_initial_schema.py:
+  Revision: 001_comprehensive_initial_schema
+  Depends on: None (root)
+
+002_add_security_audit_tables.py:
+  Revision: 002_add_security_audit_tables
+  Depends on: 001_comprehensive_initial_schema
+
+003_add_collection_flow_tables.py:
+  Revision: 003_add_collection_flow_tables
+  Depends on: 002_add_security_audit_tables
+
+004_add_platform_credentials_tables.py:
+  Revision: 004_add_platform_credentials_tables
+  Depends on: 003_add_collection_flow_tables
+
+005_add_gap_analysis_and_questionnaire_tables.py:
+  Revision: 005_add_gap_analysis_and_questionnaire_tables
+  Depends on: 004_add_platform_credentials_tables
+
+006_add_collection_flow_next_phase.py:
+  Revision: 006_add_collection_flow_next_phase
+  Depends on: 005_add_gap_analysis_and_questionnaire_tables
+
+007_add_missing_collection_flow_columns.py:
+  Revision: 007_add_missing_collection_flow_columns
+  Depends on: 006_add_collection_flow_next_phase
+
+008_update_flow_type_constraint.py:
+  Revision: 008_update_flow_type_constraint
+  Depends on: 007_add_missing_collection_flow_columns
+
+009_add_collection_flow_id_to_questionnaires.py:
+  Revision: 009_add_collection_flow_id_to_questionnaires
+  Depends on: 008_update_flow_type_constraint
+
+010_add_timestamp_columns_to_collected_data_inventory.py:
+  Revision: 010_add_timestamp_columns_to_collected_data_inventory
+  Depends on: 009_add_collection_flow_id_to_questionnaires
+
+011_add_updated_at_to_collection_data_gaps.py:
+  Revision: 011_add_updated_at_to_collection_data_gaps
+  Depends on: 010_add_timestamp_columns_to_collected_data_inventory
+
+012_agent_observability_enhancement.py:
+  Revision: 012_agent_observability_enhancement
+  Depends on: 011_add_updated_at_to_collection_data_gaps
+
+013_fix_agent_task_history_foreign_keys.py:
+  Revision: 013_fix_agent_task_history_foreign_keys
+  Depends on: 012_agent_observability_enhancement
+
+014_fix_remaining_agent_foreign_keys.py:
+  Revision: 014_fix_remaining_agent_foreign_keys
+  Depends on: 013_fix_agent_task_history_foreign_keys
+
+015_add_asset_dependencies_table.py:
+  Revision: 015_add_asset_dependencies
+  Depends on: None (root)
+
+016_add_security_constraints.py:
+  Revision: 016_add_security_constraints
+  Depends on: 015_add_asset_dependencies
+
+017a_add_asset_id_to_questionnaire_responses.py:
+  Revision: Unknown
+  Depends on: None (root)
+
+018_add_agent_execution_history.py:
+  Revision: Unknown
+  Depends on: None (root)
+
+018b_fix_long_constraint_names.py:
+  Revision: 018b_fix_long_constraint_names
+  Depends on: 018_add_agent_execution_history
+
+019_implement_row_level_security.py:
+  Revision: 019_implement_row_level_security
+  Depends on: 018b_fix_long_constraint_names
+
+020_merge_heads.py:
+  Revision: Unknown
+  Depends on: None (root)
+
+021_fix_import_field_mappings_id_default.py:
+  Revision: 021_fix_import_field_mappings_id_default
+  Depends on: 595ea1f47121
+
+022_add_is_admin_to_users.py:
+  Revision: 022_add_is_admin_to_users
+  Depends on: 021_fix_import_field_mappings_id_default
+
+023_fix_data_imports_foreign_key_constraint.py:
+  Revision: 023_fix_data_imports_foreign_key_constraint
+  Depends on: 022_add_is_admin_to_users
+
+024_add_cache_metadata_tables.py:
+  Revision: 024_add_cache_metadata_tables
+  Depends on: 023_fix_data_imports_foreign_key_constraint
+
+025_migrate_8r_to_5r_strategies.py:
+  Revision: 025_migrate_8r_to_5r_strategies
+  Depends on: 2ae8940123e6
+
+026_add_assessment_readiness_fields_to_assets.py:
+  Revision: 026_add_assessment_readiness_fields_to_assets
+  Depends on: 025_migrate_8r_to_5r_strategies
+
+027_add_indexes_and_failure_journal.py:
+  Revision: 027_add_indexes_and_failure_journal
+  Depends on: 026_add_assessment_readiness_fields_to_assets
+
+028_add_updated_at_trigger_for_failure_journal.py:
+  Revision: 028_add_updated_at_trigger_for_failure_journal
+  Depends on: 027_add_indexes_and_failure_journal
+
+029_complete_assessment_flows_schema.py:
+  Revision: 029_complete_assessment_flows_schema
+  Depends on: 028_add_updated_at_trigger_for_failure_journal
+
+030_add_sixr_analysis_tables.py:
+  Revision: 030_add_sixr_analysis_tables
+  Depends on: 029_complete_assessment_flows_schema
+
+031_add_flow_deletion_audit_table.py:
+  Revision: 031_add_flow_deletion_audit_table
+  Depends on: 030_add_sixr_analysis_tables
+
+032_add_master_flow_id_to_assessment_flows.py:
+  Revision: 032_add_master_flow_id_to_assessment_flows
+  Depends on: 031_add_flow_deletion_audit_table
+
+033_merge_all_heads.py:
+  Revision: 033_merge_all_heads
+  Depends on: None (root)
+
+034_add_client_account_id_to_engagement_standards.py:
+  Revision: 034_add_client_account_id_to_engagement_standards
+  Depends on: 033_merge_all_heads
+
+035_fix_engagement_architecture_standards_schema.py:
+  Revision: 035_fix_engagement_architecture_standards_schema
+  Depends on: 034_add_client_account_id_to_engagement_standards
+
+036_fix_null_master_flow_ids.py:
+  Revision: Unknown
+  Depends on: None (root)
+
+036_rename_metadata_columns.py:
+  Revision: 036_rename_metadata_columns
+  Depends on: 035_fix_engagement_architecture_standards_schema
+
+037_add_missing_audit_log_columns.py:
+  Revision: 037_add_missing_audit_log_columns
+  Depends on: 64630c6d6a9a
+
+038_add_agent_pattern_learning_columns.py:
+  Revision: 038_add_agent_pattern_learning_columns
+  Depends on: 037_add_missing_audit_log_columns
+
+039_create_pattern_type_enum.py:
+  Revision: 039_create_pattern_type_enum
+  Depends on: 038_add_agent_pattern_learning_columns
+
+040_add_missing_field_mapping_columns.py:
+  Revision: 040_add_missing_field_mapping_columns
+  Depends on: 039_create_pattern_type_enum
+
+041_add_hybrid_properties_collected_data_inventory.py:
+  Revision: Unknown
+  Depends on: None (root)
+
+042_add_vector_search_to_agent_patterns.py:
+  Revision: 042_add_vector_search_to_agent_patterns
+  Depends on: 041_add_hybrid_properties_collected_data_inventory
+
+043_merge_migration_heads.py:
+  Revision: 043_merge_migration_heads
+  Depends on: None (root)
+
+044_merge_036_and_questionnaire_asset_heads.py:
+  Revision: 044_merge_036_and_questionnaire_asset_heads
+  Depends on: None (root)
+
+045_merge_cache_and_platform_admin.py:
+  Revision: 045_merge_cache_and_platform_admin
+  Depends on: None (root)
+
+2ae8940123e6_add_analysis_queue_tables.py:
+  Revision: 2ae8940123e6
+  Depends on: fcacece8fa7b
+
+51470c6d6288_merge_collection_apps_with_timestamp_fix.py:
+  Revision: 51470c6d6288
+  Depends on: None (root)
+
+595ea1f47121_add_auto_generated_uuid_to_raw_import_.py:
+  Revision: 595ea1f47121
+  Depends on: 019_implement_row_level_security
+
+7cc356fcc04a_add_technical_details_to_assets.py:
+  Revision: 7cc356fcc04a
+  Depends on: 951b58543ba5
+
+951b58543ba5_add_confidence_score_to_assets.py:
+  Revision: 951b58543ba5
+  Depends on: 029_complete_assessment_flows_schema
+
+add_canonical_application_identity.py:
+  Revision: canonical_apps_001
+  Depends on: add_collection_apps_001
+
+add_collection_flow_applications_table.py:
+  Revision: add_collection_apps_001
+  Depends on: fcacece8fa7b
+
+b75f619e44dc_fix_application_name_variants_timestamps.py:
+  Revision: b75f619e44dc
+  Depends on: 041_add_hybrid_properties
+
+c279c3c0699d_fix_timestamp_mixin_timezone_issues.py:
+  Revision: c279c3c0699d
+  Depends on: 7cc356fcc04a
+
+cb5aa7ecb987_merge_heads_for_attribute_mapping_fix.py:
+  Revision: cb5aa7ecb987
+  Depends on: None (root)
+
+cef530e273d4_merge_heads_fix_questionnaire_asset_.py:
+  Revision: cef530e273d4
+  Depends on: None (root)
+
+dc3417edf498_fix_platform_admin_is_admin_flag_after_.py:
+  Revision: dc3417edf498
+  Depends on: 023_fix_data_imports_foreign_key_constraint
+
+merge_mfo_testing_heads.py:
+  Revision: merge_mfo_testing_heads
+  Depends on: None (root)
+
+migrate_existing_collection_applications.py:
+  Revision: migrate_collection_apps_001
+  Depends on: canonical_apps_001
+
+optimize_application_indexes.py:
+  Revision: optimize_app_indexes_001
+  Depends on: migrate_collection_apps_001

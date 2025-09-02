@@ -420,6 +420,60 @@ async def batch_delete_flows(
 # ========================================
 
 
+@router.post("/flows/fix-stuck")
+async def fix_stuck_collection_flows(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Fix collection flows stuck in platform_detection phase.
+
+    This endpoint identifies collection flows that have completed platform detection
+    but are stuck waiting for the next phase to be triggered. It automatically
+    advances them to the automated_collection phase.
+    """
+    from app.api.v1.endpoints.collection_phase_progression import (
+        fix_stuck_collection_flows as fix_flows,
+    )
+
+    return await fix_flows(db, current_user, context)
+
+
+@router.post("/flows/{flow_id}/advance/{target_phase}")
+async def advance_collection_flow_phase(
+    flow_id: str,
+    target_phase: str,
+    force: bool = Query(False, description="Force advancement ignoring prerequisites"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Manually advance a collection flow to a specific phase.
+
+    Valid target phases: automated_collection, gap_analysis, questionnaire_generation,
+    manual_collection, data_validation, finalization
+    """
+    from app.api.v1.endpoints.collection_phase_progression import (
+        advance_collection_flow_phase as advance_phase,
+    )
+
+    return await advance_phase(flow_id, target_phase, force, db, current_user, context)
+
+
+@router.get("/flows/stuck-analysis")
+async def get_stuck_collection_flows_analysis(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Analyze collection flows that might be stuck without making changes."""
+    from app.api.v1.endpoints.collection_phase_progression import (
+        get_stuck_collection_flows_analysis as get_analysis,
+    )
+
+    return await get_analysis(db, current_user, context)
+
+
 @router.get("/flows/analysis")
 async def analyze_existing_flows(
     db: AsyncSession = Depends(get_db),

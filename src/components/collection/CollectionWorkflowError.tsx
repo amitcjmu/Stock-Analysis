@@ -13,7 +13,7 @@ import { AlertTriangle, RefreshCw, ArrowLeft, Clock, Wifi, WifiOff } from 'lucid
 interface CollectionWorkflowErrorProps {
   error: Error;
   flowId?: string | null;
-  isWebSocketActive?: boolean;
+  isPollingActive?: boolean;
   onRetry?: () => void;
   onRefresh?: () => void;
   className?: string;
@@ -35,7 +35,7 @@ interface ErrorInfo {
 export const CollectionWorkflowError: React.FC<CollectionWorkflowErrorProps> = ({
   error,
   flowId,
-  isWebSocketActive = false,
+  isPollingActive = false,
   onRetry,
   onRefresh,
   className = ''
@@ -258,7 +258,7 @@ export const CollectionWorkflowError: React.FC<CollectionWorkflowErrorProps> = (
             {/* Connection Status */}
             {flowId && (
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                {isWebSocketActive ? (
+                {isPollingActive ? (
                   <>
                     <Wifi className="h-4 w-4 text-green-600" />
                     <span>Real-time updates active</span>

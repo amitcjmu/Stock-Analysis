@@ -19,7 +19,7 @@ import {
 } from "@/hooks/collection/useCollectionFlowManagement";
 import { useFlowDeletion } from "@/hooks/useFlowDeletion";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCollectionWorkflowWebSocket } from "@/hooks/collection/useCollectionWorkflowWebSocket";
+import { useCollectionStatePolling } from "@/hooks/collection/useCollectionStatePolling";
 import { useQuery } from "@tanstack/react-query";
 import { apiCall } from "@/config/api";
 
@@ -98,7 +98,7 @@ const AdaptiveForms: React.FC = () => {
       // Refresh flows after successful deletion
       await refetchFlows();
       setHasJustDeleted(true);
-      
+
       // Remove from deleting set only for successfully deleted flows
       result.results.forEach((res) => {
         if (res.success) {
@@ -119,7 +119,7 @@ const AdaptiveForms: React.FC = () => {
     },
     (error) => {
       console.error('Flow deletion failed:', error);
-      
+
       // On error, unhide all flows that were being deleted
       deletionState.candidates.forEach((flowId) => {
         setDeletingFlows((prev) => {
@@ -128,7 +128,7 @@ const AdaptiveForms: React.FC = () => {
           return newSet;
         });
       });
-      
+
       toast({
         title: "Error",
         description: error.message || "Failed to delete flow",
@@ -174,32 +174,36 @@ const AdaptiveForms: React.FC = () => {
     }
   }, [handleSave]);
 
-  // Use WebSocket for real-time updates during workflow initialization
-  const { isWebSocketActive, requestStatusUpdate } =
-    useCollectionWorkflowWebSocket({
+  // Use HTTP polling for real-time updates during workflow initialization
+  const { isActive: isPollingActive, requestStatusUpdate, flowState } =
+    useCollectionStatePolling({
       flowId: activeFlowId,
       enabled: !!activeFlowId && isLoading,
-      onQuestionnaireReady: (event) => {
+      onQuestionnaireReady: (state) => {
         console.log(
-          "🎉 WebSocket: Questionnaire ready, triggering re-initialization",
+          "🎉 HTTP Polling: Questionnaire ready, triggering re-initialization",
         );
         // Trigger a re-fetch when questionnaire is ready
         if (!formData) {
           initializeFlow();
         }
       },
-      onWorkflowUpdate: (event) => {
-        console.log("📊 WebSocket: Workflow status update:", event.data);
-        // Request status update for more details
+      onStatusUpdate: (state) => {
+        console.log("📊 HTTP Polling: Workflow status update:", state);
+        // Trigger re-initialization if questionnaires are ready
         if (
-          event.data.status === "completed" ||
-          event.data.phase === "questionnaire_generation"
+          state.status === "completed" ||
+          state.phase === "questionnaire_generation" ||
+          (state.questionnaire_count && state.questionnaire_count > 0)
         ) {
-          requestStatusUpdate();
+          // Only re-initialize if we don't have form data yet
+          if (!formData) {
+            initializeFlow();
+          }
         }
       },
       onError: (error) => {
-        console.error("❌ WebSocket: Collection workflow error:", error);
+        console.error("❌ HTTP Polling: Collection workflow error:", error);
         toast({
           title: "Workflow Error",
           description: `Collection workflow encountered an error: ${error}`,
@@ -514,7 +518,7 @@ const AdaptiveForms: React.FC = () => {
           <CollectionWorkflowError
             error={error}
             flowId={activeFlowId}
-            isWebSocketActive={isWebSocketActive}
+            isPollingActive={isPollingActive}
             onRetry={() => initializeFlow()}
             onRefresh={() => window.location.reload()}
           />
@@ -534,7 +538,7 @@ const AdaptiveForms: React.FC = () => {
         }
         loadingSubMessage={
           isLoading
-            ? `Generating adaptive questionnaire based on your specific needs${isWebSocketActive ? " (Real-time updates active)" : " (Polling for updates)"}`
+            ? `Generating adaptive questionnaire based on your specific needs${isPollingActive ? " (Real-time updates active)" : " (Polling for updates)"}`
             : "Initializing workflow"
         }
       >
@@ -676,7 +680,7 @@ const AdaptiveForms: React.FC = () => {
         onSubmit={handleSubmit}
         onCancel={() => navigate("/collection")}
       />
-      
+
       {/* Flow Deletion Modal */}
       <FlowDeletionModal
         open={deletionState.isModalOpen}

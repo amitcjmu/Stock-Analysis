@@ -128,3 +128,76 @@ flow_type: Optional[str] = Query(
     description="Filter by flow type..."
 )
 ```
+
+## Collection Flow Critical Failures (Sep 2025)
+
+### Empty Database Tables
+**Error**: `collection_flow_applications` and `collection_gap_analysis` tables empty
+**Root Cause**: Application selection only updates JSON config, not normalized tables
+**Solution**: Use deduplication service with Asset names:
+```python
+# Load Asset objects to get names
+assets = await db.execute(
+    select(Application).where(Application.application_id.in_(application_ids))
+)
+for asset in assets.scalars():
+    await dedup_service.deduplicate_application(
+        application_name=asset.name,  # Use name, not ID
+        collection_flow_id=collection_flow.id
+    )
+```
+
+### Orphaned Flows on MFO Failure
+**Error**: Collection flow created but orphaned when Master Flow Orchestrator fails
+**Solution**: Single transaction with proper rollback:
+```python
+async with db.begin():  # Let context manager handle commit/rollback
+    collection_flow = CollectionFlow(...)
+    db.add(collection_flow)
+    await db.flush()  # Get ID without commit
+
+    master_flow_id = await orchestrator.create_flow(...)
+    if not master_flow_id:
+        raise ValueError("MFO creation failed")  # Auto-rollback
+
+    collection_flow.master_flow_id = master_flow_id
+    # Context manager commits on success
+```
+
+### Non-Persistent Agent Pattern
+**Error**: Agents created per-execution violating ADR-015
+**Solution**: Use TenantScopedAgentPool for persistent agents:
+```python
+# WRONG - Per-execution
+class GapAnalysisAgent(BaseDiscoveryCrew):
+    pass
+
+# CORRECT - Persistent singleton per tenant
+agent = await TenantScopedAgentPool.get_collection_gap_agent(
+    context.client_account_id,
+    context.engagement_id
+)
+```
+
+### WebSocket Architecture Violation
+**Error**: WebSocket code incompatible with Vercel/Railway deployment
+**Solution**: Complete removal, replace with HTTP polling:
+```typescript
+// Remove ALL WebSocket references
+// Use HTTP polling instead
+const pollInterval = setInterval(async () => {
+    const state = await fetch(`/api/v1/collection/flows/${flowId}/state`);
+}, 2000);
+```
+
+### Gap Analysis Model Mismatch
+**Error**: Serializer doesn't match CollectionGapAnalysis structure
+**Clarification**: Model has summary fields, not per-gap fields
+**Solution**: New serializer matching actual structure:
+```python
+class CollectionGapAnalysisSummaryResponse(BaseModel):
+    completeness_percentage: float
+    critical_gaps: List[Dict[str, Any]]  # JSONB list
+    recommended_actions: Dict[str, Any]
+    attributes_analyzed: int
+```
