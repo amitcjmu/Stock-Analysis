@@ -44,7 +44,7 @@ class ExecutionEngineCollectionCrews:
             # Add metadata about persistent agent usage
             result["agent_pool_info"] = {
                 "agent_count": len(agent_pool),
-                "tenant_id": str(master_flow.client_account_id),
+                "client_account_id": str(master_flow.client_account_id),
                 "engagement_id": str(master_flow.engagement_id),
             }
 
