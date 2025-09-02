@@ -1,9 +1,10 @@
 """Fix NULL master_flow_ids and add proper FK constraints
 
-Revision ID: 036_fix_null_master_flow_ids
-Revises: 035_fix_engagement_architecture_standards_schema
+Revision ID: 036b_fix_null_master_flow_ids
+Revises: 036_rename_metadata_columns
 Create Date: 2025-08-28 12:00:00.000000
 
+CC: Renamed from 036 to 036b to fix duplicate numbering
 """
 
 import logging
@@ -15,8 +16,8 @@ from sqlalchemy import text
 logger = logging.getLogger(__name__)
 
 # revision identifiers, used by Alembic.
-revision: str = "036_fix_null_master_flow_ids"
-down_revision: Union[str, None] = "035_fix_engagement_architecture_standards_schema"
+revision: str = "036b_fix_null_master_flow_ids"
+down_revision: Union[str, None] = "036_rename_metadata_columns"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

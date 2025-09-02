@@ -38,8 +38,6 @@ class FlowIDRequirementMiddleware(BaseHTTPMiddleware):
             "/api/v1/unified-discovery/flow/health",
             "/api/v1/unified-discovery/flow/status",
             "/api/v1/unified-discovery/flows",  # Flow listing
-            "/api/v1/discovery/flows",  # Legacy flow listing
-            "/api/v1/discovery/overview",  # Discovery overview page - users select flows here
             "/api/v1/unified-discovery/overview",  # Unified discovery overview
         ]
 
@@ -103,8 +101,7 @@ class FlowIDRequirementMiddleware(BaseHTTPMiddleware):
         """
         discovery_prefixes = [
             "/api/v1/unified-discovery/",
-            "/api/v1/discovery/",
-            "/api/v2/discovery/",
+            # Legacy discovery endpoints removed - use MFO or unified-discovery
         ]
 
         return any(path.startswith(prefix) for prefix in discovery_prefixes)
@@ -126,7 +123,6 @@ class FlowIDRequirementMiddleware(BaseHTTPMiddleware):
         # Special cases - endpoints that create or manage flows
         if path in [
             "/api/v1/unified-discovery/flow",
-            "/api/v1/discovery/flow",
         ] or path.endswith("/create"):
             return True
 

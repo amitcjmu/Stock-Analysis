@@ -87,7 +87,7 @@ def add_middlewares(app, settings):  # noqa: C901
             exempt_paths=[
                 "/api/v1/unified-discovery/flow/create",
                 "/api/v1/unified-discovery/flow/list",
-                "/api/v1/discovery/flow/create",
+                # Legacy discovery endpoints removed - use MFO or unified-discovery
             ],
         )
         logger.info("✅ Flow ID requirement middleware added for discovery endpoints")

@@ -82,7 +82,7 @@ def register_conditional_routers(api_router: APIRouter):
         ANALYSIS_QUEUES_AVAILABLE,
         analysis_queues_router,
         DISCOVERY_AVAILABLE,
-        discovery_router,
+        # discovery_router removed - legacy endpoints deprecated
         UNIFIED_DISCOVERY_AVAILABLE,
         unified_discovery_router,
         dependency_analysis_router,
@@ -104,15 +104,15 @@ def register_conditional_routers(api_router: APIRouter):
     else:
         logger.warning("⚠️ Analysis Queues router not available")
 
-    # Discovery API (LEGACY - Prefer unified-discovery)
+    # Discovery API - REMOVED: Legacy endpoints have been removed
+    # Use MFO or unified-discovery instead
     if DISCOVERY_AVAILABLE:
-        api_router.include_router(discovery_router, prefix="/discovery")
-        logger.info("✅ Discovery API router included at /discovery (LEGACY)")
-        logger.warning(
-            "🔄 MIGRATION NOTICE: /discovery endpoints are legacy. Use /unified-discovery instead"
+        logger.error(
+            "❌ LEGACY DISCOVERY ROUTER DETECTED BUT NOT REGISTERED. "
+            "Legacy endpoints are deprecated and must be removed from the codebase. "
+            "Use MFO or unified-discovery instead."
         )
-    else:
-        logger.warning("⚠️ Discovery API router not available")
+        # DO NOT register the legacy discovery router - it violates MFO-first architecture
 
     # Collection Flow API
     if COLLECTION_AVAILABLE:
