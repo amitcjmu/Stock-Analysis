@@ -80,22 +80,32 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [hasInteracted, setHasInteracted] = useState(false); // Track if user has interacted with form
+  const [initialValuesLoaded, setInitialValuesLoaded] = useState(false); // Track if we've loaded saved values
 
   // Sync formValues with initialValues when initialValues prop changes
-  // CRITICAL FIX: Prevent overwriting user edits unless explicitly reset
+  // CRITICAL FIX: Load saved values when continuing a flow, but prevent overwriting user edits
   useEffect(() => {
-    // Only sync if user hasn't interacted with the form yet
-    // This prevents accidentally overwriting user changes when parent components re-render
-    if (!hasInteracted) {
-      console.log('📝 AdaptiveForm: Initial sync - setting form values from initial values:', {
+    // Check if we have new saved values to load (when continuing a flow)
+    const hasSavedValues = initialValues && Object.keys(initialValues).length > 0;
+
+    // Load saved values if:
+    // 1. We have saved values AND haven't loaded them yet (first load when continuing)
+    // 2. OR user hasn't interacted with the form yet (fresh form)
+    if (hasSavedValues && !initialValuesLoaded) {
+      console.log('📝 AdaptiveForm: Loading saved values from previous session:', {
         initialValues,
-        hasValues: Object.keys(initialValues || {}).length > 0
+        valueCount: Object.keys(initialValues).length
       });
+      setFormValues(initialValues);
+      setInitialValuesLoaded(true); // Mark that we've loaded the saved values
+    } else if (!hasInteracted && !hasSavedValues) {
+      // Only reset to empty if no saved values and user hasn't interacted
+      console.log('📝 AdaptiveForm: No saved values, starting with empty form');
       setFormValues(initialValues || {});
-    } else {
-      console.log('📝 AdaptiveForm: User has interacted - preserving form values, skipping initialValues sync');
+    } else if (hasInteracted) {
+      console.log('📝 AdaptiveForm: User has interacted - preserving current form values');
     }
-  }, [initialValues, hasInteracted]);
+  }, [initialValues, hasInteracted, initialValuesLoaded]);
 
   // Handle explicit form reset via resetTrigger prop
   useEffect(() => {
@@ -103,6 +113,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
       console.log('📝 AdaptiveForm: Explicit reset triggered via resetTrigger:', resetTrigger);
       setFormValues(initialValues || {});
       setHasInteracted(false); // Reset interaction flag to allow future syncs
+      setInitialValuesLoaded(false); // Reset loaded flag to allow reloading saved values
       setValidation(null);
       setExpandedSections(new Set());
     }
