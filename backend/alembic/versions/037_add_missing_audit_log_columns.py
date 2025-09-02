@@ -1,11 +1,12 @@
 """Add missing request_payload, response_payload, and target_details columns to security_audit_logs
 
 Revision ID: 037_add_missing_audit_log_columns
-Revises: 036_fix_null_master_flow_ids
+Revises: 036b_fix_null_master_flow_ids
 Create Date: 2025-01-29
 
 This migration adds the missing columns that are referenced by the sanitize_audit_log_trigger
 function but were not included in the original security_audit_logs table schema.
+CC: Fixed dependency from non-existent 64630c6d6a9a to 036b_fix_null_master_flow_ids
 """
 
 import sqlalchemy as sa
@@ -15,7 +16,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "037_add_missing_audit_log_columns"
-down_revision = "64630c6d6a9a"
+down_revision = "036b_fix_null_master_flow_ids"
 branch_labels = None
 depends_on = None
 

@@ -1,11 +1,12 @@
 """Add vector search capability to agent discovered patterns
 
 Revision ID: 042_add_vector_search_to_agent_patterns
-Revises: 016_add_security_constraints
+Revises: 041_add_hybrid_properties
 Create Date: 2025-01-24
 
 This migration adds vector embedding support to the agent_discovered_patterns table
 for AI-powered similarity search capabilities.
+CC: Fixed down_revision to use correct 041 name
 """
 
 import sqlalchemy as sa
@@ -15,7 +16,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "042_add_vector_search_to_agent_patterns"
-down_revision = "041_add_hybrid_properties_collected_data_inventory"
+down_revision = "041_add_hybrid_properties"
 branch_labels = None
 depends_on = None
 

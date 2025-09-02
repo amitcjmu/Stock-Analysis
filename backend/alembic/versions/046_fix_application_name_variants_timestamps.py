@@ -1,7 +1,7 @@
 """fix_application_name_variants_timestamps
 
-Revision ID: 042_fix_application_name_variants_timestamps
-Revises: 041_add_hybrid_properties
+Revision ID: 046_fix_application_name_variants_timestamps
+Revises: 045_merge_cache_and_platform_admin
 Create Date: 2025-09-02 21:59:59.015918
 
 CC: Targeted migration to add missing timestamp columns to application_name_variants table.
@@ -12,8 +12,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = "042_fix_application_name_variants_timestamps"
-down_revision = "041_add_hybrid_properties"
+revision = "046_fix_application_name_variants_timestamps"
+down_revision = "045_merge_cache_and_platform_admin"
 branch_labels = None
 depends_on = None
 
