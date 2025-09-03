@@ -100,6 +100,13 @@ async def get_adaptive_questionnaires(
                     f"Failed to get questionnaires from master flow: {mfo_error}"
                 )
 
+        # Check if flow is already completed - if so, don't generate bootstrap
+        if flow.status == "completed":
+            logger.info(
+                f"Flow {flow_id} is already completed. Returning empty questionnaire list."
+            )
+            return []
+
         # No questionnaires found - generate bootstrap questionnaire
         logger.info(
             f"No questionnaires found for flow {flow_id}, generating bootstrap questionnaire"

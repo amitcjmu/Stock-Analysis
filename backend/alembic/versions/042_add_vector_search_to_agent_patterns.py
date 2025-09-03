@@ -105,25 +105,42 @@ def upgrade() -> None:
         )
 
     # Create check constraint for insight_type values
-    op.create_check_constraint(
-        "ck_agent_patterns_insight_type",
-        "agent_discovered_patterns",
+    # First check if constraint already exists
+    conn = op.get_bind()
+    result = conn.execute(
         sa.text(
             """
-            insight_type IS NULL OR insight_type IN (
-                'field_mapping_suggestion',
-                'risk_pattern',
-                'optimization_opportunity',
-                'anomaly_detection',
-                'workflow_improvement',
-                'dependency_pattern',
-                'performance_pattern',
-                'error_pattern'
-            )
+            SELECT conname
+            FROM pg_constraint
+            WHERE conname = 'ck_agent_patterns_insight_type'
         """
-        ),
-        schema="migration",
+        )
     )
+
+    if not result.fetchone():
+        op.create_check_constraint(
+            "ck_agent_patterns_insight_type",
+            "agent_discovered_patterns",
+            sa.text(
+                """
+                insight_type IS NULL OR insight_type IN (
+                    'field_mapping_suggestion',
+                    'risk_pattern',
+                    'optimization_opportunity',
+                    'anomaly_detection',
+                    'workflow_improvement',
+                    'dependency_pattern',
+                    'performance_pattern',
+                    'error_pattern'
+                )
+            """
+            ),
+            schema="migration",
+        )
+    else:
+        print(
+            "⚠️  Check constraint 'ck_agent_patterns_insight_type' already exists, skipping creation"
+        )
 
     # Create vector similarity index using ivfflat
     op.execute(
@@ -229,12 +246,15 @@ def downgrade() -> None:
     )
     op.execute("DROP INDEX IF EXISTS migration.ix_agent_patterns_embedding")
 
-    # Drop check constraint
-    op.drop_constraint(
-        "ck_agent_patterns_insight_type",
-        "agent_discovered_patterns",
-        schema="migration",
-    )
+    # Drop check constraint if it exists
+    try:
+        op.drop_constraint(
+            "ck_agent_patterns_insight_type",
+            "agent_discovered_patterns",
+            schema="migration",
+        )
+    except Exception as e:
+        print(f"⚠️  Could not drop constraint 'ck_agent_patterns_insight_type': {e}")
 
     # Drop columns
     op.drop_column("agent_discovered_patterns", "insight_type", schema="migration")
