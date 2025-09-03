@@ -64,5 +64,12 @@ def upgrade():
 
 def downgrade():
     """Remove the added columns."""
-    op.drop_column("import_field_mappings", "agent_reasoning", schema="migration")
-    op.drop_column("import_field_mappings", "field_type", schema="migration")
+    try:
+        op.drop_column("import_field_mappings", "agent_reasoning", schema="migration")
+    except Exception as e:
+        print(f"⚠️  Could not drop column 'agent_reasoning': {e}")
+
+    try:
+        op.drop_column("import_field_mappings", "field_type", schema="migration")
+    except Exception as e:
+        print(f"⚠️  Could not drop column 'field_type': {e}")

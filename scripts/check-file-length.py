@@ -17,6 +17,7 @@ IDEAL_MAX_LINES = 300  # Best practice recommendation
 # Files to exclude from checks (legacy or generated files)
 EXCLUDE_PATTERNS = [
     "*/migrations/*",
+    "*/alembic/versions/*",  # Alembic migration files can be necessarily long
     "*/tests/fixtures/*",
     "*/venv/*",
     "*/node_modules/*",

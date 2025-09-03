@@ -135,17 +135,60 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Drop collection_flow_applications table"""
 
-    # Drop indexes
-    op.drop_index(
-        "idx_collection_flow_apps_status",
-        table_name="collection_flow_applications",
-        schema="migration",
-    )
-    op.drop_index(
-        "idx_collection_flow_apps",
-        table_name="collection_flow_applications",
-        schema="migration",
-    )
+    from sqlalchemy import text
 
-    # Drop table
-    op.drop_table("collection_flow_applications", schema="migration")
+    conn = op.get_bind()
+
+    # Check which indexes exist before dropping
+    result = conn.execute(
+        text(
+            """
+            SELECT indexname
+            FROM pg_indexes
+            WHERE schemaname = 'migration'
+            AND tablename = 'collection_flow_applications'
+            AND indexname IN ('idx_collection_flow_apps_status', 'idx_collection_flow_apps')
+        """
+        )
+    )
+    existing_indexes = [row[0] for row in result]
+
+    if "idx_collection_flow_apps_status" in existing_indexes:
+        op.drop_index(
+            "idx_collection_flow_apps_status",
+            table_name="collection_flow_applications",
+            schema="migration",
+        )
+        print("✅ Dropped index idx_collection_flow_apps_status")
+    else:
+        print("⚠️ Index idx_collection_flow_apps_status does not exist, skipping")
+
+    if "idx_collection_flow_apps" in existing_indexes:
+        op.drop_index(
+            "idx_collection_flow_apps",
+            table_name="collection_flow_applications",
+            schema="migration",
+        )
+        print("✅ Dropped index idx_collection_flow_apps")
+    else:
+        print("⚠️ Index idx_collection_flow_apps does not exist, skipping")
+
+    # Check if table exists before dropping
+    result = conn.execute(
+        text(
+            """
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables
+                WHERE table_schema = 'migration'
+                AND table_name = 'collection_flow_applications'
+            )
+        """
+        )
+    )
+    table_exists = result.scalar()
+
+    if table_exists:
+        op.drop_table("collection_flow_applications", schema="migration")
+        print("✅ Dropped table collection_flow_applications")
+    else:
+        print("⚠️ Table collection_flow_applications does not exist, skipping")

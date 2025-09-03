@@ -398,19 +398,57 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Remove canonical application identity tables"""
 
-    # Drop foreign key constraints first
-    op.drop_constraint(
-        "fk_collection_flow_apps_variant",
-        "collection_flow_applications",
-        schema="migration",
-    )
-    op.drop_constraint(
-        "fk_collection_flow_apps_canonical",
-        "collection_flow_applications",
-        schema="migration",
-    )
+    conn = op.get_bind()
 
-    # Remove added columns with error handling
+    # Check and drop foreign key constraints if they exist
+    result = conn.execute(
+        text(
+            """
+            SELECT constraint_name
+            FROM information_schema.table_constraints
+            WHERE table_schema = 'migration'
+            AND table_name = 'collection_flow_applications'
+            AND constraint_name IN ('fk_collection_flow_apps_variant', 'fk_collection_flow_apps_canonical')
+        """
+        )
+    )
+    existing_constraints = [row[0] for row in result]
+
+    if "fk_collection_flow_apps_variant" in existing_constraints:
+        op.drop_constraint(
+            "fk_collection_flow_apps_variant",
+            "collection_flow_applications",
+            schema="migration",
+        )
+        print("✅ Dropped constraint fk_collection_flow_apps_variant")
+    else:
+        print("⚠️ Constraint fk_collection_flow_apps_variant does not exist, skipping")
+
+    if "fk_collection_flow_apps_canonical" in existing_constraints:
+        op.drop_constraint(
+            "fk_collection_flow_apps_canonical",
+            "collection_flow_applications",
+            schema="migration",
+        )
+        print("✅ Dropped constraint fk_collection_flow_apps_canonical")
+    else:
+        print("⚠️ Constraint fk_collection_flow_apps_canonical does not exist, skipping")
+
+    # Check which columns exist before dropping
+    result = conn.execute(
+        text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'migration'
+            AND table_name = 'collection_flow_applications'
+            AND column_name IN ('match_confidence', 'deduplication_method',
+                               'name_variant_id', 'canonical_application_id')
+        """
+        )
+    )
+    existing_columns = [row[0] for row in result]
+
     columns_to_drop = [
         "match_confidence",
         "deduplication_method",
@@ -419,16 +457,34 @@ def downgrade() -> None:
     ]
 
     for column_name in columns_to_drop:
-        try:
+        if column_name in existing_columns:
             op.drop_column(
                 "collection_flow_applications", column_name, schema="migration"
             )
-        except Exception as e:
-            print(
-                f"⚠️  Could not drop column '{column_name}' from collection_flow_applications: {e}"
-            )
+            print(f"✅ Dropped column {column_name}")
+        else:
+            print(f"⚠️ Column {column_name} does not exist, skipping")
 
-    # Drop indexes (with error handling for non-existent indexes)
+    # Check which indexes exist before dropping
+    result = conn.execute(
+        text(
+            """
+            SELECT indexname, tablename
+            FROM pg_indexes
+            WHERE schemaname = 'migration'
+            AND indexname IN (
+                'idx_collection_flow_apps_canonical',
+                'idx_canonical_apps_usage',
+                'idx_app_variants_hash_lookup',
+                'idx_canonical_apps_hash_lookup',
+                'idx_app_variants_tenant_isolation',
+                'idx_canonical_apps_tenant_isolation'
+            )
+        """
+        )
+    )
+    existing_indexes = {row[0]: row[1] for row in result}
+
     indexes_to_drop = [
         ("idx_collection_flow_apps_canonical", "collection_flow_applications"),
         ("idx_canonical_apps_usage", "canonical_applications"),
@@ -439,18 +495,33 @@ def downgrade() -> None:
     ]
 
     for index_name, table_name in indexes_to_drop:
-        try:
+        if index_name in existing_indexes:
             op.drop_index(index_name, table_name, schema="migration")
-        except Exception as e:
-            print(f"⚠️ Could not drop index {index_name}: {e}")
+            print(f"✅ Dropped index {index_name}")
+        else:
+            print(f"⚠️ Index {index_name} does not exist, skipping")
 
-    # Drop tables with error handling
-    try:
+    # Check if tables exist before dropping
+    result = conn.execute(
+        text(
+            """
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'migration'
+            AND table_name IN ('application_name_variants', 'canonical_applications')
+        """
+        )
+    )
+    existing_tables = [row[0] for row in result]
+
+    if "application_name_variants" in existing_tables:
         op.drop_table("application_name_variants", schema="migration")
-    except Exception as e:
-        print(f"⚠️  Could not drop table 'application_name_variants': {e}")
+        print("✅ Dropped table application_name_variants")
+    else:
+        print("⚠️ Table application_name_variants does not exist, skipping")
 
-    try:
+    if "canonical_applications" in existing_tables:
         op.drop_table("canonical_applications", schema="migration")
-    except Exception as e:
-        print(f"⚠️  Could not drop table 'canonical_applications': {e}")
+        print("✅ Dropped table canonical_applications")
+    else:
+        print("⚠️ Table canonical_applications does not exist, skipping")
