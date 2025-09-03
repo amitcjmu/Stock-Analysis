@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 
 // Import custom hooks
 import { useProgressMonitoring, getFlowMilestones } from '@/hooks/collection/useProgressMonitoring';
+import { collectionFlowApi, TransitionResult } from '@/services/api/collection-flow';
+import { useToast } from '@/components/ui/use-toast';
 
 
 /**
@@ -21,9 +23,13 @@ const CollectionProgress: React.FC = () => {
   const navigate = useNavigate();
   const { flowId: flowIdParam } = useParams<{ flowId: string }>();
   const [searchParams] = useSearchParams();
+  const { toast } = useToast();
 
   // Get specific flow ID from URL params or search params
   const flowId = flowIdParam || searchParams.get('flowId');
+
+  // Phase 3: Transition state management
+  const [isTransitioning, setIsTransitioning] = React.useState(false);
 
   // Use the progress monitoring hook for all state management
   const {
@@ -48,6 +54,47 @@ const CollectionProgress: React.FC = () => {
 
   // Phase 1 fix: Get the current flow for assessment readiness check
   const currentFlow = flows.find(f => f.id === selectedFlow);
+
+  // Phase 3: Enhanced transition handler with proper error handling
+  const handleTransitionToAssessment = async () => {
+    try {
+      setIsTransitioning(true);
+
+      // Call dedicated transition endpoint
+      const result = await collectionFlowApi.transitionToAssessment(selectedFlow!);
+
+      toast({
+        title: 'Transition Successful',
+        description: 'Assessment flow created successfully. Redirecting to assessment...',
+        variant: 'default',
+      });
+
+      // Navigate to EXISTING assessment route
+      navigate(`/assessment/${result.assessment_flow_id}/architecture`);
+
+    } catch (error: any) {
+      if (error?.response?.data?.error === 'not_ready') {
+        // Show specific missing requirements using toast
+        toast({
+          title: 'Not Ready for Assessment',
+          description: error.response.data.reason,
+          variant: 'destructive',
+        });
+
+        // Log missing requirements for debugging
+        console.warn('Missing requirements:', error.response.data.missing_requirements);
+      } else {
+        // Generic error handling with toast
+        toast({
+          title: 'Transition Failed',
+          description: error?.message || 'Failed to transition to assessment',
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setIsTransitioning(false);
+    }
+  };
 
   // Show loading state while data is being fetched
   if (isLoading) {
@@ -127,11 +174,12 @@ const CollectionProgress: React.FC = () => {
 
               <div className="space-y-3">
                 <Button
-                  onClick={() => navigate('/assessment/overview')} // Use existing route
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  onClick={handleTransitionToAssessment} // Phase 3: Use enhanced transition
+                  disabled={isTransitioning || !selectedFlow}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
                   size="lg"
                 >
-                  Go to Assessment Overview
+                  {isTransitioning ? 'Creating Assessment...' : 'Start Assessment Phase'}
                 </Button>
 
                 <Button
