@@ -225,6 +225,24 @@ export const useAdaptiveFormFlow = (
 
         setState(prev => ({ ...prev, flowId: flowResponse.id }));
 
+        // Check if flow is already completed
+        if (flowResponse.status === 'completed') {
+          console.log('✅ Flow is already completed, redirecting to progress page');
+          setState(prev => ({ ...prev, isCompleted: true, isLoading: false }));
+
+          toast({
+            title: 'Flow Already Completed',
+            description: 'This collection flow has been completed. Redirecting to progress view...',
+            variant: 'default'
+          });
+
+          // Redirect to collection progress page
+          setTimeout(() => {
+            window.location.href = `/collection/progress/${flowResponse.id}`;
+          }, 1500);
+          return;
+        }
+
         // Update the auth context with the existing collection flow
         setCurrentFlow({
           id: flowResponse.id,
