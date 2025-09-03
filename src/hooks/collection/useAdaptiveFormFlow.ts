@@ -824,6 +824,11 @@ export const useAdaptiveFormFlow = (
                 variant: 'default'
               });
             }
+
+            // Redirect to collection progress page after completion
+            setTimeout(() => {
+              window.location.href = `/collection/progress/${state.flowId}`;
+            }, 2000);
           }
         } catch (refreshError) {
           console.error('Failed to refresh questionnaires:', refreshError);
