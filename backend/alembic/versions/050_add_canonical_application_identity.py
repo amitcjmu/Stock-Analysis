@@ -271,8 +271,21 @@ def upgrade() -> None:
         )
         print("✅ Added match_confidence column")
 
-    # Add multi-tenant fields if not present
-    try:
+    # Add multi-tenant fields if not present (check existence first)
+    result = conn.execute(
+        text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'migration'
+            AND table_name = 'collection_flow_applications'
+            AND column_name IN ('client_account_id', 'engagement_id')
+        """
+        )
+    )
+    existing_tenant_columns = [row[0] for row in result]
+
+    if "client_account_id" not in existing_tenant_columns:
         op.add_column(
             "collection_flow_applications",
             sa.Column(
@@ -280,87 +293,161 @@ def upgrade() -> None:
             ),
             schema="migration",
         )
+        print("✅ Added client_account_id column")
+    else:
+        print("⚠️ Column client_account_id already exists, skipping")
+
+    if "engagement_id" not in existing_tenant_columns:
         op.add_column(
             "collection_flow_applications",
             sa.Column("engagement_id", postgresql.UUID(as_uuid=True), nullable=True),
             schema="migration",
         )
-    except Exception:
-        # Columns may already exist
-        pass
+        print("✅ Added engagement_id column")
+    else:
+        print("⚠️ Column engagement_id already exists, skipping")
 
-    # Add foreign key constraints
-    op.create_foreign_key(
-        "fk_collection_flow_apps_canonical",
-        "collection_flow_applications",
-        "canonical_applications",
-        ["canonical_application_id"],
-        ["id"],
-        ondelete="SET NULL",
-        source_schema="migration",
-        referent_schema="migration",
+    # Check and add foreign key constraints if they don't exist
+    result = conn.execute(
+        text(
+            """
+            SELECT constraint_name
+            FROM information_schema.table_constraints
+            WHERE table_schema = 'migration'
+            AND table_name = 'collection_flow_applications'
+            AND constraint_name IN ('fk_collection_flow_apps_canonical', 'fk_collection_flow_apps_variant')
+        """
+        )
     )
+    existing_constraints = [row[0] for row in result]
 
-    op.create_foreign_key(
-        "fk_collection_flow_apps_variant",
-        "collection_flow_applications",
-        "application_name_variants",
-        ["name_variant_id"],
-        ["id"],
-        ondelete="SET NULL",
-        source_schema="migration",
-        referent_schema="migration",
+    if "fk_collection_flow_apps_canonical" not in existing_constraints:
+        op.create_foreign_key(
+            "fk_collection_flow_apps_canonical",
+            "collection_flow_applications",
+            "canonical_applications",
+            ["canonical_application_id"],
+            ["id"],
+            ondelete="SET NULL",
+            source_schema="migration",
+            referent_schema="migration",
+        )
+        print("✅ Created foreign key constraint fk_collection_flow_apps_canonical")
+    else:
+        print(
+            "⚠️ Foreign key constraint fk_collection_flow_apps_canonical already exists, skipping"
+        )
+
+    if "fk_collection_flow_apps_variant" not in existing_constraints:
+        op.create_foreign_key(
+            "fk_collection_flow_apps_variant",
+            "collection_flow_applications",
+            "application_name_variants",
+            ["name_variant_id"],
+            ["id"],
+            ondelete="SET NULL",
+            source_schema="migration",
+            referent_schema="migration",
+        )
+        print("✅ Created foreign key constraint fk_collection_flow_apps_variant")
+    else:
+        print(
+            "⚠️ Foreign key constraint fk_collection_flow_apps_variant already exists, skipping"
+        )
+
+    # 4. Create performance indexes (check existence first)
+
+    # Check which indexes already exist
+    result = conn.execute(
+        text(
+            """
+            SELECT indexname
+            FROM pg_indexes
+            WHERE schemaname = 'migration'
+            AND indexname IN (
+                'idx_canonical_apps_tenant_isolation',
+                'idx_app_variants_tenant_isolation',
+                'idx_canonical_apps_hash_lookup',
+                'idx_app_variants_hash_lookup',
+                'idx_canonical_apps_usage',
+                'idx_collection_flow_apps_canonical'
+            )
+        """
+        )
     )
-
-    # 4. Create performance indexes
+    existing_indexes = [row[0] for row in result]
 
     # Multi-tenant isolation indexes (CRITICAL for security)
-    op.create_index(
-        "idx_canonical_apps_tenant_isolation",
-        "canonical_applications",
-        ["client_account_id", "engagement_id", "normalized_name"],
-        unique=True,  # Prevent duplicates within same engagement
-        schema="migration",
-    )
+    if "idx_canonical_apps_tenant_isolation" not in existing_indexes:
+        op.create_index(
+            "idx_canonical_apps_tenant_isolation",
+            "canonical_applications",
+            ["client_account_id", "engagement_id", "normalized_name"],
+            unique=True,  # Prevent duplicates within same engagement
+            schema="migration",
+        )
+        print("✅ Created index idx_canonical_apps_tenant_isolation")
+    else:
+        print("⚠️ Index idx_canonical_apps_tenant_isolation already exists, skipping")
 
-    op.create_index(
-        "idx_app_variants_tenant_isolation",
-        "application_name_variants",
-        ["client_account_id", "engagement_id", "normalized_variant"],
-        unique=True,  # Prevent duplicate variants within same engagement
-        schema="migration",
-    )
+    if "idx_app_variants_tenant_isolation" not in existing_indexes:
+        op.create_index(
+            "idx_app_variants_tenant_isolation",
+            "application_name_variants",
+            ["client_account_id", "engagement_id", "normalized_variant"],
+            unique=True,  # Prevent duplicate variants within same engagement
+            schema="migration",
+        )
+        print("✅ Created index idx_app_variants_tenant_isolation")
+    else:
+        print("⚠️ Index idx_app_variants_tenant_isolation already exists, skipping")
 
     # Performance indexes for lookups
-    op.create_index(
-        "idx_canonical_apps_hash_lookup",
-        "canonical_applications",
-        ["name_hash", "client_account_id", "engagement_id"],
-        schema="migration",
-    )
+    if "idx_canonical_apps_hash_lookup" not in existing_indexes:
+        op.create_index(
+            "idx_canonical_apps_hash_lookup",
+            "canonical_applications",
+            ["name_hash", "client_account_id", "engagement_id"],
+            schema="migration",
+        )
+        print("✅ Created index idx_canonical_apps_hash_lookup")
+    else:
+        print("⚠️ Index idx_canonical_apps_hash_lookup already exists, skipping")
 
-    op.create_index(
-        "idx_app_variants_hash_lookup",
-        "application_name_variants",
-        ["variant_hash", "client_account_id", "engagement_id"],
-        schema="migration",
-    )
+    if "idx_app_variants_hash_lookup" not in existing_indexes:
+        op.create_index(
+            "idx_app_variants_hash_lookup",
+            "application_name_variants",
+            ["variant_hash", "client_account_id", "engagement_id"],
+            schema="migration",
+        )
+        print("✅ Created index idx_app_variants_hash_lookup")
+    else:
+        print("⚠️ Index idx_app_variants_hash_lookup already exists, skipping")
 
     # Usage tracking indexes
-    op.create_index(
-        "idx_canonical_apps_usage",
-        "canonical_applications",
-        ["usage_count", "last_used_at"],
-        schema="migration",
-    )
+    if "idx_canonical_apps_usage" not in existing_indexes:
+        op.create_index(
+            "idx_canonical_apps_usage",
+            "canonical_applications",
+            ["usage_count", "last_used_at"],
+            schema="migration",
+        )
+        print("✅ Created index idx_canonical_apps_usage")
+    else:
+        print("⚠️ Index idx_canonical_apps_usage already exists, skipping")
 
     # Collection flow app indexes
-    op.create_index(
-        "idx_collection_flow_apps_canonical",
-        "collection_flow_applications",
-        ["canonical_application_id", "collection_flow_id"],
-        schema="migration",
-    )
+    if "idx_collection_flow_apps_canonical" not in existing_indexes:
+        op.create_index(
+            "idx_collection_flow_apps_canonical",
+            "collection_flow_applications",
+            ["canonical_application_id", "collection_flow_id"],
+            schema="migration",
+        )
+        print("✅ Created index idx_collection_flow_apps_canonical")
+    else:
+        print("⚠️ Index idx_collection_flow_apps_canonical already exists, skipping")
 
     # 5. Add table and column comments for documentation
     op.execute(
