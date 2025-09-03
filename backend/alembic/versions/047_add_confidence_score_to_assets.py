@@ -18,18 +18,42 @@ depends_on = None
 
 def upgrade() -> None:
     """Add confidence_score column to assets table"""
-    op.add_column(
-        "assets",
-        sa.Column(
-            "confidence_score",
-            sa.Float(),
-            nullable=True,
-            comment="Confidence score for the asset (0.0-1.0)",
-        ),
-        schema="migration",
+    # Check if column already exists
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'migration'
+            AND table_name = 'assets'
+            AND column_name = 'confidence_score'
+            """
+        )
     )
+
+    if not result.fetchone():
+        op.add_column(
+            "assets",
+            sa.Column(
+                "confidence_score",
+                sa.Float(),
+                nullable=True,
+                comment="Confidence score for the asset (0.0-1.0)",
+            ),
+            schema="migration",
+        )
+        print("✅ Added confidence_score column to assets table")
+    else:
+        print(
+            "⚠️  Column 'confidence_score' already exists in assets table, skipping creation"
+        )
 
 
 def downgrade() -> None:
     """Remove confidence_score column from assets table"""
-    op.drop_column("assets", "confidence_score", schema="migration")
+    try:
+        op.drop_column("assets", "confidence_score", schema="migration")
+        print("✅ Removed confidence_score column from assets table")
+    except Exception as e:
+        print(f"⚠️  Could not drop column 'confidence_score': {e}")
