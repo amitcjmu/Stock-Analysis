@@ -1,7 +1,7 @@
 """Migrate 8R to 6R strategy data
 
 Revision ID: 025_migrate_8r_to_5r_strategies
-Revises: 2ae8940123e6
+Revises: 024_add_cache_metadata_tables
 Create Date: 2025-08-02 10:30:00.000000
 
 """
@@ -12,7 +12,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "025_migrate_8r_to_5r_strategies"
-down_revision = "2ae8940123e6"
+down_revision = "024_add_cache_metadata_tables"
 branch_labels = None
 depends_on = None
 

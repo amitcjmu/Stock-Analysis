@@ -1,7 +1,7 @@
 """Merge heads
 
 Revision ID: 045_merge_cache_and_platform_admin
-Revises: 024_add_cache_metadata_tables, dc3417edf498
+Revises: 044_merge_036_and_questionnaire_asset_heads
 Create Date: 2025-08-01 02:05:56.564019
 
 """
@@ -12,7 +12,7 @@ Create Date: 2025-08-01 02:05:56.564019
 
 # revision identifiers, used by Alembic.
 revision = "045_merge_cache_and_platform_admin"
-down_revision = ("024_add_cache_metadata_tables", "dc3417edf498")
+down_revision = "044_merge_036_and_questionnaire_asset_heads"
 branch_labels = None
 depends_on = None
 
