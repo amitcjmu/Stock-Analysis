@@ -102,6 +102,7 @@ export const convertQuestionToFormField = (
     if (!opts) return undefined;
     if (opts.length === 0) return [];
     if (typeof opts[0] === 'string') {
+      // Keep the original value as-is from the backend
       return (opts as string[]).map(v => ({ value: v, label: toTitle(String(v)) }));
     }
     return opts as FieldOption[];
@@ -115,8 +116,13 @@ export const convertQuestionToFormField = (
     return undefined;
   })();
 
+  // Use field_id if available, otherwise generate a default
+  const fieldId = question.field_id || `question_${index + 1}`;
+
+  const fieldOptions = normalizeOptions(question.options) || (defaultKey ? getDefaultFieldOptions(defaultKey) : undefined);
+
   return {
-    id: question.field_id || `field-${index}`,
+    id: fieldId,
     label: question.question_text || question.label || 'Field',
     fieldType: mapQuestionTypeToFieldType(question.field_type || question.question_type || 'text'),
     criticalAttribute: question.critical_attribute || 'unknown',
@@ -127,7 +133,7 @@ export const convertQuestionToFormField = (
     section: sectionId,
     order: index + 1,
     businessImpactScore: question.business_impact_score || 0.7,
-    options: normalizeOptions(question.options) || (defaultKey ? getDefaultFieldOptions(defaultKey) : undefined),
+    options: fieldOptions,
     helpText: question.help_text || question.description
   };
 };
@@ -268,7 +274,18 @@ export const convertQuestionnairesToFormData = (
 ): AdaptiveFormData => {
   try {
     const questions = questionnaire.questions || [];
+    console.log('🔍 Converting questionnaire with questions:', questions.map(q => ({
+      field_id: q.field_id,
+      question_text: q.question_text
+    })));
     const sections = groupQuestionsIntoSections(questions);
+    console.log('🔍 Generated sections with fields:');
+    sections.forEach(s => {
+      console.log(`  Section: ${s.id}`);
+      s.fields.forEach(f => {
+        console.log(`    Field ID: "${f.id}", Label: "${f.label}"`);
+      });
+    });
 
     const totalFields = questions.length;
     const requiredFields = questions.filter((q: QuestionData) => q.required !== false).length;

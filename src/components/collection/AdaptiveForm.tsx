@@ -79,50 +79,25 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
   const [validation, setValidation] = useState<FormValidationResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [hasInteracted, setHasInteracted] = useState(false); // Track if user has interacted with form
-  const [lastLoadedValues, setLastLoadedValues] = useState<string>(''); // Track what values we've loaded
 
-  // Sync formValues with initialValues when initialValues prop changes
-  // CRITICAL FIX: Load saved values when continuing a flow, but prevent overwriting user edits
+  // SIMPLIFIED: Always sync with initialValues when they change
+  // The parent component (AdaptiveForms) now ensures we don't render until data is loaded
   useEffect(() => {
-    // Check if we have new saved values to load (when continuing a flow)
-    const hasSavedValues = initialValues && Object.keys(initialValues).length > 0;
-    const valuesJson = JSON.stringify(initialValues || {});
-
-    // Load saved values if:
-    // 1. We have saved values that are different from what we last loaded
-    // 2. AND user hasn't interacted with the form yet
-    if (hasSavedValues && valuesJson !== lastLoadedValues && !hasInteracted) {
-      console.log('📝 AdaptiveForm: Loading saved values from previous session:', {
-        initialValues,
+    if (initialValues && Object.keys(initialValues).length > 0) {
+      console.log('📝 AdaptiveForm: Loading saved values:', {
         valueCount: Object.keys(initialValues).length,
-        wasEmpty: lastLoadedValues === '{}' || lastLoadedValues === ''
+        values: initialValues,
+        fieldIds: Object.keys(initialValues)
       });
       setFormValues(initialValues);
-      setLastLoadedValues(valuesJson); // Remember what we loaded
-    } else if (!hasSavedValues && !hasInteracted && lastLoadedValues === '') {
-      // First mount with no saved values - initialize empty
-      console.log('📝 AdaptiveForm: No saved values, starting with empty form');
-      setFormValues({});
-      setLastLoadedValues('{}');
-    } else if (hasInteracted) {
-      console.log('📝 AdaptiveForm: User has interacted - preserving current form values');
-    } else {
-      console.log('📝 AdaptiveForm: No changes needed', {
-        hasSavedValues,
-        alreadyLoaded: valuesJson === lastLoadedValues,
-        hasInteracted
-      });
     }
-  }, [initialValues, hasInteracted, lastLoadedValues]);
+  }, [initialValues]);
 
   // Handle explicit form reset via resetTrigger prop
   useEffect(() => {
     if (resetTrigger !== undefined && resetTrigger > 0) {
       console.log('📝 AdaptiveForm: Explicit reset triggered via resetTrigger:', resetTrigger);
       setFormValues(initialValues || {});
-      setHasInteracted(false); // Reset interaction flag to allow future syncs
-      setLastLoadedValues(''); // Reset loaded values tracker to allow reloading
       setValidation(null);
       setExpandedSections(new Set());
     }
@@ -178,17 +153,12 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
 
   // Handle field value changes
   const handleFieldChange = useCallback((fieldId: string, value: FieldValue) => {
-    // Mark form as interacted on first field change
-    if (!hasInteracted) {
-      setHasInteracted(true);
-    }
-
     setFormValues(prev => ({
       ...prev,
       [fieldId]: value
     }));
     onFieldChange(fieldId, value);
-  }, [onFieldChange, hasInteracted]);
+  }, [onFieldChange]);
 
   // Handle section toggle
   const handleSectionToggle = useCallback((sectionId: string) => {
@@ -208,11 +178,6 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
     e.preventDefault();
 
     if (!validation?.isValid) {
-      // Mark form as interacted to show validation errors
-      if (!hasInteracted) {
-        setHasInteracted(true);
-      }
-
       // Focus first invalid field
       const firstError = Object.values(validation?.fieldResults || {}).find(
         result => !result.isValid
@@ -233,7 +198,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [formValues, onSubmit, validation, hasInteracted]);
+  }, [formValues, onSubmit, validation]);
 
   // Progressive disclosure - determine visible fields
   const getVisibleFields = useCallback((section: FormSection) => {
@@ -263,7 +228,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
   // Validate form whenever values change
   useEffect(() => {
     // Always validate, but only show errors after user interaction
-    const isShowingErrors = hasInteracted;
+    const isShowingErrors = true; // Always show errors when they exist
 
     const validateForm = (): FormValidationResult => {
       const fieldResults: Record<string, FieldValidationResult> = {};
@@ -429,7 +394,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
     if (onValidationChange) {
       onValidationChange(newValidation);
     }
-  }, [formValues, formData, getVisibleFields, formMetrics.completionPercentage, onValidationChange, hasInteracted]);
+  }, [formValues, formData, getVisibleFields, formMetrics.completionPercentage, onValidationChange]);
 
   if (bulkMode) {
     return (
@@ -518,7 +483,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
       </Card>
 
       {/* Validation Display - Only show after interaction and when there are errors */}
-      {validation && hasInteracted && Object.values(validation.fieldResults).some(result => result.errors.length > 0) && (
+      {validation && Object.values(validation.fieldResults).some(result => result.errors.length > 0) && (
         <ValidationDisplay
           validation={validation}
           onErrorClick={(fieldId) => {

@@ -258,7 +258,7 @@ export const useAdaptiveFormFlow = (
 
                   if (savedResponsesData?.responses && Object.keys(savedResponsesData.responses).length > 0) {
                     existingResponses = savedResponsesData.responses;
-                    console.log(`📝 Loaded ${Object.keys(existingResponses).length} saved responses from backend`);
+                    console.log(`📝 Loaded ${Object.keys(existingResponses).length} saved responses from backend:`, existingResponses);
                   } else {
                     // Fallback to extracting from questionnaire if backend doesn't have responses
                     existingResponses = extractExistingResponses(existingQuestionnaires[0]);

@@ -506,10 +506,12 @@ const AdaptiveForms: React.FC = () => {
     );
   }
 
-  // Show loading state while form data is being generated
-  if (!formData && !hasBlockingFlows) {
+  // Show loading state while form data is being generated OR while we're still loading the form
+  // IMPORTANT: We should wait until both formData AND the initial loading is complete
+  // This prevents showing empty forms that get populated later
+  if ((!formData || isLoading) && !hasBlockingFlows) {
     // Check if there's an error
-    if (error) {
+    if (error && !isLoading) {
       return (
         <CollectionPageLayout
           title="Adaptive Data Collection"
@@ -529,20 +531,20 @@ const AdaptiveForms: React.FC = () => {
     return (
       <CollectionPageLayout
         title="Adaptive Data Collection"
-        description="Generating personalized collection form"
-        isLoading={isLoading}
+        description="Loading collection form and saved data..."
+        isLoading={true}
         loadingMessage={
           isLoading
-            ? "CrewAI agents are analyzing your requirements..."
+            ? "Loading form structure and saved responses..."
             : "Preparing collection form..."
         }
         loadingSubMessage={
           isLoading
-            ? `Generating adaptive questionnaire based on your specific needs${isPollingActive ? " (Real-time updates active)" : " (Polling for updates)"}`
+            ? `Please wait while we load your saved data${isPollingActive ? " (Real-time updates active)" : ""}`
             : "Initializing workflow"
         }
       >
-        {!isLoading && (
+        {!isLoading && !formData && (
           <div className="flex justify-center mt-8">
             <Button onClick={() => initializeFlow()} size="lg">
               Start Collection Flow
