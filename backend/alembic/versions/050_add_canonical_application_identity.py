@@ -46,163 +46,230 @@ def upgrade() -> None:
         print(f"⚠️ Warning: Could not enable pgvector extension: {e}")
         print("   Continuing without vector similarity search capabilities")
 
-    # 1. Create canonical_applications table - the master application registry
-    op.create_table(
-        "canonical_applications",
-        # Primary identification
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("canonical_name", sa.String(255), nullable=False),
-        sa.Column("normalized_name", sa.String(255), nullable=False, index=True),
-        sa.Column(
-            "name_hash", sa.String(64), nullable=False, index=True
-        ),  # SHA-256 hash
-        # Multi-tenant isolation - CRITICAL for data integrity
-        sa.Column(
-            "client_account_id",
-            postgresql.UUID(as_uuid=True),
-            nullable=False,
-            index=True,
-        ),
-        sa.Column(
-            "engagement_id", postgresql.UUID(as_uuid=True), nullable=False, index=True
-        ),
-        # Vector embedding for fuzzy matching (384 dimensions for sentence-transformers)
-        # Using proper Vector type if pgvector available, fallback to ARRAY(Float)
-        sa.Column(
-            "name_embedding",
-            Vector(384) if PGVECTOR_AVAILABLE else postgresql.ARRAY(sa.Float),
-            nullable=True,
-        ),
-        # Application metadata
-        sa.Column("description", sa.Text, nullable=True),
-        sa.Column("application_type", sa.String(100), nullable=True),
-        sa.Column("business_criticality", sa.String(50), nullable=True),
-        sa.Column("technology_stack", postgresql.JSONB, nullable=True),
-        # Confidence and quality metrics
-        sa.Column("confidence_score", sa.Float, nullable=False, default=1.0),
-        sa.Column("is_verified", sa.Boolean, nullable=False, default=False),
-        sa.Column("verification_source", sa.String(100), nullable=True),
-        # Usage tracking for optimization
-        sa.Column("usage_count", sa.Integer, nullable=False, default=1),
-        sa.Column("last_used_at", sa.DateTime(timezone=True), nullable=True),
-        # Audit trail
-        sa.Column("created_by", postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column("updated_by", postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            nullable=False,
-            server_default=sa.text("now()"),
-        ),
-        sa.Column(
-            "updated_at",
-            sa.DateTime(timezone=True),
-            nullable=False,
-            server_default=sa.text("now()"),
-        ),
-        # Foreign key constraints
-        sa.ForeignKeyConstraint(
-            ["client_account_id"], ["client_accounts.id"], ondelete="CASCADE"
-        ),
-        sa.ForeignKeyConstraint(
-            ["engagement_id"], ["engagements.id"], ondelete="CASCADE"
-        ),
-        sa.PrimaryKeyConstraint("id"),
-        schema="migration",
+    # Check if canonical_applications table already exists
+    result = conn.execute(
+        text(
+            """
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables
+                WHERE table_schema = 'migration'
+                AND table_name = 'canonical_applications'
+            )
+        """
+        )
     )
+    canonical_apps_exists = result.scalar()
+
+    # 1. Create canonical_applications table - the master application registry
+    if not canonical_apps_exists:
+        op.create_table(
+            "canonical_applications",
+            # Primary identification
+            sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column("canonical_name", sa.String(255), nullable=False),
+            sa.Column("normalized_name", sa.String(255), nullable=False, index=True),
+            sa.Column(
+                "name_hash", sa.String(64), nullable=False, index=True
+            ),  # SHA-256 hash
+            # Multi-tenant isolation - CRITICAL for data integrity
+            sa.Column(
+                "client_account_id",
+                postgresql.UUID(as_uuid=True),
+                nullable=False,
+                index=True,
+            ),
+            sa.Column(
+                "engagement_id",
+                postgresql.UUID(as_uuid=True),
+                nullable=False,
+                index=True,
+            ),
+            # Vector embedding for fuzzy matching (384 dimensions for sentence-transformers)
+            # Using proper Vector type if pgvector available, fallback to ARRAY(Float)
+            sa.Column(
+                "name_embedding",
+                Vector(384) if PGVECTOR_AVAILABLE else postgresql.ARRAY(sa.Float),
+                nullable=True,
+            ),
+            # Application metadata
+            sa.Column("description", sa.Text, nullable=True),
+            sa.Column("application_type", sa.String(100), nullable=True),
+            sa.Column("business_criticality", sa.String(50), nullable=True),
+            sa.Column("technology_stack", postgresql.JSONB, nullable=True),
+            # Confidence and quality metrics
+            sa.Column("confidence_score", sa.Float, nullable=False, default=1.0),
+            sa.Column("is_verified", sa.Boolean, nullable=False, default=False),
+            sa.Column("verification_source", sa.String(100), nullable=True),
+            # Usage tracking for optimization
+            sa.Column("usage_count", sa.Integer, nullable=False, default=1),
+            sa.Column("last_used_at", sa.DateTime(timezone=True), nullable=True),
+            # Audit trail
+            sa.Column("created_by", postgresql.UUID(as_uuid=True), nullable=True),
+            sa.Column("updated_by", postgresql.UUID(as_uuid=True), nullable=True),
+            sa.Column(
+                "created_at",
+                sa.DateTime(timezone=True),
+                nullable=False,
+                server_default=sa.text("now()"),
+            ),
+            sa.Column(
+                "updated_at",
+                sa.DateTime(timezone=True),
+                nullable=False,
+                server_default=sa.text("now()"),
+            ),
+            # Foreign key constraints
+            sa.ForeignKeyConstraint(
+                ["client_account_id"], ["client_accounts.id"], ondelete="CASCADE"
+            ),
+            sa.ForeignKeyConstraint(
+                ["engagement_id"], ["engagements.id"], ondelete="CASCADE"
+            ),
+            sa.PrimaryKeyConstraint("id"),
+            schema="migration",
+        )
+        print("✅ Created canonical_applications table")
+    else:
+        print("⚠️ Table canonical_applications already exists, skipping creation")
+
+    # Check if application_name_variants table already exists
+    result = conn.execute(
+        text(
+            """
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables
+                WHERE table_schema = 'migration'
+                AND table_name = 'application_name_variants'
+            )
+        """
+        )
+    )
+    app_variants_exists = result.scalar()
 
     # 2. Create application_name_variants table - tracks all name variations
-    op.create_table(
-        "application_name_variants",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column(
-            "canonical_application_id", postgresql.UUID(as_uuid=True), nullable=False
-        ),
-        # The actual name variation as entered by users
-        sa.Column("variant_name", sa.String(255), nullable=False),
-        sa.Column("normalized_variant", sa.String(255), nullable=False, index=True),
-        sa.Column("variant_hash", sa.String(64), nullable=False, index=True),
-        # Multi-tenant isolation
-        sa.Column(
-            "client_account_id",
-            postgresql.UUID(as_uuid=True),
-            nullable=False,
-            index=True,
-        ),
-        sa.Column(
-            "engagement_id", postgresql.UUID(as_uuid=True), nullable=False, index=True
-        ),
-        # Vector embedding for this variant
-        sa.Column(
-            "variant_embedding",
-            Vector(384) if PGVECTOR_AVAILABLE else postgresql.ARRAY(sa.Float),
-            nullable=True,
-        ),
-        # Similarity scores and matching metadata
-        sa.Column(
-            "similarity_score", sa.Float, nullable=True
-        ),  # Cosine similarity to canonical
-        sa.Column(
-            "match_method", sa.String(50), nullable=True
-        ),  # exact, fuzzy, vector, manual
-        sa.Column("match_confidence", sa.Float, nullable=False, default=1.0),
-        # Usage tracking
-        sa.Column("usage_count", sa.Integer, nullable=False, default=1),
-        sa.Column(
-            "first_seen_at",
-            sa.DateTime(timezone=True),
-            nullable=False,
-            server_default=sa.text("now()"),
-        ),
-        sa.Column(
-            "last_used_at",
-            sa.DateTime(timezone=True),
-            nullable=False,
-            server_default=sa.text("now()"),
-        ),
-        # Foreign key constraints
-        sa.ForeignKeyConstraint(
-            ["canonical_application_id"],
-            ["migration.canonical_applications.id"],
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
-            ["client_account_id"], ["client_accounts.id"], ondelete="CASCADE"
-        ),
-        sa.ForeignKeyConstraint(
-            ["engagement_id"], ["engagements.id"], ondelete="CASCADE"
-        ),
-        sa.PrimaryKeyConstraint("id"),
-        schema="migration",
-    )
+    if not app_variants_exists:
+        op.create_table(
+            "application_name_variants",
+            sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column(
+                "canonical_application_id",
+                postgresql.UUID(as_uuid=True),
+                nullable=False,
+            ),
+            # The actual name variation as entered by users
+            sa.Column("variant_name", sa.String(255), nullable=False),
+            sa.Column("normalized_variant", sa.String(255), nullable=False, index=True),
+            sa.Column("variant_hash", sa.String(64), nullable=False, index=True),
+            # Multi-tenant isolation
+            sa.Column(
+                "client_account_id",
+                postgresql.UUID(as_uuid=True),
+                nullable=False,
+                index=True,
+            ),
+            sa.Column(
+                "engagement_id",
+                postgresql.UUID(as_uuid=True),
+                nullable=False,
+                index=True,
+            ),
+            # Vector embedding for this variant
+            sa.Column(
+                "variant_embedding",
+                Vector(384) if PGVECTOR_AVAILABLE else postgresql.ARRAY(sa.Float),
+                nullable=True,
+            ),
+            # Similarity scores and matching metadata
+            sa.Column(
+                "similarity_score", sa.Float, nullable=True
+            ),  # Cosine similarity to canonical
+            sa.Column(
+                "match_method", sa.String(50), nullable=True
+            ),  # exact, fuzzy, vector, manual
+            sa.Column("match_confidence", sa.Float, nullable=False, default=1.0),
+            # Usage tracking
+            sa.Column("usage_count", sa.Integer, nullable=False, default=1),
+            sa.Column(
+                "first_seen_at",
+                sa.DateTime(timezone=True),
+                nullable=False,
+                server_default=sa.text("now()"),
+            ),
+            sa.Column(
+                "last_used_at",
+                sa.DateTime(timezone=True),
+                nullable=False,
+                server_default=sa.text("now()"),
+            ),
+            # Foreign key constraints
+            sa.ForeignKeyConstraint(
+                ["canonical_application_id"],
+                ["migration.canonical_applications.id"],
+                ondelete="CASCADE",
+            ),
+            sa.ForeignKeyConstraint(
+                ["client_account_id"], ["client_accounts.id"], ondelete="CASCADE"
+            ),
+            sa.ForeignKeyConstraint(
+                ["engagement_id"], ["engagements.id"], ondelete="CASCADE"
+            ),
+            sa.PrimaryKeyConstraint("id"),
+            schema="migration",
+        )
+        print("✅ Created application_name_variants table")
+    else:
+        print("⚠️ Table application_name_variants already exists, skipping creation")
 
     # 3. Update collection_flow_applications to reference canonical applications
-    # First, add new columns
-    op.add_column(
-        "collection_flow_applications",
-        sa.Column(
-            "canonical_application_id", postgresql.UUID(as_uuid=True), nullable=True
-        ),
-        schema="migration",
+    # Check which columns already exist
+    result = conn.execute(
+        text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'migration'
+            AND table_name = 'collection_flow_applications'
+            AND column_name IN ('canonical_application_id', 'name_variant_id',
+                               'deduplication_method', 'match_confidence')
+        """
+        )
     )
+    existing_columns = [row[0] for row in result]
 
-    op.add_column(
-        "collection_flow_applications",
-        sa.Column("name_variant_id", postgresql.UUID(as_uuid=True), nullable=True),
-        schema="migration",
-    )
+    # Add new columns if they don't exist
+    if "canonical_application_id" not in existing_columns:
+        op.add_column(
+            "collection_flow_applications",
+            sa.Column(
+                "canonical_application_id", postgresql.UUID(as_uuid=True), nullable=True
+            ),
+            schema="migration",
+        )
+        print("✅ Added canonical_application_id column")
 
-    op.add_column(
-        "collection_flow_applications",
-        sa.Column("deduplication_method", sa.String(50), nullable=True),
-        schema="migration",
-    )
+    if "name_variant_id" not in existing_columns:
+        op.add_column(
+            "collection_flow_applications",
+            sa.Column("name_variant_id", postgresql.UUID(as_uuid=True), nullable=True),
+            schema="migration",
+        )
+        print("✅ Added name_variant_id column")
 
-    op.add_column(
-        "collection_flow_applications",
-        sa.Column("match_confidence", sa.Float, nullable=True),
-        schema="migration",
-    )
+    if "deduplication_method" not in existing_columns:
+        op.add_column(
+            "collection_flow_applications",
+            sa.Column("deduplication_method", sa.String(50), nullable=True),
+            schema="migration",
+        )
+        print("✅ Added deduplication_method column")
+
+    if "match_confidence" not in existing_columns:
+        op.add_column(
+            "collection_flow_applications",
+            sa.Column("match_confidence", sa.Float, nullable=True),
+            schema="migration",
+        )
+        print("✅ Added match_confidence column")
 
     # Add multi-tenant fields if not present
     try:
@@ -343,46 +410,47 @@ def downgrade() -> None:
         schema="migration",
     )
 
-    # Remove added columns
-    op.drop_column(
-        "collection_flow_applications", "match_confidence", schema="migration"
-    )
-    op.drop_column(
-        "collection_flow_applications", "deduplication_method", schema="migration"
-    )
-    op.drop_column(
-        "collection_flow_applications", "name_variant_id", schema="migration"
-    )
-    op.drop_column(
-        "collection_flow_applications", "canonical_application_id", schema="migration"
-    )
+    # Remove added columns with error handling
+    columns_to_drop = [
+        "match_confidence",
+        "deduplication_method",
+        "name_variant_id",
+        "canonical_application_id",
+    ]
 
-    # Drop indexes
-    op.drop_index(
-        "idx_collection_flow_apps_canonical",
-        "collection_flow_applications",
-        schema="migration",
-    )
-    op.drop_index(
-        "idx_canonical_apps_usage", "canonical_applications", schema="migration"
-    )
-    op.drop_index(
-        "idx_app_variants_hash_lookup", "application_name_variants", schema="migration"
-    )
-    op.drop_index(
-        "idx_canonical_apps_hash_lookup", "canonical_applications", schema="migration"
-    )
-    op.drop_index(
-        "idx_app_variants_tenant_isolation",
-        "application_name_variants",
-        schema="migration",
-    )
-    op.drop_index(
-        "idx_canonical_apps_tenant_isolation",
-        "canonical_applications",
-        schema="migration",
-    )
+    for column_name in columns_to_drop:
+        try:
+            op.drop_column(
+                "collection_flow_applications", column_name, schema="migration"
+            )
+        except Exception as e:
+            print(
+                f"⚠️  Could not drop column '{column_name}' from collection_flow_applications: {e}"
+            )
 
-    # Drop tables
-    op.drop_table("application_name_variants", schema="migration")
-    op.drop_table("canonical_applications", schema="migration")
+    # Drop indexes (with error handling for non-existent indexes)
+    indexes_to_drop = [
+        ("idx_collection_flow_apps_canonical", "collection_flow_applications"),
+        ("idx_canonical_apps_usage", "canonical_applications"),
+        ("idx_app_variants_hash_lookup", "application_name_variants"),
+        ("idx_canonical_apps_hash_lookup", "canonical_applications"),
+        ("idx_app_variants_tenant_isolation", "application_name_variants"),
+        ("idx_canonical_apps_tenant_isolation", "canonical_applications"),
+    ]
+
+    for index_name, table_name in indexes_to_drop:
+        try:
+            op.drop_index(index_name, table_name, schema="migration")
+        except Exception as e:
+            print(f"⚠️ Could not drop index {index_name}: {e}")
+
+    # Drop tables with error handling
+    try:
+        op.drop_table("application_name_variants", schema="migration")
+    except Exception as e:
+        print(f"⚠️  Could not drop table 'application_name_variants': {e}")
+
+    try:
+        op.drop_table("canonical_applications", schema="migration")
+    except Exception as e:
+        print(f"⚠️  Could not drop table 'canonical_applications': {e}")
