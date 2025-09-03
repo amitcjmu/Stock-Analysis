@@ -65,15 +65,11 @@ except ImportError:
     platform_admin_router = None
     security_audit_router = None
 
-# Discovery endpoints (separate from unified discovery)
-discovery_router: Optional[APIRouter]
-try:
-    from app.api.v1.endpoints.discovery import router as discovery_router
-
-    DISCOVERY_AVAILABLE = True
-except ImportError:
-    DISCOVERY_AVAILABLE = False
-    discovery_router = None
+# Discovery endpoints - REMOVED: Legacy discovery endpoints are deprecated
+# All discovery functionality must use MFO (/api/v1/flows/*) or unified-discovery
+# DO NOT re-add discovery router imports - they violate MFO-first architecture
+DISCOVERY_AVAILABLE = False
+discovery_router = None
 
 # Unified Discovery Flow API - Master Flow Orchestrator Integration
 unified_discovery_router: Optional[APIRouter]

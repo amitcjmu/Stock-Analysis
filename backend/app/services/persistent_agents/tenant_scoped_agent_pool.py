@@ -841,6 +841,35 @@ class TenantScopedAgentPool:
                 "as you build a comprehensive understanding of client environments.",
                 "tools": [],
             },
+            "gap_analysis_specialist": {
+                "role": "Data Gap Analysis Specialist",
+                "goal": "Identify missing critical attributes that impact 6R migration strategy accuracy",
+                "backstory": "You are an expert AI agent specializing in migration data gap analysis. "
+                "Your deep understanding of the 22 critical attributes framework enables you to "
+                "analyze collected asset data against the critical attributes framework, identify gaps "
+                "that impact 6R strategy recommendations, prioritize gaps based on business impact "
+                "and migration strategy requirements, and recommend targeted data collection strategies.",
+                "tools": [],
+            },
+            "business_impact_assessor": {
+                "role": "Business Impact Assessment Agent",
+                "goal": "Evaluate the business impact of identified data gaps on migration outcomes",
+                "backstory": "You are a business-focused AI agent that assesses how data gaps "
+                "affect migration project success and business outcomes. Your expertise includes "
+                "understanding how missing data impacts migration strategy confidence, evaluating "
+                "business risk from incomplete asset information, and prioritizing gap resolution "
+                "based on business value and urgency.",
+                "tools": [],
+            },
+            "quality_validator": {
+                "role": "Data Quality Validation Expert",
+                "goal": "Validate gap analysis accuracy and ensure comprehensive coverage",
+                "backstory": "You are a quality assurance AI agent specializing in data analysis validation. "
+                "Your role is to ensure gap analysis is accurate, complete, and actionable. You cross-reference "
+                "gap analysis against collected data patterns, identify false positives and negatives, "
+                "and ensure all critical attribute categories are properly analyzed.",
+                "tools": [],
+            },
         }
 
         if agent_type not in agent_configs:

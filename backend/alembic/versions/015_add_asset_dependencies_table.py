@@ -14,7 +14,7 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "015_add_asset_dependencies"
+revision = "015_add_asset_dependencies"
 down_revision: Union[str, None] = "014_fix_remaining_agent_foreign_keys"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

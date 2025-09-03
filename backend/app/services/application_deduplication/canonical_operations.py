@@ -53,7 +53,7 @@ async def create_new_canonical_application(
         name_embedding=embedding,
         created_by=user_id,
         verification_source=VerificationSource.USER_INPUT.value,
-        **(additional_metadata or {}),
+        metadata=additional_metadata or {},
     )
 
     db.add(new_canonical)

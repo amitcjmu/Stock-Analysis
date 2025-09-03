@@ -11,17 +11,12 @@ from functools import wraps
 
 logger = logging.getLogger(__name__)
 
-# Mapping of legacy endpoints to their new unified-discovery equivalents
+# Mapping of legacy endpoints to their new equivalents
+# NOTE: All /api/v1/discovery/* endpoints are now REMOVED from the codebase
+# Use /api/v1/flows/* (MFO) or /api/v1/unified-discovery/* instead
 ENDPOINT_MIGRATION_MAP: Dict[str, str] = {
-    "/api/v1/discovery/flows/active": "/api/v1/unified-discovery/flows/active",
-    "/api/v1/discovery/flows/{flow_id}/status": "/api/v1/unified-discovery/flows/{flow_id}/status",
-    "/api/v1/discovery/flows/{flow_id}/clarifications/submit": (
-        "/api/v1/unified-discovery/flows/{flow_id}/clarifications/submit"
-    ),
-    "/api/v1/discovery/flows/{flow_id}/data-cleansing": "/api/v1/unified-discovery/flows/{flow_id}/data-cleansing",
-    "/api/v1/discovery/flows/{flow_id}/field-mappings": "/api/v1/unified-discovery/flows/{flow_id}/field-mappings",
-    "/api/v1/discovery/flow/{flow_id}/resume": "/api/v1/unified-discovery/flow/{flow_id}/resume",
-    "/api/v1/discovery/latest-import": "/api/v1/data-import/latest-import",
+    # Legacy discovery endpoints no longer exist - kept here for historical reference only
+    # All discovery functionality must go through MFO (/api/v1/flows/*) or unified-discovery
 }
 
 

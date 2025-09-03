@@ -1,7 +1,7 @@
 """Fix missing default UUID generation for import_field_mappings.id
 
 Revision ID: 021_fix_import_field_mappings_id_default
-Revises: 595ea1f47121
+Revises: 020_merge_heads
 Create Date: 2025-07-28
 
 """
@@ -10,7 +10,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "021_fix_import_field_mappings_id_default"
-down_revision = "595ea1f47121"
+down_revision = "020_merge_heads"
 branch_labels = None
 depends_on = None
 

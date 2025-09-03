@@ -74,7 +74,6 @@ const ApplicationSelection: React.FC = () => {
     const params = new URLSearchParams({
       page: page.toString(),
       page_size: "50", // Optimal page size for smooth scrolling
-      asset_type: "application", // Backend filter for applications only
     });
 
     // Add client-side filters to server request for proper pagination
@@ -113,7 +112,7 @@ const ApplicationSelection: React.FC = () => {
       try {
         const queryParams = buildQueryParams(pageParam);
         const response = await apiCall(
-          `/unified-discovery/assets?${queryParams}`,
+          `/asset-inventory/list/paginated?${queryParams}`,
         );
 
         if (!response || !response.assets) {
@@ -136,15 +135,21 @@ const ApplicationSelection: React.FC = () => {
     },
     getNextPageParam: (lastPage) => {
       const { pagination } = lastPage;
-      return pagination?.has_next ? pagination.page + 1 : undefined;
+      return pagination?.has_next ? pagination.current_page + 1 : undefined;
     },
     enabled: !!client && !!engagement && !!flowId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Flatten all pages into a single array of applications
-  const applications = applicationsData?.pages?.flatMap(page => page.assets) || [];
-  const totalApplicationsCount = applicationsData?.pages?.[0]?.pagination?.total_count || 0;
+  const allAssets = applicationsData?.pages?.flatMap(page => page.assets) || [];
+  // Filter to only show applications (not servers or databases)
+  const applications = allAssets.filter(asset =>
+    asset.asset_type?.toLowerCase() === 'application' ||
+    asset.asset_type?.toLowerCase() === 'app'
+  );
+  // Since we're filtering client-side, count actual applications
+  const totalApplicationsCount = applications.length;
 
   // Since server-side filtering is now applied, we use applications directly without client-side filtering
   const filteredApplications = applications;

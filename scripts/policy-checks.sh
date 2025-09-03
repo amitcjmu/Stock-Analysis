@@ -41,8 +41,10 @@ check_legacy_endpoints() {
 
     # Target backend app code, exclude tests, README, and scripts
     local app_files=$(get_target_files "backend/app/.*\.py$")
-    # Exclude the guard middleware which intentionally references legacy path
+    # Exclude files that document removal or block legacy endpoints
     app_files=$(echo "$app_files" | grep -v "backend/app/middleware/legacy_endpoint_guard.py" || true)
+    app_files=$(echo "$app_files" | grep -v "backend/app/utils/endpoint_migration_logger.py" || true)
+    app_files=$(echo "$app_files" | grep -v "_DEPRECATED" || true)
 
     if [ -n "$app_files" ]; then
         # Check for legacy endpoint patterns

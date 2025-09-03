@@ -123,6 +123,84 @@ class AutomatedCollectionHandler:
             # Persist state
             await self.state_manager.save_state(state.to_dict())
 
+            # NEW: Populate collected_data_inventory table
+            try:
+                from app.services.collected_data_inventory_service import (
+                    CollectedDataInventoryService,
+                )
+
+                # Get database session from state manager
+                if hasattr(self.state_manager, "db"):
+                    db = self.state_manager.db
+                else:
+                    # Fallback - get from flow context if available
+                    db = getattr(self.flow_context, "db", None)
+
+                if db:
+                    inventory_service = CollectedDataInventoryService(db)
+
+                    # Create request context from flow_context
+                    from app.api.dependencies import RequestContext
+
+                    context = RequestContext(
+                        client_account_id=self.flow_context.client_account_id,
+                        engagement_id=self.flow_context.engagement_id,
+                        user_id=getattr(self.flow_context, "user_id", None),
+                        tenant_id=getattr(self.flow_context, "tenant_id", None),
+                    )
+
+                    # Get collection flow ID from flow context
+                    collection_flow_id = getattr(
+                        self.flow_context, "collection_flow_id", None
+                    )
+
+                    if collection_flow_id and transformed_data:
+                        # Transform collected data into inventory format
+                        inventory_data = []
+                        for item in transformed_data:
+                            inventory_item = {
+                                "platform": item.get("platform", "unknown"),
+                                "data_type": item.get("data_type", "unknown"),
+                                "raw_data": item.get("raw_data", item),
+                                "normalized_data": item.get("normalized_data"),
+                                "quality_score": item.get("quality_score"),
+                                "validation_status": "pending",
+                                "metadata": {
+                                    "automation_tier": state.automation_tier.value,
+                                    "collection_metrics": collection_metrics,
+                                },
+                            }
+                            inventory_data.append(inventory_item)
+
+                        # Populate inventory table
+                        await inventory_service.populate_collected_data(
+                            collection_flow_id=collection_flow_id,
+                            collected_data=inventory_data,
+                            collection_method="automated",
+                            context=context,
+                            adapter_id=None,  # TODO: Get from adapter recommendations
+                        )
+                        # Commit the inventory data - use flush pattern for atomicity
+                        await db.flush()
+                        logger.info(
+                            f"✅ Populated collected data inventory with {len(inventory_data)} items for collection flow {collection_flow_id}"
+                        )
+                    else:
+                        logger.warning(
+                            f"Collection flow ID not found or no data collected - skipping inventory population"
+                        )
+                else:
+                    logger.warning(
+                        "Database session not available - skipping collected data inventory population"
+                    )
+
+            except Exception as inventory_error:
+                # Don't fail the entire collection if inventory population fails
+                logger.error(
+                    f"Failed to populate collected data inventory: {str(inventory_error)}"
+                )
+                # Continue with normal flow execution
+
             return {
                 "phase": "automated_collection",
                 "status": "completed",

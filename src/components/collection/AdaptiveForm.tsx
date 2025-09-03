@@ -79,30 +79,25 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
   const [validation, setValidation] = useState<FormValidationResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [hasInteracted, setHasInteracted] = useState(false); // Track if user has interacted with form
 
-  // Sync formValues with initialValues when initialValues prop changes
-  // CRITICAL FIX: Prevent overwriting user edits unless explicitly reset
+  // SIMPLIFIED: Always sync with initialValues when they change
+  // The parent component (AdaptiveForms) now ensures we don't render until data is loaded
   useEffect(() => {
-    // Only sync if user hasn't interacted with the form yet
-    // This prevents accidentally overwriting user changes when parent components re-render
-    if (!hasInteracted) {
-      console.log('📝 AdaptiveForm: Initial sync - setting form values from initial values:', {
-        initialValues,
-        hasValues: Object.keys(initialValues || {}).length > 0
+    if (initialValues && Object.keys(initialValues).length > 0) {
+      console.log('📝 AdaptiveForm: Loading saved values:', {
+        valueCount: Object.keys(initialValues).length,
+        values: initialValues,
+        fieldIds: Object.keys(initialValues)
       });
-      setFormValues(initialValues || {});
-    } else {
-      console.log('📝 AdaptiveForm: User has interacted - preserving form values, skipping initialValues sync');
+      setFormValues(initialValues);
     }
-  }, [initialValues, hasInteracted]);
+  }, [initialValues]);
 
   // Handle explicit form reset via resetTrigger prop
   useEffect(() => {
     if (resetTrigger !== undefined && resetTrigger > 0) {
       console.log('📝 AdaptiveForm: Explicit reset triggered via resetTrigger:', resetTrigger);
       setFormValues(initialValues || {});
-      setHasInteracted(false); // Reset interaction flag to allow future syncs
       setValidation(null);
       setExpandedSections(new Set());
     }
@@ -158,17 +153,12 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
 
   // Handle field value changes
   const handleFieldChange = useCallback((fieldId: string, value: FieldValue) => {
-    // Mark form as interacted on first field change
-    if (!hasInteracted) {
-      setHasInteracted(true);
-    }
-
     setFormValues(prev => ({
       ...prev,
       [fieldId]: value
     }));
     onFieldChange(fieldId, value);
-  }, [onFieldChange, hasInteracted]);
+  }, [onFieldChange]);
 
   // Handle section toggle
   const handleSectionToggle = useCallback((sectionId: string) => {
@@ -188,11 +178,6 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
     e.preventDefault();
 
     if (!validation?.isValid) {
-      // Mark form as interacted to show validation errors
-      if (!hasInteracted) {
-        setHasInteracted(true);
-      }
-
       // Focus first invalid field
       const firstError = Object.values(validation?.fieldResults || {}).find(
         result => !result.isValid
@@ -213,7 +198,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [formValues, onSubmit, validation, hasInteracted]);
+  }, [formValues, onSubmit, validation]);
 
   // Progressive disclosure - determine visible fields
   const getVisibleFields = useCallback((section: FormSection) => {
@@ -243,7 +228,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
   // Validate form whenever values change
   useEffect(() => {
     // Always validate, but only show errors after user interaction
-    const isShowingErrors = hasInteracted;
+    const isShowingErrors = true; // Always show errors when they exist
 
     const validateForm = (): FormValidationResult => {
       const fieldResults: Record<string, FieldValidationResult> = {};
@@ -409,7 +394,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
     if (onValidationChange) {
       onValidationChange(newValidation);
     }
-  }, [formValues, formData, getVisibleFields, formMetrics.completionPercentage, onValidationChange, hasInteracted]);
+  }, [formValues, formData, getVisibleFields, formMetrics.completionPercentage, onValidationChange]);
 
   if (bulkMode) {
     return (
@@ -498,7 +483,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
       </Card>
 
       {/* Validation Display - Only show after interaction and when there are errors */}
-      {validation && hasInteracted && Object.values(validation.fieldResults).some(result => result.errors.length > 0) && (
+      {validation && Object.values(validation.fieldResults).some(result => result.errors.length > 0) && (
         <ValidationDisplay
           validation={validation}
           onErrorClick={(fieldId) => {
