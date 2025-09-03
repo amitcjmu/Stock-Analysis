@@ -101,64 +101,61 @@ async def create_collection_from_discovery(
             )
         )
 
-        # Use atomic transaction pattern to prevent orphaned flows
-        async with db.begin():
-            # Create collection flow record
-            flow_id = uuid.uuid4()
-            flow_name = collection_utils.format_flow_display_name(
-                len(selected_application_ids)
+        # Create collection flow (session handles transaction automatically)
+        # Create collection flow record
+        flow_id = uuid.uuid4()
+        flow_name = collection_utils.format_flow_display_name(
+            len(selected_application_ids)
+        )
+
+        collection_flow = CollectionFlow(
+            flow_id=flow_id,
+            flow_name=flow_name,
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id,
+            user_id=current_user.id,
+            created_by=current_user.id,
+            status=CollectionFlowStatus.INITIALIZED.value,
+            automation_tier=collection_config["automation_tier"],
+            collection_config=collection_config,
+            current_phase=CollectionPhase.GAP_ANALYSIS.value,  # Start with gap analysis
+            discovery_flow_id=uuid.UUID(discovery_flow_id),  # Link to Discovery flow
+        )
+
+        db.add(collection_flow)
+        await db.flush()  # Make ID available for foreign key relationships
+        await db.refresh(collection_flow)
+
+        # Initialize with Master Flow Orchestrator within the same transaction
+        flow_input = {
+            "flow_id": str(collection_flow.flow_id),
+            "automation_tier": collection_flow.automation_tier,
+            "collection_config": collection_flow.collection_config,
+            # Skip platform detection since we have Discovery data
+            "start_phase": "gap_analysis",
+        }
+
+        # Create the flow through MFO with atomic=True to prevent internal commits
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+
+        orchestrator = MasterFlowOrchestrator(db, context)
+
+        master_flow_id, master_flow_data = await orchestrator.create_flow(
+            flow_type="collection",
+            flow_name=flow_name,
+            initial_state=flow_input,
+            atomic=False,
+        )
+
+        # Update collection flow with master flow ID
+        # Convert string to UUID for master_flow_id field
+        if not master_flow_id:
+            raise ValueError(
+                "MFO creation failed - transaction will be automatically rolled back"
             )
 
-            collection_flow = CollectionFlow(
-                flow_id=flow_id,
-                flow_name=flow_name,
-                client_account_id=context.client_account_id,
-                engagement_id=context.engagement_id,
-                user_id=current_user.id,
-                created_by=current_user.id,
-                status=CollectionFlowStatus.INITIALIZED.value,
-                automation_tier=collection_config["automation_tier"],
-                collection_config=collection_config,
-                current_phase=CollectionPhase.GAP_ANALYSIS.value,  # Start with gap analysis
-                discovery_flow_id=uuid.UUID(
-                    discovery_flow_id
-                ),  # Link to Discovery flow
-            )
-
-            db.add(collection_flow)
-            await db.flush()  # Make ID available for foreign key relationships
-            await db.refresh(collection_flow)
-
-            # Initialize with Master Flow Orchestrator within the same transaction
-            flow_input = {
-                "flow_id": str(collection_flow.flow_id),
-                "automation_tier": collection_flow.automation_tier,
-                "collection_config": collection_flow.collection_config,
-                # Skip platform detection since we have Discovery data
-                "start_phase": "gap_analysis",
-            }
-
-            # Create the flow through MFO with atomic=True to prevent internal commits
-            from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-
-            orchestrator = MasterFlowOrchestrator(db, context)
-
-            master_flow_id, master_flow_data = await orchestrator.create_flow(
-                flow_type="collection",
-                flow_name=flow_name,
-                initial_state=flow_input,
-                atomic=True,
-            )
-
-            # Update collection flow with master flow ID
-            # Convert string to UUID for master_flow_id field
-            if not master_flow_id:
-                raise ValueError(
-                    "MFO creation failed - transaction will be automatically rolled back"
-                )
-
-            collection_flow.master_flow_id = uuid.UUID(master_flow_id)
-            # Transaction context manager will handle the final commit
+        collection_flow.master_flow_id = uuid.UUID(master_flow_id)
+        # Transaction context manager will handle the final commit
 
         # Initialize background execution for the collection flow (outside transaction)
         logger.info(
@@ -196,7 +193,7 @@ async def create_collection_from_discovery(
             len(selected_application_ids),
         )
 
-        # Serialize flow - master_flow_id is guaranteed due to atomic transaction
+        # Serialize flow
         serialized_flow = collection_serializers.serialize_collection_flow(
             collection_flow
         )
@@ -347,55 +344,54 @@ async def create_collection_flow(
                 detail=error_detail,
             )
 
-        # Use atomic transaction pattern to prevent orphaned flows
-        async with db.begin():
-            # Create flow record
-            flow_id = uuid.uuid4()
-            collection_flow = CollectionFlow(
-                flow_id=flow_id,
-                flow_name=collection_utils.format_flow_display_name(),
-                client_account_id=context.client_account_id,
-                engagement_id=context.engagement_id,
-                user_id=current_user.id,
-                created_by=current_user.id,
-                status=CollectionFlowStatus.INITIALIZED.value,
-                automation_tier=flow_data.automation_tier,
-                collection_config=flow_data.collection_config or {},
-                current_phase=CollectionPhase.PLATFORM_DETECTION.value,
+        # Create collection flow (session handles transaction automatically)
+        # Create flow record
+        flow_id = uuid.uuid4()
+        collection_flow = CollectionFlow(
+            flow_id=flow_id,
+            flow_name=collection_utils.format_flow_display_name(),
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id,
+            user_id=current_user.id,
+            created_by=current_user.id,
+            status=CollectionFlowStatus.INITIALIZED.value,
+            automation_tier=flow_data.automation_tier,
+            collection_config=flow_data.collection_config or {},
+            current_phase=CollectionPhase.PLATFORM_DETECTION.value,
+        )
+
+        db.add(collection_flow)
+        await db.flush()  # Make ID available for foreign key relationships
+        await db.refresh(collection_flow)
+
+        # Initialize with Master Flow Orchestrator within the same transaction
+        flow_input = {
+            "flow_id": str(collection_flow.flow_id),
+            "automation_tier": collection_flow.automation_tier,
+            "collection_config": collection_flow.collection_config,
+        }
+
+        # Create the flow through MFO with atomic=True to prevent internal commits
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+
+        orchestrator = MasterFlowOrchestrator(db, context)
+
+        master_flow_id, master_flow_data = await orchestrator.create_flow(
+            flow_type="collection",
+            flow_name=collection_flow.flow_name,
+            initial_state=flow_input,
+            atomic=False,
+        )
+
+        # Update collection flow with master flow ID
+        # Convert string to UUID for master_flow_id field
+        if not master_flow_id:
+            raise RuntimeError(
+                "MFO creation failed - transaction will be automatically rolled back"
             )
 
-            db.add(collection_flow)
-            await db.flush()  # Make ID available for foreign key relationships
-            await db.refresh(collection_flow)
-
-            # Initialize with Master Flow Orchestrator within the same transaction
-            flow_input = {
-                "flow_id": str(collection_flow.flow_id),
-                "automation_tier": collection_flow.automation_tier,
-                "collection_config": collection_flow.collection_config,
-            }
-
-            # Create the flow through MFO with atomic=True to prevent internal commits
-            from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-
-            orchestrator = MasterFlowOrchestrator(db, context)
-
-            master_flow_id, master_flow_data = await orchestrator.create_flow(
-                flow_type="collection",
-                flow_name=collection_flow.flow_name,
-                initial_state=flow_input,
-                atomic=True,
-            )
-
-            # Update collection flow with master flow ID
-            # Convert string to UUID for master_flow_id field
-            if not master_flow_id:
-                raise RuntimeError(
-                    "MFO creation failed - transaction will be automatically rolled back"
-                )
-
-            collection_flow.master_flow_id = uuid.UUID(master_flow_id)
-            # Transaction context manager will handle the final commit
+        collection_flow.master_flow_id = uuid.UUID(master_flow_id)
+        # Transaction context manager will handle the final commit
 
         # Initialize background execution for the collection flow (outside transaction)
         logger.info(
@@ -435,7 +431,7 @@ async def create_collection_flow(
             )
         )
 
-        # Serialize flow - master_flow_id is guaranteed due to atomic transaction
+        # Serialize flow
         serialized_flow = collection_serializers.serialize_collection_flow(
             collection_flow
         )
