@@ -60,13 +60,17 @@ class ServiceInitializer:
         self.ai_validation = AIValidationService()
         self.business_analyzer = BusinessAnalyzers()
         self.confidence_scoring = ConfidenceScorer()
-        self.gap_analysis_agent = GapAnalysisAgent()
+        # Pass required context parameters to GapAnalysisAgent
+        self.gap_analysis_agent = GapAnalysisAgent(
+            client_account_id=self.context.client_account_id or "",
+            engagement_id=self.context.engagement_id or "",
+        )
         self.questionnaire_generator = AdaptiveQuestionnaireGenerator()
 
         # Initialize manual collection services
         self.adaptive_form_service = AdaptiveFormService()
         self.bulk_data_service = BulkDataService(self.db_session, self.context)
         self.validation_service = ValidationService()
-        self.template_service = TemplateService(self.db_session, self.context)
-        self.progress_tracking = ProgressTrackingService(self.db_session, self.context)
+        self.template_service = TemplateService()
+        self.progress_tracking = ProgressTrackingService()
         self.data_integration = DataIntegrationService(self.db_session, self.context)

@@ -199,7 +199,7 @@ class CollectionFlowApi {
     flowId: string,
     questionnaireId: string,
     responses: QuestionnaireResponse[]
-  ): Promise<{ status: string; message: string; questionnaire_id: string }> {
+  ): Promise<{ status: string; message: string; questionnaire_id: string; flow_id: string; progress: number }> {
     return await apiCall(
       `${this.baseUrl}/flows/${flowId}/questionnaires/${questionnaireId}/submit`,
       {
@@ -381,6 +381,35 @@ class CollectionFlowApi {
       };
     }
   }
+
+  // Application selection for collection flows
+  async updateFlowApplications(flowId: string, applicationIds: string[]): Promise<{
+    status: string;
+    message: string;
+    flow_id: string;
+    selected_applications: number;
+  }> {
+    return await apiCall(`${this.baseUrl}/flows/${flowId}/applications`, {
+      method: 'POST',
+      body: JSON.stringify({ selected_application_ids: applicationIds })
+    });
+  }
+
+  // Phase 3: Collection to Assessment Transition
+  async transitionToAssessment(flowId: string): Promise<TransitionResult> {
+    return await apiCall(`${this.baseUrl}/flows/${flowId}/transition-to-assessment`, {
+      method: 'POST'
+    });
+  }
+}
+
+// Phase 3: TypeScript interface for transition response
+export interface TransitionResult {
+  status: string;
+  assessment_flow_id: string;  // snake_case
+  collection_flow_id: string;  // snake_case
+  message: string;
+  created_at: string;
 }
 
 export const collectionFlowApi = new CollectionFlowApi();

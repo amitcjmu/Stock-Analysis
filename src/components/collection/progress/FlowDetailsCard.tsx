@@ -5,12 +5,15 @@
  * Extracted from Progress.tsx to create a focused, reusable component.
  */
 
-import React from 'react';
-import { Play, Pause, Square, ArrowRight, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Play, Pause, Square, ArrowRight, AlertCircle, Loader2, CheckCircle2, AlertTriangle, ExternalLink } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
+import { collectionFlowApi } from '@/services/api/collection-flow';
+import { useToast } from '@/hooks/use-toast';
 
 export interface CollectionFlow {
   id: string;
@@ -43,14 +46,180 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
   readiness
 }) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isCheckingReadiness, setIsCheckingReadiness] = useState(false);
+  const [showAppSelection, setShowAppSelection] = useState(false);
+  const [isPollingForQuestionnaires, setIsPollingForQuestionnaires] = useState(false);
+  const [pollingMessage, setPollingMessage] = useState('Preparing questionnaire...');
+  const [pollStartTime, setPollStartTime] = useState<number>(0);
 
   const handleAction = async (action: 'pause' | 'resume' | 'stop'): void => {
     await onFlowAction(flow.id, action);
   };
 
-  const handleContinue = (): void => {
-    // Navigate to adaptive forms page with the flow ID
-    navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
+  const handleContinue = async (): Promise<void> => {
+    setIsCheckingReadiness(true);
+    setShowAppSelection(false);
+
+    try {
+      // Check if flow is completed (100% progress or completed status)
+      if (flow.status === 'completed' || flow.progress === 100) {
+        try {
+          // Check readiness for assessment transition
+          const readinessData = await collectionFlowApi.getFlowReadiness(flow.id);
+
+          // Check if we have enough data for assessment
+          const isReadyForAssessment =
+            readinessData.apps_ready_for_assessment > 0 &&
+            readinessData.quality.collection_quality_score >= 60 &&
+            readinessData.quality.confidence_score >= 50;
+
+          if (isReadyForAssessment) {
+            // Transition to assessment
+            const transitionResult = await collectionFlowApi.transitionToAssessment(flow.id);
+
+            toast({
+              title: 'Transitioning to Assessment',
+              description: 'Collection complete. Moving to assessment phase...',
+              variant: 'default'
+            });
+
+            // Navigate to assessment flow
+            setTimeout(() => {
+              navigate(`/assessment/${transitionResult.assessment_flow_id}/overview`);
+            }, 1000);
+
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking readiness or transitioning:', error);
+        }
+
+        // If not ready for assessment or error, go to overview
+        toast({
+          title: 'Collection Complete',
+          description: 'Review your collection data before proceeding to assessment.',
+          variant: 'default'
+        });
+        navigate(`/collection/overview?flowId=${flow.id}`);
+        return;
+      }
+
+      // For incomplete flows, first try to continue the flow
+      try {
+        console.log('🔄 Continuing collection flow:', flow.id);
+        await collectionFlowApi.continueFlow(flow.id);
+        console.log('✅ Flow continuation initiated successfully');
+      } catch (continueError) {
+        console.warn('⚠️ Failed to continue flow, proceeding with questionnaire check:', continueError);
+      }
+
+      // Try to get questionnaires
+      try {
+        const questionnaires = await collectionFlowApi.getFlowQuestionnaires(flow.id);
+        
+        if (questionnaires.length > 0) {
+          console.log(`📋 Found ${questionnaires.length} questionnaires, navigating to adaptive forms`);
+          navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
+          return;
+        }
+      } catch (questionnairesError: any) {
+        // Handle 422 'no_applications_selected' error
+        if (questionnairesError?.status === 422 && questionnairesError?.code === 'no_applications_selected') {
+          console.log('⚠️ No applications selected for flow, showing app selection UI');
+          setShowAppSelection(true);
+          return;
+        }
+        
+        console.warn('⚠️ Failed to fetch questionnaires:', questionnairesError);
+      }
+
+      // If no questionnaires found, start polling for them
+      console.log('⏳ No questionnaires found, starting polling...');
+      await pollForQuestionnaires();
+
+    } catch (error) {
+      console.error('Error in handleContinue:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to continue flow. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsCheckingReadiness(false);
+    }
+  };
+
+  const pollForQuestionnaires = async (): Promise<void> => {
+    setIsPollingForQuestionnaires(true);
+    setPollStartTime(Date.now());
+    setPollingMessage('Preparing questionnaire...');
+
+    const POLL_TIMEOUT = 90 * 1000; // 90 seconds total
+    const INITIAL_POLL_PERIOD = 30 * 1000; // First 30 seconds
+    const INITIAL_POLL_INTERVAL = 2 * 1000; // 2 seconds
+    const EXTENDED_POLL_INTERVAL = 5 * 1000; // 5 seconds
+
+    const startTime = Date.now();
+    let currentInterval = INITIAL_POLL_INTERVAL;
+
+    const poll = async () => {
+      const elapsed = Date.now() - startTime;
+      
+      // Update message after 30 seconds
+      if (elapsed > INITIAL_POLL_PERIOD && pollingMessage === 'Preparing questionnaire...') {
+        setPollingMessage('Still preparing... This is taking longer than expected.');
+        currentInterval = EXTENDED_POLL_INTERVAL;
+      }
+
+      // Check for timeout
+      if (elapsed >= POLL_TIMEOUT) {
+        setIsPollingForQuestionnaires(false);
+        toast({
+          title: 'Timeout',
+          description: 'Questionnaire preparation took too long. Please try again.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      try {
+        const questionnaires = await collectionFlowApi.getFlowQuestionnaires(flow.id);
+        
+        if (questionnaires.length > 0) {
+          setIsPollingForQuestionnaires(false);
+          console.log('✅ Questionnaires ready after polling, navigating to adaptive forms');
+          navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
+          return;
+        }
+      } catch (error: any) {
+        // Handle 422 'no_applications_selected' error during polling
+        if (error?.status === 422 && error?.code === 'no_applications_selected') {
+          setIsPollingForQuestionnaires(false);
+          setShowAppSelection(true);
+          return;
+        }
+      }
+
+      // Continue polling
+      setTimeout(poll, currentInterval);
+    };
+
+    // Start polling
+    setTimeout(poll, currentInterval);
+  };
+
+  const handleCancelPolling = (): void => {
+    setIsPollingForQuestionnaires(false);
+    setPollingMessage('Preparing questionnaire...');
+  };
+
+  const handleSelectApplications = (): void => {
+    navigate(`/collection/select-applications?flowId=${flow.id}`);
+  };
+
+  const handleCloseAppSelection = (): void => {
+    setShowAppSelection(false);
   };
 
   // Check if flow is stuck (running but with 0% progress)
@@ -67,16 +236,26 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
             </p>
           </div>
           <div className="flex items-center space-x-2">
-            {/* Continue button for stuck flows */}
-            {isFlowStuck && (
+            {/* Continue button for stuck or completed flows */}
+            {(isFlowStuck || flow.status === 'completed' || flow.progress === 100) && (
               <Button
                 variant="default"
                 size="sm"
                 onClick={handleContinue}
-                title="Continue Flow"
+                disabled={isCheckingReadiness}
+                title={flow.status === 'completed' ? 'Continue to Assessment' : 'Continue Flow'}
               >
-                <ArrowRight className="h-4 w-4 mr-1" />
-                Continue
+                {isCheckingReadiness ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    Checking...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="h-4 w-4 mr-1" />
+                    Continue
+                  </>
+                )}
               </Button>
             )}
 
@@ -205,20 +384,33 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
               </div>
             </div>
           )}
+          {/* Assessment Readiness Indicator for Completed Flows */}
+          {(flow.status === 'completed' || flow.progress === 100) && readiness && (
+            <Alert className="bg-green-50 border-green-200">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <AlertDescription>
+                <p className="font-medium text-green-800">Collection Complete</p>
+                <p className="text-sm text-green-700 mt-1">
+                  {readiness.apps_ready_for_assessment > 0 &&
+                   readiness.quality.collection_quality_score >= 60 &&
+                   readiness.quality.confidence_score >= 50
+                    ? 'Ready for assessment phase. Click "Continue" to transition.'
+                    : `More data needed for assessment. Quality: ${readiness.quality.collection_quality_score}%, Confidence: ${readiness.quality.confidence_score}%`}
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {isFlowStuck && (
-            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <div className="flex items-start space-x-2">
-                <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm text-amber-800 font-medium">
-                    Flow appears to be stuck
-                  </p>
-                  <p className="text-sm text-amber-700 mt-1">
-                    The flow is not making progress. Click "Continue" to proceed with the data collection process.
-                  </p>
-                </div>
-              </div>
-            </div>
+            <Alert className="bg-amber-50 border-amber-200">
+              <AlertCircle className="h-5 w-5 text-amber-600" />
+              <AlertDescription>
+                <p className="font-medium text-amber-800">Flow appears to be stuck</p>
+                <p className="text-sm text-amber-700 mt-1">
+                  The flow is not making progress. Click "Continue" to proceed with the data collection process.
+                </p>
+              </AlertDescription>
+            </Alert>
           )}
 
           {flow.status === 'failed' && (
@@ -234,6 +426,68 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
               <p className="text-sm text-yellow-800">
                 Flow is currently paused. Resume to continue processing.
               </p>
+            </div>
+          )}
+
+          {/* Polling for questionnaires feedback */}
+          {isPollingForQuestionnaires && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                  <div>
+                    <p className="font-medium text-blue-900">{pollingMessage}</p>
+                    <p className="text-sm text-blue-700 mt-1">
+                      Elapsed: {Math.floor((Date.now() - pollStartTime) / 1000)}s
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelPolling}
+                  className="text-blue-600 border-blue-300"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Application selection UI */}
+          {showAppSelection && (
+            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start space-x-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="font-medium text-amber-900 mb-2">
+                    Applications Required
+                  </h4>
+                  <p className="text-sm text-amber-800 mb-4">
+                    This flow needs applications selected before questionnaires can be generated. 
+                    Please select the applications you want to collect data for.
+                  </p>
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={handleSelectApplications}
+                      variant="default"
+                      size="sm"
+                      className="bg-amber-600 hover:bg-amber-700"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      Select Applications
+                    </Button>
+                    <Button
+                      onClick={handleCloseAppSelection}
+                      variant="outline"
+                      size="sm"
+                      className="text-amber-600 border-amber-300"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>

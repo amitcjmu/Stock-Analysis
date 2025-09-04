@@ -12,6 +12,7 @@ import { collectionFlowApi } from '@/services/api/collection-flow';
 
 export interface CollectionFlow {
   id: string;
+  flow_id?: string;
   name: string;
   type: 'adaptive' | 'bulk' | 'integration';
   status: 'running' | 'paused' | 'completed' | 'failed';
@@ -21,6 +22,8 @@ export interface CollectionFlow {
   estimated_completion?: string;
   application_count: number;
   completed_applications: number;
+  // Add assessment readiness fields for Phase 1 fix
+  assessment_ready?: boolean;
 }
 
 export interface CollectionMetrics {
@@ -75,6 +78,8 @@ export interface ProgressMonitoringState {
   isLoading: boolean;
   error: Error | null;
   readiness: ReadinessSummary | null;
+  // Add showAssessmentCTA for Phase 1 fix
+  showAssessmentCTA: boolean;
 }
 
 export interface ReadinessSummary {
@@ -90,6 +95,8 @@ export interface ProgressMonitoringActions {
   refreshData: () => void;
   exportReport: () => void;
   toggleAutoRefresh: () => void;
+  // Add setShowAssessmentCTA for Phase 1 fix
+  setShowAssessmentCTA: (show: boolean) => void;
 }
 
 /**
@@ -322,7 +329,8 @@ export const useProgressMonitoring = (
     selectedFlow: null,
     isLoading: true,
     error: null,
-    readiness: null
+    readiness: null,
+    showAssessmentCTA: false // Initialize for Phase 1 fix
   });
 
   const [autoRefresh, setAutoRefresh] = useState(initialAutoRefresh);
@@ -342,6 +350,7 @@ export const useProgressMonitoring = (
         // Transform API response to match our CollectionFlow interface
         const flow: CollectionFlow = {
           id: flowDetails.id,
+          flow_id: flowDetails.flow_id,
           name: `Collection Flow - ${flowDetails.automation_tier}`,
           type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' :
                 flowDetails.automation_tier === 'tier_2' ? 'bulk' : 'integration',
@@ -349,30 +358,37 @@ export const useProgressMonitoring = (
                   flowDetails.status === 'completed' ? 'completed' :
                   flowDetails.status === 'paused' ? 'paused' : 'failed',
           progress: flowDetails.progress_percentage || 0,  // Use correct field
-          startedAt: flowDetails.created_at,
-          completedAt: flowDetails.completed_at,
-          applicationCount: flowDetails.collection_metrics?.platforms_detected || 0,
-          completedApplications: flowDetails.collection_metrics?.data_collected || 0
+          started_at: flowDetails.created_at,
+          completed_at: flowDetails.completed_at,
+          estimated_completion: flowDetails.estimated_completion,
+          application_count: flowDetails.collection_metrics?.platforms_detected || 0,
+          completed_applications: flowDetails.collection_metrics?.data_collected || 0,
+          // Phase 1 fix: Add assessment readiness from API response
+          assessment_ready: flowDetails.assessment_ready || false
         };
 
         // Create metrics from single flow
         const metrics: CollectionMetrics = {
-          totalFlows: 1,
-          activeFlows: flow.status === 'running' ? 1 : 0,
-          completedFlows: flow.status === 'completed' ? 1 : 0,
-          failedFlows: flow.status === 'failed' ? 1 : 0,
-          totalApplications: flow.applicationCount,
-          completedApplications: flow.completedApplications,
-          averageCompletionTime: 0,
-          dataQualityScore: flowDetails.collection_metrics?.data_collected || 0
+          total_flows: 1,
+          active_flows: flow.status === 'running' ? 1 : 0,
+          completed_flows: flow.status === 'completed' ? 1 : 0,
+          failed_flows: flow.status === 'failed' ? 1 : 0,
+          total_applications: flow.application_count,
+          completed_applications: flow.completed_applications,
+          average_completion_time: 0,
+          data_quality_score: flowDetails.collection_metrics?.data_collected || 0
         };
+
+        // Phase 1 fix: Check if flow should show assessment CTA
+        const shouldShowAssessmentCTA = flow.status === 'completed' || flow.assessment_ready === true;
 
         setState(prev => ({
           ...prev,
           flows: [flow],
           metrics,
           selectedFlow: flow.id,
-          isLoading: false
+          isLoading: false,
+          showAssessmentCTA: shouldShowAssessmentCTA
         }));
 
         // Fetch readiness summary for selected flow
@@ -394,6 +410,7 @@ export const useProgressMonitoring = (
         // Transform flows (REAL data only; remove any mock generation)
         const flows: CollectionFlow[] = incompleteFlows.map(flowDetails => ({
           id: flowDetails.id,
+          flow_id: flowDetails.flow_id,
           name: `Collection Flow - ${flowDetails.automation_tier}`,
           type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' :
                 flowDetails.automation_tier === 'tier_2' ? 'bulk' : 'integration',
@@ -401,30 +418,39 @@ export const useProgressMonitoring = (
                   flowDetails.status === 'completed' ? 'completed' :
                   flowDetails.status === 'paused' ? 'paused' : 'failed',
           progress: flowDetails.progress_percentage || 0,  // Use correct field
-          startedAt: flowDetails.created_at,
-          completedAt: flowDetails.completed_at,
-          applicationCount: flowDetails.collection_metrics?.platforms_detected || 10,
-          completedApplications: flowDetails.collection_metrics?.data_collected || 0
+          started_at: flowDetails.created_at,
+          completed_at: flowDetails.completed_at,
+          estimated_completion: flowDetails.estimated_completion,
+          application_count: flowDetails.collection_metrics?.platforms_detected || 10,
+          completed_applications: flowDetails.collection_metrics?.data_collected || 0,
+          // Phase 1 fix: Add assessment readiness from API response
+          assessment_ready: flowDetails.assessment_ready || false
         }));
 
         // Calculate metrics from actual flows
         const metrics: CollectionMetrics = {
-          totalFlows: flows.length,
-          activeFlows: flows.filter(f => f.status === 'running').length,
-          completedFlows: flows.filter(f => f.status === 'completed').length,
-          failedFlows: flows.filter(f => f.status === 'failed').length,
-          totalApplications: flows.reduce((sum, f) => sum + f.applicationCount, 0),
-          completedApplications: flows.reduce((sum, f) => sum + f.completedApplications, 0),
-          averageCompletionTime: 0,
-          dataQualityScore: 0
+          total_flows: flows.length,
+          active_flows: flows.filter(f => f.status === 'running').length,
+          completed_flows: flows.filter(f => f.status === 'completed').length,
+          failed_flows: flows.filter(f => f.status === 'failed').length,
+          total_applications: flows.reduce((sum, f) => sum + f.application_count, 0),
+          completed_applications: flows.reduce((sum, f) => sum + f.completed_applications, 0),
+          average_completion_time: 0,
+          data_quality_score: 0
         };
+
+        // Phase 1 fix: Check if any flow should show assessment CTA
+        const shouldShowAssessmentCTA = flows.some(flow =>
+          flow.status === 'completed' || flow.assessment_ready === true
+        );
 
         setState(prev => ({
           ...prev,
           flows,
           metrics,
           selectedFlow: flows[0]?.id || null,
-          isLoading: false
+          isLoading: false,
+          showAssessmentCTA: shouldShowAssessmentCTA
         }));
 
         // Fetch readiness for first flow if available
@@ -546,12 +572,27 @@ export const useProgressMonitoring = (
   };
 
   /**
-   * Handle flow actions (pause, resume, stop)
+   * Handle flow actions (pause, resume, stop) with Phase 1 gating logic
    */
   const handleFlowAction = async (flowId: string, action: 'pause' | 'resume' | 'stop'): Promise<void> => {
     try {
       if (action === 'resume') {
-        // Use continue endpoint for resume
+        const flow = state.flows.find(f => f.id === flowId);
+
+        // PHASE 1 FIX: Stop calling continueFlow when completed
+        if (flow?.status === 'completed' || flow?.assessment_ready === true) {
+          // Don't call continueFlow - show assessment CTA instead
+          setState(prev => ({ ...prev, showAssessmentCTA: true }));
+
+          toast({
+            title: 'Collection Complete',
+            description: 'Data collection is complete. Ready to proceed to assessment phase.',
+            variant: 'default'
+          });
+          return;
+        }
+
+        // Original logic for incomplete flows only
         await collectionFlowApi.continueFlow(flowId);
       } else if (action === 'stop') {
         // Use update endpoint to cancel the flow
@@ -614,6 +655,13 @@ export const useProgressMonitoring = (
     setAutoRefresh(prev => !prev);
   };
 
+  /**
+   * Set showAssessmentCTA state - Phase 1 fix
+   */
+  const setShowAssessmentCTA = (show: boolean): void => {
+    setState(prev => ({ ...prev, showAssessmentCTA: show }));
+  };
+
   // Auto-refresh effect
   useEffect(() => {
     // STOP INFINITE LOOPS: Don't auto-refresh if there's an error or if disabled
@@ -650,6 +698,7 @@ export const useProgressMonitoring = (
     handleFlowAction,
     refreshData,
     exportReport,
-    toggleAutoRefresh
+    toggleAutoRefresh,
+    setShowAssessmentCTA
   };
-};
+};;

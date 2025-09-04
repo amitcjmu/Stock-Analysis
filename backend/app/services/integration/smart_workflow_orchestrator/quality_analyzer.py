@@ -20,7 +20,7 @@ from app.models.assessment_flow import AssessmentFlow
 from app.models.collection_flow import CollectionFlow
 from app.models.discovery_flow import DiscoveryFlow
 from app.services.ai_analysis.confidence_scoring import ConfidenceScorer
-from app.services.ai_analysis.gap_analysis_agent import GapAnalysisAgent
+# from app.services.ai_analysis.gap_analysis_agent import GapAnalysisAgent  # Not currently used
 
 from .workflow_types import SmartWorkflowContext
 
@@ -32,7 +32,8 @@ class QualityAnalyzer:
 
     def __init__(self):
         self.confidence_scorer = ConfidenceScorer()
-        self.gap_analyzer = GapAnalysisAgent()
+        # Gap analyzer requires context parameters and is not currently used
+        # self.gap_analyzer = GapAnalysisAgent(client_account_id, engagement_id)
 
         # Quality thresholds for phase transitions
         self.quality_thresholds = {

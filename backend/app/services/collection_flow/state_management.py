@@ -86,17 +86,27 @@ class CollectionFlowStateService:
             # Generate unique flow ID
             flow_id = uuid.uuid4()
 
-            # Initialize phase state
+            # Initialize phase state - start at gap_analysis by default per v4 plan
             phase_state = {
-                "current_phase": CollectionPhase.INITIALIZATION.value,
+                "current_phase": CollectionPhase.GAP_ANALYSIS.value,
                 "phase_history": [
                     {
-                        "phase": CollectionPhase.INITIALIZATION.value,
+                        "phase": CollectionPhase.GAP_ANALYSIS.value,
                         "started_at": datetime.utcnow().isoformat(),
                         "status": "active",
+                        "metadata": {
+                            "started_directly": True,
+                            "reason": "Default collection flow starts at gap analysis phase (v4 plan)",
+                        },
                     }
                 ],
-                "phase_metadata": {},
+                "phase_metadata": {
+                    "gap_analysis": {
+                        "started_directly": True,
+                        "skip_platform_detection": True,
+                        "skip_automated_collection": True,
+                    }
+                },
             }
 
             # Create the collection flow
@@ -108,8 +118,8 @@ class CollectionFlowStateService:
                 engagement_id=uuid.UUID(self.engagement_id),
                 user_id=uuid.UUID(str(self.context.user_id)),
                 automation_tier=automation_tier,
-                status=CollectionFlowStatus.INITIALIZED,
-                current_phase=CollectionPhase.INITIALIZATION.value,
+                status=CollectionFlowStatus.GAP_ANALYSIS,
+                current_phase=CollectionPhase.GAP_ANALYSIS.value,
                 phase_state=phase_state,
                 collection_config=collection_config or {},
                 metadata=metadata or {},

@@ -347,6 +347,30 @@ async def create_collection_flow(
         # Create collection flow (session handles transaction automatically)
         # Create flow record
         flow_id = uuid.uuid4()
+
+        # Initialize phase state with gap analysis phase
+        phase_state = {
+            "current_phase": CollectionPhase.GAP_ANALYSIS.value,
+            "phase_history": [
+                {
+                    "phase": CollectionPhase.GAP_ANALYSIS.value,
+                    "started_at": datetime.now(timezone.utc).isoformat(),
+                    "status": "active",
+                    "metadata": {
+                        "started_directly": True,
+                        "reason": "Default collection flow starts at gap analysis phase",
+                    },
+                }
+            ],
+            "phase_metadata": {
+                "gap_analysis": {
+                    "started_directly": True,
+                    "skip_platform_detection": True,
+                    "skip_automated_collection": True,
+                }
+            },
+        }
+
         collection_flow = CollectionFlow(
             flow_id=flow_id,
             flow_name=collection_utils.format_flow_display_name(),
@@ -354,10 +378,11 @@ async def create_collection_flow(
             engagement_id=context.engagement_id,
             user_id=current_user.id,
             created_by=current_user.id,
-            status=CollectionFlowStatus.INITIALIZED.value,
+            status=CollectionFlowStatus.GAP_ANALYSIS.value,
             automation_tier=flow_data.automation_tier,
             collection_config=flow_data.collection_config or {},
-            current_phase=CollectionPhase.PLATFORM_DETECTION.value,
+            current_phase=CollectionPhase.GAP_ANALYSIS.value,
+            phase_state=phase_state,
         )
 
         db.add(collection_flow)
@@ -369,6 +394,7 @@ async def create_collection_flow(
             "flow_id": str(collection_flow.flow_id),
             "automation_tier": collection_flow.automation_tier,
             "collection_config": collection_flow.collection_config,
+            "start_phase": "gap_analysis",
         }
 
         # Create the flow through MFO with atomic=True to prevent internal commits

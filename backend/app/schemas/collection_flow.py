@@ -61,6 +61,12 @@ class CollectionFlowResponse(BaseModel):
     collection_metrics: Optional[Dict[str, Any]] = None
     discovery_flow_id: Optional[str] = None
 
+    # Assessment transition tracking (Phase 4)
+    assessment_ready: Optional[bool] = None
+    apps_ready_for_assessment: Optional[int] = None
+    assessment_flow_id: Optional[str] = None
+    assessment_transition_date: Optional[datetime] = None
+
     class Config:
         from_attributes = True
 

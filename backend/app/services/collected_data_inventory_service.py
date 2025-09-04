@@ -13,7 +13,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import RequestContext
+from app.core.context import RequestContext
 from app.models.collected_data_inventory import CollectedDataInventory
 from app.models.collection_flow import CollectionFlow
 
