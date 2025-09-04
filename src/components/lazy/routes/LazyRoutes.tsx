@@ -181,6 +181,12 @@ export const LazyCollectionProgress = createLazyRoute(
   LoadingPriority.NORMAL,
 );
 
+export const LazyCollectionGapAnalysis = createLazyRoute(
+  () => import("@/pages/collection/GapAnalysis"),
+  "Gap Analysis",
+  LoadingPriority.NORMAL,
+);
+
 export const LazyCollectionFlowManagement = createLazyRoute(
   () => import("@/pages/CollectionFlowManagementPage"),
   "Collection Flow Management",

@@ -10,6 +10,7 @@ import asyncio
 import json
 import logging
 import os
+import uuid
 
 # Add backend to path
 import sys
@@ -111,6 +112,7 @@ async def fix_missing_raw_records():
                                 record_data[field] = values[0] if values else ""
 
                         raw_record = RawImportRecord(
+                            id=uuid.uuid4(),
                             data_import_id=data_import.id,
                             client_account_id=data_import.client_account_id,
                             engagement_id=data_import.engagement_id,
@@ -135,6 +137,7 @@ async def fix_missing_raw_records():
                     logger.info("  No field mappings found - creating minimal sample")
 
                     sample_record = RawImportRecord(
+                        id=uuid.uuid4(),
                         data_import_id=data_import.id,
                         client_account_id=data_import.client_account_id,
                         engagement_id=data_import.engagement_id,

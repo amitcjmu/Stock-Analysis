@@ -182,7 +182,8 @@ class DataImport(Base):
 
     __table_args__ = (
         {
-            "comment": "Tracks data import jobs, their status, and metadata within a multi-tenant environment."
+            "schema": "migration",
+            "comment": "Tracks data import jobs, their status, and metadata within a multi-tenant environment.",
         },
     )
 
@@ -203,7 +204,7 @@ class RawImportRecord(Base):
     )
     data_import_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("data_imports.id", ondelete="CASCADE"),
+        ForeignKey("migration.data_imports.id", ondelete="CASCADE"),
         nullable=False,
         comment="Foreign key to the parent data import job.",
     )
@@ -296,7 +297,8 @@ class RawImportRecord(Base):
 
     __table_args__ = (
         {
-            "comment": "Stores individual raw data records from imported files before transformation and loading."
+            "schema": "migration",
+            "comment": "Stores individual raw data records from imported files before transformation and loading.",
         },
     )
 
@@ -317,7 +319,7 @@ class ImportProcessingStep(Base):
     )
     data_import_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("data_imports.id", ondelete="CASCADE"),
+        ForeignKey("migration.data_imports.id", ondelete="CASCADE"),
         nullable=False,
         comment="Foreign key to the parent data import job.",
     )
@@ -380,6 +382,7 @@ class ImportProcessingStep(Base):
 
     __table_args__ = (
         {
-            "comment": "Tracks the execution and outcome of individual steps in a data import workflow."
+            "schema": "migration",
+            "comment": "Tracks the execution and outcome of individual steps in a data import workflow.",
         },
     )

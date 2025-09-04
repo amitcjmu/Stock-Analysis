@@ -120,7 +120,7 @@ export const ApplicationSelectionUI: React.FC<ApplicationSelectionUIProps> = ({
     setIsSubmitting(true);
     try {
       await collectionFlowApi.updateFlowApplications(flowId, Array.from(selectedApplications));
-      
+
       toast({
         title: 'Applications Selected',
         description: `${selectedApplications.size} applications selected for collection.`,
@@ -262,8 +262,8 @@ export const ApplicationSelectionUI: React.FC<ApplicationSelectionUIProps> = ({
                       </Badge>
                     )}
                     {app.business_criticality && (
-                      <Badge 
-                        variant="outline" 
+                      <Badge
+                        variant="outline"
                         className={`text-xs ${
                           app.business_criticality === 'critical' ? 'border-red-300 text-red-700' :
                           app.business_criticality === 'high' ? 'border-orange-300 text-orange-700' :

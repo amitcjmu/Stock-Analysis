@@ -70,6 +70,7 @@ class RawRecordOperationsMixin:
                         continue
 
                     raw_record = RawImportRecord(
+                        id=uuid.uuid4(),
                         data_import_id=data_import.id,
                         client_account_id=self.client_account_id,
                         engagement_id=engagement_id,

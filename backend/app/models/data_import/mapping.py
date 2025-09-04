@@ -34,7 +34,7 @@ class ImportFieldMapping(Base):
     )
     data_import_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("data_imports.id", ondelete="CASCADE"),
+        ForeignKey("migration.data_imports.id", ondelete="CASCADE"),
         nullable=False,
         comment="Foreign key to the parent data import job.",
     )
@@ -132,6 +132,7 @@ class ImportFieldMapping(Base):
 
     __table_args__ = (
         {
-            "comment": "Stores mappings between source data fields and target system fields for data imports."
+            "schema": "migration",
+            "comment": "Stores mappings between source data fields and target system fields for data imports.",
         },
     )

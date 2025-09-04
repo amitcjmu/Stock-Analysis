@@ -20,6 +20,7 @@ from app.models.assessment_flow import AssessmentFlow
 from app.models.collection_flow import CollectionFlow
 from app.models.discovery_flow import DiscoveryFlow
 from app.services.ai_analysis.confidence_scoring import ConfidenceScorer
+
 # from app.services.ai_analysis.gap_analysis_agent import GapAnalysisAgent  # Not currently used
 
 from .workflow_types import SmartWorkflowContext

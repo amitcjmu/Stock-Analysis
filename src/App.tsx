@@ -51,6 +51,7 @@ import {
   LazyBulkUpload,
   LazyDataIntegration,
   LazyCollectionProgress,
+  LazyCollectionGapAnalysis,
   LazyCollectionFlowManagement,
   LazyApplicationSelection,
   LazyTreatment,
@@ -157,6 +158,12 @@ const AuthenticatedApp = (): JSX.Element => {
         path: "/collection/adaptive-forms",
         importFn: () => import("./pages/collection/AdaptiveForms"),
         priority: LoadingPriority.HIGH,
+      });
+
+      routePreloader.registerRoute({
+        path: "/collection/gap-analysis",
+        importFn: () => import("./pages/collection/GapAnalysis"),
+        priority: LoadingPriority.NORMAL,
       });
 
       // Start intelligent preloading
@@ -268,6 +275,10 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route
         path="/collection/progress/:flowId"
         element={<LazyCollectionProgress />}
+      />
+      <Route
+        path="/collection/gap-analysis/:flowId"
+        element={<LazyCollectionGapAnalysis />}
       />
       <Route
         path="/collection/flow-management"

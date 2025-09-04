@@ -117,7 +117,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
       // Try to get questionnaires
       try {
         const questionnaires = await collectionFlowApi.getFlowQuestionnaires(flow.id);
-        
+
         if (questionnaires.length > 0) {
           console.log(`📋 Found ${questionnaires.length} questionnaires, navigating to adaptive forms`);
           navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
@@ -130,7 +130,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
           setShowAppSelection(true);
           return;
         }
-        
+
         console.warn('⚠️ Failed to fetch questionnaires:', questionnairesError);
       }
 
@@ -165,7 +165,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
 
     const poll = async () => {
       const elapsed = Date.now() - startTime;
-      
+
       // Update message after 30 seconds
       if (elapsed > INITIAL_POLL_PERIOD && pollingMessage === 'Preparing questionnaire...') {
         setPollingMessage('Still preparing... This is taking longer than expected.');
@@ -185,7 +185,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
 
       try {
         const questionnaires = await collectionFlowApi.getFlowQuestionnaires(flow.id);
-        
+
         if (questionnaires.length > 0) {
           setIsPollingForQuestionnaires(false);
           console.log('✅ Questionnaires ready after polling, navigating to adaptive forms');
@@ -464,7 +464,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
                     Applications Required
                   </h4>
                   <p className="text-sm text-amber-800 mb-4">
-                    This flow needs applications selected before questionnaires can be generated. 
+                    This flow needs applications selected before questionnaires can be generated.
                     Please select the applications you want to collect data for.
                   </p>
                   <div className="flex space-x-2">

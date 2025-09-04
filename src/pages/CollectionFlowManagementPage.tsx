@@ -1,6 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +16,7 @@ import { useCollectionFlowManagement } from '@/hooks/collection/useCollectionFlo
 import { IncompleteCollectionFlowManager } from '@/components/collection/IncompleteCollectionFlowManager';
 import { collectionFlowApi } from '@/services/api/collection-flow';
 import { getErrorToastOptions } from '@/utils/errorHandling';
+import { FLOW_PHASE_ROUTES } from '@/config/flowRoutes';
 
 interface CollectionFlowManagementPageProps {
   showHealthMonitor?: boolean;
@@ -28,6 +30,7 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
   autoRefresh = true
 }) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [cleanupOptions, setCleanupOptions] = useState({
     expirationHours: 72,
     dryRun: true,
@@ -119,9 +122,30 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
   // Handlers
   const handleContinueFlow = async (flowId: string): void => {
     try {
-      await continueFlow(flowId);
-      // Refetch incomplete flows
+      const result = await continueFlow(flowId);
+      // Refetch incomplete flows to get updated flow state
       await incompleteFlowsQuery.refetch();
+
+      // Get the updated flow details to determine the current phase
+      const updatedFlows = await collectionFlowApi.getIncompleteFlows();
+      const updatedFlow = updatedFlows.find(f => f.id === flowId);
+
+      if (updatedFlow && updatedFlow.current_phase) {
+        // Navigate to the appropriate phase page
+        const phaseRoute = FLOW_PHASE_ROUTES.collection[updatedFlow.current_phase];
+        if (phaseRoute) {
+          const route = phaseRoute(flowId);
+          navigate(route);
+          toast({
+            title: "Flow Resumed",
+            description: `Navigating to ${updatedFlow.current_phase.replace('_', ' ')} phase...`,
+            variant: "default"
+          });
+          return;
+        }
+      }
+
+      // Fallback toast if navigation fails
       toast({
         title: "Flow Resumed",
         description: "The collection flow has been successfully resumed.",

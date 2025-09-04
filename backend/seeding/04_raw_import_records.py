@@ -4,6 +4,7 @@ Creating realistic asset inventory with raw import records for 3 data imports.
 """
 
 import asyncio
+import uuid
 
 from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, IMPORT_IDS
 from sqlalchemy import select
@@ -285,6 +286,7 @@ async def create_raw_import_records():
             raw_data = generate_server_record(i + 1, is_valid)
 
             record = RawImportRecord(
+                id=uuid.uuid4(),
                 data_import_id=csv_import_id,
                 client_account_id=DEMO_CLIENT_ID,
                 engagement_id=DEMO_ENGAGEMENT_ID,
@@ -315,6 +317,7 @@ async def create_raw_import_records():
             raw_data = generate_application_record(i + 1, is_valid)
 
             record = RawImportRecord(
+                id=uuid.uuid4(),
                 data_import_id=json_import_id,
                 client_account_id=DEMO_CLIENT_ID,
                 engagement_id=DEMO_ENGAGEMENT_ID,
@@ -345,6 +348,7 @@ async def create_raw_import_records():
             raw_data = generate_dependency_record(i + 1, is_valid)
 
             record = RawImportRecord(
+                id=uuid.uuid4(),
                 data_import_id=excel_import_id,
                 client_account_id=DEMO_CLIENT_ID,
                 engagement_id=DEMO_ENGAGEMENT_ID,
