@@ -27,6 +27,22 @@ import { apiCall } from "@/config/api";
 // Import types
 import type { ProgressMilestone } from "@/components/collection/types";
 
+// Define types for collection flow
+interface CollectionFlowConfig {
+  selected_application_ids?: string[];
+  applications?: string[];
+  application_ids?: string[];
+  has_applications?: boolean;
+}
+
+interface CollectionFlow {
+  flow_id?: string;
+  id?: string;
+  progress?: number;
+  current_phase?: string;
+  collection_config?: CollectionFlowConfig;
+}
+
 // Import UI components
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
@@ -46,6 +62,7 @@ const AdaptiveForms: React.FC = () => {
   const applicationId = searchParams.get("applicationId");
   const flowId = searchParams.get("flowId");
 
+  // CRITICAL FIX: All hooks must be called before any conditional returns
   // State to track flows being deleted
   const [deletingFlows, setDeletingFlows] = useState<Set<string>>(new Set());
   const [hasJustDeleted, setHasJustDeleted] = useState(false);
@@ -53,50 +70,16 @@ const AdaptiveForms: React.FC = () => {
   // State to show app selection prompt when no applications are selected
   const [showAppSelectionPrompt, setShowAppSelectionPrompt] = useState(false);
   const [showInlineAppSelection, setShowInlineAppSelection] = useState(false);
-
-  // Function to detect if applications are selected in the collection flow
-  const hasApplicationsSelected = (collectionFlow: any): boolean => {
-    if (!collectionFlow) return false;
-
-    // Check collection_config for selected applications
-    const config = collectionFlow.collection_config || {};
-    const selectedApps =
-      config.selected_application_ids ||
-      config.applications ||
-      config.application_ids ||
-      [];
-
-    // Check if applications are selected
-    const hasApps = Array.isArray(selectedApps) && selectedApps.length > 0;
-
-    // Also check if has_applications flag is set in config
-    const hasAppsFlag = config.has_applications === true;
-
-    // Return true if applications are selected either way
-    return hasApps || hasAppsFlag;
-  };
+  const [hasRedirectedForApps, setHasRedirectedForApps] = useState(false);
 
   // Check for incomplete flows that would block new collection processes
+  // Skip checking if we're continuing a specific flow (flowId provided)
+  const skipIncompleteCheck = !!flowId;
   const {
     data: incompleteFlows = [],
     isLoading: checkingFlows,
     refetch: refetchFlows,
-  } = useIncompleteCollectionFlows();
-
-  // Filter out the current flow and flows being deleted from the blocking check
-  // CRITICAL FIX: Allow continuation of any existing flow by matching flowId in URL
-  const blockingFlows = incompleteFlows.filter((flow) => {
-    const id = flow.flow_id || flow.id;
-    // If flowId is provided in URL, allow continuing that specific flow
-    if (flowId && (id === flowId)) {
-      return false; // Don't block if this is the flow we want to continue
-    }
-    // Only block if it's a different flow and not being deleted
-    return id !== flowId && !deletingFlows.has(id);
-  });
-
-  // Don't block if we're continuing a specific flow
-  const hasBlockingFlows = !flowId && blockingFlows.length > 0;
+  } = useIncompleteCollectionFlows(); // Always call the hook to maintain consistent hook order
 
   // Use collection flow management hook for flow operations
   const { deleteFlow, isDeleting } = useCollectionFlowManagement();
@@ -146,6 +129,35 @@ const AdaptiveForms: React.FC = () => {
     }
   );
 
+  // Filter out the current flow and flows being deleted from the blocking check
+  // CRITICAL FIX: Allow continuation of any existing flow by matching flowId in URL
+  // When skipping incomplete check, treat as no blocking flows
+  const blockingFlows = skipIncompleteCheck ? [] : incompleteFlows.filter((flow) => {
+    const id = flow.flow_id || flow.id;
+    // If flowId is provided in URL, allow continuing that specific flow
+    if (flowId && (id === flowId)) {
+      return false; // Don't block if this is the flow we want to continue
+    }
+    // Only block if it's a different flow and not being deleted
+    return id !== flowId && !deletingFlows.has(id);
+  });
+
+  // Don't block if we're continuing a specific flow
+  const hasBlockingFlows = !skipIncompleteCheck && blockingFlows.length > 0;
+
+  // Calculate autoInitialize value
+  const shouldAutoInitialize = !checkingFlows && (!hasBlockingFlows || hasJustDeleted || !!flowId);
+
+  // Debug logging
+  console.log('🔍 AdaptiveForms initialization state:', {
+    flowId,
+    checkingFlows,
+    hasBlockingFlows,
+    hasJustDeleted,
+    shouldAutoInitialize,
+    blockingFlowsCount: blockingFlows.length
+  });
+
   // Use the adaptive form flow hook for all flow management
   const {
     formData,
@@ -165,52 +177,24 @@ const AdaptiveForms: React.FC = () => {
     applicationId,
     flowId,
     // CRITICAL FIX: Allow auto-initialization when continuing a specific flow
-    autoInitialize: !checkingFlows && (!hasBlockingFlows || hasJustDeleted || !!flowId),
+    autoInitialize: shouldAutoInitialize,
   });
 
-  // CC: Debugging - Log handleSave function only when it changes
-  React.useEffect(() => {
-    console.log('🔍 AdaptiveForms handleSave initialized:', typeof handleSave === 'function');
-  }, [typeof handleSave]); // Only log when handleSave type changes
-
-  // CC: Create a direct save handler to bypass potential prop passing issues
-  const directSaveHandler = React.useCallback(() => {
-    console.log('🟢 DIRECT SAVE HANDLER CALLED - Bypassing prop chain');
-    if (typeof handleSave === 'function') {
-      console.log('🟢 Calling handleSave from direct handler');
-      handleSave();
-    } else {
-      console.error('❌ handleSave is not available in AdaptiveForms');
-    }
-  }, [handleSave]);
-
   // Use HTTP polling for real-time updates during workflow initialization
+  // CRITICAL FIX: Remove re-initialization calls from polling to prevent loops
   const { isActive: isPollingActive, requestStatusUpdate, flowState } =
     useCollectionStatePolling({
       flowId: activeFlowId,
-      enabled: !!activeFlowId && isLoading,
+      enabled: !!activeFlowId && isLoading && !formData, // Only poll if we're loading and don't have data
       onQuestionnaireReady: (state) => {
         console.log(
-          "🎉 HTTP Polling: Questionnaire ready, triggering re-initialization",
+          "🎉 HTTP Polling: Questionnaire ready notification",
         );
-        // Trigger a re-fetch when questionnaire is ready
-        if (!formData) {
-          initializeFlow();
-        }
+        // DO NOT trigger re-initialization here - the hook handles it internally
       },
       onStatusUpdate: (state) => {
         console.log("📊 HTTP Polling: Workflow status update:", state);
-        // Trigger re-initialization if questionnaires are ready
-        if (
-          state.status === "completed" ||
-          state.phase === "questionnaire_generation" ||
-          (state.questionnaire_count && state.questionnaire_count > 0)
-        ) {
-          // Only re-initialize if we don't have form data yet
-          if (!formData) {
-            initializeFlow();
-          }
-        }
+        // DO NOT trigger re-initialization here - the hook handles it internally
       },
       onError: (error) => {
         console.error("❌ HTTP Polling: Collection workflow error:", error);
@@ -240,11 +224,31 @@ const AdaptiveForms: React.FC = () => {
       }
     },
     enabled: !!activeFlowId,
-    // Set cache time to 30 seconds to reduce stale data issues
-    staleTime: 30 * 1000,
-    // Refetch on window focus to catch updates from application selection
-    refetchOnWindowFocus: true,
+    // Set cache time to 5 minutes to prevent excessive re-fetching
+    staleTime: 5 * 60 * 1000,
+    // Cache data for 10 minutes
+    gcTime: 10 * 60 * 1000,
+    // Disable automatic refetching to prevent loops
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
+
+  // CC: Debugging - Log handleSave function only when it changes
+  React.useEffect(() => {
+    console.log('🔍 AdaptiveForms handleSave initialized:', typeof handleSave === 'function');
+  }, [handleSave]); // Only log when handleSave changes
+
+  // CC: Create a direct save handler to bypass potential prop passing issues
+  const directSaveHandler = React.useCallback(() => {
+    console.log('🟢 DIRECT SAVE HANDLER CALLED - Bypassing prop chain');
+    if (typeof handleSave === 'function') {
+      console.log('🟢 Calling handleSave from direct handler');
+      handleSave();
+    } else {
+      console.error('❌ handleSave is not available in AdaptiveForms');
+    }
+  }, [handleSave]);
 
   // Detect if we need to redirect to application selection
   useEffect(() => {
@@ -261,7 +265,7 @@ const AdaptiveForms: React.FC = () => {
       currentCollectionFlow.progress > 0 ||
       currentCollectionFlow.current_phase !== "initialization";
 
-    if (!hasApps && !isExistingFlowContinuation && !hasProgressed) {
+    if (!hasApps && !isExistingFlowContinuation && !hasProgressed && !hasRedirectedForApps) {
       // For NEW flows without apps, redirect to application selection
       console.log(
         "🔄 New collection flow has no applications selected, redirecting to application selection",
@@ -270,9 +274,10 @@ const AdaptiveForms: React.FC = () => {
         },
       );
 
+      setHasRedirectedForApps(true); // Prevent repeated redirects
       navigate(`/collection/select-applications?flowId=${activeFlowId}`);
       return;
-    } else if (!hasApps && (isExistingFlowContinuation || hasProgressed)) {
+    } else if (!hasApps && (isExistingFlowContinuation || hasProgressed) && !showAppSelectionPrompt) {
       // For existing flows without apps, show a warning but don't redirect
       console.log(
         "⚠️ Existing collection flow has no applications selected, but not redirecting to avoid loop",
@@ -283,10 +288,10 @@ const AdaptiveForms: React.FC = () => {
         },
       );
 
-      // Show app selection prompt to give users a path forward
+      // Show app selection prompt to give users a path forward (only once)
       setShowAppSelectionPrompt(true);
 
-      // Show a warning toast
+      // Show a warning toast (only once)
       toast({
         title: "No Applications Selected",
         description:
@@ -301,8 +306,87 @@ const AdaptiveForms: React.FC = () => {
     activeFlowId,
     flowId,
     navigate,
-    toast,
+    hasRedirectedForApps,
+    showAppSelectionPrompt,
   ]);
+
+  // Reset the hasJustDeleted flag after auto-initialization triggers
+  React.useEffect(() => {
+    if (hasJustDeleted && !hasBlockingFlows && !checkingFlows) {
+      // Give a small delay to ensure state updates have propagated
+      const timer = setTimeout(() => {
+        setHasJustDeleted(false);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [hasJustDeleted, hasBlockingFlows, checkingFlows]);
+
+  // Add window focus listener to refetch collection flow data when returning from application selection
+  // This ensures we have the latest application selection status when users navigate back
+  useEffect(() => {
+    const handleWindowFocus = async () => {
+      if (activeFlowId && !isLoadingFlow) {
+        console.log(
+          "🔄 Window focused - refetching collection flow data to check for application updates",
+        );
+        await refetchCollectionFlow();
+      }
+    };
+
+    window.addEventListener("focus", handleWindowFocus);
+    return () => {
+      window.removeEventListener("focus", handleWindowFocus);
+    };
+  }, [activeFlowId, isLoadingFlow, refetchCollectionFlow]);
+
+  // Refetch collection flow data when flowId changes or when we first get an activeFlowId
+  // This handles navigation back from application selection page
+  useEffect(() => {
+    if (activeFlowId && activeFlowId === flowId) {
+      console.log(
+        "🔄 Flow ID matched - refetching collection flow data for latest application status",
+        { activeFlowId, flowId },
+      );
+      refetchCollectionFlow();
+    }
+  }, [activeFlowId, flowId, refetchCollectionFlow]);
+
+  // Check for 422 'no_applications_selected' error in useAdaptiveFormFlow
+  useEffect(() => {
+    if (error && error.message === 'no_applications_selected') {
+      setShowInlineAppSelection(true);
+    }
+  }, [error]);
+
+  // Function to detect if applications are selected in the collection flow
+  const hasApplicationsSelected = (collectionFlow: CollectionFlow | null): boolean => {
+    if (!collectionFlow) return false;
+
+    // Check collection_config for selected applications
+    const config = collectionFlow.collection_config || {};
+    const selectedApps =
+      config.selected_application_ids ||
+      config.applications ||
+      config.application_ids ||
+      [];
+
+    // Check if applications are selected
+    const hasApps = Array.isArray(selectedApps) && selectedApps.length > 0;
+
+    // Also check if has_applications flag is set in config
+    const hasAppsFlag = config.has_applications === true;
+
+    // Return true if applications are selected either way
+    return hasApps || hasAppsFlag;
+  };
+
+  // Debug hook state
+  console.log('🎯 useAdaptiveFormFlow state:', {
+    hasFormData: !!formData,
+    isLoading,
+    error: error?.message,
+    activeFlowId,
+  });
 
   // Flow management handlers for incomplete flows
   const handleContinueFlow = async (flowId: string): void => {
@@ -378,55 +462,6 @@ const AdaptiveForms: React.FC = () => {
       required: true,
     },
   ];
-
-  // Reset the hasJustDeleted flag after auto-initialization triggers
-  React.useEffect(() => {
-    if (hasJustDeleted && !hasBlockingFlows && !checkingFlows) {
-      // Give a small delay to ensure state updates have propagated
-      const timer = setTimeout(() => {
-        setHasJustDeleted(false);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [hasJustDeleted, hasBlockingFlows, checkingFlows]);
-
-  // Add window focus listener to refetch collection flow data when returning from application selection
-  // This ensures we have the latest application selection status when users navigate back
-  useEffect(() => {
-    const handleWindowFocus = async () => {
-      if (activeFlowId && !isLoadingFlow) {
-        console.log(
-          "🔄 Window focused - refetching collection flow data to check for application updates",
-        );
-        await refetchCollectionFlow();
-      }
-    };
-
-    window.addEventListener("focus", handleWindowFocus);
-    return () => {
-      window.removeEventListener("focus", handleWindowFocus);
-    };
-  }, [activeFlowId, isLoadingFlow, refetchCollectionFlow]);
-
-  // Refetch collection flow data when flowId changes or when we first get an activeFlowId
-  // This handles navigation back from application selection page
-  useEffect(() => {
-    if (activeFlowId && activeFlowId === flowId) {
-      console.log(
-        "🔄 Flow ID matched - refetching collection flow data for latest application status",
-        { activeFlowId, flowId },
-      );
-      refetchCollectionFlow();
-    }
-  }, [activeFlowId, flowId, refetchCollectionFlow]);
-
-  // Fetch questionnaires when flowId changes (for continuing existing flows)
-  useEffect(() => {
-    if (flowId && activeFlowId === flowId && !formData && !isLoading && !error) {
-      console.log('🔄 FlowId changed, fetching questionnaires for continuation:', flowId);
-      initializeFlow();
-    }
-  }, [flowId, activeFlowId, formData, isLoading, error, initializeFlow]);
 
   // Show loading state while checking for incomplete flows
   if (checkingFlows) {
@@ -505,7 +540,8 @@ const AdaptiveForms: React.FC = () => {
   }
 
   // Show blocker only if there are other incomplete flows AND we're not continuing a specific flow
-  if (hasBlockingFlows && !flowId) {
+  // NEVER block if we have a flowId - we're continuing an existing flow
+  if (hasBlockingFlows && !flowId && !skipIncompleteCheck) {
     return (
       <CollectionPageLayout
         title="Adaptive Data Collection"
@@ -527,7 +563,8 @@ const AdaptiveForms: React.FC = () => {
   // Show loading state while form data is being generated OR while we're still loading the form
   // IMPORTANT: We should wait until both formData AND the initial loading is complete
   // This prevents showing empty forms that get populated later
-  if ((!formData || isLoading) && !hasBlockingFlows) {
+  // If we have a flowId, always show loading/initialization state (never block)
+  if ((!formData || isLoading) && (!hasBlockingFlows || flowId)) {
     // Check if there's an error
     if (error && !isLoading) {
       return (
@@ -550,7 +587,7 @@ const AdaptiveForms: React.FC = () => {
       <CollectionPageLayout
         title="Adaptive Data Collection"
         description="Loading collection form and saved data..."
-        isLoading={true}
+        isLoading={isLoading || !formData}
         loadingMessage={
           isLoading
             ? "Loading form structure and saved responses..."
@@ -563,10 +600,19 @@ const AdaptiveForms: React.FC = () => {
         }
       >
         {!isLoading && !formData && (
-          <div className="flex justify-center mt-8">
+          <div className="flex flex-col items-center space-y-4 mt-8">
+            <div className="text-center">
+              <p className="text-gray-600 mb-4">
+                The collection form is not loading automatically.
+                Click the button below to start the flow manually.
+              </p>
+            </div>
             <Button onClick={() => initializeFlow()} size="lg">
               Start Collection Flow
             </Button>
+            <p className="text-sm text-gray-500">
+              Flow ID: {flowId || 'Not provided'}
+            </p>
           </div>
         )}
       </CollectionPageLayout>
@@ -686,13 +732,6 @@ const AdaptiveForms: React.FC = () => {
   const handleAppSelectionCancel = () => {
     setShowInlineAppSelection(false);
   };
-
-  // Check for 422 'no_applications_selected' error in useAdaptiveFormFlow
-  useEffect(() => {
-    if (error && error.message === 'no_applications_selected') {
-      setShowInlineAppSelection(true);
-    }
-  }, [error]);
 
   // Show inline application selection UI if needed
   if (showInlineAppSelection && activeFlowId) {
