@@ -72,5 +72,5 @@ class ServiceInitializer:
         self.bulk_data_service = BulkDataService(self.db_session, self.context)
         self.validation_service = ValidationService()
         self.template_service = TemplateService()
-        self.progress_tracking = ProgressTrackingService(self.db_session, self.context)
+        self.progress_tracking = ProgressTrackingService()
         self.data_integration = DataIntegrationService(self.db_session, self.context)

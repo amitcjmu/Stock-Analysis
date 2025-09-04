@@ -11,13 +11,12 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.core.request_context import RequestContext
+from app.core.context import RequestContext
 from app.models.collection_flow import CollectionFlow
 from app.services.gap_analysis_summary_service import GapAnalysisSummaryService
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
-from app.services.agent_configuration import AgentConfiguration
 from app.schemas.collection_transition import ReadinessResult, TransitionResult
 
 
@@ -30,10 +29,7 @@ class CollectionTransitionService:
     def __init__(self, db_session: AsyncSession, context: RequestContext):
         self.db = db_session
         self.context = context
-        self.gap_service = GapAnalysisSummaryService(db_session, context)
-        self.agent_pool = TenantScopedAgentPool(
-            context.client_account_id, context.engagement_id
-        )
+        self.gap_service = GapAnalysisSummaryService(db_session)
 
     async def validate_readiness(self, flow_id: UUID) -> ReadinessResult:
         """
@@ -47,12 +43,9 @@ class CollectionTransitionService:
         # Get gap analysis summary (existing service)
         gap_summary = await self.gap_service.get_gap_analysis_summary(flow)
 
-        # Get readiness agent config with safe fallback
-        agent_config = AgentConfiguration.get_agent_config("readiness_assessor")
-
-        # Get readiness agent for intelligent assessment
-        readiness_agent = await self.agent_pool.get_or_create_agent(
-            agent_type="readiness_assessor", config=agent_config
+        # Get readiness agent for intelligent assessment using class method
+        readiness_agent = await TenantScopedAgentPool.get_agent(
+            context=self.context, agent_type="readiness_assessor"
         )
 
         # Agent-driven decision (NO hardcoded 0.7 threshold)
@@ -85,31 +78,54 @@ class CollectionTransitionService:
                 AssessmentFlowRepository,
             )
 
-            assessment_repo = AssessmentFlowRepository(self.db, self.context)
-
-            # Create assessment with MFO pattern - use correct field names
-            assessment_flow = await assessment_repo.create_assessment_flow(
-                name=f"Assessment - {collection_flow.flow_name}",  # Fixed: flow_name
-                collection_flow_id=collection_flow.id,
-                metadata={
-                    "source": "collection_transition",
-                    "collection_flow_uuid": str(collection_flow.flow_id),
-                    "transition_timestamp": datetime.utcnow().isoformat(),
-                },
+            assessment_repo = AssessmentFlowRepository(
+                self.db,
+                self.context.client_account_id,
+                self.context.engagement_id,
+                str(self.context.user_id) if self.context.user_id else None,
             )
+
+            # Create assessment with MFO pattern - use correct parameters
+            # Get selected application IDs from collection config
+            selected_app_ids = []
+            if (
+                hasattr(collection_flow, "collection_config")
+                and collection_flow.collection_config
+                and collection_flow.collection_config.get("selected_application_ids")
+            ):
+                selected_app_ids = collection_flow.collection_config[
+                    "selected_application_ids"
+                ]
+
+            assessment_flow_id = await assessment_repo.create_assessment_flow(
+                engagement_id=str(self.context.engagement_id),
+                selected_application_ids=selected_app_ids,
+                created_by=str(self.context.user_id) if self.context.user_id else None,
+            )
+
+            # Get the created assessment flow record for metadata
+            from app.models.assessment_flow import AssessmentFlow
+
+            assessment_result = await self.db.execute(
+                select(AssessmentFlow).where(AssessmentFlow.id == assessment_flow_id)
+            )
+            assessment_flow = assessment_result.scalar_one()
 
             # Update collection flow (only if column exists)
             if hasattr(collection_flow, "assessment_flow_id"):
                 collection_flow.assessment_flow_id = assessment_flow.id
                 collection_flow.assessment_transition_date = datetime.utcnow()
 
-            # Store in flow_metadata (correct field name)
-            collection_flow.flow_metadata = {  # Fixed: flow_metadata
-                **collection_flow.flow_metadata,
+            # Store in flow_metadata (with safe attribute access)
+            current_metadata = getattr(collection_flow, "flow_metadata", {}) or {}
+            collection_flow.flow_metadata = {
+                **current_metadata,
                 "assessment_handoff": {
                     "assessment_flow_id": str(assessment_flow.flow_id),
                     "transitioned_at": datetime.utcnow().isoformat(),
-                    "transitioned_by": str(self.context.user_id),
+                    "transitioned_by": (
+                        str(self.context.user_id) if self.context.user_id else None
+                    ),
                 },
             }
 
@@ -142,12 +158,27 @@ class CollectionTransitionService:
     async def _create_readiness_task(
         self, flow: CollectionFlow, gap_summary: Any
     ) -> Dict:
-        """Create task for readiness assessment agent."""
+        """Create task for readiness assessment agent with safe attribute access."""
+        # Safe attribute access for flow fields
+        flow_id = getattr(flow, "flow_id", None)
+        progress_percentage = getattr(flow, "progress_percentage", 0) or 0
+        current_phase = getattr(flow, "current_phase", "unknown") or "unknown"
+
+        # Safe gap summary processing
+        gaps_count = 0
+        if gap_summary and hasattr(gap_summary, "gaps"):
+            gaps_count = len(gap_summary.gaps) if gap_summary.gaps else 0
+        elif gap_summary and hasattr(gap_summary, "critical_gaps"):
+            # Alternative field name
+            critical_gaps = getattr(gap_summary, "critical_gaps", []) or []
+            optional_gaps = getattr(gap_summary, "optional_gaps", []) or []
+            gaps_count = len(critical_gaps) + len(optional_gaps)
+
         return {
-            "flow_id": str(flow.flow_id),
-            "gaps_count": len(gap_summary.gaps) if gap_summary else 0,
-            "collection_progress": flow.progress_percentage,
-            "current_phase": flow.current_phase,
+            "flow_id": str(flow_id) if flow_id else "unknown",
+            "gaps_count": gaps_count,
+            "collection_progress": progress_percentage,
+            "current_phase": current_phase,
         }
 
     async def _get_tenant_thresholds(self) -> Dict[str, float]:

@@ -19,10 +19,27 @@ branch_labels = None
 depends_on = None
 
 
-def _column_exists(
-    conn, table_name: str, column_name: str, schema: str = "migration"
-) -> bool:
+def _get_schema() -> str:
+    """Get the schema from alembic configuration or environment"""
+    from alembic import context
+
+    # Get schema from alembic configuration
+    alembic_config = context.config
+
+    # Check if schema is set in alembic config
+    schema = alembic_config.get_main_option("schema")
+    if schema:
+        return schema
+
+    # Default to migration schema (consistent with env.py version_table_schema)
+    return "migration"
+
+
+def _column_exists(conn, table_name: str, column_name: str, schema: str = None) -> bool:
     """Check if column exists using information_schema pattern"""
+    if schema is None:
+        schema = _get_schema()
+
     result = conn.execute(
         sa.text(
             "SELECT EXISTS (SELECT 1 FROM information_schema.columns "
@@ -33,8 +50,11 @@ def _column_exists(
     return result.scalar()
 
 
-def _constraint_exists(conn, constraint_name: str, schema: str = "migration") -> bool:
+def _constraint_exists(conn, constraint_name: str, schema: str = None) -> bool:
     """Check if constraint exists"""
+    if schema is None:
+        schema = _get_schema()
+
     result = conn.execute(
         sa.text(
             "SELECT EXISTS (SELECT 1 FROM information_schema.table_constraints "
@@ -58,7 +78,7 @@ def _check_pgvector_available(conn) -> bool:
 
 def upgrade():
     conn = op.get_bind()
-    schema = "migration"
+    schema = _get_schema()
 
     # Add assessment transition tracking columns
     if not _column_exists(conn, "collection_flows", "assessment_flow_id", schema):
@@ -94,15 +114,24 @@ def upgrade():
         if not _column_exists(
             conn, "collection_flows", "gap_analysis_embedding", schema
         ):
-            op.add_column(
-                "collection_flows",
-                sa.Column(
-                    "gap_analysis_embedding",
-                    sa.text("vector(1024)"),  # Match thenlper/gte-large dimensions
-                    nullable=True,
-                    comment="Vector embedding for gap analysis similarity matching",
-                ),
-                schema=schema,
+            # Use raw SQL for vector column since SQLAlchemy doesn't support it directly
+            op.execute(
+                sa.text(
+                    f"""
+                    ALTER TABLE {schema}.collection_flows
+                    ADD COLUMN gap_analysis_embedding vector(1024)
+                """
+                )
+            )
+
+            # Add comment separately
+            op.execute(
+                sa.text(
+                    f"""
+                    COMMENT ON COLUMN {schema}.collection_flows.gap_analysis_embedding
+                    IS 'Vector embedding for gap analysis similarity matching'
+                """
+                )
             )
 
             # Create vector similarity index
@@ -122,7 +151,7 @@ def upgrade():
 
 def downgrade():
     conn = op.get_bind()
-    schema = "migration"
+    schema = _get_schema()
 
     # Drop indexes first
     op.execute(

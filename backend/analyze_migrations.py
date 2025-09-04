@@ -12,11 +12,10 @@ This script will:
 CC: Critical migration chain analysis tool
 """
 
-import os
 import re
 import ast
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Set
+from typing import Dict, List, Optional
 from dataclasses import dataclass
 
 
@@ -156,13 +155,14 @@ def find_duplicates(migrations: Dict[str, MigrationInfo]) -> Dict[str, List[str]
 def build_dependency_chain(migrations: Dict[str, MigrationInfo]) -> List[str]:
     """Build the dependency chain from migrations."""
     # Find the root migration (no down_revision)
-    roots = [
-        rev
-        for rev, info in migrations.items()
-        if info.down_revision is None
-        and (not info.down_revisions or not any(info.down_revisions))
-        and rev is not None
-    ]
+    roots = []
+    for rev, info in migrations.items():
+        if (
+            info.down_revision is None
+            and (not info.down_revisions or not any(info.down_revisions))
+            and (rev is not None)
+        ):
+            roots.append(rev)
 
     if not roots:
         print("Warning: No root migration found!")
@@ -182,14 +182,12 @@ def build_dependency_chain(migrations: Dict[str, MigrationInfo]) -> List[str]:
         chain.append(revision)
 
         # Find all migrations that depend on this one
-        dependents = [
-            rev
-            for rev, info in migrations.items()
-            if (
-                info.down_revision == revision
-                or (info.down_revisions and revision in info.down_revisions)
-            )
-        ]
+        dependents = []
+        for rev, info in migrations.items():
+            if info.down_revision == revision or (
+                info.down_revisions and revision in info.down_revisions
+            ):
+                dependents.append(rev)
 
         for dependent in sorted(
             d for d in dependents if d is not None
@@ -215,7 +213,7 @@ def generate_report(migrations: Dict[str, MigrationInfo]) -> str:
     hash_named = sum(1 for m in migrations.values() if m.is_hash_named)
     no_downgrade = sum(1 for m in migrations.values() if not m.has_downgrade)
 
-    report.append(f"## Summary")
+    report.append("## Summary")
     report.append(f"- Total migrations: {total}")
     report.append(f"- Numbered migrations: {numbered}")
     report.append(f"- Hash-named migrations: {hash_named}")

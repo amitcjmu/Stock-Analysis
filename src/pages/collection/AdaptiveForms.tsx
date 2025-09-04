@@ -58,6 +58,10 @@ const AdaptiveForms: React.FC = () => {
   const queryClient = useQueryClient();
   const { client, engagement, user } = useAuth();
 
+  // CRITICAL FIX: Ref guard to prevent duplicate initialization calls per flowId
+  const initializationAttempts = React.useRef<Set<string>>(new Set());
+  const isInitializingRef = React.useRef<boolean>(false);
+
   // Get application ID and flow ID from URL params
   const applicationId = searchParams.get("applicationId");
   const flowId = searchParams.get("flowId");
@@ -93,17 +97,18 @@ const AdaptiveForms: React.FC = () => {
 
       // Remove from deleting set only for successfully deleted flows
       result.results.forEach((res) => {
+        const normalizedFlowId = String(res.flowId || ''); // Normalize to string
         if (res.success) {
           setDeletingFlows((prev) => {
             const newSet = new Set(prev);
-            newSet.delete(res.flowId);
+            newSet.delete(normalizedFlowId);
             return newSet;
           });
         } else {
           // Failed deletion - unhide the flow
           setDeletingFlows((prev) => {
             const newSet = new Set(prev);
-            newSet.delete(res.flowId);
+            newSet.delete(normalizedFlowId);
             return newSet;
           });
         }
@@ -114,9 +119,10 @@ const AdaptiveForms: React.FC = () => {
 
       // On error, unhide all flows that were being deleted
       deletionState.candidates.forEach((flowId) => {
+        const normalizedFlowId = String(flowId || ''); // Normalize to string
         setDeletingFlows((prev) => {
           const newSet = new Set(prev);
-          newSet.delete(flowId);
+          newSet.delete(normalizedFlowId);
           return newSet;
         });
       });
@@ -133,13 +139,14 @@ const AdaptiveForms: React.FC = () => {
   // CRITICAL FIX: Allow continuation of any existing flow by matching flowId in URL
   // When skipping incomplete check, treat as no blocking flows
   const blockingFlows = skipIncompleteCheck ? [] : incompleteFlows.filter((flow) => {
-    const id = flow.flow_id || flow.id;
+    const id = String(flow.flow_id || flow.id || ''); // Normalize to string
+    const normalizedFlowId = String(flowId || ''); // Normalize to string
     // If flowId is provided in URL, allow continuing that specific flow
-    if (flowId && (id === flowId)) {
+    if (flowId && (id === normalizedFlowId)) {
       return false; // Don't block if this is the flow we want to continue
     }
     // Only block if it's a different flow and not being deleted
-    return id !== flowId && !deletingFlows.has(id);
+    return id !== normalizedFlowId && !deletingFlows.has(id);
   });
 
   // Don't block if we're continuing a specific flow
@@ -249,6 +256,49 @@ const AdaptiveForms: React.FC = () => {
       console.error('❌ handleSave is not available in AdaptiveForms');
     }
   }, [handleSave]);
+
+  // CRITICAL FIX: Protected initialization function with ref guard
+  const protectedInitializeFlow = React.useCallback(async () => {
+    const currentFlowKey = activeFlowId || flowId || 'new-flow';
+
+    // Prevent duplicate initializations for the same flow
+    if (isInitializingRef.current) {
+      console.log('⚠️ Initialization already in progress, skipping duplicate call');
+      return;
+    }
+
+    if (initializationAttempts.current.has(currentFlowKey)) {
+      console.log('⚠️ Already attempted initialization for flow:', currentFlowKey);
+      return;
+    }
+
+    console.log('🔐 Protected initialization starting for flow:', currentFlowKey);
+    isInitializingRef.current = true;
+    initializationAttempts.current.add(currentFlowKey);
+
+    try {
+      await initializeFlow();
+      console.log('✅ Protected initialization completed for flow:', currentFlowKey);
+    } catch (error) {
+      console.error('❌ Protected initialization failed for flow:', currentFlowKey, error);
+      // Remove from attempts on error to allow retry
+      initializationAttempts.current.delete(currentFlowKey);
+      throw error;
+    } finally {
+      isInitializingRef.current = false;
+    }
+  }, [initializeFlow, activeFlowId, flowId]);
+
+  // Reset initialization attempts when flowId changes
+  React.useEffect(() => {
+    const currentFlowKey = activeFlowId || flowId || 'new-flow';
+    // Clear attempts for different flows, but keep current one
+    const newAttempts = new Set<string>();
+    if (initializationAttempts.current.has(currentFlowKey)) {
+      newAttempts.add(currentFlowKey);
+    }
+    initializationAttempts.current = newAttempts;
+  }, [activeFlowId, flowId]);
 
   // Detect if we need to redirect to application selection
   useEffect(() => {
@@ -576,7 +626,7 @@ const AdaptiveForms: React.FC = () => {
             error={error}
             flowId={activeFlowId}
             isPollingActive={isPollingActive}
-            onRetry={() => initializeFlow()}
+            onRetry={() => protectedInitializeFlow()}
             onRefresh={() => window.location.reload()}
           />
         </CollectionPageLayout>
@@ -607,7 +657,7 @@ const AdaptiveForms: React.FC = () => {
                 Click the button below to start the flow manually.
               </p>
             </div>
-            <Button onClick={() => initializeFlow()} size="lg">
+            <Button onClick={() => protectedInitializeFlow()} size="lg">
               Start Collection Flow
             </Button>
             <p className="text-sm text-gray-500">
@@ -726,7 +776,7 @@ const AdaptiveForms: React.FC = () => {
   const handleAppSelectionComplete = () => {
     setShowInlineAppSelection(false);
     // Re-initialize the flow after app selection
-    initializeFlow();
+    protectedInitializeFlow();
   };
 
   const handleAppSelectionCancel = () => {
@@ -783,7 +833,10 @@ const AdaptiveForms: React.FC = () => {
           // Hide candidates only after user confirms
           setDeletingFlows((prev) => {
             const next = new Set(prev);
-            deletionState.candidates.forEach((id) => next.add(id));
+            deletionState.candidates.forEach((id) => {
+              const normalizedId = String(id || ''); // Normalize to string
+              next.add(normalizedId);
+            });
             return next;
           });
           await deletionActions.confirmDeletion();
@@ -793,7 +846,10 @@ const AdaptiveForms: React.FC = () => {
           // Ensure items reappear if user cancels
           setDeletingFlows((prev) => {
             const next = new Set(prev);
-            deletionState.candidates.forEach((id) => next.delete(id));
+            deletionState.candidates.forEach((id) => {
+              const normalizedId = String(id || ''); // Normalize to string
+              next.delete(normalizedId);
+            });
             return next;
           });
         }}

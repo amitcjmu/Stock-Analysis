@@ -140,7 +140,7 @@ class AutomatedCollectionHandler:
                     inventory_service = CollectedDataInventoryService(db)
 
                     # Create request context from flow_context
-                    from app.api.dependencies import RequestContext
+                    from app.core.context import RequestContext
 
                     context = RequestContext(
                         client_account_id=self.flow_context.client_account_id,

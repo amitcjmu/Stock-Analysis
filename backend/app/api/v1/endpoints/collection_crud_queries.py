@@ -362,9 +362,35 @@ async def get_collection_readiness(
             "apps_ready_for_assessment": apps_ready_count,
             "selected_application_count": apps_ready_count,
             "total_asset_count": asset_count,
-            # Quality metrics
-            "collection_quality_score": quality_score,
-            "confidence_score": confidence_score,
+            # Quality metrics - nested structure to match frontend expectations
+            "quality": {
+                "collection_quality_score": quality_score,
+                "confidence_score": confidence_score,
+            },
+            # Phase scores - nested structure to match frontend expectations
+            "phase_scores": {
+                "collection": quality_score,  # Use collection quality for collection phase
+                "discovery": 0,  # Not applicable for collection flows
+            },
+            # Issues summary - nested structure to match frontend expectations
+            "issues": {
+                "total": len(missing_requirements),
+                "critical": len(
+                    [
+                        req
+                        for req in missing_requirements
+                        if req.get("type") in ["applications", "quality"]
+                    ]
+                ),
+                "warning": len(
+                    [
+                        req
+                        for req in missing_requirements
+                        if req.get("type") == "confidence"
+                    ]
+                ),
+                "info": 0,
+            },
             # Gap analysis metrics
             "gap_analysis_completed": gap_summary is not None,
             "critical_gaps_count": len(gap_summary.critical_gaps) if gap_summary else 0,
@@ -377,8 +403,9 @@ async def get_collection_readiness(
             "flow_status": active_flow.status,
             "current_phase": active_flow.current_phase,
             "flow_id": str(active_flow.flow_id),
+            "engagement_id": str(active_flow.engagement_id),
             # Timestamp
-            "assessed_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
         }
 
     except HTTPException:

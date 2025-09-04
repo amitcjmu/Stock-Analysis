@@ -266,7 +266,7 @@ window.mockApiResponses = {
 
   // Assessment transition endpoint - success case
   '/api/v1/collection/flows/completed-flow-456/transition-to-assessment': {
-    status: 'success',
+    status: 'transitioned',
     assessment_flow_id: 'assessment-flow-abc123',
     collection_flow_id: 'completed-flow-456',
     message: 'Assessment flow created successfully',
@@ -323,6 +323,109 @@ window.fetch = async function(url, options) {
         });
       }
     }
+  }
+
+  // Special handling for collection flow endpoints with dynamic IDs
+  if (pathname.includes('/api/v1/collection/flows/')) {
+    const pathParts = pathname.split('/');
+    const flowsIndex = pathParts.indexOf('flows');
+
+    if (flowsIndex !== -1 && pathParts.length > flowsIndex + 1) {
+      const flowId = pathParts[flowsIndex + 1];
+
+      // Handle questionnaires endpoint
+      if (pathname.includes('/questionnaires')) {
+        console.log(`[MOCK API] Handling questionnaires request for flow: ${flowId}`);
+
+        // Return empty array for now to prevent 401 errors
+        // In production, the backend would return actual questionnaires
+        const mockQuestionnaires = [];
+
+        console.log(`[MOCK API] Returning empty questionnaires array for flow ${flowId}`);
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => mockQuestionnaires,
+          text: async () => JSON.stringify(mockQuestionnaires),
+          headers: new Headers({
+            'content-type': 'application/json'
+          })
+        });
+      }
+
+      // Handle flow details endpoint
+      if (pathParts.length === flowsIndex + 2) {
+        console.log(`[MOCK API] Handling flow details request for flow: ${flowId}`);
+
+        // Return a mock flow response
+        const mockFlow = {
+          id: flowId,
+          flow_id: flowId,
+          status: 'running',
+          assessment_ready: false,
+          progress_percentage: 30,
+          automation_tier: 'tier_2',
+          application_count: 0,
+          completed_applications: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          engagement_id: 'engagement-123',
+          client_account_id: 'demo-corp'
+        };
+
+        console.log(`[MOCK API] Returning mock flow details for ${flowId}`);
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => mockFlow,
+          text: async () => JSON.stringify(mockFlow),
+          headers: new Headers({
+            'content-type': 'application/json'
+          })
+        });
+      }
+    }
+  }
+
+  // Handle collection flow status endpoint
+  if (pathname === '/api/v1/collection/flows/status') {
+    console.log('[MOCK API] Handling flow status request');
+    const mockStatus = {
+      flow_id: 'test-flow-123',
+      status: 'running',
+      current_phase: 'questionnaire_generation',
+      message: 'Generating adaptive questionnaires'
+    };
+
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: async () => mockStatus,
+      text: async () => JSON.stringify(mockStatus),
+      headers: new Headers({
+        'content-type': 'application/json'
+      })
+    });
+  }
+
+  // Handle execute flow phase endpoint
+  if (pathname.includes('/execute-phase')) {
+    console.log('[MOCK API] Handling execute phase request');
+    const mockResponse = {
+      status: 'success',
+      message: 'Flow execution started',
+      task_id: 'task-' + Date.now()
+    };
+
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: async () => mockResponse,
+      text: async () => JSON.stringify(mockResponse),
+      headers: new Headers({
+        'content-type': 'application/json'
+      })
+    });
   }
 
   // Check if we have a mock response for this endpoint

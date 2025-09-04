@@ -134,7 +134,7 @@ class GapAnalysisHandler:
                     summary_service = GapAnalysisSummaryService(db)
 
                     # Create request context from flow_context
-                    from app.api.dependencies import RequestContext
+                    from app.core.context import RequestContext
 
                     context = RequestContext(
                         client_account_id=self.flow_context.client_account_id,
@@ -204,7 +204,7 @@ class GapAnalysisHandler:
                         from app.services.master_flow_orchestrator import (
                             MasterFlowOrchestrator,
                         )
-                        from app.api.dependencies import RequestContext
+                        from app.core.context import RequestContext
 
                         # Get database session
                         db = getattr(self.flow_context, "db", None)
