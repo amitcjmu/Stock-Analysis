@@ -10,6 +10,7 @@ import CollectionPageLayout from "@/components/collection/layout/CollectionPageL
 import AdaptiveFormContainer from "@/components/collection/forms/AdaptiveFormContainer";
 import { CollectionUploadBlocker } from "@/components/collection/CollectionUploadBlocker";
 import { CollectionWorkflowError } from "@/components/collection/CollectionWorkflowError";
+import { ApplicationSelectionUI } from "@/components/collection/ApplicationSelectionUI";
 
 // Import custom hooks
 import { useAdaptiveFormFlow } from "@/hooks/collection/useAdaptiveFormFlow";
@@ -51,6 +52,7 @@ const AdaptiveForms: React.FC = () => {
 
   // State to show app selection prompt when no applications are selected
   const [showAppSelectionPrompt, setShowAppSelectionPrompt] = useState(false);
+  const [showInlineAppSelection, setShowInlineAppSelection] = useState(false);
 
   // Function to detect if applications are selected in the collection flow
   const hasApplicationsSelected = (collectionFlow: any): boolean => {
@@ -82,12 +84,19 @@ const AdaptiveForms: React.FC = () => {
   } = useIncompleteCollectionFlows();
 
   // Filter out the current flow and flows being deleted from the blocking check
+  // CRITICAL FIX: Allow continuation of any existing flow by matching flowId in URL
   const blockingFlows = incompleteFlows.filter((flow) => {
     const id = flow.flow_id || flow.id;
+    // If flowId is provided in URL, allow continuing that specific flow
+    if (flowId && (id === flowId)) {
+      return false; // Don't block if this is the flow we want to continue
+    }
+    // Only block if it's a different flow and not being deleted
     return id !== flowId && !deletingFlows.has(id);
   });
 
-  const hasBlockingFlows = blockingFlows.length > 0;
+  // Don't block if we're continuing a specific flow
+  const hasBlockingFlows = !flowId && blockingFlows.length > 0;
 
   // Use collection flow management hook for flow operations
   const { deleteFlow, isDeleting } = useCollectionFlowManagement();
@@ -155,7 +164,8 @@ const AdaptiveForms: React.FC = () => {
   } = useAdaptiveFormFlow({
     applicationId,
     flowId,
-    autoInitialize: !checkingFlows && (!hasBlockingFlows || hasJustDeleted),
+    // CRITICAL FIX: Allow auto-initialization when continuing a specific flow
+    autoInitialize: !checkingFlows && (!hasBlockingFlows || hasJustDeleted || !!flowId),
   });
 
   // CC: Debugging - Log handleSave function only when it changes
@@ -410,6 +420,14 @@ const AdaptiveForms: React.FC = () => {
     }
   }, [activeFlowId, flowId, refetchCollectionFlow]);
 
+  // Fetch questionnaires when flowId changes (for continuing existing flows)
+  useEffect(() => {
+    if (flowId && activeFlowId === flowId && !formData && !isLoading && !error) {
+      console.log('🔄 FlowId changed, fetching questionnaires for continuation:', flowId);
+      initializeFlow();
+    }
+  }, [flowId, activeFlowId, formData, isLoading, error, initializeFlow]);
+
   // Show loading state while checking for incomplete flows
   if (checkingFlows) {
     return (
@@ -486,8 +504,8 @@ const AdaptiveForms: React.FC = () => {
     );
   }
 
-  // Show blocker if there are other incomplete flows (not including current one)
-  if (hasBlockingFlows) {
+  // Show blocker only if there are other incomplete flows AND we're not continuing a specific flow
+  if (hasBlockingFlows && !flowId) {
     return (
       <CollectionPageLayout
         title="Adaptive Data Collection"
@@ -658,8 +676,41 @@ const AdaptiveForms: React.FC = () => {
     );
   }
 
-  // Main component render - removed console.log to prevent performance issues
+  // Handle inline application selection for 422 errors
+  const handleAppSelectionComplete = () => {
+    setShowInlineAppSelection(false);
+    // Re-initialize the flow after app selection
+    initializeFlow();
+  };
 
+  const handleAppSelectionCancel = () => {
+    setShowInlineAppSelection(false);
+  };
+
+  // Check for 422 'no_applications_selected' error in useAdaptiveFormFlow
+  useEffect(() => {
+    if (error && error.message === 'no_applications_selected') {
+      setShowInlineAppSelection(true);
+    }
+  }, [error]);
+
+  // Show inline application selection UI if needed
+  if (showInlineAppSelection && activeFlowId) {
+    return (
+      <CollectionPageLayout
+        title="Application Selection Required"
+        description="Select applications for data collection"
+      >
+        <ApplicationSelectionUI
+          flowId={activeFlowId}
+          onComplete={handleAppSelectionComplete}
+          onCancel={handleAppSelectionCancel}
+        />
+      </CollectionPageLayout>
+    );
+  }
+
+  // Main component render
   return (
     <CollectionPageLayout
       title="Adaptive Data Collection"

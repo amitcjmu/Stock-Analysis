@@ -382,6 +382,19 @@ class CollectionFlowApi {
     }
   }
 
+  // Application selection for collection flows
+  async updateFlowApplications(flowId: string, applicationIds: string[]): Promise<{
+    status: string;
+    message: string;
+    flow_id: string;
+    selected_applications: number;
+  }> {
+    return await apiCall(`${this.baseUrl}/flows/${flowId}/applications`, {
+      method: 'POST',
+      body: JSON.stringify({ selected_application_ids: applicationIds })
+    });
+  }
+
   // Phase 3: Collection to Assessment Transition
   async transitionToAssessment(flowId: string): Promise<TransitionResult> {
     return await apiCall(`${this.baseUrl}/flows/${flowId}/transition-to-assessment`, {
