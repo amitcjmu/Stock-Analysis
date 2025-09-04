@@ -144,8 +144,8 @@ class TenantIsolationValidator:
 
             if has_client_field:
                 # Test that records are properly associated with client accounts
-                isolation_query = text(
-                    f"""
+                # Note: entity_name is from controlled configuration, not user input
+                isolation_query_sql = f"""
                     SELECT
                         client_account_id,
                         COUNT(*) as record_count
@@ -155,8 +155,8 @@ class TenantIsolationValidator:
                     ORDER BY record_count DESC
                     LIMIT 20
                 """
-                )
 
+                isolation_query = text(isolation_query_sql)
                 isolation_result = await session.execute(isolation_query)
                 client_distribution = [
                     {
@@ -170,14 +170,14 @@ class TenantIsolationValidator:
                 test_result["isolation_verified"] = len(client_distribution) > 0
 
                 # Check for records without client_account_id (potential isolation breach)
-                orphan_query = text(
-                    f"""
+                # Note: entity_name is from controlled configuration, not user input
+                orphan_query_sql = f"""
                     SELECT COUNT(*) as orphan_count
                     FROM {entity_name}
                     WHERE client_account_id IS NULL
                 """
-                )
 
+                orphan_query = text(orphan_query_sql)
                 orphan_result = await session.execute(orphan_query)
                 orphan_count = (
                     orphan_result.fetchone().orphan_count

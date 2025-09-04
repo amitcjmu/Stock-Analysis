@@ -104,15 +104,26 @@ class ForeignKeyValidator:
     ):
         """Validate a single foreign key relationship"""
         try:
-            # Build query to find orphaned records
-            where_clause = ""
-            if self.client_account_id:
-                where_clause = f" AND c.client_account_id = '{self.client_account_id}'"
-            if self.engagement_id:
-                where_clause += f" AND c.engagement_id = '{self.engagement_id}'"
+            # Build parameterized query to find orphaned records
+            query_params = {}
+            additional_filters = []
 
-            query = text(
-                f"""
+            if self.client_account_id:
+                additional_filters.append("c.client_account_id = :client_account_id")
+                query_params["client_account_id"] = self.client_account_id
+
+            if self.engagement_id:
+                additional_filters.append("c.engagement_id = :engagement_id")
+                query_params["engagement_id"] = self.engagement_id
+
+            where_clause = ""
+            if additional_filters:
+                where_clause = " AND " + " AND ".join(additional_filters)
+
+            # Use parameterized query with table/column names in safe context
+            # Note: Table and column names cannot be parameterized in PostgreSQL,
+            # but they come from our controlled relationship configuration, not user input
+            query_sql = f"""
                 SELECT c.{relationship['child_fk']} as orphaned_fk, COUNT(*) as count
                 FROM {relationship['child_table']} c
                 LEFT JOIN {relationship['parent_table']} p
@@ -123,9 +134,10 @@ class ForeignKeyValidator:
                 GROUP BY c.{relationship['child_fk']}
                 LIMIT 100
             """
-            )
 
-            result = await session.execute(query)
+            query = text(query_sql)
+
+            result = await session.execute(query, query_params)
             orphaned_records = result.fetchall()
 
             if orphaned_records:

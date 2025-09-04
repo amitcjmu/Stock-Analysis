@@ -288,33 +288,48 @@ class PerformanceValidator:
         }
 
         # Add client-specific monitoring if client_account_id is provided
+        # Note: This query will need parameters passed at execution time
         if self.client_account_id:
             monitoring_queries[
                 "client_specific_metrics"
-            ] = f"""
+            ] = """
                 SELECT
                     'Data Imports' as metric, COUNT(*) as value
                 FROM data_imports
-                WHERE client_account_id = '{self.client_account_id}'
+                WHERE client_account_id = :client_account_id
                 UNION ALL
                 SELECT
                     'Discovery Flows' as metric, COUNT(*) as value
                 FROM discovery_flows
-                WHERE client_account_id = '{self.client_account_id}'
+                WHERE client_account_id = :client_account_id
                 UNION ALL
                 SELECT
                     'Active Flows' as metric, COUNT(*) as value
                 FROM discovery_flows
-                WHERE client_account_id = '{self.client_account_id}'
+                WHERE client_account_id = :client_account_id
                   AND status IN ('running', 'paused', 'waiting_for_approval')
                 UNION ALL
                 SELECT
                     'Import Records' as metric, COUNT(*) as value
                 FROM raw_import_records rir
                 JOIN data_imports di ON rir.data_import_id = di.id
-                WHERE di.client_account_id = '{self.client_account_id}'
+                WHERE di.client_account_id = :client_account_id
                 ORDER BY metric;
             """
 
         logger.info(f"📊 Generated {len(monitoring_queries)} monitoring queries")
         return monitoring_queries
+
+    def get_monitoring_query_params(self) -> Dict[str, Any]:
+        """
+        Get parameters for executing monitoring queries safely.
+
+        Returns:
+            Dict of parameters for use with parameterized queries
+        """
+        params = {}
+        if self.client_account_id:
+            params["client_account_id"] = self.client_account_id
+        if self.engagement_id:
+            params["engagement_id"] = self.engagement_id
+        return params

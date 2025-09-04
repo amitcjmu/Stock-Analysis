@@ -93,16 +93,24 @@ class OrphanedRecordsChecker:
     ):
         """Check a single table for orphaned records"""
         try:
-            # Build scope filter
-            scope_filter = ""
-            if self.client_account_id:
-                scope_filter = f" AND o.client_account_id = '{self.client_account_id}'"
-            if self.engagement_id:
-                scope_filter += f" AND o.engagement_id = '{self.engagement_id}'"
+            # Build parameterized scope filter
+            query_params = {}
+            additional_filters = []
 
-            # Query to find orphaned records
-            query = text(
-                f"""
+            if self.client_account_id:
+                additional_filters.append("o.client_account_id = :client_account_id")
+                query_params["client_account_id"] = self.client_account_id
+
+            if self.engagement_id:
+                additional_filters.append("o.engagement_id = :engagement_id")
+                query_params["engagement_id"] = self.engagement_id
+
+            scope_filter = ""
+            if additional_filters:
+                scope_filter = " AND " + " AND ".join(additional_filters)
+
+            # Query to find orphaned records - table names are from controlled configuration
+            query_sql = f"""
                 SELECT COUNT(*) as orphaned_count
                 FROM {check['table']} o
                 LEFT JOIN {check['parent_table']} p ON o.{check['foreign_key']} = p.id
@@ -110,16 +118,16 @@ class OrphanedRecordsChecker:
                   AND o.{check['foreign_key']} IS NOT NULL
                   {scope_filter}
             """
-            )
 
-            result = await session.execute(query)
+            query = text(query_sql)
+
+            result = await session.execute(query, query_params)
             count_row = result.fetchone()
             orphaned_count = count_row.orphaned_count if count_row else 0
 
             if orphaned_count > 0:
                 # Get sample of orphaned records for analysis
-                sample_query = text(
-                    f"""
+                sample_query_sql = f"""
                     SELECT o.id, o.{check['foreign_key']}, o.created_at
                     FROM {check['table']} o
                     LEFT JOIN {check['parent_table']} p ON o.{check['foreign_key']} = p.id
@@ -129,9 +137,9 @@ class OrphanedRecordsChecker:
                     ORDER BY o.created_at DESC
                     LIMIT 10
                 """
-                )
 
-                sample_result = await session.execute(sample_query)
+                sample_query = text(sample_query_sql)
+                sample_result = await session.execute(sample_query, query_params)
                 sample_records = [
                     {
                         "id": str(row.id),
@@ -191,9 +199,15 @@ class OrphanedRecordsChecker:
                 f"🧹 Attempting to clean orphaned records from {check['table']}"
             )
 
-            # Delete orphaned records
-            delete_query = text(
-                f"""
+            # Rebuild query params for delete operation
+            query_params = {}
+            if self.client_account_id:
+                query_params["client_account_id"] = self.client_account_id
+            if self.engagement_id:
+                query_params["engagement_id"] = self.engagement_id
+
+            # Delete orphaned records using parameterized query
+            delete_query_sql = f"""
                 DELETE FROM {check['table']}
                 WHERE id IN (
                     SELECT o.id
@@ -205,9 +219,10 @@ class OrphanedRecordsChecker:
                     LIMIT 1000  -- Limit batch size for safety
                 )
             """
-            )
 
-            result = await session.execute(delete_query)
+            delete_query = text(delete_query_sql)
+
+            result = await session.execute(delete_query, query_params)
             cleaned_count = result.rowcount
 
             if cleaned_count > 0:

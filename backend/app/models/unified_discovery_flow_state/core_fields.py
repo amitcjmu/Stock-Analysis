@@ -181,17 +181,33 @@ class CoreFieldsMixin(BaseModel):
         "client_account_id",
         "engagement_id",
         "user_id",
-        "master_flow_id",
         mode="before",
     )
     @classmethod
-    def validate_uuid_fields(cls, value: Union[uuid.UUID, str, None]) -> str:
+    def validate_required_uuid_fields(cls, value: Union[uuid.UUID, str, None]) -> str:
         """
-        Convert UUID fields to strings during model instantiation.
+        Convert required UUID fields to strings during model instantiation.
         This ensures compatibility when instantiating from dictionaries containing UUID objects.
+        For required fields, None becomes empty string.
         """
         if value is None:
             return ""
         if isinstance(value, uuid.UUID):
             return str(value)
         return str(value) if value else ""
+
+    @field_validator("master_flow_id", mode="before")
+    @classmethod
+    def validate_optional_uuid_fields(
+        cls, value: Union[uuid.UUID, str, None]
+    ) -> Optional[str]:
+        """
+        Convert optional UUID fields to strings during model instantiation.
+        This ensures compatibility when instantiating from dictionaries containing UUID objects.
+        For optional fields, None is preserved as None.
+        """
+        if value is None:
+            return None
+        if isinstance(value, uuid.UUID):
+            return str(value)
+        return str(value) if value else None
