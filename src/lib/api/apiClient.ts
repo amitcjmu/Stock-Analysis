@@ -15,7 +15,7 @@ interface AuthHeaders {
   Authorization?: string;
   'X-User-ID'?: string;
   'X-Client-Account-Id'?: string;
-  'X-Engagement-ID'?: string;
+  'X-Engagement-Id'?: string;
   'X-Flow-ID'?: string;
 }
 
@@ -45,7 +45,7 @@ const getAuthHeaders = (): AuthHeaders => {
     if (engagementId && engagementId !== 'null') {
       const engagement = JSON.parse(engagementId);
       if (engagement?.id) {
-        headers['X-Engagement-ID'] = engagement.id;
+        headers['X-Engagement-Id'] = engagement.id;
       }
     }
 
