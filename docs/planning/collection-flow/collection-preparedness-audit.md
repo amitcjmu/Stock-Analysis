@@ -67,6 +67,33 @@ Net: Without closing these gaps, some applications will enter Assessment with mi
   - `submit_questionnaire_response` creates responses but does not set `gap_id` or update `CollectionDataGap.resolution_status`. The write‑back pipeline (`asset_handlers.apply_resolved_gaps_to_assets`) relies on resolved gaps joined to responses, so it never runs for manual path.
   - Impact: Asset fields (owner, environment, department, criticality, technology_stack, application_name) remain stale; `assessment_readiness`
 
+## Implementation Plan (aligned with code reality)
+
+- Sprint 1 (8 SP):
+  - Add gap resolution on manual submit (`collection_crud_update_commands.submit_questionnaire_response`).
+  - Invoke asset write‑back post‑submit with tenant context.
+  - Add schema qualification in `asset_handlers.apply_resolved_gaps_to_assets` raw SQL.
+  - Add `client_account_id` filter on flow read in `get_adaptive_questionnaires`.
+  - Unit/integration tests for the above.
+
+- Sprint 2 (7 SP):
+  - Optional `CollectionAssetSyncService` for deferred sync/background runs.
+  - Optional dependency write‑back (create/merge `AssetDependency`).
+  - Extend UI payload with `gap_id_map`, `field_types`, `question_texts` (non‑breaking additions).
+
+## Verification Plan
+
+- Unit tests
+  - Manual submission resolves gaps and triggers write‑back (assert `Asset` fields updated and `assessment_readiness!='not_ready'`).
+  - Tenant scoping enforced on questionnaire retrieval.
+  - Dependency upsert on submission.
+
+- Integration tests
+  - Discovery→Collection→Manual fill→Transition→Assess, verifying 6R consumes updated `Asset` data.
+
+- E2E tests (Playwright)
+  - Adaptive Forms completion updates Progress; CTA transitions to Assess and Assess pages render with populated application data.
+
 ## Risks and Mitigations
 
 - Over‑eager write‑back across multiple assets
