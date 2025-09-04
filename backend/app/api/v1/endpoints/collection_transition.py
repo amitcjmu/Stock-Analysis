@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 
 from app.core.database import get_db  # Correct import
-from app.core.request_context import RequestContext, get_request_context
+from app.core.context import RequestContext, get_request_context
 from app.services.collection_transition_service import CollectionTransitionService
 from app.schemas.collection_transition import TransitionResponse  # Proper schema
 

@@ -18,6 +18,9 @@ from app.api.v1.endpoints.collection_crud_delete_commands import (
     delete_flow,
 )
 
+# Import rerun_gap_analysis function
+from app.api.v1.endpoints.collection_crud_execution import rerun_gap_analysis
+
 # Re-export all functions for backward compatibility
 __all__ = [
     # Create operations
@@ -26,6 +29,8 @@ __all__ = [
     # Update operations - defined in collection.py
     # "update_collection_flow",
     # "submit_questionnaire_response",
+    # Execution operations
+    "rerun_gap_analysis",
     # Delete operations
     "delete_flow",
     "cleanup_flows",

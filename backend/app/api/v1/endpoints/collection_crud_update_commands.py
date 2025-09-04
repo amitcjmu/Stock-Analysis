@@ -338,7 +338,7 @@ async def submit_questionnaire_response(
             "status": "success",
             "message": f"Successfully saved {len(response_records)} responses",
             "questionnaire_id": questionnaire_id,
-            "flow_id": str(flow.id),
+            "flow_id": str(flow.flow_id),  # Fixed: Return flow_id UUID, not database ID
             "progress": flow.progress_percentage,
             "responses_saved": len(response_records),
         }
@@ -371,7 +371,7 @@ async def batch_update_questionnaire_responses(
         # Verify flow exists and belongs to engagement
         flow_result = await db.execute(
             select(CollectionFlow)
-            .where(CollectionFlow.id == flow_id)
+            .where(CollectionFlow.flow_id == flow_id)  # Fixed: Use flow_id not id
             .where(CollectionFlow.engagement_id == context.engagement_id)
             .where(CollectionFlow.client_account_id == context.client_account_id)
         )
@@ -443,7 +443,7 @@ async def batch_update_questionnaire_responses(
         return {
             "status": "success",
             "message": f"Successfully saved {len(response_records)} responses",
-            "flow_id": str(flow.id),
+            "flow_id": str(flow.flow_id),  # Fixed: Return flow_id UUID, not database ID
             "responses_saved": len(response_records),
         }
 

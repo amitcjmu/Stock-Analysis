@@ -5,6 +5,7 @@ gaps, and readiness assessments.
 """
 
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
@@ -239,7 +240,10 @@ async def get_collection_readiness(
     current_user: User,
     context: RequestContext,
 ) -> Dict[str, Any]:
-    """Assess collection readiness for a specific flow or current engagement.
+    """Assess collection readiness for a specific flow with server-side thresholds.
+
+    Returns structured readiness data with stable, typed fields and server-side
+    thresholds for assessment transition decisions.
 
     Args:
         flow_id: Collection flow ID to assess
@@ -248,7 +252,7 @@ async def get_collection_readiness(
         context: Request context
 
     Returns:
-        Dictionary with readiness assessment
+        Dictionary with readiness assessment including server-side thresholds
     """
     try:
         from uuid import UUID
@@ -271,52 +275,114 @@ async def get_collection_readiness(
         active_flow = flow_result.scalar_one_or_none()
 
         if not active_flow:
-            # If specific flow not found, try to get any active flow as fallback
-            flow_result = await db.execute(
-                select(CollectionFlow)
-                .where(
-                    CollectionFlow.engagement_id == context.engagement_id,
-                    CollectionFlow.status != CollectionFlowStatus.COMPLETED.value,
-                )
-                .order_by(CollectionFlow.created_at.desc())
-            )
-            active_flow = flow_result.scalar_one_or_none()
+            raise HTTPException(status_code=404, detail="Collection flow not found")
 
-        # Calculate readiness score
-        readiness_score = 0.0
-        factors = []
+        # Get gap analysis summary for the flow
+        from app.services.gap_analysis_summary_service import GapAnalysisSummaryService
 
-        if asset_count > 0:
-            readiness_score += 0.4
-            factors.append(f"Assets available: {asset_count}")
-        else:
-            factors.append("No assets found - discovery may be needed")
+        summary_service = GapAnalysisSummaryService(db)
+        gap_summary = await summary_service.get_gap_analysis_summary(
+            collection_flow_id=str(active_flow.id), context=context
+        )
 
-        if active_flow:
-            readiness_score += 0.3
-            factors.append(f"Collection flow in progress: {active_flow.status}")
-        else:
-            factors.append("No active collection flow")
-
-        # Check for completed discovery
-        if asset_count >= 10:  # Arbitrary threshold for sufficient discovery
-            readiness_score += 0.3
-            factors.append("Sufficient asset coverage for collection")
-
-        return {
-            "readiness_score": round(readiness_score, 2),
-            "asset_count": asset_count,
-            "active_flow": {
-                "id": str(active_flow.id) if active_flow else None,
-                "status": active_flow.status if active_flow else None,
-                "phase": active_flow.current_phase if active_flow else None,
-            },
-            "readiness_factors": factors,
-            "recommendations": _get_readiness_recommendations(
-                readiness_score, asset_count, active_flow
-            ),
+        # Server-side readiness thresholds (as specified in v4 plan)
+        thresholds = {
+            "apps_ready_for_assessment": 0,  # > 0 required
+            "collection_quality_score": 60,  # >= 60 required
+            "confidence_score": 50,  # >= 50 required
         }
 
+        # Calculate apps ready for assessment
+        apps_ready_count = 0
+        if active_flow.collection_config and active_flow.collection_config.get(
+            "has_applications"
+        ):
+            selected_apps = active_flow.collection_config.get(
+                "selected_application_ids", []
+            )
+            apps_ready_count = len(selected_apps) if selected_apps else 0
+
+        # Get quality and confidence scores
+        quality_score = active_flow.collection_quality_score or 0
+        confidence_score = active_flow.confidence_score or 0
+
+        # Check each threshold and build missing requirements
+        missing_requirements = []
+
+        if apps_ready_count <= thresholds["apps_ready_for_assessment"]:
+            missing_requirements.append(
+                {
+                    "type": "applications",
+                    "message": "At least one application must be selected for assessment",
+                    "current_value": apps_ready_count,
+                    "required_value": thresholds["apps_ready_for_assessment"] + 1,
+                    "action": "select_applications",
+                }
+            )
+
+        if quality_score < thresholds["collection_quality_score"]:
+            missing_requirements.append(
+                {
+                    "type": "quality",
+                    "message": f"Collection quality score must be at least {thresholds['collection_quality_score']}%",
+                    "current_value": quality_score,
+                    "required_value": thresholds["collection_quality_score"],
+                    "action": "complete_questionnaires",
+                }
+            )
+
+        if confidence_score < thresholds["confidence_score"]:
+            missing_requirements.append(
+                {
+                    "type": "confidence",
+                    "message": f"Confidence score must be at least {thresholds['confidence_score']}%",
+                    "current_value": confidence_score,
+                    "required_value": thresholds["confidence_score"],
+                    "action": "rerun_gap_analysis",
+                }
+            )
+
+        # Determine overall readiness
+        assessment_ready = len(missing_requirements) == 0
+
+        # Calculate overall readiness score
+        readiness_score = 0.0
+        if apps_ready_count > 0:
+            readiness_score += 0.4
+        if quality_score >= thresholds["collection_quality_score"]:
+            readiness_score += 0.3
+        if confidence_score >= thresholds["confidence_score"]:
+            readiness_score += 0.3
+
+        return {
+            # Core readiness status
+            "assessment_ready": assessment_ready,
+            "readiness_score": round(readiness_score, 2),
+            # Application metrics
+            "apps_ready_for_assessment": apps_ready_count,
+            "selected_application_count": apps_ready_count,
+            "total_asset_count": asset_count,
+            # Quality metrics
+            "collection_quality_score": quality_score,
+            "confidence_score": confidence_score,
+            # Gap analysis metrics
+            "gap_analysis_completed": gap_summary is not None,
+            "critical_gaps_count": len(gap_summary.critical_gaps) if gap_summary else 0,
+            "optional_gaps_count": len(gap_summary.optional_gaps) if gap_summary else 0,
+            # Server-side thresholds for transparency
+            "thresholds": thresholds,
+            # Missing requirements for clear feedback
+            "missing_requirements": missing_requirements,
+            # Flow status
+            "flow_status": active_flow.status,
+            "current_phase": active_flow.current_phase,
+            "flow_id": str(active_flow.flow_id),
+            # Timestamp
+            "assessed_at": datetime.utcnow().isoformat(),
+        }
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(safe_log_format("Error assessing collection readiness: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))

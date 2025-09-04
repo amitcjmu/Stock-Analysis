@@ -131,7 +131,11 @@ class WorkflowOrchestrator:
         self.state_service = CollectionFlowStateService(db, context)
         self.tier_detection = TierDetectionService(db, context)
         self.business_analyzer = BusinessContextAnalyzer()
-        self.gap_analysis_agent = GapAnalysisAgent()
+        # Pass required context parameters to GapAnalysisAgent
+        self.gap_analysis_agent = GapAnalysisAgent(
+            client_account_id=context.client_account_id or "",
+            engagement_id=context.engagement_id or "",
+        )
         self.learning_optimizer = LearningOptimizer()
 
         # Initialize registries

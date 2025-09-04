@@ -277,6 +277,29 @@ async def continue_flow(
     )
 
 
+@router.post("/flows/{flow_id}/rerun-gap-analysis")
+async def rerun_gap_analysis(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Re-run gap analysis for a collection flow.
+
+    Re-computes gap summary and regenerates questionnaires based on
+    current application selection and collection progress.
+
+    Returns:
+        202 Accepted with estimated completion time and polling information
+    """
+    return await collection_crud.rerun_gap_analysis(
+        flow_id=flow_id,
+        db=db,
+        current_user=current_user,
+        context=context,
+    )
+
+
 @router.delete("/flows/{flow_id}")
 async def delete_flow(
     flow_id: str,

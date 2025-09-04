@@ -49,8 +49,11 @@ class GapAnalysisManager:
         self.state_manager = state_manager
         self.audit_service = audit_service
 
-        # Initialize AI services
-        self.gap_analysis_agent = GapAnalysisAgent()
+        # Initialize AI services with required context
+        self.gap_analysis_agent = GapAnalysisAgent(
+            client_account_id=flow_context.client_account_id,
+            engagement_id=flow_context.engagement_id,
+        )
         self.business_analyzer = BusinessContextAnalyzer()
         self.confidence_scorer = ConfidenceScorer()
 
