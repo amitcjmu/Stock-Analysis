@@ -5,7 +5,7 @@
 Overall, the Collection Flow now persists the key artifacts needed to prepare applications for Assessment, but there are critical gaps preventing reliable handoff:
 - Collection questionnaires and responses are saved, and models are tenant‑scoped.
 - A dedicated transition endpoint exists and creates Assessment flows from selected apps.
-- However, manual questionnaire submissions do not resolve gaps or trigger asset write‑back, so Assessment may not see updated attributes. Also, some endpoints lack full tenant scoping, and dependency write‑back is incomplete.
+- However, manual questionnaire submissions do not resolve gaps or trigger asset write‑back, so Assessment may not see updated attributes. One read path is missing a client_account_id filter, and dependency write‑back is incomplete.
 
 Net: Without closing these gaps, some applications will enter Assessment with missing context (owner, environment, dependencies), degrading 6R quality.
 
@@ -65,97 +65,7 @@ Net: Without closing these gaps, some applications will enter Assessment with mi
 
 - Manual submissions don’t resolve gaps or update assets
   - `submit_questionnaire_response` creates responses but does not set `gap_id` or update `CollectionDataGap.resolution_status`. The write‑back pipeline (`asset_handlers.apply_resolved_gaps_to_assets`) relies on resolved gaps joined to responses, so it never runs for manual path.
-  - Impact: Asset fields (owner, environment, department, criticality, technology_stack, application_name) remain stale; `assessment_readiness` often stays `not_ready`.
-
-- Incomplete tenant scoping on read path
-  - `get_adaptive_questionnaires` filters by `engagement_id` but not `client_account_id` when loading the flow; this violates tenant isolation rules.
-
-- Questionnaire completion metadata not updated
-  - `AdaptiveQuestionnaire.completion_status`/`responses_collected` are not updated during manual submissions; downstream UX and gating can misrepresent progress.
-
-- Dependency write‑back is missing
-  - Collected dependency information (if any) is not mapped into `AssetDependency` or `Asset.dependencies` JSON. Assessment loses critical dependency context for realistic 6R and wave planning.
-
-- Type fidelity of responses is lossy
-  - All manual responses default `response_type='text'` and `question_text=field_id`, losing structure needed for accurate mapping and validation.
-
-- Raw SQL without schema qualification (consistency)
-  - `asset_handlers.apply_resolved_gaps_to_assets` uses unqualified table names; prefer schema‑qualified or ORM to avoid search path issues.
-
-## Recommendations (actionable, code‑level)
-
-1) Close the manual‑path write‑back gap (highest priority)
-- Enhance `submit_questionnaire_response` to:
-  - Accept and store `gap_id` per field when provided by the UI (extend form metadata to include `gap_id_map: {field_id: gap_uuid}`).
-  - For fields mapped to gaps, set those gaps to `resolved` when `validation_results.isValid` is true.
-  - After commit, invoke `asset_handlers.apply_resolved_gaps_to_assets(db, flow.id, context_dict)` to update `Asset` and set `assessment_readiness`.
-- If `gap_id` is not provided, add a safe fallback matcher: join on `(collection_flow_id, field_name == question_id)` when the field clearly corresponds to a known gap.
-
-2) Enforce tenant scoping on reads
-- Update `get_adaptive_questionnaires` to also filter by `client_account_id` alongside `engagement_id` when loading `CollectionFlow`.
-
-3) Persist questionnaire completion status
-- On successful save, update `AdaptiveQuestionnaire.completion_status` and `responses_collected` for the specific `questionnaire_id` to reflect progress; mark `completed_at` on 100%.
-
-4) Capture and write back dependencies
-- Extend response schema to capture dependency entries (application→database, application→server) as structured arrays.
-- Add a dependency write‑back step:
-  - Create/merge `AssetDependency` rows for new relationships.
-  - Maintain `Asset.dependencies` JSON for quick UI, but rely on normalized table for analysis.
-
-5) Preserve response types and labels
-- Include `field_type`, `question_text`, and structured values in the UI submission payload so backend stores accurate `response_type` and `question_text`.
-
-6) Normalize SQL and schema usage
-- Replace raw SQL in handlers with SQLAlchemy or add explicit `migration.` schema qualification to ensure cross‑environment reliability.
-
-## Data Coverage vs Assessment Needs
-
-- Minimum attributes for 6R readiness
-  - Identity: `name`, `application_name`, `environment`
-  - Ownership: `business_owner`, `department`
-  - Technical: `technology_stack`, `operating_system`
-  - Governance/criticality: `criticality` (business and/or technical)
-  - Dependencies: application↔database, application↔server (normalized)
-
-- Current coverage
-  - Collected and available for write‑back via whitelist today: `environment`, `business_criticality`, `business_owner`, `department`, `application_name`, `technology_stack`.
-  - Missing pipeline: dependencies not written back; OS rarely updated from forms; progression to `assessment_readiness='ready'` hinges on whitelist fields being written.
-
-## Suggested UI/API Contract Adjustments
-
-- UI submissions should send:
-  - `form_metadata`: `{ form_id, questionnaire_id, application_id, submitted_at, completion_percentage, confidence_score }`
-  - `responses`: `{ [field_id]: value }`
-  - `gap_id_map`: `{ [field_id]: gap_uuid }` (NEW)
-  - `field_types`: `{ [field_id]: 'select' | 'text' | 'multiselect' | ... }` (NEW)
-  - `question_texts`: `{ [field_id]: 'Business Owner' }` (NEW)
-  - `dependencies`: `[ {from_asset_id, to_asset_id, dependency_type, description} ]` (NEW, optional)
-
-- Backend should:
-  - Use `gap_id_map` to set `gap.resolution_status` and enable write‑back.
-  - Use `field_types` and `question_texts` to store accurate types and labels.
-  - Upsert `AssetDependency` for provided `dependencies`.
-
-## Readiness Gate Logic (post‑fix)
-
-- Collection considers a flow ready for transition when:
-  - All critical gaps are resolved OR agent readiness deems sufficient per tenant thresholds.
-  - Asset write‑back has executed at least once for affected applications.
-  - Optional: `apps_ready_for_assessment` equals number of selected apps, and `assessment_ready=True` on flow.
-
-## Verification Plan
-
-- Unit tests
-  - Manual submission resolves gaps and triggers write‑back (assert `Asset` fields updated and `assessment_readiness!='not_ready'`).
-  - Tenant scoping enforced on questionnaire retrieval.
-  - Dependency upsert on submission.
-
-- Integration tests
-  - Discovery→Collection→Manual fill→Transition→Assess, verifying 6R consumes updated `Asset` data.
-
-- E2E tests (Playwright)
-  - Adaptive Forms completion updates Progress; CTA transitions to Assess and Assess pages render with populated application data.
+  - Impact: Asset fields (owner, environment, department, criticality, technology_stack, application_name) remain stale; `assessment_readiness`
 
 ## Risks and Mitigations
 
@@ -163,6 +73,15 @@ Net: Without closing these gaps, some applications will enter Assessment with mi
   - Mitigate by requiring `asset_id` or `application_name` match and scoping by engagement/client.
 - Partial submissions leading to inconsistent state
   - Track per‑questionnaire completion and restrict transition until minimums are met or agent approves.
+
+## Corrections & Clarifications (post‑review)
+
+- Tenant scoping: Broadly correct across the codebase; the specific read path needing a `client_account_id` filter is `get_adaptive_questionnaires` when loading the flow. Others already scope by engagement and client.
+- SQL injection: No evidence of injection vulnerabilities in reviewed areas; raw SQL uses bind params. Our note focused on schema qualification in one handler for consistency, not injection risk.
+- `AssetDependency`: Exists and is correctly modeled. The gap is absence of dependency write‑back from Collection submissions, not the table itself.
+- Agent thresholds: Readiness is agent‑driven via `TenantScopedAgentPool`; no hardcoded thresholds were claimed necessary beyond tenant defaults used for audit trails.
+
+Open questions for stakeholders reflect design intent, not defects (gap ID mapping from backend, write‑back timing/transaction boundaries, completion criteria).
 
 ## Conclusion
 

@@ -130,6 +130,14 @@ class CrewAIFlowStateExtensions(Base):
         comment="Analytics on the overall coordination and efficiency of the crew.",
     )
 
+    # Execution metadata for flow processing
+    execution_metadata = Column(
+        JSONB,
+        nullable=True,
+        server_default=text("'{}'::jsonb"),
+        comment="Metadata about the execution of the flow, including timing, agents used, and performance metrics.",
+    )
+
     # Learning and adaptation data
     learning_patterns = Column(
         JSONB,
@@ -284,6 +292,7 @@ class CrewAIFlowStateExtensions(Base):
             "phase_execution_times": self.phase_execution_times or {},
             "agent_performance_metrics": self.agent_performance_metrics or {},
             "crew_coordination_analytics": self.crew_coordination_analytics or {},
+            "execution_metadata": self.execution_metadata or {},
             "learning_patterns": self.learning_patterns or [],
             "user_feedback_history": self.user_feedback_history or [],
             "adaptation_metrics": self.adaptation_metrics or {},
