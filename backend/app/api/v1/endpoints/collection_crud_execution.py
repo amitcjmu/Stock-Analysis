@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.core.rbac_utils import COLLECTION_CREATE_ROLES, require_role
 from app.core.security.secure_logging import safe_log_format
+from app.utils.security_utils import InputSanitizer
 from app.models import User
 from app.models.collection_flow import (
     AutomationTier,
@@ -30,6 +31,78 @@ from app.api.v1.endpoints import collection_serializers
 from app.api.v1.endpoints.collection_crud_commands import create_collection_flow
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_mfo_result(mfo_result: Any) -> Dict[str, Any]:
+    """
+    Sanitize MFO result to prevent sensitive data leaks.
+
+    Only returns whitelisted fields from the MFO result to prevent
+    exposure of internal system details, credentials, or other sensitive data.
+
+    Args:
+        mfo_result: Raw MFO result that may contain sensitive data
+
+    Returns:
+        Sanitized dictionary with only whitelisted fields
+    """
+    # Define whitelisted fields that are safe to expose
+    WHITELISTED_FIELDS = {
+        "status",
+        "message",
+        "flow_id",
+        "phase",
+        "progress",
+        "error",  # Allow error messages but sanitize them
+        "success",
+        "completed",
+        "timestamp",
+        "next_phase",
+        "summary",
+    }
+
+    if not mfo_result:
+        return {"status": "no_result"}
+
+    if isinstance(mfo_result, dict):
+        sanitized = {}
+        for key, value in mfo_result.items():
+            if key in WHITELISTED_FIELDS:
+                # Sanitize the value based on type
+                if isinstance(value, str):
+                    sanitized[key] = InputSanitizer.sanitize_string(
+                        value, max_length=1000
+                    )
+                elif isinstance(value, dict):
+                    # For nested dicts, only allow basic status information
+                    if key == "error" and isinstance(value, dict):
+                        sanitized[key] = {
+                            "message": InputSanitizer.sanitize_string(
+                                str(value.get("message", "")), max_length=500
+                            ),
+                            "type": InputSanitizer.sanitize_string(
+                                str(value.get("type", "unknown")), max_length=100
+                            ),
+                        }
+                    else:
+                        # For other nested objects, convert to safe string representation
+                        sanitized[key] = InputSanitizer.sanitize_string(
+                            str(value), max_length=500
+                        )
+                elif isinstance(value, (int, float, bool)) or value is None:
+                    sanitized[key] = value
+                else:
+                    # Convert other types to sanitized string
+                    sanitized[key] = InputSanitizer.sanitize_string(
+                        str(value), max_length=500
+                    )
+        return sanitized
+    else:
+        # If mfo_result is not a dict, return a safe string representation
+        return {
+            "status": "processed",
+            "message": InputSanitizer.sanitize_string(str(mfo_result), max_length=500),
+        }
 
 
 async def ensure_collection_flow(
@@ -277,11 +350,11 @@ async def continue_flow(
             "flow_status": flow_status,
             "has_applications": has_applications,
             "mfo_execution_triggered": mfo_triggered,
-            "mfo_result": mfo_result,
+            "mfo_result": sanitize_mfo_result(mfo_result),
             "next_steps": next_steps,
             "continued_at": datetime.now(timezone.utc).isoformat(),
-            # Legacy compatibility
-            "resume_result": mfo_result,
+            # Legacy compatibility - also sanitize for backward compatibility
+            "resume_result": sanitize_mfo_result(mfo_result),
         }
 
     except HTTPException:

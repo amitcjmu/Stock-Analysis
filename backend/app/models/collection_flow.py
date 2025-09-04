@@ -178,6 +178,14 @@ class CollectionFlow(Base, TimestampMixin):
         Integer, default=0, nullable=False
     )  # Number of apps ready for assessment
 
+    # Assessment transition tracking (Phase 4)
+    assessment_flow_id = Column(
+        UUID(as_uuid=True), nullable=True
+    )  # Linked assessment flow ID
+    assessment_transition_date = Column(
+        DateTime(timezone=True), nullable=True
+    )  # When transition to assessment occurred
+
     # Error tracking
     error_message = Column(Text, nullable=True)
     error_details = Column(JSONB, nullable=True)
