@@ -39,8 +39,6 @@ class CollectionTransitionService:
         Agent-driven readiness validation.
         Uses TenantScopedAgentPool for intelligent assessment.
         """
-        from crewai import Task
-
         # Get flow with tenant-scoped query
         flow = await self._get_collection_flow(flow_id)
 
@@ -80,16 +78,9 @@ class CollectionTransitionService:
         Use tenant preferences for thresholds but make intelligent assessment based on data quality.
         """
 
-        # Create task for agent execution
-        task = Task(
-            description=task_description,
-            agent=agent,
-            expected_output="JSON with is_ready, confidence, reason, missing_requirements",
-        )
-
         try:
-            # Execute task using agent
-            result = await agent.execute_async(task)
+            # Execute task using agent - use execute() method with task description
+            result = await agent.execute(task_description)
 
             # Parse agent response
             if isinstance(result, dict):
@@ -126,10 +117,10 @@ class CollectionTransitionService:
                 thresholds_used=await self._get_tenant_thresholds(),
             )
 
-        except AttributeError as e:
-            # Handle case where agent doesn't have execute_async
+        except (AttributeError, TypeError) as e:
+            # Handle case where agent doesn't have execute method
             logger.warning(
-                f"Agent execute_async not available: {e}, falling back to calculation"
+                f"Agent execute not available: {e}, falling back to calculation"
             )
 
             # Fallback to calculated readiness
@@ -176,10 +167,11 @@ class CollectionTransitionService:
     async def create_assessment_flow(self, collection_flow_id: UUID):
         """
         Create assessment using MFO/Repository pattern.
-        Atomic transaction with proper error handling.
+        Uses existing transaction from FastAPI dependency injection.
         """
 
-        async with self.db.begin():  # Atomic transaction - auto commits/rollbacks
+        # Don't start a new transaction - use existing one from FastAPI
+        try:
             # Get collection flow
             collection_flow = await self._get_collection_flow(collection_flow_id)
 
@@ -239,14 +231,20 @@ class CollectionTransitionService:
                 },
             }
 
-            # Flush to get generated IDs if needed before context exit
+            # Flush to get generated IDs if needed
             await self.db.flush()
 
-        return TransitionResult(
-            assessment_flow_id=assessment_flow.flow_id,
-            assessment_flow=assessment_flow,
-            created_at=datetime.utcnow(),
-        )
+            return TransitionResult(
+                assessment_flow_id=assessment_flow.flow_id,
+                assessment_flow=assessment_flow,
+                created_at=datetime.utcnow(),
+            )
+
+        except Exception as e:
+            # Roll back on error
+            await self.db.rollback()
+            logger.error(f"Failed to create assessment flow: {e}")
+            raise
 
     async def _get_collection_flow(self, flow_id: UUID) -> CollectionFlow:
         """
