@@ -1,5 +1,33 @@
 ## Subagent Instructions and Requirements
 
+### AUTOMATIC ENFORCEMENT FOR ALL SUBAGENTS (Including Autonomous)
+
+#### Two-Layer Enforcement System:
+
+1. **Manual Invocations (User-Initiated)**:
+   When YOU explicitly invoke a subagent, you must include the instruction text below.
+
+2. **Autonomous Invocations (Claude/Opus-Initiated)**:
+   When Claude autonomously orchestrates subagents, the system automatically:
+   - Reads configuration from `/.claude/agent_config.json`
+   - Prepends mandatory instructions to ALL agent prompts
+   - Appends summary requirements
+   - Enforces banned pattern checks
+   - Logs compliance in `/.claude/agent_audit.log`
+
+#### Configuration Files That Enable This:
+- `/.claude/agent_config.json` - Defines what gets auto-injected
+- `/.claude/settings.local.json` - Enables auto-injection globally
+- `/.claude/agent_instructions.md` - Full requirements and templates
+- `/.claude/AGENT_DEFAULTS.md` - System documentation
+
+#### For Multi-Agent Orchestration:
+The system automatically:
+- Passes instructions down the agent chain
+- Aggregates summaries from child agents
+- Maintains context through the hierarchy
+- Limits recursion depth to prevent loops
+
 ### MANDATORY FOR ALL CLAUDE CODE SUBAGENTS
 When invoking ANY subagent (qa-playwright-tester, python-crewai-fastapi-expert, sre-precommit-enforcer, etc.), ensure they:
 
@@ -13,7 +41,7 @@ When invoking ANY subagent (qa-playwright-tester, python-crewai-fastapi-expert, 
    - Include files modified, patterns applied, and verification steps
    - Follow the summary template in `/.claude/agent_instructions.md`
 
-3. **Include This in Every Subagent Prompt**:
+3. **Include This in Every Manual Subagent Prompt**:
    ```
    IMPORTANT: First read these files:
    1. /docs/analysis/Notes/coding-agent-guide.md
