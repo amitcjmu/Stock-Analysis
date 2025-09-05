@@ -233,6 +233,10 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
                - Create specific questions for each prioritized gap from the gap analysis
                - Focus on Priority 1 (Critical) and Priority 2 (High) gaps first
                - Design questions that directly collect the missing critical attributes
+               - CRITICAL: For each gap in the identified_gaps list, use the EXACT gap.field_name as the question_id
+               - Example gap structure: {{"field_name": "business_owner", "priority": 1, "description": "..."}}
+               - The question_id MUST be identical to gap.field_name (e.g., "business_owner", "technology_stack", "environment")
+               - This ensures questionnaire responses can be mapped back to resolve specific gaps
                - Ensure questions support 6R strategy confidence improvement
 
             2. ADAPTIVE QUESTION LOGIC:
@@ -274,6 +278,16 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
                - Consistency checks across related questions
                - Data format standardization rules
 
+            7. CRITICAL REQUIREMENT - FIELD NAME PRESERVATION:
+               - ALWAYS use the EXACT gap field_name as the question_id
+               - This ensures gap resolution can match responses back to specific gaps
+               - Do NOT generate custom IDs like "q-infra-001" - use gap.field_name directly
+               - Processing pattern: For each gap in identified_gaps list:
+                 * Extract gap["field_name"] (e.g., "business_owner", "technology_stack") 
+                 * Set question_id = gap["field_name"]
+                 * Set addresses_gap = gap["field_name"] 
+               - The question_id MUST be identical to the gap's field_name for proper resolution
+
             OUTPUT FORMAT:
             Generate comprehensive questionnaire specification:
             {{
@@ -300,29 +314,18 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
                         "estimated_duration_minutes": <5-10>,
                         "questions": [
                             {{
-                                "question_id": "q-infra-001",
-                                "question_text": "What is the current operating system version?",
-                                "question_type": "single_select",
+                                "question_id": "business_owner",
+                                "question_text": "Who is the business owner or primary stakeholder for this application?",
+                                "question_type": "text_input",
                                 "priority": "critical",
                                 "required": true,
-                                "help_text": "Select the specific OS version for migration compatibility assessment",
+                                "help_text": "Identify the business owner to understand accountability and decision-making authority",
                                 "validation_rules": {{
                                     "required": true,
                                     "format": "string"
                                 }},
-                                "options": [
-                                    {{"value": "windows_server_2019", "label": "Windows Server 2019"}},
-                                    {{"value": "windows_server_2016", "label": "Windows Server 2016"}},
-                                    {{"value": "rhel_8", "label": "Red Hat Enterprise Linux 8"}},
-                                    {{"value": "ubuntu_20_04", "label": "Ubuntu 20.04 LTS"}},
-                                    {{"value": "other", "label": "Other (please specify)"}}
-                                ],
-                                "conditional_logic": {{
-                                    "show_if": {{"previous_response": "has_infrastructure"}},
-                                    "follow_up_if": {{"response": "other", "question": "q-infra-001-followup"}}
-                                }},
                                 "gap_resolution": {{
-                                    "addresses_gap": "os_version",
+                                    "addresses_gap": "business_owner",
                                     "gap_priority": 1,
                                     "confidence_improvement": 25
                                 }}
