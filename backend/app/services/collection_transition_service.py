@@ -41,7 +41,9 @@ class CollectionTransitionService:
         flow = await self._get_collection_flow(flow_id)
 
         # Get gap analysis summary (existing service)
-        gap_summary = await self.gap_service.get_gap_analysis_summary(flow)
+        gap_summary = await self.gap_service.get_gap_analysis_summary(
+            str(flow.id), self.context
+        )
 
         # Get readiness agent for intelligent assessment using class method
         readiness_agent = await TenantScopedAgentPool.get_agent(
