@@ -13,7 +13,6 @@ from .field_mapping.routes.approval_routes import router as approval_router
 
 # Import all modular routers
 from .field_mapping.routes.mapping_routes import router as mapping_router
-from .field_mapping.routes.suggestion_routes import router as suggestion_router
 from .field_mapping.routes.validation_routes import router as validation_router
 
 # Import service dependencies
@@ -35,8 +34,9 @@ def get_mapping_service(
 router = APIRouter()
 
 # Include all sub-routers
-router.include_router(mapping_router)
-router.include_router(suggestion_router)
+router.include_router(
+    mapping_router
+)  # includes suggestions under /field-mappings prefix
 router.include_router(validation_router)
 router.include_router(approval_router)
 

@@ -1,5 +1,13 @@
 # AI Modernize Migration Platform - Changelog
 
+## [2025-09-04] - Documentation: Collection Preparedness Audit
+### 📚 Documentation
+- Added detailed senior-architect audit: `docs/planning/collection-flow/collection-preparedness-audit.md`.
+- Covers Collection→Assessment data readiness, identifies gaps (manual submission write-back, tenant scoping, dependency write-back), and provides actionable recommendations.
+
+### 🎯 Impact
+- Clarifies current handoff reliability and prioritizes fixes to ensure Assessment consumes complete, tenant-scoped application data with dependencies.
+
 ## [2025-08-26] - Discovery Field Mapping Flow Simplification
 ### 🚀 Enhancement: In-flow Field Mapping Execution (No Timers)
 - Removed backend field mapping auto-trigger service and startup/shutdown hooks; eliminated polling-based generation.

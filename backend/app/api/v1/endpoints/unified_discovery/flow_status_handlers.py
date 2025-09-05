@@ -154,10 +154,18 @@ async def get_flow_status(
                 if extended_state:
                     flow_status["extended_state"] = {
                         "flow_configuration": extended_state.flow_configuration,
-                        "execution_metadata": extended_state.execution_metadata,
-                        "current_state_data": extended_state.current_state_data,
-                        "agent_interactions": extended_state.agent_interactions,
-                        "checkpoint_data": extended_state.checkpoint_data,
+                        "execution_metadata": getattr(
+                            extended_state, "execution_metadata", {}
+                        ),
+                        "current_state_data": getattr(
+                            extended_state, "current_state_data", {}
+                        ),
+                        "agent_interactions": getattr(
+                            extended_state, "agent_interactions", []
+                        ),
+                        "checkpoint_data": getattr(
+                            extended_state, "checkpoint_data", {}
+                        ),
                     }
             except Exception as e:
                 logger.warning(f"Failed to get extended state for flow {flow_id}: {e}")

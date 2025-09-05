@@ -6,6 +6,8 @@ Handles flow initialization through Master Flow Orchestrator.
 
 import logging
 from datetime import datetime, timezone
+from typing import Any
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +16,8 @@ from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.core.security.secure_logging import mask_id, safe_log_format
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+from app.models.data_import import ImportFieldMapping
+from app.models.discovery_flow import DiscoveryFlow
 from .flow_schemas import FlowInitializationRequest, FlowInitializationResponse
 
 logger = logging.getLogger(__name__)
@@ -96,6 +100,13 @@ async def initialize_discovery_flow(
             initial_data=initial_data,
         )
 
+        # Auto-generate field mappings if raw data is provided
+        if request.raw_data:
+            await _generate_field_mappings_from_raw_data(
+                db, context, flow_id, request.raw_data
+            )
+            logger.info(f"✅ Auto-generated field mappings for flow {flow_id}")
+
         logger.info(
             safe_log_format(
                 "✅ Discovery flow initialized successfully: {flow_id} (user: {user_id})",
@@ -132,3 +143,163 @@ async def initialize_discovery_flow(
             status_code=500,
             detail=f"Failed to initialize discovery flow: {str(e)}",
         )
+
+
+async def _generate_field_mappings_from_raw_data(
+    db: AsyncSession,
+    context: RequestContext,
+    flow_id: str,
+    raw_data: Any,
+) -> None:
+    """
+    Auto-generate field mappings from raw CMDB data.
+
+    This function analyzes the structure of the raw data and creates
+    initial field mappings with intelligent suggestions.
+    """
+    try:
+        # Get the discovery flow to find the data_import_id
+        from sqlalchemy import select
+
+        flow_query = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
+        flow_result = await db.execute(flow_query)
+        flow = flow_result.scalar_one_or_none()
+
+        if not flow or not flow.data_import_id:
+            logger.warning(f"No data_import_id found for flow {flow_id}")
+            return
+
+        # Extract field names from raw data
+        source_fields = set()
+
+        # Handle different raw_data formats
+        if isinstance(raw_data, list) and raw_data:
+            # If it's a list of records, get fields from first record
+            if isinstance(raw_data[0], dict):
+                source_fields = set(raw_data[0].keys())
+        elif isinstance(raw_data, dict):
+            # If it's a dict with records, extract fields
+            if "records" in raw_data and isinstance(raw_data["records"], list):
+                if raw_data["records"] and isinstance(raw_data["records"][0], dict):
+                    source_fields = set(raw_data["records"][0].keys())
+            else:
+                # Direct dict of fields
+                source_fields = set(raw_data.keys())
+
+        if not source_fields:
+            logger.warning("No source fields found in raw data")
+            return
+
+        # Define common field mappings with high confidence
+        common_mappings = {
+            # Identity mappings
+            "name": ("name", 0.95),
+            "hostname": ("hostname", 0.95),
+            "host_name": ("hostname", 0.90),
+            "server_name": ("hostname", 0.85),
+            "fqdn": ("fqdn", 0.95),
+            "asset_name": ("asset_name", 0.90),
+            "display_name": ("asset_name", 0.85),
+            # Network mappings
+            "ip_address": ("ip_address", 0.95),
+            "ip": ("ip_address", 0.90),
+            "ipaddress": ("ip_address", 0.90),
+            "primary_ip": ("ip_address", 0.85),
+            # Type mappings
+            "asset_type": ("asset_type", 0.95),
+            "type": ("asset_type", 0.85),
+            "category": ("asset_type", 0.80),
+            "class": ("asset_type", 0.75),
+            # Environment mappings
+            "environment": ("environment", 0.95),
+            "env": ("environment", 0.90),
+            "stage": ("environment", 0.80),
+            # OS mappings
+            "operating_system": ("operating_system", 0.95),
+            "os": ("operating_system", 0.90),
+            "os_name": ("operating_system", 0.90),
+            "platform": ("operating_system", 0.80),
+            # Location mappings
+            "location": ("location", 0.95),
+            "datacenter": ("location", 0.85),
+            "data_center": ("location", 0.85),
+            "site": ("location", 0.80),
+            # Owner mappings
+            "owner": ("owner", 0.95),
+            "owner_email": ("owner", 0.90),
+            "business_owner": ("owner", 0.85),
+            "technical_owner": ("owner", 0.85),
+            # Description mappings
+            "description": ("description", 0.95),
+            "notes": ("description", 0.80),
+            "comments": ("description", 0.75),
+        }
+
+        # Create field mappings for matched fields
+        field_mappings_created = 0
+
+        for source_field in source_fields:
+            # Skip fields that look like metadata
+            if source_field.startswith("_") or source_field in [
+                "id",
+                "uuid",
+                "created_at",
+                "updated_at",
+            ]:
+                continue
+
+            # Check for common mappings
+            source_field_lower = source_field.lower()
+            target_field = None
+            confidence_score = 0.5  # Default confidence
+
+            if source_field_lower in common_mappings:
+                target_field, confidence_score = common_mappings[source_field_lower]
+            else:
+                # Try fuzzy matching for similar fields
+                for common_field, (target, conf) in common_mappings.items():
+                    if (
+                        common_field in source_field_lower
+                        or source_field_lower in common_field
+                    ):
+                        target_field = target
+                        confidence_score = (
+                            conf * 0.8
+                        )  # Reduce confidence for fuzzy match
+                        break
+
+            # If no match found, map to same name with low confidence
+            if not target_field:
+                target_field = source_field.lower().replace(" ", "_")
+                confidence_score = 0.3
+
+            # Create the field mapping
+            field_mapping = ImportFieldMapping(
+                id=str(uuid.uuid4()),
+                data_import_id=flow.data_import_id,
+                source_field=source_field,
+                target_field=target_field,
+                confidence_score=confidence_score,
+                field_type="auto_detected",
+                status="suggested",
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+                agent_reasoning=f"Auto-mapped based on field name similarity (confidence: {confidence_score:.2f})",
+                transformation_rules={
+                    "auto_generated": True,
+                    "generation_timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+
+            db.add(field_mapping)
+            field_mappings_created += 1
+
+        await db.commit()
+        logger.info(
+            f"✅ Created {field_mappings_created} field mappings for flow {flow_id}"
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to generate field mappings: {e}")
+        # Don't fail the flow initialization if mapping generation fails
+        await db.rollback()

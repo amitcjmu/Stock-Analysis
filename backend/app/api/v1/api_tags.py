@@ -22,6 +22,7 @@ class APITags:
     FIELD_MAPPING = "Field Mapping"
     FIELD_MAPPING_ANALYSIS = "Field Mapping Analysis"
     FIELD_MAPPING_CRUD = "Field Mapping CRUD"
+    FIELD_MAPPING_SUGGESTIONS = "Field Mapping Suggestions"
     FIELD_MAPPING_UTILITIES = "Field Mapping Utilities"
     IMPORT_STORAGE = "Import Storage"
     IMPORT_RETRIEVAL = "Import Retrieval"

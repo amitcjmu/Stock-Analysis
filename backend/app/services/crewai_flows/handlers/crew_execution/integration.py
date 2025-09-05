@@ -160,6 +160,7 @@ class DiscoveryIntegrationExecutor(CrewExecutionBase):
                 # 2. Create RawImportRecord entries for each cleaned record
                 for index, record in enumerate(state.cleaned_data):
                     raw_record = RawImportRecord(
+                        id=uuid_pkg.uuid4(),
                         data_import_id=import_session.id,
                         client_account_id=import_session.client_account_id,
                         engagement_id=import_session.engagement_id,
