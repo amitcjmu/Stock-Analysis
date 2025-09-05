@@ -1,3 +1,28 @@
+## Subagent Instructions and Requirements
+
+### MANDATORY FOR ALL CLAUDE CODE SUBAGENTS
+When invoking ANY subagent (qa-playwright-tester, python-crewai-fastapi-expert, sre-precommit-enforcer, etc.), ensure they:
+
+1. **Read Required Documentation First**:
+   - `/docs/analysis/Notes/000-lessons.md` - Core architectural lessons
+   - `/docs/analysis/Notes/coding-agent-guide.md` - Implementation patterns
+   - `/.claude/agent_instructions.md` - Detailed subagent requirements
+
+2. **Provide Comprehensive Summary**:
+   - Not just "Done" but a detailed summary of work performed
+   - Include files modified, patterns applied, and verification steps
+   - Follow the summary template in `/.claude/agent_instructions.md`
+
+3. **Include This in Every Subagent Prompt**:
+   ```
+   IMPORTANT: First read these files:
+   1. /docs/analysis/Notes/coding-agent-guide.md
+   2. /.claude/agent_instructions.md
+
+   After completing your task, provide a detailed summary following the template in agent_instructions.md, not just "Done".
+   Include: what was requested, what was accomplished, technical details, and verification steps.
+   ```
+
 ## Development Best Practices
 
 ### CRITICAL: API Field Naming Convention (MUST READ - Prevents Recurring Bugs)
