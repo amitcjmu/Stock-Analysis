@@ -63,8 +63,8 @@ class AssetHandlers(CollectionHandlerBase):
                 "SELECT g.field_name, r.response_value, "
                 "(g.metadata->>'asset_id') AS asset_id_hint, "
                 "(g.metadata->>'application_name') AS app_name_hint "
-                "FROM collection_data_gaps g "
-                "JOIN collection_questionnaire_responses r ON g.id = r.gap_id "
+                "FROM migration.collection_data_gaps g "
+                "JOIN migration.collection_questionnaire_responses r ON g.id = r.gap_id "
                 "WHERE g.collection_flow_id = :flow_id "
                 "AND g.resolution_status = 'resolved'"
             ),

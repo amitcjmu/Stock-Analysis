@@ -53,6 +53,7 @@ async def get_adaptive_questionnaires(
             select(CollectionFlow).where(
                 CollectionFlow.flow_id == UUID(flow_id),
                 CollectionFlow.engagement_id == context.engagement_id,
+                CollectionFlow.client_account_id == context.client_account_id,
             )
         )
         flow = flow_result.scalar_one_or_none()
