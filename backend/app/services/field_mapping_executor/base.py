@@ -10,21 +10,14 @@ implementation while leveraging the modular architecture for better
 maintainability and reduced complexity.
 """
 
-import asyncio
 import logging
-from datetime import datetime
 
 # Use late import pattern to avoid circular dependencies
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-if TYPE_CHECKING:
-    pass
 from app.schemas.unified_discovery_flow_state import UnifiedDiscoveryFlowState
-
-# from app.models.discovery_flows import DiscoveryFlow  # Currently unused
-# from app.db.session import get_db  # Currently unused
+from .agent_executor import AgentExecutor
 from .exceptions import (
-    CrewExecutionError,
     FieldMappingExecutorError,
     MappingParseError,
     TransformationError,
@@ -34,10 +27,18 @@ from .formatters import MappingResponseFormatter
 from .mapping_engine import IntelligentMappingEngine
 from .parsers import CompositeMappingParser
 from .rules_engine import MappingRulesEngine
+from .state_utils import PhaseUtils, StateValidator, StorageUtils
 from .transformation import MappingTransformer
 from .validation import CompositeValidator
 
+if TYPE_CHECKING:
+    pass
+
+# Initialize logger first to avoid F821 error
 logger = logging.getLogger(__name__)
+
+# from app.models.discovery_flows import DiscoveryFlow  # Currently unused
+# from app.db.session import get_db  # Currently unused
 
 
 class FieldMappingExecutor:
@@ -83,6 +84,14 @@ class FieldMappingExecutor:
         self.rules_engine = MappingRulesEngine()
         self.formatter = MappingResponseFormatter()
 
+        # Initialize utility components
+        self.agent_executor = AgentExecutor(
+            client_account_id, engagement_id, agent_pool
+        )
+        self.storage_utils = StorageUtils(
+            storage_manager, client_account_id, engagement_id
+        )
+
         logger.info(
             f"FieldMappingExecutor initialized for client {client_account_id}, engagement {engagement_id}"
         )
@@ -107,10 +116,12 @@ class FieldMappingExecutor:
             logger.info(f"Starting field mapping execution for flow {state.flow_id}")
 
             # Validate state has required data
-            self._validate_execution_state(state)
+            StateValidator.validate_execution_state(state)
 
             # Get field mapping agent and execute mapping
-            agent_response = await self._execute_field_mapping_agent(state)
+            agent_response = await self.agent_executor.execute_field_mapping_agent(
+                state
+            )
 
             # Parse the agent response to extract mappings
             parsed_mappings = await self._parse_agent_response(agent_response, state)
@@ -152,167 +163,6 @@ class FieldMappingExecutor:
             raise FieldMappingExecutorError(
                 f"Field mapping execution failed: {str(e)}"
             ) from e
-
-    def _validate_execution_state(self, state: UnifiedDiscoveryFlowState) -> None:
-        """Validate that the state has required data for field mapping."""
-        # Check for raw_data (sample data)
-        if not state.raw_data:
-            raise ValidationError("No sample data available for field mapping")
-
-        # Check for detected_columns in metadata
-        if not state.metadata.get("detected_columns"):
-            raise ValidationError("No detected columns available for field mapping")
-
-        logger.debug(f"State validation passed for flow {state.flow_id}")
-
-    async def _execute_field_mapping_agent(
-        self, state: UnifiedDiscoveryFlowState
-    ) -> str:
-        """Execute the field mapping CrewAI agent."""
-        try:
-            # If no agent pool, return a mock response for testing
-            if not self.agent_pool:
-                logger.warning("No agent pool available, using mock response")
-                return self._get_mock_agent_response(state)
-
-            # Get field mapping agent from the pool using correct method signature
-            agent = await self.agent_pool.get_or_create_agent(
-                client_id=str(self.client_account_id),
-                engagement_id=str(self.engagement_id),
-                agent_type="field_mapping",
-            )
-
-            if not agent:
-                logger.warning("Field mapping agent not available, using mock response")
-                return self._get_mock_agent_response(state)
-
-            # Prepare agent input from state
-            agent_input = self._prepare_agent_input(state)
-
-            # Execute the agent with retry logic
-            response = await self._execute_with_retry(agent, agent_input)
-
-            logger.info(
-                f"Field mapping agent executed successfully for flow {state.flow_id}"
-            )
-            return response
-
-        except Exception as e:
-            logger.error(f"Field mapping agent execution failed: {str(e)}")
-            raise CrewExecutionError(f"Agent execution failed: {str(e)}") from e
-
-    def _get_mock_agent_response(self, state: UnifiedDiscoveryFlowState) -> str:
-        """Generate a mock agent response for testing/fallback."""
-        detected_columns = state.metadata.get("detected_columns", [])
-
-        # If no detected columns, try to get from raw data using multi-row sampling
-        if not detected_columns and state.raw_data:
-            if isinstance(state.raw_data, list) and len(state.raw_data) > 0:
-                # Sample multiple rows for robust column detection
-                column_set = set()
-                sample_size = min(5, len(state.raw_data))
-
-                for i in range(sample_size):
-                    record = state.raw_data[i]
-                    if isinstance(record, dict):
-                        for key in record.keys():
-                            if key is not None and str(key).strip():
-                                column_set.add(str(key).strip())
-
-                detected_columns = sorted(list(column_set))
-
-        # Generate basic mappings with standard field name transformations
-        mappings = []
-        confidence_scores = {}
-
-        for col in detected_columns:
-            # Map common variations to standard field names
-            target_field = col.lower().replace(" ", "_")
-
-            # Common field mappings
-            field_map = {
-                "os": "operating_system",
-                "owner": "owner",
-                "status": "status",
-                "hostname": "hostname",
-                "application": "application_name",
-                "environment": "environment",
-                "ip": "ip_address",
-                "cpu": "cpu_cores",
-                "ram": "memory_gb",
-                "memory": "memory_gb",
-                "disk": "disk_gb",
-                "storage": "disk_gb",
-            }
-
-            # Use mapped name if available, otherwise use original
-            target_field = field_map.get(col.lower(), target_field)
-            confidence = 0.85 if col.lower() in field_map else 0.75
-
-            mappings.append(
-                {
-                    "source_field": col,
-                    "target_field": target_field,
-                    "confidence": confidence,
-                    "status": "suggested",
-                }
-            )
-            confidence_scores[col] = confidence
-
-        import json
-
-        return json.dumps(
-            {
-                "mappings": mappings,
-                "confidence_scores": confidence_scores,
-                "clarifications": [],
-            }
-        )
-
-    def _prepare_agent_input(self, state: UnifiedDiscoveryFlowState) -> Dict[str, Any]:
-        """Prepare input data for the field mapping agent."""
-        agent_input = {
-            "sample_data": state.raw_data,
-            "detected_columns": state.metadata.get("detected_columns", []),
-            "data_source_info": state.metadata.get("data_source_info", {}),
-            "previous_mappings": state.field_mappings or [],
-            "mapping_context": {
-                "flow_id": state.flow_id,
-                "engagement_id": self.engagement_id,
-                "client_account_id": self.client_account_id,
-                "timestamp": datetime.utcnow().isoformat(),
-            },
-        }
-
-        logger.debug(
-            f"Agent input prepared with {len(agent_input['detected_columns'])} columns"
-        )
-        return agent_input
-
-    async def _execute_with_retry(self, agent: Any, agent_input: Dict[str, Any]) -> str:
-        """Execute agent with retry logic for robustness."""
-        max_retries = 3
-        retry_count = 0
-
-        while retry_count < max_retries:
-            try:
-                response = await agent.execute(agent_input)
-                if response and response.strip():
-                    return response
-                else:
-                    raise CrewExecutionError("Agent returned empty response")
-
-            except Exception as e:
-                retry_count += 1
-                if retry_count >= max_retries:
-                    raise CrewExecutionError(
-                        f"Agent execution failed after {max_retries} retries: {str(e)}"
-                    )
-
-                logger.warning(
-                    f"Agent execution attempt {retry_count} failed, retrying: {str(e)}"
-                )
-                await asyncio.sleep(1 * retry_count)  # Exponential backoff
 
     async def _parse_agent_response(
         self, agent_response: str, state: UnifiedDiscoveryFlowState
@@ -366,8 +216,8 @@ class FieldMappingExecutor:
         try:
             rules_context = {
                 "flow_state": state,
-                "engagement_requirements": await self._get_engagement_requirements(),
-                "client_preferences": await self._get_client_preferences(),
+                "engagement_requirements": await self.storage_utils.get_engagement_requirements(),
+                "client_preferences": await self.storage_utils.get_client_preferences(),
             }
 
             rules_results = await self.rules_engine.apply_rules(
@@ -429,7 +279,7 @@ class FieldMappingExecutor:
             )
 
             # Determine next phase based on results
-            response["next_phase"] = self._determine_next_phase(
+            response["next_phase"] = PhaseUtils.determine_next_phase(
                 validation_results, rules_results, transformation_results
             )
 
@@ -441,58 +291,6 @@ class FieldMappingExecutor:
             raise FieldMappingExecutorError(
                 f"Response formatting failed: {str(e)}"
             ) from e
-
-    def _determine_next_phase(
-        self,
-        validation_results: Dict[str, Any],
-        rules_results: Dict[str, Any],
-        transformation_results: Dict[str, Any],
-    ) -> str:
-        """Determine the next phase based on execution results."""
-        # Check if clarifications are needed
-        if rules_results.get("clarifications"):
-            return "clarification_needed"
-
-        # Check if validation failed critically
-        if validation_results.get("critical_errors"):
-            return "validation_failed"
-
-        # Check if transformation failed
-        if not transformation_results.get("success", False):
-            return "transformation_failed"
-
-        # Otherwise proceed to next phase
-        return "data_transformation"
-
-    async def _get_engagement_requirements(self) -> Dict[str, Any]:
-        """Get engagement-specific requirements for field mapping."""
-        try:
-            if not self.storage_manager:
-                return {}
-
-            # Get from storage manager
-            requirements = await self.storage_manager.get_engagement_metadata(
-                self.client_account_id, self.engagement_id
-            )
-            return requirements.get("field_mapping_requirements", {})
-        except Exception as e:
-            logger.warning(f"Could not retrieve engagement requirements: {str(e)}")
-            return {}
-
-    async def _get_client_preferences(self) -> Dict[str, Any]:
-        """Get client-specific preferences for field mapping."""
-        try:
-            if not self.storage_manager:
-                return {}
-
-            # Get from storage manager
-            preferences = await self.storage_manager.get_client_preferences(
-                self.client_account_id
-            )
-            return preferences.get("field_mapping_preferences", {})
-        except Exception as e:
-            logger.warning(f"Could not retrieve client preferences: {str(e)}")
-            return {}
 
     # Backward compatibility methods
     async def execute_field_mapping(

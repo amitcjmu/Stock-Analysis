@@ -139,12 +139,17 @@ class MappingTransformer(TransformationEngine):
                 }
 
             # Convert CrewAI mappings to the format expected by storage manager
+            # Create a single record with ALL source fields to trigger mapping creation for all fields
             file_data = []
+            record = {}
             for mapping in mappings_data:
                 if isinstance(mapping, dict) and "source_field" in mapping:
-                    # Create a minimal record with just the field names to trigger mapping creation
-                    record = {mapping["source_field"]: "sample_value"}
-                    file_data.append(record)
+                    # Add each source field to the single record
+                    record[mapping["source_field"]] = "sample_value"
+
+            # Add the single record with all fields if we have any
+            if record:
+                file_data.append(record)
 
             if file_data:
                 # Use storage manager to create/update field mappings

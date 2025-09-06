@@ -67,8 +67,8 @@ export const categorizeMappings = (fieldMappings: FieldMapping[]): MappingBucket
   const approved = fieldMappings.filter(m => m.status === 'approved');
 
   const autoMapped = fieldMappings.filter(m => {
-    // Include pending mappings that have a target field and aren't explicitly unmapped
-    return m.status === 'pending' &&
+    // Include pending or suggested mappings that have a target field and aren't explicitly unmapped
+    return (m.status === 'pending' || m.status === 'suggested') &&
            m.target_field &&
            m.target_field !== '' &&
            m.target_field !== 'unmapped' &&

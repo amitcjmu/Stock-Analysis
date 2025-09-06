@@ -14,6 +14,9 @@ from .field_mapping.routes.approval_routes import router as approval_router
 # Import all modular routers
 from .field_mapping.routes.mapping_routes import router as mapping_router
 from .field_mapping.routes.validation_routes import router as validation_router
+from .field_mapping.routes.mapping_modules.learning_operations import (
+    router as learning_router,
+)
 
 # Import service dependencies
 from .field_mapping.services.mapping_service import MappingService
@@ -39,6 +42,9 @@ router.include_router(
 )  # includes suggestions under /field-mappings prefix
 router.include_router(validation_router)
 router.include_router(approval_router)
+router.include_router(
+    learning_router, prefix="/field-mappings"
+)  # Learning operations for field mapping
 
 # Note: Legacy routes removed - all functionality available through included routers
 # The modularized routers provide all the same endpoints with improved organization

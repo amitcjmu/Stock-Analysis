@@ -79,7 +79,7 @@ fi
 # Run Alembic migrations with intelligent error handling
 echo "🔄 Running Alembic migrations..."
 
-if python -m alembic upgrade head; then
+if python -m alembic upgrade heads; then
     echo "✅ Alembic migrations completed successfully!"
 else
     echo "❌ Alembic migration failed. Running fix script again..."
@@ -87,7 +87,7 @@ else
     # Try fix script one more time in case of race conditions
     if python scripts/fix_migration_state.py; then
         echo "✅ Migration state re-fixed, trying upgrade again..."
-        if python -m alembic upgrade head; then
+        if python -m alembic upgrade heads; then
             echo "✅ Alembic migrations completed after fix!"
         else
             echo "❌ Migration still failed, but continuing with app startup..."

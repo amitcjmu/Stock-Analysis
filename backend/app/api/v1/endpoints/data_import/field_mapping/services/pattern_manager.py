@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.models.agent_discovered_patterns import AgentDiscoveredPatterns
+
+# from app.models.agent_memory import PatternType  # No longer needed - using string literals
 from app.models.data_import.mapping import ImportFieldMapping
 
 from ..models.mapping_schemas import (
@@ -59,9 +61,14 @@ class PatternManager:
             patterns_updated += 1
         else:
             # Create new positive pattern
+            pattern_type_value = "field_mapping_approval"
+            logger.debug(f"Creating pattern with type: {pattern_type_value}")
+            logger.info(
+                f"DEBUG: pattern_type_value = {pattern_type_value!r}, type = {type(pattern_type_value)}"
+            )
             new_pattern = AgentDiscoveredPatterns(
                 pattern_id=pattern_id,
-                pattern_type="field_mapping_approval",
+                pattern_type=pattern_type_value,
                 pattern_name=f"Approved mapping: {mapping.source_field} → {mapping.target_field}",
                 pattern_description=(
                     f"User approved the mapping from '{mapping.source_field}' "
@@ -89,7 +96,13 @@ class PatternManager:
                 engagement_id=self.engagement_id,
             )
             new_pattern.set_insight_type("field_mapping_suggestion")
+            logger.info(
+                f"DEBUG BEFORE ADD: new_pattern.pattern_type = {new_pattern.pattern_type!r}"
+            )
             self.db.add(new_pattern)
+            logger.info(
+                f"DEBUG AFTER ADD: new_pattern.pattern_type = {new_pattern.pattern_type!r}"
+            )
             patterns_created += 1
 
         return patterns_created, patterns_updated
@@ -176,7 +189,7 @@ class PatternManager:
             else:
                 alt_pattern = AgentDiscoveredPatterns(
                     pattern_id=alt_pattern_id,
-                    pattern_type="field_mapping_alternative",
+                    pattern_type="field_mapping_suggestion",
                     pattern_name=(
                         f"Alternative mapping: {mapping.source_field} → "
                         f"{rejection_request.alternative_suggestion}"
