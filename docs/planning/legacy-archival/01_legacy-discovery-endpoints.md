@@ -6,7 +6,15 @@
 - Redirect router: `backend/app/api/v1/endpoints/discovery.py` redirects to `/api/v1/unified-discovery`.
 
 ## Remaining References (Examples)
-- Tests: `tests/backend/integration/test_end_to_end_workflow.py`, `tests/backend/test_multitenant_workflow.py`, `tests/docker/test_docker_containers.py`.
+- Tests (non-exhaustive):
+  - `tests/backend/integration/test_end_to_end_workflow.py`
+  - `tests/backend/test_multitenant_workflow.py`
+  - `tests/backend/integration/test_error_handling.py`
+  - `tests/backend/test_crewai_flow_validation.py`
+  - `tests/backend/test_cmdb_endpoint.py`
+  - `tests/backend/debug_asset_inventory.py`
+  - `tests/backend/test_dependency_api.py`
+  - `tests/docker/test_docker_containers.py`
 - Docs: search for `/api/v1/discovery/` in `docs/**`.
 
 ## Migration Paths
@@ -14,8 +22,10 @@
 - Discovery specifics: use `/api/v1/unified-discovery/*`.
 
 ## Action Plan
-- Remove deprecated router package after tests/docs are migrated.
-- Update test suites to new endpoints or remove obsolete tests.
-- Add CI check to fail on new `/api/v1/discovery/*` introductions (if not already covered).
+- Phase 1 (Immediate): Ensure guard middleware stays enabled; block accidental regressions.
+- Phase 2 (Tests): Update all tests to `/api/v1/flows/*` or `/api/v1/unified-discovery/*`.
+- Phase 3 (Removal): Delete `discovery_DEPRECATED` package and redirect router after tests pass.
+- Phase 4 (Docs): Refresh docs to remove legacy references.
+- CI: Fail on new `/api/v1/discovery/*` mentions outside this archival folder.
 
 

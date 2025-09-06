@@ -16,8 +16,8 @@ Production standard is HTTP polling (Vercel). WebSockets exist for cache events 
 - Vercel edge/serverless incompatibilities; CI banned patterns list flags WebSocket usage.
 
 ## Deprecation Strategy
-- Short term: Feature-flag WS usage; default to HTTP polling.
-- Mid term: Replace cache invalidation WS with polling endpoints or SSE-like fallback not requiring WS.
+- Short term: Feature-flag WS usage (`NEXT_PUBLIC_ENABLE_WEBSOCKETS=false` by default) on frontend; mirror with backend env flag.
+- Mid term: Replace cache invalidation WS with polling endpoints; provide sixr progress polling; keep parity tests.
 - Long term: Remove WS code paths and tests; consolidate on polling utilities.
 
 ## Action Items

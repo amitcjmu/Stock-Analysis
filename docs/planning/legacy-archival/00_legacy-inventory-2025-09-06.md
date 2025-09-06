@@ -45,4 +45,30 @@ This snapshot lists legacy or deprecated code to remove or migrate. Validate eac
 ## Next Steps
 - See topic docs for migration paths and concrete action lists.
 
+## Verified & Safe-To-Remove Candidates (post-test-migration)
+- Deprecated legacy discovery router/package after tests are migrated:
+  - `backend/app/api/v1/endpoints/discovery_DEPRECATED/`
+  - `backend/app/api/v1/endpoints/discovery.py`
+- Legacy tool (no active usage observed):
+  - `backend/app/services/crewai_flows/tools/asset_creation_tool_legacy.py`
+
+## Critical Observations
+- Legacy endpoint guard actively blocks `/api/v1/discovery/*`.
+- `AsyncBaseDiscoveryTool` and `asset_creation_tool_legacy` appear unused; validate import graph prior to removal.
+- The largest blocker is test suites still calling legacy endpoints; migrate them first.
+
+## Recommended Action Plan (Phased)
+1) Immediate
+   - Remove `asset_creation_tool_legacy.py` if import graph confirms unused.
+   - Mark `AsyncBaseDiscoveryTool` deprecated or remove if unused.
+2) Medium Priority
+   - Refactor `asyncio.run()` usage in app code to safe async patterns.
+   - Migrate all tests to `/api/v1/flows/*` or `/api/v1/unified-discovery/*`.
+3) Long-Term (Feature-Flagged)
+   - Introduce `NEXT_PUBLIC_ENABLE_WEBSOCKETS` (default false) and backend flag.
+   - Provide HTTP polling alternatives; gradually migrate consumers.
+4) Final Cleanup
+   - Remove legacy discovery packages and frontend legacy services after verification.
+   - Archive this inventory as completed.
+
 

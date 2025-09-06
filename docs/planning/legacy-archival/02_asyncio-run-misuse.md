@@ -6,7 +6,7 @@ Per platform rules, never use `asyncio.run()` inside async contexts or applicati
 ## Findings (Application Layer)
 - `backend/app/services/tools/base_tool.py`: `AsyncBaseDiscoveryTool.run` wraps async `arun` with `asyncio.run()`.
 - `backend/app/services/agents/intelligent_flow_agent/tools/status_tool.py`: sync → async bridging uses thread executor with `asyncio.run()`.
-- `backend/app/services/crewai_flows/tools/asset_creation_tool_legacy.py`: legacy tool calls `asyncio.run()` or loop bridging.
+- `backend/app/services/crewai_flows/tools/asset_creation_tool_legacy.py`: legacy tool calls `asyncio.run()` in thread executor.
 
 ## Risks
 - Event loop conflicts in FastAPI workers.
@@ -20,5 +20,6 @@ Per platform rules, never use `asyncio.run()` inside async contexts or applicati
 ## Action Items
 - Replace `asyncio.run()` wrappers in the three files above with safe async patterns.
 - Add lint/CI rule to block `asyncio.run(` in `backend/app/**` (allowlist `scripts/`, `tests/`, `seeding/`).
+- If `AsyncBaseDiscoveryTool` and `asset_creation_tool_legacy` are unused, remove instead of refactoring.
 
 

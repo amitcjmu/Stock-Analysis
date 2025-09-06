@@ -1,9 +1,14 @@
 # Tests and Docs with Legacy API References
 
 ## Findings
-- Backend tests referencing `/api/v1/discovery/*` (examples):
+- Backend tests referencing `/api/v1/discovery/*` (non-exhaustive):
   - `tests/backend/integration/test_end_to_end_workflow.py`
+  - `tests/backend/integration/test_error_handling.py`
   - `tests/backend/test_multitenant_workflow.py`
+  - `tests/backend/test_crewai_flow_validation.py`
+  - `tests/backend/test_cmdb_endpoint.py`
+  - `tests/backend/debug_asset_inventory.py`
+  - `tests/backend/test_dependency_api.py`
   - `tests/docker/test_docker_containers.py`
 - Documentation files referencing old endpoints: search `docs/**` for `/api/v1/discovery/`.
 
