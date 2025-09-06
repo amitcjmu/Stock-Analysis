@@ -4,6 +4,9 @@ import { useMemo, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../../hooks/useUnifiedDiscoveryFlow';
 import type { Asset } from '../../../types/asset';
@@ -66,6 +69,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   const [needsClassification, setNeedsClassification] = useState(false);
   const [isReclassifying, setIsReclassifying] = useState(false);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
+  const [viewMode, setViewMode] = useState<'all' | 'current_flow'>(!flowId ? 'all' : 'current_flow');
 
   // Check for collectionFlowId parameter to auto-show application selection modal
   React.useEffect(() => {
@@ -78,18 +82,29 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     }
   }, []);
 
-  // Get assets data - fetch from API endpoint that returns all assets for the client/engagement
-  // CRITICAL FIX FOR ISSUE #306: Only enable query when Flow ID is available
+  // Get assets data - fetch from API endpoint that returns assets based on view mode
+  // Updated to support both "All Assets" and "Current Flow Only" modes
   const { data: assetsData, isLoading: assetsLoading, refetch: refetchAssets } = useQuery({
-    queryKey: ['discovery-assets', client?.id, engagement?.id, flowId],
+    queryKey: ['discovery-assets', client?.id, engagement?.id, viewMode, flowId],
     queryFn: async () => {
       try {
         // Import API call function with proper headers
         const { apiCall } = await import('../../../config/api');
 
+        // Build query parameters based on view mode
+        const queryParams = new URLSearchParams({
+          page: '1',
+          page_size: '100'
+        });
+
+        // Only include flow_id when in current_flow mode and flowId is available
+        if (viewMode === 'current_flow' && flowId) {
+          queryParams.append('flow_id', flowId);
+        }
+
         // First try to fetch from the database API with proper context headers
         // The apiCall function will handle the proxy and headers correctly
-        const response = await apiCall('/unified-discovery/assets?page=1&page_size=100');
+        const response = await apiCall(`/unified-discovery/assets?${queryParams.toString()}`);
 
         console.log('📊 Assets API response:', response);
 
@@ -146,10 +161,11 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         return [];
       }
     },
-    // CRITICAL: Only enable query when Flow ID is available to prevent demo data
-    enabled: !!client && !!engagement && !!flowId,
-    staleTime: 30000,
-    refetchOnWindowFocus: false
+    // Enable query when we have client/engagement, regardless of flowId for "All Assets" mode
+    enabled: !!client && !!engagement,
+    // Invalidate when view mode or flowId changes
+    refetchOnWindowFocus: false,
+    staleTime: 30000
   });
 
   const assets: AssetInventory[] = useMemo(() => {
@@ -364,6 +380,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   if (assetsLoading || isExecutingPhase) {
     return (
       <div className={`space-y-6 ${className}`}>
+        <ViewModeToggle />
         <div className="animate-pulse">
           <div className="h-32 bg-gray-200 rounded mb-4"></div>
           <div className="h-64 bg-gray-200 rounded"></div>
@@ -373,6 +390,9 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
             <p className="font-medium">Processing asset inventory...</p>
             <p className="text-sm mt-2">The AI agents are analyzing and classifying your assets.</p>
             <p className="text-sm">This process may take up to 6 minutes for large inventories.</p>
+            <p className="text-sm mt-1 text-blue-600">
+              View Mode: {viewMode === 'all' ? 'All Assets' : 'Current Flow Only'}
+            </p>
             <div className="mt-4">
               <div className="inline-flex items-center">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
@@ -389,8 +409,9 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   if (hasBackendError && !assetsLoading) {
     return (
       <div className={`${className}`}>
+        <ViewModeToggle />
         <InventoryContentFallback
-          error="Backend service is temporarily unavailable. Please try again in a few moments."
+          error={`Backend service is temporarily unavailable. Please try again in a few moments. (View Mode: ${viewMode === 'all' ? 'All Assets' : 'Current Flow Only'})`}
           onRetry={() => refetchAssets()}
         />
       </div>
@@ -411,6 +432,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
 
     return (
       <div className={`space-y-6 ${className}`}>
+        <ViewModeToggle />
         <Card>
           <CardContent className="p-8">
             <div className="text-center">
@@ -432,13 +454,18 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
                 <>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">No Assets Found</h3>
                   <p className="text-gray-600 mb-4">
-                    {flow ?
-                      "The asset inventory will be populated once the inventory phase is executed." :
+                    {viewMode === 'current_flow' && flow ?
+                      "The asset inventory will be populated once the inventory phase is executed for this flow." :
+                      viewMode === 'current_flow' && !flow ?
+                      "No flow is selected or the flow has no assets yet." :
                       "No assets have been discovered yet for this client and engagement."
                     }
                   </p>
                   <p className="text-sm text-gray-500">
-                    Assets are created during the discovery flow process or can be imported directly.
+                    {viewMode === 'all'
+                      ? "Assets are created during discovery flows or can be imported directly. Try switching to 'All Assets' mode to see assets from other flows."
+                      : "Assets are created during the discovery flow process or can be imported directly. Try switching to 'All Assets' mode to see all available assets."
+                    }
                   </p>
                   {shouldExecuteInventoryPhase && (
                     <div className="mt-6">
@@ -478,8 +505,64 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     );
   }
 
+  // View Mode Toggle Component
+  const ViewModeToggle = () => (
+    <Card className="mb-6">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Label htmlFor="view-mode-toggle" className="text-sm font-medium">
+              View Mode:
+            </Label>
+            <div className="flex items-center space-x-2">
+              <Label
+                htmlFor="view-mode-toggle"
+                className={`text-sm cursor-pointer ${
+                  viewMode === 'all' ? 'text-blue-600 font-medium' : 'text-gray-600'
+                }`}
+              >
+                All Assets
+              </Label>
+              <Switch
+                id="view-mode-toggle"
+                checked={viewMode === 'current_flow'}
+                onCheckedChange={(checked) => {
+                  setViewMode(checked ? 'current_flow' : 'all');
+                  setCurrentPage(1); // Reset pagination when switching modes
+                }}
+                disabled={!flowId} // Disable toggle if no flow is available
+              />
+              <Label
+                htmlFor="view-mode-toggle"
+                className={`text-sm cursor-pointer ${
+                  viewMode === 'current_flow' ? 'text-blue-600 font-medium' : 'text-gray-600'
+                }`}
+              >
+                Current Flow Only
+              </Label>
+            </div>
+          </div>
+          <div className="text-xs text-gray-500">
+            {viewMode === 'all'
+              ? 'Showing all assets for this client and engagement'
+              : flowId
+                ? `Showing assets for flow: ${flowId.substring(0, 8)}...`
+                : 'No flow selected'
+            }
+          </div>
+        </div>
+        {!flowId && (
+          <div className="mt-2 text-xs text-amber-600">
+            ⚠️ No flow selected - only "All Assets" view is available
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className={`space-y-6 ${className}`}>
+      <ViewModeToggle />
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto mb-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>

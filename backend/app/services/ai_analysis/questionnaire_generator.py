@@ -235,7 +235,8 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
                - Design questions that directly collect the missing critical attributes
                - CRITICAL: For each gap in the identified_gaps list, use the EXACT gap.field_name as the question_id
                - Example gap structure: {{"field_name": "business_owner", "priority": 1, "description": "..."}}
-               - The question_id MUST be identical to gap.field_name (e.g., "business_owner", "technology_stack", "environment")
+               - The question_id MUST be identical to gap.field_name
+                 (e.g., "business_owner", "technology_stack", "environment")
                - This ensures questionnaire responses can be mapped back to resolve specific gaps
                - Ensure questions support 6R strategy confidence improvement
 
@@ -283,9 +284,9 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
                - This ensures gap resolution can match responses back to specific gaps
                - Do NOT generate custom IDs like "q-infra-001" - use gap.field_name directly
                - Processing pattern: For each gap in identified_gaps list:
-                 * Extract gap["field_name"] (e.g., "business_owner", "technology_stack") 
+                 * Extract gap["field_name"] (e.g., "business_owner", "technology_stack")
                  * Set question_id = gap["field_name"]
-                 * Set addresses_gap = gap["field_name"] 
+                 * Set addresses_gap = gap["field_name"]
                - The question_id MUST be identical to the gap's field_name for proper resolution
 
             OUTPUT FORMAT:
@@ -315,11 +316,17 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
                         "questions": [
                             {{
                                 "question_id": "business_owner",
-                                "question_text": "Who is the business owner or primary stakeholder for this application?",
+                                "question_text": (
+                                    "Who is the business owner or primary stakeholder "
+                                    "for this application?"
+                                ),
                                 "question_type": "text_input",
                                 "priority": "critical",
                                 "required": true,
-                                "help_text": "Identify the business owner to understand accountability and decision-making authority",
+                                "help_text": (
+                                    "Identify the business owner to understand "
+                                    "accountability and decision-making authority"
+                                ),
                                 "validation_rules": {{
                                     "required": true,
                                     "format": "string"

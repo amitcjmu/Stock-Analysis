@@ -6,7 +6,7 @@ Handles flow initialization through Master Flow Orchestrator.
 
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Dict, Set, Tuple
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -145,6 +145,103 @@ async def initialize_discovery_flow(
         )
 
 
+def _get_common_field_mappings() -> Dict[str, Tuple[str, float]]:
+    """Get common field mappings dictionary."""
+    return {
+        # Identity mappings
+        "name": ("name", 0.95),
+        "hostname": ("hostname", 0.95),
+        "host_name": ("hostname", 0.90),
+        "server_name": ("hostname", 0.85),
+        "fqdn": ("fqdn", 0.95),
+        "asset_name": ("asset_name", 0.90),
+        "display_name": ("asset_name", 0.85),
+        # Network mappings
+        "ip_address": ("ip_address", 0.95),
+        "ip": ("ip_address", 0.90),
+        "ipaddress": ("ip_address", 0.90),
+        "primary_ip": ("ip_address", 0.85),
+        # Type mappings
+        "asset_type": ("asset_type", 0.95),
+        "type": ("asset_type", 0.85),
+        "category": ("asset_type", 0.80),
+        "class": ("asset_type", 0.75),
+        # Environment mappings
+        "environment": ("environment", 0.95),
+        "env": ("environment", 0.90),
+        "stage": ("environment", 0.80),
+        # OS mappings
+        "operating_system": ("operating_system", 0.95),
+        "os": ("operating_system", 0.90),
+        "os_name": ("operating_system", 0.90),
+        "platform": ("operating_system", 0.80),
+        # Location mappings
+        "location": ("location", 0.95),
+        "datacenter": ("location", 0.85),
+        "data_center": ("location", 0.85),
+        "site": ("location", 0.80),
+        # Owner mappings
+        "owner": ("owner", 0.95),
+        "owner_email": ("owner", 0.90),
+        "business_owner": ("owner", 0.85),
+        "technical_owner": ("owner", 0.85),
+        # Description mappings
+        "description": ("description", 0.95),
+        "notes": ("description", 0.80),
+        "comments": ("description", 0.75),
+    }
+
+
+def _extract_source_fields(raw_data: Any) -> Set[str]:
+    """Extract source fields from raw data."""
+    source_fields = set()
+
+    # Handle different raw_data formats
+    if isinstance(raw_data, list) and raw_data:
+        # If it's a list of records, get fields from first record
+        if isinstance(raw_data[0], dict):
+            source_fields = set(raw_data[0].keys())
+    elif isinstance(raw_data, dict):
+        # If it's a dict with records, extract fields
+        if "records" in raw_data and isinstance(raw_data["records"], list):
+            if raw_data["records"] and isinstance(raw_data["records"][0], dict):
+                source_fields = set(raw_data["records"][0].keys())
+        else:
+            # Direct dict of fields
+            source_fields = set(raw_data.keys())
+
+    return source_fields
+
+
+def _find_field_mapping(
+    source_field: str, common_mappings: Dict[str, Tuple[str, float]]
+) -> Tuple[str, float]:
+    """Find target field and confidence score for a source field."""
+    source_field_lower = source_field.lower()
+
+    # Check for exact match
+    if source_field_lower in common_mappings:
+        return common_mappings[source_field_lower]
+
+    # Try fuzzy matching for similar fields
+    for common_field, (target, conf) in common_mappings.items():
+        if common_field in source_field_lower or source_field_lower in common_field:
+            return target, conf * 0.8  # Reduce confidence for fuzzy match
+
+    # If no match found, map to same name with low confidence
+    return source_field.lower().replace(" ", "_"), 0.3
+
+
+def _should_skip_field(source_field: str) -> bool:
+    """Check if field should be skipped (metadata fields)."""
+    return source_field.startswith("_") or source_field in [
+        "id",
+        "uuid",
+        "created_at",
+        "updated_at",
+    ]
+
+
 async def _generate_field_mappings_from_raw_data(
     db: AsyncSession,
     context: RequestContext,
@@ -170,108 +267,24 @@ async def _generate_field_mappings_from_raw_data(
             return
 
         # Extract field names from raw data
-        source_fields = set()
-
-        # Handle different raw_data formats
-        if isinstance(raw_data, list) and raw_data:
-            # If it's a list of records, get fields from first record
-            if isinstance(raw_data[0], dict):
-                source_fields = set(raw_data[0].keys())
-        elif isinstance(raw_data, dict):
-            # If it's a dict with records, extract fields
-            if "records" in raw_data and isinstance(raw_data["records"], list):
-                if raw_data["records"] and isinstance(raw_data["records"][0], dict):
-                    source_fields = set(raw_data["records"][0].keys())
-            else:
-                # Direct dict of fields
-                source_fields = set(raw_data.keys())
-
+        source_fields = _extract_source_fields(raw_data)
         if not source_fields:
             logger.warning("No source fields found in raw data")
             return
 
-        # Define common field mappings with high confidence
-        common_mappings = {
-            # Identity mappings
-            "name": ("name", 0.95),
-            "hostname": ("hostname", 0.95),
-            "host_name": ("hostname", 0.90),
-            "server_name": ("hostname", 0.85),
-            "fqdn": ("fqdn", 0.95),
-            "asset_name": ("asset_name", 0.90),
-            "display_name": ("asset_name", 0.85),
-            # Network mappings
-            "ip_address": ("ip_address", 0.95),
-            "ip": ("ip_address", 0.90),
-            "ipaddress": ("ip_address", 0.90),
-            "primary_ip": ("ip_address", 0.85),
-            # Type mappings
-            "asset_type": ("asset_type", 0.95),
-            "type": ("asset_type", 0.85),
-            "category": ("asset_type", 0.80),
-            "class": ("asset_type", 0.75),
-            # Environment mappings
-            "environment": ("environment", 0.95),
-            "env": ("environment", 0.90),
-            "stage": ("environment", 0.80),
-            # OS mappings
-            "operating_system": ("operating_system", 0.95),
-            "os": ("operating_system", 0.90),
-            "os_name": ("operating_system", 0.90),
-            "platform": ("operating_system", 0.80),
-            # Location mappings
-            "location": ("location", 0.95),
-            "datacenter": ("location", 0.85),
-            "data_center": ("location", 0.85),
-            "site": ("location", 0.80),
-            # Owner mappings
-            "owner": ("owner", 0.95),
-            "owner_email": ("owner", 0.90),
-            "business_owner": ("owner", 0.85),
-            "technical_owner": ("owner", 0.85),
-            # Description mappings
-            "description": ("description", 0.95),
-            "notes": ("description", 0.80),
-            "comments": ("description", 0.75),
-        }
-
-        # Create field mappings for matched fields
+        # Get common field mappings
+        common_mappings = _get_common_field_mappings()
         field_mappings_created = 0
 
         for source_field in source_fields:
             # Skip fields that look like metadata
-            if source_field.startswith("_") or source_field in [
-                "id",
-                "uuid",
-                "created_at",
-                "updated_at",
-            ]:
+            if _should_skip_field(source_field):
                 continue
 
-            # Check for common mappings
-            source_field_lower = source_field.lower()
-            target_field = None
-            confidence_score = 0.5  # Default confidence
-
-            if source_field_lower in common_mappings:
-                target_field, confidence_score = common_mappings[source_field_lower]
-            else:
-                # Try fuzzy matching for similar fields
-                for common_field, (target, conf) in common_mappings.items():
-                    if (
-                        common_field in source_field_lower
-                        or source_field_lower in common_field
-                    ):
-                        target_field = target
-                        confidence_score = (
-                            conf * 0.8
-                        )  # Reduce confidence for fuzzy match
-                        break
-
-            # If no match found, map to same name with low confidence
-            if not target_field:
-                target_field = source_field.lower().replace(" ", "_")
-                confidence_score = 0.3
+            # Find mapping for this field
+            target_field, confidence_score = _find_field_mapping(
+                source_field, common_mappings
+            )
 
             # Create the field mapping
             field_mapping = ImportFieldMapping(
