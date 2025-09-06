@@ -1,5 +1,20 @@
 # AI Modernize Migration Platform - Changelog
 
+## [2025-09-06] - Documentation: Legacy Archival Inventory
+### 📚 Documentation
+- Added legacy archival documentation under `docs/planning/legacy-archival/`:
+  - `README.md` (index and usage)
+  - `00_legacy-inventory-2025-09-06.md`
+  - `01_legacy-discovery-endpoints.md`
+  - `02_asyncio-run-misuse.md`
+  - `03_websocket-usage-and-deprecation-plan.md`
+  - `04_frontend-legacy-components-and-services.md`
+  - `05_tests-and-docs-with-legacy-references.md`
+
+### 🎯 Impact
+- Establishes a clear, actionable inventory of legacy code and deprecation plans aligned with agentic-first, flow-based architecture.
+- Reduces regression risk by documenting migration paths and CI guardrails.
+
 ## [2025-09-04] - Documentation: Collection Preparedness Audit
 ### 📚 Documentation
 - Added detailed senior-architect audit: `docs/planning/collection-flow/collection-preparedness-audit.md`.

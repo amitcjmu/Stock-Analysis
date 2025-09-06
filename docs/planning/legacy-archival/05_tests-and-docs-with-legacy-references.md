@@ -1,0 +1,17 @@
+# Tests and Docs with Legacy API References
+
+## Findings
+- Backend tests referencing `/api/v1/discovery/*` (examples):
+  - `tests/backend/integration/test_end_to_end_workflow.py`
+  - `tests/backend/test_multitenant_workflow.py`
+  - `tests/docker/test_docker_containers.py`
+- Documentation files referencing old endpoints: search `docs/**` for `/api/v1/discovery/`.
+
+## Migration Guidance
+- Update test endpoints to `/api/v1/flows/*` or `/api/v1/unified-discovery/*`.
+- Remove tests that validate legacy-only behavior.
+- Refresh doc examples and curl commands to new endpoints.
+
+## Action Items
+- Create a checklist of files to update with owners and deadlines.
+- Add CI to block new mentions of `/api/v1/discovery/` in code/docs (except in this archival folder).
