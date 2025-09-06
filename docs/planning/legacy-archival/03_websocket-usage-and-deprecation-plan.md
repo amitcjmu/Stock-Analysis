@@ -25,4 +25,19 @@ Production standard is HTTP polling (Vercel). WebSockets exist for cache events 
 - Create polling equivalents for WS endpoints (cache events, sixr progress) and migrate consumers.
 - Remove WS code after parity verified in staging.
 
+## Feature Flag Implementation
+1. Backend (settings):
+```python
+import os
+
+ENABLE_WEBSOCKETS = os.getenv("ENABLE_WEBSOCKETS", "false").lower() == "true"
+```
+
+2. Frontend (hooks):
+```typescript
+if (!process.env.NEXT_PUBLIC_ENABLE_WEBSOCKETS) {
+  return usePollingFallback();
+}
+```
+
 
