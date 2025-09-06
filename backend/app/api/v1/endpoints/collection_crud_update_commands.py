@@ -7,7 +7,6 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -18,6 +17,16 @@ from app.models import User
 from app.models.collection_flow import CollectionFlow
 from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
 from app.schemas.collection_flow import CollectionFlowUpdate
+
+# Import helper functions from separate module to keep file under 400 lines
+from .collection_crud_helpers import (
+    validate_asset_access,
+    fetch_and_index_gaps,
+    create_response_records,
+    resolve_data_gaps,
+    apply_asset_writeback,
+    update_flow_progress,
+)
 
 if TYPE_CHECKING:
     from app.schemas.collection_flow import QuestionnaireSubmissionRequest
@@ -218,116 +227,50 @@ async def submit_questionnaire_response(
         form_metadata = request_data.form_metadata or {}
         validation_results = request_data.validation_results or {}
 
-        # Extract asset_id for optional linking to asset inventory
+        # Extract and validate asset_id for optional linking to asset inventory
         asset_id = form_metadata.get("application_id") or form_metadata.get("asset_id")
-        validated_asset = None
+        validated_asset = await validate_asset_access(asset_id, context, db)
 
-        if asset_id:
-            # If asset_id is provided, validate it exists and belongs to the engagement
-            from app.models.asset import Asset
-
-            try:
-                asset_result = await db.execute(
-                    select(Asset)
-                    .where(Asset.id == asset_id)
-                    .where(Asset.engagement_id == context.engagement_id)
-                    .where(Asset.client_account_id == context.client_account_id)
-                )
-                validated_asset = asset_result.scalar_one_or_none()
-
-                if validated_asset:
-                    logger.info(
-                        f"Linking questionnaire responses to existing asset: {validated_asset.name} (ID: {asset_id})"
-                    )
-                else:
-                    logger.warning(
-                        f"Asset {asset_id} not found or not accessible - proceeding without asset linkage"
-                    )
-                    asset_id = None  # Clear invalid asset_id
-
-            except Exception as e:
-                logger.warning(
-                    f"Failed to validate asset {asset_id}: {e} - proceeding without asset linkage"
-                )
-                asset_id = None
-        else:
+        if asset_id and not validated_asset:
+            asset_id = None  # Clear invalid asset_id
+        elif not asset_id:
             logger.info(
                 "No asset_id provided - questionnaire responses will be flow-level only (new/manual application entry)"
             )
 
-        # FUTURE: Could create a new asset record here based on questionnaire responses
-        # if no asset_id provided and application_name is filled in the responses
+        # CRITICAL: Fetch and index gaps first to enable proper gap_id linkage
+        gap_index = await fetch_and_index_gaps(flow, db)
 
-        # Create response records for each submitted field
-        response_records = []
+        # Create response records with proper gap_id linkage
+        response_records = await create_response_records(
+            form_responses,
+            form_metadata,
+            validation_results,
+            questionnaire_id,
+            flow,
+            asset_id,
+            current_user,
+            gap_index,
+            db,
+        )
 
-        logger.info(f"Processing {len(form_responses)} form responses")
-
-        for field_id, value in form_responses.items():
-            # Skip empty responses
-            if value is None or value == "":
-                logger.debug(f"Skipping empty response for field: {field_id}")
-                continue
-
-            logger.debug(
-                f"Processing response for field {field_id}: {type(value).__name__}"
-            )
-
-            # Create response record
-            response = CollectionQuestionnaireResponse(
-                collection_flow_id=flow.id,
-                asset_id=asset_id,  # CRITICAL: Link response directly to asset
-                questionnaire_type="adaptive_form",
-                question_category=form_metadata.get("form_id", "general"),
-                question_id=field_id,
-                question_text=field_id,  # This should ideally come from the questionnaire definition
-                response_type="text",  # This should be determined from field type
-                response_value=(
-                    {"value": value} if not isinstance(value, dict) else value
-                ),
-                confidence_score=form_metadata.get("confidence_score"),
-                validation_status=(
-                    "validated" if validation_results.get("isValid") else "pending"
-                ),
-                responded_by=current_user.id,
-                responded_at=datetime.utcnow(),
-                response_metadata={
-                    "questionnaire_id": questionnaire_id,
-                    "application_id": form_metadata.get(
-                        "application_id"
-                    ),  # Keep for backward compatibility
-                    "asset_id": asset_id,  # Also store in metadata for redundancy
-                    "completion_percentage": form_metadata.get("completion_percentage"),
-                    "submitted_at": form_metadata.get("submitted_at"),
-                },
-            )
-
-            db.add(response)
-            response_records.append(response)
-
-        logger.info(f"Created {len(response_records)} response records")
-
-        # Update flow status if needed
-        completion_percentage = form_metadata.get("completion_percentage", 0)
-        if completion_percentage >= 100:
-            logger.info(f"Marking flow {flow_id} as completed (100% completion)")
-            flow.status = "completed"
-            flow.progress_percentage = 100
-        else:
-            old_progress = flow.progress_percentage
-            flow.progress_percentage = form_metadata.get(
-                "completion_percentage", flow.progress_percentage
-            )
-            logger.info(
-                f"Updated flow progress from {old_progress} to {flow.progress_percentage}"
-            )
+        # Update flow status based on completion
+        update_flow_progress(flow, form_metadata, flow_id)
 
         # Update flow metadata
         flow.updated_at = datetime.utcnow()
 
+        # Mark gaps as resolved for fields that received responses
+        gaps_resolved = 0
+        if response_records:
+            gaps_resolved = await resolve_data_gaps(gap_index, form_responses, db)
+
         # Commit all changes
         logger.info(f"Committing {len(response_records)} response records to database")
         await db.commit()
+
+        # Apply resolved gaps to assets via write-back service
+        await apply_asset_writeback(gaps_resolved, flow, context, current_user, db)
 
         logger.info(
             f"Successfully saved {len(response_records)} questionnaire responses for flow {flow_id} "
