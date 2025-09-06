@@ -39,6 +39,7 @@ class FlowIDRequirementMiddleware(BaseHTTPMiddleware):
             "/api/v1/unified-discovery/flow/status",
             "/api/v1/unified-discovery/flows",  # Flow listing
             "/api/v1/unified-discovery/overview",  # Unified discovery overview
+            "/api/v1/unified-discovery/assets",  # Assets endpoint uses flow_id as query param
         ]
 
     async def dispatch(self, request: Request, call_next):

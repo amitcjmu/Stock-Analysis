@@ -14,16 +14,17 @@ from typing import Any, Dict, List
 
 try:
     from crewai import Agent, Task
-    from app.services.persistent_agents.tenant_scoped_agent_pool import (
-        TenantScopedAgentPool,
-    )
 
     CREWAI_AVAILABLE = True
 except ImportError:
     CREWAI_AVAILABLE = False
     # Create dummy classes for type hints
     Agent = Task = object
-    TenantScopedAgentPool = object
+
+# Import TenantScopedAgentPool separately - it should always be available
+from app.services.persistent_agents.tenant_scoped_agent_pool import (
+    TenantScopedAgentPool,
+)
 
 from .gap_analysis_constants import (
     create_error_result,

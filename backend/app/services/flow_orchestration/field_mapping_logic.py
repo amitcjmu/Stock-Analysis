@@ -72,8 +72,9 @@ class FieldMappingLogic:
             )
 
             # Initialize field mapping executor with proper context
+            # Using positional arguments as expected by the constructor
             executor = FieldMappingExecutor(
-                state=flow_state, crew_manager=None, flow_bridge=None
+                flow_state, None, None  # state, crew_manager, flow_bridge
             )
 
             # Use provided session or get one from outside
@@ -143,7 +144,7 @@ class FieldMappingLogic:
         """
         try:
             # Import required modules
-            from app.models.discovery_flows import DiscoveryFlow
+            from app.models.discovery_flow import DiscoveryFlow
             from app.models.data_import.mapping import ImportFieldMapping
             from sqlalchemy import select, delete
             from uuid import UUID
@@ -207,8 +208,10 @@ class FieldMappingLogic:
             # Get data_import_id from discovery flow if not provided
             if not data_import_id and discovery_flow:
                 data_import_id = discovery_flow.data_import_id
-                if not data_import_id and discovery_flow.metadata:
-                    data_import_id = discovery_flow.metadata.get("data_import_id")
+                if not data_import_id and discovery_flow.crewai_state_data:
+                    data_import_id = discovery_flow.crewai_state_data.get(
+                        "data_import_id"
+                    )
 
             if not data_import_id:
                 logger.warning(
@@ -217,7 +220,13 @@ class FieldMappingLogic:
                 )
             else:
                 try:
-                    data_import_uuid = UUID(data_import_id)
+                    # Handle both string and asyncpg UUID objects
+                    if hasattr(data_import_id, "replace"):
+                        # It's already a UUID string
+                        data_import_uuid = UUID(data_import_id)
+                    else:
+                        # It's likely an asyncpg UUID object, convert to UUID
+                        data_import_uuid = UUID(str(data_import_id))
                 except (ValueError, TypeError):
                     logger.error(f"❌ Invalid data_import_id format: {data_import_id}")
                     return
@@ -327,17 +336,22 @@ class FieldMappingLogic:
                     "ai_generated": True,
                 }
 
-                # Also update metadata with field mapping info
-                if not discovery_flow.metadata:
-                    discovery_flow.metadata = {}
+                # Update the field_mapping_completed column directly
+                discovery_flow.field_mapping_completed = True
 
-                discovery_flow.metadata["field_mapping_completed"] = True
-                discovery_flow.metadata["field_mapping_count"] = total_fields
-                discovery_flow.metadata["data_import_id"] = data_import_id
+                # Store additional info in crewai_state_data instead of metadata
+                if not discovery_flow.crewai_state_data:
+                    discovery_flow.crewai_state_data = {}
+
+                discovery_flow.crewai_state_data["field_mapping_count"] = total_fields
+                discovery_flow.crewai_state_data["data_import_id"] = data_import_id
+
+                # Add the modified discovery_flow back to the session
+                db_session.add(discovery_flow)
 
                 logger.info(
                     f"✅ Updated discovery flow {flow_id} with AI-generated "
-                    f"field mappings"
+                    f"field mappings (field_mapping_completed={discovery_flow.field_mapping_completed})"
                 )
             else:
                 logger.warning(f"⚠️ Discovery flow {flow_id} not found in database")

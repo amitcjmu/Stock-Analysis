@@ -49,6 +49,18 @@ except ImportError:
 
 from app.services.agentic_memory.three_tier_memory_manager import ThreeTierMemoryManager
 
+# Import LLM configuration
+try:
+    from app.services.llm_config import get_crewai_llm
+
+    LLM_CONFIG_AVAILABLE = True
+except ImportError:
+    LLM_CONFIG_AVAILABLE = False
+
+    def get_crewai_llm():
+        return None
+
+
 # Import extracted modules for modularization
 from .memory_monitoring import MemoryMonitoring  # noqa: F401
 
@@ -396,10 +408,14 @@ class TenantScopedAgentPool:
 
         # Fix 2: Create agent with memory enabled and proper error handling
         try:
+            # Get proper LLM configuration
+            llm_model = get_crewai_llm() if LLM_CONFIG_AVAILABLE else None
+
             agent = Agent(
                 role=agent_config["role"],
                 goal=agent_config["goal"],
                 backstory=agent_config["backstory"],
+                llm=llm_model,  # Use configured LLM instead of defaulting to gpt-4o-mini
                 memory=True,  # Re-enable memory
                 memory_config=memory_config,
                 tools=tools,  # Use the actual tools instead of empty array
