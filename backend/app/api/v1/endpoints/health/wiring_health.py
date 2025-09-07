@@ -16,6 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_request_context
 from app.core.database import get_db
+from app.core.security import get_current_user
+from app.models.user import User
 from app.models.asset import Asset
 from app.models.data_import.core import RawImportRecord
 
@@ -32,6 +34,7 @@ async def check_wiring_health(
     detail: bool = Query(False, description="Include detailed samples and metrics"),
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_request_context),
+    current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """
     Enhanced wiring health check with TTL cache.
@@ -81,6 +84,7 @@ async def check_wiring_health(
                     select(1).where(
                         RawImportRecord.id == Asset.raw_import_records_id,
                         RawImportRecord.client_account_id == context.client_account_id,
+                        RawImportRecord.engagement_id == context.engagement_id,
                     )
                 ),
             )
@@ -291,6 +295,7 @@ async def check_wiring_health(
 async def get_wiring_repair_recommendations(
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_request_context),
+    current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """
     Provide repair recommendations for wiring issues.
@@ -317,6 +322,7 @@ async def get_wiring_repair_recommendations(
                     select(1).where(
                         RawImportRecord.id == Asset.raw_import_records_id,
                         RawImportRecord.client_account_id == context.client_account_id,
+                        RawImportRecord.engagement_id == context.engagement_id,
                     )
                 ),
             )

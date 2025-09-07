@@ -71,6 +71,13 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [viewMode, setViewMode] = useState<'all' | 'current_flow'>(!flowId ? 'all' : 'current_flow');
 
+  // Safety: auto-revert to 'all' if flowId disappears while in 'current_flow'
+  React.useEffect(() => {
+    if (!flowId && viewMode === 'current_flow') {
+      setViewMode('all');
+    }
+  }, [flowId, viewMode]);
+
   // Check for collectionFlowId parameter to auto-show application selection modal
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -85,7 +92,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   // Get assets data - fetch from API endpoint that returns assets based on view mode
   // Updated to support both "All Assets" and "Current Flow Only" modes
   const { data: assetsData, isLoading: assetsLoading, refetch: refetchAssets } = useQuery({
-    queryKey: ['discovery-assets', client?.id, engagement?.id, viewMode, flowId],
+    queryKey: ['discovery-assets', client?.id, engagement?.id, viewMode, flowId ?? null],
     queryFn: async () => {
       try {
         // Import API call function with proper headers
@@ -98,8 +105,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         });
 
         // Only include flow_id when in current_flow mode and flowId is available
-        if (viewMode === 'current_flow' && flowId) {
-          queryParams.append('flow_id', flowId);
+        if (viewMode === 'current_flow' && typeof flowId === 'string' && flowId.length > 0) {
+          queryParams.append('flow_id', String(flowId));
         }
 
         // First try to fetch from the database API with proper context headers
@@ -161,8 +168,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         return [];
       }
     },
-    // Enable query when we have client/engagement, regardless of flowId for "All Assets" mode
-    enabled: !!client && !!engagement,
+    // Enable query when we have client/engagement, and either in 'all' mode or have flowId for 'current_flow'
+    enabled: !!client && !!engagement && (viewMode === 'all' || (viewMode === 'current_flow' && !!flowId)),
     // Invalidate when view mode or flowId changes
     refetchOnWindowFocus: false,
     staleTime: 30000
@@ -527,6 +534,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
                 id="view-mode-toggle"
                 checked={viewMode === 'current_flow'}
                 onCheckedChange={(checked) => {
+                  if (!flowId && checked) return; // Guard against switching to current_flow without flowId
                   setViewMode(checked ? 'current_flow' : 'all');
                   setCurrentPage(1); // Reset pagination when switching modes
                 }}
@@ -546,7 +554,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
             {viewMode === 'all'
               ? 'Showing all assets for this client and engagement'
               : flowId
-                ? `Showing assets for flow: ${flowId.substring(0, 8)}...`
+                ? `Showing assets for flow: ${String(flowId).substring(0, 8)}...`
                 : 'No flow selected'
             }
           </div>
