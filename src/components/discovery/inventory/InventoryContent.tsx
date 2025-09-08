@@ -70,12 +70,22 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   const [isReclassifying, setIsReclassifying] = useState(false);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [viewMode, setViewMode] = useState<'all' | 'current_flow'>(!flowId ? 'all' : 'current_flow');
+  const [hasFlowId, setHasFlowId] = useState<boolean>(Boolean(flowId));
+
+  // Update hasFlowId state to prevent SSR hydration mismatch
+  React.useEffect(() => {
+    setHasFlowId(Boolean(flowId));
+  }, [flowId]);
 
   // Safety: auto-revert to 'all' if flowId disappears while in 'current_flow'
   React.useEffect(() => {
-    if (!flowId) {
+    let mounted = true;
+    if (!flowId && mounted) {
       setViewMode((prev) => (prev === 'current_flow' ? 'all' : prev));
     }
+    return () => {
+      mounted = false;
+    };
   }, [flowId]);
 
   // Check for collectionFlowId parameter to auto-show application selection modal
@@ -98,85 +108,206 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         // Import API call function with proper headers
         const { apiCall } = await import('../../../config/api');
 
-        // Build query parameters based on view mode
-        const queryParams = new URLSearchParams({
-          page: '1',
-          page_size: '100'
-        });
+        // Helper function to fetch a single page
+        const fetchPage = async (page: number, pageSize: number = 100) => {
+          const queryParams = new URLSearchParams({
+            page: page.toString(),
+            page_size: pageSize.toString()
+          });
 
-        // Only include flow_id when in current_flow mode and flowId is available
-        const normalizedFlowId = flowId ? String(flowId) : '';
-        if (viewMode === 'current_flow' && normalizedFlowId) {
-          queryParams.append('flow_id', normalizedFlowId);
-        }
+          // Only include flow_id when in current_flow mode and flowId is available
+          const normalizedFlowId = flowId ? String(flowId) : '';
+          if (viewMode === 'current_flow' && normalizedFlowId) {
+            queryParams.append('flow_id', normalizedFlowId);
+          }
 
-        // First try to fetch from the database API with proper context headers
-        // The apiCall function will handle the proxy and headers correctly
-        const response = await apiCall(`/unified-discovery/assets?${queryParams.toString()}`);
+          const response = await apiCall(`/unified-discovery/assets?${queryParams.toString()}`);
 
-        // Validate response status
-        if (!response || (typeof response.status === 'number' && response.status >= 400)) {
-          throw new Error(`Assets API error${response?.status ? ` (status ${response.status})` : ''}`);
-        }
+          // Validate response status
+          if (!response || (typeof response.status === 'number' && response.status >= 400)) {
+            throw new Error(`Assets API error${response?.status ? ` (status ${response.status})` : ''}`);
+          }
 
-        // Validate response shape
-        if (!response || typeof response !== 'object') {
-          throw new Error('Invalid assets response shape');
-        }
+          // Validate response shape
+          if (!response || typeof response !== 'object') {
+            throw new Error('Invalid assets response shape');
+          }
 
-        console.log('📊 Assets API response:', response);
+          return response;
+        };
 
-        // Check if the response indicates an error
-        if (response && response.data_source === 'error') {
-          console.warn('⚠️ Assets API returned error state. Backend may have failed to fetch assets.');
-          // Don't throw error, just return empty assets to show fallback UI
+        // Helper function to handle both structured and legacy response formats
+        const parseResponse = (response: any) => {
+          // Check if the response indicates an error
+          if (response && response.data_source === 'error') {
+            console.warn('⚠️ Assets API returned error state. Backend may have failed to fetch assets.');
+            return {
+              assets: [],
+              pagination: null,
+              needsClassification: false,
+              isError: true
+            };
+          }
+
+          // Handle structured response format (with data/pagination)
+          if (response.data && Array.isArray(response.data)) {
+            return {
+              assets: response.data,
+              pagination: response.pagination || null,
+              needsClassification: response.needs_classification || false,
+              isError: false
+            };
+          }
+
+          // Handle legacy flat array format
+          if (Array.isArray(response.assets)) {
+            return {
+              assets: response.assets,
+              pagination: response.pagination || null,
+              needsClassification: response.needs_classification || false,
+              isError: false
+            };
+          }
+
+          // Handle direct array response (legacy)
+          if (Array.isArray(response)) {
+            return {
+              assets: response,
+              pagination: null,
+              needsClassification: false,
+              isError: false
+            };
+          }
+
+          // No valid data found
+          return {
+            assets: [],
+            pagination: null,
+            needsClassification: false,
+            isError: false
+          };
+        };
+
+        // Fetch first page to understand pagination structure
+        const firstPageResponse = await fetchPage(1);
+        const firstPageData = parseResponse(firstPageResponse);
+
+        console.log('📊 First page response:', firstPageResponse);
+        console.log('📊 Parsed first page data:', firstPageData);
+
+        // If error response, return early
+        if (firstPageData.isError) {
           return [];
         }
 
-        if (response && response.assets && response.assets.length > 0) {
-          console.log('📊 Assets from API:', response.assets.length);
-          console.log('📊 Assets need classification:', response.needs_classification);
+        // Update classification state based on first page
+        setNeedsClassification(firstPageData.needsClassification);
 
-          // Update classification state
-          setNeedsClassification(response.needs_classification || false);
+        // If assets are properly classified, mark as triggered to prevent auto-execution loops
+        if (!firstPageData.needsClassification && firstPageData.assets && firstPageData.assets.length > 0) {
+          setHasTriggeredInventory(true);
+        }
 
-          // If assets are properly classified, mark as triggered to prevent auto-execution loops
-          if (!response.needs_classification && response.assets && response.assets.length > 0) {
-            setHasTriggeredInventory(true);
-          }
+        // If no pagination metadata or in 'current_flow' mode, return first page only
+        if (!firstPageData.pagination || viewMode === 'current_flow') {
+          console.log(`📊 Using single page (${viewMode === 'current_flow' ? 'current_flow mode' : 'no pagination'}):`, firstPageData.assets.length);
 
-          // Transform API assets to match expected format
-          return (response.assets || []).map((asset: Asset) => ({
+          // Transform and return first page assets
+          return firstPageData.assets.map((asset: Asset) => ({
             id: asset.id,
             asset_name: asset.name,
             asset_type: asset.asset_type,
             environment: asset.environment,
-            criticality: asset.criticality,
-            status: asset.status,
+            criticality: asset.business_criticality,
+            status: 'discovered',
             six_r_strategy: asset.six_r_strategy,
             migration_wave: asset.migration_wave,
-            application_name: asset.application_name,
+            application_name: asset.name,
             hostname: asset.hostname,
             operating_system: asset.operating_system,
             cpu_cores: asset.cpu_cores,
             memory_gb: asset.memory_gb,
             storage_gb: asset.storage_gb,
-            business_criticality: asset.criticality,
+            business_criticality: asset.business_criticality,
             risk_score: 0,
-            migration_readiness: 'pending',
+            migration_readiness: asset.sixr_ready ? 'ready' : 'pending',
             dependencies: 0,
-            last_updated: asset.updated_at
+            last_updated: asset.updated_at || asset.created_at
           }));
         }
 
-        // Fallback to flow assets if API returns no data
+        // For 'all' mode with pagination, fetch all pages iteratively
+        const pagination = firstPageData.pagination;
+        let allAssets = [...firstPageData.assets];
+
+        // Respect server-imposed page size and total pages
+        const serverPageSize = pagination.pageSize || pagination.page_size || 100;
+        const totalPages = pagination.totalPages || pagination.total_pages || 1;
+        const safetyLimit = Math.min(totalPages, 50); // Safety limit: max 50 pages
+
+        console.log(`📊 Pagination info - Total pages: ${totalPages}, Server page size: ${serverPageSize}, Safety limit: ${safetyLimit}`);
+
+        // Fetch remaining pages if we're in 'all' mode and have more pages
+        if (viewMode === 'all' && totalPages > 1) {
+          console.log(`📊 Fetching remaining ${Math.min(totalPages - 1, safetyLimit - 1)} pages...`);
+
+          const pagePromises: Promise<any>[] = [];
+          for (let page = 2; page <= safetyLimit; page++) {
+            pagePromises.push(fetchPage(page, serverPageSize));
+          }
+
+          try {
+            // Fetch all remaining pages in parallel
+            const remainingResponses = await Promise.all(pagePromises);
+
+            // Process each response and combine assets
+            for (const response of remainingResponses) {
+              const pageData = parseResponse(response);
+              if (!pageData.isError && pageData.assets.length > 0) {
+                allAssets = allAssets.concat(pageData.assets);
+              }
+            }
+
+            console.log(`📊 Combined assets from ${safetyLimit} pages: ${allAssets.length} total`);
+          } catch (error) {
+            console.warn('⚠️ Failed to fetch some pages, proceeding with partial data:', error);
+            // Continue with whatever assets we have
+          }
+        }
+
+        console.log('📊 Assets from API (final):', allAssets.length);
+        console.log('📊 Assets need classification:', firstPageData.needsClassification);
+
+        // Transform all assets to match expected format
+        return allAssets.map((asset: Asset) => ({
+          id: asset.id,
+          asset_name: asset.name,
+          asset_type: asset.asset_type,
+          environment: asset.environment,
+          criticality: asset.business_criticality,
+          status: 'discovered',
+          six_r_strategy: asset.six_r_strategy,
+          migration_wave: asset.migration_wave,
+          application_name: asset.name,
+          hostname: asset.hostname,
+          operating_system: asset.operating_system,
+          cpu_cores: asset.cpu_cores,
+          memory_gb: asset.memory_gb,
+          storage_gb: asset.storage_gb,
+          business_criticality: asset.business_criticality,
+          risk_score: 0,
+          migration_readiness: asset.sixr_ready ? 'ready' : 'pending',
+          dependencies: 0,
+          last_updated: asset.updated_at || asset.created_at
+        }));
+
+      } catch (error) {
+        console.error('Error fetching assets:', error);
+
+        // Fallback to flow assets if API fails completely
         const flowAssets = getAssetsFromFlow();
         console.log('📊 Using flow assets as fallback:', flowAssets.length);
         return flowAssets;
-      } catch (error) {
-        console.error('Error fetching assets:', error);
-        // Don't throw, return empty array to show fallback UI
-        return [];
       }
     },
     // Enable query when we have client/engagement, and either in 'all' mode or have flowId for 'current_flow'
@@ -416,12 +547,12 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
                 checked={viewMode === 'current_flow'}
                 onCheckedChange={(checked) => {
                   if (assetsLoading) return; // Prevent toggling during loading
-                  if (!flowId && checked) return; // Guard against switching to current_flow without flowId
+                  if (!hasFlowId && checked) return; // Guard against switching to current_flow without flowId
                   setViewMode(checked ? 'current_flow' : 'all');
                   setCurrentPage(1); // Reset pagination when switching modes
                 }}
-                disabled={!flowId || assetsLoading} // Disable toggle if no flow is available or loading
-                aria-disabled={!flowId || assetsLoading}
+                disabled={!hasFlowId || assetsLoading} // Disable toggle if no flow is available or loading
+                aria-disabled={!hasFlowId || assetsLoading}
                 aria-busy={assetsLoading}
               />
               <Label
@@ -437,13 +568,13 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           <div className="text-xs text-gray-500">
             {viewMode === 'all'
               ? 'Showing all assets for this client and engagement'
-              : flowId
+              : hasFlowId
                 ? `Showing assets for flow: ${String(flowId).substring(0, 8)}...`
                 : 'No flow selected'
             }
           </div>
         </div>
-        {!flowId && (
+        {!hasFlowId && (
           <div className="mt-2 text-xs text-amber-600">
             ⚠️ No flow selected - only "All Assets" view is available
           </div>
