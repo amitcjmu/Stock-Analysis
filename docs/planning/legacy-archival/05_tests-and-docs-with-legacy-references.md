@@ -20,3 +20,16 @@
 ## Action Items
 - Create a checklist of files to update with owners and deadlines.
 - Add CI to block new mentions of `/api/v1/discovery/` in code/docs (except in this archival folder).
+
+## Migration Tracking Checklist
+- [ ] test_end_to_end_workflow.py
+- [ ] test_error_handling.py  
+- [ ] test_multitenant_workflow.py
+- [ ] test_crewai_flow_validation.py
+- [ ] test_cmdb_endpoint.py
+- [ ] debug_asset_inventory.py
+- [ ] test_dependency_api.py
+- [ ] test_docker_containers.py
+- [ ] Update README.md examples
+- [ ] Update API documentation
+- [ ] Add CI check for legacy endpoint mentions

@@ -6,7 +6,7 @@ Handles flow initialization through Master Flow Orchestrator.
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Set, Tuple
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -29,8 +29,8 @@ except ImportError as e:
     # CC: Flow configuration module not available (likely CrewAI dependency missing)
     logger.warning(f"Flow configuration initialization unavailable: {e}")
 
-    # Create fallback async function that returns expected structure
-    async def initialize_all_flows():
+    # Create fallback function that returns expected structure (NOT async)
+    def initialize_all_flows():
         """Fallback for when flow configs cannot be initialized due to missing dependencies"""
         logger.warning("Flow initialization skipped - CrewAI dependencies unavailable")
         return {
@@ -59,7 +59,8 @@ async def initialize_discovery_flow(
     """
     try:
         # Ensure flow configs are initialized (fallback handles missing dependencies)
-        flow_init_result = await initialize_all_flows()
+        # NOTE: initialize_all_flows() is synchronous, not async
+        flow_init_result = initialize_all_flows()
         if "errors" in flow_init_result and flow_init_result["errors"]:
             logger.warning(
                 f"Flow initialization completed with warnings: {flow_init_result['errors']}"
@@ -97,8 +98,29 @@ async def initialize_discovery_flow(
             flow_type="discovery",
             flow_name=flow_name,
             configuration=configuration,
-            initial_data=initial_data,
+            initial_state=initial_data,  # MFO expects initial_state, not initial_data
+            atomic=False,  # Let MFO handle transactions internally
         )
+
+        # CRITICAL FIX: Create child DiscoveryFlow record (required by two-table architecture)
+        child_flow = DiscoveryFlow(
+            flow_id=uuid.UUID(flow_id),
+            master_flow_id=uuid.UUID(flow_id),
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id,
+            user_id=context.user_id,  # Required field - was missing
+            status="running",
+            current_phase="data_ingestion",
+            data_import_id=(
+                initial_data.get("import_metadata", {}).get("import_id")
+                if initial_data
+                else None
+            ),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+        )
+        db.add(child_flow)
+        await db.flush()  # Ensure child flow is persisted
 
         # Auto-generate field mappings if raw data is provided
         if request.raw_data:
@@ -106,6 +128,11 @@ async def initialize_discovery_flow(
                 db, context, flow_id, request.raw_data
             )
             logger.info(f"✅ Auto-generated field mappings for flow {flow_id}")
+
+        # Commit changes
+        await db.commit()
+
+        logger.info(f"✅ Created master flow AND child discovery flow for {flow_id}")
 
         logger.info(
             safe_log_format(
@@ -192,8 +219,8 @@ def _get_common_field_mappings() -> Dict[str, Tuple[str, float]]:
     }
 
 
-def _extract_source_fields(raw_data: Any) -> set:
-    """Extract field names from raw data."""
+def _extract_source_fields(raw_data: Any) -> Set[str]:
+    """Extract source fields from raw data."""
     source_fields = set()
 
     # Handle different raw_data formats
@@ -213,16 +240,6 @@ def _extract_source_fields(raw_data: Any) -> set:
     return source_fields
 
 
-def _should_skip_field(source_field: str) -> bool:
-    """Check if field should be skipped during mapping."""
-    return source_field.startswith("_") or source_field in [
-        "id",
-        "uuid",
-        "created_at",
-        "updated_at",
-    ]
-
-
 def _find_field_mapping(
     source_field: str, common_mappings: Dict[str, Tuple[str, float]]
 ) -> Tuple[str, float]:
@@ -239,8 +256,17 @@ def _find_field_mapping(
             return target, conf * 0.8  # Reduce confidence for fuzzy match
 
     # If no match found, map to same name with low confidence
-    target_field = source_field.lower().replace(" ", "_")
-    return target_field, 0.3
+    return source_field.lower().replace(" ", "_"), 0.3
+
+
+def _should_skip_field(source_field: str) -> bool:
+    """Check if field should be skipped during mapping."""
+    return source_field.startswith("_") or source_field in [
+        "id",
+        "uuid",
+        "created_at",
+        "updated_at",
+    ]
 
 
 async def _generate_field_mappings_from_raw_data(

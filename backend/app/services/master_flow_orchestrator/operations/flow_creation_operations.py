@@ -161,7 +161,7 @@ class FlowCreationOperations:
             "flow_id": flow_id,
             "flow_type": flow_type,
             "flow_name": flow_name or f"{flow_type.title()} Flow",
-            "flow_status": "initializing",
+            "flow_status": "running",
             "current_phase": "initialization",
             "progress_percentage": 0.0,
             "flow_configuration": configuration or {},

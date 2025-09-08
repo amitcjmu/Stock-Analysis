@@ -35,7 +35,7 @@ def upgrade() -> None:  # noqa: C901
             """
         SELECT table_name
         FROM information_schema.tables
-        WHERE table_schema = 'public'
+        WHERE table_schema = 'migration'
         AND table_name IN ('discovery_flows', 'crewai_flow_state_extensions', 'assessment_flows', 'collection_flows')
     """
         )
@@ -62,8 +62,8 @@ def upgrade() -> None:  # noqa: C901
         orphaned_flows_query = text(
             """
             SELECT DISTINCT df.flow_id, df.client_account_id, df.engagement_id, df.created_at
-            FROM discovery_flows df
-            LEFT JOIN crewai_flow_state_extensions cfse ON df.flow_id = cfse.flow_id
+            FROM migration.discovery_flows df
+            LEFT JOIN migration.crewai_flow_state_extensions cfse ON df.flow_id = cfse.flow_id
             WHERE df.master_flow_id IS NULL
                 AND cfse.flow_id IS NULL
         """
@@ -81,7 +81,7 @@ def upgrade() -> None:  # noqa: C901
                 bind.execute(
                     text(
                         """
-                        INSERT INTO crewai_flow_state_extensions (
+                        INSERT INTO migration.crewai_flow_state_extensions (
                             id, flow_id, client_account_id, engagement_id, user_id,
                             flow_type, flow_name, flow_status,
                             flow_configuration, flow_persistence_data,
@@ -118,7 +118,7 @@ def upgrade() -> None:  # noqa: C901
             result = bind.execute(
                 text(
                     """
-                    UPDATE discovery_flows
+                    UPDATE migration.discovery_flows
                     SET master_flow_id = flow_id, updated_at = NOW()
                     WHERE master_flow_id IS NULL
                 """
@@ -144,8 +144,8 @@ def upgrade() -> None:  # noqa: C901
                 orphaned_query = text(
                     f"""
                     SELECT DISTINCT f.flow_id, f.client_account_id, f.engagement_id, f.created_at
-                    FROM {table_name} f
-                    LEFT JOIN crewai_flow_state_extensions cfse ON f.flow_id = cfse.flow_id
+                    FROM migration.{table_name} f
+                    LEFT JOIN migration.crewai_flow_state_extensions cfse ON f.flow_id = cfse.flow_id
                     WHERE f.master_flow_id IS NULL
                         AND cfse.flow_id IS NULL
                 """
@@ -159,7 +159,7 @@ def upgrade() -> None:  # noqa: C901
                         bind.execute(
                             text(
                                 """
-                                INSERT INTO crewai_flow_state_extensions (
+                                INSERT INTO migration.crewai_flow_state_extensions (
                                     id, flow_id, client_account_id, engagement_id, user_id,
                                     flow_type, flow_name, flow_status,
                                     flow_configuration, flow_persistence_data,
@@ -196,7 +196,7 @@ def upgrade() -> None:  # noqa: C901
                     result = bind.execute(
                         text(
                             f"""
-                        UPDATE {table_name}
+                        UPDATE migration.{table_name}
                         SET master_flow_id = flow_id, updated_at = NOW()
                         WHERE master_flow_id IS NULL
                     """
@@ -229,7 +229,7 @@ def downgrade() -> None:
         result = bind.execute(
             text(
                 """
-            DELETE FROM crewai_flow_state_extensions
+            DELETE FROM migration.crewai_flow_state_extensions
             WHERE flow_configuration::text LIKE '%migration_036_stub%'
         """
             )
@@ -243,7 +243,7 @@ def downgrade() -> None:
                 result = bind.execute(
                     text(
                         f"""
-                    UPDATE {table_name}
+                    UPDATE migration.{table_name}
                     SET master_flow_id = NULL
                     WHERE master_flow_id = flow_id
                 """

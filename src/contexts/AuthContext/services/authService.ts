@@ -95,7 +95,7 @@ export const useAuthService = (
         cachedEngagementResult
       ] = await Promise.allSettled([
         // Essential: Get user context from backend
-        apiCall('/context/me', {}, false).catch(err => ({ error: err, source: 'context_api' })),
+        apiCall('/api/v1/context/me', {}, false).catch(err => ({ error: err, source: 'context_api' })),
         // Enhancement: Check for cached client data
         Promise.resolve(localStorage.getItem('auth_client')).then(cached =>
           cached ? JSON.parse(cached) : null

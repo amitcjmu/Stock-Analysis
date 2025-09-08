@@ -71,4 +71,9 @@ This snapshot lists legacy or deprecated code to remove or migrate. Validate eac
    - Remove legacy discovery packages and frontend legacy services after verification.
    - Archive this inventory as completed.
 
+## Quick Wins (Can Be Done Immediately with Zero Risk)
+- Remove `backend/app/services/crewai_flows/tools/asset_creation_tool_legacy.py` (confirmed no imports)
+- Add deprecation warnings to `AsyncBaseDiscoveryTool` class in `base_tool.py`
+- Create GitHub issues for each test file migration (11 files total)
+
 
