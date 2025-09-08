@@ -271,7 +271,7 @@ export const useAuthenticatedDiscoveryStatus = (flowId: string | null): JSX.Elem
         if (!clientId || !engagementId) {
           try {
             console.log('Fetching user context from /api/v1/context/me');
-            const contextResponse = await apiCall('/context/me', { method: 'GET' });
+            const contextResponse = await apiCall('/api/v1/context/me', { method: 'GET' });
             console.log('User context response:', contextResponse);
 
             if (contextResponse?.client?.id) {

@@ -174,6 +174,24 @@ def register_utility_routers(api_router: APIRouter):
         api_router.include_router(api_health_router, prefix="/api-health")
         logger.info("✅ API Health router included")
 
+    # Test Diagnostics endpoints (for E2E testing only)
+    import os
+
+    if os.getenv("E2E_TEST_MODE", "false").lower() == "true":
+        try:
+            from app.api.v1.endpoints.test_diagnostics import (
+                router as test_diagnostics_router,
+            )
+
+            api_router.include_router(test_diagnostics_router, prefix="/test")
+            logger.info(
+                "✅ Test Diagnostics router included at /test (E2E testing only)"
+            )
+        except ImportError as e:
+            logger.warning(f"Test Diagnostics router import failed: {e}")
+    else:
+        logger.debug("Test Diagnostics router not enabled (E2E_TEST_MODE not set)")
+
     # Health endpoints
     if routers_with_flags.get("HEALTH", (False, None))[0]:
         health_router = routers_with_flags["HEALTH"][1]

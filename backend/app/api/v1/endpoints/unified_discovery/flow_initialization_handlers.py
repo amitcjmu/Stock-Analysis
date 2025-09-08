@@ -29,8 +29,8 @@ except ImportError as e:
     # CC: Flow configuration module not available (likely CrewAI dependency missing)
     logger.warning(f"Flow configuration initialization unavailable: {e}")
 
-    # Create fallback async function that returns expected structure
-    async def initialize_all_flows():
+    # Create fallback function that returns expected structure (NOT async)
+    def initialize_all_flows():
         """Fallback for when flow configs cannot be initialized due to missing dependencies"""
         logger.warning("Flow initialization skipped - CrewAI dependencies unavailable")
         return {
@@ -59,7 +59,8 @@ async def initialize_discovery_flow(
     """
     try:
         # Ensure flow configs are initialized (fallback handles missing dependencies)
-        flow_init_result = await initialize_all_flows()
+        # NOTE: initialize_all_flows() is synchronous, not async
+        flow_init_result = initialize_all_flows()
         if "errors" in flow_init_result and flow_init_result["errors"]:
             logger.warning(
                 f"Flow initialization completed with warnings: {flow_init_result['errors']}"
@@ -97,8 +98,29 @@ async def initialize_discovery_flow(
             flow_type="discovery",
             flow_name=flow_name,
             configuration=configuration,
-            initial_data=initial_data,
+            initial_state=initial_data,  # MFO expects initial_state, not initial_data
+            atomic=False,  # Let MFO handle transactions internally
         )
+
+        # CRITICAL FIX: Create child DiscoveryFlow record (required by two-table architecture)
+        child_flow = DiscoveryFlow(
+            flow_id=uuid.UUID(flow_id),
+            master_flow_id=uuid.UUID(flow_id),
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id,
+            user_id=context.user_id,  # Required field - was missing
+            status="running",
+            current_phase="data_ingestion",
+            data_import_id=(
+                initial_data.get("import_metadata", {}).get("import_id")
+                if initial_data
+                else None
+            ),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+        )
+        db.add(child_flow)
+        await db.flush()  # Ensure child flow is persisted
 
         # Auto-generate field mappings if raw data is provided
         if request.raw_data:
@@ -106,6 +128,11 @@ async def initialize_discovery_flow(
                 db, context, flow_id, request.raw_data
             )
             logger.info(f"✅ Auto-generated field mappings for flow {flow_id}")
+
+        # Commit changes
+        await db.commit()
+
+        logger.info(f"✅ Created master flow AND child discovery flow for {flow_id}")
 
         logger.info(
             safe_log_format(
