@@ -1,6 +1,6 @@
 {
-  "startTime": 1757352833261,
-  "endTime": 1757352837526,
+  "startTime": 1757356796316,
+  "endTime": 1757356809306,
   "phases": {},
   "mfoValidation": {
     "masterFlowCreated": false,
@@ -13,19 +13,19 @@
   "errors": {
     "frontend": [
       {
-        "timestamp": "2025-09-08T17:33:54.942Z",
+        "timestamp": "2025-09-08T18:39:59.477Z",
         "source": "Console",
-        "message": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        "message": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
       }
     ],
-    "middleware": [
+    "middleware": [],
+    "backend": [
       {
-        "timestamp": "2025-09-08T17:33:54.941Z",
-        "source": "HTTP 404",
-        "message": "http://localhost:8081/api/v1/auth/login - Not Found"
+        "timestamp": "2025-09-08T18:39:59.475Z",
+        "source": "HTTP 500",
+        "message": "http://localhost:8081/api/v1/auth/login - Internal Server Error"
       }
     ],
-    "backend": [],
     "orm": [],
     "database": []
   },
@@ -36,7 +36,7 @@
   },
   "screenshots": [],
   "summary": {
-    "totalDuration": 4265,
+    "totalDuration": 12990,
     "totalPhases": 0,
     "passedPhases": 0,
     "failedPhases": 0,
