@@ -6,7 +6,7 @@ import enum
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class QueueStatus(str, enum.Enum):
@@ -66,8 +66,7 @@ class AnalysisQueueItemResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AnalysisQueueResponse(BaseModel):
@@ -85,5 +84,4 @@ class AnalysisQueueResponse(BaseModel):
     completed_at: Optional[datetime] = None
     items: Optional[List[AnalysisQueueItemResponse]] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

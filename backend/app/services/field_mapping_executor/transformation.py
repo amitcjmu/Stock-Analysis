@@ -43,10 +43,10 @@ class MappingTransformer(TransformationEngine):
         self.client_account_id = client_account_id
         self.engagement_id = engagement_id
 
-    def _validate_inputs(
+    def _validate_session_and_mappings(
         self, db_session, parsed_mappings: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Validate input parameters and return error dict if validation fails."""
+    ) -> Optional[Dict[str, Any]]:
+        """Validate database session and mappings data."""
         # SECURITY FIX: Check db_session before DB operations
         if not db_session:
             return {
@@ -69,10 +69,10 @@ class MappingTransformer(TransformationEngine):
                 "mappings_persisted": 0,
             }
 
-        return {"success": True}  # Validation passed
+        return None  # No error
 
-    async def _get_data_import_id(self, state, db_session) -> Optional[str]:
-        """Get the correct data_import_id from the state with fallback strategies."""
+    async def _resolve_data_import_id(self, state, db_session) -> Optional[str]:
+        """Resolve data import ID from state or database."""
         data_import_id = None
 
         # Try multiple ways to get the correct data_import_id
@@ -106,35 +106,34 @@ class MappingTransformer(TransformationEngine):
 
         return data_import_id
 
-    async def _get_data_import(self, data_import_id: str, db_session):
-        """Get data import record by ID."""
+    async def _get_data_import_record(self, data_import_id: str, db_session):
+        """Get data import record from database with tenant scoping for security."""
         from uuid import UUID
         from app.models.data_import import DataImport
 
-        # Get the data import record
+        # SECURITY FIX: Add tenant scoping to prevent cross-tenant data access
         data_import_query = select(DataImport).where(
-            DataImport.id == UUID(data_import_id)
+            and_(
+                DataImport.id == UUID(data_import_id),
+                DataImport.client_account_id == self.client_account_id,
+                DataImport.engagement_id == self.engagement_id,
+            )
         )
         import_result = await db_session.execute(data_import_query)
         return import_result.scalar_one_or_none()
 
-    def _prepare_file_data(
+    def _convert_mappings_to_file_data(
         self, mappings_data: List[Dict[str, Any]]
-    ) -> List[Dict[str, str]]:
-        """Convert CrewAI mappings to the format expected by storage manager."""
-        # Create a single record with ALL source fields to trigger mapping creation for all fields
-        file_data = []
+    ) -> List[Dict[str, Any]]:
+        """Convert CrewAI mappings to format expected by storage manager."""
+        # Create a single record with ALL source fields to trigger mapping creation
         record = {}
         for mapping in mappings_data:
             if isinstance(mapping, dict) and "source_field" in mapping:
                 # Add each source field to the single record
                 record[mapping["source_field"]] = "sample_value"
 
-        # Add the single record with all fields if we have any
-        if record:
-            file_data.append(record)
-
-        return file_data
+        return [record] if record else []
 
     async def transform_and_persist(
         self,
@@ -150,15 +149,17 @@ class MappingTransformer(TransformationEngine):
         that matches the original CSV import, not a new/different import ID.
         """
         try:
-            # Validate inputs
-            validation_result = self._validate_inputs(db_session, parsed_mappings)
-            if not validation_result["success"]:
-                return validation_result
+            # Validate session and mappings
+            validation_error = self._validate_session_and_mappings(
+                db_session, parsed_mappings
+            )
+            if validation_error:
+                return validation_error
 
             mappings_data = parsed_mappings.get("mappings", [])
 
-            # Get the correct data_import_id from the state
-            data_import_id = await self._get_data_import_id(state, db_session)
+            # Resolve data import ID
+            data_import_id = await self._resolve_data_import_id(state, db_session)
             if not data_import_id:
                 return {
                     "success": False,
@@ -167,7 +168,7 @@ class MappingTransformer(TransformationEngine):
                 }
 
             # Get the data import record
-            data_import = await self._get_data_import(data_import_id, db_session)
+            data_import = await self._get_data_import_record(data_import_id, db_session)
             if not data_import:
                 return {
                     "success": False,
@@ -175,8 +176,8 @@ class MappingTransformer(TransformationEngine):
                     "mappings_persisted": 0,
                 }
 
-            # Prepare file data
-            file_data = self._prepare_file_data(mappings_data)
+            # Convert mappings to file data format
+            file_data = self._convert_mappings_to_file_data(mappings_data)
 
             if file_data:
                 # Use storage manager to create/update field mappings

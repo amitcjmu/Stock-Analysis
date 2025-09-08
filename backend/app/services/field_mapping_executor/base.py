@@ -11,34 +11,22 @@ maintainability and reduced complexity.
 """
 
 import logging
-
-# Use late import pattern to avoid circular dependencies
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.schemas.unified_discovery_flow_state import UnifiedDiscoveryFlowState
-from .agent_executor import AgentExecutor
-from .exceptions import (
-    FieldMappingExecutorError,
-    MappingParseError,
-    TransformationError,
-    ValidationError,
-)
+
+from .agent_operations import AgentOperations
+from .business_logic import BusinessLogicManager
+from .exceptions import FieldMappingExecutorError
 from .formatters import MappingResponseFormatter
 from .mapping_engine import IntelligentMappingEngine
 from .parsers import CompositeMappingParser
 from .rules_engine import MappingRulesEngine
-from .state_utils import PhaseUtils, StateValidator, StorageUtils
+from .state_management import StateManager
 from .transformation import MappingTransformer
 from .validation import CompositeValidator
 
-if TYPE_CHECKING:
-    pass
-
-# Initialize logger first to avoid F821 error
 logger = logging.getLogger(__name__)
-
-# from app.models.discovery_flows import DiscoveryFlow  # Currently unused
-# from app.db.session import get_db  # Currently unused
 
 
 class FieldMappingExecutor:
@@ -84,12 +72,15 @@ class FieldMappingExecutor:
         self.rules_engine = MappingRulesEngine()
         self.formatter = MappingResponseFormatter()
 
-        # Initialize utility components
-        self.agent_executor = AgentExecutor(
-            client_account_id, engagement_id, agent_pool
-        )
-        self.storage_utils = StorageUtils(
-            storage_manager, client_account_id, engagement_id
+        # Initialize modular managers
+        self.agent_ops = AgentOperations(agent_pool, client_account_id, engagement_id)
+        self.state_manager = StateManager(client_account_id, engagement_id)
+        self.business_logic = BusinessLogicManager(
+            self.parser,
+            self.validator,
+            self.rules_engine,
+            self.formatter,
+            self.transformer,
         )
 
         logger.info(
@@ -116,26 +107,32 @@ class FieldMappingExecutor:
             logger.info(f"Starting field mapping execution for flow {state.flow_id}")
 
             # Validate state has required data
-            StateValidator.validate_execution_state(state)
+            self.state_manager.validate_execution_state(state)
 
             # Get field mapping agent and execute mapping
-            agent_response = await self.agent_executor.execute_field_mapping_agent(
-                state
-            )
+            agent_response = await self.agent_ops.execute_field_mapping_agent(state)
 
             # Parse the agent response to extract mappings
-            parsed_mappings = await self._parse_agent_response(agent_response, state)
+            parsed_mappings = await self.business_logic.parse_agent_response(
+                agent_response, state
+            )
 
             # Validate the parsed mappings
-            validation_results = await self._validate_mappings(parsed_mappings, state)
+            validation_results = await self.business_logic.validate_mappings(
+                parsed_mappings, state
+            )
 
             # Apply business rules and check for clarifications needed
-            rules_results = await self._apply_business_rules(parsed_mappings, state)
+            rules_results = await self.business_logic.apply_business_rules(
+                parsed_mappings, state
+            )
 
             # Transform and persist the mappings if transformer is available
             if self.transformer:
-                transformation_results = await self._transform_and_persist(
-                    parsed_mappings, validation_results, state, db_session
+                transformation_results = (
+                    await self.business_logic.transform_and_persist(
+                        parsed_mappings, validation_results, state, db_session
+                    )
                 )
             else:
                 transformation_results = {
@@ -145,7 +142,7 @@ class FieldMappingExecutor:
                 }
 
             # Format the final response
-            response = await self._format_response(
+            response = await self.business_logic.format_response(
                 parsed_mappings,
                 validation_results,
                 rules_results,
@@ -162,134 +159,6 @@ class FieldMappingExecutor:
             )
             raise FieldMappingExecutorError(
                 f"Field mapping execution failed: {str(e)}"
-            ) from e
-
-    async def _parse_agent_response(
-        self, agent_response: str, state: UnifiedDiscoveryFlowState
-    ) -> Dict[str, Any]:
-        """Parse the agent response to extract field mappings."""
-        try:
-            parsed_data = await self.parser.parse_response(agent_response)
-
-            # Enhance with state context
-            parsed_data["flow_context"] = {
-                "flow_id": state.flow_id,
-                "engagement_id": self.engagement_id,
-                "client_account_id": self.client_account_id,
-            }
-
-            logger.info(f"Parsed {len(parsed_data.get('mappings', []))} field mappings")
-            return parsed_data
-
-        except Exception as e:
-            logger.error(f"Failed to parse agent response: {str(e)}")
-            raise MappingParseError(f"Response parsing failed: {str(e)}") from e
-
-    async def _validate_mappings(
-        self, parsed_mappings: Dict[str, Any], state: UnifiedDiscoveryFlowState
-    ) -> Dict[str, Any]:
-        """Validate the parsed field mappings."""
-        try:
-            validation_context = {
-                "detected_columns": state.metadata.get("detected_columns", []),
-                "sample_data": state.raw_data,
-                "flow_id": state.flow_id,
-            }
-
-            validation_results = await self.validator.validate_mappings(
-                parsed_mappings, validation_context
-            )
-
-            logger.info(
-                f"Validation completed with {validation_results.get('error_count', 0)} errors"
-            )
-            return validation_results
-
-        except Exception as e:
-            logger.error(f"Mapping validation failed: {str(e)}")
-            raise ValidationError(f"Validation failed: {str(e)}") from e
-
-    async def _apply_business_rules(
-        self, parsed_mappings: Dict[str, Any], state: UnifiedDiscoveryFlowState
-    ) -> Dict[str, Any]:
-        """Apply business rules and check for clarifications needed."""
-        try:
-            rules_context = {
-                "flow_state": state,
-                "engagement_requirements": await self.storage_utils.get_engagement_requirements(),
-                "client_preferences": await self.storage_utils.get_client_preferences(),
-            }
-
-            rules_results = await self.rules_engine.apply_rules(
-                parsed_mappings, rules_context
-            )
-
-            logger.info(
-                f"Business rules applied, {len(rules_results.get('clarifications', []))} clarifications generated"
-            )
-            return rules_results
-
-        except Exception as e:
-            logger.error(f"Business rules application failed: {str(e)}")
-            raise ValidationError(f"Rules validation failed: {str(e)}") from e
-
-    async def _transform_and_persist(
-        self,
-        parsed_mappings: Dict[str, Any],
-        validation_results: Dict[str, Any],
-        state: UnifiedDiscoveryFlowState,
-        db_session: Any,
-    ) -> Dict[str, Any]:
-        """Transform and persist the field mappings."""
-        try:
-            transformation_results = await self.transformer.transform_and_persist(
-                parsed_mappings, validation_results, state, db_session
-            )
-
-            logger.info(
-                f"Transformation completed, {transformation_results.get('mappings_persisted', 0)} mappings persisted"
-            )
-            return transformation_results
-
-        except Exception as e:
-            logger.error(f"Transformation and persistence failed: {str(e)}")
-            raise TransformationError(f"Transformation failed: {str(e)}") from e
-
-    async def _format_response(
-        self,
-        parsed_mappings: Dict[str, Any],
-        validation_results: Dict[str, Any],
-        rules_results: Dict[str, Any],
-        transformation_results: Dict[str, Any],
-        state: UnifiedDiscoveryFlowState,
-    ) -> Dict[str, Any]:
-        """Format the final response for the field mapping phase."""
-        try:
-            response = await self.formatter.format_response(
-                parsed_mappings=parsed_mappings,
-                validation_results=validation_results,
-                rules_results=rules_results,
-                transformation_results=transformation_results,
-                flow_context={
-                    "flow_id": state.flow_id,
-                    "engagement_id": self.engagement_id,
-                    "client_account_id": self.client_account_id,
-                    "current_phase": "field_mapping",
-                },
-            )
-
-            # Determine next phase based on results
-            response["next_phase"] = PhaseUtils.determine_next_phase(
-                validation_results, rules_results, transformation_results
-            )
-
-            logger.info(f"Response formatted, next phase: {response['next_phase']}")
-            return response
-
-        except Exception as e:
-            logger.error(f"Response formatting failed: {str(e)}")
-            raise FieldMappingExecutorError(
-                f"Response formatting failed: {str(e)}"
             ) from e
 
     # Backward compatibility methods
@@ -310,4 +179,99 @@ class FieldMappingExecutor:
 
     def get_supported_flow_types(self) -> List[str]:
         """Return the flow types supported by this executor."""
-        return ["unified_discovery", "field_mapping", "data_mapping"]
+        return ["discovery"]
+
+    # Delegate methods for backward compatibility
+    def _validate_execution_state(self, state: UnifiedDiscoveryFlowState) -> None:
+        """Delegate to state manager for backward compatibility."""
+        return self.state_manager.validate_execution_state(state)
+
+    async def _execute_field_mapping_agent(
+        self, state: UnifiedDiscoveryFlowState
+    ) -> str:
+        """Delegate to agent operations for backward compatibility."""
+        return await self.agent_ops.execute_field_mapping_agent(state)
+
+    def _get_mock_agent_response(self, state: UnifiedDiscoveryFlowState) -> str:
+        """Delegate to agent operations for backward compatibility."""
+        return self.agent_ops._get_mock_agent_response(state)
+
+    def _prepare_agent_input(self, state: UnifiedDiscoveryFlowState) -> Dict[str, Any]:
+        """Delegate to agent operations for backward compatibility."""
+        return self.agent_ops._prepare_agent_input(state)
+
+    async def _execute_agent_with_crew(
+        self, agent: Any, agent_input: Dict[str, Any]
+    ) -> str:
+        """Delegate to agent operations for backward compatibility."""
+        return await self.agent_ops._execute_agent_with_crew(agent, agent_input)
+
+    def _prepare_unified_state(self, agent_input: Dict[str, Any]) -> Any:
+        """Delegate to agent operations for backward compatibility."""
+        return self.agent_ops._prepare_unified_state(agent_input)
+
+    async def _parse_agent_response(
+        self, agent_response: str, state: UnifiedDiscoveryFlowState
+    ) -> Dict[str, Any]:
+        """Delegate to business logic for backward compatibility."""
+        return await self.business_logic.parse_agent_response(agent_response, state)
+
+    async def _validate_mappings(
+        self, parsed_mappings: Dict[str, Any], state: UnifiedDiscoveryFlowState
+    ) -> Dict[str, Any]:
+        """Delegate to business logic for backward compatibility."""
+        return await self.business_logic.validate_mappings(parsed_mappings, state)
+
+    async def _apply_business_rules(
+        self, parsed_mappings: Dict[str, Any], state: UnifiedDiscoveryFlowState
+    ) -> Dict[str, Any]:
+        """Delegate to business logic for backward compatibility."""
+        return await self.business_logic.apply_business_rules(parsed_mappings, state)
+
+    async def _transform_and_persist(
+        self,
+        parsed_mappings: Dict[str, Any],
+        validation_results: Dict[str, Any],
+        state: UnifiedDiscoveryFlowState,
+        db_session: Any,
+    ) -> Dict[str, Any]:
+        """Delegate to business logic for backward compatibility."""
+        return await self.business_logic.transform_and_persist(
+            parsed_mappings, validation_results, state, db_session
+        )
+
+    async def _format_response(
+        self,
+        parsed_mappings: Dict[str, Any],
+        validation_results: Dict[str, Any],
+        rules_results: Dict[str, Any],
+        transformation_results: Dict[str, Any],
+        state: UnifiedDiscoveryFlowState,
+    ) -> Dict[str, Any]:
+        """Delegate to business logic for backward compatibility."""
+        return await self.business_logic.format_response(
+            parsed_mappings,
+            validation_results,
+            rules_results,
+            transformation_results,
+            state,
+        )
+
+    def _determine_next_phase(
+        self,
+        validation_results: Dict[str, Any],
+        rules_results: Dict[str, Any],
+        transformation_results: Dict[str, Any],
+    ) -> str:
+        """Delegate to state manager for backward compatibility."""
+        return self.state_manager.determine_next_phase(
+            validation_results, rules_results, transformation_results
+        )
+
+    async def _get_engagement_requirements(self) -> Dict[str, Any]:
+        """Delegate to state manager for backward compatibility."""
+        return await self.state_manager.get_engagement_requirements()
+
+    async def _get_client_preferences(self) -> Dict[str, Any]:
+        """Delegate to state manager for backward compatibility."""
+        return await self.state_manager.get_client_preferences()

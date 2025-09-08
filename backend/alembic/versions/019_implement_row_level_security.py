@@ -12,7 +12,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "019_implement_row_level_security"
-down_revision = "018b_fix_long_constraint_names"
+down_revision = "018_add_agent_execution_history"
 branch_labels = None
 depends_on = None
 

@@ -96,8 +96,8 @@ class DataImportRequest(BaseModel):
     file_data: List[Dict[str, Any]] = Field(
         ...,
         description="Parsed CSV data as a list of dictionaries where each dict represents a row",
-        min_items=1,
-        max_items=10000,
+        min_length=1,
+        max_length=10000,
         example=[
             {
                 "server_name": "prod-web-01",

@@ -1,0 +1,108 @@
+# Patch to enhance existing discovery-flow-full-e2e-regression.spec.ts
+# Apply with: git apply test-enhancements.patch
+
+--- a/tests/e2e/regression/discovery/discovery-flow-full-e2e-regression.spec.ts
++++ b/tests/e2e/regression/discovery/discovery-flow-full-e2e-regression.spec.ts
+@@ -320,6 +320,35 @@
+
+     await takeScreenshot(page, 'e2e-login-complete');
+   });
++
++  // NEW: Add blocking flow detection after login
++  test.afterEach(async ({ page }) => {
++    // Check for blocking flows on dashboard
++    const currentUrl = page.url();
++    if (currentUrl.includes('localhost')) {
++      try {
++        // Check for blocking flow indicators
++        const blockingBanner = page.locator('.blocking-flow-notification, [data-testid="blocking-flow"], .alert-warning:has-text("complete")');
++        const hasBlockingFlow = await blockingBanner.isVisible({ timeout: 2000 }).catch(() => false);
++
++        if (hasBlockingFlow) {
++          const blockingText = await blockingBanner.textContent();
++          console.warn('⚠️ BLOCKING FLOW DETECTED:', blockingText);
++
++          // Add to report
++          addErrorToReport('frontend', 'Blocking Flow', blockingText || 'User flow is blocked');
++
++          // Check if it's attribute mapping
++          if (blockingText?.toLowerCase().includes('attribute') || blockingText?.toLowerCase().includes('mapping')) {
++            console.error('❌ CRITICAL: Attribute mapping required - user cannot proceed');
++            REGRESSION_REPORT.mfoValidation.blockingFlow = {
++              detected: true,
++              type: 'attribute-mapping',
++              message: blockingText
++            };
++          }
++        }
++      } catch (e) {}
++    }
++  });
+
+   test('PHASE 0: MFO Flow Creation and Lifecycle', async ({ page }) => {
+     const phaseStart = Date.now();
+@@ -610,6 +639,23 @@
+       if (mappingsResponse.ok()) {
+         const mappings = await mappingsResponse.json();
+         validateFieldNaming(mappings, phaseResult.fieldNamingValidation);
++
++        // CRITICAL: Check if mappings actually exist
++        const mappingCount = Array.isArray(mappings) ? mappings.length : mappings.mappings?.length || 0;
++
++        if (mappingCount === 0) {
++          phaseResult.steps[1].errors.push('No field mappings found - blocking flow active');
++          phaseResult.status = 'FAIL';
++          console.error('❌ CRITICAL: No field mappings exist - user is blocked');
++        }
++
++        // Check for unmapped fields
++        const unmappedFields = Array.isArray(mappings) ?
++          mappings.filter(m => !m.target_field || m.status === 'pending') : [];
++
++        if (unmappedFields.length > 0) {
++          phaseResult.steps[1].warnings.push(`${unmappedFields.length} unmapped fields detected`);
++          console.warn(`⚠️ ${unmappedFields.length} fields need mapping:`, unmappedFields.map(f => f.source_field));
++        }
+
+         phaseResult.databaseValidation.recordCounts['attribute_mappings'] =
+           Array.isArray(mappings) ? mappings.length : mappings.mappings?.length || 0;
+@@ -649,11 +695,29 @@
+       // Apply mappings by approving them
+       if (mappingsResponse.ok()) {
+         const mappings = await mappingsResponse.json();
+-        const mappingIds = Array.isArray(mappings) ?
+-          mappings.map(m => m.id || m.mapping_id) : [];
++        const mappingArray = Array.isArray(mappings) ? mappings : mappings.mappings || [];
++
++        // CRITICAL: Fail if no mappings to approve
++        if (mappingArray.length === 0) {
++          phaseResult.steps[2].status = 'FAIL';
++          phaseResult.steps[2].errors.push('Cannot approve mappings - none exist');
++          phaseResult.status = 'FAIL';
++
++          // Check if user can proceed without mappings
++          const proceedButton = page.locator('button:has-text("Proceed"), button:has-text("Next"), button:has-text("Continue")');
++          const canProceed = await proceedButton.isEnabled().catch(() => false);
++
++          if (!canProceed) {
++            console.error('❌ USER BLOCKED: Cannot proceed without completing attribute mapping');
++            phaseResult.steps[2].errors.push('User cannot proceed - mappings required');
++          }
++
++          throw new Error('Attribute mapping is required but not completed');
++        }
++
++        const mappingIds = mappingArray.map(m => m.id || m.mapping_id).filter(Boolean);
+
+         for (const mappingId of mappingIds.slice(0, 5)) { // Approve first 5
+-          await apiContext.post(
++          const approveResponse = await apiContext.post(
+             `/api/v1/unified-discovery/field-mapping/approve/${mappingId}?approved=true`,
+             { headers: tenantHeaders }
+           );
++
++          if (!approveResponse.ok()) {
++            phaseResult.steps[2].warnings.push(`Failed to approve mapping ${mappingId}`);
++          }
+         }
+       }

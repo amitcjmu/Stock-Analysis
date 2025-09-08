@@ -3,7 +3,7 @@ Request/Response schemas for collection applications API
 """
 
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class CanonicalApplicationRequest(BaseModel):
@@ -11,8 +11,8 @@ class CanonicalApplicationRequest(BaseModel):
 
     application_names: List[str] = Field(
         ...,
-        min_items=1,
-        max_items=100,
+        min_length=1,
+        max_length=100,
         description="List of application names to process",
     )
     similarity_threshold: Optional[float] = Field(
@@ -29,7 +29,8 @@ class CanonicalApplicationRequest(BaseModel):
         default=True, description="Automatically merge high-confidence matches"
     )
 
-    @validator("application_names")
+    @field_validator("application_names")
+    @classmethod
     def validate_application_names(cls, names):
         """Validate application names"""
         if not names:
@@ -63,8 +64,8 @@ class BulkDeduplicationRequest(BaseModel):
 
     applications: List[str] = Field(
         ...,
-        min_items=1,
-        max_items=1000,
+        min_length=1,
+        max_length=1000,
         description="List of application names to deduplicate",
     )
     collection_flow_id: Optional[str] = Field(

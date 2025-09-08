@@ -173,7 +173,7 @@ async def initialize_discovery_flow(
 
 
 def _get_common_field_mappings() -> Dict[str, Tuple[str, float]]:
-    """Get common field mappings dictionary."""
+    """Get common field mappings with confidence scores."""
     return {
         # Identity mappings
         "name": ("name", 0.95),
@@ -243,10 +243,10 @@ def _extract_source_fields(raw_data: Any) -> Set[str]:
 def _find_field_mapping(
     source_field: str, common_mappings: Dict[str, Tuple[str, float]]
 ) -> Tuple[str, float]:
-    """Find target field and confidence score for a source field."""
+    """Find target field and confidence score for source field."""
     source_field_lower = source_field.lower()
 
-    # Check for exact match
+    # Check for exact mappings first
     if source_field_lower in common_mappings:
         return common_mappings[source_field_lower]
 
@@ -260,7 +260,7 @@ def _find_field_mapping(
 
 
 def _should_skip_field(source_field: str) -> bool:
-    """Check if field should be skipped (metadata fields)."""
+    """Check if field should be skipped during mapping."""
     return source_field.startswith("_") or source_field in [
         "id",
         "uuid",
@@ -304,11 +304,11 @@ async def _generate_field_mappings_from_raw_data(
         field_mappings_created = 0
 
         for source_field in source_fields:
-            # Skip fields that look like metadata
+            # Skip metadata fields
             if _should_skip_field(source_field):
                 continue
 
-            # Find mapping for this field
+            # Find target field and confidence
             target_field, confidence_score = _find_field_mapping(
                 source_field, common_mappings
             )

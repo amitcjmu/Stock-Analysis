@@ -8,9 +8,10 @@ from enum import Enum
 from typing import Any, Dict, Optional
 
 try:
-    from pydantic_settings import BaseSettings
+    from pydantic_settings import BaseSettings, SettingsConfigDict
 except ImportError:
     from pydantic import BaseSettings
+    from pydantic import ConfigDict as SettingsConfigDict
 
 
 class DeploymentMode(Enum):
@@ -215,10 +216,9 @@ class DeploymentSettings(BaseSettings):
         os.getenv("ENABLE_EXTERNAL_API", "false").lower() == "true"
     )
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-        extra = "ignore"
+    model_config = SettingsConfigDict(
+        env_file=".env", case_sensitive=True, extra="ignore"
+    )
 
 
 def get_deployment_config() -> DeploymentConfig:

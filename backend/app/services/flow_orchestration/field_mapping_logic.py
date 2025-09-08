@@ -28,12 +28,13 @@ class FieldMappingLogic:
 
     async def execute_discovery_field_mapping(
         self,
-        agent_pool: Dict[str, Any],
+        agent_pool: Dict[str, Any],  # Not used - kept for interface compatibility
         phase_input: Dict[str, Any],
         db_session: Optional["AsyncSession"] = None,
     ) -> Dict[str, Any]:
         """Execute field mapping phase using AI agents"""
         logger.info("🗺️ Executing discovery field mapping with AI agents")
+        # Note: agent_pool parameter is not used - FieldMappingExecutor creates its own
 
         try:
             # Get raw data from phase input
@@ -154,6 +155,23 @@ class FieldMappingLogic:
             data_import_id = phase_input.get("data_import_id")
             client_account_id = phase_input.get("client_account_id")
             engagement_id = phase_input.get("engagement_id")
+            master_flow_id = phase_input.get(
+                "master_flow_id"
+            )  # For unified flow integration
+
+            # Diagnostic logging
+            logger.info("🔍 Field Mapping Persistence - Received UUIDs:")
+            logger.info(f"  - flow_id: {flow_id} (type: {type(flow_id)})")
+            logger.info(
+                f"  - master_flow_id: {master_flow_id} (type: {type(master_flow_id)})"
+            )
+            logger.info(f"  - data_import_id: {data_import_id}")
+            logger.info(
+                f"  - client_account_id: {client_account_id} (type: {type(client_account_id)})"
+            )
+            logger.info(
+                f"  - engagement_id: {engagement_id} (type: {type(engagement_id)})"
+            )
 
             if not flow_id:
                 logger.warning("⚠️ No flow_id available, cannot persist field mappings")
@@ -163,14 +181,16 @@ class FieldMappingLogic:
                 from uuid import UUID as _UUID
 
                 _ = _UUID(str(flow_id))
-            except (ValueError, TypeError):
-                logger.error(f"❌ Invalid flow_id format: {flow_id}")
+                logger.info("✅ flow_id validation passed")
+            except (ValueError, TypeError) as e:
+                logger.error(f"❌ Invalid flow_id format: {flow_id}, error: {e}")
                 return
 
             # Validate UUIDs
             try:
                 if client_account_id:
                     client_uuid = UUID(client_account_id)
+                    logger.info("✅ client_account_id validation passed")
                 else:
                     logger.warning(
                         "⚠️ No client_account_id provided, skipping persistence"
@@ -179,11 +199,15 @@ class FieldMappingLogic:
 
                 if engagement_id:
                     engagement_uuid = UUID(engagement_id)
+                    logger.info("✅ engagement_id validation passed")
                 else:
                     engagement_uuid = None
+                    logger.info("ℹ️ No engagement_id provided (optional)")
 
             except (ValueError, TypeError) as e:
                 logger.error(f"❌ Invalid UUID format: {e}")
+                logger.error(f"   client_account_id: {client_account_id}")
+                logger.error(f"   engagement_id: {engagement_id}")
                 return
 
             # Find the discovery flow WITH tenant scoping

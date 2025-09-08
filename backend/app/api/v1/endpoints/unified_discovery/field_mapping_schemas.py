@@ -6,7 +6,7 @@ Pydantic models for field mapping API responses.
 
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class FieldMappingItem(BaseModel):
@@ -29,8 +29,7 @@ class FieldMappingItem(BaseModel):
         None, description="Transformation rules for the mapping"
     )
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class FieldMappingsResponse(BaseModel):
@@ -43,8 +42,8 @@ class FieldMappingsResponse(BaseModel):
     )
     count: int = Field(..., description="Total count of mappings")
 
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "success": True,
                 "flow_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -65,6 +64,7 @@ class FieldMappingsResponse(BaseModel):
                 "count": 1,
             }
         }
+    )
 
 
 class FieldMappingApprovalResponse(BaseModel):
@@ -79,8 +79,8 @@ class FieldMappingApprovalResponse(BaseModel):
     approved_at: datetime = Field(..., description="Timestamp of approval")
     message: str = Field(..., description="Success message")
 
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "success": True,
                 "mapping_id": "456e7890-e89b-12d3-a456-426614174000",
@@ -92,3 +92,4 @@ class FieldMappingApprovalResponse(BaseModel):
                 "message": "Field mapping hostname -> server_name has been approved",
             }
         }
+    )

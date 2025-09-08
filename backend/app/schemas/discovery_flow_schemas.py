@@ -130,7 +130,7 @@ class BulkOperationsRequest(BaseModel):
     """Request for bulk operations"""
 
     operation: BulkOperation
-    flow_ids: List[str] = Field(min_items=1)
+    flow_ids: List[str] = Field(min_length=1)
     options: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 

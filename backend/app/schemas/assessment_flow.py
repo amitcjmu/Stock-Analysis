@@ -5,7 +5,7 @@ Assessment Flow Pydantic schemas for API request/response validation.
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from app.models.assessment_flow import AssessmentFlowStatus, AssessmentPhase
 
@@ -15,12 +15,13 @@ class AssessmentFlowCreateRequest(BaseModel):
 
     selected_application_ids: List[str] = Field(
         ...,
-        min_items=1,
-        max_items=100,
+        min_length=1,
+        max_length=100,
         description="Application IDs to include in assessment",
     )
 
-    @validator("selected_application_ids")
+    @field_validator("selected_application_ids")
+    @classmethod
     def validate_application_ids(cls, v):
         """Validate application IDs format."""
         for app_id in v:
@@ -39,8 +40,7 @@ class AssessmentFlowResponse(BaseModel):
     selected_applications: Optional[int] = None
     message: str
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class AssessmentFlowStatusResponse(BaseModel):
@@ -60,8 +60,7 @@ class AssessmentFlowStatusResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class ResumeFlowRequest(BaseModel):
@@ -359,8 +358,7 @@ class AssessmentFlowEvent(BaseModel):
     data: Dict[str, Any] = Field(default={}, description="Event data")
     message: Optional[str] = Field(None, description="Human-readable message")
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class AgentProgressEvent(BaseModel):

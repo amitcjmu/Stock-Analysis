@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Union
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
 # Base demo schemas
@@ -78,8 +78,7 @@ class DemoAssetResponse(DemoAssetBase):
             return str(v)
         return v
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Analysis schemas
@@ -114,8 +113,7 @@ class DemoAnalysisResponse(BaseModel):
             return v
         return str(v)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Wave schemas
@@ -144,8 +142,7 @@ class DemoWaveResponse(BaseModel):
             return str(v)
         return v
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Tag schemas
@@ -167,8 +164,7 @@ class DemoTagResponse(BaseModel):
             return str(v)
         return v
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Summary schemas
