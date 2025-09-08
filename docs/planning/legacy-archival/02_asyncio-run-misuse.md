@@ -22,4 +22,19 @@ Per platform rules, never use `asyncio.run()` inside async contexts or applicati
 - Add lint/CI rule to block `asyncio.run(` in `backend/app/**` (allowlist `scripts/`, `tests/`, `seeding/`).
 - If `AsyncBaseDiscoveryTool` and `asset_creation_tool_legacy` are unused, remove instead of refactoring.
 
+## Code Fix Examples
+
+### Before (BAD):
+```python
+def run(self, *args, **kwargs):
+    return asyncio.run(self.arun(*args, **kwargs))
+```
+
+### After (GOOD):
+```python
+def run(self, *args, **kwargs):
+    from anyio import from_thread
+    return from_thread.run(self.arun, *args, **kwargs)
+```
+
 

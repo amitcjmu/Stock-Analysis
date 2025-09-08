@@ -10,7 +10,7 @@ Backward compatibility wrapper for the original transformation.py
 # Lightweight shim - modularization complete
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 # SECURITY FIX: Add required SQLAlchemy imports at top of file
 from sqlalchemy import and_, select
@@ -43,6 +43,99 @@ class MappingTransformer(TransformationEngine):
         self.client_account_id = client_account_id
         self.engagement_id = engagement_id
 
+    def _validate_inputs(
+        self, db_session, parsed_mappings: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Validate input parameters and return error dict if validation fails."""
+        # SECURITY FIX: Check db_session before DB operations
+        if not db_session:
+            return {
+                "success": False,
+                "error": "Database session is required for persistence",
+                "mappings_persisted": 0,
+            }
+
+        # Validate db_session is an AsyncSession
+        if not isinstance(db_session, AsyncSession):
+            logger.warning(
+                "Database session is not an AsyncSession - attempting to proceed"
+            )
+
+        mappings_data = parsed_mappings.get("mappings", [])
+        if not mappings_data:
+            return {
+                "success": False,
+                "error": "No mappings to persist",
+                "mappings_persisted": 0,
+            }
+
+        return {"success": True}  # Validation passed
+
+    async def _get_data_import_id(self, state, db_session) -> Optional[str]:
+        """Get the correct data_import_id from the state with fallback strategies."""
+        data_import_id = None
+
+        # Try multiple ways to get the correct data_import_id
+        if hasattr(state, "discovery_data") and state.discovery_data:
+            data_import_id = state.discovery_data.get("data_import_id")
+
+        if not data_import_id and hasattr(state, "data_import_id"):
+            data_import_id = state.data_import_id
+
+        if not data_import_id:
+            # Last resort: look up via engagement_id
+            from app.models.data_import import DataImport
+
+            query = (
+                select(DataImport)
+                .where(
+                    and_(
+                        DataImport.client_account_id == self.client_account_id,
+                        DataImport.engagement_id == self.engagement_id,
+                    )
+                )
+                .order_by(DataImport.created_at.desc())
+                .limit(1)
+            )
+
+            result = await db_session.execute(query)
+            latest_import = result.scalar_one_or_none()
+
+            if latest_import:
+                data_import_id = str(latest_import.id)
+
+        return data_import_id
+
+    async def _get_data_import(self, data_import_id: str, db_session):
+        """Get data import record by ID."""
+        from uuid import UUID
+        from app.models.data_import import DataImport
+
+        # Get the data import record
+        data_import_query = select(DataImport).where(
+            DataImport.id == UUID(data_import_id)
+        )
+        import_result = await db_session.execute(data_import_query)
+        return import_result.scalar_one_or_none()
+
+    def _prepare_file_data(
+        self, mappings_data: List[Dict[str, Any]]
+    ) -> List[Dict[str, str]]:
+        """Convert CrewAI mappings to the format expected by storage manager."""
+        # Create a single record with ALL source fields to trigger mapping creation for all fields
+        file_data = []
+        record = {}
+        for mapping in mappings_data:
+            if isinstance(mapping, dict) and "source_field" in mapping:
+                # Add each source field to the single record
+                record[mapping["source_field"]] = "sample_value"
+
+        # Add the single record with all fields if we have any
+        if record:
+            file_data.append(record)
+
+        return file_data
+
     async def transform_and_persist(
         self,
         parsed_mappings: Dict[str, Any],
@@ -57,61 +150,15 @@ class MappingTransformer(TransformationEngine):
         that matches the original CSV import, not a new/different import ID.
         """
         try:
-            # SECURITY FIX: Check db_session before DB operations
-            if not db_session:
-                return {
-                    "success": False,
-                    "error": "Database session is required for persistence",
-                    "mappings_persisted": 0,
-                }
-
-            # Validate db_session is an AsyncSession
-            if not isinstance(db_session, AsyncSession):
-                logger.warning(
-                    "Database session is not an AsyncSession - attempting to proceed"
-                )
+            # Validate inputs
+            validation_result = self._validate_inputs(db_session, parsed_mappings)
+            if not validation_result["success"]:
+                return validation_result
 
             mappings_data = parsed_mappings.get("mappings", [])
 
-            if not mappings_data:
-                return {
-                    "success": False,
-                    "error": "No mappings to persist",
-                    "mappings_persisted": 0,
-                }
-
             # Get the correct data_import_id from the state
-            data_import_id = None
-
-            # Try multiple ways to get the correct data_import_id
-            if hasattr(state, "discovery_data") and state.discovery_data:
-                data_import_id = state.discovery_data.get("data_import_id")
-
-            if not data_import_id and hasattr(state, "data_import_id"):
-                data_import_id = state.data_import_id
-
-            if not data_import_id:
-                # Last resort: look up via engagement_id
-                from app.models.data_import import DataImport
-
-                query = (
-                    select(DataImport)
-                    .where(
-                        and_(
-                            DataImport.client_account_id == self.client_account_id,
-                            DataImport.engagement_id == self.engagement_id,
-                        )
-                    )
-                    .order_by(DataImport.created_at.desc())
-                    .limit(1)
-                )
-
-                result = await db_session.execute(query)
-                latest_import = result.scalar_one_or_none()
-
-                if latest_import:
-                    data_import_id = str(latest_import.id)
-
+            data_import_id = await self._get_data_import_id(state, db_session)
             if not data_import_id:
                 return {
                     "success": False,
@@ -119,18 +166,8 @@ class MappingTransformer(TransformationEngine):
                     "mappings_persisted": 0,
                 }
 
-            # CRITICAL: Use the storage manager to create field mappings with correct import_id
-            from uuid import UUID
-
-            from app.models.data_import import DataImport
-
             # Get the data import record
-            data_import_query = select(DataImport).where(
-                DataImport.id == UUID(data_import_id)
-            )
-            import_result = await db_session.execute(data_import_query)
-            data_import = import_result.scalar_one_or_none()
-
+            data_import = await self._get_data_import(data_import_id, db_session)
             if not data_import:
                 return {
                     "success": False,
@@ -138,18 +175,8 @@ class MappingTransformer(TransformationEngine):
                     "mappings_persisted": 0,
                 }
 
-            # Convert CrewAI mappings to the format expected by storage manager
-            # Create a single record with ALL source fields to trigger mapping creation for all fields
-            file_data = []
-            record = {}
-            for mapping in mappings_data:
-                if isinstance(mapping, dict) and "source_field" in mapping:
-                    # Add each source field to the single record
-                    record[mapping["source_field"]] = "sample_value"
-
-            # Add the single record with all fields if we have any
-            if record:
-                file_data.append(record)
+            # Prepare file data
+            file_data = self._prepare_file_data(mappings_data)
 
             if file_data:
                 # Use storage manager to create/update field mappings

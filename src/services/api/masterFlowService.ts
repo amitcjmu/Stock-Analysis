@@ -210,7 +210,7 @@ export const masterFlowService = {
         metadata: AuditableMetadata;
         created_at: string;
         updated_at: string;
-      }>("/flows/", backendRequest, {
+      }>(FLOW_ENDPOINTS.initialize, backendRequest, {
         headers: getMultiTenantHeaders(
           request.client_account_id,
           request.engagement_id,

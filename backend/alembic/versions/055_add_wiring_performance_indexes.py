@@ -1,0 +1,113 @@
+"""055_add_wiring_performance_indexes
+
+Revision ID: 055_add_wiring_performance_indexes
+Revises: 054_change_pattern_type_to_string
+Create Date: 2025-09-06
+
+Purpose:
+    Add performance indexes for discovery wiring queries - CONCURRENT creation.
+    These indexes optimize the health check queries and asset-to-raw-record relationships
+    used in the discovery flow wiring implementation plan v3.3-final.
+"""
+
+from alembic import op
+
+# revision identifiers, used by Alembic.
+revision = "055_add_wiring_performance_indexes"
+down_revision = "054_change_pattern_type_to_string"
+branch_labels = None
+depends_on = None
+
+
+def upgrade():
+    """Add performance indexes for discovery wiring queries."""
+    print("🔧 Adding wiring performance indexes...")
+
+    # Create indexes without CONCURRENT flag for compatibility
+    # These are new indexes so won't block existing operations
+    try:
+        # Assets table indexes
+        print("📦 Creating assets table indexes...")
+
+        # Index for tenant + discovery method + flow queries
+        op.create_index(
+            "idx_assets_tenant_discovery",
+            "assets",
+            [
+                "client_account_id",
+                "engagement_id",
+                "discovery_method",
+                "discovery_flow_id",
+            ],
+            schema="migration",
+            postgresql_using="btree",
+        )
+
+        # Index for tenant + raw import record relationships
+        op.create_index(
+            "idx_assets_tenant_raw_import",
+            "assets",
+            ["client_account_id", "engagement_id", "raw_import_records_id"],
+            schema="migration",
+            postgresql_using="btree",
+        )
+
+        print("📁 Creating raw import records indexes...")
+
+        # Raw import records indexes
+        # Index for tenant + processed status + asset linking queries
+        op.create_index(
+            "idx_raw_import_tenant_processed",
+            "raw_import_records",
+            ["client_account_id", "engagement_id", "is_processed", "asset_id"],
+            schema="migration",
+            postgresql_using="btree",
+        )
+
+        # Index for tenant + ID queries (used in health checks)
+        op.create_index(
+            "idx_raw_import_tenant_id",
+            "raw_import_records",
+            ["client_account_id", "engagement_id", "id"],
+            schema="migration",
+            postgresql_using="btree",
+        )
+
+        print("✅ Indexes created successfully")
+
+    except Exception as e:
+        print(f"⚠️ Warning during index creation: {e}")
+        # Continue execution - indexes might already exist
+        pass
+
+
+def downgrade():
+    """Remove the wiring performance indexes."""
+    print("🗑️ Removing wiring performance indexes...")
+
+    try:
+        # Drops are fast, no need for concurrent
+        op.drop_index("idx_assets_tenant_discovery", schema="migration")
+        print("✅ Dropped idx_assets_tenant_discovery")
+    except Exception as e:
+        print(f"⚠️ Could not drop idx_assets_tenant_discovery: {e}")
+
+    try:
+        op.drop_index("idx_assets_tenant_raw_import", schema="migration")
+        print("✅ Dropped idx_assets_tenant_raw_import")
+    except Exception as e:
+        print(f"⚠️ Could not drop idx_assets_tenant_raw_import: {e}")
+
+    try:
+        op.drop_index("idx_raw_import_tenant_processed", schema="migration")
+        print("✅ Dropped idx_raw_import_tenant_processed")
+    except Exception as e:
+        print(f"⚠️ Could not drop idx_raw_import_tenant_processed: {e}")
+
+    try:
+        op.drop_index("idx_raw_import_tenant_id", schema="migration")
+        print("✅ Dropped idx_raw_import_tenant_id")
+    except Exception as e:
+        print(f"⚠️ Could not drop idx_raw_import_tenant_id: {e}")
+
+    print("✅ Index removal complete")

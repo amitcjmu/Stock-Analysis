@@ -9,10 +9,17 @@ from typing import Any, Dict
 from fastapi import APIRouter
 
 from app.core.database import db_manager
+from app.api.v1.api_tags import APITags
+
+# Import wiring health check endpoints
+from app.api.v1.endpoints.health.wiring_health import router as wiring_health_router
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Include the wiring health check sub-router
+router.include_router(wiring_health_router, tags=[APITags.SYSTEM_HEALTH])
 
 
 @router.get("")

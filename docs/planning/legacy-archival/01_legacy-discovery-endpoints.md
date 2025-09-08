@@ -21,6 +21,17 @@
 - Flows: use `/api/v1/flows/*` (Master Flow Orchestrator).
 - Discovery specifics: use `/api/v1/unified-discovery/*`.
 
+## Migration Examples
+Replace in test files:
+- OLD: `/api/v1/discovery/flows/active`
+- NEW: `/api/v1/flows/active`
+
+- OLD: `/api/v1/discovery/flow/create`
+- NEW: `/api/v1/flows/create`
+
+- OLD: `/api/v1/discovery/flow/{flow_id}/status`
+- NEW: `/api/v1/flows/{flow_id}/status`
+
 ## Action Plan
 - Phase 1 (Immediate): Ensure guard middleware stays enabled; block accidental regressions.
 - Phase 2 (Tests): Update all tests to `/api/v1/flows/*` or `/api/v1/unified-discovery/*`.

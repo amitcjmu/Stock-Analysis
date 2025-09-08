@@ -15,6 +15,10 @@
 - Establishes a clear, actionable inventory of legacy code and deprecation plans aligned with agentic-first, flow-based architecture.
 - Reduces regression risk by documenting migration paths and CI guardrails.
 
+### 🔧 Refinements (2025-09-06, later)
+- Added Quick Wins, migration examples, code fix examples, WS feature flag details
+- Added migration tracking checklist and pre/post removal validation checklist
+
 ## [2025-09-04] - Documentation: Collection Preparedness Audit
 ### 📚 Documentation
 - Added detailed senior-architect audit: `docs/planning/collection-flow/collection-preparedness-audit.md`.

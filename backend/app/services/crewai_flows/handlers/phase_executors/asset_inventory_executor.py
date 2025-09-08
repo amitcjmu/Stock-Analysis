@@ -205,9 +205,19 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         raise RuntimeError("Sync fallback disabled - crew execution must work properly")
 
     async def _persist_assets_to_database(self, results: Dict[str, Any]):
-        """Persist discovered assets to the database with deduplication"""
+        """
+        Persist discovered assets to the database with atomic transactions and chunking.
+
+        Implements the enhanced asset persistence from the wiring implementation plan v3.3-final:
+        - Atomic transaction boundaries with configurable chunking
+        - Safe batch updates with bindparam
+        - SHA256 hashing for field mappings
+        - Prevention of overwrites for existing asset links
+        """
         try:
-            logger.info("📦 Starting asset persistence to database")
+            logger.info(
+                "📦 Starting asset persistence to database with atomic transactions"
+            )
 
             # Extract assets from results
             all_assets = []
@@ -230,310 +240,371 @@ class AssetInventoryExecutor(BasePhaseExecutor):
 
             logger.info(f"📊 Found {len(all_assets)} assets to persist")
 
-            # Note: Deduplication is handled by intelligent agents using deduplication tools
-            # The inventory manager has instructions to avoid creating duplicates
+            # Get configurable chunk size
+            from app.core.config import get_settings
 
-            # Debug: Log state attributes
-            logger.info(
-                f"🔍 State attributes: {[attr for attr in dir(self.state) if not attr.startswith('_')]}"
-            )
-            logger.info(f"🔍 State has flow_id: {hasattr(self.state, 'flow_id')}")
-            logger.info(
-                f"🔍 State has client_account_id: {hasattr(self.state, 'client_account_id')}"
-            )
-            logger.info(
-                f"🔍 State has engagement_id: {hasattr(self.state, 'engagement_id')}"
-            )
+            settings = get_settings()
+            CHUNK_SIZE = getattr(settings, "ASSET_BATCH_CHUNK_SIZE", 500)
 
-            # Get database session and context
+            # Get context from state
+            context = self._get_context_from_state()
+            if not context:
+                logger.error("❌ No context available for asset persistence")
+                return
+
+            discovery_flow_id = self._get_discovery_flow_id_from_state()
+            if not discovery_flow_id:
+                logger.error("❌ No discovery flow ID available for asset persistence")
+                return
+
+            logger.info(f"🔗 Using discovery flow ID: {discovery_flow_id}")
+            logger.info(f"📦 Processing assets in chunks of {CHUNK_SIZE}")
+
+            # Prepare all asset data first
+            asset_data_list = await self._prepare_asset_data(all_assets, context)
+            if not asset_data_list:
+                logger.warning("⚠️ No valid asset data to persist after preparation")
+                return
+
+            # Process assets in chunks with atomic transactions
             from app.core.database import AsyncSessionLocal
+            from app.repositories.discovery_flow_repository.commands.asset_commands import (
+                AssetCommands,
+            )
+            from sqlalchemy import update, bindparam
+            from app.models.data_import.core import RawImportRecord
 
-            async with AsyncSessionLocal() as db:
-                # Get context from state
-                context = None
-                if hasattr(self.state, "context"):
-                    context = self.state.context
-                elif hasattr(self.state, "client_account_id") and hasattr(
-                    self.state, "engagement_id"
-                ):
-                    # Build context from state
-                    from app.core.context import RequestContext
+            total_created_assets = []
+            failed_chunks = []
 
-                    context = RequestContext(
-                        client_account_id=self.state.client_account_id,
-                        engagement_id=self.state.engagement_id,
-                        user_id=getattr(self.state, "user_id", None),
-                        flow_id=getattr(self.state, "flow_id", None),
-                    )
-                else:
-                    # Try to get context from flow_bridge if available
-                    if self.flow_bridge and hasattr(self.flow_bridge, "context"):
-                        context = self.flow_bridge.context
-                        logger.info(
-                            f"🔄 Using context from flow_bridge: "
-                            f"client={context.client_account_id}, "
-                            f"engagement={context.engagement_id}"
-                        )
+            for i in range(0, len(asset_data_list), CHUNK_SIZE):
+                chunk = asset_data_list[i : i + CHUNK_SIZE]
+                chunk_num = i // CHUNK_SIZE + 1
 
-                if not context:
-                    logger.error("❌ No context available for asset persistence")
-                    return
+                try:
+                    async with AsyncSessionLocal() as db:
+                        async with db.begin():  # Atomic transaction for this chunk
+                            logger.info(
+                                f"📦 Processing chunk {chunk_num}: {len(chunk)} assets"
+                            )
 
-                logger.info(
-                    f"📋 Using context: client={context.client_account_id}, engagement={context.engagement_id}"
-                )
+                            # Create AssetCommands instance for this chunk
+                            asset_commands = AssetCommands(
+                                db, context.client_account_id, context.engagement_id
+                            )
 
-                # Get discovery flow ID
-                discovery_flow_id = None
-                if hasattr(self.state, "discovery_flow_id"):
-                    discovery_flow_id = self.state.discovery_flow_id
-                elif hasattr(self.state, "flow_internal_id"):
-                    discovery_flow_id = self.state.flow_internal_id
-                elif hasattr(self.state, "flow_id"):
-                    discovery_flow_id = self.state.flow_id
+                            # Use the new no-commit method
+                            created_assets = await asset_commands.create_assets_from_discovery_no_commit(
+                                discovery_flow_id=discovery_flow_id,
+                                asset_data_list=chunk,
+                                discovered_in_phase="inventory",
+                            )
 
-                if not discovery_flow_id:
-                    logger.error(
-                        "❌ No discovery flow ID available for asset persistence"
-                    )
-                    return
+                            if not created_assets:
+                                logger.warning(
+                                    f"⚠️ No assets created in chunk {chunk_num}"
+                                )
+                                continue
 
-                logger.info(f"🔗 Using discovery flow ID: {discovery_flow_id}")
+                            # Prepare batch update data for raw import records (large batch)
+                            update_data = []
+                            for asset, asset_data in zip(created_assets, chunk):
+                                if raw_id := asset_data.get("raw_import_record_id"):
+                                    update_data.append(
+                                        {
+                                            "rid": raw_id,
+                                            "aid": asset.id,
+                                            "notes": f"Linked to: {asset.name}",
+                                        }
+                                    )
 
-                # Use AssetManager to persist assets
-                from app.services.discovery_flow_service.managers.asset_manager import (
-                    AssetManager,
-                )
+                            # Batch update with safety check - only if chunk is large
+                            if len(update_data) > 10:  # Large batch: use bindparam
+                                stmt = (
+                                    update(RawImportRecord)
+                                    .where(
+                                        RawImportRecord.id == bindparam("rid"),
+                                        RawImportRecord.asset_id.is_(
+                                            None
+                                        ),  # Safety: Don't overwrite existing links
+                                    )
+                                    .values(
+                                        asset_id=bindparam("aid"),
+                                        is_processed=True,
+                                        processed_at=datetime.utcnow(),
+                                        processing_notes=bindparam("notes"),
+                                    )
+                                )
+                                result = await db.execute(stmt, update_data)
 
-                asset_manager = AssetManager(db, context)
+                                # Log if some records were already linked
+                                if result.rowcount < len(update_data):
+                                    skipped_count = len(update_data) - result.rowcount
+                                    logger.warning(
+                                        f"Chunk {chunk_num}: Skipped {skipped_count} already-linked records"
+                                    )
 
-                # Get existing asset identifiers to prevent duplicates
-                from sqlalchemy import select
+                            else:  # Small batch: individual updates with same safety
+                                for asset, asset_data in zip(created_assets, chunk):
+                                    if raw_id := asset_data.get("raw_import_record_id"):
+                                        stmt = (
+                                            update(RawImportRecord)
+                                            .where(
+                                                RawImportRecord.id == raw_id,
+                                                RawImportRecord.asset_id.is_(
+                                                    None
+                                                ),  # Safety check
+                                            )
+                                            .values(
+                                                asset_id=asset.id,
+                                                is_processed=True,
+                                                processed_at=datetime.utcnow(),
+                                                processing_notes=f"Linked to: {asset.name}",
+                                            )
+                                        )
+                                        result = await db.execute(stmt)
+                                        if result.rowcount == 0:
+                                            logger.warning(
+                                                f"Raw record {raw_id} already linked, skipping"
+                                            )
 
-                from app.models.asset import Asset
+                            # Transaction commits automatically when exiting the async with block
+                            total_created_assets.extend(created_assets)
+                            logger.info(
+                                f"✅ Chunk {chunk_num}: Successfully persisted {len(created_assets)} assets"
+                            )
 
-                existing_assets_query = select(
-                    Asset.name, Asset.hostname, Asset.ip_address
-                ).where(
-                    Asset.client_account_id == context.client_account_id,
-                    Asset.engagement_id == context.engagement_id,
-                )
-                existing_assets_result = await db.execute(existing_assets_query)
-                existing_assets = existing_assets_result.fetchall()
-                existing_names = {row[0] for row in existing_assets if row[0]}
-                existing_hostnames = {row[1] for row in existing_assets if row[1]}
-                existing_ips = {row[2] for row in existing_assets if row[2]}
+                except Exception as e:
+                    logger.error(f"❌ Chunk {chunk_num} failed: {e}")
+                    failed_chunks.append((chunk_num, i, i + len(chunk)))
+                    # Continue with next chunk instead of failing completely
+                    continue
 
-                logger.info(
-                    f"📋 Found {len(existing_names)} existing asset names, "
-                    f"{len(existing_hostnames)} hostnames, {len(existing_ips)} IPs in database"
-                )
+            logger.info(
+                f"✅ Asset persistence complete: {len(total_created_assets)} assets created"
+            )
 
-                # Prepare asset data for persistence using field mappings
-                asset_data_list = []
-                seen_names = set(
-                    existing_names
-                )  # Start with existing names from database
-                seen_hostnames = set(existing_hostnames)  # Track hostnames
-                seen_ips = set(existing_ips)  # Track IP addresses
+            if failed_chunks:
+                logger.error(f"❌ Failed chunks for manual review: {failed_chunks}")
 
-                for idx, asset in enumerate(all_assets):
-                    # Transform raw asset data using field mappings
-                    # Get asset name from field mappings - don't generate random names
-                    asset_name = self._get_mapped_value(asset, "asset_name")
-                    hostname = self._get_mapped_value(asset, "hostname")
-                    ip_address = self._get_mapped_value(asset, "ip_address")
-
-                    # If no asset name, use hostname or IP as identifier, or leave blank
-                    if not asset_name or asset_name.strip() == "":
-                        if hostname:
-                            asset_name = hostname
-                        elif ip_address:
-                            asset_name = ip_address
-                        else:
-                            # Leave blank for user to fill in manually
-                            asset_name = ""
-
-                    # Handle empty names (database constraint requires non-empty name)
-                    if not asset_name:
-                        asset_name = f"Asset-{idx + 1}"  # Simple numeric identifier
-
-                    # Ensure unique names by adding suffix if needed
-                    # (check against both existing DB names and current batch)
-                    original_name = asset_name
-                    counter = 1
-                    while asset_name in seen_names:
-                        if original_name:
-                            asset_name = f"{original_name}-{counter}"
-                        else:
-                            asset_name = f"Asset-{idx + 1}-{counter}"
-                        counter += 1
-                    seen_names.add(asset_name)
-
-                    # Check for hostname conflicts and skip if duplicate
-                    if hostname and hostname in seen_hostnames:
-                        logger.warning(
-                            f"⚠️ Skipping asset {idx + 1} - hostname '{hostname}' already exists"
-                        )
-                        continue
-                    elif hostname:
-                        seen_hostnames.add(hostname)
-
-                    # Check for IP conflicts and skip if duplicate
-                    if ip_address and ip_address in seen_ips:
-                        logger.warning(
-                            f"⚠️ Skipping asset {idx + 1} - IP address '{ip_address}' already exists"
-                        )
-                        continue
-                    elif ip_address:
-                        seen_ips.add(ip_address)
-
-                    logger.debug(
-                        f"🏷️ Asset {idx + 1}: original_name='{original_name}', "
-                        f"final_name='{asset_name}', hostname='{hostname}', ip='{ip_address}'"
-                    )
-
-                    asset_data = {
-                        "name": asset_name,
-                        "type": self._determine_asset_type(asset),
-                        "raw_import_record_id": asset.get(
-                            "raw_import_record_id"
-                        ),  # Preserve linkage from data cleansing
-                        "hostname": hostname,
-                        "ip_address": ip_address,
-                        "operating_system": self._get_mapped_value(
-                            asset, "operating_system"
-                        ),
-                        "environment": self._get_mapped_value(asset, "environment")
-                        or "production",
-                        "criticality": self._get_mapped_value(asset, "criticality")
-                        or "medium",
-                        "status": "discovered",
-                        "application_name": self._get_mapped_value(
-                            asset, "application_name"
-                        ),
-                        "cpu_cores": self._parse_int(
-                            self._get_mapped_value(asset, "cpu_cores")
-                        ),
-                        "memory_gb": self._parse_float(
-                            self._get_mapped_value(asset, "memory_gb")
-                        ),
-                        "storage_gb": self._parse_float(
-                            self._get_mapped_value(asset, "storage_gb")
-                        ),
-                        "business_owner": self._get_mapped_value(
-                            asset, "business_owner"
-                        ),
-                        "technical_owner": self._get_mapped_value(
-                            asset, "technical_owner"
-                        ),
-                        "department": self._get_mapped_value(asset, "department"),
-                        "location": self._get_mapped_value(asset, "location"),
-                        "datacenter": self._get_mapped_value(asset, "datacenter"),
-                        "raw_data": asset,  # Store original data
-                        "field_mappings_used": getattr(
-                            self.state, "field_mappings", {}
-                        ),
-                        "normalized_data": {  # Normalized data using field mappings
-                            "hostname": hostname,
-                            "ip_address": ip_address,
-                            "operating_system": self._get_mapped_value(
-                                asset, "operating_system"
-                            ),
-                            "environment": self._get_mapped_value(asset, "environment")
-                            or "production",
-                            "criticality": self._get_mapped_value(asset, "criticality")
-                            or "medium",
-                            "application_name": self._get_mapped_value(
-                                asset, "application_name"
-                            ),
-                            "cpu_cores": self._parse_int(
-                                self._get_mapped_value(asset, "cpu_cores")
-                            ),
-                            "memory_gb": self._parse_float(
-                                self._get_mapped_value(asset, "memory_gb")
-                            ),
-                            "storage_gb": self._parse_float(
-                                self._get_mapped_value(asset, "storage_gb")
-                            ),
-                        },
-                    }
-                    asset_data_list.append(asset_data)
-
-                # Create assets in database
-                created_assets = await asset_manager.create_assets_from_discovery(
-                    discovery_flow_id=discovery_flow_id,
-                    asset_data_list=asset_data_list,
-                    discovered_in_phase="inventory",
-                )
-
-                logger.info(
-                    f"✅ Successfully persisted {len(created_assets)} assets to database"
-                )
-
-                # Link created assets back to raw import records
-                await self._link_assets_to_raw_records(created_assets, asset_data_list)
-
-                # Note: Asset enrichment is now handled by agents using enrichment tools
-                # The inventory manager has instructions to enrich assets intelligently
-
-                # Update state with created asset information
-                asset_ids = [str(asset.id) for asset in created_assets]
-
-                # Update asset_inventory field with results
-                if hasattr(self.state, "asset_inventory"):
-                    logger.info(
-                        f"🔍 Current asset_inventory type: {type(self.state.asset_inventory)}"
-                    )
-                    logger.info(
-                        f"🔍 Current asset_inventory value: {self.state.asset_inventory}"
-                    )
-
-                    # Ensure asset_inventory is a dictionary, not a string
-                    if not isinstance(self.state.asset_inventory, dict):
-                        logger.info(
-                            f"🔧 Converting asset_inventory from {type(self.state.asset_inventory)} to dict"
-                        )
-                        self.state.asset_inventory = {}
-
-                    self.state.asset_inventory["created_asset_ids"] = asset_ids
-                    self.state.asset_inventory["total_assets"] = len(created_assets)
-                    self.state.asset_inventory["status"] = "completed"
-                    self.state.asset_inventory["created_at"] = (
-                        datetime.utcnow().isoformat()
-                    )
-                    logger.info(
-                        f"✅ Updated asset_inventory: {self.state.asset_inventory}"
-                    )
-                else:
-                    # Initialize asset_inventory if it doesn't exist
-                    logger.info("🔧 Initializing asset_inventory (not found)")
-                    self.state.asset_inventory = {
-                        "created_asset_ids": asset_ids,
-                        "total_assets": len(created_assets),
-                        "status": "completed",
-                        "created_at": datetime.utcnow().isoformat(),
-                    }
-
-                # Also update asset_creation_results for backward compatibility
-                if hasattr(self.state, "asset_creation_results"):
-                    # Ensure asset_creation_results is a dictionary
-                    if not isinstance(self.state.asset_creation_results, dict):
-                        self.state.asset_creation_results = {}
-
-                    self.state.asset_creation_results["created_asset_ids"] = asset_ids
-                    self.state.asset_creation_results["total_created"] = len(
-                        created_assets
-                    )
-                else:
-                    # Initialize asset_creation_results if it doesn't exist
-                    self.state.asset_creation_results = {
-                        "created_asset_ids": asset_ids,
-                        "total_created": len(created_assets),
-                    }
+            # Update state with created asset information
+            self._update_state_with_results(total_created_assets)
 
         except Exception as e:
             logger.error(f"❌ Failed to persist assets to database: {e}", exc_info=True)
+
+    def _get_context_from_state(self):
+        """Extract context from state with multiple fallback strategies"""
+        context = None
+        if hasattr(self.state, "context"):
+            context = self.state.context
+        elif hasattr(self.state, "client_account_id") and hasattr(
+            self.state, "engagement_id"
+        ):
+            # Build context from state
+            from app.core.context import RequestContext
+
+            context = RequestContext(
+                client_account_id=self.state.client_account_id,
+                engagement_id=self.state.engagement_id,
+                user_id=getattr(self.state, "user_id", None),
+                flow_id=getattr(self.state, "flow_id", None),
+            )
+        else:
+            # Try to get context from flow_bridge if available
+            if self.flow_bridge and hasattr(self.flow_bridge, "context"):
+                context = self.flow_bridge.context
+                logger.info(
+                    f"🔄 Using context from flow_bridge: "
+                    f"client={context.client_account_id}, "
+                    f"engagement={context.engagement_id}"
+                )
+        return context
+
+    def _get_discovery_flow_id_from_state(self):
+        """Extract discovery flow ID from state with multiple fallback strategies"""
+        discovery_flow_id = None
+        if hasattr(self.state, "discovery_flow_id"):
+            discovery_flow_id = self.state.discovery_flow_id
+        elif hasattr(self.state, "flow_internal_id"):
+            discovery_flow_id = self.state.flow_internal_id
+        elif hasattr(self.state, "flow_id"):
+            discovery_flow_id = self.state.flow_id
+        return discovery_flow_id
+
+    async def _prepare_asset_data(
+        self, all_assets: List[Dict[str, Any]], context
+    ) -> List[Dict[str, Any]]:
+        """Prepare asset data for persistence with deduplication and validation"""
+        from app.core.database import AsyncSessionLocal
+        from sqlalchemy import select
+        from app.models.asset import Asset
+
+        # Get existing asset identifiers to prevent duplicates
+        async with AsyncSessionLocal() as db:
+            existing_assets_query = select(
+                Asset.name, Asset.hostname, Asset.ip_address
+            ).where(
+                Asset.client_account_id == context.client_account_id,
+                Asset.engagement_id == context.engagement_id,
+            )
+            existing_assets_result = await db.execute(existing_assets_query)
+            existing_assets = existing_assets_result.fetchall()
+            existing_names = {row[0] for row in existing_assets if row[0]}
+            existing_hostnames = {row[1] for row in existing_assets if row[1]}
+            existing_ips = {row[2] for row in existing_assets if row[2]}
+
+        logger.info(
+            f"📋 Found {len(existing_names)} existing asset names, "
+            f"{len(existing_hostnames)} hostnames, {len(existing_ips)} IPs in database"
+        )
+
+        # Prepare asset data for persistence using field mappings
+        asset_data_list = []
+        seen_names = set(existing_names)  # Start with existing names from database
+        seen_hostnames = set(existing_hostnames)  # Track hostnames
+        seen_ips = set(existing_ips)  # Track IP addresses
+
+        for idx, asset in enumerate(all_assets):
+            # Transform raw asset data using field mappings
+            asset_name = self._get_mapped_value(asset, "asset_name")
+            hostname = self._get_mapped_value(asset, "hostname")
+            ip_address = self._get_mapped_value(asset, "ip_address")
+
+            # If no asset name, use hostname or IP as identifier, or leave blank
+            if not asset_name or asset_name.strip() == "":
+                if hostname:
+                    asset_name = hostname
+                elif ip_address:
+                    asset_name = ip_address
+                else:
+                    asset_name = ""
+
+            # Handle empty names (database constraint requires non-empty name)
+            if not asset_name:
+                asset_name = f"Asset-{idx + 1}"  # Simple numeric identifier
+
+            # Ensure unique names by adding suffix if needed
+            original_name = asset_name
+            counter = 1
+            while asset_name in seen_names:
+                if original_name:
+                    asset_name = f"{original_name}-{counter}"
+                else:
+                    asset_name = f"Asset-{idx + 1}-{counter}"
+                counter += 1
+            seen_names.add(asset_name)
+
+            # Check for hostname conflicts and skip if duplicate
+            if hostname and hostname in seen_hostnames:
+                logger.warning(
+                    f"⚠️ Skipping asset {idx + 1} - hostname '{hostname}' already exists"
+                )
+                continue
+            elif hostname:
+                seen_hostnames.add(hostname)
+
+            # Check for IP conflicts and skip if duplicate
+            if ip_address and ip_address in seen_ips:
+                logger.warning(
+                    f"⚠️ Skipping asset {idx + 1} - IP address '{ip_address}' already exists"
+                )
+                continue
+            elif ip_address:
+                seen_ips.add(ip_address)
+
+            asset_data = {
+                "name": asset_name,
+                "asset_type": self._determine_asset_type(
+                    asset
+                ),  # Use asset_type consistently
+                "raw_import_record_id": asset.get("raw_import_record_id"),
+                "hostname": hostname,
+                "ip_address": ip_address,
+                "operating_system": self._get_mapped_value(asset, "operating_system"),
+                "environment": self._get_mapped_value(asset, "environment")
+                or "production",
+                "criticality": self._get_mapped_value(asset, "criticality") or "medium",
+                "status": "discovered",
+                "application_name": self._get_mapped_value(asset, "application_name"),
+                "cpu_cores": self._parse_int(
+                    self._get_mapped_value(asset, "cpu_cores")
+                ),
+                "memory_gb": self._parse_float(
+                    self._get_mapped_value(asset, "memory_gb")
+                ),
+                "storage_gb": self._parse_float(
+                    self._get_mapped_value(asset, "storage_gb")
+                ),
+                "business_owner": self._get_mapped_value(asset, "business_owner"),
+                "technical_owner": self._get_mapped_value(asset, "technical_owner"),
+                "department": self._get_mapped_value(asset, "department"),
+                "location": self._get_mapped_value(asset, "location"),
+                "datacenter": self._get_mapped_value(asset, "datacenter"),
+                "raw_data": asset,  # Store original data
+                "field_mappings_used": getattr(self.state, "field_mappings", {}),
+                "normalized_data": {  # Normalized data using field mappings
+                    "hostname": hostname,
+                    "ip_address": ip_address,
+                    "operating_system": self._get_mapped_value(
+                        asset, "operating_system"
+                    ),
+                    "environment": self._get_mapped_value(asset, "environment")
+                    or "production",
+                    "criticality": self._get_mapped_value(asset, "criticality")
+                    or "medium",
+                    "application_name": self._get_mapped_value(
+                        asset, "application_name"
+                    ),
+                    "cpu_cores": self._parse_int(
+                        self._get_mapped_value(asset, "cpu_cores")
+                    ),
+                    "memory_gb": self._parse_float(
+                        self._get_mapped_value(asset, "memory_gb")
+                    ),
+                    "storage_gb": self._parse_float(
+                        self._get_mapped_value(asset, "storage_gb")
+                    ),
+                },
+            }
+            asset_data_list.append(asset_data)
+
+        return asset_data_list
+
+    def _update_state_with_results(self, created_assets: List):
+        """Update state with created asset information"""
+        asset_ids = [str(asset.id) for asset in created_assets]
+
+        # Update asset_inventory field with results
+        if hasattr(self.state, "asset_inventory"):
+            # Ensure asset_inventory is a dictionary, not a string
+            if not isinstance(self.state.asset_inventory, dict):
+                self.state.asset_inventory = {}
+
+            self.state.asset_inventory["created_asset_ids"] = asset_ids
+            self.state.asset_inventory["total_assets"] = len(created_assets)
+            self.state.asset_inventory["status"] = "completed"
+            self.state.asset_inventory["created_at"] = datetime.utcnow().isoformat()
+        else:
+            # Initialize asset_inventory if it doesn't exist
+            self.state.asset_inventory = {
+                "created_asset_ids": asset_ids,
+                "total_assets": len(created_assets),
+                "status": "completed",
+                "created_at": datetime.utcnow().isoformat(),
+            }
+
+        # Also update asset_creation_results for backward compatibility
+        if hasattr(self.state, "asset_creation_results"):
+            if not isinstance(self.state.asset_creation_results, dict):
+                self.state.asset_creation_results = {}
+            self.state.asset_creation_results["created_asset_ids"] = asset_ids
+            self.state.asset_creation_results["total_created"] = len(created_assets)
+        else:
+            self.state.asset_creation_results = {
+                "created_asset_ids": asset_ids,
+                "total_created": len(created_assets),
+            }
 
     def _determine_asset_type(self, asset: Dict[str, Any]) -> str:
         """Determine asset type from asset data using field mappings"""

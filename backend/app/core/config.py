@@ -167,6 +167,28 @@ class Settings(BaseSettings):
         default=90, env="DEFAULT_MIGRATION_TIMELINE_DAYS"
     )
 
+    # Asset processing configuration (wiring implementation plan v3.3-final)
+    ASSET_BATCH_CHUNK_SIZE: int = Field(
+        default=500,
+        ge=10,
+        le=5000,
+        env="ASSET_BATCH_CHUNK_SIZE",
+        description="Number of assets to process per atomic transaction",
+    )
+    ASSET_CHUNK_RETRY_POLICY: str = Field(
+        default="stop",
+        pattern=r"^(stop|skip|retry)$",
+        env="ASSET_CHUNK_RETRY_POLICY",
+        description="Policy on chunk failure: stop, skip, or retry",
+    )
+    ASSET_CHUNK_MAX_RETRIES: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        env="ASSET_CHUNK_MAX_RETRIES",
+        description="Max retries per chunk if retry policy enabled",
+    )
+
     # Enhanced CrewAI Flow Service Configuration
     # Note: Removed timeout restrictions for agentic classification activities
     # These operations can take varying amounts of time based on data load
