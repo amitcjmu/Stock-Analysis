@@ -4,6 +4,7 @@ Handles asset inventory phase execution for the Unified Discovery Flow.
 """
 
 import logging
+import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -291,6 +292,19 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                     discovery_flow_id = self.state.flow_internal_id
                 elif hasattr(self.state, "flow_id"):
                     discovery_flow_id = self.state.flow_id
+
+                # 🔧 CC FIX: Convert discovery_flow_id to UUID if it's a string (Qodo Bot suggestion)
+                if discovery_flow_id and isinstance(discovery_flow_id, str):
+                    try:
+                        discovery_flow_id = uuid.UUID(discovery_flow_id)
+                        logger.info(
+                            f"🔧 Converted discovery_flow_id from string to UUID: {discovery_flow_id}"
+                        )
+                    except ValueError as e:
+                        logger.error(
+                            f"❌ Invalid UUID format for discovery_flow_id: {discovery_flow_id} - {e}"
+                        )
+                        return
 
                 if not discovery_flow_id:
                     logger.error(
