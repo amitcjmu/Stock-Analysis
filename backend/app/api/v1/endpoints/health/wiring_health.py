@@ -83,8 +83,8 @@ async def check_wiring_health(
                 ~exists(
                     select(1).where(
                         RawImportRecord.id == Asset.raw_import_records_id,
-                        RawImportRecord.client_account_id == context.client_account_id,
-                        RawImportRecord.engagement_id == context.engagement_id,
+                        RawImportRecord.client_account_id == Asset.client_account_id,
+                        RawImportRecord.engagement_id == Asset.engagement_id,
                     )
                 ),
             )
@@ -111,6 +111,7 @@ async def check_wiring_health(
                                 RawImportRecord.id == Asset.raw_import_records_id,
                                 RawImportRecord.client_account_id
                                 == context.client_account_id,
+                                RawImportRecord.engagement_id == context.engagement_id,
                             )
                         ),
                     )

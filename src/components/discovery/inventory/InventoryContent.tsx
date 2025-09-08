@@ -73,10 +73,10 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
 
   // Safety: auto-revert to 'all' if flowId disappears while in 'current_flow'
   React.useEffect(() => {
-    if (!flowId && viewMode === 'current_flow') {
-      setViewMode('all');
+    if (!flowId) {
+      setViewMode((prev) => (prev === 'current_flow' ? 'all' : prev));
     }
-  }, [flowId, viewMode]);
+  }, [flowId]);
 
   // Check for collectionFlowId parameter to auto-show application selection modal
   React.useEffect(() => {
@@ -92,7 +92,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   // Get assets data - fetch from API endpoint that returns assets based on view mode
   // Updated to support both "All Assets" and "Current Flow Only" modes
   const { data: assetsData, isLoading: assetsLoading, refetch: refetchAssets } = useQuery({
-    queryKey: ['discovery-assets', client?.id, engagement?.id, viewMode, flowId ?? null],
+    queryKey: ['discovery-assets', String(client?.id ?? ''), String(engagement?.id ?? ''), viewMode, String(flowId ?? '')],
     queryFn: async () => {
       try {
         // Import API call function with proper headers
@@ -105,13 +105,24 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         });
 
         // Only include flow_id when in current_flow mode and flowId is available
-        if (viewMode === 'current_flow' && typeof flowId === 'string' && flowId.length > 0) {
-          queryParams.append('flow_id', String(flowId));
+        const normalizedFlowId = flowId ? String(flowId) : '';
+        if (viewMode === 'current_flow' && normalizedFlowId) {
+          queryParams.append('flow_id', normalizedFlowId);
         }
 
         // First try to fetch from the database API with proper context headers
         // The apiCall function will handle the proxy and headers correctly
         const response = await apiCall(`/unified-discovery/assets?${queryParams.toString()}`);
+
+        // Validate response status
+        if (!response || (typeof response.status === 'number' && response.status >= 400)) {
+          throw new Error(`Assets API error${response?.status ? ` (status ${response.status})` : ''}`);
+        }
+
+        // Validate response shape
+        if (!response || typeof response !== 'object') {
+          throw new Error('Invalid assets response shape');
+        }
 
         console.log('📊 Assets API response:', response);
 
@@ -534,11 +545,14 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
                 id="view-mode-toggle"
                 checked={viewMode === 'current_flow'}
                 onCheckedChange={(checked) => {
+                  if (assetsLoading) return; // Prevent toggling during loading
                   if (!flowId && checked) return; // Guard against switching to current_flow without flowId
                   setViewMode(checked ? 'current_flow' : 'all');
                   setCurrentPage(1); // Reset pagination when switching modes
                 }}
-                disabled={!flowId} // Disable toggle if no flow is available
+                disabled={!flowId || assetsLoading} // Disable toggle if no flow is available or loading
+                aria-disabled={!flowId || assetsLoading}
+                aria-busy={assetsLoading}
               />
               <Label
                 htmlFor="view-mode-toggle"
