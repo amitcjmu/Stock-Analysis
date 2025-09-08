@@ -10,7 +10,6 @@ This addresses ADR-015: Persistent Multi-Tenant Agent Architecture
 
 import asyncio
 import logging
-import threading
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
@@ -59,7 +58,9 @@ class TenantScopedAgentPool:
     _pool_lock = asyncio.Lock()  # Thread safety for agent pool access
 
     # Memory monitoring and cleanup scheduling
-    _cleanup_scheduler: Optional[threading.Timer] = None
+    # 🔧 GPT5 FIX: Use async task instead of threading.Timer to avoid event loop creation
+    _cleanup_task: Optional[asyncio.Task] = None
+    _cleanup_shutdown: bool = False
     _memory_threshold_mb: float = 1000.0  # 1GB memory threshold
     _cleanup_interval_minutes: int = 30  # Cleanup every 30 minutes
     _max_idle_hours: int = 24  # Remove agents idle for 24+ hours
@@ -253,35 +254,53 @@ class TenantScopedAgentPool:
             return Agent()
 
     @classmethod
+    async def _cleanup_scheduler_task(cls):
+        """
+        Async cleanup scheduler task that runs in the background.
+        
+        🔧 GPT5 FIX: Replaces threading.Timer with proper async scheduling
+        to avoid creating new event loops in threads. This runs as a background
+        task in the main async event loop instead of spawning threads.
+        """
+        logger.info(
+            f"🧹 Starting async cleanup scheduler (interval: {cls._cleanup_interval_minutes}min, "
+            f"max idle: {cls._max_idle_hours}h)"
+        )
+        
+        while not cls._cleanup_shutdown:
+            try:
+                await asyncio.sleep(cls._cleanup_interval_minutes * 60)
+                if not cls._cleanup_shutdown:
+                    await PoolManager.cleanup_idle_pools(cls._max_idle_hours)
+            except asyncio.CancelledError:
+                logger.info("🧹 Cleanup scheduler cancelled")
+                break
+            except Exception as e:
+                logger.error(f"❌ Cleanup scheduler error: {e}")
+                # Continue running even on errors
+                await asyncio.sleep(60)  # Wait 1 minute before retry
+
+    @classmethod
     def _schedule_cleanup(cls):
-        """Schedule automatic cleanup of idle pools."""
-        if cls._cleanup_scheduler and cls._cleanup_scheduler.is_alive():
+        """
+        Schedule automatic cleanup using async task instead of threading.Timer.
+        
+        🔧 GPT5 FIX: Uses asyncio.create_task instead of threading.Timer
+        to avoid event loop creation issues in background threads.
+        """
+        if cls._cleanup_task and not cls._cleanup_task.done():
             return  # Already scheduled
 
-        def cleanup_task():
-            try:
-                # Run async cleanup
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(
-                    PoolManager.cleanup_idle_pools(cls._max_idle_hours)
-                )
-                loop.close()
-            except Exception as e:
-                logger.error(f"Cleanup task failed: {e}")
-            finally:
-                # Reschedule
-                cls._cleanup_scheduler = threading.Timer(
-                    cls._cleanup_interval_minutes * 60, cleanup_task
-                )
-                cls._cleanup_scheduler.daemon = True
-                cls._cleanup_scheduler.start()
-
-        cls._cleanup_scheduler = threading.Timer(
-            cls._cleanup_interval_minutes * 60, cleanup_task
-        )
-        cls._cleanup_scheduler.daemon = True
-        cls._cleanup_scheduler.start()
+        try:
+            # Create background task in current event loop
+            cls._cleanup_task = asyncio.create_task(cls._cleanup_scheduler_task())
+            logger.info("✅ Async cleanup scheduler started")
+        except RuntimeError:
+            # No event loop running - this is acceptable during testing
+            logger.warning(
+                "⚠️ No event loop available for cleanup scheduler. "
+                "Cleanup will be handled manually when needed."
+            )
 
     # Delegate methods to modular components
     @classmethod
@@ -341,6 +360,24 @@ class TenantScopedAgentPool:
     async def _check_agent_health(cls, agent: Agent) -> AgentHealth:
         """Check agent health - delegate to config manager."""
         return await AgentConfigManager.check_agent_health(agent)
+
+    @classmethod
+    async def shutdown_cleanup_scheduler(cls):
+        """
+        Gracefully shutdown the cleanup scheduler.
+        
+        🔧 GPT5 FIX: Provides clean shutdown for async cleanup scheduler
+        to avoid leaving background tasks running during application shutdown.
+        """
+        cls._cleanup_shutdown = True
+        
+        if cls._cleanup_task and not cls._cleanup_task.done():
+            cls._cleanup_task.cancel()
+            try:
+                await cls._cleanup_task
+            except asyncio.CancelledError:
+                pass
+            logger.info("✅ Cleanup scheduler shutdown complete")
 
 
 # Deprecated function for backward compatibility
