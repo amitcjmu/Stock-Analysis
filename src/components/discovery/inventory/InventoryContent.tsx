@@ -393,137 +393,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     }
   }, [needsClassification, assets.length]);
 
-  // No phase-based restrictions - inventory should be accessible at any time
-
-  if (assetsLoading || isExecutingPhase) {
-    return (
-      <div className={`space-y-6 ${className}`}>
-        <ViewModeToggle />
-        <div className="animate-pulse">
-          <div className="h-32 bg-gray-200 rounded mb-4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
-        {isExecutingPhase && (
-          <div className="text-center text-gray-600 mt-4">
-            <p className="font-medium">Processing asset inventory...</p>
-            <p className="text-sm mt-2">The AI agents are analyzing and classifying your assets.</p>
-            <p className="text-sm">This process may take up to 6 minutes for large inventories.</p>
-            <p className="text-sm mt-1 text-blue-600">
-              View Mode: {viewMode === 'all' ? 'All Assets' : 'Current Flow Only'}
-            </p>
-            <div className="mt-4">
-              <div className="inline-flex items-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                <span className="text-sm text-gray-500">Processing in background...</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Show error fallback if backend is having issues
-  if (hasBackendError && !assetsLoading) {
-    return (
-      <div className={`${className}`}>
-        <ViewModeToggle />
-        <InventoryContentFallback
-          error={`Backend service is temporarily unavailable. Please try again in a few moments. (View Mode: ${viewMode === 'all' ? 'All Assets' : 'Current Flow Only'})`}
-          onRetry={() => refetchAssets()}
-        />
-      </div>
-    );
-  }
-
-  // Show a helpful message when there are no assets
-  if (assets.length === 0 && !assetsLoading) {
-    // Check if we need to execute the asset inventory phase
-    const shouldExecuteInventoryPhase = flow &&
-      flow.phase_completion?.data_cleansing === true &&
-      flow.phase_completion?.inventory !== true &&
-      flow.current_phase !== 'asset_inventory' &&
-      !isExecutingPhase;
-
-    // Check if inventory processing might be starting soon
-    const mightStartProcessing = flow && flow.raw_data && flow.raw_data.length > 0 && !hasTriggeredInventory;
-
-    return (
-      <div className={`space-y-6 ${className}`}>
-        <ViewModeToggle />
-        <Card>
-          <CardContent className="p-8">
-            <div className="text-center">
-              {mightStartProcessing ? (
-                <>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Preparing Asset Inventory</h3>
-                  <p className="text-gray-600 mb-4">
-                    The system is preparing to process your asset inventory.
-                  </p>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Processing will begin automatically in a moment...
-                  </p>
-                  <div className="inline-flex items-center">
-                    <div className="animate-pulse rounded-full h-3 w-3 bg-blue-600 mr-2"></div>
-                    <span className="text-sm text-gray-500">Initializing...</span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Assets Found</h3>
-                  <p className="text-gray-600 mb-4">
-                    {viewMode === 'current_flow' && flow ?
-                      "The asset inventory will be populated once the inventory phase is executed for this flow." :
-                      viewMode === 'current_flow' && !flow ?
-                      "No flow is selected or the flow has no assets yet." :
-                      "No assets have been discovered yet for this client and engagement."
-                    }
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {viewMode === 'all'
-                      ? "Assets are created during discovery flows or can be imported directly. Try switching to 'All Assets' mode to see assets from other flows."
-                      : "Assets are created during the discovery flow process or can be imported directly. Try switching to 'All Assets' mode to see all available assets."
-                    }
-                  </p>
-                  {shouldExecuteInventoryPhase && (
-                    <div className="mt-6">
-                      <p className="text-sm text-gray-600 mb-4">
-                        Data cleansing is complete. Click below to create the asset inventory.
-                      </p>
-                      <button
-                        onClick={async () => {
-                          try {
-                            console.log('📦 Executing asset inventory phase...');
-                            await executeFlowPhase('asset_inventory', {
-                              trigger: 'user_initiated',
-                              source: 'inventory_page'
-                            });
-                            // Refetch assets after execution
-                            setTimeout(() => {
-                              refetchAssets();
-                              refreshFlow();
-                            }, 2000);
-                          } catch (error) {
-                            console.error('Failed to execute asset inventory phase:', error);
-                          }
-                        }}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        disabled={isExecutingPhase}
-                      >
-                        Create Asset Inventory
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // View Mode Toggle Component
+  // View Mode Toggle Component - defined here for consistent access across all states
   const ViewModeToggle = () => (
     <Card className="mb-6">
       <CardContent className="p-4">
@@ -582,98 +452,221 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     </Card>
   );
 
+  // Render ViewModeToggle at top level, always visible regardless of state
   return (
     <div className={`space-y-6 ${className}`}>
       <ViewModeToggle />
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto mb-6">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="inventory">Inventory</TabsTrigger>
-          <TabsTrigger value="insights">AI Insights</TabsTrigger>
-        </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          <InventoryOverview inventoryProgress={inventoryProgress} />
-          <ClassificationProgress
-            inventoryProgress={inventoryProgress}
-            onRefresh={handleRefreshClassification}
-            needsClassification={needsClassification}
-          />
-          <ClassificationCards
-            inventoryProgress={inventoryProgress}
-            selectedAssetType={filters.selectedAssetType}
-            onAssetTypeSelect={handleClassificationCardClick}
-            flowId={flowId}
-          />
-          <NextStepCard inventoryProgress={inventoryProgress} />
-
-          {/* Show filtered asset details below Next Step when a type is selected */}
-          {filters.selectedAssetType !== 'all' && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold mb-4">
-                {filters.selectedAssetType.charAt(0).toUpperCase() + filters.selectedAssetType.slice(1)} Assets
-              </h3>
-              <AssetTable
-                assets={assets}
-                filteredAssets={filteredAssets}
-                selectedAssets={selectedAssets}
-                onSelectAsset={handleSelectAsset}
-                onSelectAll={handleSelectAll}
-                searchTerm={filters.searchTerm}
-                onSearchChange={(value) => updateFilter('searchTerm', value)}
-                selectedEnvironment={filters.selectedEnvironment}
-                onEnvironmentChange={(value) => updateFilter('selectedEnvironment', value)}
-                uniqueEnvironments={uniqueEnvironments}
-                showAdvancedFilters={filters.showAdvancedFilters}
-                onToggleAdvancedFilters={() => updateFilter('showAdvancedFilters', !filters.showAdvancedFilters)}
-                onExport={handleExportAssets}
-                currentPage={currentPage}
-                recordsPerPage={RECORDS_PER_PAGE}
-                onPageChange={setCurrentPage}
-                selectedColumns={selectedColumns}
-                allColumns={allColumns}
-                onToggleColumn={toggleColumn}
-                onReclassifySelected={handleReclassifySelected}
-                isReclassifying={isReclassifying}
-                onProcessForAssessment={handleProcessForAssessment}
-                isApplicationsSelected={isApplicationsSelected}
-              />
+      {/* Loading State */}
+      {(assetsLoading || isExecutingPhase) && (
+        <>
+          <div className="animate-pulse">
+            <div className="h-32 bg-gray-200 rounded mb-4"></div>
+            <div className="h-64 bg-gray-200 rounded"></div>
+          </div>
+          {isExecutingPhase && (
+            <div className="text-center text-gray-600 mt-4">
+              <p className="font-medium">Processing asset inventory...</p>
+              <p className="text-sm mt-2">The AI agents are analyzing and classifying your assets.</p>
+              <p className="text-sm">This process may take up to 6 minutes for large inventories.</p>
+              <p className="text-sm mt-1 text-blue-600">
+                View Mode: {viewMode === 'all' ? 'All Assets' : 'Current Flow Only'}
+              </p>
+              <div className="mt-4">
+                <div className="inline-flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                  <span className="text-sm text-gray-500">Processing in background...</span>
+                </div>
+              </div>
             </div>
           )}
-        </TabsContent>
+        </>
+      )}
 
-        <TabsContent value="inventory">
-          <AssetTable
-            assets={assets}
-            filteredAssets={filteredAssets}
-            selectedAssets={selectedAssets}
-            onSelectAsset={handleSelectAsset}
-            onSelectAll={handleSelectAll}
-            searchTerm={filters.searchTerm}
-            onSearchChange={(value) => updateFilter('searchTerm', value)}
-            selectedEnvironment={filters.selectedEnvironment}
-            onEnvironmentChange={(value) => updateFilter('selectedEnvironment', value)}
-            uniqueEnvironments={uniqueEnvironments}
-            showAdvancedFilters={filters.showAdvancedFilters}
-            onToggleAdvancedFilters={() => updateFilter('showAdvancedFilters', !filters.showAdvancedFilters)}
-            onExport={handleExportAssets}
-            currentPage={currentPage}
-            recordsPerPage={RECORDS_PER_PAGE}
-            onPageChange={setCurrentPage}
-            selectedColumns={selectedColumns}
-            allColumns={allColumns}
-            onToggleColumn={toggleColumn}
-            onReclassifySelected={handleReclassifySelected}
-            isReclassifying={isReclassifying}
-            onProcessForAssessment={handleProcessForAssessment}
-            isApplicationsSelected={isApplicationsSelected}
-          />
-        </TabsContent>
+      {/* Error State */}
+      {hasBackendError && !assetsLoading && (
+        <InventoryContentFallback
+          error={`Backend service is temporarily unavailable. Please try again in a few moments. (View Mode: ${viewMode === 'all' ? 'All Assets' : 'Current Flow Only'})`}
+          onRetry={() => refetchAssets()}
+        />
+      )}
 
-        <TabsContent value="insights">
-          <EnhancedInventoryInsights flowId={flowId} />
-        </TabsContent>
-      </Tabs>
+      {/* Empty State */}
+      {assets.length === 0 && !assetsLoading && !hasBackendError && (() => {
+        // Check if we need to execute the asset inventory phase
+        const shouldExecuteInventoryPhase = flow &&
+          flow.phase_completion?.data_cleansing === true &&
+          flow.phase_completion?.inventory !== true &&
+          flow.current_phase !== 'asset_inventory' &&
+          !isExecutingPhase;
+
+        // Check if inventory processing might be starting soon
+        const mightStartProcessing = flow && flow.raw_data && flow.raw_data.length > 0 && !hasTriggeredInventory;
+
+        return (
+          <Card>
+            <CardContent className="p-8">
+              <div className="text-center">
+                {mightStartProcessing ? (
+                  <>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Preparing Asset Inventory</h3>
+                    <p className="text-gray-600 mb-4">
+                      The system is preparing to process your asset inventory.
+                    </p>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Processing will begin automatically in a moment...
+                    </p>
+                    <div className="inline-flex items-center">
+                      <div className="animate-pulse rounded-full h-3 w-3 bg-blue-600 mr-2"></div>
+                      <span className="text-sm text-gray-500">Initializing...</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Assets Found</h3>
+                    <p className="text-gray-600 mb-4">
+                      {viewMode === 'current_flow' && flow ?
+                        "The asset inventory will be populated once the inventory phase is executed for this flow." :
+                        viewMode === 'current_flow' && !flow ?
+                        "No flow is selected or the flow has no assets yet." :
+                        "No assets have been discovered yet for this client and engagement."
+                      }
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {viewMode === 'all'
+                        ? "Assets are created during discovery flows or can be imported directly. Try switching to 'All Assets' mode to see assets from other flows."
+                        : "Assets are created during the discovery flow process or can be imported directly. Try switching to 'All Assets' mode to see all available assets."
+                      }
+                    </p>
+                    {shouldExecuteInventoryPhase && (
+                      <div className="mt-6">
+                        <p className="text-sm text-gray-600 mb-4">
+                          Data cleansing is complete. Click below to create the asset inventory.
+                        </p>
+                        <button
+                          onClick={async () => {
+                            try {
+                              console.log('📦 Executing asset inventory phase...');
+                              await executeFlowPhase('asset_inventory', {
+                                trigger: 'user_initiated',
+                                source: 'inventory_page'
+                              });
+                              // Refetch assets after execution
+                              setTimeout(() => {
+                                refetchAssets();
+                                refreshFlow();
+                              }, 2000);
+                            } catch (error) {
+                              console.error('Failed to execute asset inventory phase:', error);
+                            }
+                          }}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          disabled={isExecutingPhase}
+                        >
+                          Create Asset Inventory
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
+      {/* Main Content State - Only render when we have assets */}
+      {assets.length > 0 && !assetsLoading && !hasBackendError && (
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto mb-6">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="inventory">Inventory</TabsTrigger>
+            <TabsTrigger value="insights">AI Insights</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            <InventoryOverview inventoryProgress={inventoryProgress} />
+            <ClassificationProgress
+              inventoryProgress={inventoryProgress}
+              onRefresh={handleRefreshClassification}
+              needsClassification={needsClassification}
+            />
+            <ClassificationCards
+              inventoryProgress={inventoryProgress}
+              selectedAssetType={filters.selectedAssetType}
+              onAssetTypeSelect={handleClassificationCardClick}
+              flowId={flowId}
+            />
+            <NextStepCard inventoryProgress={inventoryProgress} />
+
+            {/* Show filtered asset details below Next Step when a type is selected */}
+            {filters.selectedAssetType !== 'all' && (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-4">
+                  {filters.selectedAssetType.charAt(0).toUpperCase() + filters.selectedAssetType.slice(1)} Assets
+                </h3>
+                <AssetTable
+                  assets={assets}
+                  filteredAssets={filteredAssets}
+                  selectedAssets={selectedAssets}
+                  onSelectAsset={handleSelectAsset}
+                  onSelectAll={handleSelectAll}
+                  searchTerm={filters.searchTerm}
+                  onSearchChange={(value) => updateFilter('searchTerm', value)}
+                  selectedEnvironment={filters.selectedEnvironment}
+                  onEnvironmentChange={(value) => updateFilter('selectedEnvironment', value)}
+                  uniqueEnvironments={uniqueEnvironments}
+                  showAdvancedFilters={filters.showAdvancedFilters}
+                  onToggleAdvancedFilters={() => updateFilter('showAdvancedFilters', !filters.showAdvancedFilters)}
+                  onExport={handleExportAssets}
+                  currentPage={currentPage}
+                  recordsPerPage={RECORDS_PER_PAGE}
+                  onPageChange={setCurrentPage}
+                  selectedColumns={selectedColumns}
+                  allColumns={allColumns}
+                  onToggleColumn={toggleColumn}
+                  onReclassifySelected={handleReclassifySelected}
+                  isReclassifying={isReclassifying}
+                  onProcessForAssessment={handleProcessForAssessment}
+                  isApplicationsSelected={isApplicationsSelected}
+                />
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="inventory">
+            <AssetTable
+              assets={assets}
+              filteredAssets={filteredAssets}
+              selectedAssets={selectedAssets}
+              onSelectAsset={handleSelectAsset}
+              onSelectAll={handleSelectAll}
+              searchTerm={filters.searchTerm}
+              onSearchChange={(value) => updateFilter('searchTerm', value)}
+              selectedEnvironment={filters.selectedEnvironment}
+              onEnvironmentChange={(value) => updateFilter('selectedEnvironment', value)}
+              uniqueEnvironments={uniqueEnvironments}
+              showAdvancedFilters={filters.showAdvancedFilters}
+              onToggleAdvancedFilters={() => updateFilter('showAdvancedFilters', !filters.showAdvancedFilters)}
+              onExport={handleExportAssets}
+              currentPage={currentPage}
+              recordsPerPage={RECORDS_PER_PAGE}
+              onPageChange={setCurrentPage}
+              selectedColumns={selectedColumns}
+              allColumns={allColumns}
+              onToggleColumn={toggleColumn}
+              onReclassifySelected={handleReclassifySelected}
+              isReclassifying={isReclassifying}
+              onProcessForAssessment={handleProcessForAssessment}
+              isApplicationsSelected={isApplicationsSelected}
+            />
+          </TabsContent>
+
+          <TabsContent value="insights">
+            <EnhancedInventoryInsights flowId={flowId} />
+          </TabsContent>
+        </Tabs>
+      )}
 
       {/* Application Selection Modal */}
       {showApplicationModal && (

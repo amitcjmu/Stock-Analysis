@@ -43,6 +43,15 @@ async def check_wiring_health(
     Uses tenant isolation and includes performance optimizations.
     """
 
+    # Validate tenant access authorization
+    if (
+        not hasattr(current_user, "client_account_id")
+        or current_user.client_account_id != context.client_account_id
+    ):
+        raise HTTPException(
+            status_code=403, detail="Access denied: insufficient tenant permissions"
+        )
+
     # Cache key based on tenant + detail mode
     cache_key = hashlib.md5(
         f"{context.client_account_id}:{context.engagement_id}:{detail}".encode()
@@ -304,6 +313,15 @@ async def get_wiring_repair_recommendations(
     Returns actionable recommendations for fixing data wiring problems
     identified by the health check.
     """
+
+    # Validate tenant access authorization
+    if (
+        not hasattr(current_user, "client_account_id")
+        or current_user.client_account_id != context.client_account_id
+    ):
+        raise HTTPException(
+            status_code=403, detail="Access denied: insufficient tenant permissions"
+        )
 
     try:
         recommendations = []
