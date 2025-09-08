@@ -8,7 +8,7 @@ import math
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
 # === FIELD MAPPING ENUMS ===
@@ -156,13 +156,11 @@ class FieldMappingItem(BaseModel):
         cleaned = str(v).strip()
         return cleaned if cleaned and cleaned != "UNMAPPED" else None
 
-    class Config:
-        """Pydantic configuration for field mapping validation"""
-
-        str_strip_whitespace = True
-        validate_assignment = True
-        use_enum_values = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+        use_enum_values=True,
+        json_schema_extra={
             "example": {
                 "source_field": "customer_name",
                 "target_field": "asset.name",
@@ -171,7 +169,8 @@ class FieldMappingItem(BaseModel):
                 "transformation": None,
                 "validation_rules": "NOT_NULL",
             }
-        }
+        },
+    )
 
 
 class FieldMappingsResponse(BaseModel):
@@ -219,12 +218,10 @@ class FieldMappingsResponse(BaseModel):
             return len(field_mappings)
         return v if isinstance(v, int) and v >= 0 else 0
 
-    class Config:
-        """Pydantic configuration for response validation"""
-
-        validate_assignment = True
-        use_enum_values = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        validate_assignment=True,
+        use_enum_values=True,
+        json_schema_extra={
             "example": {
                 "success": True,
                 "flow_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -240,7 +237,8 @@ class FieldMappingsResponse(BaseModel):
                 ],
                 "count": 1,
             }
-        }
+        },
+    )
 
 
 # === ADDITIONAL FIELD MAPPING SCHEMAS ===

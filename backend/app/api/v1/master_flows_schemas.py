@@ -6,7 +6,7 @@ Response models for master flow endpoints
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class MasterFlowSummaryResponse(BaseModel):
@@ -52,5 +52,4 @@ class DiscoveryFlowResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

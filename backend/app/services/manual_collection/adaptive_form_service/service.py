@@ -81,7 +81,7 @@ class AdaptiveFormService(FormCreationMixin):
         )
 
         # Calculate estimated completion time (2-3 minutes per field on average)
-        estimated_time = max(5, min(30, total_fields * 2.5))
+        estimated_time = max(5, min(30, int(round(total_fields * 2.5))))
 
         # Calculate confidence impact score
         confidence_impact = self._calculate_confidence_impact(sections)

@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
 class FieldMappingCreate(BaseModel):
@@ -50,8 +50,7 @@ class FieldMappingResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class FieldMappingSuggestion(BaseModel):
@@ -87,7 +86,8 @@ class CustomFieldCreate(BaseModel):
     is_required: bool = Field(False)
     validation_rules: Optional[Dict[str, Any]] = Field(None)
 
-    @validator("name")
+    @field_validator("name")
+    @classmethod
     def validate_field_name(cls, v):
         """Validate field name format."""
         if not v.isidentifier():
@@ -105,8 +105,7 @@ class TargetFieldDefinition(BaseModel):
     validation_rules: Optional[Dict[str, Any]] = None
     category: str = Field(default="custom")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MappingValidationRequest(BaseModel):
@@ -191,7 +190,7 @@ class BulkLearningRequest(BaseModel):
     """Schema for bulk learning from multiple mappings."""
 
     actions: List[MappingLearningAction] = Field(
-        ..., min_items=1, description="List of learning actions to perform"
+        ..., min_length=1, description="List of learning actions to perform"
     )
     learn_globally: bool = Field(
         True,

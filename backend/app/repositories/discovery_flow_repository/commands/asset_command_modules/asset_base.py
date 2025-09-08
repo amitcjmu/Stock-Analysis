@@ -8,7 +8,7 @@ import logging
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..queries.asset_queries import AssetQueries
+from ...queries.asset_queries import AssetQueries
 
 logger = logging.getLogger(__name__)
 

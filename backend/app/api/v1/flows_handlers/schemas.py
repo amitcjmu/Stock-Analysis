@@ -6,7 +6,7 @@ Request and response models for flow operations.
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
 class CreateFlowRequest(BaseModel):
@@ -25,7 +25,8 @@ class CreateFlowRequest(BaseModel):
         default_factory=dict, description="Initial state data"
     )
 
-    @validator("flow_type")
+    @field_validator("flow_type")
+    @classmethod
     def validate_flow_type(cls, v):
         """Validate flow type is not empty"""
         if not v or not v.strip():
@@ -48,8 +49,7 @@ class FlowResponse(BaseModel):
     configuration: Dict[str, Any]
     metadata: Dict[str, Any]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ExecutePhaseRequest(BaseModel):
@@ -79,8 +79,7 @@ class FlowStatusResponse(BaseModel):
     error_details: Optional[Dict[str, Any]]
     performance_metrics: Dict[str, Any]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class FlowListResponse(BaseModel):

@@ -20,7 +20,7 @@ import uuid
 
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from app.core.context import RequestContext
 from app.core.security.secure_logging import safe_log_format
@@ -42,11 +42,12 @@ logger = logging.getLogger(__name__)
 class ApplicationIntegrationRequest(BaseModel):
     """Type-safe model for application integration requests"""
 
-    applications_data: List[Dict[str, Any]] = Field(..., min_items=1, max_items=1000)
+    applications_data: List[Dict[str, Any]] = Field(..., min_length=1, max_length=1000)
     client_account_id: uuid.UUID = Field(...)
     engagement_id: uuid.UUID = Field(...)
 
-    @validator("applications_data")
+    @field_validator("applications_data")
+    @classmethod
     def validate_applications_data(cls, v):
         """Validate application data structure"""
         for i, app_data in enumerate(v):
@@ -67,7 +68,8 @@ class QuestionnaireSubmissionData(BaseModel):
     completion_percentage: float = Field(ge=0.0, le=100.0, default=0.0)
     submission_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
-    @validator("submission_metadata")
+    @field_validator("submission_metadata")
+    @classmethod
     def validate_metadata_size(cls, v):
         """Limit metadata size for security"""
         if v and len(str(v)) > 50000:  # 50KB limit

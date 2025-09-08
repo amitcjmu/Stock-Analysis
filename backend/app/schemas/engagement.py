@@ -65,6 +65,7 @@ class EngagementBase(BaseModel):
     )
 
     @field_validator("target_completion_date")
+    @classmethod
     def validate_dates(cls, v, values):
         if (
             v
@@ -119,8 +120,8 @@ class Engagement(EngagementBase):
 class EngagementResponse(Engagement):
     """Response model for engagement data"""
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "id": "550e8400-e29b-41d4-a716-446655440000",
                 "name": "Cloud Migration Project",
@@ -139,3 +140,4 @@ class EngagementResponse(Engagement):
                 "updated_at": "2023-01-01T00:00:00Z",
             }
         }
+    )

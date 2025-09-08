@@ -5,7 +5,7 @@ Pydantic schemas for dependency data.
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import UUID4, BaseModel
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 class DependencyBase(BaseModel):
@@ -31,8 +31,7 @@ class DependencyResponse(DependencyBase):
     depends_on_asset_id: UUID4
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ApplicationInfo(BaseModel):

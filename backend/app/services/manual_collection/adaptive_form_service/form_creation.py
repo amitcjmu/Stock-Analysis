@@ -21,6 +21,10 @@ class FormCreationMixin:
     questionnaire data while preserving gap field names for proper resolution.
     """
 
+    def _get_logger(self):
+        """Get instance logger if present, else fallback to module logger"""
+        return getattr(self, "logger", logger)
+
     async def create_adaptive_form(
         self,
         questionnaire_data: Dict[str, Any],
@@ -42,7 +46,8 @@ class FormCreationMixin:
             Form configuration dict or None if creation fails
         """
         try:
-            self.logger.info("Creating adaptive form from questionnaire data")
+            log = self._get_logger()
+            log.info("Creating adaptive form from questionnaire data")
 
             # Build gap lookup by field_name for quick access
             gap_lookup = {
@@ -75,7 +80,7 @@ class FormCreationMixin:
                     ]
 
             if not sections:
-                self.logger.warning("No sections found in questionnaire data")
+                log.warning("No sections found in questionnaire data")
                 return None
 
             # Build form configuration
@@ -118,13 +123,14 @@ class FormCreationMixin:
                 if section_config["fields"]:  # Only add sections with fields
                     form_config["sections"].append(section_config)
 
-            self.logger.info(
+            log.info(
                 f"Created adaptive form with {len(form_config['sections'])} sections"
             )
             return form_config
 
         except Exception as e:
-            self.logger.error(f"Failed to create adaptive form from questionnaire: {e}")
+            log = self._get_logger()
+            log.error(f"Failed to create adaptive form from questionnaire: {e}")
             return None
 
     def _create_field_from_question(
@@ -137,16 +143,17 @@ class FormCreationMixin:
         to enable proper gap resolution when responses are submitted.
         """
         try:
+            log = self._get_logger()
             # Extract question ID - this should be the gap field_name
             question_id = question.get("question_id")
             if not question_id:
-                self.logger.warning("Question missing question_id, skipping")
+                log.warning("Question missing question_id, skipping")
                 return None
 
             # Look up the corresponding gap
             gap = gap_lookup.get(question_id)
             if not gap:
-                self.logger.warning(f"No gap found for question_id: {question_id}")
+                log.warning(f"No gap found for question_id: {question_id}")
                 # Still create the field but note the issue
 
             # Map question types to form field types
@@ -203,5 +210,6 @@ class FormCreationMixin:
             return field_config
 
         except Exception as e:
-            self.logger.error(f"Failed to create field from question: {e}")
+            log = self._get_logger()
+            log.error(f"Failed to create field from question: {e}")
             return None

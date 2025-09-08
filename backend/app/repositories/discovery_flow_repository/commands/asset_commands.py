@@ -11,10 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
 
-from .asset_commands.asset_base import AssetCommandsBase
-from .asset_commands.asset_creation import AssetCreationCommands
-from .asset_commands.asset_updates import AssetUpdateCommands
-from .asset_commands.asset_utils import AssetUtilityCommands
+from .asset_command_modules.asset_base import AssetCommandsBase
+from .asset_command_modules.asset_creation import AssetCreationCommands
+from .asset_command_modules.asset_updates import AssetUpdateCommands
+from .asset_command_modules.asset_utils import AssetUtilityCommands
 
 
 class AssetCommands(AssetCommandsBase):

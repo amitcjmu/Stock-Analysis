@@ -5,7 +5,7 @@ Pydantic schemas for Collection Flow API
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class CollectionFlowCreate(BaseModel):
@@ -67,8 +67,7 @@ class CollectionFlowResponse(BaseModel):
     assessment_flow_id: Optional[str] = None
     assessment_transition_date: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CollectionGapAnalysisResponse(BaseModel):
@@ -87,8 +86,7 @@ class CollectionGapAnalysisResponse(BaseModel):
     resolution_status: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CollectionGapAnalysisSummaryResponse(BaseModel):
@@ -113,8 +111,7 @@ class CollectionGapAnalysisSummaryResponse(BaseModel):
     analyzed_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class QuestionnaireSubmissionRequest(BaseModel):
@@ -148,8 +145,7 @@ class AdaptiveQuestionnaireResponse(BaseModel):
     created_at: datetime
     completed_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ManageFlowRequest(BaseModel):
@@ -183,7 +179,7 @@ class CollectionApplicationSelectionRequest(BaseModel):
     selected_application_ids: List[str] = Field(
         ...,
         description="List of application IDs to include in the collection flow",
-        min_items=1,
+        min_length=1,
     )
     action: Optional[str] = Field(
         default="update_applications",

@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from app.models.platform_credentials import (
     CredentialStatus,
@@ -32,7 +32,8 @@ class CredentialCreate(CredentialBase):
     credential_data: Dict[str, Any]
     vault_provider: Optional[VaultProvider] = VaultProvider.LOCAL
 
-    @validator("credential_data")
+    @field_validator("credential_data")
+    @classmethod
     def validate_credential_data(cls, v, values):
         if not v:
             raise ValueError("Credential data cannot be empty")
@@ -64,9 +65,10 @@ class CredentialResponse(CredentialBase):
         None  # Only included when explicitly requested
     )
 
-    class Config:
-        orm_mode = True
-        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_encoders={datetime: lambda v: v.isoformat() if v else None},
+    )
 
 
 class CredentialListResponse(BaseModel):
@@ -103,7 +105,8 @@ class CredentialPermissionRequest(BaseModel):
     permission_type: str = Field(..., pattern="^(read|write|delete|rotate|grant)$")
     expires_at: Optional[datetime] = None
 
-    @validator("role")
+    @field_validator("role")
+    @classmethod
     def validate_user_or_role(cls, v, values):
         if not v and not values.get("user_id"):
             raise ValueError("Either user_id or role must be specified")
@@ -131,8 +134,7 @@ class CredentialAccessLog(BaseModel):
     error_message: Optional[str] = None
     accessed_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CredentialRotationHistory(BaseModel):
@@ -149,8 +151,7 @@ class CredentialRotationHistory(BaseModel):
     error_message: Optional[str] = None
     rotated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LifecycleReport(BaseModel):
@@ -191,5 +192,4 @@ class SecurityEvent(BaseModel):
     requires_review: bool
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

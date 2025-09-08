@@ -74,12 +74,12 @@ class QuestionnaireProcessor:
             total_questions = sum(
                 len(section.get("questions", [])) for section in sections
             )
-            critical_questions = sum(
-                1
-                for section in sections
-                for question in section.get("questions", [])
-                if question.get("priority") == "critical"
-            )
+            critical_questions = 0
+            for section in sections:
+                for question in section.get("questions", []):
+                    pr = question.get("priority")
+                    if isinstance(pr, str) and pr.lower() == "critical":
+                        critical_questions += 1
 
             # Generate questionnaire deployment package
             deployment_package = create_deployment_package(
@@ -109,11 +109,28 @@ class QuestionnaireProcessor:
                     ),
                 },
                 "quality_assessment": {
-                    "question_quality_score": assess_question_quality(sections),
-                    "user_experience_score": assess_user_experience(metadata, sections),
-                    "data_quality_score": assess_data_quality(sections),
-                    "business_alignment_score": assess_business_alignment(sections),
-                    "overall_quality_score": 0,  # Will be calculated
+                    "question_quality_score": (
+                        question_quality := assess_question_quality(sections)
+                    ),
+                    "user_experience_score": (
+                        ux_score := assess_user_experience(metadata, sections)
+                    ),
+                    "data_quality_score": (
+                        data_quality := assess_data_quality(sections)
+                    ),
+                    "business_alignment_score": (
+                        business_alignment := assess_business_alignment(sections)
+                    ),
+                    "overall_quality_score": round(
+                        (
+                            question_quality
+                            + ux_score
+                            + data_quality
+                            + business_alignment
+                        )
+                        / 4.0,
+                        2,
+                    ),
                 },
                 "recommendations": {
                     "deployment_readiness": assess_deployment_readiness(

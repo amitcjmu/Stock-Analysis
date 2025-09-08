@@ -103,11 +103,11 @@ class TenantScopedAgentPool:
             return await cls._create_basic_agent(agent_type)
 
         return await cls.get_or_create_agent(
-            client_id,
-            engagement_id,
-            agent_type,
-            force_recreate,
-            {"service_registry": service_registry},
+            client_id=client_id,
+            engagement_id=engagement_id,
+            agent_type=agent_type,
+            force_recreate=force_recreate,
+            context_info={"service_registry": service_registry},
         )
 
     @classmethod
@@ -257,7 +257,7 @@ class TenantScopedAgentPool:
     async def _cleanup_scheduler_task(cls):
         """
         Async cleanup scheduler task that runs in the background.
-        
+
         🔧 GPT5 FIX: Replaces threading.Timer with proper async scheduling
         to avoid creating new event loops in threads. This runs as a background
         task in the main async event loop instead of spawning threads.
@@ -266,7 +266,7 @@ class TenantScopedAgentPool:
             f"🧹 Starting async cleanup scheduler (interval: {cls._cleanup_interval_minutes}min, "
             f"max idle: {cls._max_idle_hours}h)"
         )
-        
+
         while not cls._cleanup_shutdown:
             try:
                 await asyncio.sleep(cls._cleanup_interval_minutes * 60)
@@ -284,7 +284,7 @@ class TenantScopedAgentPool:
     def _schedule_cleanup(cls):
         """
         Schedule automatic cleanup using async task instead of threading.Timer.
-        
+
         🔧 GPT5 FIX: Uses asyncio.create_task instead of threading.Timer
         to avoid event loop creation issues in background threads.
         """
@@ -365,12 +365,12 @@ class TenantScopedAgentPool:
     async def shutdown_cleanup_scheduler(cls):
         """
         Gracefully shutdown the cleanup scheduler.
-        
+
         🔧 GPT5 FIX: Provides clean shutdown for async cleanup scheduler
         to avoid leaving background tasks running during application shutdown.
         """
         cls._cleanup_shutdown = True
-        
+
         if cls._cleanup_task and not cls._cleanup_task.done():
             cls._cleanup_task.cancel()
             try:

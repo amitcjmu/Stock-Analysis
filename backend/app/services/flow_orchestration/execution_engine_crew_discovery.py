@@ -20,8 +20,12 @@ class DictStateAdapter:
 
     def __init__(self, data: Dict[str, Any]):
         """Initialize adapter with dict data as attributes."""
-        self.__dict__.update(data)
         self._errors: List[Dict[str, str]] = []
+        # Prevent overwriting internal attributes
+        for k, v in data.items():
+            if k.startswith("_"):
+                continue
+            setattr(self, k, v)
 
     def add_error(self, key: str, message: str):
         """Add an error to the state."""

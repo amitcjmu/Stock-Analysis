@@ -94,7 +94,7 @@ class CacheConsistencyChecker:
                 "CACHE_CONSISTENCY_PERFORMANCE_THRESHOLD", 0.1
             ),
             enable_quarantine=settings.get("CACHE_CONSISTENCY_ENABLE_QUARANTINE", True),
-            quarantine_max_items=settings.get(
+            quarantine_max_length=settings.get(
                 "CACHE_CONSISTENCY_QUARANTINE_MAX", 10000
             ),
         )
