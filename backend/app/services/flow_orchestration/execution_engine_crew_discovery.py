@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 
 from app.core.logging import get_logger
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.services.flow_orchestration.unified_flow_crew_manager import (
+from app.services.crewai_flows.handlers.unified_flow_crew_manager import (
     UnifiedFlowCrewManager,
 )
 from .field_mapping_logic import FieldMappingLogic
