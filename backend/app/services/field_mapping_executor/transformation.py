@@ -107,12 +107,17 @@ class MappingTransformer(TransformationEngine):
         return data_import_id
 
     async def _get_data_import_record(self, data_import_id: str, db_session):
-        """Get data import record from database."""
+        """Get data import record from database with tenant scoping for security."""
         from uuid import UUID
         from app.models.data_import import DataImport
 
+        # SECURITY FIX: Add tenant scoping to prevent cross-tenant data access
         data_import_query = select(DataImport).where(
-            DataImport.id == UUID(data_import_id)
+            and_(
+                DataImport.id == UUID(data_import_id),
+                DataImport.client_account_id == self.client_account_id,
+                DataImport.engagement_id == self.engagement_id,
+            )
         )
         import_result = await db_session.execute(data_import_query)
         return import_result.scalar_one_or_none()

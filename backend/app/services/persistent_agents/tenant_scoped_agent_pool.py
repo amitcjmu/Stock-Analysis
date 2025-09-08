@@ -205,6 +205,14 @@ class TenantScopedAgentPool:
         pool_key = (client_id, engagement_id)
 
         try:
+            # SAFETY FIX: Immediate cleanup on start to remove stale agents
+            if not hasattr(cls, "_startup_cleanup_done"):
+                await cls.cleanup_idle_pools(
+                    max_idle_hours=1
+                )  # Clean up agents idle for 1+ hours
+                cls._startup_cleanup_done = True
+                logger.info("🧹 Completed startup cleanup of stale agent pools")
+
             # Initialize pool metadata
             cls._pool_metadata[pool_key] = TenantPoolStats(
                 client_account_id=client_id,

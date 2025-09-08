@@ -361,7 +361,10 @@ class AdaptiveFormService(FormCreationMixin):
             return True
 
         # Required for specific technology patterns
-        if "microservices" in application_context.architecture_pattern.lower():
+        if (
+            application_context.architecture_pattern
+            and "microservices" in application_context.architecture_pattern.lower()
+        ):
             if field.critical_attribute in [
                 "integration_dependencies",
                 "configuration_complexity",
