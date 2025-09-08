@@ -1,0 +1,300 @@
+"""
+Tenant Scoped Agent Pool - Agent Configuration Module
+
+This module handles agent configuration, setup, and management
+for the tenant scoped agent pool system.
+"""
+
+import asyncio
+import logging
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, Optional
+
+try:
+    from crewai import Agent, Crew
+
+    CREWAI_AVAILABLE = True
+except ImportError:
+    CREWAI_AVAILABLE = False
+
+    class Agent:
+        def __init__(self, **kwargs):
+            pass
+
+    class Crew:
+        def __init__(self, **kwargs):
+            pass
+
+
+# Import LLM configuration
+try:
+    from app.services.llm_config import get_crewai_llm
+
+    LLM_CONFIG_AVAILABLE = True
+except ImportError:
+    LLM_CONFIG_AVAILABLE = False
+
+    def get_crewai_llm():
+        return None
+
+
+from app.services.agentic_memory.three_tier_memory_manager import ThreeTierMemoryManager
+from .tool_manager import AgentToolManager
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class AgentHealth:
+    """Agent health status information."""
+
+    is_healthy: bool
+    last_check: datetime
+    response_time: float
+    memory_usage: float
+    error_count: int
+    last_error: Optional[str] = None
+
+
+class AgentConfigManager:
+    """Manages agent configuration and creation for the tenant scoped agent pool."""
+
+    @classmethod
+    async def create_agent_with_memory(
+        cls,
+        agent_type: str,
+        client_account_id: str,
+        engagement_id: str,
+        context_info: Dict[str, Any],
+    ) -> Agent:
+        """Create a new agent with memory capabilities."""
+        try:
+            if not CREWAI_AVAILABLE:
+                logger.warning("CrewAI not available, returning placeholder agent")
+                return Agent()
+
+            # Get agent configuration
+            config = cls.get_agent_config(agent_type)
+
+            # Initialize memory manager
+            try:
+                memory_manager = ThreeTierMemoryManager(
+                    client_account_id=client_account_id,
+                    engagement_id=engagement_id,
+                    agent_type=agent_type,
+                )
+                await memory_manager.initialize()
+                logger.info(f"Memory manager initialized for {agent_type}")
+            except Exception as e:
+                logger.warning(f"Failed to initialize memory manager: {e}")
+                memory_manager = None
+
+            # Get LLM for the agent
+            llm = get_crewai_llm() if LLM_CONFIG_AVAILABLE else None
+
+            # Get tools for this agent type
+            tools = AgentToolManager.get_agent_tools(agent_type, context_info)
+
+            # Create the agent with configuration
+            agent = Agent(
+                role=config["role"],
+                goal=config["goal"],
+                backstory=config["backstory"],
+                tools=tools,
+                llm=llm,
+                memory=memory_manager,
+                verbose=config.get("verbose", True),
+                allow_delegation=config.get("allow_delegation", False),
+                max_iter=config.get("max_iter", 5),
+                max_execution_time=config.get("max_execution_time", 300),
+            )
+
+            # Warm up the agent
+            await cls.warm_up_agent(agent, agent_type)
+
+            logger.info(
+                f"Created {agent_type} agent for client {client_account_id}, "
+                f"engagement {engagement_id} with {len(tools)} tools"
+            )
+            return agent
+
+        except Exception as e:
+            logger.error(f"Failed to create agent {agent_type}: {e}")
+            raise
+
+    @classmethod
+    async def warm_up_agent(cls, agent: Agent, agent_type: str):
+        """Warm up agent by running a simple test to verify functionality."""
+        try:
+            if not CREWAI_AVAILABLE:
+                return
+
+            # Create a simple warm-up task
+            warmup_input = {
+                "task": f"Verify {agent_type} agent is ready for operation",
+                "context": "System initialization",
+            }
+
+            # Execute with timeout to prevent hanging
+            await asyncio.wait_for(
+                agent.execute_async(inputs=warmup_input), timeout=30.0
+            )
+
+            logger.info(f"{agent_type} agent warmed up successfully")
+        except asyncio.TimeoutError:
+            logger.warning(f"{agent_type} agent warm-up timed out")
+        except Exception as e:
+            logger.warning(f"{agent_type} agent warm-up failed: {e}")
+
+    @classmethod
+    async def check_agent_health(cls, agent: Agent) -> AgentHealth:
+        """Check the health status of an agent."""
+        start_time = datetime.now()
+
+        try:
+            if not CREWAI_AVAILABLE:
+                return AgentHealth(
+                    is_healthy=False,
+                    last_check=start_time,
+                    response_time=0.0,
+                    memory_usage=0.0,
+                    error_count=1,
+                    last_error="CrewAI not available",
+                )
+
+            # Simple health check task
+            health_check_input = {
+                "task": "Health check - respond with 'OK'",
+                "context": "System health monitoring",
+            }
+
+            # Execute health check with timeout
+            response = await asyncio.wait_for(
+                agent.execute_async(inputs=health_check_input), timeout=10.0
+            )
+
+            response_time = (datetime.now() - start_time).total_seconds()
+
+            # Check if response is valid
+            is_healthy = response is not None and str(response).strip() != ""
+
+            return AgentHealth(
+                is_healthy=is_healthy,
+                last_check=datetime.now(),
+                response_time=response_time,
+                memory_usage=0.0,  # Would need memory tracking implementation
+                error_count=0 if is_healthy else 1,
+                last_error=None if is_healthy else "Empty or invalid response",
+            )
+
+        except asyncio.TimeoutError:
+            return AgentHealth(
+                is_healthy=False,
+                last_check=datetime.now(),
+                response_time=(datetime.now() - start_time).total_seconds(),
+                memory_usage=0.0,
+                error_count=1,
+                last_error="Health check timeout",
+            )
+        except Exception as e:
+            return AgentHealth(
+                is_healthy=False,
+                last_check=datetime.now(),
+                response_time=(datetime.now() - start_time).total_seconds(),
+                memory_usage=0.0,
+                error_count=1,
+                last_error=str(e),
+            )
+
+    @classmethod
+    def get_agent_config(cls, agent_type: str) -> Dict[str, Any]:
+        """Get configuration for the specified agent type."""
+        configs = {
+            "discovery": {
+                "role": "Infrastructure Discovery Agent",
+                "goal": "Analyze and categorize infrastructure data for migration planning",
+                "backstory": (
+                    "You are an expert infrastructure analyst specializing in cloud migration assessments. "
+                    "You understand complex infrastructure relationships and can identify migration patterns."
+                ),
+                "verbose": True,
+                "allow_delegation": False,
+                "max_iter": 5,
+                "max_execution_time": 300,
+            },
+            "field_mapper": {
+                "role": "Data Field Mapping Specialist",
+                "goal": "Create accurate mappings between source data fields and target schema fields",
+                "backstory": (
+                    "You are a data mapping expert who understands various data formats and can create "
+                    "accurate field-to-field mappings for data migration."
+                ),
+                "verbose": True,
+                "allow_delegation": False,
+                "max_iter": 3,
+                "max_execution_time": 180,
+            },
+            "data_cleansing": {
+                "role": "Data Quality and Cleansing Agent",
+                "goal": "Identify and resolve data quality issues in migration datasets",
+                "backstory": (
+                    "You are a data quality specialist who can identify inconsistencies, duplicates, and "
+                    "quality issues in datasets and recommend cleansing strategies."
+                ),
+                "verbose": True,
+                "allow_delegation": False,
+                "max_iter": 4,
+                "max_execution_time": 240,
+            },
+            "questionnaire_generator": {
+                "role": "Business Questionnaire Generation Agent",
+                "goal": "Generate targeted questionnaires to gather missing business context",
+                "backstory": (
+                    "You are a business analyst expert who creates focused questionnaires to gather "
+                    "critical missing information for migration planning."
+                ),
+                "verbose": True,
+                "allow_delegation": False,
+                "max_iter": 3,
+                "max_execution_time": 150,
+            },
+            "six_r_analyzer": {
+                "role": "6R Migration Strategy Analyst",
+                "goal": "Analyze infrastructure and recommend optimal 6R migration strategies",
+                "backstory": (
+                    "You are a cloud migration strategist expert in the 6R framework (Retire, Retain, Rehost, "
+                    "Replat, Refactor, Rearchitect) for making optimal migration recommendations."
+                ),
+                "verbose": True,
+                "allow_delegation": False,
+                "max_iter": 4,
+                "max_execution_time": 300,
+            },
+            "assessment_coordinator": {
+                "role": "Assessment Coordination Agent",
+                "goal": "Coordinate and orchestrate multi-phase assessment workflows",
+                "backstory": (
+                    "You are a project coordination specialist who manages complex assessment workflows "
+                    "and ensures all phases complete successfully."
+                ),
+                "verbose": True,
+                "allow_delegation": True,
+                "max_iter": 6,
+                "max_execution_time": 400,
+            },
+        }
+
+        # Return configuration or default
+        return configs.get(
+            agent_type,
+            {
+                "role": f"{agent_type.title()} Agent",
+                "goal": f"Perform {agent_type} operations",
+                "backstory": f"You are an expert {agent_type} specialist.",
+                "verbose": True,
+                "allow_delegation": False,
+                "max_iter": 5,
+                "max_execution_time": 300,
+            },
+        )
