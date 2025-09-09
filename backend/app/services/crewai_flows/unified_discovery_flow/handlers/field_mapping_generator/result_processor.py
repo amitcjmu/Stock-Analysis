@@ -50,7 +50,7 @@ class FieldMappingResultProcessor(FieldMappingGeneratorBase):
             processed_result = {
                 "field_mappings": processed_mappings,
                 "suggestions": processed_suggestions,
-                "status": "completed",
+                "status": "success",
                 "total_mappings": len(processed_mappings) + len(processed_suggestions),
                 "execution_method": result.get("execution_method", "standard"),
                 "timestamp": self._get_current_timestamp(),

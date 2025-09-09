@@ -58,11 +58,21 @@ class AgentExecutor:
                 return self._get_mock_agent_response(state)
 
             # Get field mapping agent from the pool
-            agent = await TenantScopedAgentPool.get_or_create_agent(
-                client_id=str(self.client_account_id),
-                engagement_id=str(self.engagement_id),
-                agent_type="field_mapping",
-            )
+            # Use the imported TenantScopedAgentPool directly, not self.agent_pool
+            # since self.agent_pool might be set to the class itself
+            if hasattr(self.agent_pool, 'get_or_create_agent'):
+                agent = await self.agent_pool.get_or_create_agent(
+                    client_id=str(self.client_account_id),
+                    engagement_id=str(self.engagement_id),
+                    agent_type="field_mapping",
+                )
+            else:
+                # If agent_pool is the class itself, call it directly
+                agent = await TenantScopedAgentPool.get_or_create_agent(
+                    client_id=str(self.client_account_id),
+                    engagement_id=str(self.engagement_id),
+                    agent_type="field_mapping",
+                )
 
             if not agent:
                 logger.warning("Field mapping agent not available, using mock response")

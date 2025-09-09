@@ -1,5 +1,32 @@
 # Cross-Tenant Security Patterns
 
+## Database Query Scoping (CRITICAL)
+**ALWAYS** include tenant context in database queries to prevent cross-tenant data access
+
+### Pattern for DataImport and Similar Tables
+```python
+# WRONG - No tenant scoping (HIGH SECURITY RISK)
+data_import_query = select(DataImport).where(DataImport.id == UUID(data_import_id))
+
+# CORRECT - Tenant-scoped query
+data_import_query = select(DataImport).where(
+    and_(
+        DataImport.id == UUID(data_import_id),
+        DataImport.client_account_id == self.client_account_id,
+        DataImport.engagement_id == self.engagement_id,
+    )
+)
+```
+
+### Required for All Multi-Tenant Tables
+Tables that MUST include tenant scoping:
+- `DataImport`
+- `DiscoveryFlow`  
+- `Asset`
+- `FlowExecution`
+- `CrewAIFlowStateExtension`
+- Any table with `client_account_id` and `engagement_id` fields
+
 ## Cache Key Scoping
 **CRITICAL**: Always scope cache keys with tenant context to prevent data leakage
 
@@ -48,7 +75,9 @@ def get_tenant_data(client_account_id: str = None, engagement_id: str = None):
 ```
 
 ## Validation Points
+- Check all database queries for tenant scoping (HIGH PRIORITY)
 - Check all cache operations for tenant scoping
 - Review service caching patterns for memory leaks
 - Audit @lru_cache usage in multi-tenant code
 - Ensure context parameters flow through all layers
+- Use `and_()` for complex WHERE clauses with multiple tenant fields

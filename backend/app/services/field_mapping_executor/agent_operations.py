@@ -59,12 +59,23 @@ class AgentOperations:
                 return self._get_mock_agent_response(state)
 
             # Get field mapping agent from the pool
-            agent = await TenantScopedAgentPool.get_or_create_agent(
-                client_id=str(self.client_account_id),
-                engagement_id=str(self.engagement_id),
-                agent_type="field_mapper",
-                context_info={"flow_id": str(state.flow_id)},
-            )
+            # Use the imported TenantScopedAgentPool directly, not self.agent_pool
+            # since self.agent_pool might be set to the class itself
+            if hasattr(self.agent_pool, 'get_or_create_agent'):
+                agent = await self.agent_pool.get_or_create_agent(
+                    client_id=str(self.client_account_id),
+                    engagement_id=str(self.engagement_id),
+                    agent_type="field_mapper",
+                    context_info={"flow_id": str(state.flow_id)},
+                )
+            else:
+                # If agent_pool is the class itself, call it directly
+                agent = await TenantScopedAgentPool.get_or_create_agent(
+                    client_id=str(self.client_account_id),
+                    engagement_id=str(self.engagement_id),
+                    agent_type="field_mapper",
+                    context_info={"flow_id": str(state.flow_id)},
+                )
 
             # Prepare input for agent
             agent_input = self._prepare_agent_input(state)

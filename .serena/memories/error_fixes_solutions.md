@@ -1,5 +1,21 @@
 # Error Fixes and Solutions
 
+## Async-to-Sync Bridge Errors (Jan 2025)
+**Error**: `RuntimeError: no running event loop` or `RuntimeError: no AnyIO portal found`
+**Cause**: Using `anyio.from_thread.run()` without a blocking portal
+**Solution**: Always use blocking portal pattern:
+```python
+# WRONG - Will fail without portal
+from anyio import from_thread
+return from_thread.run(async_function, *args)
+
+# CORRECT - Creates portal for reliable bridging
+from anyio import from_thread
+with from_thread.start_blocking_portal() as portal:
+    return portal.call(async_function, *args, **kwargs)
+```
+**Files Fixed**: base_tool.py, status_tool.py, asset_creation_tool.py
+
 ## Circular Import Errors
 **Error**: `ImportError: cannot import name '_client_account_id' from partially initialized module`
 **Solution**: Break circular dependency by defining functions in the module that owns the context variables, then re-export elsewhere

@@ -49,6 +49,13 @@ class FieldMappingPersistence:
             data_import_id = getattr(self.flow.state, "data_import_id", None)
             client_account_id = getattr(self.flow.state, "client_account_id", None)
 
+            # For direct raw data flows, use flow_id as data_import_id if not set
+            if not data_import_id:
+                data_import_id = flow_id
+                self.logger.info(
+                    f"🔄 Using flow_id as data_import_id for direct raw data flow: {data_import_id}"
+                )
+
             if not flow_id or not data_import_id or not client_account_id:
                 self.logger.error(
                     f"❌ Missing required IDs: flow_id={flow_id}, "
@@ -59,10 +66,49 @@ class FieldMappingPersistence:
             # Import database models and session
             from app.core.database import AsyncSessionLocal
             from app.models.data_import.mapping import ImportFieldMapping
-            from sqlalchemy import delete
+            from app.models.data_import.import_model import DataImport
+            from sqlalchemy import delete, select
 
             async with AsyncSessionLocal() as db:
                 try:
+                    # Ensure data import record exists (for direct raw data flows)
+                    if data_import_id == flow_id:
+                        # Check if data import record exists
+                        data_import_query = select(DataImport).where(
+                            DataImport.id == data_import_id
+                        )
+                        data_import_result = await db.execute(data_import_query)
+                        data_import = data_import_result.scalar_one_or_none()
+
+                        if not data_import:
+                            # Create a minimal data import record for direct raw data flows
+                            data_import = DataImport(
+                                id=data_import_id,
+                                client_account_id=client_account_id,
+                                engagement_id=getattr(
+                                    self.flow.state, "engagement_id", None
+                                ),
+                                imported_by=getattr(self.flow.state, "user_id", None),
+                                import_name="Direct Raw Data Import",
+                                import_type="direct_raw_data",
+                                description="Data provided directly to discovery flow",
+                                filename="direct_raw_data",
+                                file_size=0,
+                                status="completed",
+                                total_records=len(
+                                    getattr(self.flow.state, "raw_data", [])
+                                ),
+                                processed_records=len(
+                                    getattr(self.flow.state, "raw_data", [])
+                                ),
+                                master_flow_id=flow_id,
+                            )
+                            db.add(data_import)
+                            await db.commit()
+                            self.logger.info(
+                                f"✅ Created data import record for direct raw data flow: {data_import_id}"
+                            )
+
                     # Clear existing mappings for this data import to avoid duplicates
                     delete_stmt = delete(ImportFieldMapping).where(
                         ImportFieldMapping.data_import_id == data_import_id
@@ -100,11 +146,12 @@ class FieldMappingPersistence:
 
                             # Determine mapping type and status based on source
                             if mapping in field_mappings:
-                                mapping_type = "approved"
+                                match_type = "approved"
                             else:
-                                mapping_type = "suggestion"
+                                match_type = "suggestion"
 
                             status = mapping.get("status", "suggested")
+                            suggested_by = "crew_generated"
 
                             if not source_field or not target_field:
                                 self.logger.warning(
@@ -117,13 +164,13 @@ class FieldMappingPersistence:
                             field_mapping = ImportFieldMapping(
                                 data_import_id=data_import_id,
                                 client_account_id=client_account_id,
+                                master_flow_id=flow_id,
                                 source_field=source_field,
                                 target_field=target_field,
                                 confidence_score=confidence,
-                                mapping_type=mapping_type,
+                                match_type=match_type,
                                 status=status,
-                                applied_at=datetime.utcnow(),
-                                validation_result={"status": "valid"},
+                                suggested_by=suggested_by,
                             )
 
                             db.add(field_mapping)

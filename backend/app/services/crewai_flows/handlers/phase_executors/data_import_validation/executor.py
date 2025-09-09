@@ -71,6 +71,26 @@ class DataImportValidationExecutor(BasePhaseExecutor):
         # IMPORTANT: Also update the data_validation_results field for backward compatibility
         self.state.data_validation_results = results
 
+        # Extract and store detected columns from file analysis
+        file_analysis = results.get("file_analysis", {})
+        if file_analysis and "field_analysis" in file_analysis:
+            detected_columns = list(file_analysis["field_analysis"].keys())
+            if detected_columns:
+                self.state.metadata["detected_columns"] = detected_columns
+                logger.info(
+                    f"🔍 Extracted detected columns from file analysis: {detected_columns}"
+                )
+        else:
+            # Fallback: extract columns from raw data
+            if self.state.raw_data and isinstance(self.state.raw_data, list):
+                first_record = self.state.raw_data[0]
+                if isinstance(first_record, dict):
+                    detected_columns = list(first_record.keys())
+                    self.state.metadata["detected_columns"] = detected_columns
+                    logger.info(
+                        f"🔍 Extracted detected columns from raw data: {detected_columns}"
+                    )
+
         # Store validated data in raw_data if it's provided
         if "validated_data" in results and results["validated_data"]:
             logger.info(

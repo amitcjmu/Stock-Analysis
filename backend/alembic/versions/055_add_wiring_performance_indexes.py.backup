@@ -23,9 +23,17 @@ def upgrade():
     """Add performance indexes for discovery wiring queries."""
     print("🔧 Adding wiring performance indexes...")
 
-    # Create indexes without CONCURRENT flag for compatibility
-    # These are new indexes so won't block existing operations
-    try:
+    # Get connection to check for existing indexes
+    conn = op.get_bind()
+    
+    # Check if index already exists before creating
+    result = conn.execute("""
+        SELECT indexname FROM pg_indexes 
+        WHERE schemaname = 'migration' 
+        AND indexname = 'idx_assets_tenant_discovery'
+    """)
+    
+    if not result.fetchone():
         # Assets table indexes
         print("📦 Creating assets table indexes...")
 
@@ -42,6 +50,8 @@ def upgrade():
             schema="migration",
             postgresql_using="btree",
         )
+    else:
+        print("✅ Index idx_assets_tenant_discovery already exists, skipping...")
 
         # Index for tenant + raw import record relationships
         op.create_index(
