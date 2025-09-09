@@ -25,18 +25,18 @@ npx playwright test --headed --debug
 test('Debug user journey', async ({ page }) => {
   // Set longer timeout for observation
   test.setTimeout(120000);
-  
+
   // Take screenshots at each step
   await page.screenshot({ path: 'debug-1-login.png' });
-  
+
   // Log detailed information
   console.log(`📍 Current URL: ${page.url()}`);
-  
+
   // Check element visibility with logging
   const element = page.locator('[data-testid="blocking-flow"]');
   const isVisible = await element.isVisible().catch(() => false);
   console.log(`Element visible: ${isVisible}`);
-  
+
   // Keep browser open for observation
   await page.waitForTimeout(10000);
 });

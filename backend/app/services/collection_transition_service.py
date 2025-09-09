@@ -223,7 +223,7 @@ class CollectionTransitionService:
             collection_flow.flow_metadata = {
                 **current_metadata,
                 "assessment_handoff": {
-                    "assessment_flow_id": str(assessment_flow.flow_id),
+                    "assessment_flow_id": str(assessment_flow.id),
                     "transitioned_at": datetime.utcnow().isoformat(),
                     "transitioned_by": (
                         str(self.context.user_id) if self.context.user_id else None
@@ -235,7 +235,7 @@ class CollectionTransitionService:
             await self.db.flush()
 
             return TransitionResult(
-                assessment_flow_id=assessment_flow.flow_id,
+                assessment_flow_id=assessment_flow.id,
                 assessment_flow=assessment_flow,
                 created_at=datetime.utcnow(),
             )

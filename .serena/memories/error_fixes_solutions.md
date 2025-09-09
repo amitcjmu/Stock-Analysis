@@ -1,5 +1,30 @@
 # Error Fixes and Solutions
 
+## Field Mapping Execution Failures (Sep 2025)
+**Error**: "All field mapping execution strategies failed" - prevents field mappings from being generated and displayed in UI
+**Root Cause**: Multiple system failures in field mapping pipeline
+**Solution**: 7-step systematic fix pattern:
+
+1. **Store Detected Columns in State**:
+```python
+# In data_import_validation/executor.py
+file_analysis = results.get("file_analysis", {})
+if file_analysis and "field_analysis" in file_analysis:
+    detected_columns = list(file_analysis["field_analysis"].keys())
+    if detected_columns:
+        self.state.metadata["detected_columns"] = detected_columns
+```
+
+2. **Fix Status Recognition**: Change "completed" to "success" in mapping_strategies.py
+3. **Add Data Import ID Fallback**: Use flow_id as data_import_id for direct raw data flows
+4. **Fix Phase Transitions**: Ensure proper progression from data_import to field_mapping
+5. **Add Data Extraction Fallbacks**: Handle missing data structures gracefully
+6. **Correct Database Model Fields**: Fix field name mismatches
+7. **Ensure Database Persistence**: Create DataImport records for direct flows
+
+**Files Affected**: 7 files across field mapping pipeline
+**Validation**: Check UI displays field counts, database records created
+
 ## Async-to-Sync Bridge Errors (Jan 2025)
 **Error**: `RuntimeError: no running event loop` or `RuntimeError: no AnyIO portal found`
 **Cause**: Using `anyio.from_thread.run()` without a blocking portal
@@ -15,6 +40,62 @@ with from_thread.start_blocking_portal() as portal:
     return portal.call(async_function, *args, **kwargs)
 ```
 **Files Fixed**: base_tool.py, status_tool.py, asset_creation_tool.py
+
+## Cross-Tenant Security Violations (Sep 2025)
+**Error**: Database queries without tenant scoping allowing cross-tenant data access
+**Solution**: Always use `and_()` clauses with both client_account_id and engagement_id:
+```python
+from sqlalchemy import select, and_
+
+# WRONG - No tenant scoping
+query = select(DataImport).where(DataImport.id == data_import_id)
+
+# CORRECT - Proper tenant scoping
+query = select(DataImport).where(
+    and_(
+        DataImport.id == data_import_id,
+        DataImport.client_account_id == client_account_id,
+        DataImport.engagement_id == engagement_id,
+    )
+)
+```
+
+## Migration Robustness Issues (Sep 2025)
+**Error**: Alembic migrations fail on mixed schemas with different PK columns ('id' vs 'flow_id')
+**Solution**: Dynamic column detection pattern:
+```python
+def _detect_flow_id_column(bind, table_schema: str, table_name: str) -> str:
+    col_check = bind.execute(
+        text("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_schema = :schema AND table_name = :table
+            AND column_name IN ('flow_id', 'id')
+        """),
+        {"schema": table_schema, "table": table_name},
+    ).fetchall()
+
+    found = [r[0] for r in col_check]
+    return "flow_id" if "flow_id" in found else "id"
+```
+
+## CI Cache Configuration Errors (Sep 2025)
+**Error**: `Cache folder path is retrieved for pip but doesn't exist on disk`
+**Cause**: GitHub Actions cache configured for pip without pip install commands
+**Solution**: Remove cache configuration when not installing dependencies:
+```yaml
+# WRONG - Cache without installs
+- name: Set up Python
+  uses: actions/setup-python@v5
+  with:
+    python-version: '3.11'
+    cache: 'pip'
+
+# CORRECT - No cache for syntax-only checks
+- name: Set up Python
+  uses: actions/setup-python@v5
+  with:
+    python-version: '3.11'
+```
 
 ## Circular Import Errors
 **Error**: `ImportError: cannot import name '_client_account_id' from partially initialized module`

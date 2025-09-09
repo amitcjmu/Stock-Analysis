@@ -1,0 +1,4 @@
+Application Name,Application Type,Primary Technology,Business Criticality,Environment,Owner
+TestApp1,Web Application,Java,High,Production,John Doe
+TestApp2,Database,MySQL,Medium,Development,Jane Smith
+TestApp3,API Service,Node.js,High,Production,Bob Johnson

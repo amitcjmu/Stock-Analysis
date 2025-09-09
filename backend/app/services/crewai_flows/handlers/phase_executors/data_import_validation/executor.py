@@ -22,8 +22,8 @@ class DataImportValidationExecutor(BasePhaseExecutor):
     This is the first phase that must complete before field mapping can begin.
     """
 
-    def __init__(self, state, flow_bridge=None):
-        super().__init__(state, flow_bridge)
+    def __init__(self, state, crew_manager, flow_bridge=None):
+        super().__init__(state, crew_manager, flow_bridge)
         self.validation_checks = ValidationChecks(state)
         self.file_analyzer = FileAnalyzer(state)
         self.report_generator = ReportGenerator(state)

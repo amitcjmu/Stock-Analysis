@@ -22,7 +22,7 @@ result = initialize_all_flows()        # CORRECT
 async def get_data() -> dict:  # Can be awaited
     return {"data": "value"}
 
-# Sync functions return objects directly  
+# Sync functions return objects directly
 def get_data() -> dict:  # Cannot be awaited
     return {"data": "value"}
 ```
@@ -52,7 +52,7 @@ When removing await, check if parent functions need adjustment:
 async def parent_function():
     # If child is sync, don't await
     result = child_sync_function()
-    
+
     # If child is async, must await
     result = await child_async_function()
 ```

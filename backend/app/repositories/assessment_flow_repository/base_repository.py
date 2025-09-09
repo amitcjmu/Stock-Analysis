@@ -65,7 +65,8 @@ class AssessmentFlowRepository(ContextAwareRepository):
         engagement_id: Optional[int] = None,
         user_id: Optional[str] = None,
     ):
-        super().__init__(db, client_account_id, engagement_id, user_id)
+        # Pass the AssessmentFlow model class to the parent constructor
+        super().__init__(db, AssessmentFlow, client_account_id, engagement_id)
 
         # Initialize command handlers
         self._flow_commands = FlowCommands(db, client_account_id)

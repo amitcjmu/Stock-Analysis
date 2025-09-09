@@ -73,7 +73,7 @@ from .module_name import *  # For backward compatibility
     - **TRIGGER**: Pre-commit hook blocked commit (650 lines > 400 limit)
     - **SOLUTION**: 4-file modular structure with backward compatibility
     - **Pattern**: Phase executor modularization
-    
+
     **Structure Created**:
     ```
     asset_inventory/
@@ -83,13 +83,13 @@ from .module_name import *  # For backward compatibility
     ├── utils.py (251 lines) - Asset processing utilities
     └── crew_processor.py (132 lines) - CrewAI agent processing
     ```
-    
+
     **Backward Compatibility**:
     ```python
     # Original file becomes deprecation wrapper
     import warnings
     from .asset_inventory import AssetInventoryExecutor
-    
+
     warnings.warn(
         "Importing AssetInventoryExecutor from asset_inventory_executor is deprecated. "
         "Please import from .asset_inventory instead.",

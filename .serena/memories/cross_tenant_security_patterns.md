@@ -3,29 +3,81 @@
 ## Database Query Scoping (CRITICAL)
 **ALWAYS** include tenant context in database queries to prevent cross-tenant data access
 
-### Pattern for DataImport and Similar Tables
+### Core Pattern: and_() Clauses for Multi-Field Scoping
 ```python
+from sqlalchemy import select, and_
+
 # WRONG - No tenant scoping (HIGH SECURITY RISK)
 data_import_query = select(DataImport).where(DataImport.id == UUID(data_import_id))
 
-# CORRECT - Tenant-scoped query
+# CORRECT - Tenant-scoped query with and_()
 data_import_query = select(DataImport).where(
     and_(
         DataImport.id == UUID(data_import_id),
-        DataImport.client_account_id == self.client_account_id,
-        DataImport.engagement_id == self.engagement_id,
+        DataImport.client_account_id == client_account_id,
+        DataImport.engagement_id == engagement_id,
     )
 )
 ```
 
-### Required for All Multi-Tenant Tables
+### DELETE Operations - Critical for Cleanup
+```python
+from sqlalchemy import delete, and_
+
+# CORRECT - Tenant-scoped delete to avoid cross-tenant data loss
+delete_stmt = delete(ImportFieldMapping).where(
+    and_(
+        ImportFieldMapping.data_import_id == data_import_id,
+        ImportFieldMapping.client_account_id == client_account_id,
+    )
+)
+```
+
+### Asset Loading with Tenant Scoping
+```python
+# CORRECT - Comprehensive tenant scoping for Asset table
+asset = await db.scalar(
+    select(Asset).where(
+        and_(
+            Asset.id == asset_id,
+            Asset.client_account_id == context.client_account_id,
+            Asset.engagement_id == context.engagement_id,
+        )
+    )
+)
+```
+
+## Files Recently Fixed (2025-09)
+Critical security fixes applied to:
+- `backend/app/services/crewai_flows/unified_discovery_flow/handlers/field_mapping_persistence.py`
+- `backend/app/api/v1/endpoints/collection_applications.py`
+- `backend/app/api/v1/endpoints/collection_crud_queries.py`
+- `backend/app/services/collection_flow/state_management.py`
+
+## Required for All Multi-Tenant Tables
 Tables that MUST include tenant scoping:
-- `DataImport`
-- `DiscoveryFlow`  
-- `Asset`
+- `DataImport` - Always scope with client_account_id
+- `ImportFieldMapping` - Scope with client_account_id + engagement_id
+- `DiscoveryFlow` - Scope with client_account_id + engagement_id
+- `CollectionFlow` - Scope with client_account_id + engagement_id
+- `Asset` - Scope with client_account_id + engagement_id
 - `FlowExecution`
 - `CrewAIFlowStateExtension`
 - Any table with `client_account_id` and `engagement_id` fields
+
+## Master Flow Query Pattern
+```python
+# CORRECT - Include engagement_id in master flow queries
+master_flow_result = await db.execute(
+    select(CrewAIFlowStateExtension).where(
+        and_(
+            CrewAIFlowStateExtension.flow_id == master_flow_id,
+            CrewAIFlowStateExtension.client_account_id == client_account_id,
+            CrewAIFlowStateExtension.engagement_id == engagement_id,
+        )
+    )
+)
+```
 
 ## Cache Key Scoping
 **CRITICAL**: Always scope cache keys with tenant context to prevent data leakage
@@ -76,8 +128,9 @@ def get_tenant_data(client_account_id: str = None, engagement_id: str = None):
 
 ## Validation Points
 - Check all database queries for tenant scoping (HIGH PRIORITY)
+- Always use `and_()` for multiple WHERE conditions
+- Include both client_account_id AND engagement_id where available
 - Check all cache operations for tenant scoping
 - Review service caching patterns for memory leaks
 - Audit @lru_cache usage in multi-tenant code
 - Ensure context parameters flow through all layers
-- Use `and_()` for complex WHERE clauses with multiple tenant fields
