@@ -24,6 +24,7 @@ from app.api.v1.endpoints.collection_crud_execution import (
     continue_flow,
     ensure_collection_flow,
     execute_collection_flow,
+    rerun_gap_analysis,
 )
 from app.api.v1.endpoints.collection_crud_queries import (
     get_adaptive_questionnaires,
@@ -57,4 +58,5 @@ __all__ = [
     "ensure_collection_flow",
     "execute_collection_flow",
     "continue_flow",
+    "rerun_gap_analysis",
 ]

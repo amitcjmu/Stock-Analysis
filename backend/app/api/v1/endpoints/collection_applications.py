@@ -156,6 +156,7 @@ async def update_flow_applications(
 
         # CC: Use deduplication service to populate normalized tables
         from app.models.asset import Asset
+        from app.models.canonical_applications.collection_flow_app import CollectionFlowApplication
         from app.services.application_deduplication_service import (
             create_deduplication_service,
         )
@@ -196,6 +197,33 @@ async def update_flow_applications(
                             "source": "collection_flow_selection",
                         },
                     )
+
+                    # CRITICAL BUG FIX: Create CollectionFlowApplication record
+                    # This was missing and causing no records in collection_flow_applications table
+                    collection_flow_app = CollectionFlowApplication(
+                        collection_flow_id=collection_flow.flow_id,
+                        asset_id=asset_id,
+                        application_name=application_name,
+                        canonical_application_id=dedup_result.canonical_application.id,
+                        name_variant_id=dedup_result.name_variant.id if dedup_result.name_variant else None,
+                        client_account_id=context.client_account_id,
+                        engagement_id=context.engagement_id,
+                        deduplication_method=dedup_result.match_method.value,
+                        match_confidence=dedup_result.similarity_score,
+                        collection_status="selected",
+                        discovery_data_snapshot={
+                            "asset_id": str(asset_id),
+                            "environment": getattr(asset, "environment", "unknown"),
+                            "source": "collection_flow_selection",
+                            "selected_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    )
+                    db.add(collection_flow_app)
+                    logger.info(f"Created CollectionFlowApplication record for {application_name}")
+
+                    # Also update asset table with collection reference if needed
+                    asset.collection_flow_id = collection_flow.flow_id
+                    asset.updated_at = datetime.now(timezone.utc)
 
                     deduplication_results.append(
                         {

@@ -67,15 +67,18 @@ class FieldMappingPersistence:
             from app.core.database import AsyncSessionLocal
             from app.models.data_import.mapping import ImportFieldMapping
             from app.models.data_import.import_model import DataImport
-            from sqlalchemy import delete, select
+            from sqlalchemy import delete, select, and_
 
             async with AsyncSessionLocal() as db:
                 try:
                     # Ensure data import record exists (for direct raw data flows)
                     if data_import_id == flow_id:
-                        # Check if data import record exists
+                        # Check if data import record exists (with tenant scoping)
                         data_import_query = select(DataImport).where(
-                            DataImport.id == data_import_id
+                            and_(
+                                DataImport.id == data_import_id,
+                                DataImport.client_account_id == client_account_id,
+                            )
                         )
                         data_import_result = await db.execute(data_import_query)
                         data_import = data_import_result.scalar_one_or_none()
@@ -109,9 +112,12 @@ class FieldMappingPersistence:
                                 f"✅ Created data import record for direct raw data flow: {data_import_id}"
                             )
 
-                    # Clear existing mappings for this data import to avoid duplicates
+                    # Clear existing mappings for this data import to avoid duplicates (with tenant scoping)
                     delete_stmt = delete(ImportFieldMapping).where(
-                        ImportFieldMapping.data_import_id == data_import_id
+                        and_(
+                            ImportFieldMapping.data_import_id == data_import_id,
+                            ImportFieldMapping.client_account_id == client_account_id,
+                        )
                     )
                     await db.execute(delete_stmt)
 
