@@ -79,6 +79,18 @@ export interface SixRDecision {
   app_on_page_data?: Record<string, string | number | boolean>;
 }
 
+export interface AssessmentApplication {
+  application_id: string;
+  application_name: string;
+  application_type: string;
+  environment: string;
+  business_criticality: string;
+  technology_stack: string[];
+  complexity_score: number;
+  readiness_score: number;
+  discovery_completed_at: string;
+}
+
 export interface AssessmentFlowState {
   flowId: string | null;
   status: AssessmentFlowStatus;
@@ -87,6 +99,8 @@ export interface AssessmentFlowState {
   nextPhase: AssessmentPhase | null;
   pausePoints: string[];
   selectedApplicationIds: string[];
+  selectedApplications: AssessmentApplication[];  // Full application details
+  applicationCount: number;  // Count of applications
 
   // Phase-specific data
   engagementStandards: ArchitectureStandard[];
@@ -147,4 +161,5 @@ export interface UseAssessmentFlowReturn {
   canNavigateToPhase: (phase: AssessmentPhase) => boolean;
   getApplicationsNeedingReview: () => string[];
   isPhaseComplete: (phase: AssessmentPhase) => boolean;
+  refreshApplicationData: () => Promise<void>;
 }

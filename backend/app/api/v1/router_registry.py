@@ -20,7 +20,7 @@ def register_core_routers(api_router: APIRouter):
         agents_router,
         agent_learning_router,
         assessment_events_router,
-        # assessment_flow_router,  # CC: Disabled due to circular import
+        # assessment_flow_router,  # Moved to conditional routers
         asset_workflow_router,
         asset_inventory_router,
         chat_router,
@@ -88,6 +88,8 @@ def register_conditional_routers(api_router: APIRouter):
         dependency_analysis_router,
         agent_insights_router,
         clarifications_router,
+        ASSESSMENT_FLOW_AVAILABLE,
+        assessment_flow_router,
         COLLECTION_AVAILABLE,
         collection_router,
         FLOW_PROCESSING_AVAILABLE,
@@ -113,6 +115,16 @@ def register_conditional_routers(api_router: APIRouter):
             "Use MFO or unified-discovery instead."
         )
         # DO NOT register the legacy discovery router - it violates MFO-first architecture
+
+    # Assessment Flow API - DISABLED: Must use MFO endpoints (/api/v1/master-flows/*)
+    # Direct assessment-flow endpoints violate MFO architecture principles
+    # All assessment operations should go through Master Flow Orchestrator
+    # if ASSESSMENT_FLOW_AVAILABLE:
+    #     api_router.include_router(assessment_flow_router, prefix="/assessment-flow")
+    #     logger.info("✅ Assessment Flow API router included at /assessment-flow")
+    # else:
+    #     logger.warning("⚠️ Assessment Flow API router not available")
+    logger.info("ℹ️ Assessment Flow endpoints accessed via MFO at /master-flows/*")
 
     # Collection Flow API
     if COLLECTION_AVAILABLE:

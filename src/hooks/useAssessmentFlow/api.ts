@@ -11,6 +11,7 @@ import type {
   SixRDecision,
   UserInput
 } from './types';
+import { masterFlowService } from '../../services/api/masterFlowService';
 
 // API base URL
 const getApiBase = (): string => {
@@ -27,7 +28,8 @@ const API_BASE = getApiBase();
 // Assessment Flow API client
 export const assessmentFlowAPI = {
   async initialize(data: { selected_application_ids: string[] }, headers: Record<string, string>): Promise<Response> {
-    const response = await fetch(`${API_BASE}/api/v1/assessment-flow/initialize`, {
+    // Use MFO endpoint for initialization
+    const response = await fetch(`${API_BASE}/api/v1/master-flows/new/assessment/initialize`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -44,7 +46,8 @@ export const assessmentFlowAPI = {
   },
 
   async getStatus(flowId: string): Promise<AssessmentFlowStatus> {
-    const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/status`);
+    // Use MFO endpoint for status
+    const response = await fetch(`${API_BASE}/api/v1/master-flows/${flowId}/assessment-status`);
 
     if (!response.ok) {
       throw new Error(`Failed to get flow status: ${response.statusText}`);
@@ -54,7 +57,8 @@ export const assessmentFlowAPI = {
   },
 
   async resume(flowId: string, data: { user_input: UserInput; save_progress: boolean }): Promise<AssessmentFlowStatus> {
-    const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/resume`, {
+    // Use MFO endpoint for resume
+    const response = await fetch(`${API_BASE}/api/v1/master-flows/${flowId}/assessment/resume`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -70,12 +74,14 @@ export const assessmentFlowAPI = {
   },
 
   async navigateToPhase(flowId: string, phase: AssessmentPhase): Promise<AssessmentFlowStatus> {
-    const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/navigate`, {
+    // TODO: Implement MFO endpoint for phase navigation
+    // For now, use resume endpoint with phase change
+    const response = await fetch(`${API_BASE}/api/v1/master-flows/${flowId}/assessment/resume`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ phase }),
+      body: JSON.stringify({ user_input: { navigate_to_phase: phase }, save_progress: true }),
     });
 
     if (!response.ok) {
@@ -89,7 +95,8 @@ export const assessmentFlowAPI = {
     engagement_standards: ArchitectureStandard[];
     application_overrides: Record<string, ArchitectureStandard>
   }): Promise<Response> {
-    const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/architecture-standards`, {
+    // Use MFO endpoint for architecture standards
+    const response = await fetch(`${API_BASE}/api/v1/master-flows/${flowId}/assessment/architecture-standards`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -105,12 +112,14 @@ export const assessmentFlowAPI = {
   },
 
   async updateApplicationComponents(flowId: string, appId: string, components: ApplicationComponent[]): Promise<Response> {
-    const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/applications/${appId}/components`, {
+    // TODO: Implement MFO endpoint for component updates
+    // Temporarily disabled - use phase data updates instead
+    const response = await fetch(`${API_BASE}/api/v1/master-flows/${flowId}/assessment/phase-data`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ components }),
+      body: JSON.stringify({ phase: 'component_analysis', data: { app_id: appId, components } }),
     });
 
     if (!response.ok) {
@@ -121,12 +130,14 @@ export const assessmentFlowAPI = {
   },
 
   async updateSixRDecision(flowId: string, appId: string, decision: Partial<SixRDecision>): Promise<Response> {
-    const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/applications/${appId}/sixr-decision`, {
+    // TODO: Implement MFO endpoint for 6R decisions
+    // Temporarily disabled - use phase data updates instead
+    const response = await fetch(`${API_BASE}/api/v1/master-flows/${flowId}/assessment/phase-data`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(decision),
+      body: JSON.stringify({ phase: 'six_r_decision', data: { app_id: appId, decision } }),
     });
 
     if (!response.ok) {
@@ -137,7 +148,8 @@ export const assessmentFlowAPI = {
   },
 
   async getArchitectureStandards(flowId: string): Promise<Response> {
-    const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/architecture-standards`);
+    // DEPRECATED: Get this data from assessment-status endpoint instead
+    const response = await fetch(`${API_BASE}/api/v1/master-flows/${flowId}/assessment-status`);
 
     if (!response.ok) {
       throw new Error(`Failed to get architecture standards: ${response.statusText}`);
@@ -147,7 +159,8 @@ export const assessmentFlowAPI = {
   },
 
   async getTechDebtAnalysis(flowId: string): Promise<Response> {
-    const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/tech-debt-analysis`);
+    // DEPRECATED: Get this data from assessment-status endpoint instead
+    const response = await fetch(`${API_BASE}/api/v1/master-flows/${flowId}/assessment-status`);
 
     if (!response.ok) {
       throw new Error(`Failed to get tech debt analysis: ${response.statusText}`);
@@ -157,7 +170,8 @@ export const assessmentFlowAPI = {
   },
 
   async getApplicationComponents(flowId: string): Promise<Response> {
-    const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/application-components`);
+    // DEPRECATED: Get this data from assessment-status endpoint instead
+    const response = await fetch(`${API_BASE}/api/v1/master-flows/${flowId}/assessment-status`);
 
     if (!response.ok) {
       throw new Error(`Failed to get application components: ${response.statusText}`);
@@ -167,7 +181,8 @@ export const assessmentFlowAPI = {
   },
 
   async getSixRDecisions(flowId: string): Promise<Response> {
-    const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/sixr-decisions`);
+    // DEPRECATED: Get this data from assessment-status endpoint instead
+    const response = await fetch(`${API_BASE}/api/v1/master-flows/${flowId}/assessment-status`);
 
     if (!response.ok) {
       throw new Error(`Failed to get 6R decisions: ${response.statusText}`);
@@ -177,7 +192,8 @@ export const assessmentFlowAPI = {
   },
 
   async finalize(flowId: string): Promise<Response> {
-    const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/finalize`, {
+    // Use MFO endpoint for finalization
+    const response = await fetch(`${API_BASE}/api/v1/master-flows/${flowId}/assessment/finalize`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -189,5 +205,37 @@ export const assessmentFlowAPI = {
     }
 
     return response.json();
+  },
+
+  /**
+   * Get assessment status with application count using MFO endpoints
+   */
+  async getAssessmentStatus(flowId: string, clientAccountId: string, engagementId?: string): Promise<{
+    flow_id: string;
+    status: string;
+    progress: number;
+    current_phase: string;
+    application_count: number;
+  }> {
+    return masterFlowService.getAssessmentStatus(flowId, clientAccountId, engagementId);
+  },
+
+  /**
+   * Get assessment applications with full details using MFO endpoints
+   */
+  async getAssessmentApplications(flowId: string, clientAccountId: string, engagementId?: string): Promise<{
+    applications: Array<{
+      application_id: string;
+      application_name: string;
+      application_type: string;
+      environment: string;
+      business_criticality: string;
+      technology_stack: string[];
+      complexity_score: number;
+      readiness_score: number;
+      discovery_completed_at: string;
+    }>;
+  }> {
+    return masterFlowService.getAssessmentApplications(flowId, clientAccountId, engagementId);
   },
 };

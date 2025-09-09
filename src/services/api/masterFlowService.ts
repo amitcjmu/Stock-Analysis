@@ -801,6 +801,99 @@ export const masterFlowService = {
   ): Promise<ActiveFlowSummary[]> {
     return this.getActiveFlows(clientAccountId, engagementId, "discovery");
   },
+
+  /**
+   * Get assessment flow status with application count (via MFO)
+   */
+  async getAssessmentStatus(
+    flowId: string,
+    clientAccountId: string,
+    engagementId?: string,
+  ): Promise<{
+    flow_id: string;
+    status: string;
+    progress: number;
+    current_phase: string;
+    application_count: number;
+  }> {
+    try {
+      const response = await apiClient.get<{
+        flow_id: string;
+        status: string;
+        progress: number;
+        current_phase: string;
+        application_count: number;
+      }>(
+        `/api/v1/master-flows/${flowId}/assessment-status`,
+        {
+          headers: getMultiTenantHeaders(clientAccountId, engagementId),
+        },
+      );
+      return response;
+    } catch (error) {
+      handleApiError(error, "getAssessmentStatus");
+      throw error;
+    }
+  },
+
+  /**
+   * Get assessment applications with full details (via MFO)
+   */
+  async getAssessmentApplications(
+    flowId: string,
+    clientAccountId: string,
+    engagementId?: string,
+  ): Promise<{
+    applications: Array<{
+      application_id: string;
+      application_name: string;
+      application_type: string;
+      environment: string;
+      business_criticality: string;
+      technology_stack: string[];
+      complexity_score: number;
+      readiness_score: number;
+      discovery_completed_at: string;
+    }>;
+  }> {
+    try {
+      // Call MFO endpoint directly - returns array without wrapper
+      const applications = await apiClient.get<Array<{
+        id: string;
+        name: string;
+        type: string;
+        environment: string;
+        business_criticality: string;
+        technology_stack: string[];
+        complexity_score: number;
+        readiness_score: number;
+        discovery_completed_at: string;
+      }>>(
+        `/api/v1/master-flows/${flowId}/assessment-applications`,
+        {
+          headers: getMultiTenantHeaders(clientAccountId, engagementId),
+        },
+      );
+
+      // Transform to match expected format with snake_case field names
+      return {
+        applications: applications.map(app => ({
+          application_id: app.id,
+          application_name: app.name,
+          application_type: app.type,
+          environment: app.environment,
+          business_criticality: app.business_criticality,
+          technology_stack: app.technology_stack,
+          complexity_score: app.complexity_score,
+          readiness_score: app.readiness_score,
+          discovery_completed_at: app.discovery_completed_at,
+        })),
+      };
+    } catch (error) {
+      handleApiError(error, "getAssessmentApplications");
+      throw error;
+    }
+  },
 };
 
 export default masterFlowService;

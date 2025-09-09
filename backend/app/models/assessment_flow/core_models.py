@@ -76,6 +76,18 @@ class AssessmentFlow(Base):
     runtime_state = Column(JSONB, default=lambda: {}, nullable=False)
     flow_metadata = Column(JSONB, default=lambda: {}, nullable=False)
 
+    # Selected applications for assessment (separate from configuration for DB constraint)
+    selected_application_ids = Column(JSONB, nullable=False, default=lambda: [])
+
+    # Assessment state fields
+    architecture_captured = Column(Boolean, default=False, nullable=False)
+    user_inputs = Column(JSONB, default=lambda: {}, nullable=False)
+    phase_results = Column(JSONB, default=lambda: {}, nullable=False)
+    agent_insights = Column(JSONB, default=lambda: [], nullable=False)
+    apps_ready_for_planning = Column(JSONB, default=lambda: [], nullable=False)
+    pause_points = Column(JSONB, default=lambda: {}, nullable=False)
+    last_user_interaction = Column(DateTime(timezone=True), nullable=True)
+
     # Error handling and logging
     last_error = Column(Text, nullable=True)
     error_count = Column(Integer, default=0, nullable=False)

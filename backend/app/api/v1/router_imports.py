@@ -109,6 +109,16 @@ except ImportError:
     ASSESS_AVAILABLE = False
     assess_router = None
 
+# Assessment Flow endpoints (for structured assessment workflow)
+assessment_flow_router: Optional[APIRouter]
+try:
+
+    from app.api.v1.endpoints.assessment_flow.flow_management import router as assessment_flow_router
+    ASSESSMENT_FLOW_AVAILABLE = True
+except ImportError:
+    ASSESSMENT_FLOW_AVAILABLE = False
+    assessment_flow_router = None
+
 # Wave Planning endpoints
 wave_planning_router: Optional[APIRouter]
 try:

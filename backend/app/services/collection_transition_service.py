@@ -79,8 +79,14 @@ class CollectionTransitionService:
         """
 
         try:
-            # Execute task using agent - use execute() method with task description
-            result = await agent.execute(task_description)
+            # Execute task using agent - handle different agent types
+            if hasattr(agent, "execute_async"):
+                result = await agent.execute_async(inputs={"task": task_description})
+            elif hasattr(agent, "execute"):
+                # Use sync execute method
+                result = agent.execute(task=task_description)
+            else:
+                raise AttributeError("Agent has no execute method available")
 
             # Parse agent response
             if isinstance(result, dict):

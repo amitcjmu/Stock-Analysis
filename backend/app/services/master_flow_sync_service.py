@@ -1,0 +1,675 @@
+"""
+Master Flow Synchronization Service
+
+This service ensures proper synchronization between master flows and child flows,
+addressing Section 8 of the validation checklist:
+- Status sync between master and child flows
+- Progress percentage accuracy
+- Phase transition logging
+- Master flow orchestration integrity
+"""
+
+import logging
+from datetime import datetime
+from typing import Optional, List
+from uuid import UUID
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update, and_
+from pydantic import BaseModel
+
+from app.core.context import RequestContext
+from app.models.collection_flow import CollectionFlow
+from app.models.assessment_flow.core_models import AssessmentFlow
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+
+logger = logging.getLogger(__name__)
+
+
+class FlowSyncStatus(BaseModel):
+    """Status model for flow synchronization"""
+
+    master_flow_id: UUID
+    child_flow_id: UUID
+    child_flow_type: str
+
+    # Sync status
+    is_synchronized: bool
+    last_sync_at: Optional[datetime] = None
+
+    # Status comparison
+    master_status: str
+    child_status: str
+    status_match: bool
+
+    # Progress comparison
+    master_progress: float
+    child_progress: float
+    progress_diff: float
+
+    # Phase tracking
+    master_phase: Optional[str] = None
+    child_phase: Optional[str] = None
+    phase_match: bool
+
+    # Issues found
+    issues: List[str] = []
+    recommendations: List[str] = []
+
+
+class SyncResult(BaseModel):
+    """Result model for synchronization operations"""
+
+    success: bool
+    flows_processed: int
+    flows_synchronized: int
+    issues_fixed: int
+
+    # Details
+    sync_statuses: List[FlowSyncStatus] = []
+    errors: List[str] = []
+
+    # Summary
+    synchronized_at: datetime
+    next_sync_recommended: Optional[datetime] = None
+
+
+class MasterFlowSyncService:
+    """Service for maintaining master-child flow synchronization"""
+
+    def __init__(self, db: AsyncSession, context: RequestContext):
+        self.db = db
+        self.context = context
+
+    async def synchronize_collection_flow(
+        self, collection_flow: CollectionFlow
+    ) -> FlowSyncStatus:
+        """
+        Synchronize a specific collection flow with its master flow.
+
+        Implements Section 8 requirements:
+        - Status sync between master and child flows
+        - Progress percentage accuracy
+        - Phase transition logging
+        """
+        logger.info(f"Synchronizing collection flow {collection_flow.flow_id}")
+
+        sync_status = FlowSyncStatus(
+            master_flow_id=collection_flow.master_flow_id,
+            child_flow_id=collection_flow.flow_id,
+            child_flow_type="collection",
+        )
+
+        if not collection_flow.master_flow_id:
+            sync_status.is_synchronized = False
+            sync_status.issues.append("No master flow ID linked")
+            sync_status.recommendations.append(
+                "Create master flow or link existing one"
+            )
+            return sync_status
+
+        # Get master flow
+        master_flow = await self._get_master_flow(collection_flow.master_flow_id)
+        if not master_flow:
+            sync_status.is_synchronized = False
+            sync_status.issues.append(
+                f"Master flow {collection_flow.master_flow_id} not found"
+            )
+            sync_status.recommendations.append(
+                "Verify master flow exists or recreate it"
+            )
+            return sync_status
+
+        # Compare statuses
+        sync_status.master_status = master_flow.status or "unknown"
+        sync_status.child_status = collection_flow.status or "unknown"
+        sync_status.status_match = self._status_compatible(
+            sync_status.master_status, sync_status.child_status
+        )
+
+        # Compare progress
+        sync_status.master_progress = master_flow.progress_percentage or 0.0
+        sync_status.child_progress = collection_flow.progress_percentage or 0.0
+        sync_status.progress_diff = abs(
+            sync_status.master_progress - sync_status.child_progress
+        )
+
+        # Compare phases
+        sync_status.master_phase = master_flow.current_phase
+        sync_status.child_phase = collection_flow.current_phase
+        sync_status.phase_match = sync_status.master_phase == sync_status.child_phase
+
+        # Check for synchronization issues
+        await self._check_sync_issues(sync_status, master_flow, collection_flow)
+
+        # Attempt synchronization if needed
+        if not sync_status.is_synchronized:
+            await self._sync_master_with_child(
+                master_flow, collection_flow, sync_status
+            )
+
+        sync_status.last_sync_at = datetime.utcnow()
+
+        return sync_status
+
+    async def synchronize_assessment_flow(
+        self, assessment_flow: AssessmentFlow
+    ) -> FlowSyncStatus:
+        """Synchronize an assessment flow with its master flow"""
+
+        logger.info(f"Synchronizing assessment flow {assessment_flow.id}")
+
+        sync_status = FlowSyncStatus(
+            master_flow_id=assessment_flow.master_flow_id,
+            child_flow_id=assessment_flow.id,
+            child_flow_type="assessment",
+        )
+
+        if not assessment_flow.master_flow_id:
+            sync_status.is_synchronized = False
+            sync_status.issues.append("No master flow ID linked")
+            return sync_status
+
+        # Get master flow
+        master_flow = await self._get_master_flow(assessment_flow.master_flow_id)
+        if not master_flow:
+            sync_status.is_synchronized = False
+            sync_status.issues.append(
+                f"Master flow {assessment_flow.master_flow_id} not found"
+            )
+            return sync_status
+
+        # Compare statuses
+        sync_status.master_status = master_flow.status or "unknown"
+        sync_status.child_status = assessment_flow.status or "unknown"
+        sync_status.status_match = self._status_compatible(
+            sync_status.master_status, sync_status.child_status
+        )
+
+        # Compare progress
+        sync_status.master_progress = master_flow.progress_percentage or 0.0
+        sync_status.child_progress = assessment_flow.progress or 0.0
+        sync_status.progress_diff = abs(
+            sync_status.master_progress - sync_status.child_progress
+        )
+
+        # Compare phases
+        sync_status.master_phase = master_flow.current_phase
+        sync_status.child_phase = assessment_flow.current_phase
+        sync_status.phase_match = sync_status.master_phase == sync_status.child_phase
+
+        # Check for synchronization issues
+        await self._check_sync_issues(sync_status, master_flow, assessment_flow)
+
+        # Attempt synchronization if needed
+        if not sync_status.is_synchronized:
+            await self._sync_master_with_assessment_child(
+                master_flow, assessment_flow, sync_status
+            )
+
+        sync_status.last_sync_at = datetime.utcnow()
+
+        return sync_status
+
+    async def synchronize_all_flows(self) -> SyncResult:
+        """
+        Synchronize all flows for the current tenant.
+
+        This is a comprehensive sync operation that checks all collection
+        and assessment flows and ensures they're properly synchronized
+        with their master flows.
+        """
+        logger.info(
+            f"Starting comprehensive flow synchronization for tenant {self.context.client_account_id}"
+        )
+
+        result = SyncResult(
+            success=False,
+            flows_processed=0,
+            flows_synchronized=0,
+            issues_fixed=0,
+            synchronized_at=datetime.utcnow(),
+        )
+
+        try:
+            # Get all collection flows for this tenant
+            collection_flows = await self._get_all_collection_flows()
+
+            # Get all assessment flows for this tenant
+            assessment_flows = await self._get_all_assessment_flows()
+
+            result.flows_processed = len(collection_flows) + len(assessment_flows)
+
+            # Synchronize collection flows
+            for flow in collection_flows:
+                try:
+                    sync_status = await self.synchronize_collection_flow(flow)
+                    result.sync_statuses.append(sync_status)
+
+                    if sync_status.is_synchronized:
+                        result.flows_synchronized += 1
+
+                    if len(sync_status.issues) > 0:
+                        result.issues_fixed += len(
+                            [i for i in sync_status.issues if "fixed" in i.lower()]
+                        )
+
+                except Exception as e:
+                    error_msg = (
+                        f"Failed to sync collection flow {flow.flow_id}: {str(e)}"
+                    )
+                    logger.error(error_msg)
+                    result.errors.append(error_msg)
+
+            # Synchronize assessment flows
+            for flow in assessment_flows:
+                try:
+                    sync_status = await self.synchronize_assessment_flow(flow)
+                    result.sync_statuses.append(sync_status)
+
+                    if sync_status.is_synchronized:
+                        result.flows_synchronized += 1
+
+                    if len(sync_status.issues) > 0:
+                        result.issues_fixed += len(
+                            [i for i in sync_status.issues if "fixed" in i.lower()]
+                        )
+
+                except Exception as e:
+                    error_msg = f"Failed to sync assessment flow {flow.id}: {str(e)}"
+                    logger.error(error_msg)
+                    result.errors.append(error_msg)
+
+            # Commit all synchronization changes
+            await self.db.commit()
+
+            result.success = len(result.errors) == 0
+
+            logger.info(
+                f"Flow synchronization completed: {result.flows_synchronized}/{result.flows_processed} flows synchronized"
+            )
+
+        except Exception as e:
+            await self.db.rollback()
+            error_msg = f"Comprehensive flow synchronization failed: {str(e)}"
+            logger.error(error_msg)
+            result.errors.append(error_msg)
+
+        return result
+
+    async def _get_master_flow(
+        self, master_flow_id: UUID
+    ) -> Optional[CrewAIFlowStateExtensions]:
+        """Get master flow by ID with tenant scoping"""
+        result = await self.db.execute(
+            select(CrewAIFlowStateExtensions).where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == master_flow_id,
+                    CrewAIFlowStateExtensions.client_account_id
+                    == self.context.client_account_id,
+                    CrewAIFlowStateExtensions.engagement_id
+                    == self.context.engagement_id,
+                )
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def _get_all_collection_flows(self) -> List[CollectionFlow]:
+        """Get all collection flows for current tenant"""
+        result = await self.db.execute(
+            select(CollectionFlow).where(
+                and_(
+                    CollectionFlow.client_account_id == self.context.client_account_id,
+                    CollectionFlow.engagement_id == self.context.engagement_id,
+                    CollectionFlow.master_flow_id.isnot(
+                        None
+                    ),  # Only flows with master flow links
+                )
+            )
+        )
+        return result.scalars().all()
+
+    async def _get_all_assessment_flows(self) -> List[AssessmentFlow]:
+        """Get all assessment flows for current tenant"""
+        result = await self.db.execute(
+            select(AssessmentFlow).where(
+                and_(
+                    AssessmentFlow.client_account_id == self.context.client_account_id,
+                    AssessmentFlow.engagement_id == self.context.engagement_id,
+                    AssessmentFlow.master_flow_id.isnot(
+                        None
+                    ),  # Only flows with master flow links
+                )
+            )
+        )
+        return result.scalars().all()
+
+    def _status_compatible(self, master_status: str, child_status: str) -> bool:
+        """Check if master and child statuses are compatible"""
+
+        # Define status compatibility mappings
+        compatible_mappings = {
+            # Master status -> compatible child statuses
+            "running": [
+                "initialized",
+                "platform_detection",
+                "automated_collection",
+                "gap_analysis",
+                "manual_collection",
+            ],
+            "completed": ["completed"],
+            "failed": ["failed", "cancelled"],
+            "paused": [
+                "initialized",
+                "platform_detection",
+                "automated_collection",
+                "gap_analysis",
+                "manual_collection",
+            ],
+            "assessment_phase": ["initialized", "analysis", "planning", "completed"],
+        }
+
+        # Check direct match
+        if master_status == child_status:
+            return True
+
+        # Check compatibility mapping
+        compatible_child_statuses = compatible_mappings.get(master_status, [])
+        return child_status in compatible_child_statuses
+
+    async def _check_sync_issues(
+        self,
+        sync_status: FlowSyncStatus,
+        master_flow: CrewAIFlowStateExtensions,
+        child_flow,
+    ) -> None:
+        """Check for synchronization issues between master and child flows"""
+
+        issues = []
+        recommendations = []
+
+        # Status mismatch
+        if not sync_status.status_match:
+            issues.append(
+                f"Status mismatch: master='{sync_status.master_status}', child='{sync_status.child_status}'"
+            )
+            recommendations.append("Synchronize child flow status with master flow")
+
+        # Progress discrepancy (>10% difference)
+        if sync_status.progress_diff > 10:
+            issues.append(
+                f"Progress discrepancy: master={sync_status.master_progress:.1f}%, "
+                f"child={sync_status.child_progress:.1f}%"
+            )
+            recommendations.append("Update progress tracking to ensure accuracy")
+
+        # Phase mismatch
+        if not sync_status.phase_match:
+            issues.append(
+                f"Phase mismatch: master='{sync_status.master_phase}', child='{sync_status.child_phase}'"
+            )
+            recommendations.append("Synchronize phase progression")
+
+        # Check for stale data (last updated > 1 hour ago)
+        if master_flow.updated_at and child_flow.updated_at:
+            time_diff = abs(
+                (master_flow.updated_at - child_flow.updated_at).total_seconds()
+            )
+            if time_diff > 3600:  # 1 hour
+                issues.append(
+                    f"Stale synchronization: {time_diff / 3600:.1f} hours since last sync"
+                )
+                recommendations.append(
+                    "Run regular synchronization to prevent data staleness"
+                )
+
+        sync_status.issues.extend(issues)
+        sync_status.recommendations.extend(recommendations)
+        sync_status.is_synchronized = len(issues) == 0
+
+    async def _sync_master_with_child(
+        self,
+        master_flow: CrewAIFlowStateExtensions,
+        collection_flow: CollectionFlow,
+        sync_status: FlowSyncStatus,
+    ) -> None:
+        """Synchronize master flow with collection flow child"""
+
+        updates_made = []
+
+        try:
+            # Update master flow based on child flow state
+            update_fields = {}
+
+            # Sync status if child is more advanced
+            if self._child_status_more_advanced(
+                sync_status.child_status, sync_status.master_status
+            ):
+                update_fields["status"] = self._map_child_to_master_status(
+                    sync_status.child_status
+                )
+                updates_made.append(
+                    f"Updated master status to {update_fields['status']}"
+                )
+
+            # Sync progress (use child progress if it's higher)
+            if sync_status.child_progress > sync_status.master_progress:
+                update_fields["progress_percentage"] = sync_status.child_progress
+                updates_made.append(
+                    f"Updated master progress to {sync_status.child_progress}%"
+                )
+
+            # Sync phase if child has progressed
+            if (
+                sync_status.child_phase
+                and sync_status.child_phase != sync_status.master_phase
+            ):
+                update_fields["current_phase"] = self._map_child_to_master_phase(
+                    sync_status.child_phase
+                )
+                updates_made.append(
+                    f"Updated master phase to {update_fields['current_phase']}"
+                )
+
+            # Update metadata with child flow information
+            current_metadata = master_flow.phase_metadata or {}
+            current_metadata.update(
+                {
+                    "child_flow_sync": {
+                        "last_synced": datetime.utcnow().isoformat(),
+                        "child_flow_id": str(collection_flow.flow_id),
+                        "child_flow_type": "collection",
+                        "child_status": sync_status.child_status,
+                        "child_progress": sync_status.child_progress,
+                    }
+                }
+            )
+            update_fields["phase_metadata"] = current_metadata
+            update_fields["updated_at"] = datetime.utcnow()
+
+            # Execute update
+            if update_fields:
+                await self.db.execute(
+                    update(CrewAIFlowStateExtensions)
+                    .where(CrewAIFlowStateExtensions.flow_id == master_flow.flow_id)
+                    .values(**update_fields)
+                )
+
+                sync_status.issues = [f"Fixed: {update}" for update in updates_made]
+                sync_status.is_synchronized = True
+
+                logger.info(
+                    f"Master flow {master_flow.flow_id} synchronized with collection flow {collection_flow.flow_id}"
+                )
+
+        except Exception as e:
+            error_msg = f"Failed to synchronize master flow: {str(e)}"
+            logger.error(error_msg)
+            sync_status.issues.append(error_msg)
+
+    async def _sync_master_with_assessment_child(
+        self,
+        master_flow: CrewAIFlowStateExtensions,
+        assessment_flow: AssessmentFlow,
+        sync_status: FlowSyncStatus,
+    ) -> None:
+        """Synchronize master flow with assessment flow child"""
+
+        updates_made = []
+
+        try:
+            # Update master flow based on assessment flow state
+            update_fields = {}
+
+            # Sync status
+            if self._child_status_more_advanced(
+                sync_status.child_status, sync_status.master_status
+            ):
+                update_fields["status"] = self._map_assessment_to_master_status(
+                    sync_status.child_status
+                )
+                updates_made.append(
+                    f"Updated master status to {update_fields['status']}"
+                )
+
+            # Sync progress
+            if sync_status.child_progress > sync_status.master_progress:
+                update_fields["progress_percentage"] = sync_status.child_progress
+                updates_made.append(
+                    f"Updated master progress to {sync_status.child_progress}%"
+                )
+
+            # Sync phase
+            if (
+                sync_status.child_phase
+                and sync_status.child_phase != sync_status.master_phase
+            ):
+                update_fields["current_phase"] = self._map_assessment_to_master_phase(
+                    sync_status.child_phase
+                )
+                updates_made.append(
+                    f"Updated master phase to {update_fields['current_phase']}"
+                )
+
+            # Update metadata
+            current_metadata = master_flow.phase_metadata or {}
+            current_metadata.update(
+                {
+                    "child_flow_sync": {
+                        "last_synced": datetime.utcnow().isoformat(),
+                        "child_flow_id": str(assessment_flow.id),
+                        "child_flow_type": "assessment",
+                        "child_status": sync_status.child_status,
+                        "child_progress": sync_status.child_progress,
+                    }
+                }
+            )
+            update_fields["phase_metadata"] = current_metadata
+            update_fields["updated_at"] = datetime.utcnow()
+
+            # Execute update
+            if update_fields:
+                await self.db.execute(
+                    update(CrewAIFlowStateExtensions)
+                    .where(CrewAIFlowStateExtensions.flow_id == master_flow.flow_id)
+                    .values(**update_fields)
+                )
+
+                sync_status.issues = [f"Fixed: {update}" for update in updates_made]
+                sync_status.is_synchronized = True
+
+                logger.info(
+                    f"Master flow {master_flow.flow_id} synchronized with assessment flow {assessment_flow.id}"
+                )
+
+        except Exception as e:
+            error_msg = f"Failed to synchronize master flow with assessment: {str(e)}"
+            logger.error(error_msg)
+            sync_status.issues.append(error_msg)
+
+    def _child_status_more_advanced(
+        self, child_status: str, master_status: str
+    ) -> bool:
+        """Check if child status is more advanced than master status"""
+
+        # Define status progression order
+        collection_progression = [
+            "initialized",
+            "platform_detection",
+            "automated_collection",
+            "gap_analysis",
+            "manual_collection",
+            "completed",
+        ]
+
+        assessment_progression = ["initialized", "analysis", "planning", "completed"]
+
+        # Use collection progression as default
+        progression = collection_progression
+        if child_status in assessment_progression:
+            progression = assessment_progression
+
+        try:
+            child_index = progression.index(child_status)
+            master_index = progression.index(master_status)
+            return child_index > master_index
+        except ValueError:
+            # If status not found in progression, default to not more advanced
+            return False
+
+    def _map_child_to_master_status(self, child_status: str) -> str:
+        """Map child collection status to master flow status"""
+
+        status_mapping = {
+            "initialized": "running",
+            "platform_detection": "running",
+            "automated_collection": "running",
+            "gap_analysis": "running",
+            "manual_collection": "running",
+            "completed": "assessment_phase",  # Move to assessment
+            "failed": "failed",
+            "cancelled": "cancelled",
+        }
+
+        return status_mapping.get(child_status, "running")
+
+    def _map_assessment_to_master_status(self, assessment_status: str) -> str:
+        """Map assessment child status to master flow status"""
+
+        status_mapping = {
+            "initialized": "assessment_phase",
+            "analysis": "assessment_phase",
+            "planning": "assessment_phase",
+            "completed": "completed",
+            "failed": "failed",
+            "cancelled": "cancelled",
+        }
+
+        return status_mapping.get(assessment_status, "assessment_phase")
+
+    def _map_child_to_master_phase(self, child_phase: str) -> str:
+        """Map child collection phase to master flow phase"""
+
+        phase_mapping = {
+            "initialization": "collection_initialization",
+            "platform_detection": "collection_platform_detection",
+            "automated_collection": "collection_automated",
+            "gap_analysis": "collection_gap_analysis",
+            "manual_collection": "collection_manual",
+            "data_validation": "collection_validation",
+            "finalization": "collection_finalization",
+        }
+
+        return phase_mapping.get(child_phase, child_phase)
+
+    def _map_assessment_to_master_phase(self, assessment_phase: str) -> str:
+        """Map assessment child phase to master flow phase"""
+
+        phase_mapping = {
+            "initialization": "assessment_initialization",
+            "analysis": "assessment_analysis",
+            "planning": "assessment_planning",
+            "finalization": "assessment_finalization",
+        }
+
+        return phase_mapping.get(assessment_phase, assessment_phase)

@@ -120,10 +120,10 @@ class AgentToolManager:
             if agent_type == "discovery":
                 # Discovery-specific tools
                 tools_added += cls._safe_extend_tools(
-                    tools, create_asset_creation_tools, "asset creation"
+                    tools, create_asset_creation_tools, "asset creation", context_info
                 )
                 tools_added += cls._safe_extend_tools(
-                    tools, create_data_validation_tools, "data validation"
+                    tools, create_data_validation_tools, "data validation", context_info
                 )
 
             elif agent_type == "field_mapper":
@@ -133,22 +133,31 @@ class AgentToolManager:
                     tools_added += 1
 
                 tools_added += cls._safe_extend_tools(
-                    tools, create_critical_attributes_tools, "critical attributes"
+                    tools,
+                    create_critical_attributes_tools,
+                    "critical attributes",
+                    context_info,
                 )
 
             elif agent_type == "questionnaire_generator":
                 # Questionnaire tools
                 tools_added += cls._safe_extend_tools(
-                    tools, create_task_completion_tools, "task completion"
+                    tools, create_task_completion_tools, "task completion", context_info
                 )
 
             elif agent_type == "six_r_analyzer":
                 # 6R analysis tools
                 tools_added += cls._safe_extend_tools(
-                    tools, create_dependency_analysis_tools, "dependency analysis"
+                    tools,
+                    create_dependency_analysis_tools,
+                    "dependency analysis",
+                    context_info,
                 )
                 tools_added += cls._safe_extend_tools(
-                    tools, get_asset_intelligence_tools, "asset intelligence"
+                    tools,
+                    get_asset_intelligence_tools,
+                    "asset intelligence",
+                    context_info,
                 )
 
             logger.debug(f"Added {tools_added} {agent_type}-specific tools")
@@ -167,10 +176,16 @@ class AgentToolManager:
         try:
             # Add common legacy tools
             tools_added += cls._safe_extend_tools(
-                tools, create_asset_creation_tools, "legacy asset creation"
+                tools,
+                create_asset_creation_tools,
+                "legacy asset creation",
+                context_info,
             )
             tools_added += cls._safe_extend_tools(
-                tools, create_task_completion_tools, "legacy task completion"
+                tools,
+                create_task_completion_tools,
+                "legacy task completion",
+                context_info,
             )
 
             logger.debug(f"Added {tools_added} legacy tools")
@@ -188,10 +203,13 @@ class AgentToolManager:
         tools_added = 0
         try:
             tools_added += cls._safe_extend_tools(
-                tools, create_data_validation_tools, "data validation"
+                tools, create_data_validation_tools, "data validation", context_info
             )
             tools_added += cls._safe_extend_tools(
-                tools, create_critical_attributes_tools, "critical attributes"
+                tools,
+                create_critical_attributes_tools,
+                "critical attributes",
+                context_info,
             )
 
             logger.debug(f"Added {tools_added} data analysis tools")
@@ -209,7 +227,7 @@ class AgentToolManager:
         try:
             # Add quality-focused tools
             cls._safe_extend_tools(
-                tools, create_data_validation_tools, "quality validation"
+                tools, create_data_validation_tools, "quality validation", context_info
             )
             logger.debug("Added quality tools")
         except Exception as e:
@@ -226,10 +244,16 @@ class AgentToolManager:
         tools_added = 0
         try:
             tools_added += cls._safe_extend_tools(
-                tools, create_dependency_analysis_tools, "business dependency analysis"
+                tools,
+                create_dependency_analysis_tools,
+                "business dependency analysis",
+                context_info,
             )
             tools_added += cls._safe_extend_tools(
-                tools, get_asset_intelligence_tools, "business asset intelligence"
+                tools,
+                get_asset_intelligence_tools,
+                "business asset intelligence",
+                context_info,
             )
 
             logger.debug(f"Added {tools_added} business analysis tools")
@@ -252,13 +276,27 @@ class AgentToolManager:
             logger.warning(f"Failed to add field mapper tools: {e}")
 
     @classmethod
-    def _safe_extend_tools(cls, tools: List, getter, tool_name: str = "tools") -> int:
+    def _safe_extend_tools(
+        cls,
+        tools: List,
+        getter,
+        tool_name: str = "tools",
+        context_info: Dict[str, Any] = None,
+    ) -> int:
         """Safely extend tools list with error handling."""
         if not getter:
             return 0
 
         try:
-            new_tools = getter()
+            # Check if getter function requires context_info parameter
+            import inspect
+
+            sig = inspect.signature(getter)
+            if "context_info" in sig.parameters and context_info is not None:
+                new_tools = getter(context_info)
+            else:
+                new_tools = getter()
+
             if new_tools:
                 tools.extend(new_tools)
                 logger.debug(f"Added {len(new_tools)} {tool_name}")

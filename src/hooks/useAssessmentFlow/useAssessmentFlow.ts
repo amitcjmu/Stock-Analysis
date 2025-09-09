@@ -19,7 +19,8 @@ import type {
   ApplicationComponent,
   TechDebtItem,
   SixRDecision,
-  UserInput
+  UserInput,
+  AssessmentApplication
 } from './types';
 
 export const useAssessmentFlow = (
@@ -42,6 +43,8 @@ export const useAssessmentFlow = (
     nextPhase: null,
     pausePoints: [],
     selectedApplicationIds: [],
+    selectedApplications: [],  // Add application details
+    applicationCount: 0,  // Add application count
     engagementStandards: [],
     applicationOverrides: {},
     applicationComponents: {},
@@ -179,6 +182,23 @@ export const useAssessmentFlow = (
       throw error;
     }
   }, [state.flowId]);
+
+  // Utility function to check if navigation to phase is allowed
+  const canNavigateToPhase = useCallback((phase: AssessmentPhase): boolean => {
+    const phaseOrder: AssessmentPhase[] = [
+      'architecture_minimums',
+      'tech_debt_analysis',
+      'component_sixr_strategies',
+      'app_on_page_generation',
+      'finalization'
+    ];
+
+    const currentIndex = phaseOrder.indexOf(state.currentPhase);
+    const targetIndex = phaseOrder.indexOf(phase);
+
+    // Can navigate to current phase or any previous completed phase
+    return targetIndex <= currentIndex || state.pausePoints.includes(phase);
+  }, [state.currentPhase, state.pausePoints]);
 
   // Navigate to specific phase
   const navigateToPhase = useCallback(async (phase: AssessmentPhase) => {
@@ -364,22 +384,6 @@ export const useAssessmentFlow = (
     return progressMap[phase] || 0;
   }, []);
 
-  const canNavigateToPhase = useCallback((phase: AssessmentPhase): boolean => {
-    const phaseOrder: AssessmentPhase[] = [
-      'architecture_minimums',
-      'tech_debt_analysis',
-      'component_sixr_strategies',
-      'app_on_page_generation',
-      'finalization'
-    ];
-
-    const currentIndex = phaseOrder.indexOf(state.currentPhase);
-    const targetIndex = phaseOrder.indexOf(phase);
-
-    // Can navigate to current phase or any previous completed phase
-    return targetIndex <= currentIndex || state.pausePoints.includes(phase);
-  }, [state.currentPhase, state.pausePoints]);
-
   const getApplicationsNeedingReview = useCallback((): string[] => {
     return Object.entries(state.sixrDecisions)
       .filter(([_, decision]) => decision.confidence_score < 0.8)
@@ -390,54 +394,8 @@ export const useAssessmentFlow = (
     return state.pausePoints.includes(phase);
   }, [state.pausePoints]);
 
-  // Load flow state on mount or flowId change
-  useEffect(() => {
-    if (state.flowId && clientAccountId) {
-      loadFlowState();
-      subscribeToUpdates();
-    }
-
-    return () => {
-      unsubscribeFromUpdates();
-    };
-  }, [state.flowId, clientAccountId, loadFlowState, subscribeToUpdates, unsubscribeFromUpdates]);
-
-  // Load current flow state
-  const loadFlowState = useCallback(async (): Promise<void> => {
-    if (!state.flowId) return;
-
-    try {
-      setState(prev => ({ ...prev, isLoading: true }));
-
-      const flowStatus = await assessmentFlowAPI.getStatus(state.flowId);
-
-      setState(prev => ({
-        ...prev,
-        status: flowStatus.status as AssessmentFlowStatus,
-        progress: flowStatus.progress,
-        currentPhase: flowStatus.current_phase as AssessmentPhase,
-        nextPhase: flowStatus.next_phase as AssessmentPhase,
-        pausePoints: flowStatus.pause_points,
-        appsReadyForPlanning: flowStatus.apps_ready_for_planning,
-        lastUserInteraction: flowStatus.last_user_interaction ?
-          new Date(flowStatus.last_user_interaction) : null,
-        isLoading: false
-      }));
-
-      // Load phase-specific data
-      await loadPhaseData(flowStatus.current_phase);
-
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Failed to load flow state',
-        isLoading: false
-      }));
-    }
-  }, [state.flowId, loadPhaseData]);
-
   // Load phase-specific data
-  const loadPhaseData = useCallback(async (phase: AssessmentPhase): JSX.Element => {
+  const loadPhaseData = useCallback(async (phase: AssessmentPhase): Promise<void> => {
     if (!state.flowId) return;
 
     try {
@@ -481,6 +439,84 @@ export const useAssessmentFlow = (
     }
   }, [state.flowId]);
 
+  // Load application data
+  const loadApplicationData = useCallback(async (): Promise<void> => {
+    if (!state.flowId || !clientAccountId) return;
+
+    try {
+      // Load both status with count and full application details
+      const [statusResponse, applicationsResponse] = await Promise.all([
+        assessmentFlowAPI.getAssessmentStatus(state.flowId, clientAccountId, engagementId),
+        assessmentFlowAPI.getAssessmentApplications(state.flowId, clientAccountId, engagementId)
+      ]);
+
+      setState(prev => ({
+        ...prev,
+        applicationCount: statusResponse.application_count,
+        selectedApplications: applicationsResponse.applications,
+        selectedApplicationIds: applicationsResponse.applications.map(app => app.application_id)
+      }));
+
+    } catch (error) {
+      console.error('Failed to load application data:', error);
+      // Don't throw here - this is supplementary data
+    }
+  }, [state.flowId, clientAccountId, engagementId]);
+
+  // Load current flow state
+  const loadFlowState = useCallback(async (): Promise<void> => {
+    if (!state.flowId) return;
+
+    try {
+      setState(prev => ({ ...prev, isLoading: true }));
+
+      const flowStatus = await assessmentFlowAPI.getStatus(state.flowId);
+
+      setState(prev => ({
+        ...prev,
+        status: flowStatus.status as AssessmentFlowStatus,
+        progress: flowStatus.progress,
+        currentPhase: flowStatus.current_phase as AssessmentPhase,
+        nextPhase: flowStatus.next_phase as AssessmentPhase,
+        pausePoints: flowStatus.pause_points,
+        appsReadyForPlanning: flowStatus.apps_ready_for_planning,
+        lastUserInteraction: flowStatus.last_user_interaction ?
+          new Date(flowStatus.last_user_interaction) : null,
+        isLoading: false
+      }));
+
+      // Load phase-specific data
+      await loadPhaseData(flowStatus.current_phase);
+
+      // Load application data
+      await loadApplicationData();
+
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Failed to load flow state',
+        isLoading: false
+      }));
+    }
+  }, [state.flowId, loadPhaseData, loadApplicationData]);
+
+  // Load flow state on mount or flowId change
+  useEffect(() => {
+    if (state.flowId && clientAccountId) {
+      loadFlowState();
+      subscribeToUpdates();
+    }
+
+    return () => {
+      unsubscribeFromUpdates();
+    };
+  }, [state.flowId, clientAccountId, loadFlowState, subscribeToUpdates, unsubscribeFromUpdates]);
+
+  // Expose loadApplicationData for manual refresh
+  const refreshApplicationData = useCallback(() => {
+    return loadApplicationData();
+  }, [loadApplicationData]);
+
   // Helper function for navigation
   const getNextPhaseForNavigation = (currentPhase: AssessmentPhase): AssessmentPhase | null => {
     const phaseOrder: AssessmentPhase[] = [
@@ -513,6 +549,7 @@ export const useAssessmentFlow = (
     getPhaseProgress,
     canNavigateToPhase,
     getApplicationsNeedingReview,
-    isPhaseComplete
+    isPhaseComplete,
+    refreshApplicationData  // Add method to refresh application data
   };
 };

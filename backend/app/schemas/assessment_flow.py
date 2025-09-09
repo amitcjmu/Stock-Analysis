@@ -10,6 +10,20 @@ from pydantic import BaseModel, Field, field_validator, ConfigDict
 from app.models.assessment_flow import AssessmentFlowStatus, AssessmentPhase
 
 
+class AssessmentApplicationInfo(BaseModel):
+    """Schema for basic application information in assessment flows."""
+
+    id: str
+    name: str
+    type: Optional[str] = None
+    environment: Optional[str] = None
+    business_criticality: Optional[str] = None
+    technology_stack: List[str] = Field(default_factory=list)
+    complexity_score: Optional[float] = None
+    readiness_score: Optional[float] = None
+    discovery_completed_at: Optional[datetime] = None
+
+
 class AssessmentFlowCreateRequest(BaseModel):
     """Request schema for creating a new assessment flow."""
 
@@ -48,7 +62,7 @@ class AssessmentFlowStatusResponse(BaseModel):
 
     flow_id: str
     status: AssessmentFlowStatus
-    progress: int = Field(ge=0, le=100, description="Progress percentage")
+    progress_percentage: int = Field(ge=0, le=100, description="Progress percentage")
     current_phase: AssessmentPhase
     next_phase: Optional[AssessmentPhase] = None
     pause_points: List[str] = []
@@ -57,6 +71,8 @@ class AssessmentFlowStatusResponse(BaseModel):
     apps_ready_for_planning: List[str] = []
     last_user_interaction: Optional[datetime] = None
     phase_data: Optional[Dict[str, Any]] = None
+    selected_applications: int = Field(description="Number of selected applications")
+    assessment_complete: bool = Field(description="Whether assessment is complete")
     created_at: datetime
     updated_at: datetime
 
