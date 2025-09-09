@@ -83,6 +83,13 @@ class DataValidationHandler:
                 "validation_results", {}
             )
 
+            # Transition to field mapping phase after successful data validation
+            if validation_result.get("is_valid", False):
+                self.flow.state.current_phase = "field_mapping"
+                self.logger.info(
+                    "✅ Transitioned to field_mapping phase after successful data validation"
+                )
+
             # CC: Record phase completion time and transition
             execution_time_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
             await self.state_utils.record_phase_execution_time(

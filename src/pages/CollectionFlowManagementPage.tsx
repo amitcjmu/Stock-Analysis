@@ -242,11 +242,12 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
   };
 
   const handleViewDetails = (flowId: string, phase: string): void => {
-    // Navigate to flow details page - implement based on your routing
-    console.log('View details for flow:', flowId, 'phase:', phase);
+    // Navigate to flow details page using the flow progress route
+    console.log('Navigating to flow details:', flowId, 'phase:', phase);
+    navigate(`/collection/flow/${flowId}`);
     toast({
       title: "Navigation",
-      description: `Would navigate to flow ${flowId} details`,
+      description: `Opening flow details for ${flowId}`,
       variant: "default"
     });
   };

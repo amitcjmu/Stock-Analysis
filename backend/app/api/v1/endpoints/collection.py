@@ -110,6 +110,20 @@ async def get_collection_status(
     )
 
 
+@router.get("/flows", response_model=List[CollectionFlowResponse])
+async def get_all_flows(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> List[CollectionFlowResponse]:
+    """Get all collection flows for the current engagement (including completed ones)"""
+    return await collection_crud.get_all_flows(
+        db=db,
+        current_user=current_user,
+        context=context,
+    )
+
+
 @router.post("/flows", response_model=CollectionFlowResponse)
 async def create_collection_flow(
     flow_data: CollectionFlowCreate,

@@ -62,7 +62,7 @@ class FieldMappingStrategies(FieldMappingGeneratorBase):
                     "field_mappings": field_mappings,
                     "suggestions": [],
                     "execution_method": "direct_crew_execution",
-                    "status": "completed",
+                    "status": "success",
                 }
 
                 self.logger.info(
@@ -113,7 +113,7 @@ class FieldMappingStrategies(FieldMappingGeneratorBase):
                     "field_mappings": basic_mappings,
                     "suggestions": [],
                     "execution_method": "basic_field_extraction",
-                    "status": "completed",
+                    "status": "success",
                 }
 
                 self.logger.info(

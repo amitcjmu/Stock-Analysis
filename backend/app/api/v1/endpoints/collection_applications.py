@@ -120,7 +120,7 @@ async def update_flow_applications(
                 )
 
         # Load the collection flow first (with tenant scoping)
-        from sqlalchemy import select
+        from sqlalchemy import select, and_
         from app.models.collection_flow import CollectionFlow
 
         flow_result = await db.execute(
@@ -156,6 +156,9 @@ async def update_flow_applications(
 
         # CC: Use deduplication service to populate normalized tables
         from app.models.asset import Asset
+        from app.models.canonical_applications.collection_flow_app import (
+            CollectionFlowApplication,
+        )
         from app.services.application_deduplication_service import (
             create_deduplication_service,
         )
@@ -169,10 +172,18 @@ async def update_flow_applications(
 
         for asset_id in normalized_ids:
             try:
-                # Load asset to get details
-                asset = await db.get(Asset, asset_id)
+                # Load asset with tenant scoping
+                asset = await db.scalar(
+                    select(Asset).where(
+                        and_(
+                            Asset.id == asset_id,
+                            Asset.client_account_id == context.client_account_id,
+                            Asset.engagement_id == context.engagement_id,
+                        )
+                    )
+                )
                 if not asset:
-                    logger.warning(f"Asset not found: {asset_id}")
+                    logger.warning(f"Asset not found or out of scope: {asset_id}")
                     continue
 
                 # Get application name (prefer name, fallback to application_name)
@@ -196,6 +207,56 @@ async def update_flow_applications(
                             "source": "collection_flow_selection",
                         },
                     )
+
+                    # Extract fields safely with null checks
+                    canonical_app_id = getattr(
+                        getattr(dedup_result, "canonical_application", None), "id", None
+                    )
+                    name_variant_id = getattr(
+                        getattr(dedup_result, "name_variant", None), "id", None
+                    )
+                    match_method = getattr(dedup_result, "match_method", None)
+                    similarity = getattr(dedup_result, "similarity_score", None)
+
+                    if not canonical_app_id:
+                        logger.warning(
+                            f"No canonical application for {application_name}, skipping persistence"
+                        )
+                        continue
+
+                    # CRITICAL BUG FIX: Create CollectionFlowApplication record
+                    # This was missing and causing no records in collection_flow_applications table
+                    collection_flow_app = CollectionFlowApplication(
+                        collection_flow_id=collection_flow.flow_id,
+                        asset_id=asset_id,
+                        application_name=application_name,
+                        canonical_application_id=canonical_app_id,
+                        name_variant_id=name_variant_id,
+                        client_account_id=context.client_account_id,
+                        engagement_id=context.engagement_id,
+                        deduplication_method=getattr(match_method, "value", None),
+                        match_confidence=similarity,
+                        collection_status="selected",
+                        discovery_data_snapshot={
+                            "asset_id": str(asset_id),
+                            "environment": getattr(asset, "environment", "unknown"),
+                            "source": "collection_flow_selection",
+                            "selected_at": datetime.now(timezone.utc).isoformat(),
+                        },
+                    )
+                    db.add(collection_flow_app)
+                    logger.info(
+                        f"Created CollectionFlowApplication record for {application_name}"
+                    )
+
+                    # Also update asset table with collection reference if needed
+                    asset.collection_flow_id = collection_flow.flow_id
+                    asset.updated_at = datetime.now(timezone.utc)
+                except Exception as e:
+                    logger.error(
+                        f"Deduplication persistence failed for asset {asset_id}: {e}"
+                    )
+                    continue
 
                     deduplication_results.append(
                         {

@@ -178,11 +178,13 @@ class FieldMappingExecutor(BasePhaseExecutor):
                     try:
                         from app.services.persistent_agents import TenantScopedAgentPool
 
-                        agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
+                        # Initialize the tenant pool (this returns None)
+                        await TenantScopedAgentPool.initialize_tenant_pool(
                             client_id=str(self.client_account_id),
                             engagement_id=str(self.engagement_id),
                         )
-                        self._modular_executor.agent_pool = agent_pool
+                        # Set the class itself as the agent pool, not the return value
+                        self._modular_executor.agent_pool = TenantScopedAgentPool
                         logger.info("Agent pool initialized for modular executor")
                     except Exception as e:
                         logger.warning(f"Could not initialize agent pool: {e}")
@@ -282,11 +284,13 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 try:
                     from app.services.persistent_agents import TenantScopedAgentPool
 
-                    agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
+                    # Initialize the tenant pool (this returns None)
+                    await TenantScopedAgentPool.initialize_tenant_pool(
                         client_id=str(self.client_account_id),
                         engagement_id=str(self.engagement_id),
                     )
-                    self._modular_executor.agent_pool = agent_pool
+                    # Set the class itself as the agent pool, not the return value
+                    self._modular_executor.agent_pool = TenantScopedAgentPool
                     logger.info("Agent pool initialized for direct execution")
                 except Exception as e:
                     logger.warning(f"Could not initialize agent pool: {e}")

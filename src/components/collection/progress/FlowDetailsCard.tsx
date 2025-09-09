@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { Play, Pause, Square, ArrowRight, AlertCircle, Loader2, CheckCircle2, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Play, Pause, Square, ArrowRight, AlertCircle, Loader2, CheckCircle2, AlertTriangle, ExternalLink, Trash2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -55,6 +55,31 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
 
   const handleAction = async (action: 'pause' | 'resume' | 'stop'): void => {
     await onFlowAction(flow.id, action);
+  };
+
+  const handleDelete = async (): Promise<void> => {
+    if (!confirm('Are you sure you want to delete this collection flow? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await collectionFlowApi.deleteFlow(flow.id, true); // force delete
+      toast({
+        title: 'Flow Deleted',
+        description: 'Collection flow has been deleted successfully.',
+        variant: 'default'
+      });
+      
+      // Navigate back to collection overview
+      navigate('/collection');
+    } catch (error) {
+      console.error('Error deleting flow:', error);
+      toast({
+        title: 'Delete Failed',
+        description: 'Failed to delete the collection flow. Please try again.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const handleContinue = async (): Promise<void> => {
@@ -289,6 +314,18 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
                 title="Stop Flow"
               >
                 <Square className="h-4 w-4" />
+              </Button>
+            )}
+
+            {/* Delete button for failed flows or any flow that needs to be removed */}
+            {(flow.status === 'failed' || flow.status === 'completed' || flow.status === 'paused') && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDelete}
+                title="Delete Flow"
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
             )}
           </div>

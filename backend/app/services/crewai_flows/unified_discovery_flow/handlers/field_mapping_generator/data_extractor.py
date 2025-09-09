@@ -38,6 +38,20 @@ class FieldMappingDataExtractor(FieldMappingGeneratorBase):
                     data_validation_agent_result["validated_data"]
                 )
 
+            # Additional fallback: try to get detected columns from flow state metadata
+            if not field_analysis and hasattr(self.flow, "state") and self.flow.state:
+                detected_columns = getattr(self.flow.state, "metadata", {}).get(
+                    "detected_columns", []
+                )
+                if detected_columns:
+                    field_analysis = {
+                        col: {"field_name": col, "source": "state_metadata"}
+                        for col in detected_columns
+                    }
+                    self.logger.info(
+                        f"🔄 Generated field analysis from state metadata: {detected_columns}"
+                    )
+
             # BUG FIX: Try to extract data_source from nested result structure if empty
             if not data_source:
                 data_source = self._extract_data_source_from_result(

@@ -244,6 +244,10 @@ class CollectionFlowApi {
     return await apiCall(`${this.baseUrl}/incomplete`, { method: 'GET' });
   }
 
+  async getAllFlows(): Promise<CollectionFlowResponse[]> {
+    return await apiCall(`${this.baseUrl}/flows`, { method: 'GET' });
+  }
+
   async continueFlow(flowId: string, resumeContext?: Record<string, unknown>): Promise<FlowContinueResult> {
     return await apiCall(`${this.baseUrl}/flows/${flowId}/continue`, {
       method: 'POST',

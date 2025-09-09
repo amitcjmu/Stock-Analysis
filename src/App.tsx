@@ -276,6 +276,11 @@ const AuthenticatedApp = (): JSX.Element => {
         path="/collection/progress/:flowId"
         element={<LazyCollectionProgress />}
       />
+      {/* Individual flow detail route - redirects to progress page for now */}
+      <Route
+        path="/collection/flow/:flowId"
+        element={<LazyCollectionProgress />}
+      />
       <Route
         path="/collection/gap-analysis/:flowId"
         element={<LazyCollectionGapAnalysis />}
