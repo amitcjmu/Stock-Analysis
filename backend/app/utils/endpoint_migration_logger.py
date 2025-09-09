@@ -12,7 +12,7 @@ from functools import wraps
 logger = logging.getLogger(__name__)
 
 # Mapping of legacy endpoints to their new equivalents
-# NOTE: All /api/v1/discovery/* endpoints are now REMOVED from the codebase
+# NOTE: All legacy discovery endpoints are now REMOVED from the codebase
 # Use /api/v1/flows/* (MFO) or /api/v1/unified-discovery/* instead
 ENDPOINT_MIGRATION_MAP: Dict[str, str] = {
     # Legacy discovery endpoints no longer exist - kept here for historical reference only
