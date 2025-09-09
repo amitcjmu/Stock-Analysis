@@ -86,7 +86,12 @@ def upgrade():
     if not column_exists("assessment_flows", "phase_progress"):
         op.add_column(
             "assessment_flows",
-            sa.Column("phase_progress", JSONB, nullable=False, server_default="{}"),
+            sa.Column(
+                "phase_progress",
+                JSONB,
+                nullable=False,
+                server_default=sa.text("'{}'::jsonb"),
+            ),
             schema="migration",
         )
         print("Added 'phase_progress' column to assessment_flows table")
@@ -97,7 +102,12 @@ def upgrade():
     if not column_exists("assessment_flows", "configuration"):
         op.add_column(
             "assessment_flows",
-            sa.Column("configuration", JSONB, nullable=False, server_default="{}"),
+            sa.Column(
+                "configuration",
+                JSONB,
+                nullable=False,
+                server_default=sa.text("'{}'::jsonb"),
+            ),
             schema="migration",
         )
         print("Added 'configuration' column to assessment_flows table")
@@ -108,7 +118,12 @@ def upgrade():
     if not column_exists("assessment_flows", "runtime_state"):
         op.add_column(
             "assessment_flows",
-            sa.Column("runtime_state", JSONB, nullable=False, server_default="{}"),
+            sa.Column(
+                "runtime_state",
+                JSONB,
+                nullable=False,
+                server_default=sa.text("'{}'::jsonb"),
+            ),
             schema="migration",
         )
         print("Added 'runtime_state' column to assessment_flows table")
@@ -119,7 +134,12 @@ def upgrade():
     if not column_exists("assessment_flows", "flow_metadata"):
         op.add_column(
             "assessment_flows",
-            sa.Column("flow_metadata", JSONB, nullable=False, server_default="{}"),
+            sa.Column(
+                "flow_metadata",
+                JSONB,
+                nullable=False,
+                server_default=sa.text("'{}'::jsonb"),
+            ),
             schema="migration",
         )
         print("Added 'flow_metadata' column to assessment_flows table")

@@ -51,6 +51,7 @@ class FieldMappingPersistence:
             )
             data_import_id = getattr(self.flow.state, "data_import_id", None)
             client_account_id = getattr(self.flow.state, "client_account_id", None)
+            engagement_id = getattr(self.flow.state, "engagement_id", None)
 
             # For direct raw data flows, use flow_id as data_import_id if not set
             if not data_import_id:
@@ -59,12 +60,18 @@ class FieldMappingPersistence:
                     f"🔄 Using flow_id as data_import_id for direct raw data flow: {data_import_id}"
                 )
 
-            if not flow_id or not data_import_id or not client_account_id:
+            if (
+                not flow_id
+                or not data_import_id
+                or not client_account_id
+                or not engagement_id
+            ):
                 self.logger.error(
                     f"❌ Missing required IDs for field mapping persistence: "
                     f"flow_id={'<present>' if flow_id else '<missing>'}, "
                     f"data_import_id={'<present>' if data_import_id else '<missing>'}, "
-                    f"client_account_id={'<present>' if client_account_id else '<missing>'}"
+                    f"client_account_id={'<present>' if client_account_id else '<missing>'}, "
+                    f"engagement_id={'<present>' if engagement_id else '<missing>'}"
                 )
                 return
 
@@ -117,11 +124,22 @@ class FieldMappingPersistence:
                                 f"✅ Created data import record for direct raw data flow: {data_import_id}"
                             )
 
-                    # Clear existing mappings for this data import to avoid duplicates (with tenant scoping)
+                    # Clear existing mappings for this data import to avoid duplicates
+                    # (with full tenant scoping via DataImport join)
                     delete_stmt = delete(ImportFieldMapping).where(
                         and_(
                             ImportFieldMapping.data_import_id == data_import_id,
                             ImportFieldMapping.client_account_id == client_account_id,
+                            ImportFieldMapping.data_import_id.in_(
+                                select(DataImport.id).where(
+                                    and_(
+                                        DataImport.id == data_import_id,
+                                        DataImport.client_account_id
+                                        == client_account_id,
+                                        DataImport.engagement_id == engagement_id,
+                                    )
+                                )
+                            ),
                         )
                     )
                     await db.execute(delete_stmt)
