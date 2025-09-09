@@ -31,7 +31,8 @@ import * as fs from 'fs';
 
 // Enhanced test configuration
 const TEST_CSV_RECORDS = 20;
-const API_BASE_URL = TEST_CONFIG.apiURL || 'http://localhost:8000';
+// Use direct backend URL for API context tests, bypassing the Vite proxy
+const API_BASE_URL = TEST_CONFIG.directBackendURL || 'http://localhost:8000';
 
 // Proper tenant headers from auth context
 interface TenantHeaders {

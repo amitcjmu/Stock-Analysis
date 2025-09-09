@@ -16,10 +16,10 @@ async def test_asset_inventory_api():
 
     base_url = "http://localhost:8000"
     endpoints_to_test = [
-        "/api/v1/discovery/assets",
-        "/api/v1/discovery/assets?page=1&page_size=10",
-        "/api/v1/discovery/assets/discovery-metrics",
-        "/api/v1/discovery/assets/health",
+        "/api/v1/unified-discovery/assets",
+        "/api/v1/unified-discovery/assets?page=1&page_size=10",
+        "/api/v1/unified-discovery/assets/discovery-metrics",
+        "/api/v1/unified-discovery/assets/health",
     ]
 
     async with aiohttp.ClientSession() as session:

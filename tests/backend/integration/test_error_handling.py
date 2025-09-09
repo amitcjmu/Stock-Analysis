@@ -62,7 +62,7 @@ class TestErrorHandling:
         }
 
         response = await api_client.post(
-            "/api/v1/discovery/cmdb-feedback",
+            "/api/v1/unified-discovery/cmdb-feedback",
             json=malformed_feedback,
             headers=auth_headers,
         )

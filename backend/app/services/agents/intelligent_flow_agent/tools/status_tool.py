@@ -4,7 +4,6 @@ Flow Status Tool
 Tool for getting comprehensive flow status and phase information.
 """
 
-import asyncio
 import json
 import logging
 from typing import Any, Dict
@@ -87,22 +86,12 @@ class FlowStatusTool(BaseTool):
                 else context_data
             )
 
-            # Check if we're in an async context
-            try:
-                asyncio.get_running_loop()
-                # We're in an async context, we need to handle this differently
-                import concurrent.futures
+            # Use anyio.from_thread for safe async bridging
+            from anyio import from_thread
 
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(
-                        asyncio.run, self._async_get_fixed_flow_status(flow_id, context)
-                    )
-                    status_result = future.result()
-            except RuntimeError:
-                # No running loop, use asyncio.run directly
-                status_result = asyncio.run(
-                    self._async_get_fixed_flow_status(flow_id, context)
-                )
+            status_result = from_thread.run(
+                self._async_get_fixed_flow_status, flow_id, context
+            )
 
             # Special handling for not_found flows
             if (
@@ -134,8 +123,6 @@ class FlowStatusTool(BaseTool):
         """Get real flow status using FIXED FlowHandler directly"""
         try:
             # Import our fixed FlowHandler directly
-            import asyncio
-
             from app.core.context import RequestContext
             from app.services.agents.agent_service_layer.handlers.flow_handler import (
                 FlowHandler,
@@ -156,21 +143,9 @@ class FlowStatusTool(BaseTool):
             handler = FlowHandler(request_context)
 
             # Since we're in a sync method but calling async, handle properly
-            async def async_call():
-                return await handler.get_flow_status(flow_id)
+            from anyio import from_thread
 
-            # Try to run the async call properly
-            try:
-                asyncio.get_running_loop()
-                # We're in an async context, use thread executor
-                import concurrent.futures
-
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(asyncio.run, async_call())
-                    result = future.result()
-            except RuntimeError:
-                # No running loop, use asyncio.run directly
-                result = asyncio.run(async_call())
+            result = from_thread.run(handler.get_flow_status, flow_id)
 
             # Handle service layer responses
             if result.get("status") == "not_found":

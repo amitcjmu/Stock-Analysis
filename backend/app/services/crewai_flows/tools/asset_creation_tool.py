@@ -4,11 +4,8 @@ Asset Creation Tool for CrewAI Agents
 Provides tools for persistent agents to create assets in the database
 """
 
-import asyncio
 import json
 import logging
-import os
-import warnings
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -46,50 +43,27 @@ def create_asset_creation_tools(
         return []
 
     try:
-        # Check feature flag for service registry pattern
-        use_service_registry = (
-            os.getenv("USE_SERVICE_REGISTRY", "false").lower() == "true"
-        )
+        # Legacy asset creation tools have been removed as of 2025-01-09
+        # ServiceRegistry is now the only supported pattern
+        if registry is None:
+            logger.error(
+                "ServiceRegistry instance is required. Legacy asset creation tools have been removed."
+            )
+            raise ValueError(
+                "ServiceRegistry instance is required. The legacy asset creation tools "
+                "have been removed as they were deprecated for removal on 2025-02-01. "
+                "Please provide a ServiceRegistry instance to use the new pattern."
+            )
 
+        # Use ServiceRegistry pattern (now the only option)
+        logger.info("✅ Using ServiceRegistry pattern for asset creation tools")
         tools = []
 
-        if use_service_registry:
-            if registry is None:
-                logger.error(
-                    "USE_SERVICE_REGISTRY=true but no ServiceRegistry instance was provided"
-                )
-                raise ValueError(
-                    "ServiceRegistry instance is required when USE_SERVICE_REGISTRY=true"
-                )
+        asset_creator = AssetCreationToolWithService(registry)
+        tools.append(asset_creator)
 
-            # Use new ServiceRegistry pattern
-            logger.info("✅ Using ServiceRegistry pattern for asset creation tools")
-            asset_creator = AssetCreationToolWithService(registry)
-            tools.append(asset_creator)
-
-            bulk_creator = BulkAssetCreationToolWithService(registry)
-            tools.append(bulk_creator)
-        else:
-            # Use legacy pattern with deprecation warning
-            warnings.warn(
-                "Legacy asset creation tools are deprecated and will be removed on 2025-02-01. "
-                "Set USE_SERVICE_REGISTRY=true to use the new ServiceRegistry pattern.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-            logger.info("⚠️ Using legacy asset creation tools (deprecated)")
-            # Import legacy tools only when needed
-            from .asset_creation_tool_legacy import (
-                AssetCreationTool as LegacyAssetCreationTool,
-                BulkAssetCreationTool as LegacyBulkAssetCreationTool,
-            )
-
-            asset_creator = LegacyAssetCreationTool(context_info)
-            tools.append(asset_creator)
-
-            bulk_creator = LegacyBulkAssetCreationTool(context_info)
-            tools.append(bulk_creator)
+        bulk_creator = BulkAssetCreationToolWithService(registry)
+        tools.append(bulk_creator)
 
         logger.info(f"✅ Created {len(tools)} asset creation tools")
         return tools
@@ -138,7 +112,9 @@ class AssetCreationToolWithServiceImpl:
 
     def execute_sync(self, asset_data: Dict[str, Any]) -> str:
         """Execute asset creation synchronously using ServiceRegistry"""
-        return asyncio.run(self._create_single_asset(asset_data))
+        from anyio import from_thread
+
+        return from_thread.run(self._create_single_asset, asset_data)
 
     async def _create_single_asset(self, asset_data: Dict[str, Any]) -> str:
         """Create a single asset using AssetService from registry"""
@@ -381,7 +357,9 @@ class BulkAssetCreationToolWithServiceImpl:
 
     def execute_sync(self, assets_data: List[Dict[str, Any]]) -> str:
         """Execute bulk asset creation synchronously using ServiceRegistry"""
-        return asyncio.run(self.execute_async(assets_data))
+        from anyio import from_thread
+
+        return from_thread.run(self.execute_async, assets_data)
 
 
 # CrewAI-specific tool wrappers for ServiceRegistry pattern

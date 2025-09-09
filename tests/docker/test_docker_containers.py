@@ -274,7 +274,7 @@ class TestDockerNetworking:
 
             # Test that backend API is accessible
             try:
-                response = requests.get(f"{BACKEND_URL}/api/v1/discovery/assets", timeout=10)
+                response = requests.get(f"{BACKEND_URL}/api/v1/unified-discovery/assets", timeout=10)
                 assert response.status_code in [200, 404, 422], f"Backend API returned unexpected status: {response.status_code}"
             except requests.exceptions.RequestException as e:
                 pytest.fail(f"Could not reach backend API: {e}")
@@ -309,7 +309,7 @@ class TestDockerNetworking:
             }
 
             try:
-                response = requests.options(f"{BACKEND_URL}/api/v1/discovery/assets", headers=headers, timeout=10)
+                response = requests.options(f"{BACKEND_URL}/api/v1/unified-discovery/assets", headers=headers, timeout=10)
 
                 # CORS should not block the request
                 assert response.status_code in [200, 204, 404], f"CORS preflight failed: {response.status_code}"
@@ -350,7 +350,7 @@ class TestDockerPersistence:
 
             try:
                 response = requests.post(
-                    f"{BACKEND_URL}/api/v1/discovery/analyze-cmdb",
+                    f"{BACKEND_URL}/api/v1/unified-discovery/analyze-cmdb",
                     json=test_data,
                     timeout=30
                 )
@@ -371,7 +371,7 @@ class TestDockerPersistence:
                 # Try the same request again
                 try:
                     response = requests.post(
-                        f"{BACKEND_URL}/api/v1/discovery/analyze-cmdb",
+                        f"{BACKEND_URL}/api/v1/unified-discovery/analyze-cmdb",
                         json=test_data,
                         timeout=30
                     )
@@ -469,7 +469,7 @@ vmware-vcenter,Virtualization,Production,8,16""",
 
             try:
                 response = requests.post(
-                    f"{BACKEND_URL}/api/v1/discovery/analyze-cmdb",
+                    f"{BACKEND_URL}/api/v1/unified-discovery/analyze-cmdb",
                     json=test_data,
                     timeout=30
                 )
@@ -509,7 +509,7 @@ vmware-vcenter,Virtualization,Production,8,16""",
             assert backend_ready, "Backend service not ready"
 
             try:
-                response = requests.get(f"{BACKEND_URL}/api/v1/discovery/assets", timeout=30)
+                response = requests.get(f"{BACKEND_URL}/api/v1/unified-discovery/assets", timeout=30)
 
                 if response.status_code == 200:
                     data = response.json()
