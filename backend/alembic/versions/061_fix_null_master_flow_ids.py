@@ -15,6 +15,50 @@ from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
+
+def _detect_flow_id_column(bind, table_schema: str, table_name: str) -> str:
+    """Detect whether a table uses flow_id or id as the primary key column."""
+    col_check = bind.execute(
+        text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = :schema
+            AND table_name = :table
+            AND column_name IN ('flow_id', 'id')
+            """
+        ),
+        {"schema": table_schema, "table": table_name},
+    ).fetchall()
+
+    found = [r[0] for r in col_check]
+    if "flow_id" in found:
+        return "flow_id"
+    if "id" in found:
+        return "id"
+    return "id"  # fallback
+
+
+def _select_orphaned_flows_query(schema: str, table_name: str, pk_col: str) -> str:
+    """Build SELECT query that aliases the chosen PK as flow_id."""
+    return f"""
+        SELECT DISTINCT f.{pk_col} AS flow_id, f.client_account_id, f.engagement_id, f.created_at
+        FROM {schema}.{table_name} f
+        LEFT JOIN {schema}.crewai_flow_state_extensions cfse ON f.{pk_col} = cfse.flow_id
+        WHERE f.master_flow_id IS NULL
+        AND cfse.flow_id IS NULL
+    """
+
+
+def _update_master_flow_query(schema: str, table_name: str, pk_col: str) -> str:
+    """Build UPDATE query that sets master_flow_id correctly."""
+    return f"""
+        UPDATE {schema}.{table_name}
+        SET master_flow_id = {pk_col}, updated_at = NOW()
+        WHERE master_flow_id IS NULL
+    """
+
+
 # revision identifiers, used by Alembic.
 revision: str = "061_fix_null_master_flow_ids"
 down_revision: Union[str, None] = "060_fix_long_constraint_names"
@@ -58,18 +102,15 @@ def upgrade() -> None:  # noqa: C901
         # Step 2: Create stub master records for orphaned discovery flows
         logger.info("Creating stub master records for orphaned discovery flows")
 
-        # Find orphaned flows that need master records
-        orphaned_flows_query = text(
-            """
-            SELECT DISTINCT df.flow_id, df.client_account_id, df.engagement_id, df.created_at
-            FROM migration.discovery_flows df
-            LEFT JOIN migration.crewai_flow_state_extensions cfse ON df.flow_id = cfse.flow_id
-            WHERE df.master_flow_id IS NULL
-                AND cfse.flow_id IS NULL
-        """
-        )
+        # Detect the correct primary key column for discovery_flows
+        pk_col = _detect_flow_id_column(bind, "migration", "discovery_flows")
+        logger.info(f"Using {pk_col} as primary key column for discovery_flows")
 
-        orphaned_flows = bind.execute(orphaned_flows_query).fetchall()
+        # Find orphaned flows that need master records
+        orphaned_flows_query_sql = _select_orphaned_flows_query(
+            "migration", "discovery_flows", pk_col
+        )
+        orphaned_flows = bind.execute(text(orphaned_flows_query_sql)).fetchall()
         logger.info(
             f"Found {len(orphaned_flows)} orphaned flows needing stub master records"
         )
@@ -116,13 +157,7 @@ def upgrade() -> None:  # noqa: C901
         )
         try:
             result = bind.execute(
-                text(
-                    """
-                    UPDATE migration.discovery_flows
-                    SET master_flow_id = flow_id, updated_at = NOW()
-                    WHERE master_flow_id IS NULL
-                """
-                )
+                text(_update_master_flow_query("migration", "discovery_flows", pk_col))
             )
             updated_count = result.rowcount if result else 0
             logger.info(f"Updated {updated_count} discovery_flows records")
@@ -140,18 +175,15 @@ def upgrade() -> None:  # noqa: C901
         if table_name in existing_tables:
             logger.info(f"Processing {table_name}")
             try:
-                # Create stub master records for orphaned flows
-                orphaned_query = text(
-                    f"""
-                    SELECT DISTINCT f.flow_id, f.client_account_id, f.engagement_id, f.created_at
-                    FROM migration.{table_name} f
-                    LEFT JOIN migration.crewai_flow_state_extensions cfse ON f.flow_id = cfse.flow_id
-                    WHERE f.master_flow_id IS NULL
-                        AND cfse.flow_id IS NULL
-                """
-                )
+                # Detect the correct primary key column for this table
+                pk_col = _detect_flow_id_column(bind, "migration", table_name)
+                logger.info(f"Using {pk_col} as primary key column for {table_name}")
 
-                orphaned_flows = bind.execute(orphaned_query).fetchall()
+                # Create stub master records for orphaned flows
+                orphaned_query_sql = _select_orphaned_flows_query(
+                    "migration", table_name, pk_col
+                )
+                orphaned_flows = bind.execute(text(orphaned_query_sql)).fetchall()
                 logger.info(f"Found {len(orphaned_flows)} orphaned {table_name} flows")
 
                 for flow in orphaned_flows:
@@ -194,13 +226,7 @@ def upgrade() -> None:  # noqa: C901
                 # Update NULL master_flow_ids
                 try:
                     result = bind.execute(
-                        text(
-                            f"""
-                        UPDATE migration.{table_name}
-                        SET master_flow_id = flow_id, updated_at = NOW()
-                        WHERE master_flow_id IS NULL
-                    """
-                        )
+                        text(_update_master_flow_query("migration", table_name, pk_col))
                     )
                     updated_count = result.rowcount if result else 0
                     logger.info(f"Updated {updated_count} {table_name} records")
@@ -240,18 +266,20 @@ def downgrade() -> None:
         # Reset master_flow_id to NULL for self-referential records
         for table_name in ["discovery_flows", "assessment_flows", "collection_flows"]:
             try:
+                # Detect the correct primary key column for downgrade
+                pk_col = _detect_flow_id_column(bind, "migration", table_name)
                 result = bind.execute(
                     text(
                         f"""
                     UPDATE migration.{table_name}
                     SET master_flow_id = NULL
-                    WHERE master_flow_id = flow_id
+                    WHERE master_flow_id = {pk_col}
                 """
                     )
                 )
                 reset_count = result.rowcount if result else 0
                 print(
-                    f"Reset {reset_count} {table_name} self-referential master_flow_ids to NULL"
+                    f"Reset {reset_count} {table_name} self-referential master_flow_ids to NULL (using {pk_col})"
                 )
             except Exception as e:
                 print(f"Could not reset {table_name}: {e}")

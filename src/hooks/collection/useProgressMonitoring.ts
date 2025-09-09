@@ -404,11 +404,11 @@ export const useProgressMonitoring = (
           setReadiness(null);
         }
       } else {
-        // Load all incomplete flows if no specific flow ID
-        const incompleteFlows = await collectionFlowApi.getIncompleteFlows();
+        // Load all flows (including completed ones) if no specific flow ID
+        const allFlows = await collectionFlowApi.getAllFlows();
 
         // Transform flows (REAL data only; remove any mock generation)
-        const flows: CollectionFlow[] = incompleteFlows.map(flowDetails => ({
+        const flows: CollectionFlow[] = allFlows.map(flowDetails => ({
           id: flowDetails.id,
           flow_id: flowDetails.flow_id,
           name: `Collection Flow - ${flowDetails.automation_tier}`,
