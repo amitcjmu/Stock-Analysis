@@ -108,6 +108,31 @@ export default tseslint.config(
 
       // Prevent empty interfaces
       "@typescript-eslint/no-empty-interface": "error",
+
+      // Block new imports of deprecated FlowService and useFlow
+      "no-restricted-imports": [
+        "error",
+        {
+          "paths": [
+            {
+              "name": "../services/FlowService",
+              "message": "Deprecated. Use src/services/api/masterFlowService.ts and related hooks."
+            },
+            {
+              "name": "@/services/FlowService",
+              "message": "Deprecated. Use src/services/api/masterFlowService.ts and related hooks."
+            },
+            {
+              "name": "../hooks/useFlow",
+              "message": "Deprecated. Use feature-specific hooks (e.g., useUnifiedDiscoveryFlow)."
+            },
+            {
+              "name": "@/hooks/useFlow",
+              "message": "Deprecated. Use feature-specific hooks (e.g., useUnifiedDiscoveryFlow)."
+            }
+          ]
+        }
+      ]
     },
   },
 
