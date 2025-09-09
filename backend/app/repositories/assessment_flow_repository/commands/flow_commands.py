@@ -33,9 +33,14 @@ class FlowCommands:
         flow_record = AssessmentFlow(
             client_account_id=self.client_account_id,
             engagement_id=engagement_id,
-            selected_application_ids=selected_application_ids,
+            flow_name=f"Assessment Flow - {len(selected_application_ids)} Applications",
+            configuration={
+                "selected_application_ids": selected_application_ids,
+            },
             status=AssessmentFlowStatus.INITIALIZED.value,
             current_phase=AssessmentPhase.INITIALIZATION.value,
+            progress=0.0,
+            phase_progress={},
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )

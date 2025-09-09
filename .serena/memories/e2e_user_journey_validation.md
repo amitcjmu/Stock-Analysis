@@ -29,7 +29,7 @@ if (!isEnabled) {
 }
 ```
 
-#### Middleware Layer  
+#### Middleware Layer
 ```typescript
 // Validate API request/response
 const response = await page.waitForResponse('/api/v1/flows/*');
@@ -110,11 +110,11 @@ for (const selector of blockingSelectors) {
 ```typescript
 test('Complete user journey validation', async ({ page, request }) => {
   const report: TestReport = { errors: [] };
-  
+
   // Phase 1: Login and check for blocks
   await login(page);
   const hasBlockingFlow = await checkBlockingFlow(page);
-  
+
   if (hasBlockingFlow) {
     // Phase 2: Validate blocking reason
     const blockingPage = page.url();
@@ -124,7 +124,7 @@ test('Complete user journey validation', async ({ page, request }) => {
       page: blockingPage,
       message: 'User redirected to complete previous action'
     });
-    
+
     // Phase 3: Validate cannot proceed
     const canProceed = await checkCanProceed(page);
     if (!canProceed) {
@@ -136,10 +136,10 @@ test('Complete user journey validation', async ({ page, request }) => {
       });
     }
   }
-  
+
   // Generate comprehensive report
   console.log(JSON.stringify(report, null, 2));
-  
+
   // Fail test if any blocking errors
   expect(report.errors.filter(e => e.type === 'BLOCKING_FLOW')).toHaveLength(0);
 });

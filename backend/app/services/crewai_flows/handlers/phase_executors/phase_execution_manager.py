@@ -48,7 +48,7 @@ class PhaseExecutionManager:
         from .tech_debt_executor import TechDebtExecutor
 
         self.data_import_validation_executor = DataImportValidationExecutor(
-            state, flow_bridge
+            state, crew_manager, flow_bridge
         )
         self.field_mapping_executor = FieldMappingExecutor(
             state, crew_manager, flow_bridge

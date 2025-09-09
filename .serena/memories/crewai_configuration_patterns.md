@@ -17,7 +17,7 @@ if "max_execution_time" not in kwargs:
 
 ### Timeout Requirements by Agent Type
 - **Basic agents**: 300 seconds (5 minutes)
-- **Analysis agents**: 600 seconds (10 minutes) 
+- **Analysis agents**: 600 seconds (10 minutes)
 - **Complex reasoning agents**: 1200 seconds (20 minutes)
 - **Multi-step orchestration**: 1800 seconds (30 minutes)
 

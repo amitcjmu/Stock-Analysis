@@ -5,7 +5,7 @@
 
 ### Alert Prioritization
 - **HIGH/CRITICAL**: Fix immediately, block deployments
-- **MODERATE**: Fix in next development cycle  
+- **MODERATE**: Fix in next development cycle
 - **LOW**: Monitor and fix when convenient
 
 ### Investigation Pattern
@@ -32,7 +32,7 @@ pip index versions package_name
 # BEFORE
 h2==4.2.0
 
-# AFTER  
+# AFTER
 h2==4.3.0  # Updated from 4.2.0 - fixes GHSA-847f-9342-265h HTTP/2 request splitting vulnerability
 ```
 
@@ -72,7 +72,7 @@ grep -E "(Jinja2|urllib3|h2)" requirements*.txt
 
 ## Security Update Workflow
 1. **Assess Impact**: Check if vulnerability affects current usage
-2. **Test Locally**: Verify update doesn't break functionality  
+2. **Test Locally**: Verify update doesn't break functionality
 3. **Update Both Files**: requirements.txt AND requirements-docker.txt
 4. **Add Context**: Include CVE/GHSA reference in comments
 5. **Docker Test**: Verify in containerized environment

@@ -69,7 +69,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
         description: 'Collection flow has been deleted successfully.',
         variant: 'default'
       });
-      
+
       // Navigate back to collection overview
       navigate('/collection');
     } catch (error) {

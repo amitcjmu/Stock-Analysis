@@ -25,14 +25,14 @@ def upgrade():
 
     # Get connection to check for existing indexes
     conn = op.get_bind()
-    
+
     # Check if index already exists before creating
     result = conn.execute("""
-        SELECT indexname FROM pg_indexes 
-        WHERE schemaname = 'migration' 
+        SELECT indexname FROM pg_indexes
+        WHERE schemaname = 'migration'
         AND indexname = 'idx_assets_tenant_discovery'
     """)
-    
+
     if not result.fetchone():
         # Assets table indexes
         print("📦 Creating assets table indexes...")

@@ -17,7 +17,7 @@
 ```python
 # Files updated:
 # - backend/app/services/tools/base_tool.py
-# - backend/app/services/agents/intelligent_flow_agent/tools/status_tool.py  
+# - backend/app/services/agents/intelligent_flow_agent/tools/status_tool.py
 # - backend/app/services/crewai_flows/tools/asset_creation_tool.py
 ```
 
@@ -35,7 +35,7 @@ warnings.warn(
 
 ### Legacy Services Inventory (38 files)
 **Still Using FlowService:** 24 files
-**Still Using useFlow:** 22 files  
+**Still Using useFlow:** 22 files
 **Migration Progress:** ~50% already using masterFlowService
 
 ### High-Priority Migrations
@@ -92,7 +92,7 @@ if registry is None:
 # OLD
 response = await client.post("/api/v1/discovery/flows")
 
-# NEW  
+# NEW
 response = await client.post("/api/v1/unified-discovery/flows")
 ```
 
