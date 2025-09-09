@@ -89,9 +89,10 @@ class FlowStatusTool(BaseTool):
             # Use anyio.from_thread for safe async bridging
             from anyio import from_thread
 
-            status_result = from_thread.run(
-                self._async_get_fixed_flow_status, flow_id, context
-            )
+            with from_thread.start_blocking_portal() as portal:
+                status_result = portal.call(
+                    self._async_get_fixed_flow_status, flow_id, context
+                )
 
             # Special handling for not_found flows
             if (
@@ -145,7 +146,8 @@ class FlowStatusTool(BaseTool):
             # Since we're in a sync method but calling async, handle properly
             from anyio import from_thread
 
-            result = from_thread.run(handler.get_flow_status, flow_id)
+            with from_thread.start_blocking_portal() as portal:
+                result = portal.call(handler.get_flow_status, flow_id)
 
             # Handle service layer responses
             if result.get("status") == "not_found":

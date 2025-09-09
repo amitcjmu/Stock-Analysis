@@ -114,7 +114,8 @@ class AssetCreationToolWithServiceImpl:
         """Execute asset creation synchronously using ServiceRegistry"""
         from anyio import from_thread
 
-        return from_thread.run(self._create_single_asset, asset_data)
+        with from_thread.start_blocking_portal() as portal:
+            return portal.call(self._create_single_asset, asset_data)
 
     async def _create_single_asset(self, asset_data: Dict[str, Any]) -> str:
         """Create a single asset using AssetService from registry"""
@@ -359,7 +360,8 @@ class BulkAssetCreationToolWithServiceImpl:
         """Execute bulk asset creation synchronously using ServiceRegistry"""
         from anyio import from_thread
 
-        return from_thread.run(self.execute_async, assets_data)
+        with from_thread.start_blocking_portal() as portal:
+            return portal.call(self.execute_async, assets_data)
 
 
 # CrewAI-specific tool wrappers for ServiceRegistry pattern

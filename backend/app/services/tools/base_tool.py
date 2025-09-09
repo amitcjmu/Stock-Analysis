@@ -133,4 +133,5 @@ class AsyncBaseDiscoveryTool(BaseDiscoveryTool):
         """Sync wrapper for async tools"""
         from anyio import from_thread
 
-        return from_thread.run(self.arun, *args, **kwargs)
+        with from_thread.start_blocking_portal() as portal:
+            return portal.call(self.arun, *args, **kwargs)
