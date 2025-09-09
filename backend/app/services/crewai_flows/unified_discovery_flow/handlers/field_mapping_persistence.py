@@ -123,6 +123,8 @@ class FieldMappingPersistence:
 
                     # Persist field mappings
                     mappings_to_process = field_mappings + suggestions
+                    now_utc = datetime.utcnow()
+                    engagement_id = getattr(self.flow.state, "engagement_id", None)
 
                     self.logger.info(
                         f"📊 Processing {len(mappings_to_process)} field mappings for persistence"
@@ -170,6 +172,7 @@ class FieldMappingPersistence:
                             field_mapping = ImportFieldMapping(
                                 data_import_id=data_import_id,
                                 client_account_id=client_account_id,
+                                engagement_id=engagement_id,
                                 master_flow_id=flow_id,
                                 source_field=source_field,
                                 target_field=target_field,
@@ -177,6 +180,7 @@ class FieldMappingPersistence:
                                 match_type=match_type,
                                 status=status,
                                 suggested_by=suggested_by,
+                                applied_at=now_utc,
                             )
 
                             db.add(field_mapping)

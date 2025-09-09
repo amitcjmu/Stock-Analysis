@@ -482,6 +482,7 @@ async def get_all_flows(
         result = await db.execute(
             select(CollectionFlow)
             .where(
+                CollectionFlow.client_account_id == context.client_account_id,
                 CollectionFlow.engagement_id == context.engagement_id,
             )
             .order_by(CollectionFlow.created_at.desc())

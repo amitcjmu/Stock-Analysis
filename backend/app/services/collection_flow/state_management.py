@@ -426,39 +426,51 @@ class CollectionFlowStateService:
             if collection_flow.master_flow_id:
                 try:
                     from app.models.master_flow import CrewAIFlowStateExtensions
-                    
+
                     master_flow_result = await self.db.execute(
                         select(CrewAIFlowStateExtensions).where(
-                            CrewAIFlowStateExtensions.flow_id == str(collection_flow.master_flow_id),
-                            CrewAIFlowStateExtensions.client_account_id == collection_flow.client_account_id,
+                            CrewAIFlowStateExtensions.flow_id
+                            == str(collection_flow.master_flow_id),
+                            CrewAIFlowStateExtensions.client_account_id
+                            == collection_flow.client_account_id,
+                            CrewAIFlowStateExtensions.engagement_id
+                            == collection_flow.engagement_id,
                         )
                     )
                     master_flow = master_flow_result.scalar_one_or_none()
-                    
+
                     if master_flow:
                         master_flow.flow_status = "completed"
                         master_flow.progress_percentage = 100.0
                         master_flow.updated_at = datetime.utcnow()
-                        
+
                         # Update master flow persistence data with completion info
                         persistence_data = master_flow.flow_persistence_data or {}
-                        persistence_data.update({
-                            "completion": {
-                                "completed_at": datetime.utcnow().isoformat(),
-                                "completed_by": "collection_flow_state_management",
-                                "final_quality_score": final_quality_score,
-                                "final_confidence_score": final_confidence_score,
-                                "collection_flow_id": str(collection_flow.flow_id)
+                        persistence_data.update(
+                            {
+                                "completion": {
+                                    "completed_at": datetime.utcnow().isoformat(),
+                                    "completed_by": "collection_flow_state_management",
+                                    "final_quality_score": final_quality_score,
+                                    "final_confidence_score": final_confidence_score,
+                                    "collection_flow_id": str(collection_flow.flow_id),
+                                }
                             }
-                        })
+                        )
                         master_flow.flow_persistence_data = persistence_data
-                        
-                        logger.info(f"Synchronized master flow {master_flow.flow_id} status to completed")
+
+                        logger.info(
+                            f"Synchronized master flow {master_flow.flow_id} status to completed"
+                        )
                     else:
-                        logger.warning(f"Master flow {collection_flow.master_flow_id} not found for collection flow {flow_id}")
-                        
+                        logger.warning(
+                            f"Master flow {collection_flow.master_flow_id} not found for collection flow {flow_id}"
+                        )
+
                 except Exception as sync_error:
-                    logger.error(f"Failed to synchronize master flow status for collection {flow_id}: {sync_error}")
+                    logger.error(
+                        f"Failed to synchronize master flow status for collection {flow_id}: {sync_error}"
+                    )
                     # Don't fail the entire operation if master flow sync fails
                     # but ensure we log it for monitoring
 
