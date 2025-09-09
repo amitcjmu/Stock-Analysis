@@ -92,7 +92,7 @@ class AsyncBaseDiscoveryTool(BaseDiscoveryTool):
         warnings.warn(
             "AsyncBaseDiscoveryTool is deprecated and will be removed on 2025-02-01. "
             "Use async/await patterns directly in services instead.",
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=2,
         )
         super().__init__(**kwargs)

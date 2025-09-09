@@ -15,7 +15,7 @@ from .asset_inventory import AssetInventoryExecutor
 warnings.warn(
     "Importing AssetInventoryExecutor from asset_inventory_executor is deprecated. "
     "Please import from .asset_inventory instead.",
-    DeprecationWarning,
+    FutureWarning,
     stacklevel=2,
 )
 
