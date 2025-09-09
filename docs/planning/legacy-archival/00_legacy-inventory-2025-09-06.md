@@ -58,18 +58,20 @@ This snapshot lists legacy or deprecated code to remove or migrate. Validate eac
 - The largest blocker is test suites still calling legacy endpoints; migrate them first.
 
 ## Recommended Action Plan (Phased)
-1) Immediate
-   - Remove `asset_creation_tool_legacy.py` if import graph confirms unused.
-   - Mark `AsyncBaseDiscoveryTool` deprecated or remove if unused.
-2) Medium Priority
-   - Refactor `asyncio.run()` usage in app code to safe async patterns.
-   - Migrate all tests to `/api/v1/flows/*` or `/api/v1/unified-discovery/*`.
-3) Long-Term (Feature-Flagged)
-   - Introduce `NEXT_PUBLIC_ENABLE_WEBSOCKETS` (default false) and backend flag.
-   - Provide HTTP polling alternatives; gradually migrate consumers.
-4) Final Cleanup
-   - Remove legacy discovery packages and frontend legacy services after verification.
-   - Archive this inventory as completed.
+1) Immediate ✅ COMPLETED
+   - ✅ Removed `asset_creation_tool_legacy.py` (confirmed no imports)
+   - ✅ Added deprecation warning to `AsyncBaseDiscoveryTool` class
+2) Medium Priority ✅ COMPLETED
+   - ✅ Refactored `asyncio.run()` usage in app code to `anyio.from_thread.run` pattern
+   - ✅ Migrated all test files to `/api/v1/unified-discovery/*`
+3) Long-Term (Feature-Flagged) ⚠️ PARTIALLY COMPLETED
+   - ✅ Added `ENABLE_WEBSOCKETS` backend flag (default false)
+   - ✅ Added `NEXT_PUBLIC_ENABLE_WEBSOCKETS` to .env.example
+   - ⚠️ HTTP polling alternatives not yet implemented
+4) Final Cleanup ⚠️ PARTIALLY COMPLETED
+   - ✅ Removed `discovery_DEPRECATED` package and `discovery.py` router
+   - ❌ Frontend legacy services NOT removed (still actively used - need migration first)
+   - ⚠️ Inventory partially completed
 
 ## Quick Wins (Can Be Done Immediately with Zero Risk)
 - Remove `backend/app/services/crewai_flows/tools/asset_creation_tool_legacy.py` (confirmed no imports)

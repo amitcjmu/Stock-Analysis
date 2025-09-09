@@ -125,6 +125,7 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
 
     # WebSocket settings
+    ENABLE_WEBSOCKETS: bool = Field(default=False, env="ENABLE_WEBSOCKETS")  # Feature flag for WebSocket support
     WS_HEARTBEAT_INTERVAL: int = Field(default=30, env="WS_HEARTBEAT_INTERVAL")
 
     # Redis Cache settings

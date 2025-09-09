@@ -506,7 +506,7 @@ class MultiTenantWorkflowTester:
                 # Test discovery metrics with context
                 try:
                     async with session.get(
-                        f"{base_url}/api/v1/discovery/assets/discovery-metrics",
+                        f"{base_url}/api/v1/unified-discovery/assets/discovery-metrics",
                         headers=headers,
                     ) as response:
                         if response.status == 200:
@@ -532,7 +532,7 @@ class MultiTenantWorkflowTester:
                 # Test assets list with context
                 try:
                     async with session.get(
-                        f"{base_url}/api/v1/discovery/assets", headers=headers
+                        f"{base_url}/api/v1/unified-discovery/assets", headers=headers
                     ) as response:
                         if response.status == 200:
                             data = await response.json()

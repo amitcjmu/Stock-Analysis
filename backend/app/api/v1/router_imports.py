@@ -367,7 +367,7 @@ __all__ = [
     "platform_admin_router",
     "security_audit_router",
     "DISCOVERY_AVAILABLE",
-    "discovery_router",
+    # "discovery_router",  # Removed - legacy endpoints deprecated
     "UNIFIED_DISCOVERY_AVAILABLE",
     "unified_discovery_router",
     "dependency_analysis_router",

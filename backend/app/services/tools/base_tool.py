@@ -3,6 +3,7 @@ Base tool classes for CrewAI integration
 """
 
 import logging
+import warnings
 from typing import Any, TYPE_CHECKING
 
 from pydantic import Field
@@ -86,6 +87,16 @@ class BaseDiscoveryTool(BaseTool, ContextAwareTool):
 class AsyncBaseDiscoveryTool(BaseDiscoveryTool):
     """Base class for async tools"""
 
+    def __init__(self, **kwargs):
+        """Initialize async tool with deprecation warning"""
+        warnings.warn(
+            "AsyncBaseDiscoveryTool is deprecated and will be removed on 2025-02-01. "
+            "Use async/await patterns directly in services instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        super().__init__(**kwargs)
+
     async def _arun(self, *args, **kwargs) -> Any:
         """Async execution wrapper"""
         try:
@@ -120,6 +131,7 @@ class AsyncBaseDiscoveryTool(BaseDiscoveryTool):
 
     def run(self, *args, **kwargs) -> Any:
         """Sync wrapper for async tools"""
-        import asyncio
+        from anyio import from_thread
 
-        return asyncio.run(self.arun(*args, **kwargs))
+        with from_thread.start_blocking_portal() as portal:
+            return portal.call(self.arun, *args, **kwargs)

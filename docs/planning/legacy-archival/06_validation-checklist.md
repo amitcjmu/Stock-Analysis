@@ -14,3 +14,5 @@
 3. [ ] No Python import errors
 4. [ ] Docker containers start successfully
 5. [ ] Frontend loads without console errors
+6. [ ] No 404 errors in browser network tab
+7. [ ] API health check endpoints respond correctly

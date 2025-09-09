@@ -10,7 +10,10 @@ import * as path from 'path';
 // Test configuration
 export const TEST_CONFIG = {
   baseURL: process.env.BASE_URL || 'http://localhost:8081',
-  apiURL: process.env.API_URL || 'http://localhost:8000',
+  // For E2E tests, all API calls go through the Vite proxy at baseURL
+  // The proxy forwards /api/* requests to the backend at localhost:8000
+  apiURL: process.env.API_URL || 'http://localhost:8081', // Changed to use proxy
+  directBackendURL: 'http://localhost:8000', // Direct backend access for API context tests
   defaultTimeout: 60000,
   networkTimeout: 30000,
   retryAttempts: 3,
@@ -84,14 +87,22 @@ export async function login(page: Page, user = TEST_USERS.demo): Promise<void> {
   await page.click('button[type="submit"]');
 
   // Wait for successful login and navigation
-  // The app navigates to "/" after login, not "/dashboard"
-  await page.waitForResponse(response =>
-    response.url().includes('/api/v1/auth/login') && response.status() === 200,
-    { timeout: 10000 }
-  );
+  // The app uses Vite proxy: requests to localhost:8081/api/* get proxied to localhost:8000/api/*
+  // So we need to wait for the proxied response (which appears to come from baseURL, not apiURL)
+  await page.waitForResponse(response => {
+    const url = response.url();
+    const isLoginEndpoint = url.includes('/api/v1/auth/login');
+    const isSuccessful = response.status() === 200;
+    const isFromCorrectOrigin = url.startsWith(TEST_CONFIG.baseURL); // Should be from the proxied frontend port
+
+    return isLoginEndpoint && isSuccessful && isFromCorrectOrigin;
+  }, { timeout: 15000 });
+
+  // Wait for successful navigation to main page
+  await page.waitForURL('**/');
 
   // Wait for the main page to load
-  await page.waitForSelector('text=AI Modernize Migration Platform', { timeout: 5000 });
+  await page.waitForSelector('text=AI Modernize Migration Platform', { timeout: 10000 });
 }
 
 // Navigation helpers

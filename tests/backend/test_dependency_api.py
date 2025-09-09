@@ -28,7 +28,7 @@ def test_dependency_api():
 
     try:
         response = requests.post(
-            "http://localhost:8000/api/v1/discovery/agents/dependency-analysis",
+            "http://localhost:8000/api/v1/unified-discovery/agents/dependency-analysis",
             json=payload,
             headers={"Content-Type": "application/json"},
         )

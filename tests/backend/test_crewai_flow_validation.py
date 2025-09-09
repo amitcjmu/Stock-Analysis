@@ -58,7 +58,7 @@ class TestCrewAIFlowValidation:
 
     def test_service_health_check(self, api_client):
         """Test that the CrewAI Flow service is healthy."""
-        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/health")
+        response = api_client.get(f"{self.BASE_URL}/api/v1/unified-discovery/flow/health")
 
         assert response.status_code == 200
         health_data = response.json()
@@ -76,7 +76,7 @@ class TestCrewAIFlowValidation:
     def test_discovery_workflow_initiation(self, api_client, sample_cmdb_data):
         """Test initiating a discovery workflow."""
         response = api_client.post(
-            f"{self.BASE_URL}/api/v1/discovery/analyze",
+            f"{self.BASE_URL}/api/v1/unified-discovery/analyze",
             json=sample_cmdb_data,
             headers={"Content-Type": "application/json"},
         )
@@ -99,7 +99,7 @@ class TestCrewAIFlowValidation:
 
         # Then retrieve its state
         response = api_client.get(
-            f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}"
+            f"{self.BASE_URL}/api/v1/unified-discovery/flow/state/{flow_id}"
         )
 
         assert response.status_code == 200
@@ -119,7 +119,7 @@ class TestCrewAIFlowValidation:
 
     def test_active_flows_monitoring(self, api_client):
         """Test active flows monitoring endpoint."""
-        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/active")
+        response = api_client.get(f"{self.BASE_URL}/api/v1/unified-discovery/flow/active")
 
         assert response.status_code == 200
         summary = response.json()
@@ -135,7 +135,7 @@ class TestCrewAIFlowValidation:
         invalid_data = {"file_data": None, "metadata": {}}
 
         response = api_client.post(
-            f"{self.BASE_URL}/api/v1/discovery/analyze",
+            f"{self.BASE_URL}/api/v1/unified-discovery/analyze",
             json=invalid_data,
             headers={"Content-Type": "application/json"},
         )
@@ -158,7 +158,7 @@ class TestCrewAIFlowValidation:
             test_data["metadata"]["source"] = f"concurrent_test_{i}"
 
             response = api_client.post(
-                f"{self.BASE_URL}/api/v1/discovery/analyze",
+                f"{self.BASE_URL}/api/v1/unified-discovery/analyze",
                 json=test_data,
                 headers={"Content-Type": "application/json"},
             )
@@ -168,7 +168,7 @@ class TestCrewAIFlowValidation:
             flow_ids.append(result["flow_id"])
 
         # Verify all workflows are tracked
-        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/active")
+        response = api_client.get(f"{self.BASE_URL}/api/v1/unified-discovery/flow/active")
         assert response.status_code == 200
 
         summary = response.json()
@@ -177,7 +177,7 @@ class TestCrewAIFlowValidation:
         # Verify each session can be retrieved
         for flow_id in flow_ids:
             response = api_client.get(
-                f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}"
+                f"{self.BASE_URL}/api/v1/unified-discovery/flow/state/{flow_id}"
             )
             assert response.status_code == 200
 
@@ -185,7 +185,7 @@ class TestCrewAIFlowValidation:
         """Test that fallback execution works when CrewAI Flow is unavailable."""
         # This test verifies the system works in degraded mode
         response = api_client.post(
-            f"{self.BASE_URL}/api/v1/discovery/analyze",
+            f"{self.BASE_URL}/api/v1/unified-discovery/analyze",
             json=sample_cmdb_data,
             headers={"Content-Type": "application/json"},
         )
@@ -199,7 +199,7 @@ class TestCrewAIFlowValidation:
         # Verify state can be retrieved
         flow_id = result["flow_id"]
         response = api_client.get(
-            f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}"
+            f"{self.BASE_URL}/api/v1/unified-discovery/flow/state/{flow_id}"
         )
         assert response.status_code == 200
 
@@ -244,7 +244,7 @@ class TestCrewAIFlowValidation:
 
         start_time = time.time()
         response = api_client.post(
-            f"{self.BASE_URL}/api/v1/discovery/analyze",
+            f"{self.BASE_URL}/api/v1/unified-discovery/analyze",
             json=large_data,
             headers={"Content-Type": "application/json"},
         )
@@ -260,7 +260,7 @@ class TestCrewAIFlowValidation:
     def test_data_validation_accuracy(self, api_client, sample_cmdb_data):
         """Test data validation accuracy."""
         response = api_client.post(
-            f"{self.BASE_URL}/api/v1/discovery/analyze",
+            f"{self.BASE_URL}/api/v1/unified-discovery/analyze",
             json=sample_cmdb_data,
             headers={"Content-Type": "application/json"},
         )
@@ -274,7 +274,7 @@ class TestCrewAIFlowValidation:
 
         # Get final state
         response = api_client.get(
-            f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}"
+            f"{self.BASE_URL}/api/v1/unified-discovery/flow/state/{flow_id}"
         )
         assert response.status_code == 200
 
@@ -293,7 +293,7 @@ class TestCrewAIFlowValidation:
     def test_field_mapping_intelligence(self, api_client, sample_cmdb_data):
         """Test field mapping intelligence."""
         response = api_client.post(
-            f"{self.BASE_URL}/api/v1/discovery/analyze",
+            f"{self.BASE_URL}/api/v1/unified-discovery/analyze",
             json=sample_cmdb_data,
             headers={"Content-Type": "application/json"},
         )
@@ -307,7 +307,7 @@ class TestCrewAIFlowValidation:
 
         # Get state
         response = api_client.get(
-            f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}"
+            f"{self.BASE_URL}/api/v1/unified-discovery/flow/state/{flow_id}"
         )
         assert response.status_code == 200
 
@@ -323,7 +323,7 @@ class TestCrewAIFlowValidation:
     def test_asset_classification_results(self, api_client, sample_cmdb_data):
         """Test asset classification results."""
         response = api_client.post(
-            f"{self.BASE_URL}/api/v1/discovery/analyze",
+            f"{self.BASE_URL}/api/v1/unified-discovery/analyze",
             json=sample_cmdb_data,
             headers={"Content-Type": "application/json"},
         )
@@ -337,7 +337,7 @@ class TestCrewAIFlowValidation:
 
         # Get state
         response = api_client.get(
-            f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}"
+            f"{self.BASE_URL}/api/v1/unified-discovery/flow/state/{flow_id}"
         )
         assert response.status_code == 200
 
@@ -379,7 +379,7 @@ class TestDockerIntegration:
         """Test database connectivity through the API."""
         try:
             response = requests.get(
-                "http://localhost:8000/api/v1/discovery/flow/health", timeout=10
+                "http://localhost:8000/api/v1/unified-discovery/flow/health", timeout=10
             )
             assert response.status_code == 200
 

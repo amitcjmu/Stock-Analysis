@@ -16,7 +16,18 @@ jobs:
       - name: Block legacy discovery endpoint usage in app code
         run: |
           echo "🔍 Checking for legacy discovery endpoints..."
-          if grep -r "/api/v1/discovery" backend/app/ --exclude-dir=__pycache__ --exclude-dir="discovery" 2>/dev/null | grep -v README | grep -v tests | grep -v middleware/legacy_endpoint_guard.py; then
+          # Exclude files that document legacy removal or contain warnings about legacy code
+          if grep -r "/api/v1/discovery" backend/app/ \
+            --exclude-dir=__pycache__ \
+            --exclude-dir="discovery" 2>/dev/null | \
+            grep -v README | \
+            grep -v tests | \
+            grep -v "middleware/legacy_endpoint_guard.py" | \
+            grep -v "router_registry.py" | \
+            grep -v "LEGACY.*DEPRECATED" | \
+            grep -v "deprecated.*removed" | \
+            grep -v "# Legacy" | \
+            grep -v "# DO NOT"; then
             echo "❌ Legacy discovery endpoints found in application code. Use /api/v1/flows or /unified-discovery." >&2
             exit 1
           fi

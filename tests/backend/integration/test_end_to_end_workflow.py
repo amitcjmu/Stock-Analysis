@@ -65,7 +65,7 @@ async def test_end_to_end_workflow(api_client, sample_cmdb_csv_content, auth_hea
         }
 
         feedback_response = await api_client.post(
-            "/api/v1/discovery/cmdb-feedback",
+            "/api/v1/unified-discovery/cmdb-feedback",
             json=feedback_request,
             headers=auth_headers,
         )

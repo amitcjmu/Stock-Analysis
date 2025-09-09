@@ -51,7 +51,7 @@ DatabaseSrv,Server,Production,16,32,192.168.1.12"""
     try:
         # Make the API call
         response = requests.post(
-            "http://localhost:8000/api/v1/discovery/analyze-cmdb",
+            "http://localhost:8000/api/v1/unified-discovery/analyze-cmdb",
             json=test_request,
             timeout=60,  # 60 second timeout
         )
