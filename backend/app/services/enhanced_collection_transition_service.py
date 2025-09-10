@@ -23,7 +23,7 @@ from sqlalchemy import select, and_, update
 from pydantic import BaseModel
 
 from app.core.context import RequestContext
-from app.models.collection_flow import CollectionFlow, CollectionFlowStatus
+from app.models.collection_flow import CollectionFlow
 from app.models.assessment_flow.core_models import AssessmentFlow
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.services.collection_readiness_service import (

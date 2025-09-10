@@ -17,29 +17,35 @@ from typing import Dict, Any, List, Optional, Tuple
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func
+from sqlalchemy import select, and_
 from pydantic import BaseModel
 
 from app.core.context import RequestContext
 from app.models.collection_flow import CollectionFlow, CollectionGapAnalysis
 from app.models.collection_data_gap import CollectionDataGap
-from app.models.canonical_applications.collection_flow_app import CollectionFlowApplication
-from app.services.persistent_agents.tenant_scoped_agent_pool import TenantScopedAgentPool
+from app.models.canonical_applications.collection_flow_app import (
+    CollectionFlowApplication,
+)
+from app.services.persistent_agents.tenant_scoped_agent_pool import (
+    TenantScopedAgentPool,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class ReadinessThresholds(BaseModel):
     """Configurable thresholds for collection readiness assessment"""
+
     collection_completeness: float = 0.70  # 70%
-    data_quality_score: float = 0.65      # 65%
-    confidence_score: float = 0.60        # 60%
-    max_critical_gaps: int = 5            # Maximum critical gaps allowed
-    max_blocking_errors: int = 0          # No blocking errors allowed
+    data_quality_score: float = 0.65  # 65%
+    confidence_score: float = 0.60  # 60%
+    max_critical_gaps: int = 5  # Maximum critical gaps allowed
+    max_blocking_errors: int = 0  # No blocking errors allowed
 
 
 class ReadinessAssessmentResult(BaseModel):
     """Result of collection readiness assessment"""
+
     is_ready: bool
     overall_score: float
     confidence: float
@@ -97,13 +103,19 @@ class CollectionReadinessService:
             gaps_analysis,
             applications_data,
             field_mappings_result,
-            blocking_errors
+            blocking_errors,
         ) = await self._gather_assessment_data(collection_flow)
 
         # Calculate individual scores
-        completeness_score = completeness_metrics.get("completeness_percentage", 0.0) / 100.0
-        data_quality = gaps_analysis.get("data_quality_score") if gaps_analysis else None
-        critical_gaps_count = len(gaps_analysis.get("critical_gaps", [])) if gaps_analysis else 0
+        completeness_score = (
+            completeness_metrics.get("completeness_percentage", 0.0) / 100.0
+        )
+        data_quality = (
+            gaps_analysis.get("data_quality_score") if gaps_analysis else None
+        )
+        critical_gaps_count = (
+            len(gaps_analysis.get("critical_gaps", [])) if gaps_analysis else 0
+        )
         blocking_errors_count = len(blocking_errors)
 
         # Validate field mappings
@@ -121,7 +133,7 @@ class CollectionReadinessService:
                 blocking_errors_count,
                 field_mappings_complete,
                 apps_ready,
-                total_apps
+                total_apps,
             )
         )
 
@@ -145,7 +157,7 @@ class CollectionReadinessService:
             thresholds_used=self.thresholds,
             missing_requirements=missing_requirements,
             recommendations=recommendations,
-            assessed_at=datetime.utcnow()
+            assessed_at=datetime.utcnow(),
         )
 
         logger.info(
@@ -162,7 +174,7 @@ class CollectionReadinessService:
                 and_(
                     CollectionFlow.flow_id == flow_id,
                     CollectionFlow.client_account_id == self.context.client_account_id,
-                    CollectionFlow.engagement_id == self.context.engagement_id
+                    CollectionFlow.engagement_id == self.context.engagement_id,
                 )
             )
         )
@@ -170,11 +182,15 @@ class CollectionReadinessService:
 
     async def _gather_assessment_data(
         self, collection_flow: CollectionFlow
-    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]], Tuple[int, int], bool, List[str]]:
+    ) -> Tuple[
+        Dict[str, Any], Optional[Dict[str, Any]], Tuple[int, int], bool, List[str]
+    ]:
         """Gather all data needed for assessment in parallel where possible"""
 
         # 1. Collection completeness metrics
-        completeness_metrics = await self._calculate_completeness_metrics(collection_flow)
+        completeness_metrics = await self._calculate_completeness_metrics(
+            collection_flow
+        )
 
         # 2. Gap analysis data
         gaps_analysis = await self._get_gap_analysis_data(collection_flow)
@@ -193,7 +209,7 @@ class CollectionReadinessService:
             gaps_analysis,
             applications_data,
             field_mappings_result,
-            blocking_errors
+            blocking_errors,
         )
 
     async def _calculate_completeness_metrics(
@@ -215,7 +231,7 @@ class CollectionReadinessService:
                 "total_fields_required": gap_analysis.total_fields_required,
                 "fields_collected": gap_analysis.fields_collected,
                 "fields_missing": gap_analysis.fields_missing,
-                "source": "gap_analysis_table"
+                "source": "gap_analysis_table",
             }
 
         # Fallback: Calculate from collection data
@@ -234,7 +250,7 @@ class CollectionReadinessService:
                     "total_fields_required": total_fields,
                     "fields_collected": mapped_fields,
                     "fields_missing": total_fields - mapped_fields,
-                    "source": "phase_state"
+                    "source": "phase_state",
                 }
 
         # Final fallback: Use progress percentage
@@ -244,7 +260,7 @@ class CollectionReadinessService:
             "total_fields_required": 100,
             "fields_collected": int(progress),
             "fields_missing": int(100 - progress),
-            "source": "progress_percentage"
+            "source": "progress_percentage",
         }
 
     async def _get_gap_analysis_data(
@@ -267,7 +283,7 @@ class CollectionReadinessService:
                 "critical_gaps": gap_analysis.critical_gaps or [],
                 "optional_gaps": gap_analysis.optional_gaps or [],
                 "gap_categories": gap_analysis.gap_categories or {},
-                "source": "gap_analysis_table"
+                "source": "gap_analysis_table",
             }
 
         # Fallback: Check collection flow gap_analysis_results
@@ -279,7 +295,7 @@ class CollectionReadinessService:
                 "critical_gaps": gap_results.get("critical_gaps", []),
                 "optional_gaps": gap_results.get("optional_gaps", []),
                 "gap_categories": gap_results.get("gap_categories", {}),
-                "source": "flow_state"
+                "source": "flow_state",
             }
 
         # Check individual gap records
@@ -299,7 +315,7 @@ class CollectionReadinessService:
                     "field_name": gap.field_name,
                     "gap_type": gap.gap_type,
                     "severity": gap.severity,
-                    "description": gap.description
+                    "description": gap.description,
                 }
 
                 if gap.severity in ["critical", "high"]:
@@ -313,7 +329,7 @@ class CollectionReadinessService:
                 "critical_gaps": critical_gaps,
                 "optional_gaps": optional_gaps,
                 "gap_categories": {},
-                "source": "individual_gaps"
+                "source": "individual_gaps",
             }
 
         return None
@@ -347,7 +363,12 @@ class CollectionReadinessService:
             has_dependencies = bool(getattr(app, "dependencies_data", None))
             has_complexity = getattr(app, "migration_complexity", None) is not None
 
-            if completeness_score >= 0.7 and has_tech_stack and has_dependencies and has_complexity:
+            if (
+                completeness_score >= 0.7
+                and has_tech_stack
+                and has_dependencies
+                and has_complexity
+            ):
                 apps_ready += 1
 
         return apps_ready, total_apps
@@ -384,8 +405,14 @@ class CollectionReadinessService:
             # Classify errors as blocking or non-blocking
             error_msg = collection_flow.error_message.lower()
             blocking_keywords = [
-                "critical", "fatal", "blocked", "failed", "timeout",
-                "access_denied", "authentication", "authorization"
+                "critical",
+                "fatal",
+                "blocked",
+                "failed",
+                "timeout",
+                "access_denied",
+                "authentication",
+                "authorization",
             ]
 
             if any(keyword in error_msg for keyword in blocking_keywords):
@@ -397,8 +424,13 @@ class CollectionReadinessService:
             if isinstance(error_details, dict):
                 errors = error_details.get("errors", [])
                 for error in errors:
-                    if isinstance(error, dict) and error.get("severity") in ["critical", "fatal"]:
-                        blocking_errors.append(error.get("message", "Unknown critical error"))
+                    if isinstance(error, dict) and error.get("severity") in [
+                        "critical",
+                        "fatal",
+                    ]:
+                        blocking_errors.append(
+                            error.get("message", "Unknown critical error")
+                        )
 
         # Check for flow-level blocking conditions
         if collection_flow.status in ["failed", "cancelled"]:
@@ -414,7 +446,7 @@ class CollectionReadinessService:
         blocking_errors_count: int,
         field_mappings_complete: bool,
         apps_ready: int,
-        total_apps: int
+        total_apps: int,
     ) -> Tuple[bool, float, str, List[str], List[str]]:
         """Determine overall readiness based on all metrics"""
 
@@ -431,7 +463,10 @@ class CollectionReadinessService:
             reasons.append("insufficient_completeness")
 
         # Check data quality score >= 65%
-        if data_quality_score is not None and data_quality_score < self.thresholds.data_quality_score:
+        if (
+            data_quality_score is not None
+            and data_quality_score < self.thresholds.data_quality_score
+        ):
             missing_requirements.append(
                 f"Data quality score is {data_quality_score:.1%}, "
                 f"needs to be >= {self.thresholds.data_quality_score:.1%}"
@@ -460,7 +495,9 @@ class CollectionReadinessService:
             reasons.append("field_mappings_incomplete")
 
         # Check application readiness
-        if total_apps > 0 and apps_ready < (total_apps * 0.8):  # 80% of apps should be ready
+        if total_apps > 0 and apps_ready < (
+            total_apps * 0.8
+        ):  # 80% of apps should be ready
             missing_requirements.append(
                 f"Only {apps_ready}/{total_apps} applications are ready for assessment"
             )
@@ -501,9 +538,9 @@ class CollectionReadinessService:
 
         # Determine readiness
         is_ready = (
-            len(missing_requirements) == 0 and
-            overall_score >= 0.7 and  # Overall score threshold
-            completeness_score >= self.thresholds.collection_completeness
+            len(missing_requirements) == 0
+            and overall_score >= 0.7  # Overall score threshold
+            and completeness_score >= self.thresholds.collection_completeness
         )
 
         # Generate reason
@@ -516,10 +553,14 @@ class CollectionReadinessService:
         # Generate recommendations
         if not is_ready:
             if completeness_score < self.thresholds.collection_completeness:
-                recommendations.append("Continue data collection to reach minimum completeness threshold")
+                recommendations.append(
+                    "Continue data collection to reach minimum completeness threshold"
+                )
 
             if critical_gaps_count > 0:
-                recommendations.append("Address critical data gaps through manual collection")
+                recommendations.append(
+                    "Address critical data gaps through manual collection"
+                )
 
             if not field_mappings_complete:
                 recommendations.append("Complete and validate field mappings")
@@ -531,7 +572,7 @@ class CollectionReadinessService:
         collection_flow: CollectionFlow,
         completeness_score: float,
         data_quality_score: Optional[float],
-        critical_gaps_count: int
+        critical_gaps_count: int,
     ) -> float:
         """Use tenant-scoped agent to assess confidence in readiness"""
 
@@ -570,7 +611,8 @@ class CollectionReadinessService:
             else:
                 # Try to extract number from string response
                 import re
-                match = re.search(r'(\d+(?:\.\d+)?)', str(result))
+
+                match = re.search(r"(\d+(?:\.\d+)?)", str(result))
                 if match:
                     confidence = float(match.group(1))
                     if confidence > 1.0:
@@ -581,7 +623,9 @@ class CollectionReadinessService:
             return max(0.0, min(1.0, confidence))
 
         except Exception as e:
-            logger.warning(f"Agent confidence assessment failed: {e}, using fallback calculation")
+            logger.warning(
+                f"Agent confidence assessment failed: {e}, using fallback calculation"
+            )
 
             # Fallback calculation based on metrics
             confidence = completeness_score
@@ -591,7 +635,7 @@ class CollectionReadinessService:
 
             # Reduce confidence for critical gaps
             if critical_gaps_count > 0:
-                confidence *= (1 - min(0.3, critical_gaps_count * 0.05))
+                confidence *= 1 - min(0.3, critical_gaps_count * 0.05)
 
             return max(0.0, min(1.0, confidence))
 

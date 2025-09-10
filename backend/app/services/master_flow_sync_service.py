@@ -286,7 +286,8 @@ class MasterFlowSyncService:
             result.success = len(result.errors) == 0
 
             logger.info(
-                f"Flow synchronization completed: {result.flows_synchronized}/{result.flows_processed} flows synchronized"
+                f"Flow synchronization completed: {result.flows_synchronized}/"
+                f"{result.flows_processed} flows synchronized"
             )
 
         except Exception as e:

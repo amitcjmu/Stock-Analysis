@@ -88,8 +88,8 @@ def register_conditional_routers(api_router: APIRouter):
         dependency_analysis_router,
         agent_insights_router,
         clarifications_router,
-        ASSESSMENT_FLOW_AVAILABLE,
-        assessment_flow_router,
+        # ASSESSMENT_FLOW_AVAILABLE,  # Currently disabled
+        # assessment_flow_router,     # Currently disabled
         COLLECTION_AVAILABLE,
         collection_router,
         FLOW_PROCESSING_AVAILABLE,
