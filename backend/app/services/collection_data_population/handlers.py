@@ -15,7 +15,7 @@ Key Features:
 import logging
 from datetime import datetime
 from typing import Dict, Any
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
@@ -243,10 +243,13 @@ class CollectionDataHandlers:
 
             # Import validators here to avoid circular import
             from .validators import CollectionDataValidators
+
             validators = CollectionDataValidators(self.db, self.context)
-            
+
             # Calculate summary metrics
-            summary_metrics = await validators.calculate_gap_summary_metrics(collection_flow)
+            summary_metrics = await validators.calculate_gap_summary_metrics(
+                collection_flow
+            )
 
             if gap_analysis and not force_repopulate:
                 # Update existing record

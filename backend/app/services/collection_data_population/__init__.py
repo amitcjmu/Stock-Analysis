@@ -7,7 +7,7 @@ smaller components while maintaining 100% backward compatibility.
 
 Module Structure:
 - core.py: Main service class and orchestration logic
-- handlers.py: Data processing and population handlers  
+- handlers.py: Data processing and population handlers
 - validators.py: Validation and verification methods
 
 For backward compatibility, the main service class can be imported directly:
@@ -30,7 +30,7 @@ from .extractors import CollectionDataExtractors
 # Export the main class for external usage
 __all__ = [
     "CollectionDataPopulationService",
-    "CollectionDataHandlers", 
+    "CollectionDataHandlers",
     "CollectionDataValidators",
     "CollectionDataExtractors",
 ]

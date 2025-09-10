@@ -11,6 +11,6 @@ from .master_flows_crud import router as crud_router
 # Export sub-routers for selective inclusion if needed
 __all__ = [
     "analytics_router",
-    "assessment_router", 
+    "assessment_router",
     "crud_router",
 ]

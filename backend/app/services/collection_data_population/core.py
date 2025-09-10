@@ -164,7 +164,9 @@ class CollectionDataPopulationService:
         )
 
         if gaps_count == 0 and collection_flow.gap_analysis_results:
-            await self.handlers.populate_collection_gaps(collection_flow, force_repopulate=True)
+            await self.handlers.populate_collection_gaps(
+                collection_flow, force_repopulate=True
+            )
             fixes.append("Populated gap analysis records")
 
         # Check gap analysis summary

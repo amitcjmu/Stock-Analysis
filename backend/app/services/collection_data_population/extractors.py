@@ -7,7 +7,7 @@ to populate child data tables.
 
 Key Features:
 - Application collection data extraction
-- Gaps data extraction from results  
+- Gaps data extraction from results
 - Inventory data aggregation
 - Data transformation utilities
 """
@@ -90,9 +90,7 @@ class CollectionDataExtractors:
         return collection_data
 
     @staticmethod
-    def extract_gaps_data(
-        collection_flow: CollectionFlow
-    ) -> List[Dict[str, Any]]:
+    def extract_gaps_data(collection_flow: CollectionFlow) -> List[Dict[str, Any]]:
         """Extract gaps data from collection flow results"""
 
         gaps_data = []
@@ -164,9 +162,7 @@ class CollectionDataExtractors:
         return gaps_data
 
     @staticmethod
-    def aggregate_inventory_data(
-        collection_flow: CollectionFlow
-    ) -> Dict[str, Any]:
+    def aggregate_inventory_data(collection_flow: CollectionFlow) -> Dict[str, Any]:
         """Aggregate inventory data from all collection sources"""
 
         inventory = {
