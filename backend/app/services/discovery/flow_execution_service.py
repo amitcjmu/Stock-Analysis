@@ -30,14 +30,22 @@ async def determine_phase_to_execute(discovery_flow: DiscoveryFlow) -> str:
     current_phase = discovery_flow.current_phase
     status = discovery_flow.status
 
+    # CC: Handle 'initialization' phase - map to field_mapping for discovery flows
+    if current_phase == "initialization":
+        logger.info(
+            "Mapping 'initialization' phase to 'field_mapping' for discovery flow"
+        )
+        phase = "field_mapping"
     # Map the phase correctly to match Master Flow Orchestrator expectations
     # MFO expects "field_mapping" not "field_mapping_suggestions"
-    if status == "initialized" and not current_phase:
+    elif status == "initialized" and not current_phase:
         # Flow is initialized but hasn't started any phase yet
         phase = "field_mapping"
     elif status in ["failed", "error", "paused", "waiting_for_approval"]:
         # For failed/paused flows, restart from current phase or field mapping
-        phase = current_phase or "field_mapping"
+        phase = current_phase if current_phase != "initialization" else "field_mapping"
+        if not phase:
+            phase = "field_mapping"
     elif status == "initialized":
         # Flow was initialized but needs to execute field mapping phase
         phase = "field_mapping"
@@ -134,16 +142,32 @@ async def execute_field_mapping_phase(
     logger.info(f"🎯 Attempting direct field mapping execution for flow {flow_id}")
 
     # Check if field mapping has already been completed to prevent duplicates
-    if discovery_flow.field_mapping_completed:
-        logger.warning(
-            f"⚠️ Field mapping already completed for flow {flow_id}, skipping duplicate execution"
+    # CC: Only skip if mappings actually exist, not just if the flag is set
+    if discovery_flow.field_mapping_completed and discovery_flow.data_import_id:
+        # Check if mappings actually exist for this import
+        from sqlalchemy import select, func
+        from app.models.field_mapping import FieldMapping
+
+        count_stmt = select(func.count(FieldMapping.id)).where(
+            FieldMapping.data_import_id == discovery_flow.data_import_id
         )
-        return {
-            "success": True,
-            "status": "already_completed",
-            "phase": "field_mapping_suggestions",
-            "message": "Field mapping already completed, skipping duplicate execution",
-        }
+        mapping_count = await db.scalar(count_stmt)
+
+        if mapping_count and mapping_count > 0:
+            logger.info(
+                f"✅ Field mapping already completed for flow {flow_id} with {mapping_count} mappings"
+            )
+            return {
+                "success": True,
+                "status": "already_completed",
+                "phase": "field_mapping_suggestions",
+                "message": f"Field mapping already completed with {mapping_count} mappings",
+                "mapping_count": mapping_count,
+            }
+        else:
+            logger.warning(
+                "⚠️ Field mapping marked as completed but no mappings found, regenerating..."
+            )
 
     try:
         from app.services.crewai_flow_service import CrewAIFlowService
@@ -285,8 +309,9 @@ async def execute_flow_phase(
         return init_result
 
     # Try to execute the phase
-    # For field mapping suggestions phase, try direct execution first
-    if phase_to_execute == "field_mapping_suggestions":
+    # For field mapping phase, try direct execution first
+    # CC: Check for both "field_mapping" and "field_mapping_suggestions" for compatibility
+    if phase_to_execute in ["field_mapping", "field_mapping_suggestions"]:
         field_mapping_result = await execute_field_mapping_phase(
             flow_id, context, db, discovery_flow
         )
