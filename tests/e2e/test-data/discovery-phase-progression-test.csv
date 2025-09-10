@@ -1,0 +1,11 @@
+hostname,ip_address,operating_system,environment,asset_type,application_name,cpu_cores,memory_gb,storage_gb,status,department,owner,location,description
+web-server-prod-01,10.0.1.10,Ubuntu 20.04,production,server,E-Commerce Platform,8,16,500,active,IT,John Smith,US-East,Primary web server for e-commerce application
+db-server-prod-01,10.0.1.20,CentOS 7,production,database,MySQL Cluster,16,32,1000,active,IT,Sarah Johnson,US-East,Main database server for production workloads
+app-server-prod-01,10.0.1.30,Windows Server 2019,production,server,Inventory Management,4,8,250,active,Operations,Mike Davis,US-West,Application server for inventory system
+cache-server-prod-01,10.0.1.40,Ubuntu 18.04,production,server,Redis Cache,2,4,100,active,IT,Lisa Brown,US-East,High-performance caching layer
+api-gateway-prod-01,10.0.1.50,Ubuntu 20.04,production,server,API Gateway,4,8,200,active,IT,David Wilson,US-East,API gateway for microservices
+monitor-server-01,10.0.1.60,CentOS 8,production,server,Monitoring Stack,2,8,200,active,SRE,Amy Chen,US-Central,Prometheus and Grafana monitoring
+backup-server-01,10.0.1.70,Ubuntu 20.04,production,server,Backup Solution,4,16,2000,active,IT,Robert Taylor,US-West,Centralized backup and recovery system
+lb-server-prod-01,10.0.1.80,HAProxy,production,server,Load Balancer,2,4,50,active,Network,Jennifer White,US-East,High availability load balancer
+mail-server-prod-01,10.0.1.90,Postfix,production,server,Email Server,2,4,100,active,Communications,Mark Anderson,EU-Central,Corporate email infrastructure
+dns-server-prod-01,10.0.1.100,BIND9,production,server,DNS Service,1,2,50,active,Network,Patricia Garcia,US-East,Primary DNS server for internal services

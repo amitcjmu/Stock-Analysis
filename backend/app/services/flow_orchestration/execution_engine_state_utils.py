@@ -43,9 +43,17 @@ class ExecutionEngineStateUtils:
                         "flow_id": discovery_state.flow_id,
                         "status": discovery_state.status,
                         "current_phase": discovery_state.current_phase,
-                        "completed_phases": discovery_state.completed_phases or [],
+                        "completed_phases": (
+                            [
+                                k
+                                for k, v in discovery_state.phase_completion.items()
+                                if v
+                            ]
+                            if discovery_state.phase_completion
+                            else []
+                        ),
                         "raw_data": discovery_state.raw_data or [],
-                        "processed_data": discovery_state.processed_data or [],
+                        "processed_data": discovery_state.cleaned_data or [],
                         "field_mappings": discovery_state.field_mappings or {},
                         "metadata": discovery_state.metadata or {},
                     }

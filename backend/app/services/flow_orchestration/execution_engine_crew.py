@@ -57,7 +57,9 @@ class FlowExecutionCrew:
 
         # Initialize modular components
         self.crew_utils = ExecutionEngineCrewUtils()
-        self.discovery_crews = ExecutionEngineDiscoveryCrews(self.crew_utils)
+        self.discovery_crews = ExecutionEngineDiscoveryCrews(
+            self.crew_utils, context=self.context, db_session=self.db
+        )
         self.assessment_crews = ExecutionEngineAssessmentCrews(self.crew_utils)
         # Collection crews now use persistent agents like Discovery
         self.collection_crews = ExecutionEngineCollectionCrews(self.crew_utils)
@@ -78,6 +80,11 @@ class FlowExecutionCrew:
                     audit_logger=None,  # Can be added if needed
                 )
                 logger.info("🔧 ServiceRegistry initialized for crew execution")
+
+                # Set ServiceRegistry on discovery crews to enable asset creation tools
+                if hasattr(self.discovery_crews, "set_service_registry"):
+                    self.discovery_crews.set_service_registry(self.service_registry)
+
             except (ImportError, AttributeError) as e:
                 logger.warning(f"⚠️ ServiceRegistry not available: {e}")
                 # Continue without ServiceRegistry - graceful degradation

@@ -116,27 +116,29 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
       // IMPORTANT: Await the onMappingAction to ensure it completes before continuing
       await onMappingAction(mappingId, 'approve');
 
+      // Wait a moment for the backend to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Trigger cache invalidation and refresh after successful approval
       if (typeof window !== 'undefined' && (window as any).__invalidateFieldMappings) {
         console.log('🔄 Invalidating cache after individual approval');
         await (window as any).__invalidateFieldMappings();
       }
 
-      // Also trigger onRefresh to update the UI
+      // Also trigger onRefresh to update the UI - this should refetch the data
       if (onRefresh) {
+        console.log('🔄 Triggering onRefresh to update UI with fresh data');
         await onRefresh();
       }
     } catch (error) {
       console.error('Error approving mapping:', error);
     } finally {
-      // Always remove from processing set after a short delay
-      setTimeout(() => {
-        setProcessingMappings(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(mappingId);
-          return newSet;
-        });
-      }, 300);
+      // Remove from processing set immediately
+      setProcessingMappings(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(mappingId);
+        return newSet;
+      });
     }
   };
 
@@ -147,14 +149,18 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
         setShowRejectionInput(null);
         setRejectionReason('');
 
+        // Wait a moment for the backend to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+
         // Trigger cache invalidation and refresh after successful rejection
         if (typeof window !== 'undefined' && (window as any).__invalidateFieldMappings) {
           console.log('🔄 Invalidating cache after individual rejection');
           await (window as any).__invalidateFieldMappings();
         }
 
-        // Also trigger onRefresh to update the UI
+        // Also trigger onRefresh to update the UI - this should refetch the data
         if (onRefresh) {
+          console.log('🔄 Triggering onRefresh to update UI with fresh data');
           await onRefresh();
         }
       } catch (error) {

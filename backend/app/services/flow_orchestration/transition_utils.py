@@ -327,13 +327,13 @@ def _get_next_phase_simple(flow_type: str, current_phase: str) -> Optional[str]:
     """Get next phase using simple logic for common flow types."""
 
     # Discovery flow phase progression
+    # CC FIX: Removed tech_debt_assessment - it belongs to Collection flow, not Discovery flow
     discovery_phases = [
         "data_import",
         "field_mapping",
         "data_cleansing",
         "asset_inventory",
         "dependency_analysis",
-        "tech_debt_assessment",
     ]
 
     # Collection flow phase progression (aligned with actual routes)

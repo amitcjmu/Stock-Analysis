@@ -7,9 +7,10 @@ from typing import Any, Dict, List
 
 from app.core.logging import get_logger
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.services.crewai_flows.handlers.unified_flow_crew_manager import (
-    UnifiedFlowCrewManager,
-)
+
+# UnifiedFlowCrewManager import moved to discovery_phase_handlers.py
+from .asset_creation_tools import AssetCreationToolsExecutor
+from .discovery_phase_handlers import DiscoveryPhaseHandlers
 from .field_mapping_logic import FieldMappingLogic
 
 logger = get_logger(__name__)
@@ -35,10 +36,17 @@ class DictStateAdapter:
 class ExecutionEngineDiscoveryCrews:
     """Discovery flow CrewAI execution handlers."""
 
-    def __init__(self, crew_utils, context=None):
+    def __init__(self, crew_utils, context=None, db_session=None):
         self.crew_utils = crew_utils
         self.field_mapping_logic = FieldMappingLogic()
+        self.phase_handlers = DiscoveryPhaseHandlers(context)
         self.context = context
+        self.service_registry = None
+        self.db_session = db_session
+
+    def set_service_registry(self, service_registry):
+        """Set the ServiceRegistry for this discovery crews instance."""
+        self.service_registry = service_registry
 
     async def execute_discovery_phase(
         self,
@@ -154,6 +162,7 @@ class ExecutionEngineDiscoveryCrews:
             "field_mapping": "field_mapping",
             "data_cleansing": "data_cleansing",
             "asset_creation": "asset_creation",
+            "asset_inventory": "asset_inventory",
             "analysis": "analysis",
         }
         return phase_mapping.get(phase_name, phase_name)
@@ -163,141 +172,24 @@ class ExecutionEngineDiscoveryCrews:
     ) -> Dict[str, Any]:
         """Execute mapped discovery phase"""
         phase_methods = {
-            "data_import_validation": self._execute_discovery_data_import_validation,
+            "data_import_validation": self.phase_handlers.execute_data_import_validation,
             "field_mapping": self._execute_discovery_field_mapping,
-            "data_cleansing": self._execute_discovery_data_cleansing,
+            "data_cleansing": self.phase_handlers.execute_data_cleansing,
             "asset_creation": self._execute_discovery_asset_creation,
-            "analysis": self._execute_discovery_analysis,
+            "asset_inventory": self._execute_discovery_asset_inventory,
+            "analysis": self.phase_handlers.execute_analysis,
         }
 
         method = phase_methods.get(mapped_phase, self._execute_discovery_generic_phase)
         return await method(agent_pool, phase_input)
-
-    async def _execute_discovery_data_import_validation(
-        self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Execute data import validation phase"""
-        logger.info("🔍 Executing discovery data import validation")
-
-        try:
-            # Create state adapter for UnifiedFlowCrewManager
-            state = DictStateAdapter(phase_input)
-
-            # Use UnifiedFlowCrewManager with proper state object
-            crew_manager = UnifiedFlowCrewManager(
-                crewai_service=None,  # Will be initialized internally
-                state=state,
-                context=self.context,
-            )
-
-            crew = crew_manager.create_crew_on_demand(
-                "data_import_validation", **phase_input
-            )
-            if not crew:
-                logger.warning(
-                    "Failed to create data_import_validation crew, using fallback"
-                )
-                return {
-                    "phase": "data_import_validation",
-                    "status": "completed",
-                    "validation_results": {"valid": True, "issues": []},
-                    "agent": "data_validation_agent",
-                }
-
-            # Check if crew has async kickoff method
-            if hasattr(crew, "kickoff_async"):
-                result = await crew.kickoff_async(inputs=phase_input)
-            else:
-                # Use synchronous kickoff
-                result = crew.kickoff(inputs=phase_input)
-
-            # Maintain backward compatibility with validation_results field
-            validation_results = (
-                result.get("validation_results", {"valid": True, "issues": []})
-                if isinstance(result, dict)
-                else {"valid": True, "issues": []}
-            )
-
-            return {
-                "phase": "data_import_validation",
-                "status": "completed",
-                "crew_results": result,
-                "validation_results": validation_results,  # Backward compatibility
-                "agent": "data_validation_agent",
-            }
-        except Exception as e:
-            logger.error(f"Data import validation failed: {str(e)}")
-            return {
-                "phase": "data_import_validation",
-                "status": "error",
-                "error": str(e),
-                "validation_results": {"valid": False, "issues": [str(e)]},
-                "agent": "data_validation_agent",
-            }
 
     async def _execute_discovery_field_mapping(
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Execute field mapping phase - delegated to specialized handler"""
         return await self.field_mapping_logic.execute_discovery_field_mapping(
-            agent_pool, phase_input
+            agent_pool, phase_input, self.db_session
         )
-
-    async def _execute_discovery_data_cleansing(
-        self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Execute data cleansing phase"""
-        logger.info("🧹 Executing discovery data cleansing")
-
-        try:
-            # Create state adapter for UnifiedFlowCrewManager
-            state = DictStateAdapter(phase_input)
-
-            # Use UnifiedFlowCrewManager with proper state object
-            crew_manager = UnifiedFlowCrewManager(
-                crewai_service=None,  # Will be initialized internally
-                state=state,
-                context=self.context,
-            )
-
-            crew = crew_manager.create_crew_on_demand("data_cleansing", **phase_input)
-            if not crew:
-                logger.warning("Failed to create data_cleansing crew, using fallback")
-                return {
-                    "phase": "data_cleansing",
-                    "status": "completed",
-                    "cleansed_data": [],
-                    "agent": "data_cleansing_agent",
-                }
-
-            # Check if crew has async kickoff method
-            if hasattr(crew, "kickoff_async"):
-                result = await crew.kickoff_async(inputs=phase_input)
-            else:
-                # Use synchronous kickoff
-                result = crew.kickoff(inputs=phase_input)
-
-            # Maintain backward compatibility with cleansed_data field
-            cleansed_data = (
-                result.get("cleansed_data", []) if isinstance(result, dict) else []
-            )
-
-            return {
-                "phase": "data_cleansing",
-                "status": "completed",
-                "crew_results": result,
-                "cleansed_data": cleansed_data,  # Backward compatibility
-                "agent": "data_cleansing_agent",
-            }
-        except Exception as e:
-            logger.error(f"Data cleansing failed: {str(e)}")
-            return {
-                "phase": "data_cleansing",
-                "status": "error",
-                "error": str(e),
-                "cleansed_data": [],
-                "agent": "data_cleansing_agent",
-            }
 
     async def _execute_discovery_asset_creation(
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
@@ -313,60 +205,102 @@ class ExecutionEngineDiscoveryCrews:
             "agent": "asset_creation_agent",
         }
 
-    async def _execute_discovery_analysis(
+    async def _execute_discovery_asset_inventory(
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Execute analysis phase"""
-        logger.info("📊 Executing discovery analysis")
+        """Execute asset inventory phase using persistent agent"""
+        logger.info("📦 Executing discovery asset inventory using persistent agent")
 
         try:
-            # Create state adapter for UnifiedFlowCrewManager
-            state = DictStateAdapter(phase_input)
+            # Ensure all inputs are JSON-serializable (convert UUIDs to strings)
+            serializable_input = {}
+            for key, value in phase_input.items():
+                if hasattr(value, "__str__") and hasattr(
+                    value, "hex"
+                ):  # UUID-like object
+                    serializable_input[key] = str(value)
+                elif (
+                    isinstance(value, (str, int, float, bool, list, dict))
+                    or value is None
+                ):
+                    serializable_input[key] = value
+                else:
+                    serializable_input[key] = str(
+                        value
+                    )  # Convert unknown types to string
 
-            # Use UnifiedFlowCrewManager with proper state object
-            crew_manager = UnifiedFlowCrewManager(
-                crewai_service=None,  # Will be initialized internally
-                state=state,
-                context=self.context,
+            # Use persistent agent pattern instead of crew pattern
+            from app.services.persistent_agents.tenant_scoped_agent_pool import (
+                TenantScopedAgentPool,
             )
 
-            crew = crew_manager.create_crew_on_demand("analysis", **phase_input)
-            if not crew:
-                logger.warning("Failed to create analysis crew, using fallback")
-                return {
-                    "phase": "analysis",
-                    "status": "completed",
-                    "analysis_results": {},
-                    "agent": "analysis_agent",
-                }
+            # Ensure context has required attributes from phase_input
+            context_for_agent = self.context
+            if (
+                not hasattr(context_for_agent, "client_account_id")
+                or context_for_agent.client_account_id is None
+            ):
+                # Create a context object with the required attributes from phase_input
+                from app.core.context import RequestContext
 
-            # Check if crew has async kickoff method
-            if hasattr(crew, "kickoff_async"):
-                result = await crew.kickoff_async(inputs=phase_input)
-            else:
-                # Use synchronous kickoff
-                result = crew.kickoff(inputs=phase_input)
+                context_for_agent = RequestContext(
+                    client_account_id=phase_input.get("client_account_id"),
+                    engagement_id=phase_input.get("engagement_id"),
+                    request_id=(
+                        getattr(self.context, "request_id", None)
+                        if self.context
+                        else None
+                    ),
+                )
+                logger.info(
+                    f"Created context for agent: client_id={context_for_agent.client_account_id}, "
+                    f"engagement_id={context_for_agent.engagement_id}"
+                )
 
-            # Maintain backward compatibility with analysis_results field
-            analysis_results = (
-                result.get("analysis_results", {}) if isinstance(result, dict) else {}
+            # Get the persistent agent
+            agent = await TenantScopedAgentPool.get_agent(
+                context=context_for_agent,
+                agent_type="asset_inventory_agent",
+                service_registry=self.service_registry,
+            )
+
+            # Prepare task description for the agent
+            task_description = "Create database asset records from cleaned CMDB data"
+
+            # Execute asset creation using agent's tools (extracted to separate class)
+            result = await AssetCreationToolsExecutor.execute_asset_creation_with_tools(
+                agent, serializable_input, task_description
+            )
+
+            # Maintain backward compatibility with asset_inventory field
+            asset_inventory = (
+                result.get(
+                    "asset_inventory",
+                    {"total_assets": 0, "classification_complete": False},
+                )
+                if isinstance(result, dict)
+                else {"total_assets": 0, "classification_complete": False}
             )
 
             return {
-                "phase": "analysis",
+                "phase": "asset_inventory",
                 "status": "completed",
                 "crew_results": result,
-                "analysis_results": analysis_results,  # Backward compatibility
-                "agent": "analysis_agent",
+                "asset_inventory": asset_inventory,  # Backward compatibility
+                "agent": "asset_inventory_agent",
+                "method": "persistent_agent_execution",
             }
         except Exception as e:
-            logger.error(f"Analysis phase failed: {str(e)}")
+            logger.error(f"Asset inventory failed: {str(e)}")
             return {
-                "phase": "analysis",
+                "phase": "asset_inventory",
                 "status": "error",
                 "error": str(e),
-                "analysis_results": {},
-                "agent": "analysis_agent",
+                "asset_inventory": {
+                    "total_assets": 0,
+                    "classification_complete": False,
+                },
+                "agent": "asset_inventory_agent",
             }
 
     async def _execute_discovery_generic_phase(

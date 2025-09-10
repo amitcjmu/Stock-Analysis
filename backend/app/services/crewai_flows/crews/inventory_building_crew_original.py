@@ -1,6 +1,17 @@
 """
-Inventory Building Crew - Multi-Domain Classification Phase
-Enhanced implementation with CrewAI best practices:
+DEPRECATED: Inventory Building Crew - Multi-Domain Classification Phase
+
+⚠️  WARNING: This file is DEPRECATED as of September 2025
+⚠️  Asset inventory now uses persistent agents via TenantScopedAgentPool
+⚠️  See: backend/app/services/flow_orchestration/execution_engine_crew_discovery.py
+⚠️  This file is kept for backward compatibility but should not be used
+
+MIGRATION NOTES:
+- Asset inventory phase now handled by persistent agents in execution_engine_crew_discovery.py (lines 324-412)
+- Intelligence endpoint updated to use persistent agents in intelligence.py
+- All crew factory references commented out in managers and config files
+
+Legacy implementation details (no longer used):
 - Hierarchical management with Inventory Manager
 - Multi-domain expertise (servers, applications, devices)
 - Cross-domain collaboration for asset relationships

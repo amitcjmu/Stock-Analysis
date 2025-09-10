@@ -42,7 +42,6 @@ class FlowStateTransitionValidator:
         "asset_creation",
         "asset_inventory",
         "dependency_analysis",
-        "tech_debt_analysis",
         "completed",
     ]
 

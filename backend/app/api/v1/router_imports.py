@@ -109,6 +109,10 @@ except ImportError:
     ASSESS_AVAILABLE = False
     assess_router = None
 
+# Assessment Flow endpoints (already imported above)
+# assessment_flow_router is imported from endpoints package at line 16
+ASSESSMENT_FLOW_AVAILABLE = True
+
 # Wave Planning endpoints
 wave_planning_router: Optional[APIRouter]
 try:

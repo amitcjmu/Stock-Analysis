@@ -124,6 +124,22 @@ class AgentConfiguration:
                     "max_tokens": 1500,
                 },
             },
+            "asset_inventory_agent": {
+                "role": "Asset Inventory Specialist",
+                "goal": "Create database asset records efficiently from cleaned CMDB data",
+                "backstory": "You are an expert asset inventory specialist focused on direct execution "
+                "of asset creation tasks. You transform validated CMDB data into database records "
+                "without extensive analysis, ensuring efficient and accurate asset cataloging.",
+                "tools": [
+                    "asset_creation",
+                    "data_validation",
+                ],
+                "provider": "openai",
+                "config": {
+                    "temperature": 0.1,
+                    "max_tokens": 1500,
+                },
+            },
         }
 
         # Return specific config or generic fallback

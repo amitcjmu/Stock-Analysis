@@ -102,7 +102,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   // Get assets data - fetch from API endpoint that returns assets based on view mode
   // Updated to support both "All Assets" and "Current Flow Only" modes
   const { data: assetsData, isLoading: assetsLoading, refetch: refetchAssets } = useQuery({
-    queryKey: ['discovery-assets', String(client?.id ?? ''), String(engagement?.id ?? ''), viewMode, String(flowId ?? '')],
+    queryKey: ['discovery-assets', String(client?.id ?? ''), String(engagement?.id ?? ''), viewMode, flowId || 'no-flow'],
     queryFn: async () => {
       try {
         // Import API call function with proper headers
@@ -116,9 +116,13 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           });
 
           // Only include flow_id when in current_flow mode and flowId is available
-          const normalizedFlowId = flowId ? String(flowId) : '';
+          const normalizedFlowId = flowId && flowId !== 'no-flow' ? String(flowId) : '';
           if (viewMode === 'current_flow' && normalizedFlowId) {
             queryParams.append('flow_id', normalizedFlowId);
+            console.log(`🔍 API call will include flow_id: ${normalizedFlowId}`);
+          } else if (viewMode === 'current_flow') {
+            console.warn(`⚠️ current_flow mode but no valid flowId available: ${flowId}`);
+            throw new Error('Flow ID is required for current_flow mode but is not available');
           }
 
           const response = await apiCall(`/unified-discovery/assets?${queryParams.toString()}`);
@@ -311,7 +315,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       }
     },
     // Enable query when we have client/engagement, and either in 'all' mode or have flowId for 'current_flow'
-    enabled: !!client && !!engagement && (viewMode === 'all' || (viewMode === 'current_flow' && !!flowId)),
+    // For current_flow mode, we must have a valid flowId before making the API call
+    enabled: !!client && !!engagement && (viewMode === 'all' || (viewMode === 'current_flow' && !!flowId && flowId !== 'no-flow')),
     // Invalidate when view mode or flowId changes
     refetchOnWindowFocus: false,
     staleTime: 30000

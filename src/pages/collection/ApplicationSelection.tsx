@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +26,8 @@ import {
   ArrowRight,
   Search,
   Filter,
+  Activity,
+  Eye,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiCall } from "@/config/api";
@@ -70,25 +76,28 @@ const ApplicationSelection: React.FC = () => {
   }, [flowId, navigate]);
 
   // Build query parameters for API calls including filters
-  const buildQueryParams = useCallback((page: number) => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      page_size: "50", // Optimal page size for smooth scrolling
-    });
+  const buildQueryParams = useCallback(
+    (page: number) => {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        page_size: "50", // Optimal page size for smooth scrolling
+      });
 
-    // Add client-side filters to server request for proper pagination
-    if (searchTerm.trim()) {
-      params.append("search", searchTerm.trim());
-    }
-    if (environmentFilter) {
-      params.append("environment", environmentFilter);
-    }
-    if (criticalityFilter) {
-      params.append("business_criticality", criticalityFilter);
-    }
+      // Add client-side filters to server request for proper pagination
+      if (searchTerm.trim()) {
+        params.append("search", searchTerm.trim());
+      }
+      if (environmentFilter) {
+        params.append("environment", environmentFilter);
+      }
+      if (criticalityFilter) {
+        params.append("business_criticality", criticalityFilter);
+      }
 
-    return params.toString();
-  }, [searchTerm, environmentFilter, criticalityFilter]);
+      return params.toString();
+    },
+    [searchTerm, environmentFilter, criticalityFilter],
+  );
 
   // Fetch applications with infinite scroll support
   const {
@@ -106,7 +115,7 @@ const ApplicationSelection: React.FC = () => {
       engagement?.id,
       searchTerm,
       environmentFilter,
-      criticalityFilter
+      criticalityFilter,
     ],
     queryFn: async ({ pageParam = 1 }) => {
       try {
@@ -120,7 +129,7 @@ const ApplicationSelection: React.FC = () => {
         }
 
         console.log(
-          `📋 Fetched page ${pageParam}: ${response.assets.length} applications (total: ${response.pagination?.total_count || 'unknown'})`,
+          `📋 Fetched page ${pageParam}: ${response.assets.length} applications (total: ${response.pagination?.total_count || "unknown"})`,
         );
 
         return {
@@ -142,11 +151,13 @@ const ApplicationSelection: React.FC = () => {
   });
 
   // Flatten all pages into a single array of applications
-  const allAssets = applicationsData?.pages?.flatMap(page => page.assets) || [];
+  const allAssets =
+    applicationsData?.pages?.flatMap((page) => page.assets) || [];
   // Filter to only show applications (not servers or databases)
-  const applications = allAssets.filter(asset =>
-    asset.asset_type?.toLowerCase() === 'application' ||
-    asset.asset_type?.toLowerCase() === 'app'
+  const applications = allAssets.filter(
+    (asset) =>
+      asset.asset_type?.toLowerCase() === "application" ||
+      asset.asset_type?.toLowerCase() === "app",
   );
   // Since we're filtering client-side, count actual applications
   const totalApplicationsCount = applications.length;
@@ -195,8 +206,8 @@ const ApplicationSelection: React.FC = () => {
       },
       {
         threshold: 0.1,
-        rootMargin: '100px',
-      }
+        rootMargin: "100px",
+      },
     );
 
     observerRef.current.observe(loadMoreRef.current);
@@ -219,21 +230,29 @@ const ApplicationSelection: React.FC = () => {
     setSelectedApplications(newSelection);
   };
 
-
   // Handle select all applications (filtered)
   const handleSelectAll = (checked?: boolean) => {
     if (!filteredApplications) return;
-    const shouldSelectAll = typeof checked === "boolean"
-      ? checked
-      : selectedApplications.size !== filteredApplications.length;
+    const shouldSelectAll =
+      typeof checked === "boolean"
+        ? checked
+        : selectedApplications.size !== filteredApplications.length;
     setSelectedApplications(
-      shouldSelectAll ? new Set(filteredApplications.map((app: Asset) => app.id)) : new Set()
+      shouldSelectAll
+        ? new Set(filteredApplications.map((app: Asset) => app.id))
+        : new Set(),
     );
   };
 
   // Get unique filter options from all loaded applications
-  const environmentOptions = [...new Set(applications.map(app => app.environment).filter(Boolean))];
-  const criticalityOptions = [...new Set(applications.map(app => app.business_criticality).filter(Boolean))];
+  const environmentOptions = [
+    ...new Set(applications.map((app) => app.environment).filter(Boolean)),
+  ];
+  const criticalityOptions = [
+    ...new Set(
+      applications.map((app) => app.business_criticality).filter(Boolean),
+    ),
+  ];
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -245,10 +264,17 @@ const ApplicationSelection: React.FC = () => {
         engagement?.id,
         searchTerm,
         environmentFilter,
-        criticalityFilter
-      ]
+        criticalityFilter,
+      ],
     });
-  }, [searchTerm, environmentFilter, criticalityFilter, queryClient, client?.id, engagement?.id]);
+  }, [
+    searchTerm,
+    environmentFilter,
+    criticalityFilter,
+    queryClient,
+    client?.id,
+    engagement?.id,
+  ]);
 
   // Handle form submission
   const handleSubmit = async () => {
@@ -423,7 +449,9 @@ const ApplicationSelection: React.FC = () => {
                       >
                         <option value="">All Environments</option>
                         {environmentOptions.map((env) => (
-                          <option key={env} value={env}>{env}</option>
+                          <option key={env} value={env}>
+                            {env}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -437,7 +465,9 @@ const ApplicationSelection: React.FC = () => {
                       >
                         <option value="">All Criticalities</option>
                         {criticalityOptions.map((crit) => (
-                          <option key={crit} value={crit}>{crit}</option>
+                          <option key={crit} value={crit}>
+                            {crit}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -446,17 +476,19 @@ const ApplicationSelection: React.FC = () => {
                   {/* Results Summary */}
                   <div className="flex justify-between items-center text-sm text-gray-600">
                     <span>
-                      Showing {filteredApplications.length} of {totalApplicationsCount} applications
-                      {(searchTerm || environmentFilter || criticalityFilter) && ' (filtered)'}
+                      Showing {filteredApplications.length} of{" "}
+                      {totalApplicationsCount} applications
+                      {(searchTerm || environmentFilter || criticalityFilter) &&
+                        " (filtered)"}
                     </span>
                     {(searchTerm || environmentFilter || criticalityFilter) && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          setSearchTerm('');
-                          setEnvironmentFilter('');
-                          setCriticalityFilter('');
+                          setSearchTerm("");
+                          setEnvironmentFilter("");
+                          setCriticalityFilter("");
                         }}
                       >
                         Clear Filters
@@ -470,12 +502,18 @@ const ApplicationSelection: React.FC = () => {
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <Checkbox
                       checked={
-                        filteredApplications.length > 0 && selectedApplications.size === filteredApplications.length
+                        filteredApplications.length > 0 &&
+                        selectedApplications.size ===
+                          filteredApplications.length
                       }
                       onCheckedChange={(val) => handleSelectAll(!!val)}
                     />
                     <span className="font-medium">
-                      Select All ({filteredApplications.length} applications {(searchTerm || environmentFilter || criticalityFilter) ? 'shown' : 'available'})
+                      Select All ({filteredApplications.length} applications{" "}
+                      {searchTerm || environmentFilter || criticalityFilter
+                        ? "shown"
+                        : "available"}
+                      )
                     </span>
                   </label>
                 </div>
@@ -488,7 +526,9 @@ const ApplicationSelection: React.FC = () => {
                         <div>
                           <Filter className="mx-auto h-12 w-12 text-gray-300 mb-4" />
                           <p>No applications match your current filters.</p>
-                          <p className="text-sm mt-2">Try adjusting your search criteria.</p>
+                          <p className="text-sm mt-2">
+                            Try adjusting your search criteria.
+                          </p>
                         </div>
                       ) : (
                         <div>
@@ -516,7 +556,17 @@ const ApplicationSelection: React.FC = () => {
                               }
                             />
                             <div className="flex-1">
-                              <div className="font-medium">{app.name || 'Unnamed Application'}</div>
+                              <div className="font-medium">
+                                {app.name || "Unnamed Application"}
+                              </div>
+
+                              {/* CRITICAL FIX: Add Asset ID display */}
+                              {app.id && (
+                                <div className="text-xs text-gray-500 font-mono mt-1">
+                                  Asset ID: {app.id}
+                                </div>
+                              )}
+
                               {app.environment && (
                                 <div className="text-sm text-gray-600">
                                   Environment: {app.environment}
@@ -524,18 +574,37 @@ const ApplicationSelection: React.FC = () => {
                               )}
                               {app.description && (
                                 <div className="text-sm text-gray-500 mt-1 max-h-10 overflow-hidden">
-                                  {app.description.length > 100 ? `${app.description.substring(0, 100)}...` : app.description}
+                                  {app.description.length > 100
+                                    ? `${app.description.substring(0, 100)}...`
+                                    : app.description}
                                 </div>
                               )}
                             </div>
                           </label>
                           <div className="flex items-center gap-2">
+                            {/* CRITICAL FIX: Add Status Indicator */}
+                            <Badge
+                              variant={app.status === "active" ? "default" : "secondary"}
+                              className="flex items-center gap-1"
+                            >
+                              {app.status === "active" ? (
+                                <Activity className="h-3 w-3" />
+                              ) : (
+                                <Eye className="h-3 w-3" />
+                              )}
+                              {app.status === "active" ? "Active" : "Discovered"}
+                            </Badge>
+
                             {app.business_criticality && (
                               <Badge
                                 variant={
-                                  app.business_criticality.toLowerCase() === "critical" || app.business_criticality.toLowerCase() === "high"
+                                  app.business_criticality.toLowerCase() ===
+                                    "critical" ||
+                                  app.business_criticality.toLowerCase() ===
+                                    "high"
                                     ? "destructive"
-                                    : app.business_criticality.toLowerCase() === "medium"
+                                    : app.business_criticality.toLowerCase() ===
+                                        "medium"
                                       ? "secondary"
                                       : "default"
                                 }
@@ -544,7 +613,9 @@ const ApplicationSelection: React.FC = () => {
                               </Badge>
                             )}
                             {app.six_r_strategy && (
-                              <Badge variant="outline">{app.six_r_strategy}</Badge>
+                              <Badge variant="outline">
+                                {app.six_r_strategy}
+                              </Badge>
                             )}
                           </div>
                         </div>
@@ -555,15 +626,18 @@ const ApplicationSelection: React.FC = () => {
                         {isFetchingNextPage && (
                           <div className="flex items-center justify-center py-4">
                             <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                            <span className="ml-2 text-sm text-gray-600">Loading more applications...</span>
+                            <span className="ml-2 text-sm text-gray-600">
+                              Loading more applications...
+                            </span>
                           </div>
                         )}
                         {!hasNextPage && applications.length > 0 && (
                           <div className="text-center py-4 text-gray-500 text-sm">
-                            {(searchTerm || environmentFilter || criticalityFilter)
+                            {searchTerm ||
+                            environmentFilter ||
+                            criticalityFilter
                               ? `Showing all ${applications.length} matching applications`
-                              : `All applications loaded (${applications.length} total)`
-                            }
+                              : `All applications loaded (${applications.length} total)`}
                           </div>
                         )}
                       </div>

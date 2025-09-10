@@ -95,9 +95,49 @@ class AssetService:
                     "Missing required tenant context (client_id, engagement_id)"
                 )
 
-            # Check for existing asset (idempotency)
+            # CRITICAL FIX: Smart asset name resolution with proper fallback hierarchy
+            # Priority: explicit name -> asset_name -> hostname -> IP -> unique identifier
+            def get_smart_asset_name(data: Dict[str, Any]) -> str:
+                """Generate unique asset name from available data with intelligent fallbacks"""
+                # Try explicit name field first
+                if data.get("name"):
+                    return str(data["name"]).strip()
+
+                # Try asset_name field
+                if data.get("asset_name"):
+                    return str(data["asset_name"]).strip()
+
+                # Try hostname (most common for servers/infrastructure)
+                if data.get("hostname"):
+                    return str(data["hostname"]).strip()
+
+                # Try application_name (for applications)
+                if data.get("application_name"):
+                    return str(data["application_name"]).strip()
+
+                # Try primary_application
+                if data.get("primary_application"):
+                    return str(data["primary_application"]).strip()
+
+                # Try IP address as identifier
+                if data.get("ip_address"):
+                    return f"Asset-{data['ip_address']}"
+
+                # Last resort: generate unique name based on asset type and UUID
+                asset_type = data.get("asset_type", "Asset").replace(" ", "-")
+                unique_id = str(uuid.uuid4())[:8]  # Short UUID for readability
+                return f"{asset_type}-{unique_id}"
+
+            # Generate smart asset name
+            smart_name = get_smart_asset_name(asset_data)
+
+            logger.info(
+                f"🏷️ Generating asset name: '{smart_name}' from data keys: {list(asset_data.keys())}"
+            )
+
+            # Check for existing asset (idempotency) using smart name
             existing = await self._find_existing_asset(
-                name=asset_data.get("name"),
+                name=smart_name,
                 client_id=client_id,
                 engagement_id=engagement_id,
             )
@@ -107,6 +147,69 @@ class AssetService:
                     f"Asset already exists: {existing.name} (ID: {existing.id})"
                 )
                 return existing
+
+            # CRITICAL FIX: Convert string values to proper numeric types for database
+            def safe_int_convert(value, default=None):
+                """Convert value to integer with safe error handling"""
+                if value is None or value == "":
+                    return default
+                try:
+                    return int(float(str(value)))  # Handle both int and float strings
+                except (ValueError, TypeError):
+                    logger.warning(
+                        f"Failed to convert '{value}' to integer, using default {default}"
+                    )
+                    return default
+
+            def safe_float_convert(value, default=None):
+                """Convert value to float with safe error handling"""
+                if value is None or value == "":
+                    return default
+                try:
+                    return float(str(value))
+                except (ValueError, TypeError):
+                    logger.warning(
+                        f"Failed to convert '{value}' to float, using default {default}"
+                    )
+                    return default
+
+            # Convert ALL numeric fields with proper error handling
+            # INTEGER fields
+            cpu_cores = safe_int_convert(asset_data.get("cpu_cores"), None)
+            migration_priority = safe_int_convert(
+                asset_data.get("migration_priority"), 5
+            )  # Default priority 5
+            migration_wave = safe_int_convert(asset_data.get("migration_wave"), None)
+
+            # FLOAT fields
+            memory_gb = safe_float_convert(asset_data.get("memory_gb"), None)
+            storage_gb = safe_float_convert(asset_data.get("storage_gb"), None)
+            cpu_utilization_percent = safe_float_convert(
+                asset_data.get("cpu_utilization_percent"), None
+            )
+            memory_utilization_percent = safe_float_convert(
+                asset_data.get("memory_utilization_percent"), None
+            )
+            disk_iops = safe_float_convert(asset_data.get("disk_iops"), None)
+            network_throughput_mbps = safe_float_convert(
+                asset_data.get("network_throughput_mbps"), None
+            )
+            completeness_score = safe_float_convert(
+                asset_data.get("completeness_score"), None
+            )
+            quality_score = safe_float_convert(asset_data.get("quality_score"), None)
+            confidence_score = safe_float_convert(
+                asset_data.get("confidence_score"), None
+            )
+            current_monthly_cost = safe_float_convert(
+                asset_data.get("current_monthly_cost"), None
+            )
+            estimated_cloud_cost = safe_float_convert(
+                asset_data.get("estimated_cloud_cost"), None
+            )
+            assessment_readiness_score = safe_float_convert(
+                asset_data.get("assessment_readiness_score"), None
+            )
 
             # CRITICAL FIX: Use repository's keyword-based create method
             # Repository.create expects keyword fields, not a model instance
@@ -120,9 +223,9 @@ class AssetService:
                 # Multi-tenant context will be applied by repository
                 client_account_id=client_id,
                 engagement_id=engagement_id,
-                # Basic information
-                name=asset_data.get("name", "Unknown Asset"),
-                asset_name=asset_data.get("name", "Unknown Asset"),
+                # Basic information - use smart name for both fields
+                name=smart_name,
+                asset_name=smart_name,
                 asset_type=asset_data.get("asset_type", "Unknown"),
                 description=asset_data.get("description", "Discovered by agent"),
                 # Network information
@@ -130,14 +233,35 @@ class AssetService:
                 ip_address=asset_data.get("ip_address"),
                 # Environment
                 environment=asset_data.get("environment", "Unknown"),
-                # Technical specifications
+                # Technical specifications - ALL CONVERTED NUMERIC VALUES
                 operating_system=asset_data.get("operating_system"),
-                cpu_cores=asset_data.get("cpu_cores"),
-                memory_gb=asset_data.get("memory_gb"),
-                storage_gb=asset_data.get("storage_gb"),
-                # Business information
-                business_unit=asset_data.get("business_unit"),
-                owner=asset_data.get("owner"),
+                cpu_cores=cpu_cores,
+                memory_gb=memory_gb,
+                storage_gb=storage_gb,
+                # Performance metrics - CONVERTED FLOAT VALUES
+                cpu_utilization_percent=cpu_utilization_percent,
+                memory_utilization_percent=memory_utilization_percent,
+                disk_iops=disk_iops,
+                network_throughput_mbps=network_throughput_mbps,
+                # Data quality metrics - CONVERTED FLOAT VALUES
+                completeness_score=completeness_score,
+                quality_score=quality_score,
+                confidence_score=confidence_score,
+                # Cost information - CONVERTED FLOAT VALUES
+                current_monthly_cost=current_monthly_cost,
+                estimated_cloud_cost=estimated_cloud_cost,
+                # Migration fields - CONVERTED INTEGER VALUES
+                migration_priority=migration_priority,
+                migration_wave=migration_wave,
+                # Assessment fields - CONVERTED FLOAT VALUES
+                assessment_readiness_score=assessment_readiness_score,
+                # Business information - map fields to correct Asset model fields
+                business_owner=asset_data.get("business_unit")
+                or asset_data.get("owner")
+                or asset_data.get("business_owner"),
+                technical_owner=asset_data.get("technical_owner")
+                or asset_data.get("owner"),
+                department=asset_data.get("department"),
                 criticality=asset_data.get("criticality", "Medium"),
                 business_criticality=asset_data.get("business_criticality", "Medium"),
                 # Status
@@ -146,7 +270,8 @@ class AssetService:
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow(),
                 # Store full attributes as JSON
-                attributes=asset_data.get("attributes", {}),
+                custom_attributes=asset_data.get("attributes", {})
+                or asset_data.get("custom_attributes", {}),
                 # Discovery metadata
                 discovery_method="service_api",
                 discovery_source=asset_data.get("discovery_source", "Service API"),

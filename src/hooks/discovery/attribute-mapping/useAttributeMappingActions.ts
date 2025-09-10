@@ -192,7 +192,9 @@ export const useAttributeMappingActions = (
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders()
+          ...getAuthHeaders(),
+          // Add flow ID header for discovery operations
+          'X-Flow-ID': flow?.flow_id || ''
         }
       });
 
@@ -203,16 +205,14 @@ export const useAttributeMappingActions = (
         (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast(`Mapping approved: ${mapping.source_field} → ${mapping.target_field}`);
       }
 
-      // Add delay before refetching to prevent rate limiting
-      setTimeout(async () => {
-        try {
-          console.log('🔄 Refetching field mappings to update UI...');
-          // Force a fresh refetch by invalidating the query cache
-          await refetchFieldMappings();
-        } catch (refetchError) {
-          console.error('⚠️ Failed to refetch mappings:', refetchError);
-        }
-      }, 1000); // 1 second delay
+      // Immediately refetch to get updated data
+      try {
+        console.log('🔄 Refetching field mappings to update UI...');
+        // Force a fresh refetch by invalidating the query cache
+        await refetchFieldMappings();
+      } catch (refetchError) {
+        console.error('⚠️ Failed to refetch mappings:', refetchError);
+      }
 
     } catch (error) {
       console.error('❌ Failed to approve mapping:', error);
@@ -249,7 +249,9 @@ export const useAttributeMappingActions = (
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders()
+          ...getAuthHeaders(),
+          // Add flow ID header for discovery operations
+          'X-Flow-ID': flow?.flow_id || ''
         }
       });
 
@@ -260,16 +262,14 @@ export const useAttributeMappingActions = (
         (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast(`Mapping rejected: ${mapping.source_field}`);
       }
 
-      // Add delay before refetching to prevent rate limiting
-      setTimeout(async () => {
-        try {
-          console.log('🔄 Refetching field mappings to update UI...');
-          // Force a fresh refetch by invalidating the query cache
-          await refetchFieldMappings();
-        } catch (refetchError) {
-          console.error('⚠️ Failed to refetch mappings:', refetchError);
-        }
-      }, 1000); // 1 second delay
+      // Immediately refetch to get updated data
+      try {
+        console.log('🔄 Refetching field mappings to update UI...');
+        // Force a fresh refetch by invalidating the query cache
+        await refetchFieldMappings();
+      } catch (refetchError) {
+        console.error('⚠️ Failed to refetch mappings:', refetchError);
+      }
 
     } catch (error) {
       console.error('❌ Error in reject handler:', error);

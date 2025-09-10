@@ -16,14 +16,12 @@ CREWAI_AVAILABLE = bool(
 )
 
 try:
-    from app.services.crewai_flows.crews.inventory_building_crew import (
-        create_inventory_building_crew,
-    )
-    from app.services.crewai_flows.data_cleansing_crew import create_data_cleansing_crew
-
-    CREWS_AVAILABLE = True
+    # Only import what is actually used in this module
+    # Note: TenantScopedAgentPool, create_data_cleansing_crew
+    # were imported but not used - now handled by persistent agents
+    AGENTS_AVAILABLE = True
 except ImportError:
-    CREWS_AVAILABLE = False
+    AGENTS_AVAILABLE = False
 
 
 class AgentProcessingHandler:
@@ -32,26 +30,25 @@ class AgentProcessingHandler:
     def __init__(self, llm=None):
         self.llm = llm
         self.crews = {}
-        self.service_available = CREWAI_AVAILABLE and CREWS_AVAILABLE
+        self.service_available = CREWAI_AVAILABLE and AGENTS_AVAILABLE
 
-        if self.service_available and self.llm:
-            self._initialize_crews()
+        if self.service_available:
+            self._initialize_agents()
 
         logger.info(
             f"Agent processing handler initialized (CrewAI: {self.service_available})"
         )
 
-    def _initialize_crews(self):
-        """Initialize CrewAI crews for data processing."""
+    def _initialize_agents(self):
+        """Initialize persistent agents for data processing."""
         try:
-            if CREWS_AVAILABLE and self.llm:
-                self.crews["data_cleansing"] = create_data_cleansing_crew(llm=self.llm)
-                self.crews["inventory_building"] = create_inventory_building_crew(
-                    llm=self.llm
-                )
-                logger.info("CrewAI crews initialized for data processing")
+            if AGENTS_AVAILABLE:
+                # Note: Persistent agents are managed by TenantScopedAgentPool
+                # No initialization needed here - agents are created per-tenant on demand
+                logger.info("Persistent agents available for data processing")
+                self.service_available = True
         except Exception as e:
-            logger.error(f"Failed to initialize crews: {e}")
+            logger.error(f"Failed to initialize agents: {e}")
             self.service_available = False
 
     def is_available(self) -> bool:

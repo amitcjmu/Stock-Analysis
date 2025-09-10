@@ -8,14 +8,17 @@ import { ApplicationOverrides } from '@/components/assessment/ApplicationOverrid
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Save, ArrowRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { AlertCircle, Save, ArrowRight, Package, Calendar, Star, Zap, RefreshCw } from 'lucide-react';
+import type { AssessmentApplication } from '@/hooks/useAssessmentFlow/types';
 
 const ArchitecturePage: React.FC = () => {
   const { flowId } = useParams<{ flowId: string }>() as { flowId: string };
   const {
     state,
     updateArchitectureStandards,
-    resumeFlow
+    resumeFlow,
+    refreshApplicationData
   } = useAssessmentFlow(flowId);
   const navigate = useNavigate();
 
@@ -23,6 +26,7 @@ const ArchitecturePage: React.FC = () => {
   const [overrides, setOverrides] = useState(state.applicationOverrides);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Guard: redirect to overview if flowId missing
   useEffect(() => {
@@ -68,6 +72,17 @@ const ArchitecturePage: React.FC = () => {
   const hasChanges = (): unknown => {
     return JSON.stringify(standards) !== JSON.stringify(state.engagementStandards) ||
            JSON.stringify(overrides) !== JSON.stringify(state.applicationOverrides);
+  };
+
+  const handleRefreshApplications = async (): Promise<void> => {
+    setIsRefreshing(true);
+    try {
+      await refreshApplicationData();
+    } catch (error) {
+      console.error('Failed to refresh application data:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (
@@ -128,6 +143,105 @@ const ArchitecturePage: React.FC = () => {
               standards={standards}
               onChange={setStandards}
             />
+          </CardContent>
+        </Card>
+
+        {/* Selected Applications */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Selected Applications
+                  <Badge variant="secondary">
+                    {state.applicationCount || state.selectedApplications.length}
+                  </Badge>
+                </CardTitle>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshApplications}
+                disabled={isRefreshing}
+                className="text-xs"
+              >
+                <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
+            <CardDescription>
+              Applications included in this assessment flow
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {state.selectedApplications.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {state.selectedApplications.map((app: AssessmentApplication) => (
+                  <div key={app.application_id} className="border rounded-lg p-4 space-y-3">
+                    <div className="space-y-1">
+                      <h4 className="font-semibold text-sm">{app.application_name}</h4>
+                      <p className="text-xs text-muted-foreground">{app.application_type}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs">
+                      <Badge variant="outline" className="text-xs">
+                        {app.environment}
+                      </Badge>
+                      <Badge
+                        variant={app.business_criticality === 'critical' ? 'destructive' :
+                                app.business_criticality === 'high' ? 'secondary' : 'outline'}
+                        className="text-xs"
+                      >
+                        {app.business_criticality}
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3 w-3" />
+                        <span>Complexity: {app.complexity_score}/10</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Zap className="h-3 w-3" />
+                        <span>Readiness: {app.readiness_score}/10</span>
+                      </div>
+                    </div>
+
+                    {app.technology_stack && app.technology_stack.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium">Tech Stack:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {app.technology_stack.slice(0, 3).map((tech, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs">
+                              {tech}
+                            </Badge>
+                          ))}
+                          {app.technology_stack.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{app.technology_stack.length - 3} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {app.discovery_completed_at && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        <span>Discovery: {new Date(app.discovery_completed_at).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-sm">No applications loaded yet.</p>
+                <p className="text-xs mt-1">Application data will be loaded when the flow initializes.</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -119,9 +119,9 @@ export const useInventoryLogic = (flowId?: string): JSX.Element => {
   const flowStateError = error;
 
   // Action handlers
-  const handleTriggerInventoryBuildingCrew = useCallback(async () => {
+  const handleTriggerInventoryAnalysis = useCallback(async () => {
     if (flow?.flow_id) {
-      await updatePhase('asset_inventory', { trigger_crew: true });
+      await updatePhase('asset_inventory', { trigger_agent: true }); // Now uses persistent agents
     }
   }, [flow, updatePhase]);
 
@@ -185,7 +185,7 @@ export const useInventoryLogic = (flowId?: string): JSX.Element => {
     setSelectedAssets,
 
     // Actions
-    handleTriggerInventoryBuildingCrew,
+    handleTriggerInventoryAnalysis,
     handleCompleteInventoryAndTriggerParallelAnalysis,
     fetchAssets,
     fetchInsights,

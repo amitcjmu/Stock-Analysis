@@ -30,6 +30,9 @@ class FlowCommands:
     ) -> str:
         """Create new assessment flow with initial state and register with master flow system"""
 
+        # Convert string IDs to proper format for JSONB storage
+        app_ids_jsonb = [str(app_id) for app_id in selected_application_ids]
+
         flow_record = AssessmentFlow(
             client_account_id=self.client_account_id,
             engagement_id=engagement_id,
@@ -37,6 +40,8 @@ class FlowCommands:
             configuration={
                 "selected_application_ids": selected_application_ids,
             },
+            # Set the separate selected_application_ids column to satisfy NOT NULL constraint
+            selected_application_ids=app_ids_jsonb,
             status=AssessmentFlowStatus.INITIALIZED.value,
             current_phase=AssessmentPhase.INITIALIZATION.value,
             progress=0.0,

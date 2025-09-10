@@ -237,22 +237,15 @@ async def auto_classify_assets(
             },
         }
 
-        # Use real CrewAI inventory building crew for classification
-        from app.services.crewai_flows.crews.inventory_building_crew import (
-            InventoryBuildingCrew,
-        )
-        from app.services.crewai_flows.handlers.unified_flow_crew_manager import (
-            UnifiedFlowCrewManager,
+        # Use persistent agent for asset classification (replaces legacy crew pattern)
+        from app.services.persistent_agents.tenant_scoped_agent_pool import (
+            TenantScopedAgentPool,
         )
 
-        # Create crew manager and inventory crew
-        UnifiedFlowCrewManager()
-        inventory_crew = InventoryBuildingCrew()
-
-        # Prepare assets for reclassification
+        # Prepare assets for classification
         assets_for_classification = []
         for asset in assets:
-            # Convert asset to format expected by crew
+            # Convert asset to format expected by agent
             asset_data = {
                 "id": asset.get("id"),
                 "name": asset.get("asset_name", ""),
@@ -267,61 +260,60 @@ async def auto_classify_assets(
             }
             assets_for_classification.append(asset_data)
 
-        # Use inventory crew to reclassify assets
+        # Prepare classification input
         classification_input = {
             "assets": assets_for_classification,
             "operation": "reclassify_selected",
             "confidence_threshold": request.confidence_threshold,
+            "use_learned_patterns": request.use_learned_patterns,
+            "classification_context": request.classification_context,
         }
 
         try:
-            # Execute crew in thread to avoid blocking
-            import asyncio
-
-            classification_result = await asyncio.to_thread(
-                inventory_crew.kickoff, inputs=classification_input
+            # Get the persistent asset inventory agent
+            agent = await TenantScopedAgentPool.get_agent(
+                context=context, agent_type="asset_inventory_agent"
             )
 
-            # Parse crew results
-            if hasattr(classification_result, "raw") and classification_result.raw:
-                import json
+            # Create task description for the agent
+            asset_count = len(assets_for_classification)
+            operation = classification_input["operation"]
+            threshold = classification_input["confidence_threshold"]
+            use_patterns = request.use_learned_patterns
 
-                try:
-                    if (
-                        "{" in classification_result.raw
-                        and "}" in classification_result.raw
-                    ):
-                        start = classification_result.raw.find("{")
-                        end = classification_result.raw.rfind("}") + 1
-                        json_str = classification_result.raw[start:end]
-                        parsed_result = json.loads(json_str)
-                        classification_result = parsed_result
-                    else:
-                        classification_result = {
-                            "status": "no_json",
-                            "raw": classification_result.raw,
-                        }
-                except json.JSONDecodeError:
-                    classification_result = {
-                        "status": "parse_error",
-                        "raw": classification_result.raw,
-                    }
-            else:
+            task_description = f"""Classify {asset_count} assets based on learned patterns and context.
+
+Operation: {operation}
+Confidence threshold: {threshold}
+Use learned patterns: {use_patterns}
+
+Please analyze each asset and provide classification recommendations with confidence scores."""
+
+            # Execute classification task using agent
+            # Note: This follows the persistent agent pattern established in execution_engine_crew_discovery.py
+            classification_result = await agent.execute_task(
+                task_description, classification_input
+            )
+
+            # Ensure result is properly formatted
+            if not isinstance(classification_result, dict):
                 classification_result = {
-                    "status": "no_results",
-                    "message": "No classification results returned",
+                    "status": "completed",
+                    "results": classification_result,
+                    "assets_processed": len(assets_for_classification),
                 }
 
-        except Exception as crew_error:
-            logger.error(f"CrewAI classification failed: {crew_error}")
-            classification_result = {"status": "error", "message": str(crew_error)}
+        except Exception as agent_error:
+            logger.error(f"Persistent agent classification failed: {agent_error}")
+            classification_result = {"status": "error", "message": str(agent_error)}
 
         result_data = {
             "classification_results": classification_result,
             "assets_processed": len(assets),
             "agentic_classification": True,
-            "crew_used": "inventory_building_crew",
-            "real_agents": True,
+            "agent_used": "asset_inventory_agent",
+            "persistent_agent": True,
+            "method": "persistent_agent_execution",
             "parameters": {
                 "use_learned_patterns": request.use_learned_patterns,
                 "confidence_threshold": request.confidence_threshold,

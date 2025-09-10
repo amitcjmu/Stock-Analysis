@@ -246,13 +246,34 @@ class ApiClient {
       const callerHeaders = (options.headers || {}) as Record<string, string>;
       const combinedHeaders = { ...authHeaders, ...callerHeaders };
 
-      if (!combinedHeaders['X-Flow-ID']) {
-        console.warn(`🚫 Blocking discovery request without Flow ID: ${normalizedEndpoint}`);
+      // Also check for flow_id in URL query parameters (for current_flow mode)
+      const urlObj = new URL(url, window.location.origin);
+      const queryFlowId = urlObj.searchParams.get('flow_id');
+
+      // Only require Flow ID if this appears to be a flow-specific request
+      // If no flow_id parameter is present, assume it's an "All Assets" type request
+      const hasFlowIdInQuery = urlObj.searchParams.has('flow_id');
+      const hasFlowIdInHeaders = !!combinedHeaders['X-Flow-ID'];
+
+      // CRITICAL: Only enforce flow_id requirement for endpoints that explicitly request it
+      // "All Assets" mode should work without flow_id, "Current Flow Only" mode should have flow_id
+      if (hasFlowIdInQuery && !queryFlowId) {
+        // Case: Request has flow_id parameter but it's empty/null
+        console.warn(`🚫 Blocking discovery request with empty Flow ID: ${normalizedEndpoint}`);
         throw new ApiError(400, 'Flow ID required for discovery operations. Please ensure a discovery flow is selected.', {
           code: 'FLOW_ID_REQUIRED',
           endpoint: normalizedEndpoint,
           message: 'Discovery operations require an active discovery flow context'
         }, requestId);
+      }
+
+      // Log the flow context for debugging
+      if (queryFlowId) {
+        console.log(`✅ Discovery request allowed with flow_id query parameter: ${queryFlowId.substring(0, 8)}...`);
+      } else if (combinedHeaders['X-Flow-ID']) {
+        console.log(`✅ Discovery request allowed with X-Flow-ID header: ${combinedHeaders['X-Flow-ID'].substring(0, 8)}...`);
+      } else {
+        console.log(`✅ Discovery request allowed without flow_id (All Assets mode): ${normalizedEndpoint}`);
       }
       // Remove sensitive logging - just use debug if needed
       // console.debug('Discovery request allowed with Flow context');

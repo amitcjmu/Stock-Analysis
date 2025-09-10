@@ -4,7 +4,7 @@ Questionnaire-specific read operations for collection flows.
 """
 
 import logging
-from typing import List
+from typing import List, Optional
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -76,19 +76,19 @@ async def get_adaptive_questionnaires(
                 f"Found {len(questionnaires)} questionnaires in database for flow {flow_id}"
             )
             return [
-                collection_serializers.serialize_adaptive_questionnaire(q)
+                collection_serializers.build_questionnaire_response(q)
                 for q in questionnaires
             ]
 
         # Check master flow for generated questionnaires
         if flow.master_flow_id:
             try:
-                from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-
-                orchestrator = MasterFlowOrchestrator(db, context)
-                master_flow_questionnaires = await orchestrator.get_questionnaires(
-                    str(flow.master_flow_id)
-                )
+                # Note: get_questionnaires method not available in current MasterFlowOrchestrator
+                # This is a placeholder for future implementation
+                # from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+                # orchestrator = MasterFlowOrchestrator(db, context)
+                # master_flow_questionnaires = await orchestrator.get_questionnaires(str(flow.master_flow_id))
+                master_flow_questionnaires: List[AdaptiveQuestionnaireResponse] = []
 
                 if master_flow_questionnaires:
                     logger.info(
@@ -114,7 +114,7 @@ async def get_adaptive_questionnaires(
         )
 
         # Extract selected application info from flow config
-        selected_application_name = None
+        selected_application_name: Optional[str] = None
         selected_application_id = None
 
         if flow.collection_config and flow.collection_config.get(
@@ -137,8 +137,8 @@ async def get_adaptive_questionnaires(
                 selected_asset = asset_result.scalar_one_or_none()
 
                 if selected_asset:
-                    selected_application_name = (
-                        selected_asset.name or selected_asset.application_name
+                    selected_application_name = str(
+                        selected_asset.name or selected_asset.application_name or ""
                     )
                     logger.info(
                         f"Pre-populating questionnaire with application: "
@@ -193,7 +193,7 @@ async def get_adaptive_questionnaires(
 
 
 def _convert_template_field_to_question(
-    field: dict, selected_application_name: str = None
+    field: dict, selected_application_name: Optional[str] = None
 ) -> dict:
     """Convert a template field to a questionnaire question format.
 

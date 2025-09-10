@@ -136,10 +136,24 @@ class AgentConfigManager:
                 "context": "System initialization",
             }
 
-            # Execute with timeout to prevent hanging
-            await asyncio.wait_for(
-                agent.execute_async(inputs=warmup_input), timeout=30.0
-            )
+            # Execute with timeout to prevent hanging - handle different agent types
+            if hasattr(agent, "execute_async"):
+                await asyncio.wait_for(
+                    agent.execute_async(inputs=warmup_input), timeout=30.0
+                )
+            elif hasattr(agent, "execute"):
+                # Fallback to sync execute method if async not available
+                await asyncio.wait_for(
+                    asyncio.get_event_loop().run_in_executor(
+                        None, lambda: agent.execute(task="System warmup check")
+                    ),
+                    timeout=30.0,
+                )
+            else:
+                logger.warning(
+                    f"{agent_type} agent has no execute method - skipping warmup"
+                )
+                return
 
             logger.info(f"{agent_type} agent warmed up successfully")
         except asyncio.TimeoutError:
@@ -169,10 +183,29 @@ class AgentConfigManager:
                 "context": "System health monitoring",
             }
 
-            # Execute health check with timeout
-            response = await asyncio.wait_for(
-                agent.execute_async(inputs=health_check_input), timeout=10.0
-            )
+            # Execute health check with timeout - handle different agent types
+            if hasattr(agent, "execute_async"):
+                response = await asyncio.wait_for(
+                    agent.execute_async(inputs=health_check_input), timeout=10.0
+                )
+            elif hasattr(agent, "execute"):
+                # Fallback to sync execute method if async not available
+                response = await asyncio.wait_for(
+                    asyncio.get_event_loop().run_in_executor(
+                        None, lambda: agent.execute(task="Health check")
+                    ),
+                    timeout=10.0,
+                )
+            else:
+                # Agent has no execute method
+                return AgentHealth(
+                    is_healthy=False,
+                    last_check=datetime.now(),
+                    response_time=(datetime.now() - start_time).total_seconds(),
+                    memory_usage=0.0,
+                    error_count=1,
+                    last_error="Agent has no execute method",
+                )
 
             response_time = (datetime.now() - start_time).total_seconds()
 
@@ -282,6 +315,19 @@ class AgentConfigManager:
                 "allow_delegation": True,
                 "max_iter": 6,
                 "max_execution_time": 400,
+            },
+            "asset_inventory_agent": {
+                "role": "Asset Inventory Specialist",
+                "goal": "Create database asset records efficiently from cleaned CMDB data",
+                "backstory": (
+                    "You are an expert asset inventory specialist focused on direct execution "
+                    "of asset creation tasks. You transform validated CMDB data into database records "
+                    "without extensive analysis, ensuring efficient and accurate asset cataloging."
+                ),
+                "verbose": True,
+                "allow_delegation": False,
+                "max_iter": 3,
+                "max_execution_time": 180,
             },
         }
 
