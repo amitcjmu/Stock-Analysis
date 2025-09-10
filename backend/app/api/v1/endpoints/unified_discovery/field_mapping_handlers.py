@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
@@ -63,6 +63,49 @@ async def get_field_mappings(
                 status_code=404,
                 detail="Flow not found or not accessible in current context",
             )
+
+        # CC: Auto-generate field mappings if none exist and data_import_id is present
+        if flow.data_import_id:
+            # Check if mappings exist
+            from sqlalchemy import func
+
+            count_stmt = select(func.count(ImportFieldMapping.id)).where(
+                and_(
+                    ImportFieldMapping.data_import_id == flow.data_import_id,
+                    ImportFieldMapping.client_account_id == context.client_account_id,
+                )
+            )
+            mapping_count = await db.scalar(count_stmt)
+
+            if not mapping_count or mapping_count == 0:
+                logger.info(
+                    f"No field mappings found for import {flow.data_import_id}, auto-generating..."
+                )
+
+                # Generate field mappings
+                try:
+                    from app.api.v1.endpoints.data_import.field_mapping.services.mapping_service import (
+                        MappingService,
+                    )
+
+                    mapping_service = MappingService(db, context)
+                    mapping_result = await mapping_service.generate_mappings_for_import(
+                        str(flow.data_import_id)
+                    )
+
+                    logger.info(
+                        f"✅ Auto-generated {mapping_result.get('mappings_created', 0)} field mappings"
+                    )
+
+                    # Mark field mapping as completed on the flow
+                    flow.field_mapping_completed = True
+                    await db.commit()
+
+                except Exception as gen_error:
+                    logger.warning(
+                        f"Failed to auto-generate field mappings: {gen_error}"
+                    )
+                    # Continue to return empty mappings if generation fails
 
         # Get field mappings from the database using data_import_id
         # CRITICAL: Ensure tenant-scoped query to prevent cross-tenant data leakage
@@ -233,3 +276,83 @@ async def approve_field_mapping(
         await db.rollback()
         logger.error(safe_log_format("Failed to approve field mapping: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/flows/{flow_id}/trigger-field-mapping")
+async def trigger_field_mapping(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+) -> Dict[str, Any]:
+    """Trigger field mapping generation for a discovery flow."""
+    from sqlalchemy import delete
+
+    try:
+        logger.info(f"Triggering field mapping for flow: {flow_id}")
+
+        # Get the discovery flow
+        stmt = select(DiscoveryFlow).where(
+            and_(
+                DiscoveryFlow.flow_id == flow_id,
+                DiscoveryFlow.client_account_id == context.client_account_id,
+                DiscoveryFlow.engagement_id == context.engagement_id,
+            )
+        )
+        result = await db.execute(stmt)
+        flow = result.scalar_one_or_none()
+
+        if not flow:
+            raise HTTPException(
+                status_code=404,
+                detail="Flow not found or not accessible in current context",
+            )
+
+        if not flow.data_import_id:
+            raise HTTPException(
+                status_code=400,
+                detail="No data import associated with this flow",
+            )
+
+        # Generate field mappings
+        from app.api.v1.endpoints.data_import.field_mapping.services.mapping_service import (
+            MappingService,
+        )
+
+        mapping_service = MappingService(db, context)
+
+        # CC: Force regeneration by deleting existing mappings first
+        delete_stmt = delete(ImportFieldMapping).where(
+            and_(
+                ImportFieldMapping.data_import_id == flow.data_import_id,
+                ImportFieldMapping.client_account_id == context.client_account_id,
+            )
+        )
+        await db.execute(delete_stmt)
+
+        mapping_result = await mapping_service.generate_mappings_for_import(
+            str(flow.data_import_id)
+        )
+
+        # Mark field mapping as completed
+        flow.field_mapping_completed = True
+        await db.commit()
+
+        logger.info(
+            f"✅ Generated {mapping_result.get('mappings_created', 0)} field mappings for flow {flow_id}"
+        )
+
+        return {
+            "success": True,
+            "flow_id": flow_id,
+            "mappings_created": mapping_result.get("mappings_created", 0),
+            "message": f"Successfully generated {mapping_result.get('mappings_created', 0)} field mappings",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error triggering field mapping: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to trigger field mapping: {str(e)}",
+        )
