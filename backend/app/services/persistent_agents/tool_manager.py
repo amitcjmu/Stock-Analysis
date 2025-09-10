@@ -292,7 +292,19 @@ class AgentToolManager:
             import inspect
 
             sig = inspect.signature(getter)
-            if "context_info" in sig.parameters and context_info is not None:
+            params = sig.parameters
+
+            # CC: Check if function requires registry parameter (for new tool pattern)
+            if "registry" in params:
+                # Extract service_registry from context_info if available
+                service_registry = (
+                    context_info.get("service_registry") if context_info else None
+                )
+                if "context_info" in params:
+                    new_tools = getter(context_info, registry=service_registry)
+                else:
+                    new_tools = getter(registry=service_registry)
+            elif "context_info" in params and context_info is not None:
                 new_tools = getter(context_info)
             else:
                 new_tools = getter()

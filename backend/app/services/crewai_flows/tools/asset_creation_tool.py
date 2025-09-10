@@ -112,10 +112,30 @@ class AssetCreationToolWithServiceImpl:
 
     def execute_sync(self, asset_data: Dict[str, Any]) -> str:
         """Execute asset creation synchronously using ServiceRegistry"""
-        from anyio import from_thread
+        import asyncio
+        import nest_asyncio
 
-        with from_thread.start_blocking_portal() as portal:
-            return portal.call(self._create_single_asset, asset_data)
+        # CC: Apply nest_asyncio to allow nested event loops (required for sync tools in async context)
+        nest_asyncio.apply()
+
+        try:
+            # Try to get the current event loop
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If loop is already running, create a new task
+                import concurrent.futures
+
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(
+                        asyncio.run, self._create_single_asset(asset_data)
+                    )
+                    return future.result()
+            else:
+                # If no loop is running, just run normally
+                return asyncio.run(self._create_single_asset(asset_data))
+        except RuntimeError:
+            # Fallback: create a new event loop
+            return asyncio.run(self._create_single_asset(asset_data))
 
     async def _create_single_asset(self, asset_data: Dict[str, Any]) -> str:
         """Create a single asset using AssetService from registry"""
@@ -358,10 +378,30 @@ class BulkAssetCreationToolWithServiceImpl:
 
     def execute_sync(self, assets_data: List[Dict[str, Any]]) -> str:
         """Execute bulk asset creation synchronously using ServiceRegistry"""
-        from anyio import from_thread
+        import asyncio
+        import nest_asyncio
 
-        with from_thread.start_blocking_portal() as portal:
-            return portal.call(self.execute_async, assets_data)
+        # CC: Apply nest_asyncio to allow nested event loops (required for sync tools in async context)
+        nest_asyncio.apply()
+
+        try:
+            # Try to get the current event loop
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If loop is already running, create a new task
+                import concurrent.futures
+
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(
+                        asyncio.run, self.execute_async(assets_data)
+                    )
+                    return future.result()
+            else:
+                # If no loop is running, just run normally
+                return asyncio.run(self.execute_async(assets_data))
+        except RuntimeError:
+            # Fallback: create a new event loop
+            return asyncio.run(self.execute_async(assets_data))
 
 
 # CrewAI-specific tool wrappers for ServiceRegistry pattern

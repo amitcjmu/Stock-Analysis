@@ -194,11 +194,25 @@ async def update_flow_applications(
 
                 # Run deduplication service to create normalized records
                 try:
+                    # CC: Convert string IDs to UUID objects for deduplication service
+                    import uuid as uuid_lib
+
+                    client_uuid = (
+                        uuid_lib.UUID(context.client_account_id)
+                        if context.client_account_id
+                        else None
+                    )
+                    engagement_uuid = (
+                        uuid_lib.UUID(context.engagement_id)
+                        if context.engagement_id
+                        else None
+                    )
+
                     dedup_result = await dedup_service.deduplicate_application(
                         db=db,
                         application_name=application_name,
-                        client_account_id=context.client_account_id,
-                        engagement_id=context.engagement_id,
+                        client_account_id=client_uuid,
+                        engagement_id=engagement_uuid,
                         user_id=current_user.id,
                         collection_flow_id=collection_flow.id,
                         additional_metadata={
@@ -321,20 +335,21 @@ async def update_flow_applications(
         # Commit all changes up to this point
         await db.commit()
 
-        # Trigger gap analysis execution (if MFO exists)
+        # Trigger questionnaire generation (if MFO exists)
         if collection_flow.master_flow_id:
             try:
                 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
                 orchestrator = MasterFlowOrchestrator(db, context)
 
-                # Execute gap analysis phase
+                # Execute data import phase for collection flow (which generates questionnaires)
+                # CC: Collection flows use DATA_IMPORT phase to generate questionnaires based on selected applications
                 execution_result = await orchestrator.execute_phase(
                     flow_id=str(collection_flow.master_flow_id),
-                    phase_name="GAP_ANALYSIS",
+                    phase_name="DATA_IMPORT",
                 )
                 logger.info(
-                    f"Triggered gap analysis execution for master flow {collection_flow.master_flow_id}"
+                    f"Triggered questionnaire generation for master flow {collection_flow.master_flow_id}"
                 )
 
                 return {
@@ -342,7 +357,7 @@ async def update_flow_applications(
                     "message": (
                         f"Successfully updated collection flow with {processed_count} "
                         f"applications, created {len(deduplication_results)} normalized records, "
-                        "and triggered gap analysis"
+                        "and triggered questionnaire generation"
                     ),
                     "flow_id": flow_id,
                     "selected_application_count": processed_count,
@@ -358,7 +373,7 @@ async def update_flow_applications(
                     "message": (
                         f"Successfully updated collection flow with {processed_count} "
                         f"applications, created {len(deduplication_results)} normalized records "
-                        "(gap analysis trigger failed)"
+                        "(questionnaire generation trigger failed)"
                     ),
                     "flow_id": flow_id,
                     "selected_application_count": processed_count,
