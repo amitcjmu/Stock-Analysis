@@ -104,6 +104,9 @@ class DataImportValidationExecutor(BasePhaseExecutor):
         if is_valid:
             self.state.phase_completion["data_import"] = True
             logger.info("✅ DEBUG: Data import phase marked as completed")
+
+            # 🔧 CC FIX: Sync phase completion to discovery flow database
+            await self._sync_phase_completion_to_database("data_import", True)
         else:
             # Only log failure if validation actually failed
             if not reason:
@@ -366,3 +369,68 @@ class DataImportValidationExecutor(BasePhaseExecutor):
     def _get_timestamp(self) -> str:
         """Get current timestamp in ISO format"""
         return datetime.utcnow().isoformat()
+
+    async def _sync_phase_completion_to_database(
+        self, phase: str, completed: bool
+    ) -> None:
+        """
+        🔧 CC FIX: Synchronize CrewAI phase completion to discovery flow database.
+
+        This fixes the root cause where CrewAI flow state updates were not being
+        synchronized back to the discovery_flows table, causing the UI to show
+        flows stuck in initialization phase.
+
+        Args:
+            phase: The phase name (e.g., "data_import")
+            completed: Whether the phase is completed
+        """
+        try:
+            logger.info(
+                f"🔧 Syncing {phase} completion ({completed}) to discovery flow database"
+            )
+
+            # Get flow_id from state
+            flow_id = getattr(self.state, "flow_id", None)
+            if not flow_id:
+                logger.warning(
+                    "⚠️ Cannot sync phase completion: flow_id missing from state"
+                )
+                return
+
+            # Use fresh database session to update discovery flow
+            from app.core.database import AsyncSessionLocal
+            from app.core.context import RequestContext
+            from app.services.discovery_flow_service import DiscoveryFlowService
+
+            async with AsyncSessionLocal() as db:
+                # Create context from state attributes
+                context = RequestContext(
+                    client_account_id=getattr(self.state, "client_account_id", None),
+                    engagement_id=getattr(self.state, "engagement_id", None),
+                    user_id=getattr(self.state, "user_id", "system"),
+                )
+
+                # Update phase completion in discovery flow
+                discovery_service = DiscoveryFlowService(db, context)
+
+                phase_data = {
+                    "completed": completed,
+                    "timestamp": self._get_timestamp(),
+                    "synced_from_crewai": True,
+                }
+
+                await discovery_service.update_phase_completion(
+                    flow_id=str(flow_id),
+                    phase=phase,
+                    phase_data=phase_data,
+                    completed=completed,
+                )
+
+                await db.commit()
+                logger.info(f"✅ Successfully synced {phase} completion to database")
+
+        except Exception as e:
+            logger.error(
+                f"❌ Failed to sync phase completion to database: {e}", exc_info=True
+            )
+            # Don't fail the flow execution if sync fails - log and continue

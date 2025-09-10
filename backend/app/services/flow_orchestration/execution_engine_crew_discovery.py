@@ -154,6 +154,7 @@ class ExecutionEngineDiscoveryCrews:
             "field_mapping": "field_mapping",
             "data_cleansing": "data_cleansing",
             "asset_creation": "asset_creation",
+            "asset_inventory": "asset_inventory",
             "analysis": "analysis",
         }
         return phase_mapping.get(phase_name, phase_name)
@@ -167,6 +168,7 @@ class ExecutionEngineDiscoveryCrews:
             "field_mapping": self._execute_discovery_field_mapping,
             "data_cleansing": self._execute_discovery_data_cleansing,
             "asset_creation": self._execute_discovery_asset_creation,
+            "asset_inventory": self._execute_discovery_asset_inventory,
             "analysis": self._execute_discovery_analysis,
         }
 
@@ -312,6 +314,90 @@ class ExecutionEngineDiscoveryCrews:
             "assets_created": 0,
             "agent": "asset_creation_agent",
         }
+
+    async def _execute_discovery_asset_inventory(
+        self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Execute asset inventory phase using actual CrewAI agents"""
+        logger.info("📦 Executing discovery asset inventory")
+
+        try:
+            # Ensure all inputs are JSON-serializable (convert UUIDs to strings)
+            serializable_input = {}
+            for key, value in phase_input.items():
+                if hasattr(value, "__str__") and hasattr(
+                    value, "hex"
+                ):  # UUID-like object
+                    serializable_input[key] = str(value)
+                elif (
+                    isinstance(value, (str, int, float, bool, list, dict))
+                    or value is None
+                ):
+                    serializable_input[key] = value
+                else:
+                    serializable_input[key] = str(
+                        value
+                    )  # Convert unknown types to string
+
+            # Create state adapter for UnifiedFlowCrewManager
+            state = DictStateAdapter(serializable_input)
+
+            # Use UnifiedFlowCrewManager with proper state object
+            crew_manager = UnifiedFlowCrewManager(
+                crewai_service=None,  # Will be initialized internally
+                state=state,
+                context=self.context,
+            )
+
+            crew = crew_manager.create_crew_on_demand("inventory", **serializable_input)
+            if not crew:
+                logger.warning("Failed to create asset_inventory crew, using fallback")
+                return {
+                    "phase": "asset_inventory",
+                    "status": "completed",
+                    "asset_inventory": {
+                        "total_assets": 0,
+                        "classification_complete": False,
+                    },
+                    "agent": "asset_inventory_agent",
+                }
+
+            # Check if crew has async kickoff method
+            if hasattr(crew, "kickoff_async"):
+                result = await crew.kickoff_async(inputs=serializable_input)
+            else:
+                # Use synchronous kickoff
+                result = crew.kickoff(inputs=serializable_input)
+
+            # Maintain backward compatibility with asset_inventory field
+            asset_inventory = (
+                result.get(
+                    "asset_inventory",
+                    {"total_assets": 0, "classification_complete": False},
+                )
+                if isinstance(result, dict)
+                else {"total_assets": 0, "classification_complete": False}
+            )
+
+            return {
+                "phase": "asset_inventory",
+                "status": "completed",
+                "crew_results": result,
+                "asset_inventory": asset_inventory,  # Backward compatibility
+                "agent": "asset_inventory_agent",
+            }
+        except Exception as e:
+            logger.error(f"Asset inventory failed: {str(e)}")
+            return {
+                "phase": "asset_inventory",
+                "status": "error",
+                "error": str(e),
+                "asset_inventory": {
+                    "total_assets": 0,
+                    "classification_complete": False,
+                },
+                "agent": "asset_inventory_agent",
+            }
 
     async def _execute_discovery_analysis(
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]

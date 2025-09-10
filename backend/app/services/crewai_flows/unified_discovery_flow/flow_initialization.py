@@ -6,6 +6,7 @@ Handles initialization of flow components, agents, and phases.
 
 import logging
 import uuid
+from datetime import datetime
 from typing import Any, Dict, Optional
 
 from app.core.context import RequestContext
@@ -114,6 +115,10 @@ class FlowInitializer:
             logger.info(
                 f"✅ Data import already complete with {len(self.raw_data)} records, setting initial progress to 16.7%"
             )
+
+            # 🔧 CC FIX: Schedule sync of data import completion to discovery flow database
+            # Note: Cannot use await here as this method is not async, so schedule as background task
+            self._schedule_phase_sync_task(state, "data_import", True)
         else:
             # Initialize with default phase_completion dictionary
             state.phase_completion = {
@@ -193,3 +198,115 @@ class FlowInitializer:
             "dependency_analysis_phase": "crew_managed",  # Handled by app_server_dependency_crew
             "tech_debt_assessment_phase": "crew_managed",  # Handled by technical_debt_crew
         }
+
+    def _schedule_phase_sync_task(self, state, phase: str, completed: bool) -> None:
+        """
+        🔧 CC FIX: Schedule background sync of CrewAI phase completion to discovery flow database.
+
+        This fixes the root cause where CrewAI flow state updates were not being
+        synchronized back to the discovery_flows table, causing the UI to show
+        flows stuck in initialization phase.
+
+        Args:
+            state: The unified discovery flow state
+            phase: The phase name (e.g., "data_import")
+            completed: Whether the phase is completed
+        """
+        try:
+            import asyncio
+
+            logger.info(
+                f"🔧 Scheduling {phase} completion ({completed}) sync to discovery flow database"
+            )
+
+            # Get flow_id from state
+            flow_id = getattr(state, "flow_id", None)
+            if not flow_id:
+                logger.warning(
+                    "⚠️ Cannot schedule phase completion sync: flow_id missing from state"
+                )
+                return
+
+            # Create background task for synchronization
+            async def sync_task():
+                try:
+                    # Use fresh database session to update discovery flow
+                    from app.core.database import AsyncSessionLocal
+                    from app.core.context import RequestContext
+                    from app.services.discovery_flow_service import DiscoveryFlowService
+
+                    async with AsyncSessionLocal() as db:
+                        # Create context from state attributes
+                        context = RequestContext(
+                            client_account_id=getattr(state, "client_account_id", None),
+                            engagement_id=getattr(state, "engagement_id", None),
+                            user_id=getattr(state, "user_id", "system"),
+                        )
+
+                        # Update phase completion in discovery flow
+                        discovery_service = DiscoveryFlowService(db, context)
+
+                        phase_data = {
+                            "completed": completed,
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "synced_from_crewai": True,
+                            "trigger": "flow_initialization",
+                        }
+
+                        await discovery_service.update_phase_completion(
+                            flow_id=str(flow_id),
+                            phase=phase,
+                            phase_data=phase_data,
+                            completed=completed,
+                        )
+
+                        await db.commit()
+                        logger.info(
+                            f"✅ Successfully synced {phase} completion to database during initialization"
+                        )
+
+                except Exception as e:
+                    logger.error(
+                        f"❌ Failed to sync phase completion in background task: {e}",
+                        exc_info=True,
+                    )
+
+            # Schedule the task in background
+            try:
+                # Try to get existing event loop
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # Create task in existing loop
+                    loop.create_task(sync_task())
+                    logger.info(
+                        f"✅ Scheduled {phase} sync task in existing event loop"
+                    )
+                else:
+                    # Run in new thread if no event loop running
+                    import threading
+
+                    def run_sync():
+                        asyncio.run(sync_task())
+
+                    thread = threading.Thread(target=run_sync, daemon=True)
+                    thread.start()
+                    logger.info(f"✅ Scheduled {phase} sync task in background thread")
+
+            except RuntimeError:
+                # No event loop exists, run in new thread
+                import threading
+
+                def run_sync():
+                    asyncio.run(sync_task())
+
+                thread = threading.Thread(target=run_sync, daemon=True)
+                thread.start()
+                logger.info(
+                    f"✅ Scheduled {phase} sync task in background thread (no event loop)"
+                )
+
+        except Exception as e:
+            logger.error(
+                f"❌ Failed to schedule phase completion sync: {e}", exc_info=True
+            )
+            # Don't fail the flow execution if scheduling fails - log and continue
