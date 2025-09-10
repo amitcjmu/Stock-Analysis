@@ -176,7 +176,7 @@ class FlowInitializer:
             "data_validation_agent": None,  # Replaced by data_import_validation_crew
             "attribute_mapping_agent": None,  # Replaced by field_mapping_crew
             "data_cleansing_agent": None,  # Replaced by data_cleansing_crew
-            "asset_inventory_agent": None,  # Replaced by inventory_building_crew
+            "asset_inventory_agent": None,  # Now handled by persistent agents
             "dependency_analysis_agent": None,  # Replaced by app_server_dependency_crew
             "tech_debt_analysis_agent": None,  # Replaced by technical_debt_crew
         }
@@ -194,7 +194,7 @@ class FlowInitializer:
             "data_validation_phase": "crew_managed",  # Handled by data_import_validation_crew
             "field_mapping_phase": "crew_managed",  # Handled by field_mapping_crew
             "data_cleansing_phase": "crew_managed",  # Handled by data_cleansing_crew
-            "asset_inventory_phase": "crew_managed",  # Handled by inventory_building_crew
+            "asset_inventory_phase": "agent_managed",  # Handled by persistent agents
             "dependency_analysis_phase": "crew_managed",  # Handled by app_server_dependency_crew
             "tech_debt_assessment_phase": "crew_managed",  # Handled by technical_debt_crew
         }

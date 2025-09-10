@@ -238,7 +238,7 @@ class InitializationHandler:
                 },
                 {
                     "name": "inventory_building",
-                    "crew": "InventoryBuildingCrew",
+                    "crew": "PersistentAgent",  # CC: Now uses persistent agents instead of crew
                     "manager": "Inventory Manager",
                     "dependencies": ["data_cleansing"],
                     "success_criteria": [

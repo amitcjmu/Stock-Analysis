@@ -65,17 +65,28 @@ class PhaseConfig:
     timeout_seconds: int = 300
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+    # Additional fields for phase configuration
+    outputs: List[str] = field(default_factory=list)
+    expected_duration_minutes: Optional[int] = None
+    parallel_execution: bool = False
+    dependencies: List[str] = field(default_factory=list)
+    success_criteria: Dict[str, Any] = field(default_factory=dict)
+    failure_conditions: Dict[str, Any] = field(default_factory=dict)
+
     # Legacy compatibility fields (ignored)
     order: Optional[int] = None
     required: Optional[bool] = None
     inputs: Optional[List[str]] = None
-    outputs: Optional[List[str]] = None
     timeout_minutes: Optional[int] = None
 
     def __post_init__(self):
         # Handle legacy timeout_minutes
         if self.timeout_minutes:
             self.timeout_seconds = self.timeout_minutes * 60
+
+        # Handle expected_duration_minutes to timeout_seconds conversion if needed
+        if self.expected_duration_minutes and not self.timeout_minutes:
+            self.timeout_seconds = self.expected_duration_minutes * 60
 
         # Handle legacy inputs
         if self.inputs and not self.required_inputs:
@@ -99,6 +110,14 @@ class FlowCapabilities:
     supports_parallel_phases: bool = False
     supports_checkpointing: bool = True
     required_permissions: List[str] = field(default_factory=list)
+
+    # Additional capabilities for advanced flow features
+    supports_parallel_execution: bool = False
+    supports_phase_rollback: bool = False
+    supports_incremental_execution: bool = False
+    supports_failure_recovery: bool = False
+    supports_real_time_monitoring: bool = False
+    supports_dynamic_scaling: bool = False
 
 
 @dataclass

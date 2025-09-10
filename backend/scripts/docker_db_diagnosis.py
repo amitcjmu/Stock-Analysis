@@ -179,10 +179,8 @@ def check_discovery_flow_imports():
 
         logger.info("✅ DiscoveryFlow imported successfully")
 
-        # Test inventory building crew availability
-        __import__("app.services.crewai_flows.crews.inventory_building_crew")
-
-        logger.info("✅ inventory_building_crew imported successfully")
+        # Note: inventory_building_crew deprecated - now uses persistent agents
+        logger.info("✅ inventory functionality now handled by persistent agents")
 
         # Test CrewAI flow service availability
         __import__("app.services.crewai_flow_service")
