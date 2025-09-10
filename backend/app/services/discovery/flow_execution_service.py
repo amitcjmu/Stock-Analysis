@@ -146,10 +146,10 @@ async def execute_field_mapping_phase(
     if discovery_flow.field_mapping_completed and discovery_flow.data_import_id:
         # Check if mappings actually exist for this import
         from sqlalchemy import select, func
-        from app.models.field_mapping import FieldMapping
+        from app.models.data_import.mapping import ImportFieldMapping
 
-        count_stmt = select(func.count(FieldMapping.id)).where(
-            FieldMapping.data_import_id == discovery_flow.data_import_id
+        count_stmt = select(func.count(ImportFieldMapping.id)).where(
+            ImportFieldMapping.data_import_id == discovery_flow.data_import_id
         )
         mapping_count = await db.scalar(count_stmt)
 

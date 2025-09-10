@@ -60,28 +60,35 @@ export const categorizeMappings = (fieldMappings: FieldMapping[]): MappingBucket
   }
 
   // Improved categorization logic:
-  // 1. Approved mappings go to the approved column
+  // 1. Approved mappings go to the approved column ONLY
   // 2. High confidence pending mappings (AI suggested) go to autoMapped column
-  // 3. Unmapped, rejected, or no target mappings go to unmapped column
-  // 4. Low confidence pending mappings that still have a target go to autoMapped (as suggestions)
+  // 3. Unmapped, rejected, or no target mappings go to unmapped column (Needs Review)
+  // 4. CRITICAL: Items should only appear in ONE column based on their status
   const approved = fieldMappings.filter(m => m.status === 'approved');
 
   const autoMapped = fieldMappings.filter(m => {
     // Include pending or suggested mappings that have a target field and aren't explicitly unmapped
-    return (m.status === 'pending' || m.status === 'suggested') &&
+    // BUT EXCLUDE approved items (they go in approved column only)
+    return m.status !== 'approved' &&
+           m.status !== 'rejected' &&
+           (m.status === 'pending' || m.status === 'suggested') &&
            m.target_field &&
            m.target_field !== '' &&
            m.target_field !== 'unmapped' &&
+           m.target_field !== 'Unassigned' &&
            m.mapping_type !== 'unmapped';
   });
 
   const unmapped = fieldMappings.filter(m => {
-    // Include rejected, explicitly unmapped, or fields without targets
-    return m.status === 'rejected' ||
-           m.mapping_type === 'unmapped' ||
-           !m.target_field ||
-           m.target_field === '' ||
-           m.target_field === 'unmapped';
+    // Include rejected, explicitly unmapped, or fields without proper targets
+    // BUT EXCLUDE approved items (they go in approved column only)
+    return m.status !== 'approved' &&
+           (m.status === 'rejected' ||
+            m.mapping_type === 'unmapped' ||
+            !m.target_field ||
+            m.target_field === '' ||
+            m.target_field === 'unmapped' ||
+            m.target_field === 'Unassigned');
   });
 
   // SECURITY FIX: Use secure debug logging for bucket information
