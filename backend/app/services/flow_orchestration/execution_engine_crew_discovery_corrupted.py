@@ -7,8 +7,9 @@ from typing import Any, Dict, List
 
 from app.core.logging import get_logger
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-
-# UnifiedFlowCrewManager import moved to discovery_phase_handlers.py
+from app.services.crewai_flows.handlers.unified_flow_crew_manager import (
+    UnifiedFlowCrewManager,
+)
 from .asset_creation_tools import AssetCreationToolsExecutor
 from .discovery_phase_handlers import DiscoveryPhaseHandlers
 from .field_mapping_logic import FieldMappingLogic
@@ -183,6 +184,39 @@ class ExecutionEngineDiscoveryCrews:
         method = phase_methods.get(mapped_phase, self._execute_discovery_generic_phase)
         return await method(agent_pool, phase_input)
 
+                }
+
+            # Check if crew has async kickoff method
+            if hasattr(crew, "kickoff_async"):
+                result = await crew.kickoff_async(inputs=phase_input)
+            else:
+                # Use synchronous kickoff
+                result = crew.kickoff(inputs=phase_input)
+
+            # Maintain backward compatibility with validation_results field
+            validation_results = (
+                result.get("validation_results", {"valid": True, "issues": []})
+                if isinstance(result, dict)
+                else {"valid": True, "issues": []}
+            )
+
+            return {
+                "phase": "data_import_validation",
+                "status": "completed",
+                "crew_results": result,
+                "validation_results": validation_results,  # Backward compatibility
+                "agent": "data_validation_agent",
+            }
+        except Exception as e:
+            logger.error(f"Data import validation failed: {str(e)}")
+            return {
+                "phase": "data_import_validation",
+                "status": "error",
+                "error": str(e),
+                "validation_results": {"valid": False, "issues": [str(e)]},
+                "agent": "data_validation_agent",
+            }
+
     async def _execute_discovery_field_mapping(
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -190,6 +224,37 @@ class ExecutionEngineDiscoveryCrews:
         return await self.field_mapping_logic.execute_discovery_field_mapping(
             agent_pool, phase_input, self.db_session
         )
+
+                }
+
+            # Check if crew has async kickoff method
+            if hasattr(crew, "kickoff_async"):
+                result = await crew.kickoff_async(inputs=phase_input)
+            else:
+                # Use synchronous kickoff
+                result = crew.kickoff(inputs=phase_input)
+
+            # Maintain backward compatibility with cleansed_data field
+            cleansed_data = (
+                result.get("cleansed_data", []) if isinstance(result, dict) else []
+            )
+
+            return {
+                "phase": "data_cleansing",
+                "status": "completed",
+                "crew_results": result,
+                "cleansed_data": cleansed_data,  # Backward compatibility
+                "agent": "data_cleansing_agent",
+            }
+        except Exception as e:
+            logger.error(f"Data cleansing failed: {str(e)}")
+            return {
+                "phase": "data_cleansing",
+                "status": "error",
+                "error": str(e),
+                "cleansed_data": [],
+                "agent": "data_cleansing_agent",
+            }
 
     async def _execute_discovery_asset_creation(
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
@@ -303,6 +368,7 @@ class ExecutionEngineDiscoveryCrews:
                 "agent": "asset_inventory_agent",
             }
 
+
     async def _execute_discovery_generic_phase(
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -316,3 +382,4 @@ class ExecutionEngineDiscoveryCrews:
             "result": "Generic phase execution completed",
             "agent": "generic_agent",
         }
+

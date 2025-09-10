@@ -50,14 +50,14 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
         # Ensure flow_id is UUID
         flow_uuid = self._ensure_uuid(flow_id)
 
-        # Map phase names to boolean fields
+        # Map phase names to boolean fields (Discovery flow phases only)
+        # CC FIX: Removed tech_debt_assessment - it belongs to Collection flow
         phase_field_map = {
             "data_import": "data_import_completed",
             "field_mapping": "field_mapping_completed",
             "data_cleansing": "data_cleansing_completed",
             "asset_inventory": "asset_inventory_completed",
             "dependency_analysis": "dependency_analysis_completed",
-            "tech_debt_assessment": "tech_debt_assessment_completed",
         }
 
         # Prepare update values
@@ -199,20 +199,20 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
         if not flow:
             return 0.0
 
-        # Phase weights
+        # Phase weights (Discovery flow phases only)
+        # CC FIX: Removed tech_debt_assessment - it belongs to Collection flow
         phase_weights = {
-            "data_import": 16.7,
-            "field_mapping": 16.7,
-            "data_cleansing": 16.6,
-            "asset_inventory": 16.7,
-            "dependency_analysis": 16.7,
-            "tech_debt_assessment": 16.6,
+            "data_import": 20.0,
+            "field_mapping": 20.0,
+            "data_cleansing": 20.0,
+            "asset_inventory": 20.0,
+            "dependency_analysis": 20.0,
         }
 
         # Calculate total progress
         total_progress = 0.0
 
-        # Add progress for completed phases
+        # Add progress for completed phases (Discovery flow only)
         if flow.data_import_completed:
             total_progress += phase_weights["data_import"]
         if flow.field_mapping_completed:
@@ -223,8 +223,6 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
             total_progress += phase_weights["asset_inventory"]
         if flow.dependency_analysis_completed:
             total_progress += phase_weights["dependency_analysis"]
-        if flow.tech_debt_assessment_completed:
-            total_progress += phase_weights["tech_debt_assessment"]
 
         # If current phase is completed but not yet reflected in booleans
         if phase_completed and current_phase in phase_weights:
@@ -234,7 +232,6 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
                 "data_cleansing": flow.data_cleansing_completed,
                 "asset_inventory": flow.asset_inventory_completed,
                 "dependency_analysis": flow.dependency_analysis_completed,
-                "tech_debt_assessment": flow.tech_debt_assessment_completed,
             }
 
             if not phase_field_map.get(current_phase, False):
@@ -253,14 +250,14 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
             True if flow was completed, False otherwise
         """
         try:
-            # Define the required phases for completion (all 6 phases per spec)
+            # Define the required phases for completion (Discovery flow phases only)
+            # CC FIX: Removed tech_debt_assessment - it belongs to Collection flow, not Discovery flow
             required_phases = {
                 "data_import": flow.data_import_completed,
                 "field_mapping": flow.field_mapping_completed,
                 "data_cleansing": flow.data_cleansing_completed,
                 "asset_inventory": flow.asset_inventory_completed,
                 "dependency_analysis": flow.dependency_analysis_completed,
-                "tech_debt_assessment": flow.tech_debt_assessment_completed,
             }
 
             # Check if all required phases are complete

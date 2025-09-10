@@ -25,21 +25,29 @@ class InventoryBuildingExecutor(CrewExecutionBase):
         try:
             # Execute enhanced Inventory Building Crew
             try:
-                from app.services.crewai_flows.crews.inventory_building_crew import (
-                    create_inventory_building_crew,
-                )
+                # NOTE: inventory_building_crew now uses persistent agents
+                # from app.services.crewai_flows.crews.inventory_building_crew import (
+                #     create_inventory_building_crew,
+                # )
 
                 # Pass shared memory and cleaned data
-                shared_memory = getattr(state, "shared_memory_reference", None)
+                # shared_memory = getattr(state, "shared_memory_reference", None)  # Unused in persistent agent pattern
 
-                # Create and execute the enhanced crew
-                crew = create_inventory_building_crew(
-                    self.crewai_service,
-                    state.cleaned_data,
-                    state.field_mappings,
-                    shared_memory=shared_memory,
-                )
-                crew_result = crew.kickoff()
+                # LEGACY: This method is no longer used - asset inventory now uses persistent agents
+                # crew = create_inventory_building_crew(
+                #     self.crewai_service,
+                #     state.cleaned_data,
+                #     state.field_mappings,
+                #     shared_memory=shared_memory,
+                # )
+                # crew_result = crew.kickoff()
+
+                # Return placeholder result indicating this is now handled by persistent agents
+                crew_result = {
+                    "status": "legacy_method_deprecated",
+                    "message": "Asset inventory now handled by persistent agents in execution_engine_crew_discovery.py",
+                    "method": "persistent_agent_execution",
+                }
 
                 # Parse crew results
                 asset_inventory = self.parser.parse_inventory_results(

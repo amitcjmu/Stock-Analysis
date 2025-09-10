@@ -89,9 +89,11 @@ class UnifiedFlowCrewManager:
             from app.services.crewai_flows.crews.dependency_analysis_crew import (
                 create_dependency_analysis_crew,
             )
-            from app.services.crewai_flows.crews.inventory_building_crew import (
-                create_inventory_building_crew,
-            )
+
+            # NOTE: inventory_building_crew removed - now uses persistent agents
+            # from app.services.crewai_flows.crews.inventory_building_crew import (
+            #     create_inventory_building_crew,
+            # )
             from app.services.crewai_flows.crews.technical_debt_crew import (
                 create_technical_debt_crew,
             )
@@ -102,7 +104,7 @@ class UnifiedFlowCrewManager:
                 "data_import": create_data_import_validation_crew,  # Alias for phase executor compatibility
                 "attribute_mapping": field_mapping_factory,  # Dynamic based on CREWAI_FAST_MODE setting
                 "data_cleansing": create_data_cleansing_crew,
-                "inventory": create_inventory_building_crew,  # Fixed: Use inventory to match DB schema
+                # "inventory": create_inventory_building_crew,  # REMOVED: Now uses persistent agents
                 "dependencies": create_dependency_analysis_crew,  # Fixed: Use dependencies to match DB schema
                 "tech_debt": create_technical_debt_crew,  # Fixed: Use tech_debt to match DB schema
             }
