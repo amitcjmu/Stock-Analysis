@@ -1286,9 +1286,9 @@
     "confidence": "medium",
     "priority": "low",
     "created_at": "2025-06-02T13:12:03.922884",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-09-10T06:06:23.221457",
+    "user_response": "Skip validation",
+    "is_resolved": true
   },
   "124d7f4a-9083-43a3-9118-3a99cc404ad9": {
     "id": "124d7f4a-9083-43a3-9118-3a99cc404ad9",
@@ -1311,9 +1311,9 @@
     "confidence": "low",
     "priority": "low",
     "created_at": "2025-06-02T13:12:03.927237",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-09-10T06:06:14.868890",
+    "user_response": "Not needed",
+    "is_resolved": true
   },
   "08df935a-9b6a-4b1b-9352-200f885b221e": {
     "id": "08df935a-9b6a-4b1b-9352-200f885b221e",
@@ -2186,9 +2186,9 @@
     "confidence": "medium",
     "priority": "low",
     "created_at": "2025-06-07T02:48:17.907876",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-09-10T06:06:01.589064",
+    "user_response": "Not available",
+    "is_resolved": true
   },
   "9faec83a-2a6c-4b1d-b104-10797787f5c8": {
     "id": "9faec83a-2a6c-4b1d-b104-10797787f5c8",

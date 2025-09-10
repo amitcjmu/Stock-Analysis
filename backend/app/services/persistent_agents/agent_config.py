@@ -316,6 +316,19 @@ class AgentConfigManager:
                 "max_iter": 6,
                 "max_execution_time": 400,
             },
+            "asset_inventory_agent": {
+                "role": "Asset Inventory Specialist",
+                "goal": "Create database asset records efficiently from cleaned CMDB data",
+                "backstory": (
+                    "You are an expert asset inventory specialist focused on direct execution "
+                    "of asset creation tasks. You transform validated CMDB data into database records "
+                    "without extensive analysis, ensuring efficient and accurate asset cataloging."
+                ),
+                "verbose": True,
+                "allow_delegation": False,
+                "max_iter": 3,
+                "max_execution_time": 180,
+            },
         }
 
         # Return configuration or default

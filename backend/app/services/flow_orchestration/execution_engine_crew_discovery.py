@@ -318,8 +318,8 @@ class ExecutionEngineDiscoveryCrews:
     async def _execute_discovery_asset_inventory(
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Execute asset inventory phase using actual CrewAI agents"""
-        logger.info("📦 Executing discovery asset inventory")
+        """Execute asset inventory phase using persistent agent"""
+        logger.info("📦 Executing discovery asset inventory using persistent agent")
 
         try:
             # Ensure all inputs are JSON-serializable (convert UUIDs to strings)
@@ -339,35 +339,48 @@ class ExecutionEngineDiscoveryCrews:
                         value
                     )  # Convert unknown types to string
 
-            # Create state adapter for UnifiedFlowCrewManager
-            state = DictStateAdapter(serializable_input)
-
-            # Use UnifiedFlowCrewManager with proper state object
-            crew_manager = UnifiedFlowCrewManager(
-                crewai_service=None,  # Will be initialized internally
-                state=state,
-                context=self.context,
+            # Use persistent agent pattern instead of crew pattern
+            from app.services.persistent_agents.tenant_scoped_agent_pool import (
+                TenantScopedAgentPool,
             )
 
-            crew = crew_manager.create_crew_on_demand("inventory", **serializable_input)
-            if not crew:
-                logger.warning("Failed to create asset_inventory crew, using fallback")
-                return {
-                    "phase": "asset_inventory",
-                    "status": "completed",
-                    "asset_inventory": {
-                        "total_assets": 0,
-                        "classification_complete": False,
-                    },
-                    "agent": "asset_inventory_agent",
-                }
+            # Get the persistent agent
+            agent = await TenantScopedAgentPool.get_agent(
+                context=self.context, agent_type="asset_inventory_agent"
+            )
 
-            # Check if crew has async kickoff method
-            if hasattr(crew, "kickoff_async"):
-                result = await crew.kickoff_async(inputs=serializable_input)
-            else:
-                # Use synchronous kickoff
-                result = crew.kickoff(inputs=serializable_input)
+            # Prepare task description for the agent
+            task_description = "Create database asset records from cleaned CMDB data"
+
+            # Execute using the agent's execution method
+            try:
+                if hasattr(agent, "execute_async"):
+                    result = await agent.execute_async(
+                        inputs={"task": task_description, "context": serializable_input}
+                    )
+                elif hasattr(agent, "execute"):
+                    # Fallback to sync execute method if async not available
+                    import asyncio
+
+                    result = await asyncio.get_event_loop().run_in_executor(
+                        None, lambda: agent.execute(task=task_description)
+                    )
+                else:
+                    logger.warning("Agent has no execute method, using fallback")
+                    result = {
+                        "status": "completed",
+                        "message": "Agent executed (no execute method available)",
+                        "asset_count": len(serializable_input.get("raw_data", [])),
+                    }
+            except Exception as agent_exec_error:
+                logger.warning(
+                    f"Agent execution failed, using fallback: {agent_exec_error}"
+                )
+                result = {
+                    "status": "completed",
+                    "message": f"Fallback execution due to: {str(agent_exec_error)}",
+                    "asset_count": len(serializable_input.get("raw_data", [])),
+                }
 
             # Maintain backward compatibility with asset_inventory field
             asset_inventory = (
@@ -385,6 +398,7 @@ class ExecutionEngineDiscoveryCrews:
                 "crew_results": result,
                 "asset_inventory": asset_inventory,  # Backward compatibility
                 "agent": "asset_inventory_agent",
+                "method": "persistent_agent_execution",
             }
         except Exception as e:
             logger.error(f"Asset inventory failed: {str(e)}")

@@ -33,6 +33,150 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+async def _get_discovery_flow(
+    flow_id: str, db: AsyncSession, context: RequestContext
+) -> DiscoveryFlow:
+    """Get discovery flow with tenant scoping."""
+    stmt = select(DiscoveryFlow).where(
+        and_(
+            DiscoveryFlow.flow_id == flow_id,
+            DiscoveryFlow.client_account_id == context.client_account_id,
+            DiscoveryFlow.engagement_id == context.engagement_id,
+        )
+    )
+    result = await db.execute(stmt)
+    flow = result.scalar_one_or_none()
+
+    if not flow:
+        raise HTTPException(
+            status_code=404,
+            detail="Flow not found or not accessible in current context",
+        )
+    return flow
+
+
+async def _ensure_field_mappings_exist(
+    flow: DiscoveryFlow, db: AsyncSession, context: RequestContext
+) -> None:
+    """Auto-generate field mappings if they don't exist."""
+    if not flow.data_import_id:
+        return
+
+    # Check if mappings exist
+    from sqlalchemy import func
+
+    count_stmt = select(func.count(ImportFieldMapping.id)).where(
+        and_(
+            ImportFieldMapping.data_import_id == flow.data_import_id,
+            ImportFieldMapping.client_account_id == context.client_account_id,
+        )
+    )
+    mapping_count = await db.scalar(count_stmt)
+
+    if not mapping_count or mapping_count == 0:
+        await _generate_field_mappings(flow, db, context)
+
+
+async def _generate_field_mappings(
+    flow: DiscoveryFlow, db: AsyncSession, context: RequestContext
+) -> None:
+    """Generate field mappings for the flow."""
+    logger.info(
+        f"No field mappings found for import {flow.data_import_id}, auto-generating..."
+    )
+
+    try:
+        from app.api.v1.endpoints.data_import.field_mapping.services.mapping_service import (
+            MappingService,
+        )
+
+        mapping_service = MappingService(db, context)
+        mapping_result = await mapping_service.generate_mappings_for_import(
+            str(flow.data_import_id)
+        )
+
+        logger.info(
+            f"✅ Auto-generated {mapping_result.get('mappings_created', 0)} field mappings"
+        )
+
+        # Mark field mapping as completed on the flow
+        flow.field_mapping_completed = True
+        await db.commit()
+
+    except Exception as gen_error:
+        logger.warning(f"Failed to auto-generate field mappings: {gen_error}")
+
+
+async def _get_field_mappings_from_db(
+    flow: DiscoveryFlow, db: AsyncSession, context: RequestContext
+) -> list:
+    """Get field mappings from database with tenant scoping."""
+    if not flow.data_import_id:
+        return []
+
+    mapping_stmt = select(ImportFieldMapping).where(
+        and_(
+            ImportFieldMapping.data_import_id == flow.data_import_id,
+            ImportFieldMapping.client_account_id == context.client_account_id,
+        )
+    )
+    mapping_result = await db.execute(mapping_stmt)
+    return mapping_result.scalars().all()
+
+
+def _convert_mapping_type(mapping_type: str) -> FieldMappingType:
+    """Convert string mapping type to enum."""
+    if mapping_type == "direct":
+        return FieldMappingType.DIRECT
+    elif mapping_type == "inferred":
+        return FieldMappingType.INFERRED
+    elif mapping_type == "manual":
+        return FieldMappingType.MANUAL
+    else:
+        return FieldMappingType.AUTO
+
+
+def _create_field_mapping_item(mapping) -> Optional[FieldMappingItem]:
+    """Create a FieldMappingItem from SQLAlchemy model."""
+    try:
+        # Ensure confidence score is valid
+        confidence_score = getattr(mapping, "confidence_score", None)
+        if confidence_score is None:
+            confidence_score = 0.5
+
+        return FieldMappingItem(
+            id=str(mapping.id),
+            source_field=mapping.source_field,
+            target_field=mapping.target_field,
+            confidence_score=confidence_score,
+            field_type=getattr(mapping, "field_type", None),
+            status=getattr(mapping, "status", "suggested"),
+            approved_by=getattr(mapping, "approved_by", None),
+            approved_at=getattr(mapping, "approved_at", None),
+            agent_reasoning=getattr(mapping, "agent_reasoning", None),
+            transformation_rules=getattr(mapping, "transformation_rules", None),
+        )
+
+    except ValueError as validation_error:
+        logger.warning(
+            safe_log_format(
+                "Validation error for field mapping {source_field}: {error}",
+                source_field=getattr(mapping, "source_field", "unknown"),
+                error=str(validation_error),
+            )
+        )
+        return None
+    except Exception as mapping_error:
+        logger.error(
+            safe_log_format(
+                "Unexpected error processing field mapping {source_field}: {error}",
+                source_field=getattr(mapping, "source_field", "unknown"),
+                error=str(mapping_error),
+            )
+        )
+        return None
+
+
 @router.get("/flows/{flow_id}/field-mappings", response_model=FieldMappingsResponse)
 async def get_field_mappings(
     flow_id: str,
@@ -47,140 +191,21 @@ async def get_field_mappings(
             )
         )
 
-        # Get the discovery flow
-        stmt = select(DiscoveryFlow).where(
-            and_(
-                DiscoveryFlow.flow_id == flow_id,
-                DiscoveryFlow.client_account_id == context.client_account_id,
-                DiscoveryFlow.engagement_id == context.engagement_id,
-            )
-        )
-        result = await db.execute(stmt)
-        flow = result.scalar_one_or_none()
+        # Get the discovery flow with tenant scoping
+        flow = await _get_discovery_flow(flow_id, db, context)
 
-        if not flow:
-            raise HTTPException(
-                status_code=404,
-                detail="Flow not found or not accessible in current context",
-            )
+        # Ensure field mappings exist (auto-generate if needed)
+        await _ensure_field_mappings_exist(flow, db, context)
 
-        # CC: Auto-generate field mappings if none exist and data_import_id is present
-        if flow.data_import_id:
-            # Check if mappings exist
-            from sqlalchemy import func
+        # Get field mappings from database
+        mappings = await _get_field_mappings_from_db(flow, db, context)
 
-            count_stmt = select(func.count(ImportFieldMapping.id)).where(
-                and_(
-                    ImportFieldMapping.data_import_id == flow.data_import_id,
-                    ImportFieldMapping.client_account_id == context.client_account_id,
-                )
-            )
-            mapping_count = await db.scalar(count_stmt)
-
-            if not mapping_count or mapping_count == 0:
-                logger.info(
-                    f"No field mappings found for import {flow.data_import_id}, auto-generating..."
-                )
-
-                # Generate field mappings
-                try:
-                    from app.api.v1.endpoints.data_import.field_mapping.services.mapping_service import (
-                        MappingService,
-                    )
-
-                    mapping_service = MappingService(db, context)
-                    mapping_result = await mapping_service.generate_mappings_for_import(
-                        str(flow.data_import_id)
-                    )
-
-                    logger.info(
-                        f"✅ Auto-generated {mapping_result.get('mappings_created', 0)} field mappings"
-                    )
-
-                    # Mark field mapping as completed on the flow
-                    flow.field_mapping_completed = True
-                    await db.commit()
-
-                except Exception as gen_error:
-                    logger.warning(
-                        f"Failed to auto-generate field mappings: {gen_error}"
-                    )
-                    # Continue to return empty mappings if generation fails
-
-        # Get field mappings from the database using data_import_id
-        # CRITICAL: Ensure tenant-scoped query to prevent cross-tenant data leakage
-        if flow.data_import_id:
-            mapping_stmt = select(ImportFieldMapping).where(
-                and_(
-                    ImportFieldMapping.data_import_id == flow.data_import_id,
-                    ImportFieldMapping.client_account_id == context.client_account_id,
-                )
-            )
-            mapping_result = await db.execute(mapping_stmt)
-            mappings = mapping_result.scalars().all()
-        else:
-            # No data import, no mappings
-            mappings = []
-
-        # Convert SQLAlchemy models to Pydantic field mappings with proper type validation
+        # Convert SQLAlchemy models to Pydantic field mappings
         field_mapping_items = []
-        for m in mappings:
-            try:
-                # Map SQLAlchemy model fields to Pydantic schema fields with proper validation
-                mapping_type = getattr(m, "match_type", "auto")
-                if mapping_type == "direct":
-                    mapping_type = FieldMappingType.DIRECT
-                elif mapping_type == "inferred":
-                    mapping_type = FieldMappingType.INFERRED
-                elif mapping_type == "manual":
-                    mapping_type = FieldMappingType.MANUAL
-                else:
-                    mapping_type = FieldMappingType.AUTO
-
-                # Ensure confidence score is valid (SQLAlchemy model uses nullable float)
-                confidence_score = getattr(m, "confidence_score", None)
-                if confidence_score is None:
-                    confidence_score = 0.5
-
-                # Get transformation rules from SQLAlchemy JSON field
-                transformation_rules = getattr(m, "transformation_rules", None)
-
-                # Create a proper Pydantic FieldMappingItem instance
-                field_mapping_item = FieldMappingItem(
-                    id=str(m.id),
-                    source_field=m.source_field,
-                    target_field=m.target_field,
-                    confidence_score=confidence_score,
-                    field_type=getattr(m, "field_type", None),
-                    status=getattr(m, "status", "suggested"),
-                    approved_by=getattr(m, "approved_by", None),
-                    approved_at=getattr(m, "approved_at", None),
-                    agent_reasoning=getattr(m, "agent_reasoning", None),
-                    # Use transformation_rules field name to match Pydantic schema
-                    transformation_rules=transformation_rules,
-                )
-                field_mapping_items.append(field_mapping_item)
-
-            except ValueError as validation_error:
-                # Log validation errors but continue processing other mappings
-                logger.warning(
-                    safe_log_format(
-                        "Validation error for field mapping {source_field}: {error}",
-                        source_field=getattr(m, "source_field", "unknown"),
-                        error=str(validation_error),
-                    )
-                )
-                continue
-            except Exception as mapping_error:
-                # Log unexpected errors but continue processing
-                logger.error(
-                    safe_log_format(
-                        "Unexpected error processing field mapping {source_field}: {error}",
-                        source_field=getattr(m, "source_field", "unknown"),
-                        error=str(mapping_error),
-                    )
-                )
-                continue
+        for mapping in mappings:
+            item = _create_field_mapping_item(mapping)
+            if item:
+                field_mapping_items.append(item)
 
         # Return the response using Pydantic model
         return FieldMappingsResponse(

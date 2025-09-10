@@ -160,6 +160,15 @@ class AgentToolManager:
                     context_info,
                 )
 
+            elif agent_type == "asset_inventory_agent":
+                # Asset inventory-specific tools for database asset creation
+                tools_added += cls._safe_extend_tools(
+                    tools, create_asset_creation_tools, "asset creation", context_info
+                )
+                tools_added += cls._safe_extend_tools(
+                    tools, create_data_validation_tools, "data validation", context_info
+                )
+
             logger.debug(f"Added {tools_added} {agent_type}-specific tools")
         except Exception as e:
             logger.warning(f"Failed to add {agent_type} tools: {e}")
@@ -338,7 +347,12 @@ class AgentToolManager:
             cls.add_agent_specific_tools(agent_type, context_info, tools)
 
             # Add common tools based on agent type
-            if agent_type in ["discovery", "field_mapper", "data_cleansing"]:
+            if agent_type in [
+                "discovery",
+                "field_mapper",
+                "data_cleansing",
+                "asset_inventory_agent",
+            ]:
                 cls.add_data_analysis_tools(context_info, tools)
 
             if agent_type in ["questionnaire_generator", "six_r_analyzer"]:
