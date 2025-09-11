@@ -57,25 +57,25 @@ def get_discovery_flow_config() -> FlowTypeConfig:
             },
             "required_integrations": ["crewai", "database"],
             "optional_integrations": ["external_apis", "file_systems"],
+            "validation_config": {
+                "strict_phase_validation": True,
+                "allow_phase_skipping": False,
+                "require_all_outputs": False,
+                "validate_input_schemas": True,
+                "enforce_dependencies": True,
+            },
+            "ui_config": {
+                "show_phase_progress": True,
+                "allow_manual_intervention": True,
+                "display_real_time_logs": True,
+                "enable_phase_restart": True,
+                "supports_templates": True,
+            },
         },
         crew_class=UnifiedDiscoveryFlow,
         # CC FIX: Comment out crew factory to use persistent agents instead
         # crew_factory=create_discovery_crew,  # Deprecated - now uses persistent agents
         child_flow_service=DiscoveryChildFlowService,
-        validation_config={
-            "strict_phase_validation": True,
-            "allow_phase_skipping": False,
-            "require_all_outputs": False,
-            "validate_input_schemas": True,
-            "enforce_dependencies": True,
-        },
-        ui_config={
-            "show_phase_progress": True,
-            "allow_manual_intervention": True,
-            "display_real_time_logs": True,
-            "enable_phase_restart": True,
-            "supports_templates": True,
-        },
         tags=["discovery", "data_import", "inventory", "assessment_prerequisite"],
     )
 
