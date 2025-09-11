@@ -12,7 +12,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "060_fix_long_constraint_names"
-down_revision = "055_add_execution_metadata_to_crewai_flow_state_extensions"
+down_revision = "056_fix_alembic_version_column_size"
 branch_labels = None
 depends_on = None
 

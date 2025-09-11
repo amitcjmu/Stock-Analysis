@@ -1,6 +1,6 @@
 """Add execution_metadata to CrewAIFlowStateExtensions
 
-Revision ID: 055_add_execution_metadata_to_crewai_flow_state_extensions
+Revision ID: 055_add_execution_metadata
 Revises: 054_change_pattern_type_to_string
 Create Date: 2025-09-04 15:38:57.862462
 
@@ -12,7 +12,7 @@ from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
-revision = "055_add_execution_metadata_to_crewai_flow_state_extensions"
+revision = "055_add_execution_metadata"
 down_revision = "054_change_pattern_type_to_string"
 branch_labels = None
 depends_on = None
