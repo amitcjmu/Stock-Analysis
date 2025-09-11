@@ -7,7 +7,7 @@ Handles asset creation operations from discovery data.
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import and_, select
 
@@ -36,6 +36,14 @@ class AssetCreationCommands(AssetCommandsBase):
         master_flow_id, internal_discovery_flow_id = await self._get_master_flow_id(
             discovery_flow_id
         )
+
+        # CRITICAL: Check if master flow lookup failed
+        if master_flow_id is None or internal_discovery_flow_id is None:
+            logger.error(
+                f"❌ Failed to get master flow data for discovery_flow_id {discovery_flow_id}. "
+                f"Cannot create assets without valid flow references."
+            )
+            return []  # Return empty list instead of creating invalid assets
 
         for asset_data in asset_data_list:
             try:
@@ -163,6 +171,14 @@ class AssetCreationCommands(AssetCommandsBase):
             discovery_flow_id
         )
 
+        # CRITICAL: Check if master flow lookup failed
+        if master_flow_id is None or internal_discovery_flow_id is None:
+            logger.error(
+                f"❌ Failed to get master flow data for discovery_flow_id {discovery_flow_id}. "
+                f"Cannot create assets without valid flow references."
+            )
+            return []  # Return empty list instead of creating invalid assets
+
         for asset_data in asset_data_list:
             try:
                 # Extract asset information with improved field handling
@@ -246,7 +262,7 @@ class AssetCreationCommands(AssetCommandsBase):
 
     async def _get_master_flow_id(
         self, discovery_flow_id: uuid.UUID
-    ) -> tuple[uuid.UUID, uuid.UUID]:
+    ) -> Tuple[Optional[uuid.UUID], Optional[uuid.UUID]]:
         """Get master_flow_id and internal discovery flow ID from discovery flow"""
         try:
             # CRITICAL FIX: Query by flow_id (external UUID) to get internal id and master_flow_id

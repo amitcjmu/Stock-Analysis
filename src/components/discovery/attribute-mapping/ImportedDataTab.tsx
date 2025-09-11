@@ -93,7 +93,18 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "", sessi
         }
       } catch (error: unknown) {
         // Handle 404 errors gracefully - endpoint may not exist yet
-        if (error.status === 404 || error.response?.status === 404) {
+        const hasErrorStatus = (err: unknown): err is { status: number; response?: { status: number } } => {
+          return typeof err === 'object' && err !== null && 'status' in err;
+        };
+
+        const hasResponseStatus = (err: unknown): err is { response: { status: number } } => {
+          return typeof err === 'object' && err !== null && 'response' in err &&
+                 typeof (err as any).response === 'object' && (err as any).response !== null &&
+                 'status' in (err as any).response;
+        };
+
+        if ((hasErrorStatus(error) && error.status === 404) ||
+            (hasResponseStatus(error) && error.response.status === 404)) {
           console.log('Import endpoint not available yet');
           return { success: false, data: [], import_metadata: null, message: 'No data imports found' };
         }
@@ -107,7 +118,18 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "", sessi
     refetchOnReconnect: false,
     retry: (failureCount, error: unknown) => {
       // Don't retry on 404 errors
-      if (error?.status === 404 || error?.response?.status === 404) {
+      const hasErrorStatus = (err: unknown): err is { status: number; response?: { status: number } } => {
+        return typeof err === 'object' && err !== null && 'status' in err;
+      };
+
+      const hasResponseStatus = (err: unknown): err is { response: { status: number } } => {
+        return typeof err === 'object' && err !== null && 'response' in err &&
+               typeof (err as any).response === 'object' && (err as any).response !== null &&
+               'status' in (err as any).response;
+      };
+
+      if ((hasErrorStatus(error) && error.status === 404) ||
+          (hasResponseStatus(error) && error.response.status === 404)) {
         return false;
       }
       return failureCount < 3;
