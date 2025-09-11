@@ -109,10 +109,8 @@ class ImportStorageHandler:
             if import_data:
                 return {
                     "success": True,
-                    "data": import_data,
-                    "import_metadata": (
-                        import_data.get("metadata") if import_data else None
-                    ),
+                    "data": import_data.get("data", []),
+                    "import_metadata": import_data.get("import_metadata"),
                 }
 
             return None
