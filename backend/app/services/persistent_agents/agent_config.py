@@ -82,9 +82,8 @@ class AgentConfigManager:
                 memory_manager = ThreeTierMemoryManager(
                     client_account_id=client_account_id,
                     engagement_id=engagement_id,
-                    agent_type=agent_type,
                 )
-                await memory_manager.initialize()
+                # Memory manager initializes synchronously in __init__, no async initialize() needed
                 logger.info(f"Memory manager initialized for {agent_type}")
             except Exception as e:
                 logger.warning(f"Failed to initialize memory manager: {e}")
@@ -109,6 +108,9 @@ class AgentConfigManager:
                 max_iter=config.get("max_iter", 5),
                 max_execution_time=config.get("max_execution_time", 300),
             )
+
+            # Add execute method to agent for compatibility with existing code
+            cls._add_execute_method(agent, agent_type)
 
             # Warm up the agent
             await cls.warm_up_agent(agent, agent_type)
@@ -160,6 +162,55 @@ class AgentConfigManager:
             logger.warning(f"{agent_type} agent warm-up timed out")
         except Exception as e:
             logger.warning(f"{agent_type} agent warm-up failed: {e}")
+
+    @classmethod
+    def _add_execute_method(cls, agent: Agent, agent_type: str):
+        """
+        Add execute method to agent for compatibility with existing code patterns.
+
+        This method creates a single-agent crew to execute tasks since CrewAI agents
+        require a crew context to execute tasks properly.
+        """
+        from crewai import Crew, Task
+
+        def execute(task: str = None, **kwargs):
+            """Execute a task using this agent in a single-agent crew."""
+            try:
+                # Create a task for the agent
+                agent_task = Task(
+                    description=task or "Execute assigned task",
+                    agent=agent,
+                    expected_output="Structured analysis and recommendations based on the given task",
+                )
+
+                # Create a single-agent crew
+                crew = Crew(agents=[agent], tasks=[agent_task], verbose=False)
+
+                # Execute the crew
+                result = crew.kickoff()
+                return result
+
+            except Exception as e:
+                logger.warning(f"Agent {agent_type} execute method failed: {e}")
+                return {"status": "error", "error": str(e), "agent_type": agent_type}
+
+        def execute_async(task: str = None, inputs: dict = None, **kwargs):
+            """Async version of execute method."""
+            import asyncio
+
+            # Extract task from inputs if provided
+            if inputs and "task" in inputs:
+                task = inputs["task"]
+
+            return asyncio.to_thread(execute, task, **kwargs)
+
+        # Add methods to the agent instance
+        import types
+
+        agent.execute = types.MethodType(execute, agent)
+        agent.execute_async = types.MethodType(execute_async, agent)
+
+        logger.info(f"✅ Added execute methods to {agent_type} agent")
 
     @classmethod
     async def check_agent_health(cls, agent: Agent) -> AgentHealth:
@@ -328,6 +379,19 @@ class AgentConfigManager:
                 "allow_delegation": False,
                 "max_iter": 3,
                 "max_execution_time": 180,
+            },
+            "readiness_assessor": {
+                "role": "Collection Readiness Assessment Agent",
+                "goal": "Assess readiness for transition from collection to assessment phase",
+                "backstory": (
+                    "You are an expert business analyst who evaluates data collection completeness "
+                    "and quality to determine readiness for migration assessment. You make intelligent "
+                    "decisions based on data quality, completeness metrics, and business requirements."
+                ),
+                "verbose": True,
+                "allow_delegation": False,
+                "max_iter": 2,
+                "max_execution_time": 120,
             },
         }
 

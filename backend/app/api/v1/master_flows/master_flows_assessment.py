@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
 from app.api.v1.endpoints.context.services.user_service import UserService
+from app.core.context import RequestContext, get_current_context_dependency
 from app.core.database import get_db
 from app.models import User
 
@@ -44,11 +45,11 @@ async def get_current_user_context(
 async def get_assessment_flow_status_via_master(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user_context),
+    context: RequestContext = Depends(get_current_context_dependency),
 ) -> Dict[str, Any]:
     """Get assessment flow status via Master Flow Orchestrator"""
 
-    client_account_id = current_user.get("client_account_id")
+    client_account_id = context.client_account_id
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
 
@@ -108,11 +109,11 @@ async def get_assessment_flow_status_via_master(
 async def get_assessment_applications_via_master(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user_context),
+    context: RequestContext = Depends(get_current_context_dependency),
 ) -> List[Dict[str, Any]]:
     """Get assessment flow applications via Master Flow Orchestrator"""
 
-    client_account_id = current_user.get("client_account_id")
+    client_account_id = context.client_account_id
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
 
@@ -192,12 +193,12 @@ async def initialize_assessment_flow_via_mfo(
     flow_id: str,
     selected_application_ids: List[str],
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user_context),
+    context: RequestContext = Depends(get_current_context_dependency),
 ) -> Dict[str, Any]:
     """Initialize assessment flow through MFO"""
 
-    client_account_id = current_user.get("client_account_id")
-    engagement_id = current_user.get("engagement_id")
+    client_account_id = context.client_account_id
+    engagement_id = context.engagement_id
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
 
@@ -205,14 +206,14 @@ async def initialize_assessment_flow_via_mfo(
         from app.repositories.assessment_flow_repository import AssessmentFlowRepository
 
         repo = AssessmentFlowRepository(
-            db, client_account_id, engagement_id, user_id=current_user.get("user_id")
+            db, client_account_id, engagement_id, user_id=context.user_id
         )
 
         # Create assessment flow with MFO registration
         assessment_flow_id = await repo.create_assessment_flow(
             engagement_id=engagement_id,
             selected_application_ids=selected_application_ids,
-            created_by=current_user.get("user_id"),
+            created_by=context.user_id,
         )
 
         return {
@@ -232,11 +233,11 @@ async def resume_assessment_flow_via_mfo(
     flow_id: str,
     user_input: Dict[str, Any],
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user_context),
+    context: RequestContext = Depends(get_current_context_dependency),
 ) -> Dict[str, Any]:
     """Resume assessment flow phase through MFO"""
 
-    client_account_id = current_user.get("client_account_id")
+    client_account_id = context.client_account_id
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
 
@@ -264,11 +265,11 @@ async def update_architecture_standards_via_mfo(
     flow_id: str,
     standards_data: Dict[str, Any],
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user_context),
+    context: RequestContext = Depends(get_current_context_dependency),
 ) -> Dict[str, Any]:
     """Update architecture standards through MFO"""
 
-    client_account_id = current_user.get("client_account_id")
+    client_account_id = context.client_account_id
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
 
@@ -296,11 +297,11 @@ async def finalize_assessment_via_mfo(
     flow_id: str,
     finalization_data: Dict[str, Any],
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user_context),
+    context: RequestContext = Depends(get_current_context_dependency),
 ) -> Dict[str, Any]:
     """Finalize assessment and prepare for planning through MFO"""
 
-    client_account_id = current_user.get("client_account_id")
+    client_account_id = context.client_account_id
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
 

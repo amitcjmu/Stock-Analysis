@@ -151,9 +151,8 @@ class AgentPoolCore:
                 memory_manager = ThreeTierMemoryManager(
                     client_account_id=client_account_id,
                     engagement_id=engagement_id,
-                    db_session=db_session,
                 )
-                await memory_manager.initialize()
+                # Memory manager initializes synchronously in __init__, no async initialize() needed
                 logger.info(
                     f"💾 Memory manager initialized for tenant {client_account_id}"
                 )

@@ -5,7 +5,7 @@ Handles batch analysis operations for applications.
 
 import logging
 from datetime import datetime
-from uuid import uuid4
+from uuid import uuid4, UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, select
@@ -115,34 +115,43 @@ async def create_analysis_queue(
 ):
     """Create a new analysis queue."""
     try:
-        # Create queue
-        queue = AnalysisQueue(
-            id=uuid4(),
-            name=request.name,
-            client_id=context.client_account_id,
-            engagement_id=context.engagement_id,
-            created_by=context.user,
-            status=QueueStatus.PENDING,
-        )
+        # Create queue - provide fallback for user if not available
+        user_id = context.user_id or str(uuid4())
 
-        # Add items if provided
-        for app_id in request.applicationIds:
-            item = AnalysisQueueItem(
-                id=uuid4(),
-                queue_id=queue.id,
-                application_id=app_id,
-                status=ItemStatus.PENDING,
-            )
-            queue.items.append(item)
+        # Create queue without relationships first
+        queue = AnalysisQueue()
+        queue.id = uuid4()
+        queue.name = request.name
+        queue.client_id = UUID(context.client_account_id)
+        queue.engagement_id = UUID(context.engagement_id)
+        queue.created_by = UUID(user_id)
+        queue.status = QueueStatus.PENDING.value
+        queue.created_at = datetime.utcnow()
+        queue.updated_at = datetime.utcnow()
 
         db.add(queue)
+        await db.flush()  # Get the ID for foreign key references
+
+        # Add items separately if provided
+        items = []
+        for app_id in request.applicationIds:
+            item = AnalysisQueueItem()
+            item.id = uuid4()
+            item.queue_id = queue.id
+            item.application_id = app_id
+            item.status = ItemStatus.PENDING.value
+            item.created_at = datetime.utcnow()
+            item.updated_at = datetime.utcnow()
+
+            db.add(item)
+            items.append(item)
+
         await db.commit()
-        await db.refresh(queue)
 
         return {
             "id": str(queue.id),
             "name": queue.name,
-            "applicationIds": [item.application_id for item in queue.items],
+            "applicationIds": [item.application_id for item in items],
             "status": "pending",
             "progress": 0,
             "createdAt": queue.created_at.isoformat(),
@@ -151,7 +160,7 @@ async def create_analysis_queue(
             "currentApp": None,
         }
     except Exception as e:
-        logger.error(f"Error creating analysis queue: {str(e)}")
+        logger.error(f"Error creating analysis queue: {str(e)}", exc_info=True)
         await db.rollback()
         raise HTTPException(status_code=500, detail="Failed to create analysis queue")
 

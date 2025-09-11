@@ -6,7 +6,7 @@ import enum
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import UUID, Column, DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import UUID, Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -40,7 +40,7 @@ class AnalysisQueue(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = Column(String(255), nullable=False)
-    status = Column(Enum(QueueStatus), default=QueueStatus.PENDING, nullable=False)
+    status = Column(String(50), default=QueueStatus.PENDING.value, nullable=False)
 
     # Context fields
     client_id = Column(UUID(as_uuid=True), nullable=False)
@@ -48,9 +48,12 @@ class AnalysisQueue(Base):
     created_by = Column(UUID(as_uuid=True), nullable=False)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.utcnow(), nullable=False)
     updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        DateTime,
+        default=lambda: datetime.utcnow(),
+        onupdate=lambda: datetime.utcnow(),
+        nullable=False,
     )
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
@@ -59,6 +62,13 @@ class AnalysisQueue(Base):
     items = relationship(
         "AnalysisQueueItem", back_populates="queue", cascade="all, delete-orphan"
     )
+
+    # __table_args__ = (
+    #     CheckConstraint(
+    #         status.in_(['pending', 'processing', 'paused', 'completed', 'cancelled', 'failed']),
+    #         name='analysis_queues_status_check'
+    #     ),
+    # )
 
 
 class AnalysisQueueItem(Base):
@@ -69,11 +79,11 @@ class AnalysisQueueItem(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     queue_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("analysis_queues.id", ondelete="CASCADE"),
+        ForeignKey("migration.analysis_queues.id", ondelete="CASCADE"),
         nullable=False,
     )
     application_id = Column(String(255), nullable=False)
-    status = Column(Enum(ItemStatus), default=ItemStatus.PENDING, nullable=False)
+    status = Column(String(50), default=ItemStatus.PENDING.value, nullable=False)
 
     # Processing details
     started_at = Column(DateTime, nullable=True)
@@ -81,10 +91,20 @@ class AnalysisQueueItem(Base):
     error_message = Column(Text, nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.utcnow(), nullable=False)
     updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        DateTime,
+        default=lambda: datetime.utcnow(),
+        onupdate=lambda: datetime.utcnow(),
+        nullable=False,
     )
 
     # Relationships
     queue = relationship("AnalysisQueue", back_populates="items")
+
+    # __table_args__ = (
+    #     CheckConstraint(
+    #         status.in_(['pending', 'processing', 'completed', 'failed', 'cancelled']),
+    #         name='analysis_queue_items_status_check'
+    #     ),
+    # )

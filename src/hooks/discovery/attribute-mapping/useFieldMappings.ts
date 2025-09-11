@@ -1,5 +1,6 @@
 import { useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall } from '../../../config/api';
 import { apiClient } from '../../../lib/api/apiClient';
@@ -641,7 +642,7 @@ export const useFieldMappings = (
             }
 
             return {
-              id: crypto.randomUUID(), // Generate proper UUID
+              id: uuidv4(), // Generate proper UUID
               sourceField: (cleanSourceField === 'None' || isNumericIndex) ? 'Unknown Field' : cleanSourceField,
               targetAttribute: typeof targetField === 'string' ? targetField : String(targetField),
               confidence: fieldMappingData.confidence_scores?.[sourceField] || 0.5,
@@ -667,7 +668,7 @@ export const useFieldMappings = (
       if (fieldMappingData && fieldMappingData.mappings) {
         const mappingsObj = fieldMappingData.mappings;
         const flowStateMappings = Object.entries(mappingsObj).map(([sourceField, mapping]: [string, FieldMappingRecord]) => ({
-          id: crypto.randomUUID(), // Generate proper UUID
+          id: uuidv4(), // Generate proper UUID
           sourceField: mapping.source_column || sourceField,
           targetAttribute: mapping.asset_field || sourceField,
           confidence: (mapping.confidence || 0) / 100, // Convert to 0-1 range

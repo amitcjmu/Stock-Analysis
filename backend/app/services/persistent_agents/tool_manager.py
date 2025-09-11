@@ -309,6 +309,13 @@ class AgentToolManager:
                 service_registry = (
                     context_info.get("service_registry") if context_info else None
                 )
+                # Skip tools that require ServiceRegistry when none is available
+                if service_registry is None:
+                    logger.warning(
+                        f"Skipping {tool_name} - ServiceRegistry not available"
+                    )
+                    return 0
+
                 if "context_info" in params:
                     new_tools = getter(context_info, registry=service_registry)
                 else:

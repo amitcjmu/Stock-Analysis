@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useCallback } from 'react'
+import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiCall } from '@/config/api';
@@ -228,7 +229,7 @@ export const useFileUpload = (): JSX.Element => {
       console.log(`Parsed ${csvData.length} records from CSV file`);
 
       // Generate a proper UUID for the upload
-      const uploadId = crypto.randomUUID();
+      const uploadId = uuidv4();
 
       // Store data and trigger UnifiedDiscoveryFlow directly
       console.log('Storing data and triggering UnifiedDiscoveryFlow with validation_upload_id:', uploadId);

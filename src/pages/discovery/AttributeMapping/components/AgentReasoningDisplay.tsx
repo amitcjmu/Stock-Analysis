@@ -1,6 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect, useMemo } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 import {
   Brain,
   Zap,
@@ -114,7 +115,7 @@ export const AgentReasoningDisplay: React.FC<AgentReasoningDisplayProps> = ({
         }
 
         return {
-          id: mapping.id || crypto.randomUUID(),
+          id: mapping.id || uuidv4(),
           field: mapping.sourceField,
           targetAttribute: mapping.targetAttribute,
           confidence,
