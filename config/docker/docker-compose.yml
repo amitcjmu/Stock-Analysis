@@ -3,7 +3,7 @@ name: migration
 services:
   # PostgreSQL Database with pgvector
   postgres:
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg17  # Updated from pg16 to fix CVE-2025-8715, CVE-2025-8714, CVE-2025-8713
     container_name: migration_postgres
     environment:
       POSTGRES_DB: migration_db

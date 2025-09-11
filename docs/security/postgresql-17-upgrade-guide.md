@@ -46,23 +46,55 @@ All Docker Compose files have been updated:
 
 #### For Docker Deployments:
 ```bash
+# Navigate to project root directory
+cd /path/to/migrate-ui-orchestrator
+
 # 1. Stop the application
-docker-compose down
+docker-compose -f config/docker/docker-compose.yml down
 
 # 2. Backup existing data
-docker-compose run --rm postgres pg_dump -h postgres -U $DB_USER -d $DB_NAME > backup_$(date +%Y%m%d).sql
+docker-compose -f config/docker/docker-compose.yml exec postgres pg_dump -U postgres -d migration_db > backup_$(date +%Y%m%d_%H%M%S).sql
 
-# 3. Pull new PostgreSQL 17 image
+# Alternative backup if container is not running:
+docker-compose -f config/docker/docker-compose.yml run --rm postgres pg_dump -h postgres -U postgres -d migration_db > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# 3. Pull new PostgreSQL 17 images
 docker pull postgres:17-alpine
+docker pull postgres:17-bookworm
+docker pull pgvector/pgvector:pg17  # If using pgvector image
 
-# 4. Start with new PostgreSQL version
-docker-compose up -d postgres
+# 4. Update docker-compose.yml if using pgvector image
+# Change: image: pgvector/pgvector:pg16
+# To:     image: pgvector/pgvector:pg17
 
-# 5. Run migrations
-docker-compose run --rm backend alembic upgrade head
+# 5. Start with new PostgreSQL version
+docker-compose -f config/docker/docker-compose.yml up -d postgres
 
-# 6. Verify application functionality
-docker-compose up -d
+# 6. Wait for PostgreSQL to be ready
+docker-compose -f config/docker/docker-compose.yml exec postgres pg_isready -U postgres
+
+# 7. Run migrations
+docker-compose -f config/docker/docker-compose.yml exec backend alembic upgrade head
+
+# 8. Verify application functionality
+docker-compose -f config/docker/docker-compose.yml up -d
+
+# 9. Check logs for any issues
+docker-compose -f config/docker/docker-compose.yml logs -f postgres
+docker-compose -f config/docker/docker-compose.yml logs -f backend
+```
+
+#### For Production/Staging Environments:
+```bash
+# Use the appropriate compose file for your environment
+# Production:
+docker-compose -f config/docker/docker-compose.prod.yml [commands]
+
+# Staging:
+docker-compose -f config/docker/docker-compose.staging.yml [commands]
+
+# Secure environment:
+docker-compose -f config/docker/docker-compose.secure.yml [commands]
 ```
 
 #### For Cloud Deployments (Railway/AWS):
@@ -98,10 +130,24 @@ Benefits:
 ## Rollback Plan
 
 If issues occur:
-1. Stop the application
-2. Restore PostgreSQL 16 Docker image in compose files
-3. Restore database from backup
-4. Start application with PostgreSQL 16
+```bash
+# 1. Stop the application
+docker-compose -f config/docker/docker-compose.yml down
+
+# 2. Restore PostgreSQL 16 image in docker-compose.yml
+# Edit config/docker/docker-compose.yml:
+# Change: image: pgvector/pgvector:pg17
+# To:     image: pgvector/pgvector:pg16
+
+# 3. Start PostgreSQL 16
+docker-compose -f config/docker/docker-compose.yml up -d postgres
+
+# 4. Restore database from backup
+docker-compose -f config/docker/docker-compose.yml exec -T postgres psql -U postgres -d migration_db < backup_YYYYMMDD_HHMMSS.sql
+
+# 5. Restart application
+docker-compose -f config/docker/docker-compose.yml up -d
+```
 
 ## Support Timeline
 - PostgreSQL 17: Supported until November 2029
