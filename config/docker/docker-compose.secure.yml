@@ -80,7 +80,7 @@ services:
         condition: service_healthy
 
   db:
-    image: postgres:16-bookworm
+    image: postgres:17-bookworm  # Updated from 16 to fix CVE-2025-8715, CVE-2025-8714, CVE-2025-8713
     container_name: migration_db_secure
     restart: unless-stopped
 

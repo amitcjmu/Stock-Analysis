@@ -22,7 +22,7 @@ services:
 
   # OpenLIT Database
   openlit_db:
-    image: postgres:15-alpine
+    image: postgres:17-alpine  # Updated from 15 to fix CVE-2025-8715, CVE-2025-8714, CVE-2025-8713
     container_name: openlit_postgres
     environment:
       - POSTGRES_DB=openlit

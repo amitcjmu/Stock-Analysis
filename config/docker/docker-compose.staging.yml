@@ -240,7 +240,7 @@ services:
 
   # Database Backup Service (Staging)
   db_backup:
-    image: postgres:16-alpine
+    image: postgres:17-alpine  # Updated from 16 to fix CVE-2025-8715, CVE-2025-8714, CVE-2025-8713
     container_name: migration_backup_staging
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-migration_db_staging}
