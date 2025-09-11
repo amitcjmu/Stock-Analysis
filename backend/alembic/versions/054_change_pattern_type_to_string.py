@@ -53,10 +53,11 @@ def upgrade() -> None:
     )
 
     # Copy the enum values to the new column as strings
+    # CRITICAL FIX: Truncate values that exceed 100 characters to prevent migration failures
     op.execute(
         """
         UPDATE migration.agent_discovered_patterns
-        SET pattern_type_new = pattern_type::text
+        SET pattern_type_new = LEFT(pattern_type::text, 100)
         WHERE pattern_type IS NOT NULL;
     """
     )
@@ -92,6 +93,31 @@ def upgrade() -> None:
         ["pattern_type"],
         schema="migration",
     )
+
+    # CRITICAL FIX: Ensure the column is properly sized after conversion
+    # Check if any values exceed the expected length
+    check_result = connection.execute(
+        text(
+            """
+            SELECT COUNT(*) FROM migration.agent_discovered_patterns
+            WHERE LENGTH(pattern_type) > 50
+            """
+        )
+    ).fetchone()
+
+    if check_result and check_result[0] > 0:
+        print(
+            f"WARNING: Found {check_result[0]} pattern_type values longer than 50 characters"
+        )
+        # Truncate any values that are too long for compatibility with other tables
+        op.execute(
+            """
+            UPDATE migration.agent_discovered_patterns
+            SET pattern_type = LEFT(pattern_type, 50)
+            WHERE LENGTH(pattern_type) > 50
+            """
+        )
+        print("Truncated long pattern_type values to 50 characters")
 
     print("Successfully converted pattern_type from enum to string(100)")
 

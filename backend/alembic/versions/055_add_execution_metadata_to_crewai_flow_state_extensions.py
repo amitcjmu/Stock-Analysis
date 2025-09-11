@@ -32,17 +32,35 @@ def upgrade() -> None:
     )
 
     if not result.scalar():
-        # Add execution_metadata column to crewai_flow_state_extensions
+        # CRITICAL FIX: Add column without server_default first to avoid trigger issues
+        # Then update with default value separately
         op.add_column(
             "crewai_flow_state_extensions",
             sa.Column(
                 "execution_metadata",
                 postgresql.JSONB,
                 nullable=True,
-                server_default=sa.text("'{}'::jsonb"),
                 comment="Metadata about the execution of the flow, including timing, "
                 "agents used, and performance metrics.",
             ),
+            schema="migration",
+        )
+
+        # Set default value for existing rows separately
+        op.execute(
+            """
+            UPDATE migration.crewai_flow_state_extensions
+            SET execution_metadata = '{}'::jsonb
+            WHERE execution_metadata IS NULL
+            """
+        )
+
+        # Now add the default constraint for future rows
+        op.alter_column(
+            "crewai_flow_state_extensions",
+            "execution_metadata",
+            server_default=sa.text("'{}'::jsonb"),
+            schema="migration",
         )
 
 
