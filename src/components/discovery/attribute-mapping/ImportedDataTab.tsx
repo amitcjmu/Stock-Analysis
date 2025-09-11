@@ -17,8 +17,16 @@ import { apiCall } from '../../../config/api'
 import { useToast } from '../../../hooks/use-toast';
 import { useAuth } from '../../../contexts/AuthContext';
 
+interface SessionInfo {
+  flowId: string | null;
+  availableDataImports: any[];
+  selectedDataImportId: string | null;
+  hasMultipleSessions: boolean;
+}
+
 interface ImportedDataTabProps {
   className?: string;
+  sessionInfo?: SessionInfo;
 }
 
 interface ImportRecord {
@@ -37,7 +45,7 @@ interface ImportMetadata {
   total_records: number;
 }
 
-const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => {
+const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "", sessionInfo }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -48,7 +56,10 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
   const { toast } = useToast();
   const { client, engagement, getAuthHeaders } = useAuth();
 
-  // 🚀 React Query with context-aware caching
+  // Get flow_id from sessionInfo
+  const flow_id = sessionInfo?.flowId;
+
+  // 🚀 React Query with context-aware caching - now uses flow-specific endpoint
   const {
     data: importResponse,
     isLoading,
@@ -56,7 +67,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
     isStale,
     refetch
   } = useQuery({
-    queryKey: ['imported-data', client?.id, engagement?.id],
+    queryKey: ['imported-data', client?.id, engagement?.id, flow_id],
     queryFn: async () => {
       try {
         const headers = getAuthHeaders();
@@ -67,14 +78,23 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
           headers['X-Engagement-ID'] = engagement.id;
         }
 
-        return await apiCall('/api/v1/data-import/latest-import', {
-          method: 'GET',
-          headers
-        });
+        // Use flow-specific endpoint if flow_id is available
+        if (flow_id) {
+          return await apiCall(`/api/v1/data-import/flows/${flow_id}/import-data`, {
+            method: 'GET',
+            headers
+          });
+        } else {
+          // Fallback to latest-import endpoint if no flow_id
+          return await apiCall('/api/v1/data-import/latest-import', {
+            method: 'GET',
+            headers
+          });
+        }
       } catch (error: unknown) {
         // Handle 404 errors gracefully - endpoint may not exist yet
         if (error.status === 404 || error.response?.status === 404) {
-          console.log('Latest import endpoint not available yet');
+          console.log('Import endpoint not available yet');
           return { success: false, data: [], import_metadata: null, message: 'No data imports found' };
         }
         throw error;
@@ -98,9 +118,9 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
   const handleRefresh = async (): void => {
     setIsRefreshing(true);
     try {
-      // 1. Clear React Query cache for imported data with context
+      // 1. Clear React Query cache for imported data with context and flow_id
       queryClient.removeQueries({
-        queryKey: ['imported-data', client?.id, engagement?.id]
+        queryKey: ['imported-data', client?.id, engagement?.id, flow_id]
       });
 
       // 2. Call backend to clear SQLAlchemy cache with context headers
@@ -235,6 +255,28 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
         <div className="flex items-center justify-center py-8">
           <Database className="w-6 h-6 animate-pulse text-blue-500 mr-2" />
           <span className="text-gray-600">Loading context...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Show informative message if no flow_id is available
+  if (!flow_id) {
+    return (
+      <div className={`bg-white rounded-lg border shadow-sm p-6 ${className}`}>
+        <div className="flex flex-col items-center justify-center py-8">
+          <div className="flex items-center text-gray-600 mb-4">
+            <Database className="w-8 h-8 mr-3 text-gray-400" />
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Flow Context Required</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                A discovery flow ID is required to display imported data.
+              </p>
+              <p className="text-xs text-gray-400">
+                Please start a discovery flow first or navigate from a valid flow context.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );

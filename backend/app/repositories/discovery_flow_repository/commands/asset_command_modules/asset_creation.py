@@ -31,33 +31,11 @@ class AssetCreationCommands(AssetCommandsBase):
         """Create multiple assets from discovery data"""
         created_assets = []
 
-        # 🔧 CC FIX: Get master_flow_id from discovery flow before creating assets
+        # 🔧 CC FIX: Get master_flow_id and internal discovery flow ID from discovery flow before creating assets
         # This ensures assets have both discovery_flow_id AND master_flow_id set correctly
-        master_flow_id = None
-        try:
-            discovery_flow_query = select(DiscoveryFlow).where(
-                and_(
-                    DiscoveryFlow.id == discovery_flow_id,
-                    DiscoveryFlow.client_account_id == self.client_account_id,
-                    DiscoveryFlow.engagement_id == self.engagement_id,
-                )
-            )
-            result = await self.db.execute(discovery_flow_query)
-            discovery_flow = result.scalar_one_or_none()
-
-            if discovery_flow and discovery_flow.master_flow_id:
-                master_flow_id = discovery_flow.master_flow_id
-                logger.info(
-                    f"✅ Found master_flow_id: {master_flow_id} for discovery_flow_id: {discovery_flow_id}"
-                )
-            else:
-                logger.warning(
-                    f"⚠️ No master_flow_id found for discovery_flow_id: {discovery_flow_id}"
-                )
-        except Exception as e:
-            logger.error(
-                f"❌ Failed to get master_flow_id for discovery_flow_id {discovery_flow_id}: {e}"
-            )
+        master_flow_id, internal_discovery_flow_id = await self._get_master_flow_id(
+            discovery_flow_id
+        )
 
         for asset_data in asset_data_list:
             try:
@@ -126,7 +104,7 @@ class AssetCreationCommands(AssetCommandsBase):
                     migration_wave=normalized_data.get(
                         "migration_wave", custom_attributes.get("migration_wave")
                     ),
-                    discovery_flow_id=discovery_flow_id,  # Keep as UUID
+                    discovery_flow_id=internal_discovery_flow_id,  # CRITICAL FIX: Use internal DB ID
                     master_flow_id=master_flow_id,  # 🔧 CC FIX: Set master_flow_id from discovery flow
                     discovery_method="flow_based",
                     discovery_source="Discovery Flow",
@@ -180,8 +158,10 @@ class AssetCreationCommands(AssetCommandsBase):
         """
         created_assets = []
 
-        # Get master_flow_id from discovery flow before creating assets
-        master_flow_id = await self._get_master_flow_id(discovery_flow_id)
+        # Get master_flow_id and internal discovery flow ID from discovery flow before creating assets
+        master_flow_id, internal_discovery_flow_id = await self._get_master_flow_id(
+            discovery_flow_id
+        )
 
         for asset_data in asset_data_list:
             try:
@@ -236,7 +216,7 @@ class AssetCreationCommands(AssetCommandsBase):
                     application_name=normalized_data.get("application_name"),
                     six_r_strategy=normalized_data.get("six_r_strategy"),
                     migration_wave=normalized_data.get("migration_wave"),
-                    discovery_flow_id=discovery_flow_id,
+                    discovery_flow_id=internal_discovery_flow_id,  # CRITICAL FIX: Use internal DB ID
                     master_flow_id=master_flow_id,
                     discovery_method="flow_based",
                     discovery_source="Discovery Flow",
@@ -264,12 +244,16 @@ class AssetCreationCommands(AssetCommandsBase):
 
         return created_assets
 
-    async def _get_master_flow_id(self, discovery_flow_id: uuid.UUID) -> uuid.UUID:
-        """Get master_flow_id from discovery flow"""
+    async def _get_master_flow_id(
+        self, discovery_flow_id: uuid.UUID
+    ) -> tuple[uuid.UUID, uuid.UUID]:
+        """Get master_flow_id and internal discovery flow ID from discovery flow"""
         try:
+            # CRITICAL FIX: Query by flow_id (external UUID) to get internal id and master_flow_id
             discovery_flow_query = select(DiscoveryFlow).where(
                 and_(
-                    DiscoveryFlow.id == discovery_flow_id,
+                    DiscoveryFlow.flow_id
+                    == discovery_flow_id,  # Use flow_id for external UUID
                     DiscoveryFlow.client_account_id == self.client_account_id,
                     DiscoveryFlow.engagement_id == self.engagement_id,
                 )
@@ -277,16 +261,22 @@ class AssetCreationCommands(AssetCommandsBase):
             result = await self.db.execute(discovery_flow_query)
             discovery_flow = result.scalar_one_or_none()
 
-            if discovery_flow and discovery_flow.master_flow_id:
-                return discovery_flow.master_flow_id
+            if discovery_flow:
+                master_flow_id = discovery_flow.master_flow_id
+                internal_discovery_flow_id = discovery_flow.id  # Internal database ID
+                logger.info(
+                    f"✅ Found master_flow_id: {master_flow_id} and internal_id: "
+                    f"{internal_discovery_flow_id} for flow_id: {discovery_flow_id}"
+                )
+                return master_flow_id, internal_discovery_flow_id
 
             logger.warning(
-                f"⚠️ No master_flow_id found for discovery_flow_id: {discovery_flow_id}"
+                f"⚠️ No discovery flow found for flow_id: {discovery_flow_id}"
             )
-            return None
+            return None, None
 
         except Exception as e:
             logger.error(
-                f"❌ Failed to get master_flow_id for discovery_flow_id {discovery_flow_id}: {e}"
+                f"❌ Failed to get flow data for discovery_flow_id {discovery_flow_id}: {e}"
             )
-            return None
+            return None, None
