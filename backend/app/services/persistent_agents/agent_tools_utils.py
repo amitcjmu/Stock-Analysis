@@ -135,19 +135,34 @@ def add_discovery_tools(context_info: Dict[str, Any], tools: List) -> int:
     """
     tools_added = 0
 
+    # Extract service_registry from context_info if available
+    service_registry = context_info.get("service_registry")
+
     # Asset creation tools
     tools_added += safe_extend_tools(
-        tools, create_asset_creation_tools, "asset_creation_tools"
+        tools,
+        create_asset_creation_tools,
+        "asset_creation_tools",
+        context_info,
+        service_registry,
     )
 
     # Data validation tools
     tools_added += safe_extend_tools(
-        tools, create_data_validation_tools, "data_validation_tools"
+        tools,
+        create_data_validation_tools,
+        "data_validation_tools",
+        context_info,
+        service_registry,
     )
 
     # Critical attributes tools
     tools_added += safe_extend_tools(
-        tools, create_critical_attributes_tools, "critical_attributes_tools"
+        tools,
+        create_critical_attributes_tools,
+        "critical_attributes_tools",
+        context_info,
+        service_registry,
     )
 
     return tools_added
@@ -165,14 +180,25 @@ def add_gap_analysis_tools(context_info: Dict[str, Any], tools: List) -> int:
     """
     tools_added = 0
 
+    # Extract service_registry from context_info if available
+    service_registry = context_info.get("service_registry")
+
     # Data validation tools
     tools_added += safe_extend_tools(
-        tools, create_data_validation_tools, "data_validation_tools"
+        tools,
+        create_data_validation_tools,
+        "data_validation_tools",
+        context_info,
+        service_registry,
     )
 
     # Critical attributes tools
     tools_added += safe_extend_tools(
-        tools, create_critical_attributes_tools, "critical_attributes_tools"
+        tools,
+        create_critical_attributes_tools,
+        "critical_attributes_tools",
+        context_info,
+        service_registry,
     )
 
     return tools_added
@@ -190,9 +216,16 @@ def add_business_analysis_tools(context_info: Dict[str, Any], tools: List) -> in
     """
     tools_added = 0
 
+    # Extract service_registry from context_info if available
+    service_registry = context_info.get("service_registry")
+
     # Task completion tools
     tools_added += safe_extend_tools(
-        tools, create_task_completion_tools, "task_completion_tools"
+        tools,
+        create_task_completion_tools,
+        "task_completion_tools",
+        context_info,
+        service_registry,
     )
 
     # Mapping confidence tools
@@ -219,9 +252,16 @@ def add_quality_tools(context_info: Dict[str, Any], tools: List) -> int:
     """
     tools_added = 0
 
+    # Extract service_registry from context_info if available
+    service_registry = context_info.get("service_registry")
+
     # Data validation tools
     tools_added += safe_extend_tools(
-        tools, create_data_validation_tools, "data_validation_tools"
+        tools,
+        create_data_validation_tools,
+        "data_validation_tools",
+        context_info,
+        service_registry,
     )
 
     return tools_added
@@ -239,26 +279,45 @@ def add_dependency_tools(context_info: Dict[str, Any], tools: List) -> int:
     """
     tools_added = 0
 
+    # Extract service_registry from context_info if available
+    service_registry = context_info.get("service_registry")
+
     # Dependency analysis tools
     tools_added += safe_extend_tools(
-        tools, create_dependency_analysis_tools, "dependency_analysis_tools"
+        tools,
+        create_dependency_analysis_tools,
+        "dependency_analysis_tools",
+        context_info,
+        service_registry,
     )
 
     # Asset intelligence tools
     tools_added += safe_extend_tools(
-        tools, get_asset_intelligence_tools, "asset_intelligence_tools"
+        tools,
+        get_asset_intelligence_tools,
+        "asset_intelligence_tools",
+        context_info,
+        service_registry,
     )
 
     return tools_added
 
 
-def safe_extend_tools(tools: List, getter, tool_name: str = "tools") -> int:
+def safe_extend_tools(
+    tools: List,
+    getter,
+    tool_name: str = "tools",
+    context_info: Dict[str, Any] = None,
+    service_registry: Optional["ServiceRegistry"] = None,
+) -> int:
     """Safely extend tools list with tools from a getter function.
 
     Args:
         tools: List to extend
         getter: Function to get tools
         tool_name: Name of tools for logging
+        context_info: Optional context information
+        service_registry: Optional service registry for tools that require it
 
     Returns:
         Number of tools added
@@ -267,7 +326,26 @@ def safe_extend_tools(tools: List, getter, tool_name: str = "tools") -> int:
         return 0
 
     try:
-        new_tools = getter()
+        # Check if getter function requires registry parameter (for new tool pattern)
+        import inspect
+
+        sig = inspect.signature(getter)
+        params = sig.parameters
+
+        # Call getter with appropriate parameters based on its signature
+        if "registry" in params:
+            # New pattern: requires registry parameter
+            if "context_info" in params:
+                new_tools = getter(context_info, registry=service_registry)
+            else:
+                new_tools = getter(registry=service_registry)
+        elif "context_info" in params and context_info is not None:
+            # Legacy pattern: takes context_info
+            new_tools = getter(context_info)
+        else:
+            # Simple pattern: no parameters
+            new_tools = getter()
+
         if new_tools:
             if isinstance(new_tools, list):
                 tools.extend(new_tools)
@@ -303,11 +381,12 @@ def get_agent_tools(
     """
     tools = []
 
-    # Extract context information for tools
+    # Extract context information for tools, including service_registry
     context_info = {
         "client_id": client_id,
         "engagement_id": engagement_id,
         "agent_type": agent_type,
+        "service_registry": service_registry,
     }
 
     # Add tools using service registry if available

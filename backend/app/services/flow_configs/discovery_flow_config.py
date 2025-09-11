@@ -46,7 +46,7 @@ def get_discovery_flow_config() -> FlowTypeConfig:
             supports_real_time_monitoring=True,
             supports_dynamic_scaling=True,
         ),
-        flow_metadata={
+        metadata={
             "max_parallel_phases": 3,
             "estimated_total_duration_minutes": 60,
             "resource_requirements": {
