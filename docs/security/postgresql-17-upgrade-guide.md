@@ -44,44 +44,73 @@ All Docker Compose files have been updated:
 
 ### 3. Database Migration Process
 
-#### For Docker Deployments:
+#### ⚠️ IMPORTANT: Data Directory Incompatibility
+PostgreSQL 17 cannot directly use a PostgreSQL 16 data directory. You must perform a proper data migration.
+
+#### Automated Migration (Recommended):
 ```bash
 # Navigate to project root directory
 cd /path/to/migrate-ui-orchestrator
 
-# 1. Stop the application
+# Run the automated migration script
+./scripts/migrate-postgres-17.sh
+
+# This script will:
+# 1. Backup your PostgreSQL 16 data
+# 2. Remove the old data directory
+# 3. Initialize a new PostgreSQL 17 data directory
+# 4. Restore your data to PostgreSQL 17
+# 5. Run Alembic migrations
+# 6. Start all services
+```
+
+#### Manual Migration Steps:
+```bash
+# Navigate to project root directory
+cd /path/to/migrate-ui-orchestrator
+
+# 1. First, ensure PostgreSQL 16 is running to backup data
+# Temporarily revert docker-compose.yml to use pg16 if already changed
+sed -i.bak 's|pgvector/pgvector:pg17|pgvector/pgvector:pg16|g' config/docker/docker-compose.yml
+
+# 2. Start PostgreSQL 16 and backup ALL data
+docker-compose -f config/docker/docker-compose.yml up -d postgres
+sleep 5
+docker-compose -f config/docker/docker-compose.yml exec postgres pg_dumpall -U postgres > backup_pg16_$(date +%Y%m%d_%H%M%S).sql
+
+# 3. Stop all containers
 docker-compose -f config/docker/docker-compose.yml down
 
-# 2. Backup existing data
-docker-compose -f config/docker/docker-compose.yml exec postgres pg_dump -U postgres -d migration_db > backup_$(date +%Y%m%d_%H%M%S).sql
+# 4. Remove the PostgreSQL 16 data volume (CRITICAL STEP)
+docker volume rm migration_postgres_data
 
-# Alternative backup if container is not running:
-docker-compose -f config/docker/docker-compose.yml run --rm postgres pg_dump -h postgres -U postgres -d migration_db > backup_$(date +%Y%m%d_%H%M%S).sql
+# 5. Restore docker-compose.yml to use PostgreSQL 17
+mv config/docker/docker-compose.yml.bak config/docker/docker-compose.yml
+# Or manually ensure it uses: pgvector/pgvector:pg17
 
-# 3. Pull new PostgreSQL 17 images
-docker pull postgres:17-alpine
-docker pull postgres:17-bookworm
-docker pull pgvector/pgvector:pg17  # If using pgvector image
+# 6. Pull new PostgreSQL 17 image
+docker pull pgvector/pgvector:pg17
 
-# 4. Update docker-compose.yml if using pgvector image
-# Change: image: pgvector/pgvector:pg16
-# To:     image: pgvector/pgvector:pg17
-
-# 5. Start with new PostgreSQL version
+# 7. Start PostgreSQL 17 (will create new data directory)
 docker-compose -f config/docker/docker-compose.yml up -d postgres
 
-# 6. Wait for PostgreSQL to be ready
+# 8. Wait for PostgreSQL 17 to initialize (important!)
+sleep 10
 docker-compose -f config/docker/docker-compose.yml exec postgres pg_isready -U postgres
 
-# 7. Run migrations
+# 9. Restore data to PostgreSQL 17
+docker-compose -f config/docker/docker-compose.yml exec -T postgres psql -U postgres < backup_pg16_*.sql
+
+# 10. Start backend and run migrations
+docker-compose -f config/docker/docker-compose.yml up -d backend
+sleep 5
 docker-compose -f config/docker/docker-compose.yml exec backend alembic upgrade head
 
-# 8. Verify application functionality
+# 11. Start all services
 docker-compose -f config/docker/docker-compose.yml up -d
 
-# 9. Check logs for any issues
-docker-compose -f config/docker/docker-compose.yml logs -f postgres
-docker-compose -f config/docker/docker-compose.yml logs -f backend
+# 12. Verify PostgreSQL version
+docker-compose -f config/docker/docker-compose.yml exec postgres psql -U postgres -c "SELECT version();"
 ```
 
 #### For Production/Staging Environments:
