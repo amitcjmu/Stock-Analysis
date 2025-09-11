@@ -301,16 +301,55 @@ class SimpleFlowRouter:
 
     async def _check_attributes_mapped(self, flow_id: str) -> bool:
         """Check if attributes have been mapped"""
-        # Simplified check - would query attribute mapping tables
-        return False
+        from app.models.data_import.mapping import ImportFieldMapping
+        from sqlalchemy import select
+
+        # Check if there are any approved field mappings for this flow
+        result = await self.db.execute(
+            select(ImportFieldMapping)
+            .where(ImportFieldMapping.master_flow_id == flow_id)
+            .where(ImportFieldMapping.is_approved.is_(True))
+            .limit(1)
+        )
+        return result.scalar_one_or_none() is not None
 
     async def _check_data_cleansed(self, flow_id: str) -> bool:
         """Check if data cleansing is complete"""
-        return False
+        from app.models.discovery_flow import DiscoveryFlow
+        from sqlalchemy import select
+
+        # Check if the discovery flow has completed data cleansing
+        result = await self.db.execute(
+            select(DiscoveryFlow)
+            .where(DiscoveryFlow.id == flow_id)
+            .where(
+                DiscoveryFlow.current_phase.in_(
+                    [
+                        "data_cleansing",
+                        "inventory",
+                        "dependencies",
+                        "tech_debt",
+                        "completed",
+                    ]
+                )
+            )
+            .limit(1)
+        )
+        return result.scalar_one_or_none() is not None
 
     async def _check_inventory_complete(self, flow_id: str) -> bool:
         """Check if inventory phase is complete"""
-        return False
+        from app.models.asset import Asset
+        from sqlalchemy import select
+
+        # Check if assets have been created and validated
+        result = await self.db.execute(
+            select(Asset)
+            .where(Asset.discovery_flow_id == flow_id)
+            .where(Asset.validation_status == "validated")
+            .limit(1)
+        )
+        return result.scalar_one_or_none() is not None
 
     async def _check_dependencies_analyzed(self, flow_id: str) -> bool:
         """Check if dependencies have been analyzed"""

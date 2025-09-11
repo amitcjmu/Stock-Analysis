@@ -67,6 +67,37 @@ async def approve_field_mappings(
                 }
             )
 
+        # Check for phase transition after approval
+        if request.approved and bulk_result["updated_mappings"] > 0:
+            # Get the flow ID from one of the updated mappings
+            if bulk_result["updated_ids"]:
+                from app.models.data_import.mapping import ImportFieldMapping
+                from sqlalchemy import select
+
+                # Get flow ID from first mapping
+                first_mapping = await service.db.execute(
+                    select(ImportFieldMapping.master_flow_id).where(
+                        ImportFieldMapping.id == bulk_result["updated_ids"][0]
+                    )
+                )
+                flow_id = first_mapping.scalar_one_or_none()
+
+                if flow_id:
+                    # Check and perform phase transition
+                    from app.services.discovery.phase_transition_service import (
+                        DiscoveryPhaseTransitionService,
+                    )
+
+                    transition_service = DiscoveryPhaseTransitionService(service.db)
+                    next_phase = await transition_service.check_and_transition_from_attribute_mapping(
+                        str(flow_id)
+                    )
+
+                    if next_phase:
+                        logger.info(
+                            f"✅ Phase transition triggered: flow {flow_id} -> {next_phase}"
+                        )
+
         return {
             "total_mappings": bulk_result["total_mappings"],
             "successful_updates": bulk_result["updated_mappings"],
@@ -97,6 +128,36 @@ async def approve_single_mapping(
     try:
         update_data = FieldMappingUpdate(is_approved=approved)
         updated_mapping = await service.update_field_mapping(mapping_id, update_data)
+
+        # Check for phase transition after approval
+        if approved and updated_mapping:
+            # Get the flow ID from the updated mapping
+            from app.models.data_import.mapping import ImportFieldMapping
+            from sqlalchemy import select
+
+            # Get flow ID from mapping
+            result = await service.db.execute(
+                select(ImportFieldMapping.master_flow_id).where(
+                    ImportFieldMapping.id == mapping_id
+                )
+            )
+            flow_id = result.scalar_one_or_none()
+
+            if flow_id:
+                # Check and perform phase transition
+                from app.services.discovery.phase_transition_service import (
+                    DiscoveryPhaseTransitionService,
+                )
+
+                transition_service = DiscoveryPhaseTransitionService(service.db)
+                next_phase = await transition_service.check_and_transition_from_attribute_mapping(
+                    str(flow_id)
+                )
+
+                if next_phase:
+                    logger.info(
+                        f"✅ Phase transition triggered: flow {flow_id} -> {next_phase}"
+                    )
 
         return {
             "mapping_id": mapping_id,
