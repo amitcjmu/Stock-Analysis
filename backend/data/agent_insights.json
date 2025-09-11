@@ -19237,9 +19237,9 @@
     },
     "page": "flow_cf038071-1462-4d69-b332-0b5b88a43053",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "cf038071-1462-4d69-b332-0b5b88a43053",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-09-11T16:20:46.153079",
     "user_feedback": null,
     "is_validated": false
@@ -19259,9 +19259,9 @@
     },
     "page": "flow_cf038071-1462-4d69-b332-0b5b88a43053",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "cf038071-1462-4d69-b332-0b5b88a43053",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-09-11T16:20:46.330143",
     "user_feedback": null,
     "is_validated": false
@@ -19282,9 +19282,9 @@
     },
     "page": "flow_cf038071-1462-4d69-b332-0b5b88a43053",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "cf038071-1462-4d69-b332-0b5b88a43053",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-09-11T16:20:46.374813",
     "user_feedback": null,
     "is_validated": false
@@ -20008,9 +20008,9 @@
     },
     "page": "flow_cf038071-1462-4d69-b332-0b5b88a43053",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "cf038071-1462-4d69-b332-0b5b88a43053",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-09-11T16:20:46.398410",
     "user_feedback": null,
     "is_validated": false
@@ -20214,10 +20214,657 @@
     },
     "page": "flow_cf038071-1462-4d69-b332-0b5b88a43053",
     "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-09-11T16:20:46.502333",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "3b3d73fa-0969-4133-addf-af59120ff759": {
+    "id": "3b3d73fa-0969-4133-addf-af59120ff759",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID 923100ed-3bd0-4297-a8af-0a47cc274bde",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "923100ed-3bd0-4297-a8af-0a47cc274bde"
+    },
+    "page": "flow_923100ed-3bd0-4297-a8af-0a47cc274bde",
+    "actionable": true,
     "client_account_id": "11111111-1111-1111-1111-111111111111",
     "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "cf038071-1462-4d69-b332-0b5b88a43053",
-    "created_at": "2025-09-11T16:20:46.502333",
+    "flow_id": "923100ed-3bd0-4297-a8af-0a47cc274bde",
+    "created_at": "2025-09-11T19:08:46.631617",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "6351deea-c57d-410b-a29a-1a97a936e2f2": {
+    "id": "6351deea-c57d-410b-a29a-1a97a936e2f2",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_923100ed-3bd0-4297-a8af-0a47cc274bde",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "923100ed-3bd0-4297-a8af-0a47cc274bde",
+    "created_at": "2025-09-11T19:08:46.877975",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "c2ee3ea1-2203-4ba4-a46a-05421fcfbbb0": {
+    "id": "c2ee3ea1-2203-4ba4-a46a-05421fcfbbb0",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_923100ed-3bd0-4297-a8af-0a47cc274bde",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "923100ed-3bd0-4297-a8af-0a47cc274bde",
+    "created_at": "2025-09-11T19:08:46.915627",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "584fa9a5-91f2-4a00-b177-c6ef05679410": {
+    "id": "584fa9a5-91f2-4a00-b177-c6ef05679410",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "923100ed-3bd0-4297-a8af-0a47cc274bde",
+      "is_valid": true,
+      "validation_passed": true,
+      "timestamp": "2025-09-11T19:08:46.912429",
+      "total_records": 5,
+      "validation_summary": {
+        "structure_valid": true,
+        "pii_detected": false,
+        "security_threats": false,
+        "type_validation_score": 1.0,
+        "source_valid": false,
+        "overall_quality_score": 0.875
+      },
+      "structure_validation": {
+        "is_valid": true,
+        "record_count": 5,
+        "field_count": 15,
+        "sample_fields": [
+          "CPU Cores",
+          "IP Address",
+          "Memory (GB)",
+          "Server Name",
+          "AWS Readiness",
+          "License Model",
+          "Workload Type",
+          "Disk Size (GB)",
+          "Operating System",
+          "Application Group"
+        ],
+        "structure_analysis": {
+          "valid_format": true,
+          "has_fields": true,
+          "consistent_structure": true
+        }
+      },
+      "pii_detection": {
+        "pii_detected": false,
+        "pii_types": [],
+        "confidence": 0.1,
+        "recommendation": "No immediate PII concerns"
+      },
+      "security_scan": {
+        "malicious_content_detected": false,
+        "detected_patterns": [],
+        "scanned_records": 5,
+        "recommendation": "Content appears safe"
+      },
+      "data_type_validation": {
+        "quality_score": 1.0,
+        "type_analysis": {
+          "CPU Cores": {
+            "type": "str",
+            "valid": true
+          },
+          "IP Address": {
+            "type": "str",
+            "valid": true
+          },
+          "Memory (GB)": {
+            "type": "str",
+            "valid": true
+          },
+          "Server Name": {
+            "type": "str",
+            "valid": true
+          },
+          "AWS Readiness": {
+            "type": "str",
+            "valid": true
+          },
+          "License Model": {
+            "type": "str",
+            "valid": true
+          },
+          "Workload Type": {
+            "type": "str",
+            "valid": true
+          },
+          "Disk Size (GB)": {
+            "type": "str",
+            "valid": true
+          },
+          "Operating System": {
+            "type": "str",
+            "valid": true
+          },
+          "Application Group": {
+            "type": "str",
+            "valid": true
+          },
+          "Network Interfaces": {
+            "type": "str",
+            "valid": true
+          },
+          "CPU Utilization (%)": {
+            "type": "str",
+            "valid": true
+          },
+          "Memory Utilization (%)": {
+            "type": "str",
+            "valid": true
+          },
+          "Recommended AWS Instance Type": {
+            "type": "str",
+            "valid": true
+          },
+          "Estimated Monthly AWS Cost (USD)": {
+            "type": "str",
+            "valid": true
+          }
+        }
+      },
+      "source_validation": {
+        "is_valid": false,
+        "has_source_info": false,
+        "source_info": {},
+        "validation_notes": [
+          "No source information provided"
+        ]
+      },
+      "validated_data": [
+        {
+          "CPU Cores": "8",
+          "IP Address": "192.168.1.30",
+          "Memory (GB)": "32",
+          "Server Name": "OG-ME-SRV01",
+          "AWS Readiness": "Ready",
+          "License Model": "Bring Your Own License (BYOL)",
+          "Workload Type": "Seismic Data Processing",
+          "Disk Size (GB)": "1000",
+          "Operating System": "Windows Server 2019",
+          "Application Group": "Geoscience",
+          "Network Interfaces": "1",
+          "CPU Utilization (%)": "70",
+          "Memory Utilization (%)": "65",
+          "Recommended AWS Instance Type": "t3.xlarge",
+          "Estimated Monthly AWS Cost (USD)": "420.00"
+        },
+        {
+          "CPU Cores": "16",
+          "IP Address": "192.168.1.31",
+          "Memory (GB)": "64",
+          "Server Name": "OG-ME-SRV02",
+          "AWS Readiness": "Ready",
+          "License Model": "None",
+          "Workload Type": "Reservoir Simulation",
+          "Disk Size (GB)": "2000",
+          "Operating System": "Linux Red Hat 8",
+          "Application Group": "Simulation",
+          "Network Interfaces": "2",
+          "CPU Utilization (%)": "80",
+          "Memory Utilization (%)": "75",
+          "Recommended AWS Instance Type": "m5.4xlarge",
+          "Estimated Monthly AWS Cost (USD)": "720.00"
+        },
+        {
+          "CPU Cores": "4",
+          "IP Address": "192.168.1.32",
+          "Memory (GB)": "16",
+          "Server Name": "OG-ME-SRV03",
+          "AWS Readiness": "Conditionally Ready",
+          "License Model": "License Included (LI)",
+          "Workload Type": "SCADA System",
+          "Disk Size (GB)": "500",
+          "Operating System": "Windows Server 2016",
+          "Application Group": "Operations",
+          "Network Interfaces": "1",
+          "CPU Utilization (%)": "50",
+          "Memory Utilization (%)": "55",
+          "Recommended AWS Instance Type": "t3.large",
+          "Estimated Monthly AWS Cost (USD)": "160.00"
+        },
+        {
+          "CPU Cores": "8",
+          "IP Address": "192.168.1.33",
+          "Memory (GB)": "32",
+          "Server Name": "OG-ME-SRV04",
+          "AWS Readiness": "Ready",
+          "License Model": "None",
+          "Workload Type": "File Server",
+          "Disk Size (GB)": "750",
+          "Operating System": "Linux Ubuntu 20.04",
+          "Application Group": "Enterprise",
+          "Network Interfaces": "1",
+          "CPU Utilization (%)": "60",
+          "Memory Utilization (%)": "60",
+          "Recommended AWS Instance Type": "m5.2xlarge",
+          "Estimated Monthly AWS Cost (USD)": "360.00"
+        },
+        {
+          "CPU Cores": "12",
+          "IP Address": "192.168.1.34",
+          "Memory (GB)": "48",
+          "Server Name": "OG-ME-SRV05",
+          "AWS Readiness": "Not Ready",
+          "License Model": "Incompatible",
+          "Workload Type": "Legacy ERP",
+          "Disk Size (GB)": "1500",
+          "Operating System": "Windows Server 2012 R2",
+          "Application Group": "Finance",
+          "Network Interfaces": "2",
+          "CPU Utilization (%)": "85",
+          "Memory Utilization (%)": "80",
+          "Recommended AWS Instance Type": "Not Applicable",
+          "Estimated Monthly AWS Cost (USD)": "0.00"
+        }
+      ],
+      "validator": "DataImportValidationExecutor",
+      "validation_version": "1.0",
+      "engagement_id": "22222222-2222-2222-2222-222222222222",
+      "client_account_id": "11111111-1111-1111-1111-111111111111",
+      "file_analysis": {
+        "detected_type": "server_inventory",
+        "confidence": 0.842857142857143,
+        "recommended_agent": "Server_Classification_Expert",
+        "analysis_details": {
+          "field_count": 15,
+          "record_count": 5,
+          "type_scores": {
+            "server_inventory": 0.842857142857143,
+            "application_inventory": 0.25,
+            "network_inventory": 0.09090909090909091,
+            "security_inventory": 0.08333333333333333,
+            "monitoring_data": 0.0,
+            "asset_management": 0.08333333333333333,
+            "cmdb_export": 0.4727272727272727
+          },
+          "field_analysis": {
+            "total_fields": 15,
+            "sample_fields": [
+              "CPU Cores",
+              "IP Address",
+              "Memory (GB)",
+              "Server Name",
+              "AWS Readiness",
+              "License Model",
+              "Workload Type",
+              "Disk Size (GB)",
+              "Operating System",
+              "Application Group"
+            ]
+          },
+          "detection_confidence": 0.842857142857143,
+          "alternative_types": [
+            {
+              "type": "server_inventory",
+              "score": 0.842857142857143
+            },
+            {
+              "type": "cmdb_export",
+              "score": 0.4727272727272727
+            },
+            {
+              "type": "application_inventory",
+              "score": 0.25
+            }
+          ]
+        }
+      },
+      "user_report": {
+        "report_id": "validation_20250911_190846",
+        "timestamp": "2025-09-11T19:08:46.914132",
+        "summary": {
+          "status": "PASSED",
+          "message": "\u2705 Validation Passed",
+          "total_records": 5,
+          "quality_score": "87.5%",
+          "file_type": "server_inventory",
+          "confidence": "84%",
+          "recommended_agent": "Server_Classification_Expert"
+        },
+        "findings": [
+          {
+            "category": "Data Structure",
+            "status": "PASSED",
+            "message": "Valid data structure with 5 records",
+            "details": {
+              "is_valid": true,
+              "record_count": 5,
+              "field_count": 15,
+              "sample_fields": [
+                "CPU Cores",
+                "IP Address",
+                "Memory (GB)",
+                "Server Name",
+                "AWS Readiness",
+                "License Model",
+                "Workload Type",
+                "Disk Size (GB)",
+                "Operating System",
+                "Application Group"
+              ],
+              "structure_analysis": {
+                "valid_format": true,
+                "has_fields": true,
+                "consistent_structure": true
+              }
+            }
+          },
+          {
+            "category": "Privacy (PII)",
+            "status": "PASSED",
+            "message": "No PII detected in sample data",
+            "details": {
+              "pii_detected": false,
+              "pii_types": [],
+              "confidence": 0.1,
+              "recommendation": "No immediate PII concerns"
+            }
+          },
+          {
+            "category": "Security",
+            "status": "PASSED",
+            "message": "No security threats detected",
+            "details": {
+              "malicious_content_detected": false,
+              "detected_patterns": [],
+              "scanned_records": 5,
+              "recommendation": "Content appears safe"
+            }
+          },
+          {
+            "category": "Data Types",
+            "status": "PASSED",
+            "message": "Data type quality: 100.0%",
+            "details": {
+              "quality_score": 1.0,
+              "type_analysis": {
+                "CPU Cores": {
+                  "type": "str",
+                  "valid": true
+                },
+                "IP Address": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Memory (GB)": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Server Name": {
+                  "type": "str",
+                  "valid": true
+                },
+                "AWS Readiness": {
+                  "type": "str",
+                  "valid": true
+                },
+                "License Model": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Workload Type": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Disk Size (GB)": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Operating System": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Application Group": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Network Interfaces": {
+                  "type": "str",
+                  "valid": true
+                },
+                "CPU Utilization (%)": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Memory Utilization (%)": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Recommended AWS Instance Type": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Estimated Monthly AWS Cost (USD)": {
+                  "type": "str",
+                  "valid": true
+                }
+              }
+            }
+          },
+          {
+            "category": "Data Source",
+            "status": "WARNING",
+            "message": "Limited source information available",
+            "details": {
+              "is_valid": false,
+              "has_source_info": false,
+              "source_info": {},
+              "validation_notes": [
+                "No source information provided"
+              ]
+            }
+          }
+        ],
+        "recommendations": [
+          {
+            "priority": "HIGH",
+            "category": "Agent Routing",
+            "title": "Optimal Agent Routing Available",
+            "description": "High confidence detection of server_inventory data type",
+            "action": "Route to Server_Classification_Expert for specialized processing"
+          }
+        ],
+        "metadata": {
+          "validation_version": "1.0",
+          "total_checks": 5,
+          "passed_checks": 4,
+          "failed_checks": 0,
+          "warning_checks": 1
+        }
+      }
+    },
+    "page": "flow_923100ed-3bd0-4297-a8af-0a47cc274bde",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "923100ed-3bd0-4297-a8af-0a47cc274bde",
+    "created_at": "2025-09-11T19:08:46.939445",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "e34931da-3d35-4f97-989e-0dd90e867adb": {
+    "id": "e34931da-3d35-4f97-989e-0dd90e867adb",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow 923100ed-3bd0-4297-a8af-0a47cc274bde",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "923100ed-3bd0-4297-a8af-0a47cc274bde",
+      "approval_data": {
+        "field_mappings": [
+          {
+            "source_field": "CPU Cores",
+            "target_field": "cpu_cores",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "IP Address",
+            "target_field": "ip_address",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Memory (GB)",
+            "target_field": "memory_gb",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Server Name",
+            "target_field": "server_name",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "AWS Readiness",
+            "target_field": "aws_readiness",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "License Model",
+            "target_field": "license_model",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Workload Type",
+            "target_field": "workload_type",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Disk Size (GB)",
+            "target_field": "disk_size_gb",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Operating System",
+            "target_field": "operating_system",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Application Group",
+            "target_field": "application_group",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Network Interfaces",
+            "target_field": "network_interfaces",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "CPU Utilization (%)",
+            "target_field": "cpu_utilization",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Memory Utilization (%)",
+            "target_field": "memory_utilization",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Recommended AWS Instance Type",
+            "target_field": "recommended_aws_instance_type",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Estimated Monthly AWS Cost (USD)",
+            "target_field": "estimated_monthly_aws_cost_usd",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          }
+        ],
+        "suggestions": [],
+        "status": "success",
+        "total_mappings": 15,
+        "execution_method": "direct_crew_execution",
+        "timestamp": "2025-09-11T19:08:46.965026"
+      }
+    },
+    "page": "flow_923100ed-3bd0-4297-a8af-0a47cc274bde",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "923100ed-3bd0-4297-a8af-0a47cc274bde",
+    "created_at": "2025-09-11T19:08:47.041340",
     "user_feedback": null,
     "is_validated": false
   }

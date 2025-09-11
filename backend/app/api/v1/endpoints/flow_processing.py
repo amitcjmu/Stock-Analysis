@@ -204,6 +204,9 @@ async def continue_flow_processing(
     - Uses TenantScopedAgentPool (ADR-015) for persistent agents
     """
     import time
+    from app.repositories.discovery_flow_repository.commands.flow_phase_management import (
+        FlowPhaseManagementCommands,
+    )
 
     start_time = time.time()
 
@@ -254,6 +257,23 @@ async def continue_flow_processing(
             fast_response = get_fast_path_response(flow_data, validation_data)
 
             if fast_response:
+                # NEW: Update current_phase in database if transitioning to next phase
+                next_phase = fast_response.get("next_phase")
+                if next_phase and next_phase != current_phase:
+                    phase_mgmt = FlowPhaseManagementCommands(
+                        db, context.client_account_id, context.engagement_id
+                    )
+                    await phase_mgmt.update_phase_completion(
+                        flow_id=flow_id,
+                        phase=next_phase,
+                        completed=False,  # Don't mark complete, just update current_phase
+                        data=None,
+                        agent_insights=None,
+                    )
+                    logger.info(
+                        f"✅ Advanced current_phase from {current_phase} to {next_phase}"
+                    )
+
                 execution_time = time.time() - start_time
                 logger.info(
                     f"✅ FAST PATH COMPLETE: {flow_id} in {execution_time:.3f}s"
@@ -272,6 +292,31 @@ async def continue_flow_processing(
 
         if not requires_ai:
             logger.info(f"⚡ SIMPLE LOGIC: No AI needed for {flow_id} - {ai_reason}")
+
+            # NEW: Import and use _get_next_phase_simple to determine next phase
+            from app.services.flow_orchestration.transition_utils import (
+                _get_next_phase_simple,
+            )
+
+            # Determine next phase using simple logic
+            next_phase = _get_next_phase_simple(flow_type, current_phase)
+
+            # NEW: Update current_phase in database if transitioning to next phase
+            if next_phase and next_phase != current_phase:
+                phase_mgmt = FlowPhaseManagementCommands(
+                    db, context.client_account_id, context.engagement_id
+                )
+                await phase_mgmt.update_phase_completion(
+                    flow_id=flow_id,
+                    phase=next_phase,
+                    completed=False,  # Don't mark complete, just update current_phase
+                    data=None,
+                    agent_insights=None,
+                )
+                logger.info(
+                    f"✅ Advanced current_phase from {current_phase} to {next_phase}"
+                )
+
             # Use simple logic without AI but with proper response format
             simple_response = create_simple_transition_response(flow_data)
             execution_time = time.time() - start_time

@@ -16,9 +16,7 @@ class DiscoveryAnalysis:
     @staticmethod
     def analyze_import_metrics(results: Any, state: Any) -> Dict[str, Any]:
         """Analyze data import metrics"""
-        from app.services.flow_orchestration.execution_engine_phase_utils import (
-            DecisionUtils,
-        )
+        from app.services.crewai_flows.agents.decision.utils import DecisionUtils
 
         raw_data = DecisionUtils.get_state_attribute(state, "raw_data", [])
         return {
@@ -35,9 +33,7 @@ class DiscoveryAnalysis:
     @staticmethod
     def analyze_mapping_quality(state: Any) -> Dict[str, Any]:
         """Analyze field mapping quality"""
-        from app.services.flow_orchestration.execution_engine_phase_utils import (
-            DecisionUtils,
-        )
+        from app.services.crewai_flows.agents.decision.utils import DecisionUtils
 
         field_mappings = DecisionUtils.get_state_attribute(state, "field_mappings", {})
 

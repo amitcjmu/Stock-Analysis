@@ -205,7 +205,7 @@ const CMDBImportContainer: React.FC = () => {
                       <span className="text-sm text-purple-700">{file.size}</span>
                     </div>
                   </div>
-                  {/* <SimplifiedFlowStatus
+                  <SimplifiedFlowStatus
                     flow_id={file.flow_id}
                     onNavigateToMapping={() => {
                       // Use consistent navigation logic - get the route and navigate properly
@@ -220,7 +220,7 @@ const CMDBImportContainer: React.FC = () => {
                         console.error('❌ SimplifiedFlowStatus Navigation: No flow ID available');
                       }
                     }}
-                  /> */}
+                  />
                 </div>
               ))}
             </div>

@@ -30,22 +30,37 @@ def _determine_next_phase(discovery_flow: DiscoveryFlow) -> str:
     """
     current_phase = discovery_flow.current_phase or "initialization"
 
+    # Updated phase sequence to include all discovery flow phases
     phase_sequence = [
         "initialization",
+        "field_mapping",  # Added field mapping phase
         "data_collection",
+        "data_cleansing",  # Added data cleansing phase
+        "asset_inventory",  # Added asset inventory phase
         "analysis",
         "dependency_mapping",
         "recommendations",
         "completed",
     ]
 
+    # Map variations of phase names to standard names
+    phase_mapping = {
+        "field_mapping_suggestions": "field_mapping",
+        "data_cleaning": "data_cleansing",
+        "assets": "asset_inventory",
+    }
+
+    # Normalize the current phase name
+    normalized_phase = phase_mapping.get(current_phase, current_phase)
+
     try:
-        current_index = phase_sequence.index(current_phase)
+        current_index = phase_sequence.index(normalized_phase)
         if current_index < len(phase_sequence) - 1:
             return phase_sequence[current_index + 1]
     except ValueError:
-        # Current phase not in sequence, start from beginning
-        return "data_collection"
+        # Current phase not in sequence, start from field_mapping
+        logger.warning(f"Unknown phase '{current_phase}', defaulting to field_mapping")
+        return "field_mapping"
 
     return None  # Flow is completed
 

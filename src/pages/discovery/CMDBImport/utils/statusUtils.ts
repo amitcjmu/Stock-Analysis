@@ -5,7 +5,8 @@ import {
   CheckCircle,
   AlertTriangle,
   AlertCircle,
-  FileCheck
+  FileCheck,
+  Clock
 } from 'lucide-react';
 
 export const getStatusIcon = (status: string): React.ComponentType => {
@@ -17,6 +18,7 @@ export const getStatusIcon = (status: string): React.ComponentType => {
     case 'approved_with_warnings': return AlertTriangle;
     case 'rejected': return AlertTriangle;
     case 'error': return AlertCircle;
+    case 'waiting_for_approval': return Clock;
     default: return FileCheck;
   }
 };
@@ -30,6 +32,7 @@ export const getStatusColor = (status: string): string => {
     case 'approved_with_warnings': return 'bg-yellow-100 text-yellow-800';
     case 'rejected': return 'bg-red-100 text-red-800';
     case 'error': return 'bg-red-100 text-red-800';
+    case 'waiting_for_approval': return 'bg-yellow-100 text-yellow-800';
     default: return 'bg-gray-100 text-gray-800';
   }
 };
