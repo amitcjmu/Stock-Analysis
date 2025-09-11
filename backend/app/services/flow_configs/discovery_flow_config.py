@@ -61,7 +61,7 @@ def get_discovery_flow_config() -> FlowTypeConfig:
         crew_class=UnifiedDiscoveryFlow,
         # CC FIX: Comment out crew factory to use persistent agents instead
         # crew_factory=create_discovery_crew,  # Deprecated - now uses persistent agents
-        child_flow_service_class=DiscoveryChildFlowService,
+        child_flow_service=DiscoveryChildFlowService,
         validation_config={
             "strict_phase_validation": True,
             "allow_phase_skipping": False,
