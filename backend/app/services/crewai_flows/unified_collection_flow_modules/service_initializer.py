@@ -73,4 +73,4 @@ class ServiceInitializer:
         self.validation_service = ValidationService()
         self.template_service = TemplateService()
         self.progress_tracking = ProgressTrackingService()
-        self.data_integration = DataIntegrationService(self.db_session, self.context)
+        self.data_integration = DataIntegrationService()

@@ -239,7 +239,7 @@ QUALITY REQUIREMENTS:
             )
 
             # Execute with performance monitoring
-            result = await crew.kickoff()
+            result = crew.kickoff()
 
             # Process and learn from result
             processed_result = await self._process_mapping_result(result, raw_data)

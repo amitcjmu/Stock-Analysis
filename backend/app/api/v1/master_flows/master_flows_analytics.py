@@ -38,6 +38,9 @@ async def get_current_user_context(
     service = UserService(db)
     user_context = await service.get_user_context(current_user)
 
+    # Check if platform admin
+    is_platform_admin = getattr(user_context.user, "is_platform_admin", False)
+
     return {
         "user_id": str(current_user.id),
         "client_account_id": (
@@ -46,6 +49,7 @@ async def get_current_user_context(
         "engagement_id": (
             str(user_context.engagement.id) if user_context.engagement else None
         ),
+        "is_platform_admin": is_platform_admin,
     }
 
 
@@ -57,7 +61,10 @@ async def get_cross_phase_analytics(
     """Get analytics across all phases and master flows"""
 
     client_account_id = current_user.get("client_account_id")
-    if not client_account_id:
+    is_platform_admin = current_user.get("is_platform_admin", False)
+
+    # Platform admins can access without client_account_id (returns empty results)
+    if not client_account_id and not is_platform_admin:
         raise HTTPException(status_code=400, detail="Client account ID required")
 
     asset_repo = AssetRepository(db, client_account_id)
@@ -84,7 +91,10 @@ async def get_active_master_flows(
     """Get all active master flows across all flow types"""
 
     client_account_id = current_user.get("client_account_id")
-    if not client_account_id:
+    is_platform_admin = current_user.get("is_platform_admin", False)
+
+    # Platform admins can access without client_account_id (returns empty results)
+    if not client_account_id and not is_platform_admin:
         raise HTTPException(status_code=400, detail="Client account ID required")
 
     service = MasterFlowService(
@@ -143,7 +153,10 @@ async def get_assets_by_phase(
     """Get assets by phase (current or source)"""
 
     client_account_id = current_user.get("client_account_id")
-    if not client_account_id:
+    is_platform_admin = current_user.get("is_platform_admin", False)
+
+    # Platform admins can access without client_account_id (returns empty results)
+    if not client_account_id and not is_platform_admin:
         raise HTTPException(status_code=400, detail="Client account ID required")
 
     asset_repo = AssetRepository(db, client_account_id)
@@ -169,7 +182,10 @@ async def get_multi_phase_assets(
     """Get assets that have progressed through multiple phases"""
 
     client_account_id = current_user.get("client_account_id")
-    if not client_account_id:
+    is_platform_admin = current_user.get("is_platform_admin", False)
+
+    # Platform admins can access without client_account_id (returns empty results)
+    if not client_account_id and not is_platform_admin:
         raise HTTPException(status_code=400, detail="Client account ID required")
 
     asset_repo = AssetRepository(db, client_account_id)
@@ -192,7 +208,10 @@ async def get_master_flow_summary(
     """Get comprehensive summary for a master flow"""
 
     client_account_id = current_user.get("client_account_id")
-    if not client_account_id:
+    is_platform_admin = current_user.get("is_platform_admin", False)
+
+    # Platform admins can access without client_account_id (returns empty results)
+    if not client_account_id and not is_platform_admin:
         raise HTTPException(status_code=400, detail="Client account ID required")
 
     asset_repo = AssetRepository(db, client_account_id)

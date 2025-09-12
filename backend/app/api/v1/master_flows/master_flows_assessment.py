@@ -30,6 +30,9 @@ async def get_current_user_context(
     service = UserService(db)
     user_context = await service.get_user_context(current_user)
 
+    # Check if platform admin
+    is_platform_admin = getattr(user_context.user, "is_platform_admin", False)
+
     return {
         "user_id": str(current_user.id),
         "client_account_id": (
@@ -38,6 +41,7 @@ async def get_current_user_context(
         "engagement_id": (
             str(user_context.engagement.id) if user_context.engagement else None
         ),
+        "is_platform_admin": is_platform_admin,
     }
 
 

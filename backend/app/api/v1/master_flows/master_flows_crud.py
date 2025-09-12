@@ -34,6 +34,9 @@ async def get_current_user_context(
     service = UserService(db)
     user_context = await service.get_user_context(current_user)
 
+    # Check if platform admin
+    is_platform_admin = getattr(user_context.user, "is_platform_admin", False)
+
     return {
         "user_id": str(current_user.id),
         "client_account_id": (
@@ -42,6 +45,7 @@ async def get_current_user_context(
         "engagement_id": (
             str(user_context.engagement.id) if user_context.engagement else None
         ),
+        "is_platform_admin": is_platform_admin,
     }
 
 
@@ -54,7 +58,10 @@ async def get_assets_by_master_flow(
     """Get all assets for a specific master flow"""
 
     client_account_id = current_user.get("client_account_id")
-    if not client_account_id:
+    is_platform_admin = current_user.get("is_platform_admin", False)
+
+    # Platform admins can access without client_account_id (returns empty list)
+    if not client_account_id and not is_platform_admin:
         raise HTTPException(status_code=400, detail="Client account ID required")
 
     asset_repo = AssetRepository(db, client_account_id)
@@ -112,7 +119,10 @@ async def transition_to_assessment_phase(
     """Prepare discovery flow for assessment phase transition"""
 
     client_account_id = current_user.get("client_account_id")
-    if not client_account_id:
+    is_platform_admin = current_user.get("is_platform_admin", False)
+
+    # Platform admins can access without client_account_id (returns empty list)
+    if not client_account_id and not is_platform_admin:
         raise HTTPException(status_code=400, detail="Client account ID required")
 
     service = MasterFlowService(
@@ -144,7 +154,10 @@ async def update_asset_phase_progression(
     """Update an asset's phase progression"""
 
     client_account_id = current_user.get("client_account_id")
-    if not client_account_id:
+    is_platform_admin = current_user.get("is_platform_admin", False)
+
+    # Platform admins can access without client_account_id (returns empty list)
+    if not client_account_id and not is_platform_admin:
         raise HTTPException(status_code=400, detail="Client account ID required")
 
     service = MasterFlowService(
@@ -174,7 +187,10 @@ async def soft_delete_master_flow(
     Soft delete a master flow and mark all its child flows as deleted.
     """
     client_account_id = current_user.get("client_account_id")
-    if not client_account_id:
+    is_platform_admin = current_user.get("is_platform_admin", False)
+
+    # Platform admins can access without client_account_id (returns empty list)
+    if not client_account_id and not is_platform_admin:
         raise HTTPException(status_code=400, detail="Client account ID required")
 
     service = MasterFlowService(
