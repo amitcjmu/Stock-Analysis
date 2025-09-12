@@ -79,12 +79,23 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
   const progress = flowState?.progress_percentage || 0;
   const currentPhase = flowState?.current_phase || file.current_phase;
   const hasFieldMappings = flowState?.field_mappings && Object.keys(flowState.field_mappings).length > 0;
-  const currentStatus = mapFlowStatusToDisplayStatus(flowState?.status, file.status, currentPhase, progress, hasFieldMappings);
-  const StatusIcon = getStatusIcon(currentStatus);
 
-  // Extract agent insights from flow state
+  // Extract agent insights and flow summary early to check for data
   const agentInsights = flowState?.agent_insights || [];
   const flowSummary = file.flow_summary || {};
+
+  // Check if we have data uploaded and ready
+  const hasUploadedData = flowSummary.total_assets || flowState?.raw_data?.length;
+
+  // Get the base status from mapping
+  let currentStatus = mapFlowStatusToDisplayStatus(flowState?.status, file.status, currentPhase, progress, hasFieldMappings);
+
+  // Override status if data is ready but waiting for user action
+  if (hasUploadedData && currentStatus === 'processing' && !isStartingFlow) {
+    currentStatus = 'waiting_for_approval';
+  }
+
+  const StatusIcon = getStatusIcon(currentStatus);
 
   // Parse agent insights for security, privacy, and quality analysis
   const getInsightsByType = (type: string) =>
@@ -102,7 +113,12 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
   // Determine security and privacy status from agent insights
   // Analysis is complete when agents have actually run and provided insights, flow is truly completed,
   // or when field mappings are available (indicating successful upload processing)
-  const isAnalysisComplete = flowState?.status === 'completed' || currentStatus === 'approved' || hasFieldMappings;
+  // Also consider analysis complete when we have flow summary data or raw data (indicating file has been processed)
+  const isAnalysisComplete = flowState?.status === 'completed' ||
+                            currentStatus === 'approved' ||
+                            hasFieldMappings ||
+                            currentStatus === 'waiting_for_approval' ||
+                            hasUploadedData;
 
   const securityStatus = securityInsights.length > 0 ?
     (securityInsights.some(i => i.severity === 'high' || i.confidence < 0.7) ? false : true) :
@@ -154,7 +170,8 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">
-                    {flowSummary.total_assets || flowState?.raw_data?.length || 'Analyzing...'}
+                    {flowSummary.total_assets || flowState?.raw_data?.length ||
+                     (hasUploadedData ? 'Ready' : 'Analyzing...')}
                   </p>
                   <p className="text-xs text-gray-600">Records Found</p>
                 </div>
@@ -190,7 +207,8 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                 <div>
                   <p className="text-sm font-medium text-gray-900">
                     {securityStatus === false ? 'Issues Found' :
-                     securityStatus === true ? 'Secure' : 'Analyzing...'}
+                     securityStatus === true ? 'Secure' :
+                     hasUploadedData ? 'Validated' : 'Analyzing...'}
                   </p>
                   <p className="text-xs text-gray-600">Security Status</p>
                 </div>
