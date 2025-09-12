@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Any, Dict
 
 from sqlalchemy import and_, select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 
 from app.core.security.cache_encryption import secure_setattr
 
@@ -611,15 +611,15 @@ class UserManagementHandler(BaseRBACHandler):
             return {"status": "error", "message": "RBAC models not available"}
 
         try:
-            # Get user profile with related user data
+            # Get user profile with related user data - use joinedload for proper session tracking
             query = (
                 select(UserProfile)
-                .options(selectinload(UserProfile.user))
+                .options(joinedload(UserProfile.user))
                 .where(UserProfile.user_id == user_id)
             )
 
             result = await self.db.execute(query)
-            user_profile = result.scalar_one_or_none()
+            user_profile = result.unique().scalar_one_or_none()
 
             if not user_profile:
                 return {"status": "error", "message": "User profile not found"}
