@@ -4,7 +4,7 @@ Contains flow control, status, integration, and enterprise features.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -107,14 +107,14 @@ class ControlFieldsMixin(BaseModel):
     # ========================================
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
-    started_at: str = None
-    completed_at: str = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
     execution_time_seconds: float = 0.0
 
     # Pause/Resume related timestamps
-    paused_at: str = None
-    resumed_at: str = None
-    pause_reason: str = None
+    paused_at: Optional[str] = None
+    resumed_at: Optional[str] = None
+    pause_reason: Optional[str] = None
 
     # ========================================
     # DATABASE INTEGRATION

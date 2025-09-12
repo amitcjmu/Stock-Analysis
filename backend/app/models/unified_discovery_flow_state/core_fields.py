@@ -24,7 +24,7 @@ class CoreFieldsMixin(BaseModel):
     # ========================================
     # CREWAI FLOW STATE MANAGEMENT
     # ========================================
-    current_phase: str = "initialization"
+    current_phase: Optional[str] = "initialization"
     phase_completion: Dict[str, bool] = Field(
         default_factory=lambda: {
             "data_import": False,

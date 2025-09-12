@@ -265,10 +265,15 @@ class FlowExecutionCore:
     ) -> Dict[str, Any]:
         """Execute phase using handler-based approach"""
         try:
-            # Get phase handler
-            handler = self.handler_registry.get_handler(phase_config.handler)
+            # Get phase handler - use completion_handler or name as fallback
+            handler_name = (
+                getattr(phase_config, "handler", None)
+                or getattr(phase_config, "completion_handler", None)
+                or phase_config.name
+            )
+            handler = self.handler_registry.get_handler(handler_name)
             if not handler:
-                raise ValueError(f"Handler '{phase_config.handler}' not found")
+                raise ValueError(f"Handler '{handler_name}' not found")
 
             # Execute phase through handler
             result = await handler.execute(
