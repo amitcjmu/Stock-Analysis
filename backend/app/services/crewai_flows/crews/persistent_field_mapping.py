@@ -166,7 +166,17 @@ class PersistentFieldMapping:
         try:
             # Use agent's execute method if available
             if hasattr(agent, "execute"):
-                return await agent.execute(task_description)
+                # Check if the result is a coroutine or CrewOutput
+                result = agent.execute(task_description)
+
+                # If it's a coroutine, await it
+                import inspect
+
+                if inspect.iscoroutine(result):
+                    return await result
+                else:
+                    # If it's a CrewOutput or other object, convert to string
+                    return str(result)
 
             # Fallback to synchronous execution
             if hasattr(agent, "run"):
