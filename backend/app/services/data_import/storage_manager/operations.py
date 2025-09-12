@@ -317,11 +317,16 @@ class ImportStorageOperations(RawRecordOperationsMixin, FieldMappingOperationsMi
                 limit=1000,
             )
 
-            # Build response data
+            # Build response data, filtering out any row_index column
+            # that might have been inadvertently added during processing
             data = []
             for record in raw_records:
                 if record.raw_data:
-                    data.append(record.raw_data)
+                    # Filter out row_index if it exists (regression fix)
+                    cleaned_data = {
+                        k: v for k, v in record.raw_data.items() if k != "row_index"
+                    }
+                    data.append(cleaned_data)
 
             # Build metadata
             import_metadata = {
