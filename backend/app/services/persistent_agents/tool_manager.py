@@ -282,10 +282,26 @@ class AgentToolManager:
         if not TOOLS_AVAILABLE:
             return
 
+        tools_added = 0
+
         try:
+            # Add mapping confidence tool
             if MappingConfidenceTool:
                 tools.append(MappingConfidenceTool(context_info=context_info))
-                logger.debug("Added field mapper tools")
+                tools_added += 1
+
+            # Add critical attributes assessment tools for field mapper
+            # This enables the agent to assess the 22 critical attributes
+            tools_added += cls._safe_extend_tools(
+                tools,
+                create_critical_attributes_tools,
+                "critical attributes",
+                context_info,
+            )
+
+            logger.debug(
+                f"Added {tools_added} field mapper tools including critical attributes assessment"
+            )
         except Exception as e:
             logger.warning(f"Failed to add field mapper tools: {e}")
 

@@ -213,14 +213,40 @@ async def _build_critical_attributes_response(
             "total_fields", enhanced_analysis["total_fields"]
         )
 
+    # Check if we have persisted critical attributes assessment from persistent agent
+    persisted_assessment = None
+    if discovery_flow.field_mappings and isinstance(
+        discovery_flow.field_mappings, dict
+    ):
+        persisted_assessment = discovery_flow.field_mappings.get(
+            "critical_attributes_assessment"
+        )
+        if persisted_assessment:
+            logger.info(
+                "✅ Using persisted critical attributes assessment from persistent agent"
+            )
+
     # Use agent intelligence to determine criticality
     attributes_status = []
 
     for source_field, target_field in field_mappings.items():
-        # Agent determines criticality based on learned patterns
-        criticality_analysis = agent_determine_criticality(
-            source_field, target_field, enhanced_analysis
-        )
+        # First check if we have persisted assessment for this field
+        criticality_analysis = None
+        if persisted_assessment and isinstance(persisted_assessment, dict):
+            # Look for this field in the persisted assessment
+            field_assessment = persisted_assessment.get(
+                target_field
+            ) or persisted_assessment.get(source_field)
+            if field_assessment:
+                criticality_analysis = field_assessment
+                logger.debug(f"Using persisted assessment for {target_field}")
+
+        # Fall back to heuristic analysis if no persisted assessment
+        if not criticality_analysis:
+            logger.debug(f"Using fallback heuristic analysis for {target_field}")
+            criticality_analysis = agent_determine_criticality(
+                source_field, target_field, enhanced_analysis
+            )
 
         attributes_status.append(
             {

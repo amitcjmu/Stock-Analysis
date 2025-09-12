@@ -180,7 +180,7 @@ class PersistentFieldMapping:
             raise
 
     def _parse_agent_result(self, result: Any) -> Dict[str, Any]:
-        """Parse agent result into structured mapping"""
+        """Parse agent result into structured mapping including critical attributes assessment"""
         try:
             # Try to extract JSON from result
             result_str = str(result)
@@ -191,7 +191,20 @@ class PersistentFieldMapping:
             json_match = re.search(r"\{.*\}", result_str, re.DOTALL)
             if json_match:
                 json_str = json_match.group(0)
-                return json.loads(json_str)
+                parsed_result = json.loads(json_str)
+
+                # Extract critical attributes assessment if present
+                # The agent may include this when using CriticalAttributesAssessmentTool
+                if "critical_attributes_assessment" in parsed_result:
+                    logger.info("✅ Agent provided critical attributes assessment")
+                elif "critical_attributes" in parsed_result:
+                    # Alternative key the agent might use
+                    parsed_result["critical_attributes_assessment"] = parsed_result[
+                        "critical_attributes"
+                    ]
+                    logger.info("✅ Found critical attributes in agent response")
+
+                return parsed_result
 
             # Fallback parsing
             logger.warning("Could not extract JSON from agent result")
@@ -204,13 +217,16 @@ class PersistentFieldMapping:
     async def _update_agent_memory(
         self, agent, headers: List[str], mapping_result: Dict[str, Any]
     ):
-        """Update agent memory with successful mappings for future reference"""
+        """Update agent memory with successful mappings and critical attributes assessment for future reference"""
         try:
             if hasattr(agent, "memory") and agent.memory:
                 memory_entry = {
                     "timestamp": datetime.now().isoformat(),
                     "source_fields": headers,
                     "mappings": mapping_result.get("mappings", {}),
+                    "critical_attributes_assessment": mapping_result.get(
+                        "critical_attributes_assessment", {}
+                    ),
                     "client_id": self.client_id,
                     "engagement_id": self.engagement_id,
                 }

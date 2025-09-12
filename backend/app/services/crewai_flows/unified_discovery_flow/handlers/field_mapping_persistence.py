@@ -286,9 +286,9 @@ class FieldMappingPersistence:
                         f"✅ Successfully persisted {successful_count} field mappings to database"
                     )
 
-                    # Update discovery flow record with completion status
+                    # Update discovery flow record with completion status and critical attributes
                     await self._update_discovery_flow_field_mapping_status(
-                        flow_id, successful_count
+                        flow_id, successful_count, mapping_result
                     )
 
                 except Exception as db_error:
@@ -302,27 +302,42 @@ class FieldMappingPersistence:
             return
 
     async def _update_discovery_flow_field_mapping_status(
-        self, flow_id: str, total_mappings: int
+        self, flow_id: str, total_mappings: int, mapping_result: Dict[str, Any] = None
     ) -> None:
-        """Update DiscoveryFlow record with field mapping completion status"""
+        """Update DiscoveryFlow record with field mapping completion status and critical attributes assessment"""
         try:
             from app.core.database import AsyncSessionLocal
             from app.models.discovery_flow import DiscoveryFlow
             from sqlalchemy import update
 
             async with AsyncSessionLocal() as db:
+                # Prepare field mappings JSON with critical attributes if available
+                field_mappings_data = {
+                    "total": total_mappings,
+                    "generated_at": self._get_current_timestamp(),
+                    "status": "completed" if total_mappings > 0 else "failed",
+                }
+
+                # Include critical attributes assessment if provided by agent
+                if (
+                    mapping_result
+                    and "critical_attributes_assessment" in mapping_result
+                ):
+                    field_mappings_data["critical_attributes_assessment"] = (
+                        mapping_result["critical_attributes_assessment"]
+                    )
+                    self.logger.info(
+                        "✅ Including critical attributes assessment from persistent agent"
+                    )
+
                 # Update discovery flow record
                 update_stmt = (
                     update(DiscoveryFlow)
                     .where(DiscoveryFlow.flow_id == flow_id)
                     .values(
                         field_mapping_completed=True if total_mappings > 0 else False,
-                        # Store field mapping metadata in JSON field if it exists
-                        field_mappings={
-                            "total": total_mappings,
-                            "generated_at": self._get_current_timestamp(),
-                            "status": "completed" if total_mappings > 0 else "failed",
-                        },
+                        # Store field mapping metadata and critical attributes in JSON field
+                        field_mappings=field_mappings_data,
                     )
                 )
 
@@ -332,6 +347,11 @@ class FieldMappingPersistence:
                 self.logger.info(
                     f"✅ Updated DiscoveryFlow record for {flow_id} with "
                     f"{total_mappings} field mappings"
+                    + (
+                        " and critical attributes assessment"
+                        if "critical_attributes_assessment" in field_mappings_data
+                        else ""
+                    )
                 )
 
         except Exception as e:
