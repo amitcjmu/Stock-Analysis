@@ -282,8 +282,8 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "", sessi
     );
   }
 
-  // Show informative message if no flow_id is available
-  if (!flow_id) {
+  // Show informative message if no flow_id is available and no data to show
+  if (!flow_id && !isLoading && (!importResponse || importResponse.data?.length === 0)) {
     return (
       <div className={`bg-white rounded-lg border shadow-sm p-6 ${className}`}>
         <div className="flex flex-col items-center justify-center py-8">
