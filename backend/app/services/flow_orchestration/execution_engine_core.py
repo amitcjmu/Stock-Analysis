@@ -276,7 +276,8 @@ class FlowExecutionCore:
                 raise ValueError(f"Handler '{handler_name}' not found")
 
             # Execute phase through handler
-            result = await handler.execute(
+            # Handler is a function, call it directly
+            result = await handler(
                 flow_id=master_flow.flow_id,
                 phase_input=phase_input,
                 context=self.context,
