@@ -23,7 +23,7 @@ class DiscoveryPhaseTransitionService:
 
     def __init__(self, db: AsyncSession):
         self.db = db
-        self.phase_mgmt = FlowPhaseManagementCommands(db, None)
+        # Note: phase_mgmt will be created per flow with proper context
 
     async def check_and_transition_from_attribute_mapping(
         self, flow_id: str
@@ -35,6 +35,16 @@ class DiscoveryPhaseTransitionService:
             Next phase name if transition occurred, None otherwise
         """
         try:
+            # First get the flow to extract client_account_id and engagement_id
+            flow_result = await self.db.execute(
+                select(DiscoveryFlow).where(DiscoveryFlow.id == flow_id)
+            )
+            flow = flow_result.scalar_one_or_none()
+            
+            if not flow:
+                logger.error(f"Flow {flow_id} not found")
+                return None
+            
             # Check if all required field mappings are approved
             approved_mappings = await self.db.execute(
                 select(ImportFieldMapping)
@@ -70,8 +80,15 @@ class DiscoveryPhaseTransitionService:
                 )
                 return None
 
+            # Create phase management with proper context from the flow
+            phase_mgmt = FlowPhaseManagementCommands(
+                self.db, 
+                flow.client_account_id, 
+                flow.engagement_id
+            )
+            
             # Update phase completion status
-            await self.phase_mgmt.update_phase_completion(
+            await phase_mgmt.update_phase_completion(
                 flow_id=flow_id,
                 phase="field_mapping",
                 completed=True,
