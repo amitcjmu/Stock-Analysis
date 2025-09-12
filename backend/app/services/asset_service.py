@@ -173,6 +173,13 @@ class AssetService:
                     )
                     return default
 
+            # CRITICAL FIX: Extract flow_id from context for proper asset association
+            flow_id = self._get_uuid(
+                asset_data.get("flow_id") or self.context_info.get("flow_id")
+            )
+
+            logger.info(f"🔗 Associating asset with flow_id: {flow_id}")
+
             # Convert ALL numeric fields with proper error handling
             # INTEGER fields
             cpu_cores = safe_int_convert(asset_data.get("cpu_cores"), None)
@@ -223,6 +230,10 @@ class AssetService:
                 # Multi-tenant context will be applied by repository
                 client_account_id=client_id,
                 engagement_id=engagement_id,
+                # CRITICAL FIX: Flow association fields for proper asset tracking
+                flow_id=flow_id,  # Legacy field for backward compatibility
+                master_flow_id=flow_id,  # Master flow coordination
+                discovery_flow_id=flow_id,  # Specific discovery flow that created this asset
                 # Basic information - use smart name for both fields
                 name=smart_name,
                 asset_name=smart_name,
