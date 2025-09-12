@@ -175,7 +175,8 @@ export const useAttributeMappingState = (
       }
 
       // Otherwise calculate from field mappings
-      const total = fieldMappings?.length || 0;
+      // CRITICAL FIX: Use realFieldMappings for total count (unfiltered) instead of fieldMappings (filtered)
+      const total = realFieldMappings?.length || 0;
       const approved = fieldMappings?.filter(m => m.status === 'approved').length || 0;
       const pending = fieldMappings?.filter(m => m.status === 'pending').length || 0;
       const unmapped = fieldMappings?.filter(m => (m.status as string) === 'unmapped').length || 0;
