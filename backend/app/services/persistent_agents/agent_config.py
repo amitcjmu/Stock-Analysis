@@ -45,6 +45,72 @@ from .tool_manager import AgentToolManager
 logger = logging.getLogger(__name__)
 
 
+class AgentWrapper:
+    """
+    Wrapper to add execution methods to CrewAI agents without field modification.
+    This solves Pydantic v2 compatibility issues where dynamic field assignment is not allowed.
+    """
+
+    def __init__(self, agent: Agent, agent_type: str):
+        """Initialize the wrapper with the CrewAI agent and its type."""
+        self._agent = agent
+        self._agent_type = agent_type
+        logger.info(f"✅ Created AgentWrapper for {agent_type}")
+
+    def __getattr__(self, name):
+        """Delegate all other attributes to the wrapped agent."""
+        return getattr(self._agent, name)
+
+    def execute(self, task: str = None, **kwargs) -> Any:
+        """
+        Execute a task using this agent in a single-agent crew.
+        This provides synchronous execution compatibility.
+        """
+        try:
+            from crewai import Crew, Task
+
+            # Create a task for the agent
+            agent_task = Task(
+                description=task or "Execute assigned task",
+                agent=self._agent,
+                expected_output="Structured analysis and recommendations based on the given task",
+            )
+
+            # Create a single-agent crew
+            crew = Crew(agents=[self._agent], tasks=[agent_task], verbose=False)
+
+            # Execute the crew
+            result = crew.kickoff()
+            return result
+
+        except Exception as e:
+            logger.error(f"Agent {self._agent_type} execute method failed: {e}")
+            return {"status": "error", "error": str(e), "agent_type": self._agent_type}
+
+    async def execute_async(
+        self, inputs: Dict[str, Any] = None, **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Async execution method using agent tools.
+        Provides asynchronous execution compatibility.
+        """
+        task = kwargs.get("task", "Execute agent task")
+
+        # Extract task from inputs if provided
+        if inputs and "task" in inputs:
+            task = inputs["task"]
+
+        # Run synchronous execute in thread pool
+        import asyncio
+
+        try:
+            result = await asyncio.to_thread(self.execute, task, **kwargs)
+            return result
+        except Exception as e:
+            logger.error(f"Agent {self._agent_type} async execute failed: {e}")
+            return {"status": "error", "error": str(e), "agent_type": self._agent_type}
+
+
 @dataclass
 class AgentHealth:
     """Agent health status information."""
@@ -109,17 +175,17 @@ class AgentConfigManager:
                 max_execution_time=config.get("max_execution_time", 300),
             )
 
-            # Add execute method to agent for compatibility with existing code
-            cls._add_execute_method(agent, agent_type)
+            # Wrap agent with execution methods for Pydantic v2 compatibility
+            agent_wrapper = cls._add_execute_method(agent, agent_type)
 
             # Warm up the agent
-            await cls.warm_up_agent(agent, agent_type)
+            await cls.warm_up_agent(agent_wrapper, agent_type)
 
             logger.info(
                 f"Created {agent_type} agent for client {client_account_id}, "
                 f"engagement {engagement_id} with {len(tools)} tools"
             )
-            return agent
+            return agent_wrapper
 
         except Exception as e:
             logger.error(f"Failed to create agent {agent_type}: {e}")
@@ -164,53 +230,22 @@ class AgentConfigManager:
             logger.warning(f"{agent_type} agent warm-up failed: {e}")
 
     @classmethod
-    def _add_execute_method(cls, agent: Agent, agent_type: str):
+    def _add_execute_method(cls, agent: Agent, agent_type: str) -> AgentWrapper:
         """
-        Add execute method to agent for compatibility with existing code patterns.
+        Wrap agent with execution methods for Pydantic v2 compatibility.
 
-        This method creates a single-agent crew to execute tasks since CrewAI agents
-        require a crew context to execute tasks properly.
+        This method returns an AgentWrapper that provides execute methods
+        without modifying the original CrewAI Agent object, which would
+        violate Pydantic v2's strict field validation.
+
+        Args:
+            agent: The CrewAI Agent instance
+            agent_type: The type of agent being wrapped
+
+        Returns:
+            AgentWrapper: A wrapper providing execute methods
         """
-        from crewai import Crew, Task
-
-        def execute(task: str = None, **kwargs):
-            """Execute a task using this agent in a single-agent crew."""
-            try:
-                # Create a task for the agent
-                agent_task = Task(
-                    description=task or "Execute assigned task",
-                    agent=agent,
-                    expected_output="Structured analysis and recommendations based on the given task",
-                )
-
-                # Create a single-agent crew
-                crew = Crew(agents=[agent], tasks=[agent_task], verbose=False)
-
-                # Execute the crew
-                result = crew.kickoff()
-                return result
-
-            except Exception as e:
-                logger.warning(f"Agent {agent_type} execute method failed: {e}")
-                return {"status": "error", "error": str(e), "agent_type": agent_type}
-
-        def execute_async(task: str = None, inputs: dict = None, **kwargs):
-            """Async version of execute method."""
-            import asyncio
-
-            # Extract task from inputs if provided
-            if inputs and "task" in inputs:
-                task = inputs["task"]
-
-            return asyncio.to_thread(execute, task, **kwargs)
-
-        # Add methods to the agent instance
-        import types
-
-        agent.execute = types.MethodType(execute, agent)
-        agent.execute_async = types.MethodType(execute_async, agent)
-
-        logger.info(f"✅ Added execute methods to {agent_type} agent")
+        return AgentWrapper(agent, agent_type)
 
     @classmethod
     async def check_agent_health(cls, agent: Agent) -> AgentHealth:

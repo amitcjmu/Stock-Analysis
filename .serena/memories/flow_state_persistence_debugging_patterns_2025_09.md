@@ -25,15 +25,15 @@ if result.get("status") != "failed":
         from app.repositories.discovery_flow_repository.commands.flow_phase_management import (
             FlowPhaseManagementCommands,
         )
-        
+
         phase_mgmt = FlowPhaseManagementCommands(
             db, context.client_account_id, context.engagement_id
         )
-        
+
         # Extract phase data and agent insights from result
         phase_data = result.get("result", {}).get("crew_results", {}) or {}
         # ... extract agent insights ...
-        
+
         # Call update_phase_completion to persist phase completion
         await phase_mgmt.update_phase_completion(
             flow_id=flow_id,
@@ -42,7 +42,7 @@ if result.get("status") != "failed":
             completed=True,
             agent_insights=agent_insights,
         )
-        
+
         # Update current_phase to next_phase if provided by MFO
         next_phase = result.get("result", {}).get("next_phase") or result.get("next_phase")
         if next_phase:
@@ -60,7 +60,7 @@ if result.get("status") != "failed":
 
 **Files That Must Stay Synchronized**:
 - `flow_phase_management.py` - completion checks and progress calculation
-- `transition_utils.py` - phase transition logic  
+- `transition_utils.py` - phase transition logic
 - `state_transition_utils.py` - state validation
 
 **Pattern**: Use systematic search to update all occurrences:
@@ -79,7 +79,7 @@ mcp__serena__search_for_pattern "tech_debt_assessment"
 curl -X POST "http://localhost:8000/api/v1/unified-discovery/flows/{flow_id}/execute" \
 -H "X-Client-Account-ID: {uuid}" -H "X-Engagement-ID: {uuid}" -H "X-User-ID: {uuid}"
 
-# Verify database state  
+# Verify database state
 docker exec -i migration_postgres psql -U postgres -d migration_db -c \
 "SELECT flow_id, status, current_phase, asset_inventory_completed, progress_percentage FROM migration.discovery_flows WHERE flow_id = '{flow_id}';"
 
@@ -88,7 +88,7 @@ docker logs migration_backend --tail 20 | grep -E "(Phase completion|Auto-comple
 ```
 
 ## Key Success Metrics
-- Phase completion boolean flags update to `true` 
+- Phase completion boolean flags update to `true`
 - `current_phase` advances to next phase
 - `progress_percentage` increases appropriately
 - `status` transitions to "complete" when all phases done

@@ -76,11 +76,17 @@ class PersistentFieldMapping:
         try:
             # Get or create persistent field_mapper agent
             logger.info("🔄 Getting persistent field_mapper agent from pool")
+            context_info = {
+                "service_registry": getattr(
+                    self.crewai_service, "service_registry", None
+                ),
+                "flow_id": getattr(self.context, "flow_id", None),
+            }
             agent = await TenantScopedAgentPool.get_or_create_agent(
                 client_id=self.client_id,
                 engagement_id=self.engagement_id,
                 agent_type="field_mapper",
-                service_registry=getattr(self.crewai_service, "service_registry", None),
+                context_info=context_info,
             )
 
             # Prepare mapping task

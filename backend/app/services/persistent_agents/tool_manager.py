@@ -95,12 +95,17 @@ class AgentToolManager:
 
         tools_added = 0
         try:
-            # Add registry-based tools if available
-            registry_tools = service_registry.get_agent_tools(context_info)
-            if registry_tools:
-                tools.extend(registry_tools)
-                tools_added += len(registry_tools)
-                logger.debug(f"Added {len(registry_tools)} registry tools")
+            # Check if service_registry has get_agent_tools method
+            if hasattr(service_registry, "get_agent_tools"):
+                registry_tools = service_registry.get_agent_tools(context_info)
+                if registry_tools:
+                    tools.extend(registry_tools)
+                    tools_added += len(registry_tools)
+                    logger.debug(f"Added {len(registry_tools)} registry tools")
+            else:
+                logger.debug(
+                    "ServiceRegistry does not have get_agent_tools method - skipping registry tools"
+                )
         except Exception as e:
             logger.warning(f"Failed to add registry tools: {e}")
 

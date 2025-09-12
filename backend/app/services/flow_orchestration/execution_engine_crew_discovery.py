@@ -97,8 +97,33 @@ class ExecutionEngineDiscoveryCrews:
             # Initialize persistent agent pool
             agent_pool = await self._initialize_discovery_agent_pool(master_flow)
 
+        except ValueError as e:
+            if "object has no field" in str(e):
+                logger.error(
+                    f"❌ Pydantic field validation error in agent creation: {e}"
+                )
+                logger.error(
+                    "🔧 Hint: This is likely a CrewAI/Pydantic v2 compatibility issue"
+                )
+                logger.error("🔧 Check AgentWrapper implementation in agent_config.py")
+                return self.crew_utils.build_error_response(
+                    phase_config.name,
+                    f"Agent creation failed due to Pydantic v2 compatibility: {str(e)}",
+                    master_flow,
+                )
+            else:
+                logger.error(
+                    f"❌ ValueError in discovery phase '{phase_config.name}': {e}"
+                )
+                return self.crew_utils.build_error_response(
+                    phase_config.name, str(e), master_flow
+                )
         except Exception as e:
             logger.error(f"❌ Discovery phase '{phase_config.name}' failed: {e}")
+            logger.error(f"❌ Exception type: {type(e).__name__}")
+            import traceback
+
+            logger.error(f"❌ Full traceback:\n{traceback.format_exc()}")
             return self.crew_utils.build_error_response(
                 phase_config.name, str(e), master_flow
             )

@@ -30,12 +30,27 @@ async def determine_phase_to_execute(discovery_flow: DiscoveryFlow) -> str:
     current_phase = discovery_flow.current_phase
     status = discovery_flow.status
 
+    # Map variations of phase names to standard names
+    phase_mapping = {
+        "field_mapping_suggestions": "field_mapping",
+        "data_cleaning": "data_cleansing",
+        "assets": "asset_inventory",
+    }
+
+    # Normalize the current phase name if it exists
+    if current_phase:
+        current_phase = phase_mapping.get(current_phase, current_phase)
+
     # CC: Handle 'initialization' phase - map to field_mapping for discovery flows
     if current_phase == "initialization":
         logger.info(
             "Mapping 'initialization' phase to 'field_mapping' for discovery flow"
         )
         phase = "field_mapping"
+    # Check if this is an asset_inventory phase request
+    elif current_phase == "asset_inventory":
+        logger.info(f"Processing asset_inventory phase request (status: {status})")
+        phase = "asset_inventory"
     # Map the phase correctly to match Master Flow Orchestrator expectations
     # MFO expects "field_mapping" not "field_mapping_suggestions"
     elif status == "initialized" and not current_phase:
@@ -62,8 +77,11 @@ async def determine_phase_to_execute(discovery_flow: DiscoveryFlow) -> str:
         # Default phase mapping - field_mapping is the standard first operational phase
         phase = "field_mapping"
 
-    # Defensive validation of the selected phase
-    if not validate_discovery_phase(phase):
+    # Defensive validation of the selected phase - but allow asset_inventory
+    if phase == "asset_inventory":
+        # Asset inventory is a valid phase, don't override it
+        logger.info("Asset inventory phase is valid and will be executed")
+    elif not validate_discovery_phase(phase):
         logger.error(
             f"Selected phase '{phase}' is not valid for discovery flows. Using field_mapping as fallback."
         )
@@ -358,6 +376,48 @@ async def execute_flow_phase(
         )
         if field_mapping_result:
             return field_mapping_result
+
+    # For asset_inventory phase, use MFO which has the proper crew execution
+    elif phase_to_execute == "asset_inventory":
+        logger.info(
+            safe_log_format(
+                "🔄 Executing asset_inventory phase via MFO for flow {flow_id}",
+                flow_id=flow_id,
+            )
+        )
+        try:
+            orchestrator = MasterFlowOrchestrator(db, context)
+            # Pass asset_inventory as the phase to execute
+            result = await orchestrator.execute_phase(flow_id, "asset_inventory", {})
+
+            if result.get("success"):
+                # Update flow state after successful asset inventory
+                discovery_flow.current_phase = "asset_inventory"
+                discovery_flow.assets_generated = True
+                await db.commit()
+                logger.info(
+                    safe_log_format(
+                        "✅ Asset inventory phase completed for flow {flow_id}",
+                        flow_id=flow_id,
+                    )
+                )
+            return result
+        except Exception as e:
+            logger.error(
+                safe_log_format(
+                    "❌ Asset inventory phase failed for flow {flow_id}: {error}",
+                    flow_id=flow_id,
+                    error=str(e),
+                )
+            )
+
+            logger.error(f"Full traceback:\n{traceback.format_exc()}")
+            return {
+                "success": False,
+                "flow_id": flow_id,
+                "error": str(e),
+                "phase": "asset_inventory",
+            }
 
     # Try Master Flow Orchestrator as fallback or for other phases
     try:

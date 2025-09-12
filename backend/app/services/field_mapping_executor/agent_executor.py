@@ -60,11 +60,14 @@ class AgentExecutor:
             # Get field mapping agent from the pool
             # Use the imported TenantScopedAgentPool directly, not self.agent_pool
             # since self.agent_pool might be set to the class itself
+            context_info = {"flow_id": str(state.flow_id)}
+
             if hasattr(self.agent_pool, "get_or_create_agent"):
                 agent = await self.agent_pool.get_or_create_agent(
                     client_id=str(self.client_account_id),
                     engagement_id=str(self.engagement_id),
                     agent_type="field_mapping",
+                    context_info=context_info,
                 )
             else:
                 # If agent_pool is the class itself, call it directly
@@ -72,6 +75,7 @@ class AgentExecutor:
                     client_id=str(self.client_account_id),
                     engagement_id=str(self.engagement_id),
                     agent_type="field_mapping",
+                    context_info=context_info,
                 )
 
             if not agent:
