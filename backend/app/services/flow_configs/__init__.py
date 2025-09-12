@@ -133,6 +133,7 @@ from .discovery_flow_config import get_discovery_flow_config
 # Import handlers
 from .discovery_handlers import (
     asset_creation_completion,
+    asset_inventory,
     data_import_preparation,
     discovery_error_handler,
     discovery_finalization,
@@ -285,6 +286,7 @@ class FlowConfigurationManager:
             "discovery_finalization": discovery_finalization,
             "discovery_error_handler": discovery_error_handler,
             "asset_creation_completion": asset_creation_completion,
+            "asset_inventory": asset_inventory,
             "data_import_preparation": data_import_preparation,
             "data_import_validation": data_import_validation_handler,
             # Assessment handlers

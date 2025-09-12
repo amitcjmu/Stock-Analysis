@@ -291,6 +291,67 @@ async def asset_creation_completion(
         }
 
 
+async def asset_inventory(
+    flow_id: str, phase_input: Dict[str, Any], context: Any, **kwargs
+) -> Dict[str, Any]:
+    """
+    Execute asset inventory phase
+
+    Performs:
+    - Asset classification
+    - Server identification
+    - Application discovery
+    - Device categorization
+    """
+    try:
+        logger.info(f"Executing asset inventory phase for flow {flow_id}")
+
+        # Import the executor
+        from app.services.crewai_flows.handlers.phase_executors.asset_inventory import (
+            AssetInventoryExecutor,
+        )
+
+        # Get flow state
+        flow_state = kwargs.get("flow_state", {})
+
+        # Create a minimal state object if needed
+        if not flow_state:
+            from app.models.unified_discovery_flow_state import (
+                UnifiedDiscoveryFlowState,
+            )
+
+            flow_state = UnifiedDiscoveryFlowState(flow_id=flow_id)
+
+        # Execute the phase using the executor
+        executor = AssetInventoryExecutor(
+            state=flow_state,
+            crew_manager=kwargs.get("crew_manager"),
+            flow_bridge=kwargs.get("flow_bridge"),
+        )
+
+        # Execute with crew if available, otherwise use direct execution
+        if hasattr(executor, "execute_with_crew"):
+            result = await executor.execute_with_crew(phase_input)
+        else:
+            result = await executor.execute(phase_input)
+
+        return {
+            "phase": "asset_inventory",
+            "status": "completed",
+            "result": result,
+            "flow_id": flow_id,
+        }
+
+    except Exception as e:
+        logger.error(f"Asset inventory handler error for flow {flow_id}: {e}")
+        return {
+            "phase": "asset_inventory",
+            "status": "failed",
+            "error": str(e),
+            "flow_id": flow_id,
+        }
+
+
 async def data_import_preparation(
     flow_id: str, phase_name: str, phase_input: Dict[str, Any], **kwargs
 ) -> Dict[str, Any]:

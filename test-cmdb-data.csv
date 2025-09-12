@@ -1,0 +1,6 @@
+hostname,ip_address,os_type,environment,department,owner
+server01,192.168.1.10,Windows Server 2019,Production,IT,john.smith@company.com
+server02,192.168.1.11,Ubuntu 20.04,Production,Finance,jane.doe@company.com
+server03,192.168.1.12,CentOS 7,Development,IT,bob.wilson@company.com
+server04,192.168.1.13,Windows Server 2022,Staging,HR,alice.brown@company.com
+server05,192.168.1.14,Ubuntu 22.04,Production,Marketing,charlie.davis@company.com
