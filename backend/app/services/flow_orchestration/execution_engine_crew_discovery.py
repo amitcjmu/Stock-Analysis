@@ -73,13 +73,33 @@ class ExecutionEngineDiscoveryCrews:
                 )
 
         # Retrieve flow data from persistence to ensure raw_data is available
+        logger.info(
+            f"🔍 Flow persistence data exists: {master_flow.flow_persistence_data is not None}"
+        )
+
         if master_flow.flow_persistence_data:
-            # Add raw_data from flow persistence if not already in phase_input
-            if (
-                "raw_data" not in phase_input
-                and "raw_data" in master_flow.flow_persistence_data
-            ):
+            logger.info(
+                f"🔍 Flow persistence keys: {list(master_flow.flow_persistence_data.keys())}"
+            )
+
+            # Always ensure raw_data is transferred from flow persistence
+            # Check both direct raw_data and nested structures
+            raw_data = None
+
+            if "raw_data" in master_flow.flow_persistence_data:
                 raw_data = master_flow.flow_persistence_data["raw_data"]
+                logger.info("✅ Found raw_data in flow_persistence_data")
+            elif "initial_state" in master_flow.flow_persistence_data:
+                # Check if raw_data is nested in initial_state
+                initial_state = master_flow.flow_persistence_data["initial_state"]
+                if isinstance(initial_state, dict) and "raw_data" in initial_state:
+                    raw_data = initial_state["raw_data"]
+                    logger.info(
+                        "✅ Found raw_data in flow_persistence_data.initial_state"
+                    )
+
+            if raw_data is not None:
+                # Always set raw_data in phase_input, even if it already exists (ensure latest data)
                 phase_input["raw_data"] = raw_data
 
                 # Safely get the count of records
@@ -92,6 +112,10 @@ class ExecutionEngineDiscoveryCrews:
                 logger.info(
                     f"📊 Retrieved {record_count} records from flow persistence for phase execution"
                 )
+            else:
+                logger.warning("⚠️ No raw_data found in flow_persistence_data structure")
+        else:
+            logger.warning("⚠️ No flow_persistence_data available on master_flow")
 
         try:
             # Initialize persistent agent pool
@@ -235,6 +259,21 @@ class ExecutionEngineDiscoveryCrews:
     ) -> Dict[str, Any]:
         """Execute asset inventory phase using persistent agent"""
         logger.info("📦 Executing discovery asset inventory using persistent agent")
+        logger.info(f"📋 Phase input keys: {list(phase_input.keys())}")
+        logger.info(f"🔍 Raw data present in phase_input: {'raw_data' in phase_input}")
+
+        # Log raw_data details if present
+        if "raw_data" in phase_input:
+            raw_data = phase_input["raw_data"]
+            try:
+                record_count = (
+                    len(raw_data) if hasattr(raw_data, "__len__") else "unknown"
+                )
+                logger.info(
+                    f"📊 Raw data type: {type(raw_data)}, count: {record_count}"
+                )
+            except Exception as e:
+                logger.warning(f"⚠️ Could not analyze raw_data: {e}")
 
         try:
             # Ensure all inputs are JSON-serializable (convert UUIDs to strings)

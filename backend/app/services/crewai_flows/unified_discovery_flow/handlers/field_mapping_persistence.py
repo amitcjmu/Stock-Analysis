@@ -119,9 +119,21 @@ class FieldMappingPersistence:
                                 master_flow_id=flow_id,
                             )
                             db.add(data_import)
+                            await db.flush()  # Flush to get the data_import.id available for RawImportRecord FK
+
+                            # CRITICAL FIX for issue #348: Create RawImportRecord entries for direct_raw_data
+                            await self._create_raw_import_records_for_direct_data(
+                                db,
+                                data_import_id,
+                                client_account_id,
+                                engagement_id,
+                                flow_id,
+                            )
+
                             await db.commit()
                             self.logger.info(
-                                f"✅ Created data import record for direct raw data flow: {data_import_id}"
+                                f"✅ Created data import record and raw import records for "
+                                f"direct raw data flow: {data_import_id}"
                             )
 
                     # Clear existing mappings for this data import to avoid duplicates
@@ -329,3 +341,89 @@ class FieldMappingPersistence:
     def _get_current_timestamp(self) -> str:
         """Get current timestamp as ISO string"""
         return datetime.utcnow().isoformat()
+
+    async def _create_raw_import_records_for_direct_data(
+        self,
+        db,
+        data_import_id: str,
+        client_account_id: str,
+        engagement_id: str,
+        flow_id: str,
+    ) -> None:
+        """
+        Create RawImportRecord entries for direct_raw_data imports.
+
+        This fixes issue #348 where direct_raw_data imports had no RawImportRecord entries,
+        causing empty data retrieval in storage_manager/operations.py.
+        """
+        try:
+            from app.models.data_import.core import RawImportRecord
+
+            # Get raw_data from flow state
+            raw_data = getattr(self.flow.state, "raw_data", [])
+
+            if not raw_data:
+                self.logger.warning(
+                    f"⚠️ No raw_data found in flow state for direct_raw_data import: {data_import_id}"
+                )
+                return
+
+            self.logger.info(
+                f"📊 Creating {len(raw_data)} RawImportRecord entries for direct_raw_data import: {data_import_id}"
+            )
+
+            successful_count = 0
+            for row_index, raw_record in enumerate(raw_data):
+                try:
+                    # Extract actual data from the raw_record structure
+                    # raw_data is structured as [{"data": {...}, ...}, ...]
+                    record_data = (
+                        raw_record.get("data", {})
+                        if isinstance(raw_record, dict)
+                        else raw_record
+                    )
+
+                    if not record_data:
+                        self.logger.debug(
+                            f"⚠️ Skipping empty record at index {row_index}"
+                        )
+                        continue
+
+                    # Create RawImportRecord entry
+                    raw_import_record = RawImportRecord(
+                        data_import_id=data_import_id,
+                        client_account_id=client_account_id,
+                        engagement_id=engagement_id,
+                        master_flow_id=flow_id,
+                        row_number=row_index + 1,  # 1-based row numbering
+                        raw_data=record_data,
+                        is_processed=False,  # Will be processed during data cleansing phase
+                        is_valid=True,  # Assume valid for direct data
+                    )
+
+                    db.add(raw_import_record)
+                    successful_count += 1
+
+                    self.logger.debug(
+                        f"✅ Added RawImportRecord #{successful_count} for row {row_index + 1}"
+                    )
+
+                except Exception as record_error:
+                    self.logger.error(
+                        f"❌ Failed to create RawImportRecord for row {row_index + 1}: "
+                        f"{type(record_error).__name__}: {record_error}"
+                    )
+                    continue
+
+            self.logger.info(
+                f"✅ Successfully created {successful_count} RawImportRecord entries "
+                f"out of {len(raw_data)} raw records"
+            )
+
+        except Exception as e:
+            self.logger.error(
+                f"❌ Critical error creating RawImportRecord entries for direct_raw_data: "
+                f"{type(e).__name__}: {e}"
+            )
+            # Don't raise - this would break the entire field mapping persistence
+            # The field mappings can still be created without raw records

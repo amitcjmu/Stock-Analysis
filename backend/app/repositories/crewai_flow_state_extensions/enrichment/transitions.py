@@ -18,8 +18,6 @@ class TransitionsEnrichmentMixin:
         status: str,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
-        if not getattr(self, "_enrichment_enabled", False):
-            return
         try:
             flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
             client_uuid = uuid.UUID(self.client_account_id)
@@ -86,8 +84,6 @@ class TransitionsEnrichmentMixin:
     async def record_phase_execution_time(
         self, flow_id: str, phase: str, execution_time_ms: float
     ) -> None:
-        if not getattr(self, "_enrichment_enabled", False):
-            return
         try:
             flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
             client_uuid = uuid.UUID(self.client_account_id)

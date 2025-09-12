@@ -21,14 +21,19 @@ class AssetCreationToolsExecutor:
     ) -> Dict[str, Any]:
         """Execute asset creation using the agent's asset creation tools."""
         try:
+            logger.info("🏗️ Starting asset creation with tools")
+            logger.info(f"📋 Input data keys: {list(input_data.keys())}")
+
             # Check if agent has tools available
             if not hasattr(agent, "tools") or not agent.tools:
-                logger.warning("Agent has no tools available for asset creation")
+                logger.warning("⚠️ Agent has no tools available for asset creation")
                 return {
                     "status": "completed",
                     "message": "No asset creation tools available",
                     "assets_created": 0,
                 }
+
+            logger.info(f"🔧 Agent has {len(agent.tools)} tools available")
 
             # Find asset creation tools
             asset_creation_tools = []
@@ -41,8 +46,17 @@ class AssetCreationToolsExecutor:
                     elif tool.name == "bulk_asset_creator":
                         bulk_creation_tools.append(tool)
 
+            logger.info(
+                f"🔍 Found {len(asset_creation_tools)} asset_creator tools and "
+                f"{len(bulk_creation_tools)} bulk_asset_creator tools"
+            )
+
             if not asset_creation_tools and not bulk_creation_tools:
-                logger.warning("No asset creation tools found in agent's toolset")
+                logger.warning("⚠️ No asset creation tools found in agent's toolset")
+                available_tools = [
+                    getattr(tool, "name", "unnamed") for tool in agent.tools
+                ]
+                logger.info(f"📝 Available tools: {available_tools}")
                 return {
                     "status": "completed",
                     "message": "Asset creation tools not found in agent",
@@ -51,15 +65,37 @@ class AssetCreationToolsExecutor:
 
             # Get raw data for asset creation
             raw_data = input_data.get("raw_data", [])
+            logger.info(
+                f"📊 Raw data present: {raw_data is not None}, Type: {type(raw_data)}"
+            )
+
             if not raw_data:
-                logger.info("No raw data available for asset creation")
+                logger.warning("⚠️ No raw data available for asset creation")
+                logger.info(f"📋 Available input data keys: {list(input_data.keys())}")
+                # Check if raw_data might be nested or under a different key
+                for key, value in input_data.items():
+                    if isinstance(value, (list, dict)) and len(str(value)) > 100:
+                        logger.info(
+                            f"🔍 Large data found under key '{key}': {type(value)}, "
+                            f"size: {len(value) if hasattr(value, '__len__') else 'N/A'}"
+                        )
+
                 return {
                     "status": "completed",
                     "message": "No raw data to process",
                     "assets_created": 0,
                 }
 
-            logger.info(f"Processing {len(raw_data)} records for asset creation")
+            try:
+                record_count = (
+                    len(raw_data) if hasattr(raw_data, "__len__") else "unknown"
+                )
+                logger.info(f"📊 Processing {record_count} records for asset creation")
+            except Exception as count_error:
+                logger.warning(f"⚠️ Could not determine raw_data length: {count_error}")
+                logger.info(
+                    f"📊 Processing raw_data of type {type(raw_data)} for asset creation"
+                )
 
             # Try bulk creation first if available
             if bulk_creation_tools:
