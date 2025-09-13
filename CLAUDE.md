@@ -1,3 +1,114 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Quick Start Commands
+
+### Running the Application (Docker Only)
+```bash
+# Start all services (frontend on :8081, backend on :8000, DB on :5433)
+cd config/docker && docker-compose -f docker-compose.dev.yml up -d
+
+# View logs
+docker logs migration_backend_dev -f
+docker logs migration_frontend_dev -f
+
+# Access containers
+docker exec -it migration_backend_dev bash
+docker exec -it migration_postgres_dev psql -U postgres -d migration_db
+```
+
+### Testing Commands
+```bash
+# Frontend tests
+npm run test:e2e:journey  # Full user journey test
+npm run test:admin        # Admin interface tests
+
+# Backend tests (run from backend dir)
+cd backend && python -m pytest tests/backend/integration/ -v
+
+# Linting & Type Checking
+npm run lint              # Frontend linting
+npm run typecheck         # TypeScript checking
+cd backend && ruff check . --fix  # Python linting
+cd backend && mypy app/   # Python type checking
+
+# Pre-commit (backend)
+cd backend && pre-commit run --all-files
+```
+
+### Database Commands
+```bash
+# Run migrations
+cd backend && alembic upgrade head
+
+# Create new migration
+cd backend && alembic revision --autogenerate -m "Description"
+
+# Check database
+docker exec -it migration_postgres_dev psql -U postgres -d migration_db -c "SELECT * FROM migration.discovery_flows;"
+```
+
+## High-Level Architecture
+
+### System Overview
+- **Frontend**: Next.js/React with TanStack Query on port 8081 (NOT 3000)
+- **Backend**: FastAPI with async SQLAlchemy on port 8000
+- **Database**: PostgreSQL 16 with pgvector extension
+- **AI**: 17 CrewAI agents (13 active) with DeepInfra/OpenAI integration
+- **Deployment**: Railway (WebSocket-free, HTTP polling only)
+
+### Seven-Layer Enterprise Architecture
+```
+1. API Layer (FastAPI routes) - Request handling and validation
+2. Service Layer (business logic) - Orchestration and workflow
+3. Repository Layer (data access) - Database abstraction
+4. Model Layer (SQLAlchemy/Pydantic) - Data structures
+5. Cache Layer (Redis/in-memory) - Performance optimization
+6. Queue Layer (async processing) - Background tasks
+7. Integration Layer (external services) - Third-party APIs
+```
+This is NOT over-engineering - it's REQUIRED for enterprise resilience
+
+### Critical Architecture Patterns
+
+#### Master Flow Orchestrator (MFO) Pattern
+The MFO is the single source of truth for all workflow operations:
+- **Entry Point**: `/api/v1/master-flows/*` endpoints ONLY
+- **Two-Table Architecture**:
+  - `crewai_flow_state_extensions`: Master flow lifecycle (running/paused/completed)
+  - `discovery_flows`: Child flow operational data (phases, UI state)
+- **Never** call legacy `/api/v1/discovery/*` endpoints directly
+
+#### State Management Flow
+```
+User Action → Frontend → MFO API → Master Flow → Child Flow → CrewAI Agent
+                                        ↓            ↓
+                                   State Table   UI Display
+```
+
+#### Multi-Tenant Data Scoping
+Every query MUST include:
+- `client_account_id`: Organization isolation
+- `engagement_id`: Project/session isolation
+- All tables use composite scoping for data security
+
+### CrewAI Agent Architecture
+
+#### Agent Types & Responsibilities
+- **Discovery Agents** (4): Data analysis, CMDB, dependencies
+- **Assessment Agents** (2): Migration strategy, risk assessment
+- **Planning Agents** (1): Wave planning coordination
+- **Learning Agents** (3): Pattern recognition, context management
+- **Observability Agents** (3): Health monitoring, performance
+
+#### Agent Communication Pattern
+```
+TenantScopedAgentPool → Agent Instance → Tools → Database
+                          ↓
+                    Agent UI Bridge → Frontend Display
+```
+
 ## Subagent Instructions and Requirements
 
 ### AUTOMATIC ENFORCEMENT FOR ALL SUBAGENTS (Including Autonomous)
@@ -86,11 +197,10 @@ Before writing ANY code that handles API responses:
 - Validate that your proposed approach remains consistent with past implementation patterns
 - Prioritize modifying existing code over adding new code to prevent unnecessary code sprawl
 - Before introducing new implementations, carefully assess if existing code can be refactored or extended to meet the current requirements
-- Never by pass pre-commit checks with --no-verify unless you have gone through the pre-commit checks at least once and fixed all the issues mentioned by the checks
+- Never bypass pre-commit checks with --no-verify unless you have gone through the pre-commit checks at least once and fixed all the issues mentioned by the checks
 
 ### Development Environment Configuration
 - Use /opt/homebrew/bin/gh for all Git CLI tools and /opt/homebrew/bin/python3.11@ for all Python executions in the app
-
 - Never attempt to run npm run dev locally as ALL app related testing needs to be done on docker instances locally. The app runs on localhost:8081 NOT on port 3000
 
 ## Architectural Review Guidelines for AI Agents
@@ -133,6 +243,36 @@ Before writing ANY code that handles API responses:
 - docs/analysis/Notes/000-lessons.md - Critical lessons learned
 - docs/guidelines/ARCHITECTURAL_REVIEW_GUIDELINES.md - Detailed review guidelines
 
+## Key Architectural Decision Records (ADRs)
+
+### ADR-006: Master Flow Orchestrator
+- Single source of truth for ALL workflow operations
+- All flows MUST register with `crewai_flow_state_extensions` table
+- Centralizes flow management, state persistence, and multi-tenancy
+- "Rip and replace" strategy over phased migration
+
+### ADR-010: Docker-First Development Mandate
+- ALL development MUST occur within Docker containers
+- NO local services (Python, Node.js, PostgreSQL) on dev machines
+- Use `docker exec` for all command execution
+- Docker Compose for multi-service orchestration
+
+### ADR-012: Flow Status Management Separation
+- **Master Flow**: High-level lifecycle (`running`, `paused`, `completed`)
+- **Child Flow**: Operational decisions (phases, validations, UI state)
+- Frontend and agents MUST use child flow status for decisions
+- Master flow only for cross-flow coordination
+
+### ADR-015: Persistent Multi-Tenant Agent Architecture
+- TenantScopedAgentPool manages agent lifecycle per tenant
+- Agents maintain memory with DeepInfra embeddings patch
+- Singleton pattern with lazy initialization per tenant
+
+### ADR-019: CrewAI DeepInfra Embeddings Monkey Patch
+- Memory IS enabled via DeepInfra patch
+- Located at `backend/app/core/memory/crewai_deepinfra_patch.py`
+- Applied at startup to enable agent memory persistence
+
 ## Critical: API Endpoint Synchronization (Post-Aug 2025 Incident)
 
 ### MANDATORY: Backend-Frontend Changes MUST Be Done Together
@@ -156,4 +296,100 @@ When modifying API endpoints, **ALWAYS**:
 - ❌ Use fallbacks to hide broken endpoints
 - ❌ Skip browser console check for 404s
 
-- Never start with adding new code to fix any issue however critical it may be. Always check existing code or Git history for such functionality and see if it can be adjusted to meet our needs, and only if none such exists then you'll create new code
+## Database Best Practices
+
+### Schema & Migrations
+- All tables in `migration` schema, NOT `public`
+- Use CHECK constraints, not PostgreSQL ENUMs
+- Make migrations idempotent with existence checks
+- Foreign keys reference primary keys only (id column)
+
+### SQLAlchemy Patterns
+```python
+# Correct boolean comparison
+.filter(DiscoveryFlow.is_active == True)  # NOT is True
+
+# UUID handling
+flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
+
+# Async session pattern
+async with AsyncSession(engine) as session:
+    async with session.begin():
+        # Atomic transaction
+```
+
+### Common Queries
+```sql
+-- Check flow state
+SELECT flow_id, current_phase, status
+FROM migration.discovery_flows
+WHERE flow_id = 'uuid-here';
+
+-- Master flow status
+SELECT flow_id, status, current_phase
+FROM migration.crewai_flow_state_extensions
+WHERE client_account_id = 1 AND engagement_id = 1;
+```
+
+## Frontend Patterns
+
+### React Query Configuration
+```typescript
+// Polling strategy for Railway (no WebSockets)
+{
+  refetchInterval: status === 'running' ? 5000 : 15000,
+  enabled: !!flowId && flowId !== 'XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX'
+}
+```
+
+### Field Name Handling
+```typescript
+// Always use snake_case from API
+const flowId = data.master_flow_id || data.flow_id; // Fallback pattern
+```
+
+### Component Reuse
+- Use `ThreeColumnFieldMapper` for mapping interfaces
+- Filter client-side rather than creating new endpoints
+- Display real agent insights from agent-ui-bridge
+
+## Modularization Patterns
+
+### When Modularizing Large Files (>400 lines)
+```
+original_file.py → original_file/
+                    ├── __init__.py (preserve public API)
+                    ├── base.py (base classes)
+                    ├── commands.py (write operations)
+                    ├── queries.py (read operations)
+                    └── utils.py (helper functions)
+```
+
+### Preserve Backward Compatibility
+```python
+# In __init__.py - maintain all public imports
+from .base import BaseClass
+from .commands import create_flow, update_flow
+from .queries import get_flow, list_flows
+
+__all__ = ['BaseClass', 'create_flow', 'update_flow', 'get_flow', 'list_flows']
+```
+
+### Import Strategy
+- Use absolute imports within packages
+- Avoid circular dependencies
+- Group imports: stdlib → third-party → local
+
+## Code Review Checklist
+
+Before submitting PRs:
+- [ ] Run pre-commit checks at least once
+- [ ] Test in Docker environment (localhost:8081)
+- [ ] Check browser console for API errors
+- [ ] Verify snake_case field naming
+- [ ] Update both backend and frontend for API changes
+- [ ] Check existing code before adding new implementations
+- [ ] Ensure multi-tenant scoping in all queries
+- [ ] Preserve atomic transaction boundaries
+
+Never start with adding new code to fix any issue however critical it may be. Always check existing code or Git history for such functionality and see if it can be adjusted to meet our needs, and only if none such exists then you'll create new code.

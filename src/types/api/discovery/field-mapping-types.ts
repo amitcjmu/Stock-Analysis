@@ -70,23 +70,35 @@ export type MappingSuggestionSource =
  * Backend source: app/schemas/discovery_flow_schemas.py:415-432
  */
 export interface FieldMappingItem {
+  /** Unique identifier for the mapping - matches backend id */
+  id: string;
+
   /** Source field name from CSV/import - matches backend source_field */
   source_field: string;
 
-  /** Target field in system - matches backend target_field (Optional[str]) */
-  target_field: string | null;
+  /** Target field in system - matches backend target_field */
+  target_field: string;
 
-  /** Mapping confidence score [0.0-1.0] - matches backend confidence_score */
-  confidence_score: number;
+  /** Mapping confidence score [0.0-1.0] - matches backend confidence_score (Optional[float]) */
+  confidence_score?: number;
 
-  /** Type of mapping - matches backend mapping_type */
-  mapping_type: FieldMappingType;
+  /** Data type of the field - matches backend field_type (Optional[str]) */
+  field_type?: string;
 
-  /** Transformation rule if any - matches backend transformation (Optional[str]) */
-  transformation: string | null;
+  /** Approval status of the mapping - matches backend status */
+  status: string;
 
-  /** Validation rules if any - matches backend validation_rules (Optional[str]) */
-  validation_rules: string | null;
+  /** ID of approver - matches backend approved_by (Optional[str]) */
+  approved_by?: string;
+
+  /** Timestamp of approval - matches backend approved_at (Optional[datetime]) */
+  approved_at?: string;
+
+  /** Agent's reasoning for the mapping - matches backend agent_reasoning (Optional[str]) */
+  agent_reasoning?: string;
+
+  /** Transformation rules for the mapping - matches backend transformation_rules (Optional[dict]) */
+  transformation_rules?: Record<string, any>;
 }
 
 /**
@@ -445,14 +457,21 @@ export function isFieldMappingItem(obj: unknown): obj is FieldMappingItem {
   return (
     obj &&
     typeof obj === 'object' &&
-    typeof obj.source_field === 'string' &&
-    (obj.target_field === null || typeof obj.target_field === 'string') &&
-    typeof obj.confidence_score === 'number' &&
-    obj.confidence_score >= 0 &&
-    obj.confidence_score <= 1 &&
-    typeof obj.mapping_type === 'string' &&
-    (obj.transformation === null || typeof obj.transformation === 'string') &&
-    (obj.validation_rules === null || typeof obj.validation_rules === 'string')
+    typeof (obj as any).id === 'string' &&
+    typeof (obj as any).source_field === 'string' &&
+    typeof (obj as any).target_field === 'string' &&
+    typeof (obj as any).status === 'string' &&
+    ((obj as any).confidence_score === undefined ||
+     (typeof (obj as any).confidence_score === 'number' &&
+      (obj as any).confidence_score >= 0 &&
+      (obj as any).confidence_score <= 1)) &&
+    ((obj as any).field_type === undefined || typeof (obj as any).field_type === 'string') &&
+    ((obj as any).approved_by === undefined || typeof (obj as any).approved_by === 'string') &&
+    ((obj as any).approved_at === undefined || typeof (obj as any).approved_at === 'string') &&
+    ((obj as any).agent_reasoning === undefined || typeof (obj as any).agent_reasoning === 'string') &&
+    ((obj as any).transformation_rules === undefined ||
+     (typeof (obj as any).transformation_rules === 'object' &&
+      (obj as any).transformation_rules !== null))
   );
 }
 

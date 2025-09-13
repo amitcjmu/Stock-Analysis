@@ -197,7 +197,7 @@ export const useAttributeMappingState = (
       // Count how many critical fields are mapped (only count approved mappings for critical)
       // Critical mappings must be user-approved for accuracy
       const criticalMapped = fieldMappings?.filter(m =>
-        criticalFields.includes(m.targetAttribute?.toLowerCase()) && m.status === 'approved'
+        m.target_field && criticalFields.includes(m.target_field.toLowerCase()) && m.status === 'approved'
       ).length || 0;
 
       const progress = {
@@ -219,8 +219,8 @@ export const useAttributeMappingState = (
         total_critical_fields: criticalFields.length,
         final_progress: progress,
         sample_mappings: fieldMappings?.slice(0, 3)?.map(m => ({
-          source: m.sourceField,
-          target: m.targetAttribute,
+          source: m.source_field,
+          target: m.target_field,
           status: m.status
         }))
       });

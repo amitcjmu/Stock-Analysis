@@ -132,19 +132,16 @@ export const useFieldMappings = (
             // Use proper transformation utility for type safety
             const frontendResult = transformToFrontendResponse(response);
 
-            // Convert to legacy format for backward compatibility
+            // Convert to legacy format for backward compatibility - use snake_case as primary
             const legacyMappings = frontendResult.field_mappings.map(mapping => ({
               id: mapping.id,
-              // Include both camelCase and snake_case for compatibility
-              sourceField: mapping.source_field,
               source_field: mapping.source_field,
-              targetAttribute: mapping.target_field,
               target_field: mapping.target_field,
-              target_attribute: mapping.target_field,
-              confidence: mapping.confidence_score,
+              confidence_score: mapping.confidence_score,
+              confidence: mapping.confidence_score, // Legacy compatibility
               is_approved: mapping.status === 'approved',
               status: mapping.status,
-              mapping_type: mapping.mapping_type,
+              mapping_type: mapping.mapping_type || 'auto',
               transformation_rule: mapping.transformation,
               validation_rule: mapping.validation_rules,
               // Legacy fields for compatibility
@@ -174,12 +171,10 @@ export const useFieldMappings = (
 
               return {
                 id: mapping.id || `${mapping.source_field}_${mapping.target_field || 'unmapped'}`,
-                sourceField: mapping.source_field,
                 source_field: mapping.source_field,
-                targetAttribute: mapping.target_field,
                 target_field: mapping.target_field,
-                target_attribute: mapping.target_field,
-                confidence: confidenceScore,
+                confidence_score: confidenceScore,
+                confidence: confidenceScore, // Legacy compatibility
                 is_approved: mapping.status === 'approved',
                 status: mapping.status || (mapping.target_field ? 'pending' : 'unmapped'),
                 mapping_type: mapping.mapping_type || 'auto',
@@ -357,14 +352,14 @@ export const useFieldMappings = (
 
       const mappedData = realFieldMappings.map((mapping, index) => {
         // Enhanced type validation for each mapping
-        const sourceField = String(mapping.sourceField || mapping.source_field || 'Unknown Field');
-        const targetField = mapping.targetAttribute || mapping.target_field || mapping.target_attribute;
+        const sourceField = String(mapping.source_field || 'Unknown Field');
+        const targetField = mapping.target_field;
         const isUnmapped = targetField === 'UNMAPPED' || targetField === null || targetField === undefined;
 
         // Validate confidence score using type guard
-        const confidenceScore = isValidConfidenceScore(mapping.confidence)
-          ? mapping.confidence
-          : 0.5;
+        const confidenceScore = isValidConfidenceScore(mapping.confidence_score)
+          ? mapping.confidence_score
+          : (isValidConfidenceScore(mapping.confidence) ? mapping.confidence : 0.5);
 
         // Validate mapping type
         const mappingType = mapping.mapping_type as FieldMappingType ||

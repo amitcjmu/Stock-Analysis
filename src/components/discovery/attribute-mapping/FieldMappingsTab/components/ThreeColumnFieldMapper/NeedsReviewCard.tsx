@@ -28,14 +28,25 @@ const NeedsReviewCard: React.FC<NeedsReviewCardProps> = ({
   const [selectedTarget, setSelectedTarget] = useState(mapping.target_field || '');
 
   const handleConfirmMapping = async (): Promise<void> => {
-    // First update the mapping with the selected target if changed
-    if (onMappingChange && selectedTarget && selectedTarget !== mapping.target_field) {
-      await onMappingChange(mapping.id, selectedTarget);
-      // Wait a moment for the update to propagate
-      await new Promise(resolve => setTimeout(resolve, 100));
+    try {
+      // First update the mapping with the selected target if changed
+      if (onMappingChange && selectedTarget && selectedTarget !== mapping.target_field) {
+        console.log(`📝 Updating target field for ${mapping.id}: ${selectedTarget}`);
+        await onMappingChange(mapping.id, selectedTarget);
+        // Wait longer for the backend update to complete and propagate
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      // Then approve the mapping with the updated target field
+      console.log(`✅ Approving mapping ${mapping.id} with target: ${selectedTarget}`);
+      await onApprove(mapping.id);
+    } catch (error) {
+      console.error('❌ Error in confirm mapping:', error);
+      // Show error toast if available
+      if (typeof window !== 'undefined' && (window as any).showErrorToast) {
+        (window as any).showErrorToast('Failed to update and approve mapping. Please try again.');
+      }
     }
-    // Then approve the mapping
-    onApprove(mapping.id);
   };
 
   const handleFieldChange = useCallback((newValue: string) => {

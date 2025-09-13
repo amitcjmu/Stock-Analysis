@@ -1,5 +1,5 @@
 // Simple smoke test to verify the modular hooks can be imported and used
-import type { useImportData, useAttributeMappingState, type AttributeMappingLogicResult, type FieldMapping, type CriticalAttribute } from './index'
+import type { useImportData, useAttributeMappingState, AttributeMappingLogicResult, FieldMapping, CriticalAttribute } from './index'
 import { useAttributeMappingLogic, useFlowDetection, useFieldMappings, useCriticalAttributes, useAttributeMappingActions } from './index'
 
 // Test that all exports are available
