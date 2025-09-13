@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useMemo, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -66,6 +66,10 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   const [selectedColumns, setSelectedColumns] = useState(DEFAULT_COLUMNS);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasTriggeredInventory, setHasTriggeredInventory] = useState(false);
+  const [executionError, setExecutionError] = useState<string | null>(null);
+  const [showCleansingRequiredBanner, setShowCleansingRequiredBanner] = useState(false);
+  const attemptCountRef = useRef(0);
+  const maxRetryAttempts = 3;
   const [needsClassification, setNeedsClassification] = useState(false);
   const [isReclassifying, setIsReclassifying] = useState(false);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
@@ -379,13 +383,18 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     exportAssets(filteredAssets, selectedColumns);
   };
 
-  // Enhanced refresh function that triggers CrewAI classification
+  // Enhanced refresh function that triggers CrewAI classification with error handling
   const handleRefreshClassification = async (): void => {
     try {
       console.log('🔄 Refreshing asset classification with CrewAI...');
 
+      // Clear any previous errors
+      setExecutionError(null);
+      setShowCleansingRequiredBanner(false);
+
       // Reset the trigger state to allow fresh execution
       setHasTriggeredInventory(false);
+      attemptCountRef.current = 0; // Reset retry counter
 
       // Re-execute the asset inventory phase to trigger CrewAI classification
       await executeFlowPhase('asset_inventory', {
@@ -406,8 +415,30 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
 
     } catch (error) {
       console.error('❌ Failed to refresh asset classification:', error);
-      // Fallback to just refetching assets
-      refetchAssets();
+
+      // Handle 422 CLEANSING_REQUIRED error
+      let errorCode = null;
+      try {
+        if (error?.response?.data?.error_code) {
+          errorCode = error.response.data.error_code;
+        } else if (error?.message && error.message.includes('422')) {
+          errorCode = 'CLEANSING_REQUIRED';
+        }
+      } catch (parseError) {
+        console.warn('Could not parse error response:', parseError);
+      }
+
+      if (errorCode === 'CLEANSING_REQUIRED') {
+        setExecutionError('Data cleansing must be completed before refreshing asset classification.');
+        setShowCleansingRequiredBanner(true);
+        // Keep hasTriggeredInventory as true to prevent auto-retry
+      } else {
+        // For other errors, reset to allow retry
+        setHasTriggeredInventory(false);
+        setExecutionError(`Refresh failed: ${error.message}`);
+        // Fallback to just refetching assets
+        refetchAssets();
+      }
     }
   };
 
@@ -467,41 +498,58 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     }
   };
 
-  // Auto-execute asset inventory phase if conditions are met
-  // Delay execution to ensure page has rendered first
+  // Auto-execute asset inventory phase if conditions are met with proper gating and error handling
   useEffect(() => {
     // Use setTimeout to delay execution until after page render
     const timeoutId = setTimeout(() => {
-      // Check if we have raw data but no assets, or if assets need classification
+      // CRITICAL CONDITIONS: All must be true for auto-execution
       const hasRawData = flow && flow.raw_data && flow.raw_data.length > 0;
       const hasNoAssets = assets.length === 0;
+      const dataCleansingCompleted = flow?.phase_completion?.data_cleansing === true;
       const notExecuting = !isExecutingPhase;
       const notTriggered = !hasTriggeredInventory;
+      const withinRetryLimit = attemptCountRef.current < maxRetryAttempts;
+
+      // Clear any previous execution errors when conditions change
+      if (hasRawData && hasNoAssets && dataCleansingCompleted && !executionError) {
+        setExecutionError(null);
+        setShowCleansingRequiredBanner(false);
+      }
 
       // Log the conditions for debugging
-      console.log('🔍 Auto-execute conditions (post-render):', {
+      console.log('🔍 Auto-execute conditions (gated):', {
         hasRawData,
         rawDataCount: flow?.raw_data?.length || 0,
         hasNoAssets,
+        dataCleansingCompleted,
         notExecuting,
         notTriggered,
-        needsClassification,
+        withinRetryLimit,
+        attemptCount: attemptCountRef.current,
         currentPhase: flow?.current_phase,
         phaseCompletion: flow?.phase_completion
       });
 
-      // Only auto-execute if we have raw data but no assets (initial case)
-      // Don't auto-execute just because assets need classification - use manual refresh for that
-      const shouldAutoExecute = hasRawData && hasNoAssets && notExecuting && notTriggered;
+      // GATED AUTO-EXECUTION: Only execute when ALL conditions are met
+      const shouldAutoExecute = hasRawData &&
+                               hasNoAssets &&
+                               dataCleansingCompleted &&
+                               notExecuting &&
+                               notTriggered &&
+                               withinRetryLimit;
 
       if (shouldAutoExecute) {
-        console.log('🚀 Auto-executing asset inventory phase (post-render)...');
+        console.log('🚀 Auto-executing asset inventory phase (gated execution)...');
         setHasTriggeredInventory(true);
+        attemptCountRef.current += 1;
+
         executeFlowPhase('asset_inventory', {
           trigger: 'auto',
-          source: 'inventory_page_load_post_render'
+          source: 'inventory_page_gated_auto_execution'
         }).then(() => {
           console.log('✅ Asset inventory phase execution initiated');
+          // Reset attempt counter on success
+          attemptCountRef.current = 0;
           // Refetch after a delay
           setTimeout(() => {
             refetchAssets();
@@ -510,16 +558,63 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         }).catch(error => {
           console.error('❌ Failed to auto-execute asset inventory phase:', error);
 
-          // Reset for retry on any error since we fixed the endpoint authentication issue
-          console.warn('🔄 Phase execution failed, will allow retry');
-          setHasTriggeredInventory(false);
+          // Parse error response for specific handling
+          let errorCode = null;
+          let shouldRetry = false;
+
+          try {
+            if (error?.response?.data?.error_code) {
+              errorCode = error.response.data.error_code;
+            } else if (error?.message && error.message.includes('422')) {
+              errorCode = 'CLEANSING_REQUIRED';
+            }
+          } catch (parseError) {
+            console.warn('Could not parse error response:', parseError);
+          }
+
+          if (errorCode === 'CLEANSING_REQUIRED') {
+            // 422 CLEANSING_REQUIRED: Do NOT reset hasTriggeredInventory, show banner
+            console.log('🚨 Data cleansing required - stopping auto-execution');
+            setExecutionError('Data cleansing must be completed before generating asset inventory.');
+            setShowCleansingRequiredBanner(true);
+            // Do NOT reset hasTriggeredInventory to prevent retry loop
+          } else {
+            // Handle HTTP status codes for retry logic
+            const httpStatus = error?.response?.status || 0;
+
+            if (httpStatus === 429 || (httpStatus >= 500 && httpStatus < 600)) {
+              // Transient errors: 429 (rate limit) or 5xx (server errors)
+              if (attemptCountRef.current < maxRetryAttempts) {
+                shouldRetry = true;
+                const backoffDelay = Math.min(1000 * Math.pow(2, attemptCountRef.current - 1), 30000);
+                console.log(`🔄 Transient error (${httpStatus}), will retry in ${backoffDelay}ms (attempt ${attemptCountRef.current}/${maxRetryAttempts})`);
+
+                setTimeout(() => {
+                  setHasTriggeredInventory(false); // Allow retry
+                }, backoffDelay);
+              } else {
+                console.log(`❌ Max retry attempts (${maxRetryAttempts}) reached for transient error`);
+                setExecutionError(`Server temporarily unavailable. Please try again later. (Status: ${httpStatus})`);
+              }
+            } else if (httpStatus === 401 || httpStatus === 403) {
+              // Authentication/Authorization errors: Do not retry
+              console.log(`❌ Authentication error (${httpStatus}) - no retry`);
+              setExecutionError(`Authentication error. Please refresh the page and try again.`);
+              // Do NOT reset hasTriggeredInventory
+            } else {
+              // Other errors: Do not retry but reset for manual retry
+              console.log(`❌ Non-retryable error: ${error.message}`);
+              setExecutionError(`Execution failed: ${error.message}`);
+              setHasTriggeredInventory(false); // Allow manual retry
+            }
+          }
         });
       }
     }, 1500); // 1.5 second delay to ensure page is fully rendered
 
     // Cleanup timeout on unmount
     return () => clearTimeout(timeoutId);
-  }, [flow, isExecutingPhase, hasTriggeredInventory, assets.length, executeFlowPhase, needsClassification, refetchAssets, refreshFlow]);
+  }, [flow, isExecutingPhase, hasTriggeredInventory, assets.length, executeFlowPhase, refetchAssets, refreshFlow, executionError]);
 
   // Separate useEffect to handle classification needs without causing loops
   useEffect(() => {
@@ -528,6 +623,43 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       console.log('🚨 Assets need classification - use the refresh button to trigger CrewAI processing');
     }
   }, [needsClassification, assets.length]);
+
+  // Error Banner Component for cleansing required
+  const CleansingRequiredBanner = () => (
+    showCleansingRequiredBanner && (
+      <Card className="mb-6 border-amber-200 bg-amber-50">
+        <CardContent className="p-4">
+          <div className="flex items-start space-x-3">
+            <div className="flex-shrink-0">
+              <div className="w-5 h-5 text-amber-500">
+                ⚠️
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-amber-800">Data Cleansing Required</h3>
+              <p className="mt-1 text-sm text-amber-700">
+                Asset inventory cannot be generated until data cleansing is completed.
+                Please complete the data cleansing phase before proceeding.
+              </p>
+              <div className="mt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowCleansingRequiredBanner(false);
+                    setExecutionError(null);
+                  }}
+                  className="border-amber-300 text-amber-800 hover:bg-amber-100"
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  );
 
   // View Mode Toggle Component - defined here for consistent access across all states
   const ViewModeToggle = () => (
@@ -588,10 +720,41 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     </Card>
   );
 
-  // Render ViewModeToggle at top level, always visible regardless of state
+  // Render ViewModeToggle and error banners at top level, always visible regardless of state
   return (
     <div className={`space-y-6 ${className}`}>
       <ViewModeToggle />
+      <CleansingRequiredBanner />
+      {executionError && !showCleansingRequiredBanner && (
+        <Card className="mb-6 border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0">
+                <div className="w-5 h-5 text-red-500">
+                  ❌
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-red-800">Execution Error</h3>
+                <p className="mt-1 text-sm text-red-700">{executionError}</p>
+                <div className="mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setExecutionError(null);
+                      attemptCountRef.current = 0;
+                    }}
+                    className="border-red-300 text-red-800 hover:bg-red-100"
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Loading State */}
       {(assetsLoading || isExecutingPhase) && (

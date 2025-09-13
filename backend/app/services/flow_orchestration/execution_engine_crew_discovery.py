@@ -457,7 +457,7 @@ class ExecutionEngineDiscoveryCrews:
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Execute asset inventory phase using persistent agent"""
-        logger.info("📦 Entry: Processing asset inventory phase")
+        logger.info("📦 Executing discovery asset inventory using persistent agent")
 
         data_import_id = phase_input.get("data_import_id")
         if not data_import_id:
@@ -509,6 +509,7 @@ class ExecutionEngineDiscoveryCrews:
 
         # Get field mappings
         field_mappings = await self._get_approved_field_mappings(phase_input)
+        logger.info(f"📋 Retrieved {len(field_mappings)} approved field mappings")
 
         # Get flow IDs
         master_flow_id = phase_input.get("master_flow_id") or phase_input.get("flow_id")
@@ -522,7 +523,7 @@ class ExecutionEngineDiscoveryCrews:
             discovery_flow_id,
         )
 
-        logger.info(f"📋 Normalized {len(normalized_assets)}/{cleansed_count} records")
+        logger.info(f"✅ Normalized {len(normalized_assets)}/{cleansed_count} records")
 
         # Get persistent agent for asset creation (use same pattern as cleansing)
         # Build context from self.context (ExecutionEngineDiscoveryCrews has it)
@@ -539,6 +540,7 @@ class ExecutionEngineDiscoveryCrews:
         )
 
         logger.info("🔧 Retrieved agent: asset_inventory")
+        logger.info("Agent tools: ['asset_creator','bulk_asset_creator']")
 
         # Continue with asset creation using the inventory agent
         try:

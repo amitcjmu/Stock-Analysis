@@ -19,6 +19,11 @@ from .persistence.postgres_store import (
 )
 from .persistence.secure_checkpoint_manager import SecureCheckpointManager
 from .persistence.state_recovery import FlowStateRecovery, StateRecoveryError
+from .flow_state_utils import (
+    create_initial_state_structure,
+    build_unified_discovery_state,
+)
+from .flow_lifecycle_operations import FlowLifecycleOperations
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +47,8 @@ class FlowStateManager:
         self.recovery = FlowStateRecovery(db, context)
         # Use secure checkpoint manager instead of insecure one
         self.secure_checkpoint_manager = SecureCheckpointManager(context)
+        # Use lifecycle operations for complex operations
+        self.lifecycle = FlowLifecycleOperations(db, context)
 
     async def create_flow_state(
         self, flow_id: str, initial_data: Dict[str, Any]
@@ -50,36 +57,10 @@ class FlowStateManager:
         try:
             logger.info(f"🔄 Creating new flow state: {flow_id}")
 
-            # Create initial state structure
-            flow_state = {
-                "flow_id": flow_id,
-                "client_account_id": str(self.context.client_account_id),
-                "engagement_id": str(self.context.engagement_id),
-                "user_id": str(self.context.user_id),
-                "current_phase": "initialization",
-                "status": "running",
-                "progress_percentage": 0.0,
-                "phase_completion": {
-                    "data_import": False,
-                    "field_mapping": False,
-                    "data_cleansing": False,
-                    "asset_creation": False,
-                    "asset_inventory": False,
-                    "dependency_analysis": False,
-                    "tech_debt_analysis": False,
-                },
-                "crew_status": {},
-                "raw_data": initial_data.get("raw_data", []),
-                "metadata": initial_data.get("metadata", {}),
-                "errors": [],
-                "warnings": [],
-                "agent_insights": [],
-                "user_clarifications": [],
-                "workflow_log": [],
-                "agent_confidences": {},
-                "created_at": datetime.utcnow().isoformat(),
-                "updated_at": datetime.utcnow().isoformat(),
-            }
+            # Create initial state structure using helper function
+            flow_state = create_initial_state_structure(
+                self.context, flow_id, initial_data
+            )
 
             # Validate initial state
             validation_result = self.validator.validate_complete_state(flow_state)
@@ -158,39 +139,13 @@ class FlowStateManager:
                 child_flow = await child_repo.get_by_flow_id(flow_id)
 
                 if child_flow:
+                    # Load persisted state JSON for null-safe access to validation_results
+                    base_state = await self.store.load_state(flow_id) or {}
+
                     # Create UnifiedDiscoveryFlowState from child flow operational data
-                    state = {
-                        "flow_id": flow_id,
-                        "client_account_id": str(self.context.client_account_id),
-                        "engagement_id": str(self.context.engagement_id),
-                        "user_id": str(self.context.user_id),
-                        "current_phase": child_flow.current_phase,
-                        "status": child_flow.status,  # ADR-012: Use child flow operational status
-                        "progress_percentage": child_flow.progress_percentage,
-                        "phase_completion": {
-                            "data_import": child_flow.data_import_completed or False,
-                            "field_mapping": child_flow.field_mapping_completed
-                            or False,
-                            "data_cleansing": child_flow.data_cleansing_completed
-                            or False,
-                            "asset_inventory": child_flow.asset_inventory_completed
-                            or False,
-                        },
-                        "errors": child_flow.error_details or [],
-                        "raw_data": [],  # Raw data is in flow_persistence_data, not child_flow
-                        "field_mappings": child_flow.field_mappings or {},
-                        "validation_results": child_flow.validation_results or {},
-                        "created_at": (
-                            child_flow.created_at.isoformat()
-                            if child_flow.created_at
-                            else None
-                        ),
-                        "updated_at": (
-                            child_flow.updated_at.isoformat()
-                            if child_flow.updated_at
-                            else None
-                        ),
-                    }
+                    state = build_unified_discovery_state(
+                        self.context, flow_id, child_flow, base_state
+                    )
 
                     logger.info(
                         f"✅ [ADR-012] Operational state loaded from child flow: {flow_id}"

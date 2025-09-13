@@ -50,8 +50,34 @@ async def load_flow_state_for_phase(
         else:
             flow_state_dict = dict(flow_state) if flow_state else {}
 
+        # CRITICAL FIX: Get data_import_id from discovery flow for asset_inventory phase
+        data_import_id = None
+        master_flow_id = None
+        if phase_name == "asset_inventory":
+            from sqlalchemy import select
+            from app.models.discovery_flow import DiscoveryFlow
+
+            # Get data_import_id from discovery flow record
+            discovery_result = await db.execute(
+                select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
+            )
+            discovery_flow = discovery_result.scalar_one_or_none()
+
+            if discovery_flow:
+                data_import_id = discovery_flow.data_import_id
+                master_flow_id = discovery_flow.master_flow_id
+                logger.info(
+                    f"📦 Found data_import_id={data_import_id} for asset_inventory phase"
+                )
+            else:
+                logger.warning(
+                    f"No discovery flow found for {flow_id}, data_import_id will be None"
+                )
+
         # Prepare phase-specific input based on phase name
-        phase_input = prepare_phase_input(flow_state_dict, phase_name, flow_id)
+        phase_input = prepare_phase_input(
+            flow_state_dict, phase_name, flow_id, data_import_id, master_flow_id
+        )
 
         raw_count = (
             len(phase_input.get("raw_data", []))
@@ -77,7 +103,11 @@ async def load_flow_state_for_phase(
 
 
 def prepare_phase_input(
-    flow_state_dict: Dict[str, Any], phase_name: str, flow_id: str
+    flow_state_dict: Dict[str, Any],
+    phase_name: str,
+    flow_id: str,
+    data_import_id: str = None,
+    master_flow_id: str = None,
 ) -> Dict[str, Any]:
     """
     Prepare phase-specific input based on flow state and phase requirements.
@@ -86,12 +116,22 @@ def prepare_phase_input(
         flow_state_dict: Flow state as dictionary
         phase_name: Name of the phase
         flow_id: Flow identifier
+        data_import_id: Data import ID (required for asset_inventory phase)
+        master_flow_id: Master flow ID
 
     Returns:
         Phase input dictionary
     """
     # Base phase input
     phase_input = {"flow_id": flow_id, "phase": phase_name}
+
+    # Add data_import_id if provided (critical for asset_inventory phase)
+    if data_import_id:
+        phase_input["data_import_id"] = data_import_id
+
+    # Add master_flow_id if provided
+    if master_flow_id:
+        phase_input["master_flow_id"] = master_flow_id
 
     # Add phase-specific data based on phase requirements
     if phase_name == "asset_inventory":
