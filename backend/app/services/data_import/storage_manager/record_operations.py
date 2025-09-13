@@ -163,21 +163,42 @@ class RawRecordOperationsMixin:
         """
         try:
             logger.info(
-                f"Updating raw records with cleansed data for import {data_import_id}"
+                f"🔄 Updating raw records with cleansed data for import {data_import_id}"
             )
+            logger.info(f"📊 Total cleansed_data input length: {len(cleansed_data)}")
+
             records_updated = 0
+            valid_uuid_count = 0
+            skipped_count = 0
 
             for record in cleansed_data:
                 # Assuming 'id' in the cleansed data corresponds to RawImportRecord.id
                 record_id = record.get("id")
                 if not record_id:
+                    logger.warning(f"🚨 Skipping record with no ID: {record}")
+                    skipped_count += 1
                     continue
 
+                # CRITICAL FIX: Convert record ID to UUID before comparing
+                try:
+                    record_uuid = uuid.UUID(str(record_id))
+                    valid_uuid_count += 1
+                    logger.debug(f"✅ Valid UUID {record_uuid} for record update")
+                except Exception as uuid_error:
+                    logger.warning(
+                        f"🚨 Invalid record ID (not UUID): {record_id} - {uuid_error}"
+                    )
+                    skipped_count += 1
+                    continue
+
+                # CRITICAL FIX: Add tenant scoping for safety
                 update_stmt = (
                     update(RawImportRecord)
                     .where(
-                        RawImportRecord.id == record_id,
+                        RawImportRecord.id == record_uuid,  # Use UUID instead of string
                         RawImportRecord.data_import_id == data_import_id,
+                        RawImportRecord.client_account_id
+                        == uuid.UUID(self.client_account_id),  # Tenant scoping
                     )
                     .values(
                         cleansed_data=record,
@@ -188,14 +209,28 @@ class RawRecordOperationsMixin:
                 )
                 result = await self.db.execute(update_stmt)
 
-                # CRITICAL FIX: Check rowcount to verify updates
+                # CRITICAL FIX: Enhanced logging for debugging
                 if result.rowcount > 0:
                     records_updated += 1
+                    logger.debug(f"✅ Updated record {record_uuid} successfully")
                 else:
-                    logger.warning(f"🚨 No rows updated for record ID {record_id}")
+                    logger.warning(
+                        f"🚨 No rows updated for record UUID {record_uuid} with data_import_id {data_import_id}"
+                    )
+                    logger.warning(f"🚨 Record data: {record}")
 
             # CRITICAL FIX: Add proper commit after batch updates
             await self.db.flush()  # Ensure all updates are written to DB
+
+            # CRITICAL: Comprehensive logging for debugging
+            logger.info("📊 Processing summary:")
+            logger.info(f"  - Valid UUIDs processed: {valid_uuid_count}")
+            logger.info(f"  - Records skipped: {skipped_count}")
+            logger.info(f"  - Records successfully updated: {records_updated}")
+            logger.info(
+                f"  - Records with rowcount=0: {valid_uuid_count - records_updated}"
+            )
+
             logger.info(f"✅ Updated {records_updated} raw records with cleansed data.")
             return records_updated
 

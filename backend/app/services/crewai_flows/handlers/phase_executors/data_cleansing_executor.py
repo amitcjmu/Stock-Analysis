@@ -9,6 +9,7 @@ import uuid
 from typing import Any, Dict, List
 
 from .base_phase_executor import BasePhaseExecutor
+from .data_cleansing_utils import DataCleansingUtils
 
 logger = logging.getLogger(__name__)
 
@@ -78,8 +79,12 @@ class DataCleansingExecutor(BasePhaseExecutor):
 
         return {
             "cleaned_data": cleaned_data,
-            "cleansing_summary": self._generate_cleansing_summary(cleaned_data),
-            "quality_metrics": self._calculate_cleansing_quality_metrics(cleaned_data),
+            "cleansing_summary": DataCleansingUtils.generate_cleansing_summary(
+                cleaned_data
+            ),
+            "quality_metrics": DataCleansingUtils.calculate_cleansing_quality_metrics(
+                cleaned_data
+            ),
             "persistent_agent_used": True,
             "crew_based": False,
         }
@@ -160,15 +165,15 @@ class DataCleansingExecutor(BasePhaseExecutor):
                         "business_criticality", record.get("criticality", "medium")
                     ),
                     # Performance metrics
-                    "cpu_utilization_percent": self._safe_float_convert(
+                    "cpu_utilization_percent": DataCleansingUtils.safe_float_convert(
                         record.get("cpu_utilization_percent", record.get("cpu_usage"))
                     ),
-                    "memory_utilization_percent": self._safe_float_convert(
+                    "memory_utilization_percent": DataCleansingUtils.safe_float_convert(
                         record.get(
                             "memory_utilization_percent", record.get("memory_usage")
                         )
                     ),
-                    "disk_utilization_percent": self._safe_float_convert(
+                    "disk_utilization_percent": DataCleansingUtils.safe_float_convert(
                         record.get("disk_utilization_percent", record.get("disk_usage"))
                     ),
                     # Network and security
@@ -204,146 +209,6 @@ class DataCleansingExecutor(BasePhaseExecutor):
             f"✅ Prepared {len(assets)} assets for agentic analysis with preserved raw record linkage"
         )
         return assets
-
-    def _generate_enrichment_summary(
-        self, enriched_assets: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
-        """Generate summary of agentic enrichment results"""
-
-        total_assets = len(enriched_assets)
-        successful_enrichments = sum(
-            1
-            for asset in enriched_assets
-            if asset.get("enrichment_status") == "agentic_complete"
-        )
-
-        # Business Value Distribution
-        business_value_distribution = {"high": 0, "medium": 0, "low": 0}
-        for asset in enriched_assets:
-            score = asset.get("business_value_score", 5)
-            if score >= 8:
-                business_value_distribution["high"] += 1
-            elif score >= 6:
-                business_value_distribution["medium"] += 1
-            else:
-                business_value_distribution["low"] += 1
-
-        # Risk Assessment Distribution
-        risk_distribution = {"critical": 0, "high": 0, "medium": 0, "low": 0}
-        for asset in enriched_assets:
-            risk_level = asset.get("risk_assessment", "medium")
-            risk_distribution[risk_level] = risk_distribution.get(risk_level, 0) + 1
-
-        # Cloud Readiness Distribution
-        cloud_ready_count = sum(
-            1
-            for asset in enriched_assets
-            if asset.get("cloud_readiness_score", 50) >= 70
-        )
-        modernization_ready_count = sum(
-            1
-            for asset in enriched_assets
-            if asset.get("modernization_potential") == "high"
-        )
-
-        summary = {
-            "total_assets_analyzed": total_assets,
-            "successful_enrichments": successful_enrichments,
-            "enrichment_success_rate": (
-                round((successful_enrichments / total_assets * 100), 1)
-                if total_assets > 0
-                else 0
-            ),
-            "business_value_distribution": business_value_distribution,
-            "risk_assessment_distribution": risk_distribution,
-            "cloud_readiness_metrics": {
-                "cloud_ready_assets": cloud_ready_count,
-                "modernization_ready_assets": modernization_ready_count,
-                "cloud_readiness_percentage": (
-                    round((cloud_ready_count / total_assets * 100), 1)
-                    if total_assets > 0
-                    else 0
-                ),
-            },
-            "agentic_intelligence_metrics": {
-                "patterns_discovered": sum(
-                    asset.get("memory_patterns_discovered", 0)
-                    for asset in enriched_assets
-                ),
-                "average_confidence": (
-                    round(
-                        sum(
-                            asset.get("agentic_confidence_score", 0.5)
-                            for asset in enriched_assets
-                        )
-                        / total_assets,
-                        2,
-                    )
-                    if total_assets > 0
-                    else 0.0
-                ),
-            },
-        }
-
-        return summary
-
-    def _calculate_agentic_quality_metrics(
-        self, enriched_assets: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
-        """Calculate quality metrics based on agentic enrichment completeness"""
-
-        total_assets = len(enriched_assets)
-        if total_assets == 0:
-            return {"quality_score": 0, "completeness": 0}
-
-        # Calculate completeness based on enrichment fields
-        enrichment_fields = [
-            "business_value_score",
-            "risk_assessment",
-            "cloud_readiness_score",
-            "business_value_reasoning",
-            "risk_analysis_reasoning",
-            "architecture_assessment",
-        ]
-
-        completeness_scores = []
-        for asset in enriched_assets:
-            field_count = sum(
-                1 for field in enrichment_fields if asset.get(field) is not None
-            )
-            completeness = field_count / len(enrichment_fields)
-            completeness_scores.append(completeness)
-
-        average_completeness = sum(completeness_scores) / len(completeness_scores)
-
-        # Calculate overall quality score
-        successful_enrichments = sum(
-            1
-            for asset in enriched_assets
-            if asset.get("enrichment_status") == "agentic_complete"
-        )
-        success_rate = successful_enrichments / total_assets
-
-        # Quality score combines completeness and success rate
-        quality_score = (average_completeness * 0.6) + (success_rate * 0.4)
-
-        return {
-            "quality_score": round(quality_score * 100, 1),
-            "completeness_percentage": round(average_completeness * 100, 1),
-            "success_rate_percentage": round(success_rate * 100, 1),
-            "agentic_analysis_used": True,
-            "total_assets_processed": total_assets,
-            "successfully_enriched": successful_enrichments,
-        }
-
-    def _safe_float_convert(self, value: Any) -> float:
-        """Safely convert a value to float, returning 0.0 if conversion fails"""
-        try:
-            if value is None:
-                return 0.0
-            return float(value)
-        except (ValueError, TypeError):
-            return 0.0
 
     async def _update_cleansed_data_sync(self, cleaned_data: List[Dict[str, Any]]):
         """Update raw records with cleansed data - SYNCHRONOUS, no fire-and-forget"""
@@ -411,11 +276,24 @@ class DataCleansingExecutor(BasePhaseExecutor):
                 logger.error("❌ No data_import_id found in state")
                 return []
 
-            # WITH TENANT SCOPING
+            # WITH TENANT SCOPING - Ensure proper UUID conversion
             query = select(RawImportRecord).where(
-                RawImportRecord.data_import_id == data_import_id,
-                RawImportRecord.client_account_id == self.state.client_account_id,
-                RawImportRecord.engagement_id == self.state.engagement_id,
+                (
+                    RawImportRecord.data_import_id == uuid.UUID(data_import_id)
+                    if isinstance(data_import_id, str)
+                    else data_import_id
+                ),
+                (
+                    RawImportRecord.client_account_id
+                    == uuid.UUID(self.state.client_account_id)
+                    if isinstance(self.state.client_account_id, str)
+                    else self.state.client_account_id
+                ),
+                (
+                    RawImportRecord.engagement_id == uuid.UUID(self.state.engagement_id)
+                    if isinstance(self.state.engagement_id, str)
+                    else self.state.engagement_id
+                ),
             )
 
             result = await session.execute(query)
