@@ -291,9 +291,70 @@ async def asset_creation_completion(
         }
 
 
-# REMOVED: asset_inventory handler - using persistent agent implementation instead (ADR-022)
-# The asset_inventory phase is now handled exclusively through the persistent agent
-# architecture in execution_engine_crew_discovery.py
+async def asset_inventory(
+    flow_id: str, phase_input: Dict[str, Any], context: Any, **kwargs
+) -> Dict[str, Any]:
+    """Execute asset inventory phase - creates assets from raw data using AssetInventoryExecutor"""
+    logger.info(f"Executing asset inventory handler for flow {flow_id}")
+
+    try:
+        # Import the executor here to avoid circular imports
+        from app.services.crewai_flows.handlers.phase_executors.asset_inventory_executor import (
+            AssetInventoryExecutor,
+        )
+
+        # Create flow context for the executor
+        flow_context = {
+            "flow_id": flow_id,
+            "master_flow_id": phase_input.get("master_flow_id", flow_id),
+            "client_account_id": phase_input.get("client_account_id")
+            or getattr(context, "client_account_id", None),
+            "engagement_id": phase_input.get("engagement_id")
+            or getattr(context, "engagement_id", None),
+            "user_id": getattr(context, "user_id", None),
+            "db_session": kwargs.get("db_session")
+            or getattr(context, "db_session", None),
+        }
+
+        # Validate required context
+        if not all([flow_context["client_account_id"], flow_context["engagement_id"]]):
+            logger.error(
+                f"Missing required context for asset inventory: {flow_context}"
+            )
+            return {
+                "phase": "asset_inventory",
+                "status": "failed",
+                "flow_id": flow_id,
+                "error": "Missing required tenant context (client_account_id, engagement_id)",
+                "assets_created": 0,
+            }
+
+        # Create executor instance (no base class dependencies needed)
+        executor = AssetInventoryExecutor(state=None, crew_manager=None)
+
+        # Execute asset creation
+        result = await executor.execute_asset_creation(flow_context)
+
+        # Ensure proper return format
+        result.update(
+            {
+                "phase": "asset_inventory",
+                "flow_id": flow_id,
+                "next_phase": "dependency_analysis",
+            }
+        )
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Asset inventory handler failed: {e}")
+        return {
+            "phase": "asset_inventory",
+            "status": "failed",
+            "flow_id": flow_id,
+            "error": str(e),
+            "assets_created": 0,
+        }
 
 
 async def data_import_preparation(

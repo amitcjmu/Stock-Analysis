@@ -432,7 +432,7 @@ class ExecutionEngineDiscoveryCrews:
         phase_methods = {
             "data_import_validation": self.phase_handlers.execute_data_import_validation,
             "field_mapping": self._execute_discovery_field_mapping,
-            "data_cleansing": self.phase_handlers.execute_data_cleansing,
+            "data_cleansing": self._execute_discovery_data_cleansing,
             "asset_creation": self._execute_discovery_asset_inventory,  # Asset creation is part of inventory (ADR-022)
             "asset_inventory": self._execute_discovery_asset_inventory,
             "analysis": self.phase_handlers.execute_analysis,
@@ -448,6 +448,64 @@ class ExecutionEngineDiscoveryCrews:
         return await self.field_mapping_logic.execute_discovery_field_mapping(
             agent_pool, phase_input, self.db_session
         )
+
+    async def _execute_discovery_data_cleansing(
+        self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Execute data cleansing phase using DataCleansingExecutor"""
+        logger.info("🧹 Executing discovery data cleansing using DataCleansingExecutor")
+
+        try:
+            # Import the DataCleansingExecutor
+            from app.services.crewai_flows.handlers.phase_executors.data_cleansing_executor import (
+                DataCleansingExecutor,
+            )
+            from app.models.unified_discovery_flow_state import (
+                UnifiedDiscoveryFlowState,
+            )
+
+            # Create state object from phase_input
+            state = UnifiedDiscoveryFlowState()
+
+            # Set required state attributes from phase_input
+            state.flow_id = phase_input.get("master_flow_id") or phase_input.get(
+                "flow_id"
+            )
+            state.data_import_id = phase_input.get("data_import_id")
+            state.client_account_id = self.context.client_account_id
+            state.engagement_id = self.context.engagement_id
+            state.raw_data = phase_input.get("raw_data", [])
+
+            # Initialize the executor with state and session
+            executor = DataCleansingExecutor(state)
+            executor.db_session = self.db_session
+            executor.service_registry = self.service_registry
+
+            # Execute with crew
+            result = await executor.execute_with_crew(phase_input)
+
+            logger.info("✅ Data cleansing completed using DataCleansingExecutor")
+
+            return {
+                "phase": "data_cleansing",
+                "status": "completed",
+                "crew_results": result,
+                "cleansed_data": result.get("cleaned_data", []),
+                "agent": "data_cleansing_agent",
+                "method": "data_cleansing_executor",
+                "quality_metrics": result.get("quality_metrics", {}),
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Data cleansing failed with DataCleansingExecutor: {e}")
+            return {
+                "phase": "data_cleansing",
+                "status": "error",
+                "error": str(e),
+                "cleansed_data": [],
+                "agent": "data_cleansing_agent",
+                "method": "data_cleansing_executor",
+            }
 
     # REMOVED: _execute_discovery_asset_creation placeholder
     # Asset creation is now part of asset_inventory phase per ADR-022
@@ -492,43 +550,25 @@ class ExecutionEngineDiscoveryCrews:
         raw_count = raw_result.scalar()
 
         logger.info(
-            f"📊 Using cleansed rows: {cleansed_count}; raw fallback: {raw_count} (enabled)"
+            f"📊 Found {cleansed_count} cleansed records, {raw_count} total records"
         )
 
-        # ENHANCED: Allow fallback to raw data if no cleansed data is available
-        # This fixes the 422 error during data_cleansing to asset_inventory transition
+        # REQUIRE cleansed data - no raw fallbacks allowed
         if cleansed_count == 0:
-            if raw_count == 0:
-                return {
-                    "status": "error",
-                    "error_code": "NO_DATA_AVAILABLE",
-                    "message": "No raw or cleansed data available for asset inventory.",
-                    "counts": {"raw": 0, "cleansed": 0},
-                }
+            return {
+                "status": "error",
+                "error_code": "NO_CLEANSED_DATA",
+                "message": "No cleansed data available for asset inventory. "
+                "Data cleansing phase must be completed first.",
+                "details": {
+                    "cleansed_count": 0,
+                    "raw_count": raw_count,
+                    "data_import_id": str(data_import_id),
+                },
+            }
 
-            # Use raw data as fallback
-            logger.warning(
-                f"⚠️ No cleansed data found, using {raw_count} raw records as fallback for asset inventory"
-            )
-
-            # Query for raw data
-            raw_result = await self.db_session.execute(
-                select(RawImportRecord).where(
-                    RawImportRecord.data_import_id == data_import_id,
-                    RawImportRecord.client_account_id == self.context.client_account_id,
-                    RawImportRecord.engagement_id == self.context.engagement_id,
-                )
-            )
-            raw_records = raw_result.scalars().all()
-
-            # Extract raw data (use imported_data instead of cleansed_data)
-            cleansed_data = [r.imported_data for r in raw_records if r.imported_data]
-            logger.info(
-                f"📦 Using {len(cleansed_data)} raw data records for asset inventory"
-            )
-        else:
-            # Extract cleansed data
-            cleansed_data = [r.cleansed_data for r in records]
+        # Extract cleansed data only
+        cleansed_data = [r.cleansed_data for r in records]
 
         # Get field mappings
         field_mappings = await self._get_approved_field_mappings(phase_input)

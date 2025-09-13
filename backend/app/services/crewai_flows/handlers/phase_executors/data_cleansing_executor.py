@@ -247,15 +247,90 @@ class DataCleansingExecutor(BasePhaseExecutor):
                 await db.close()
 
     async def _mark_phase_complete(self, phase_name: str):
-        """Mark phase as complete for progression tracking"""
-        # For now, just log the phase completion
-        # The actual phase tracking is handled by the master flow orchestrator
+        """Mark phase as complete for progression tracking and persist to database"""
         logger.info(f"✅ Phase {phase_name} completed for flow {self.state.flow_id}")
 
         # Update state to indicate phase completion
         if phase_name == "data_cleansing":
             self.state.data_cleansing_completed = True
             logger.info("✅ Set data_cleansing_completed flag in state")
+
+            # Persist data_cleansing_completed flag to database
+            await self._persist_phase_completion_to_database(phase_name)
+
+    async def _persist_phase_completion_to_database(self, phase_name: str):
+        """Persist phase completion flag to the discovery_flows table"""
+        try:
+            from sqlalchemy import select
+            from app.models.discovery_flow import DiscoveryFlow
+
+            # Use existing session if available, otherwise create new one
+            if hasattr(self, "db_session") and self.db_session:
+                db = self.db_session
+                should_commit = False  # Don't commit if using provided session
+            else:
+                from app.core.database import AsyncSessionLocal
+
+                db = AsyncSessionLocal()
+                should_commit = True  # Commit if we created the session
+
+            try:
+                # Find the child discovery flow by master_flow_id
+                master_flow_id = (
+                    uuid.UUID(self.state.flow_id)
+                    if isinstance(self.state.flow_id, str)
+                    else self.state.flow_id
+                )
+
+                result = await db.execute(
+                    select(DiscoveryFlow).where(
+                        DiscoveryFlow.master_flow_id == master_flow_id,
+                        (
+                            DiscoveryFlow.client_account_id
+                            == uuid.UUID(self.state.client_account_id)
+                            if isinstance(self.state.client_account_id, str)
+                            else self.state.client_account_id
+                        ),
+                        (
+                            DiscoveryFlow.engagement_id
+                            == uuid.UUID(self.state.engagement_id)
+                            if isinstance(self.state.engagement_id, str)
+                            else self.state.engagement_id
+                        ),
+                    )
+                )
+
+                discovery_flow = result.scalar_one_or_none()
+
+                if discovery_flow:
+                    if phase_name == "data_cleansing":
+                        discovery_flow.data_cleansing_completed = True
+                        logger.info(
+                            f"✅ Updated discovery_flow.data_cleansing_completed = True for flow {self.state.flow_id}"
+                        )
+
+                    if should_commit:
+                        await db.commit()
+                    else:
+                        await db.flush()  # Flush changes if not committing
+
+                    logger.info(
+                        f"✅ Successfully persisted {phase_name} completion to database"
+                    )
+                else:
+                    logger.warning(
+                        f"⚠️ Could not find discovery flow for master_flow_id {self.state.flow_id}"
+                    )
+
+            finally:
+                if should_commit and db:
+                    await db.close()
+
+        except Exception as e:
+            logger.error(
+                f"❌ Failed to persist {phase_name} completion to database: {e}"
+            )
+            # Don't raise the exception - phase completion should not fail the whole process
 
     async def _get_raw_import_records_with_ids(self) -> List[Dict[str, Any]]:
         """Get raw import records with IDs and tenant scoping"""
