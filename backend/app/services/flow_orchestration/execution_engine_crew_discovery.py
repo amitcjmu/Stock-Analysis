@@ -505,12 +505,12 @@ class ExecutionEngineDiscoveryCrews:
                     "message": "No raw or cleansed data available for asset inventory.",
                     "counts": {"raw": 0, "cleansed": 0},
                 }
-            
+
             # Use raw data as fallback
             logger.warning(
                 f"⚠️ No cleansed data found, using {raw_count} raw records as fallback for asset inventory"
             )
-            
+
             # Query for raw data
             raw_result = await self.db_session.execute(
                 select(RawImportRecord).where(
@@ -520,10 +520,12 @@ class ExecutionEngineDiscoveryCrews:
                 )
             )
             raw_records = raw_result.scalars().all()
-            
+
             # Extract raw data (use imported_data instead of cleansed_data)
             cleansed_data = [r.imported_data for r in raw_records if r.imported_data]
-            logger.info(f"📦 Using {len(cleansed_data)} raw data records for asset inventory")
+            logger.info(
+                f"📦 Using {len(cleansed_data)} raw data records for asset inventory"
+            )
         else:
             # Extract cleansed data
             cleansed_data = [r.cleansed_data for r in records]
